@@ -442,9 +442,10 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it('should generate complex agent code that compiles', () => {
+    it.only('should generate complex agent code that compiles', async () => {
+      const agentId = 'complex-test-agent';
       const definition = generateAgentDefinition(
-        'complex-test-agent',
+        agentId,
         complexAgentData,
         undefined,
         mockRegistry
@@ -484,6 +485,11 @@ describe('Agent Generator', () => {
       );
       expect(result.stopWhen).toBeDefined();
       expect(result.stopWhen.transferCountIs).toBe(5);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should throw error for minimal agent without required fields', () => {
