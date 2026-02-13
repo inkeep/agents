@@ -10,6 +10,7 @@
  * - Message posting (channels and threads)
  */
 
+import type { WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkUserIsChannelMember,
@@ -21,34 +22,31 @@ import {
   postMessageInThread,
 } from '../../slack/services/client';
 
-const mockWebClient = vi.fn().mockImplementation(() => ({
-  users: {
-    info: vi.fn(),
-  },
-  team: {
-    info: vi.fn(),
-  },
-  conversations: {
-    list: vi.fn(),
-    members: vi.fn(),
-  },
-  chat: {
-    postMessage: vi.fn(),
-  },
-}));
+const { mockWebClient } = vi.hoisted(() => {
+  const mockWebClient = vi.fn().mockImplementation(() => ({
+    users: {
+      info: vi.fn(),
+    },
+    team: {
+      info: vi.fn(),
+    },
+    conversations: {
+      list: vi.fn(),
+      members: vi.fn(),
+    },
+    chat: {
+      postMessage: vi.fn(),
+    },
+  }));
 
-const mockRetryPolicies = {
-  fiveRetriesInFiveMinutes: { retries: 5, factor: 3.86, randomize: true },
-};
+  return { mockWebClient };
+});
 
-vi.mock('@slack/web-api', () => ({
-  default: {
+vi.mock('@slack/web-api', () => {
+  return {
     WebClient: mockWebClient,
-    retryPolicies: mockRetryPolicies,
-  },
-  WebClient: mockWebClient,
-  retryPolicies: mockRetryPolicies,
-}));
+  };
+});
 
 vi.mock('../../logger', () => ({
   getLogger: () => ({
@@ -65,14 +63,12 @@ describe('Slack Client', () => {
   });
 
   describe('getSlackClient', () => {
-    it('should create a WebClient with the provided token and retry config', () => {
+    it('should create a WebClient with the provided token', () => {
       const token = 'xoxb-test-token';
 
       const client = getSlackClient(token);
 
-      expect(mockWebClient).toHaveBeenCalledWith(token, {
-        retryConfig: mockRetryPolicies.fiveRetriesInFiveMinutes,
-      });
+      expect(mockWebClient).toHaveBeenCalledWith(token);
       expect(client).toBeDefined();
     });
 
@@ -83,8 +79,8 @@ describe('Slack Client', () => {
       getSlackClient(token1);
       getSlackClient(token2);
 
-      expect(mockWebClient).toHaveBeenCalledWith(token1, expect.anything());
-      expect(mockWebClient).toHaveBeenCalledWith(token2, expect.anything());
+      expect(mockWebClient).toHaveBeenCalledWith(token1);
+      expect(mockWebClient).toHaveBeenCalledWith(token2);
     });
   });
 
