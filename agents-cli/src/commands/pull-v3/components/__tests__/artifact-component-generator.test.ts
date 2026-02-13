@@ -272,7 +272,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should handle contentType property', () => {
+    it.only('should handle contentType property', async () => {
       const dataWithContentType = {
         name: 'Test',
         description: 'Component with content type',
@@ -280,9 +280,25 @@ describe('Artifact Component Generator', () => {
         contentType: 'text/html',
       };
 
-      const definition = generateArtifactComponentDefinition('test', dataWithContentType);
+      const artifactComponentId = 'test';
+      const definition = generateArtifactComponentDefinition(
+        artifactComponentId,
+        dataWithContentType
+      );
 
       expect(definition).toContain("contentType: 'text/html'");
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...dataWithContentType,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should handle multiline template with template literals', () => {
