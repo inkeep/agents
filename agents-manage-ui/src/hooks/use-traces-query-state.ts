@@ -33,6 +33,7 @@ export interface SpanAttribute {
  * - Time range selection (24h, 7d, 15d, 30d, custom)
  * - Custom date range (start/end dates)
  * - Span filtering (name and attributes)
+ * - Agent filtering (agentId)
  */
 export function useTracesQueryState() {
   const [queryState, setQueryState] = useQueryStates({
@@ -42,6 +43,9 @@ export function useTracesQueryState() {
     // Custom date range - using descriptive names
     customStartDate: parseAsString.withDefault(''),
     customEndDate: parseAsString.withDefault(''),
+
+    // Agent filtering
+    agentId: parseAsString.withDefault(''),
 
     // Span filtering
     spanName: parseAsString.withDefault(''),
@@ -63,6 +67,7 @@ export function useTracesQueryState() {
     timeRange: queryState.timeRange,
     customStartDate: queryState.customStartDate,
     customEndDate: queryState.customEndDate,
+    agentId: queryState.agentId || undefined,
     spanName: queryState.spanName,
     spanAttributes: queryState.spanAttributes,
 
@@ -73,10 +78,12 @@ export function useTracesQueryState() {
     setTimeRange: (timeRange: TimeRange) => setQueryState({ timeRange }),
     setCustomDateRange: (start: string, end: string) =>
       setQueryState({ customStartDate: start, customEndDate: end }),
+    setAgentFilter: (agentId?: string) => setQueryState({ agentId: agentId ?? '' }),
     setSpanFilter: (name: string, attributes: SpanAttribute[] = []) =>
       setQueryState({ spanName: name, spanAttributes: attributes }),
     clearFilters: () =>
       setQueryState({
+        agentId: '',
         spanName: '',
         spanAttributes: [],
         timeRange: '30d',
