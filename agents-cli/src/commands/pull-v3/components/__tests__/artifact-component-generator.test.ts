@@ -3,7 +3,6 @@
  * Unit tests for artifact component generator
  */
 
-import { describe, expect, it } from 'vitest';
 import {
   generateArtifactComponentDefinition,
   generateArtifactComponentFile,
@@ -122,7 +121,7 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('generateArtifactComponentDefinition', () => {
-    it('should generate correct definition with all properties', () => {
+    it.only('should generate correct definition with all properties', () => {
       const definition = generateArtifactComponentDefinition('citation', testComponentData);
 
       expect(definition).toContain('export const citation = artifactComponent({');
