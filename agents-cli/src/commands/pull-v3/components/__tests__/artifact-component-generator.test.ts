@@ -230,10 +230,20 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should throw error for missing required fields', () => {
+    it.only('should throw error for missing required fields', () => {
+      const artifactComponentId = 'minimal';
       expect(() => {
-        generateArtifactComponentDefinition('minimal', {});
+        generateArtifactComponentDefinition(artifactComponentId, {});
       }).toThrow("Missing required fields for artifact component 'minimal': name, props");
+      expect(() => {
+        generateArtifactComponentDefinitionV4({ artifactComponentId });
+      }).toThrow(
+        new Error(`Missing required fields for artifact component:
+✖ Invalid input: expected string, received undefined
+  → at name
+✖ Invalid input: expected object, received undefined
+  → at props`)
+      );
     });
 
     it('should handle template property', () => {
