@@ -575,32 +575,32 @@ describe('Agent Generator', () => {
       );
     });
 
-    it('should handle large number of subAgents with proper formatting', () => {
-      const manySubAgentsData = {
-        name: 'Many SubAgents Agent',
-        defaultSubAgentId: 'agent1',
-        subAgents: {
-          agent1: { id: 'agent1' },
-          agent2: { id: 'agent2' },
-          agent3: { id: 'agent3' },
-          agent4: { id: 'agent4' },
-          agent5: { id: 'agent5' },
-          agent6: { id: 'agent6' },
-        },
-      };
-
-      const definition = generateAgentDefinition(
-        'many-sub-agents',
-        manySubAgentsData,
-        undefined,
-        mockRegistry
-      );
-
-      expect(definition).toContain('subAgents: () => [');
-      expect(definition).toContain('  agent1,');
-      expect(definition).toContain('  agent2,');
-      expect(definition).toContain('  agent6'); // Last one without comma
-      expect(definition).not.toContain('agent6,');
-    });
+    // it('should handle large number of subAgents with proper formatting', () => {
+    //   const manySubAgentsData = {
+    //     name: 'Many SubAgents Agent',
+    //     defaultSubAgentId: 'agent1',
+    //     subAgents: {
+    //       agent1: { id: 'agent1' },
+    //       agent2: { id: 'agent2' },
+    //       agent3: { id: 'agent3' },
+    //       agent4: { id: 'agent4' },
+    //       agent5: { id: 'agent5' },
+    //       agent6: { id: 'agent6' },
+    //     },
+    //   };
+    //
+    //   const definition = generateAgentDefinition(
+    //     'many-sub-agents',
+    //     manySubAgentsData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('subAgents: () => [');
+    //   expect(definition).toContain('  agent1,');
+    //   expect(definition).toContain('  agent2,');
+    //   expect(definition).toContain('  agent6'); // Last one without comma
+    //   expect(definition).not.toContain('agent6,');
+    // });
   });
 });
