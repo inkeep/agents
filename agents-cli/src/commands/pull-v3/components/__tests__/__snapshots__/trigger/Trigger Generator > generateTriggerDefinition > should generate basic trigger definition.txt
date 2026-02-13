@@ -1,0 +1,5 @@
+export const githubWebhook = new Trigger({
+  id: 'github-webhook',
+  name: 'GitHub Webhook',
+  messageTemplate: 'New event from GitHub: {{body.action}}'
+});
