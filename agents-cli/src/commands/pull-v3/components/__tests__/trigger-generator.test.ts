@@ -216,7 +216,7 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should generate trigger with multiple algorithms', () => {
+    it.only('should generate trigger with multiple algorithms', async () => {
       const triggerDataSha512 = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -225,14 +225,20 @@ describe('Trigger Generator', () => {
         },
       };
 
+      const triggerId = 'webhook-sha512';
       const definition = generateTriggerDefinition(
-        'webhook-sha512',
+        triggerId,
         triggerDataSha512,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
       );
 
       expect(definition).toContain("algorithm: 'sha512',");
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataSha512 });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should generate trigger with base64 encoding', () => {
