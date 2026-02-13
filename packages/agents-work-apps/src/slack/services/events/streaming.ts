@@ -16,6 +16,8 @@ const logger = getLogger('slack-streaming');
 
 const STREAM_TIMEOUT_MS = 120_000;
 const CHATSTREAM_OP_TIMEOUT_MS = 10_000;
+/** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
+const CLEANUP_TIMEOUT_MS = 3_000;
 
 /**
  * Wrap a promise with a timeout to prevent indefinite blocking on Slack API calls.
@@ -269,6 +271,7 @@ export async function streamAgentResponse(params: {
       } catch (stopError) {
         // If content was already delivered to the user, a streamer.stop() timeout
         // is a non-critical finalization error — log it but don't surface to user
+        span.setAttribute(SLACK_SPAN_KEYS.STREAM_FINALIZATION_FAILED, true);
         logger.warn(
           { stopError, channel, threadTs, responseLength: fullText.length },
           'Failed to finalize chatStream — content was already delivered'
@@ -302,11 +305,12 @@ export async function streamAgentResponse(params: {
       if (contentAlreadyDelivered) {
         // Content was already streamed to the user — a late error (e.g. streamer.append
         // timeout on the final chunk) should not surface as a user-facing error message.
+        span.setAttribute(SLACK_SPAN_KEYS.CONTENT_ALREADY_DELIVERED, true);
         logger.warn(
           { streamError, channel, threadTs, responseLength: fullText.length },
           'Error during Slack streaming after content was already delivered — suppressing user-facing error'
         );
-        await withTimeout(streamer.stop(), CHATSTREAM_OP_TIMEOUT_MS, 'streamer.stop').catch((e) =>
+        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
           logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
         );
 
@@ -324,7 +328,7 @@ export async function streamAgentResponse(params: {
 
       // No content was delivered — surface the error to the user
       logger.error({ streamError }, 'Error during Slack streaming');
-      await withTimeout(streamer.stop(), CHATSTREAM_OP_TIMEOUT_MS, 'streamer.stop').catch((e) =>
+      await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
         logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
       );
 

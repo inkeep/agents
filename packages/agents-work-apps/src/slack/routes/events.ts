@@ -94,8 +94,14 @@ app.post('/events', async (c) => {
   const retryNum = c.req.header('x-slack-retry-num');
   const retryReason = c.req.header('x-slack-retry-reason');
   if (retryNum) {
-    logger.info({ retryNum, retryReason }, 'Acknowledging Slack retry without re-processing');
-    return c.json({ ok: true });
+    return tracer.startActiveSpan(`${SLACK_SPAN_NAMES.WEBHOOK} retry`, (span) => {
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'ignored_slack_retry' satisfies SlackOutcome);
+      span.setAttribute('slack.retry_num', retryNum);
+      if (retryReason) span.setAttribute('slack.retry_reason', retryReason);
+      logger.info({ retryNum, retryReason }, 'Acknowledging Slack retry without re-processing');
+      span.end();
+      return c.json({ ok: true });
+    });
   }
 
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.WEBHOOK, async (span) => {
