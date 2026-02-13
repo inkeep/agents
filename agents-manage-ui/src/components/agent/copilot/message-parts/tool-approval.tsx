@@ -1,7 +1,6 @@
-import type { DataOperationEvent } from '@inkeep/agents-core';
+import type { ToolUIPart } from 'ai';
 import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,21 +10,6 @@ import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
 import { LoadingIndicator } from './loading';
 
-interface ToolCallData {
-  toolName: string;
-  input: Record<string, any>;
-  toolCallId: string;
-  needsApproval: true;
-  conversationId: string;
-}
-
-type ToolCallApprovalData = DataOperationEvent & {
-  type: 'tool_call';
-  details: DataOperationEvent['details'] & {
-    data: ToolCallData;
-  };
-};
-
 interface EntityData {
   id: string;
   name?: string;
@@ -34,7 +18,8 @@ interface EntityData {
 }
 
 interface ToolApprovalProps {
-  data: ToolCallApprovalData;
+  tool: ToolUIPart;
+  approve: (approved?: boolean) => Promise<void>;
   copilotAgentId?: string;
   copilotProjectId?: string;
   copilotTenantId?: string;
@@ -108,55 +93,16 @@ const ApprovalWrapper = ({
   );
 };
 
-export const ToolApproval = ({
-  data,
-  copilotAgentId,
-  copilotProjectId,
-  copilotTenantId,
-  apiUrl,
-  cookieHeader,
-  copilotToken,
-}: ToolApprovalProps) => {
+export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [entityData, setEntityData] = useState<EntityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
 
-  const { conversationId, toolCallId, input, toolName } = data.details.data;
+  const { toolCallId, input, type: toolName } = tool;
   const { displayName: entityType, operationType, icon } = parseToolNameForDisplay(toolName);
-  const { projectId, tenantId } = input.request || input;
+  const { projectId, tenantId } = (input as any).request || input;
   const isDeleteOperation = toolName.includes('delete');
-
-  const handleApproval = async (approved: boolean) => {
-    setSubmitted(true);
-    try {
-      const response = await fetch(`${apiUrl}/run/api/tool-approvals`, {
-        method: 'POST',
-        headers: {
-          ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
-          ...(copilotProjectId && { 'x-inkeep-project-id': copilotProjectId }),
-          ...(copilotAgentId && { 'x-inkeep-agent-id': copilotAgentId }),
-          ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
-          Authorization: `Bearer ${copilotToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversationId,
-          toolCallId,
-          approved,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${approved ? 'approve' : 'reject'} tool call`);
-      }
-    } catch (error) {
-      setSubmitted(false);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      toast.error(errorMessage);
-    }
-  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates
   useEffect(() => {
@@ -167,7 +113,7 @@ export const ToolApproval = ({
 
         const result = await fetchToolApprovalDiff({
           toolName,
-          input,
+          input: input as Record<string, any>,
           tenantId,
           projectId,
         });
@@ -216,17 +162,12 @@ export const ToolApproval = ({
     rejectLabel?: string;
     approveIcon?: React.ReactNode;
   }) =>
-    !submitted && (
+    tool.state === 'approval-requested' && (
       <div className="flex gap-2 justify-end">
-        <Button variant="outline" size="xs" type="button" onClick={() => handleApproval(false)}>
+        <Button variant="outline" size="xs" type="button" onClick={() => approve(false)}>
           {rejectLabel}
         </Button>
-        <Button
-          variant={approveVariant}
-          size="xs"
-          type="button"
-          onClick={() => handleApproval(true)}
-        >
+        <Button variant={approveVariant} size="xs" type="button" onClick={() => approve(true)}>
           {approveIcon}
           {approveLabel}
         </Button>

@@ -13,7 +13,7 @@ import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { sentry } from '@/lib/sentry';
 import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
-import { IkpMessage } from './message-parts/message';
+import { IkpTool } from './message-parts/message';
 
 interface CopilotChatProps {
   agentId?: string;
@@ -206,25 +206,20 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           aiChatSettings={{
             aiAssistantName: 'Agent Editor',
             components: {
-              ...(IkpMessage
-                ? {
-                    IkpMessage: (props: any) =>
-                      IkpMessage({
-                        ...props,
-                        copilotAgentId: PUBLIC_INKEEP_COPILOT_AGENT_ID,
-                        copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-                        copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
-                        apiUrl: PUBLIC_INKEEP_AGENTS_API_URL,
-                        targetTenantId: tenantId,
-                        targetProjectId: projectId,
-                        targetAgentId: agentId,
-                        onOAuthLogin: handleOAuthLogin,
-                        refreshAgentGraph: refreshAgentGraph,
-                        cookieHeader: cookieHeader,
-                        copilotToken: copilotToken,
-                      }),
-                  }
-                : {}),
+              IkpTool: (props: any) =>
+                IkpTool({
+                  ...props,
+                  copilotAgentId: PUBLIC_INKEEP_COPILOT_AGENT_ID,
+                  copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
+                  copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
+                  apiUrl: PUBLIC_INKEEP_AGENTS_API_URL,
+                  targetTenantId: tenantId,
+                  targetProjectId: projectId,
+                  onOAuthLogin: handleOAuthLogin,
+                  refreshAgentGraph: refreshAgentGraph,
+                  cookieHeader: cookieHeader,
+                  copilotToken: copilotToken,
+                }),
             },
             conversationId,
             chatFunctionsRef,
