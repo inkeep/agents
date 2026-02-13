@@ -641,14 +641,28 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should handle component ID starting with number', () => {
-      const definition = generateArtifactComponentDefinition('2023-artifact', {
+    it.only('should handle component ID starting with number', async () => {
+      const artifactComponentId = '2023-artifact';
+      const numericIdData = {
         name: 'Artifact',
         description: 'Component starting with number',
         props: { type: 'object', properties: {} },
-      });
+      };
+      const definition = generateArtifactComponentDefinition(artifactComponentId, numericIdData);
 
       expect(definition).toContain('export const _2023Artifact = artifactComponent({');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...numericIdData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should handle deeply nested objects with preview fields', () => {
