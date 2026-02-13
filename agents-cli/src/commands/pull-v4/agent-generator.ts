@@ -8,6 +8,7 @@ import {
   VariableDeclarationKind,
 } from 'ts-morph';
 import { z } from 'zod';
+import { toCamelCase } from './utils';
 
 type AgentDefinitionData = {
   agentId: string;
@@ -126,7 +127,9 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
       name: 'models',
       initializer: '{}',
     });
-    const modelsObject = modelsProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    const modelsObject = modelsProperty.getInitializerIfKindOrThrow(
+      SyntaxKind.ObjectLiteralExpression
+    );
     addObjectEntries(modelsObject, data.models);
   }
 
@@ -136,7 +139,11 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
   });
 
   const subAgentIds = extractIds(data.subAgents);
-  addReferenceGetterProperty(configObject, 'subAgents', subAgentIds.map((id) => toCamelCase(id)));
+  addReferenceGetterProperty(
+    configObject,
+    'subAgents',
+    subAgentIds.map((id) => toCamelCase(id))
+  );
 
   const contextConfigId = extractContextConfigId(data.contextConfig);
   if (contextConfigId) {
@@ -167,7 +174,11 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
 
   const triggerIds = data.triggers ? extractIds(data.triggers) : [];
   if (triggerIds.length > 0) {
-    addReferenceGetterProperty(configObject, 'triggers', triggerIds.map((id) => toCamelCase(id)));
+    addReferenceGetterProperty(
+      configObject,
+      'triggers',
+      triggerIds.map((id) => toCamelCase(id))
+    );
   }
 
   if (data.stopWhen?.transferCountIs !== undefined) {
@@ -366,17 +377,4 @@ function extractContextConfigId(contextConfig?: string | { id?: string }): strin
     return contextConfig;
   }
   return contextConfig.id;
-}
-
-function toCamelCase(input: string): string {
-  const result = input
-    .replace(/[-_](.)/g, (_, char: string) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-
-  if (!result) {
-    return 'agentDefinition';
-  }
-
-  return result.charAt(0).toLowerCase() + result.slice(1);
 }

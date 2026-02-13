@@ -9,6 +9,7 @@ import {
   VariableDeclarationKind,
 } from 'ts-morph';
 import { z } from 'zod';
+import { toCamelCase } from './utils';
 
 type ProjectDefinitionData = Omit<
   ProjectConfig,
@@ -303,19 +304,6 @@ function formatStringLiteral(value: string): string {
 
 function escapeTemplateLiteral(value: string): string {
   return value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
-}
-
-function toCamelCase(input: string): string {
-  const result = input
-    .replace(/[-_](.)/g, (_, char: string) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-
-  if (!result) {
-    return 'projectDefinition';
-  }
-
-  return result.charAt(0).toLowerCase() + result.slice(1);
 }
 
 function hasStopWhen(
