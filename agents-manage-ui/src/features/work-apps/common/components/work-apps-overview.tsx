@@ -1,6 +1,5 @@
 'use client';
 
-import { Plug } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
@@ -64,45 +63,13 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
     [handleInstallClick, router, tenantId]
   );
 
-  const stats = useMemo(() => {
-    const connected = workApps.filter((a) => a.status === 'connected').length;
-    const installed = workApps.filter((a) => a.status === 'installed').length;
-    const available = workApps.filter((a) => a.status === 'available').length;
-    return { connected, installed, available, total: workApps.length };
-  }, [workApps]);
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Work Apps"
-        description="Connect your favorite work tools to supercharge your Inkeep agents"
+        description="Connect your favorite work tools to supercharge your Inkeep agents."
       />
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-card rounded-lg p-4 border">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Plug className="h-4 w-4" />
-            <span className="text-sm">Connected</span>
-          </div>
-          <p className="text-2xl font-bold text-green-600">{stats.connected}</p>
-        </div>
-        <div className="bg-card rounded-lg p-4 border">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Plug className="h-4 w-4" />
-            <span className="text-sm">Installed</span>
-          </div>
-          <p className="text-2xl font-bold text-blue-600">{stats.installed}</p>
-        </div>
-        <div className="bg-card rounded-lg p-4 border">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Plug className="h-4 w-4" />
-            <span className="text-sm">Available</span>
-          </div>
-          <p className="text-2xl font-bold">{stats.available}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {workApps.map((app) => (
           <WorkAppCard
             key={app.id}

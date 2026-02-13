@@ -185,7 +185,7 @@ export function WorkAppGitHubInstallationsList({
                     href={`/${tenantId}/work-apps/github/${installation.id}`}
                     className="flex items-center gap-2 hover:underline"
                   >
-                    <div className="flex size-8 items-center justify-center rounded-full bg-muted">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
                       {installation.accountType === 'Organization' ? (
                         <Building2 className="size-4 text-muted-foreground" />
                       ) : (
@@ -228,7 +228,7 @@ export function WorkAppGitHubInstallationsList({
                             disabled={reconnectingInstallationId === installation.id}
                           >
                             <RefreshCw
-                              className={`size-4 mr-2 ${reconnectingInstallationId === installation.id ? 'animate-spin' : ''}`}
+                              className={`size-4 ${reconnectingInstallationId === installation.id ? 'animate-spin' : ''}`}
                             />
                             Reconnect
                           </DropdownMenuItem>
@@ -243,7 +243,7 @@ export function WorkAppGitHubInstallationsList({
                               rel="noopener noreferrer"
                               className="text-destructive focus:text-destructive"
                             >
-                              <ExternalLink className="size-4 mr-2" />
+                              <ExternalLink className="size-4" />
                               Uninstall on GitHub
                             </a>
                           </DropdownMenuItem>
@@ -252,7 +252,7 @@ export function WorkAppGitHubInstallationsList({
                         <>
                           <DropdownMenuItem asChild>
                             <Link href={`/${tenantId}/work-apps/github/${installation.id}`}>
-                              <Github className="size-4 mr-2" />
+                              <Github className="size-4" />
                               View Details
                             </Link>
                           </DropdownMenuItem>
@@ -260,9 +260,7 @@ export function WorkAppGitHubInstallationsList({
                             onClick={() => handleSync(installation)}
                             disabled={isSyncing}
                           >
-                            <RefreshCw
-                              className={`size-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`}
-                            />
+                            <RefreshCw className={`size-4 ${isSyncing ? 'animate-spin' : ''}`} />
                             Sync Repositories
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
@@ -275,12 +273,12 @@ export function WorkAppGitHubInstallationsList({
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <ExternalLink className="size-4 mr-2" />
+                              <ExternalLink className="size-4" />
                               View on GitHub
                             </a>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
+                            variant="destructive"
                             onClick={() => openDisconnectDialog(installation)}
                           >
                             Disconnect

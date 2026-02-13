@@ -54,45 +54,47 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
     return data.length ? (
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
-        <Table>
-          <TableHeader>
-            <TableRow noHover>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead>Metadata</TableHead>
-              <TableHead>Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((skill) => (
-              <TableRow key={skill.id} className="relative">
-                <TableCell className="align-top">
-                  <NextLink
-                    // <tr> cannot contain a nested <a>.
-                    href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}
-                    className="absolute inset-0"
-                  />
-                  {skill.name}
-                </TableCell>
-                <TableCell className={colClass}>
-                  <div className="h-14 line-clamp-3">{skill.description}</div>
-                </TableCell>
-                <TableCell className={colClass}>
-                  <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
-                    {skill.content}
-                  </Badge>
-                </TableCell>
-                <TableCell className={colClass}>
-                  <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
-                    {JSON.stringify(skill.metadata)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="align-top">{formatDateAgo(skill.updatedAt)}</TableCell>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow noHover>
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Content</TableHead>
+                <TableHead>Metadata</TableHead>
+                <TableHead>Updated</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {data.map((skill) => (
+                <TableRow key={skill.id} className="relative">
+                  <TableCell className="align-top">
+                    <NextLink
+                      // <tr> cannot contain a nested <a>.
+                      href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}
+                      className="absolute inset-0"
+                    />
+                    {skill.name}
+                  </TableCell>
+                  <TableCell className={colClass}>
+                    <div className="h-14 line-clamp-3">{skill.description}</div>
+                  </TableCell>
+                  <TableCell className={colClass}>
+                    <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
+                      {skill.content}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className={colClass}>
+                    <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
+                      {JSON.stringify(skill.metadata)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="align-top">{formatDateAgo(skill.updatedAt)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </>
     ) : (
       <EmptyState title="No skills yet." description={description} action={action} />
