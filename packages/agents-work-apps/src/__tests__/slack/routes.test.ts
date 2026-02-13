@@ -102,6 +102,66 @@ describe('Slack Work App Routes', () => {
     app = createTestApp();
   });
 
+  describe('POST /events - Slack retry deduplication', () => {
+    it('should acknowledge Slack retries without re-processing', async () => {
+      const response = await app.request('/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-slack-retry-num': '1',
+          'x-slack-retry-reason': 'http_timeout',
+        },
+        body: JSON.stringify({
+          type: 'event_callback',
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            text: '<@UBOT> hello',
+            channel: 'C123',
+            ts: '1234.5678',
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json).toEqual({ ok: true });
+    });
+
+    it('should acknowledge retries even with retry reason only', async () => {
+      const response = await app.request('/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-slack-retry-num': '2',
+        },
+        body: JSON.stringify({ type: 'event_callback' }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json).toEqual({ ok: true });
+    });
+
+    it('should process events normally when no retry headers are present', async () => {
+      const response = await app.request('/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'url_verification',
+          challenge: 'test-challenge-from-retry-test',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toBe('test-challenge-from-retry-test');
+    });
+  });
+
   describe('POST /events - url_verification', () => {
     it('should respond to url_verification challenge', async () => {
       const response = await app.request('/events', {
