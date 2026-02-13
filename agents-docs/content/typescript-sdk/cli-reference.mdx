@@ -746,17 +746,16 @@ profiles:
     environment: production
   local:
     remote:
-      manageApi: http://localhost:3002
+      api: http://localhost:3002
       manageUi: http://localhost:3000
-      runApi: http://localhost:3003
-    credential: inkeep-local
+    credential: none
     environment: development
 ```
 
 **Subcommands:**
 
 - `inkeep profile list` — Show all profiles and the active one.
-- `inkeep profile add <name>` — Interactive creation for cloud or custom URLs; writes to `profiles.yaml`.
+- `inkeep profile add <name>` — Interactive profile creation. Choose between Inkeep Cloud, Local (localhost defaults, no auth required), or Custom (self-hosted/staging URLs).
 - `inkeep profile use <name>` — Switch the active profile.
 - `inkeep profile current` — Show the active profile details and credential key.
 - `inkeep profile remove <name>` — Delete a profile (cannot remove the active one).
@@ -803,6 +802,50 @@ inkeep pull --profile local
 - The `credential` field in the profile is the key used to store the token; `login` writes to that key and `push/pull/status` read from it.
 - Repeat `login --profile <name>` for every profile/remote you operate against.
 - Use `inkeep logout --profile <name>` to clear a profile’s stored credentials if you need to rotate access.
+
+</SkillRule>
+
+<SkillRule
+  id="cli-login-command"
+  skills="typescript-sdk"
+  title="CLI inkeep login Command"
+  description="Authenticate with a deployment using the device code flow"
+>
+
+### `inkeep login`
+
+Authenticate with a deployment using the device code flow. Opens a browser window where you approve access, then stores credentials in your system keychain.
+
+```bash
+inkeep login
+```
+
+**Options:**
+
+- `--profile <name>` — Authenticate against a specific profile (defaults to active profile)
+
+Credentials are stored under the profile's `credential` key. Local profiles with `credential: none` do not require login.
+
+</SkillRule>
+
+<SkillRule
+  id="cli-logout-command"
+  skills="typescript-sdk"
+  title="CLI inkeep logout Command"
+  description="Clear stored credentials for a profile"
+>
+
+### `inkeep logout`
+
+Clear stored credentials for a profile.
+
+```bash
+inkeep logout
+```
+
+**Options:**
+
+- `--profile <name>` — Clear credentials for a specific profile (defaults to active profile)
 
 </SkillRule>
 
