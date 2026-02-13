@@ -101,7 +101,7 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
 
   const { toolCallId, input, type: toolName } = tool;
   const { displayName: entityType, operationType, icon } = parseToolNameForDisplay(toolName);
-  const { projectId, tenantId } = (input as any).request || input;
+  const { projectId, tenantId } = (input as Record<string, any>).request || input;
   const isDeleteOperation = toolName.includes('delete');
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates

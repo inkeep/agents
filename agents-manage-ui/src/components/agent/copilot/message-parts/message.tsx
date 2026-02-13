@@ -33,7 +33,7 @@ export const IkpTool = ({
 }) => {
   const needsApproval = tool.approval?.id;
   const output = tool.output as Record<string, any> | undefined;
-  const isToolRelation = output?.content.length > 0;
+  const isToolRelation = !!output?.content?.length;
 
   if (!needsApproval && !isToolRelation) return null;
 
