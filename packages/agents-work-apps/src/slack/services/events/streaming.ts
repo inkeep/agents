@@ -219,6 +219,8 @@ export async function streamAgentResponse(params: {
     });
 
     try {
+      let agentCompleted = false;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -236,6 +238,10 @@ export async function streamAgentResponse(params: {
             const data = JSON.parse(jsonStr);
 
             if (data.type === 'data-operation') {
+              if (data.data?.type === 'completion') {
+                agentCompleted = true;
+                break;
+              }
               continue;
             }
 
@@ -274,6 +280,8 @@ export async function streamAgentResponse(params: {
             // Skip invalid JSON
           }
         }
+
+        if (agentCompleted) break;
       }
 
       clearTimeout(timeoutId);
