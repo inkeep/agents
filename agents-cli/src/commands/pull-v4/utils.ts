@@ -1,3 +1,5 @@
+import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+
 export function toCamelCase(input: string): string {
   const result = input
     .replace(/[-_](.)/g, (_, char: string) => char.toUpperCase())
@@ -58,4 +60,18 @@ export function formatInlineLiteral(value: unknown): string {
       .join(', ')} }`;
   }
   return 'undefined';
+}
+
+export function addReferenceGetterProperty(
+  configObject: ObjectLiteralExpression,
+  key: string,
+  refs: string[]
+) {
+  const property = configObject.addPropertyAssignment({
+    name: key,
+    initializer: '() => []',
+  });
+  const getter = property.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
+  const body = getter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+  body.addElements(refs);
 }

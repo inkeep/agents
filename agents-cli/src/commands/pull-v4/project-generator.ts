@@ -15,6 +15,7 @@ import {
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
+  addReferenceGetterProperty,
 } from './utils';
 
 type ProjectDefinitionData = Omit<
@@ -220,20 +221,6 @@ function addStopWhenProperty(
       initializer: String(stopWhen.stepCountIs),
     });
   }
-}
-
-function addReferenceGetterProperty(
-  configObject: ObjectLiteralExpression,
-  key: string,
-  refs: string[]
-) {
-  const property = configObject.addPropertyAssignment({
-    name: key,
-    initializer: '() => []',
-  });
-  const getter = property.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
-  const body = getter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
-  body.addElements(refs);
 }
 
 function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {

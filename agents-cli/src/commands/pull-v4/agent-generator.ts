@@ -14,6 +14,7 @@ import {
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
+  addReferenceGetterProperty,
 } from './utils';
 
 const AgentSchema = z.looseObject({
@@ -249,20 +250,6 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
       });
     }
   }
-}
-
-function addReferenceGetterProperty(
-  configObject: ObjectLiteralExpression,
-  key: string,
-  refs: string[]
-) {
-  const property = configObject.addPropertyAssignment({
-    name: key,
-    initializer: '() => []',
-  });
-  const getter = property.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
-  const body = getter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
-  body.addElements(refs);
 }
 
 function addStringProperty(configObject: ObjectLiteralExpression, key: string, value: string) {
