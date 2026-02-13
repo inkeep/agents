@@ -130,7 +130,8 @@
     "db:run:drop": "drizzle-kit drop --config=drizzle.run.config.ts",
     "db:run:studio": "drizzle-kit studio --config=drizzle.run.config.ts",
     "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts",
-    "db:auth:init": "tsx src/auth/init.ts"
+    "db:auth:init": "tsx src/auth/init.ts",
+    "spicedb:migrate-ids": "tsx src/auth/migrate-spicedb-project-ids.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.7",

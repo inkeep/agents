@@ -145,7 +145,7 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
 
     let canUse: boolean;
     try {
-      canUse = await canUseProjectStrict({ userId, projectId });
+      canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
     } catch (error) {
       logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
       throw new HTTPException(503, {
