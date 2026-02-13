@@ -46,7 +46,9 @@ export default function TracesOverview({
   // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
 
-  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
+  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(
+    () => searchParams.get('agentId') || undefined
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
