@@ -295,7 +295,7 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should handle optional signed components', () => {
+    it.only('should handle optional signed components', async () => {
       const triggerDataOptional = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -314,8 +314,9 @@ describe('Trigger Generator', () => {
         },
       };
 
+      const triggerId = 'webhook-optional';
       const definition = generateTriggerDefinition(
-        'webhook-optional',
+        triggerId,
         triggerDataOptional,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
@@ -323,6 +324,11 @@ describe('Trigger Generator', () => {
 
       expect(definition).toContain('required: false');
       expect(definition).toContain('required: true');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataOptional });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should throw error if registry missing for credential reference', () => {
