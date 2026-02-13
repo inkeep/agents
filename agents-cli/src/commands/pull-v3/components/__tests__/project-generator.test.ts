@@ -496,12 +496,18 @@ describe('Project Generator', () => {
       expect(result.credentialReferences()).toHaveLength(2);
     });
 
-    it('should throw error for minimal project without required fields', () => {
+    it.only('should throw error for minimal project without required fields', () => {
+      const projectId = 'minimal-test-project';
       const minimalData = { name: 'Minimal Test Project' };
 
-      expect(() => {
-        generateProjectDefinition('minimal-test-project', minimalData);
-      }).toThrow("Missing required fields for project 'minimal-test-project': models, models.base");
+      expect(() => generateProjectDefinition(projectId, minimalData)).toThrow(
+        `Missing required fields for project '${projectId}': models, models.base`
+      );
+      expect(() => generateProjectDefinitionV4({ projectId, ...minimalData })).toThrow(
+        new Error(`Missing required fields for project:
+✖ Invalid input: expected object, received undefined
+  → at models`)
+      );
     });
   });
 

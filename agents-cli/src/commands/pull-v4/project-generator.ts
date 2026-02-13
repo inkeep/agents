@@ -101,7 +101,10 @@ ${z.prettifyError(result.error)}`);
   return sourceFile.getFullText().trimEnd();
 }
 
-function writeProjectConfig(configObject: ObjectLiteralExpression, data: ParsedProjectDefinitionData) {
+function writeProjectConfig(
+  configObject: ObjectLiteralExpression,
+  data: ParsedProjectDefinitionData
+) {
   addStringProperty(configObject, 'id', data.projectId);
   addStringProperty(configObject, 'name', data.name);
 
@@ -155,7 +158,9 @@ function addModelsProperty(
     name: 'models',
     initializer: '{}',
   });
-  const modelsObject = modelsProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+  const modelsObject = modelsProperty.getInitializerIfKindOrThrow(
+    SyntaxKind.ObjectLiteralExpression
+  );
 
   addModelEntry(modelsObject, 'base', models.base);
   if (models.structuredOutput) {
@@ -187,7 +192,9 @@ function addStopWhenProperty(
     name: 'stopWhen',
     initializer: '{}',
   });
-  const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+  const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(
+    SyntaxKind.ObjectLiteralExpression
+  );
 
   if (stopWhen.transferCountIs !== undefined) {
     stopWhenObject.addPropertyAssignment({
