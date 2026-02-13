@@ -5,7 +5,7 @@
  * Tokens are fetched from Nango at runtime and passed to these functions.
  */
 
-import { retryPolicies, WebClient } from '@slack/web-api';
+import { WebClient } from '@slack/web-api';
 import { getLogger } from '../../logger';
 
 const logger = getLogger('slack-client');
@@ -45,9 +45,7 @@ async function paginateSlack<TResponse, TItem>({
  * @returns Configured Slack WebClient instance
  */
 export function getSlackClient(token: string): WebClient {
-  return new WebClient(token, {
-    retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
-  });
+  return new WebClient(token);
 }
 
 /**
