@@ -1,1 +1,382 @@
-export function generateAgentDefinition() {}
+import {
+  IndentationText,
+  NewLineKind,
+  type ObjectLiteralExpression,
+  Project,
+  QuoteKind,
+  SyntaxKind,
+  VariableDeclarationKind,
+} from 'ts-morph';
+import { z } from 'zod';
+
+type AgentDefinitionData = {
+  agentId: string;
+  name: string;
+  description?: string;
+  prompt?: string;
+  models?: Record<string, unknown>;
+  defaultSubAgentId: string;
+  subAgents: string[] | Record<string, unknown>;
+  contextConfig?: string | { id?: string };
+  stopWhen?: {
+    transferCountIs?: number;
+  };
+  statusUpdates?: {
+    numEvents?: number;
+    timeInSeconds?: number;
+    statusComponents?: Array<string | { id?: string; type?: string; name?: string }>;
+    prompt?: string;
+  };
+  credentials?: Array<string | { id?: string }>;
+  triggers?: string[] | Record<string, unknown>;
+};
+
+const AgentSchema = z.looseObject({
+  agentId: z.string().nonempty(),
+  name: z.string().nonempty(),
+  description: z.string().optional(),
+  prompt: z.string().optional(),
+  models: z.looseObject({}).optional(),
+  defaultSubAgentId: z.string().nonempty(),
+  subAgents: z.union([z.array(z.any()), z.record(z.string(), z.any())]),
+  contextConfig: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
+  stopWhen: z
+    .strictObject({
+      transferCountIs: z.number().optional(),
+    })
+    .optional(),
+  statusUpdates: z
+    .strictObject({
+      numEvents: z.number().optional(),
+      timeInSeconds: z.number().optional(),
+      statusComponents: z.array(z.any()).optional(),
+      prompt: z.string().optional(),
+    })
+    .optional(),
+  credentials: z.array(z.any()).optional(),
+  triggers: z.union([z.array(z.any()), z.record(z.string(), z.any())]).optional(),
+});
+
+type ParsedAgentDefinitionData = z.infer<typeof AgentSchema>;
+
+export function generateAgentDefinition(data: AgentDefinitionData): string {
+  const result = AgentSchema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`Missing required fields for agent:\n${z.prettifyError(result.error)}`);
+  }
+
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    manipulationSettings: {
+      indentationText: IndentationText.TwoSpaces,
+      quoteKind: QuoteKind.Single,
+      newLineKind: NewLineKind.LineFeed,
+      useTrailingCommas: false,
+    },
+  });
+
+  const parsed = result.data;
+  const sourceFile = project.createSourceFile('agent-definition.ts', '', { overwrite: true });
+  sourceFile.addImportDeclaration({
+    namedImports: ['agent'],
+    moduleSpecifier: '@inkeep/agents-sdk',
+  });
+
+  const agentVarName = toCamelCase(parsed.agentId);
+  const variableStatement = sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    isExported: true,
+    declarations: [
+      {
+        name: agentVarName,
+        initializer: 'agent({})',
+      },
+    ],
+  });
+
+  const [declaration] = variableStatement.getDeclarations();
+  if (!declaration) {
+    throw new Error(`Failed to create variable declaration for agent '${parsed.agentId}'`);
+  }
+
+  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
+  const configObject = callExpression
+    .getArguments()[0]
+    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  writeAgentConfig(configObject, parsed);
+
+  return sourceFile.getFullText().trimEnd();
+}
+
+function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAgentDefinitionData) {
+  addStringProperty(configObject, 'id', data.agentId);
+  addStringProperty(configObject, 'name', data.name);
+
+  if (data.description !== undefined) {
+    addStringProperty(configObject, 'description', data.description);
+  }
+
+  if (data.prompt !== undefined) {
+    addStringProperty(configObject, 'prompt', data.prompt);
+  }
+
+  if (data.models && Object.keys(data.models).length > 0) {
+    const modelsProperty = configObject.addPropertyAssignment({
+      name: 'models',
+      initializer: '{}',
+    });
+    const modelsObject = modelsProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    addObjectEntries(modelsObject, data.models);
+  }
+
+  configObject.addPropertyAssignment({
+    name: 'defaultSubAgent',
+    initializer: toCamelCase(data.defaultSubAgentId),
+  });
+
+  const subAgentIds = extractIds(data.subAgents);
+  addReferenceGetterProperty(configObject, 'subAgents', subAgentIds.map((id) => toCamelCase(id)));
+
+  const contextConfigId = extractContextConfigId(data.contextConfig);
+  if (contextConfigId) {
+    configObject.addPropertyAssignment({
+      name: 'contextConfig',
+      initializer: toCamelCase(contextConfigId),
+    });
+  }
+
+  if (data.credentials && data.credentials.length > 0) {
+    const credentialIds = data.credentials
+      .map((credential) => {
+        if (typeof credential === 'string') {
+          return credential;
+        }
+        return credential.id;
+      })
+      .filter((id): id is string => Boolean(id));
+
+    if (credentialIds.length > 0) {
+      addReferenceGetterProperty(
+        configObject,
+        'credentials',
+        credentialIds.map((id) => toCamelCase(id))
+      );
+    }
+  }
+
+  const triggerIds = data.triggers ? extractIds(data.triggers) : [];
+  if (triggerIds.length > 0) {
+    addReferenceGetterProperty(configObject, 'triggers', triggerIds.map((id) => toCamelCase(id)));
+  }
+
+  if (data.stopWhen?.transferCountIs !== undefined) {
+    const stopWhenProperty = configObject.addPropertyAssignment({
+      name: 'stopWhen',
+      initializer: '{}',
+    });
+    const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(
+      SyntaxKind.ObjectLiteralExpression
+    );
+    stopWhenObject.addPropertyAssignment({
+      name: 'transferCountIs',
+      initializer: String(data.stopWhen.transferCountIs),
+    });
+  }
+
+  if (data.statusUpdates) {
+    const statusUpdatesProperty = configObject.addPropertyAssignment({
+      name: 'statusUpdates',
+      initializer: '{}',
+    });
+    const statusUpdatesObject = statusUpdatesProperty.getInitializerIfKindOrThrow(
+      SyntaxKind.ObjectLiteralExpression
+    );
+
+    if (data.statusUpdates.numEvents !== undefined) {
+      statusUpdatesObject.addPropertyAssignment({
+        name: 'numEvents',
+        initializer: String(data.statusUpdates.numEvents),
+      });
+    }
+
+    if (data.statusUpdates.timeInSeconds !== undefined) {
+      statusUpdatesObject.addPropertyAssignment({
+        name: 'timeInSeconds',
+        initializer: String(data.statusUpdates.timeInSeconds),
+      });
+    }
+
+    if (data.statusUpdates.prompt !== undefined) {
+      statusUpdatesObject.addPropertyAssignment({
+        name: 'prompt',
+        initializer: formatStringLiteral(data.statusUpdates.prompt),
+      });
+    }
+
+    if (data.statusUpdates.statusComponents && data.statusUpdates.statusComponents.length > 0) {
+      const statusComponentRefs = data.statusUpdates.statusComponents
+        .map((statusComponent) => {
+          if (typeof statusComponent === 'string') {
+            return toCamelCase(statusComponent);
+          }
+
+          const id = statusComponent.id || statusComponent.type || statusComponent.name;
+          if (!id) {
+            return undefined;
+          }
+
+          return `${toCamelCase(id)}.config`;
+        })
+        .filter((value): value is string => Boolean(value));
+
+      if (statusComponentRefs.length > 0) {
+        const statusComponentsProperty = statusUpdatesObject.addPropertyAssignment({
+          name: 'statusComponents',
+          initializer: '[]',
+        });
+        const statusComponentsArray = statusComponentsProperty.getInitializerIfKindOrThrow(
+          SyntaxKind.ArrayLiteralExpression
+        );
+        statusComponentsArray.addElements(statusComponentRefs);
+      }
+    }
+  }
+}
+
+function addReferenceGetterProperty(
+  configObject: ObjectLiteralExpression,
+  key: string,
+  refs: string[]
+) {
+  const property = configObject.addPropertyAssignment({
+    name: key,
+    initializer: '() => []',
+  });
+  const getter = property.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
+  const body = getter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+  body.addElements(refs);
+}
+
+function addStringProperty(configObject: ObjectLiteralExpression, key: string, value: string) {
+  configObject.addPropertyAssignment({
+    name: key,
+    initializer: formatStringLiteral(value),
+  });
+}
+
+function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (entryValue === undefined) {
+      continue;
+    }
+
+    if (isPlainObject(entryValue)) {
+      const property = target.addPropertyAssignment({
+        name: formatPropertyName(key),
+        initializer: '{}',
+      });
+      const nestedObject = property.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+      addObjectEntries(nestedObject, entryValue);
+      continue;
+    }
+
+    target.addPropertyAssignment({
+      name: formatPropertyName(key),
+      initializer: formatInlineLiteral(entryValue),
+    });
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatPropertyName(key: string): string {
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
+    return key;
+  }
+  return formatStringLiteral(key);
+}
+
+function formatInlineLiteral(value: unknown): string {
+  if (typeof value === 'string') {
+    return formatStringLiteral(value);
+  }
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return String(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (value === null) {
+    return 'null';
+  }
+  if (value === undefined) {
+    return 'undefined';
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => formatInlineLiteral(item)).join(', ')}]`;
+  }
+  if (isPlainObject(value)) {
+    const entries = Object.entries(value).filter(([, entryValue]) => entryValue !== undefined);
+    if (entries.length === 0) {
+      return '{}';
+    }
+    return `{ ${entries
+      .map(([key, entryValue]) => `${formatPropertyName(key)}: ${formatInlineLiteral(entryValue)}`)
+      .join(', ')} }`;
+  }
+  return 'undefined';
+}
+
+function formatStringLiteral(value: string): string {
+  if (value.includes('\n')) {
+    return `\`${escapeTemplateLiteral(value)}\``;
+  }
+  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+}
+
+function escapeTemplateLiteral(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
+}
+
+function extractIds(value: string[] | Record<string, unknown>): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+        if (isPlainObject(item) && typeof item.id === 'string') {
+          return item.id;
+        }
+        return undefined;
+      })
+      .filter((id): id is string => Boolean(id));
+  }
+  return Object.keys(value);
+}
+
+function extractContextConfigId(contextConfig?: string | { id?: string }): string | undefined {
+  if (!contextConfig) {
+    return undefined;
+  }
+  if (typeof contextConfig === 'string') {
+    return contextConfig;
+  }
+  return contextConfig.id;
+}
+
+function toCamelCase(input: string): string {
+  const result = input
+    .replace(/[-_](.)/g, (_, char: string) => char.toUpperCase())
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .replace(/^[0-9]/, '_$&');
+
+  if (!result) {
+    return 'agentDefinition';
+  }
+
+  return result.charAt(0).toLowerCase() + result.slice(1);
+}
