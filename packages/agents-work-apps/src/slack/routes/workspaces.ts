@@ -764,13 +764,7 @@ app.openapi(
     const tenantId = workspace.tenantId;
     const slackClient = getSlackClient(workspace.botToken);
 
-    let channels: Awaited<ReturnType<typeof getSlackChannels>> = [];
-    try {
-      channels = await getSlackChannels(slackClient, 500);
-    } catch (error) {
-      logger.error({ error, teamId }, 'Failed to fetch channels for bulk operation');
-      return c.json({ error: 'Failed to fetch channels' }, 500);
-    }
+    const channels = await getSlackChannels(slackClient, 500);
     const channelMap = new Map(channels.map((ch) => [ch.id, ch]));
 
     let updated = 0;
