@@ -241,7 +241,7 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should generate trigger with base64 encoding', () => {
+    it.only('should generate trigger with base64 encoding', async () => {
       const triggerDataBase64 = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -250,14 +250,20 @@ describe('Trigger Generator', () => {
         },
       };
 
+      const triggerId = 'webhook-base64';
       const definition = generateTriggerDefinition(
-        'webhook-base64',
+        triggerId,
         triggerDataBase64,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
       );
 
       expect(definition).toContain("encoding: 'base64',");
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataBase64 });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should generate trigger with regex in signature source', () => {
