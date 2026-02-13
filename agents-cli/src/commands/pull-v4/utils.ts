@@ -66,7 +66,7 @@ export function addReferenceGetterProperty(
   configObject: ObjectLiteralExpression,
   key: string,
   refs: string[]
-) {
+): void {
   const property = configObject.addPropertyAssignment({
     name: key,
     initializer: '() => []',
@@ -76,7 +76,10 @@ export function addReferenceGetterProperty(
   body.addElements(refs);
 }
 
-export function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {
+export function addObjectEntries(
+  target: ObjectLiteralExpression,
+  value: Record<string, unknown>
+): void {
   for (const [key, entryValue] of Object.entries(value)) {
     if (entryValue === undefined) {
       continue;
@@ -103,7 +106,7 @@ export function addStringProperty(
   configObject: ObjectLiteralExpression,
   key: string,
   value: string
-) {
+): void {
   configObject.addPropertyAssignment({
     name: key,
     initializer: formatStringLiteral(value),
