@@ -36,19 +36,17 @@ export default function TracesOverview({
     timeRange: selectedTimeRange,
     customStartDate,
     customEndDate,
+    agentId: selectedAgent,
     spanName,
     spanAttributes: attributes,
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
+    setAgentFilter: setSelectedAgent,
     setSpanFilter,
   } = useTracesQueryState();
 
   // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
-
-  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(
-    () => searchParams.get('agentId') || undefined
-  );
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);

@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-link out top level trace view for agent
+Add "View Traces" button to agent builder toolbar for quick access to agent-specific trace analytics
