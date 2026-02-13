@@ -24,7 +24,7 @@ export function formatStringLiteral(value: string): string {
   return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
 }
 
-function formatPropertyName(key: string): string {
+export function formatPropertyName(key: string): string {
   if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
     return key;
   }

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import {
   addObjectEntries,
   addStringProperty,
+  formatPropertyName,
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
@@ -165,7 +166,9 @@ function addRenderProperty(
     name: 'render',
     initializer: '{}',
   });
-  const renderObject = renderProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+  const renderObject = renderProperty.getInitializerIfKindOrThrow(
+    SyntaxKind.ObjectLiteralExpression
+  );
 
   if (render.component !== undefined) {
     addStringProperty(renderObject, 'component', render.component);
@@ -199,7 +202,7 @@ function formatArtifactSchema(schema: unknown): string {
   }
 
   if (schema.type === 'object' && isPlainObject(schema.properties)) {
-    const lines: string[] = ['z.object({'];
+    const lines = ['z.object({'];
 
     for (const [key, propertySchema] of Object.entries(schema.properties)) {
       const propertyWithoutPreview = isPlainObject(propertySchema)
@@ -241,11 +244,4 @@ function convertJsonSchemaToZod(schema: unknown): string {
   } catch {
     return 'z.any()';
   }
-}
-
-function formatPropertyName(key: string): string {
-  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
-    return key;
-  }
-  return formatStringLiteral(key);
 }
