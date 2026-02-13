@@ -473,11 +473,15 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate code that compiles and creates a working artifact component', async () => {
-      generateArtifactComponentFile('citation', testComponentData);
+    it.only('should generate code that compiles and creates a working artifact component', async () => {
+      const artifactComponentId = 'citation';
+      generateArtifactComponentFile(artifactComponentId, testComponentData);
 
       // Extract just the component definition (remove imports and export)
-      const definition = generateArtifactComponentDefinition('citation', testComponentData);
+      const definition = generateArtifactComponentDefinition(
+        artifactComponentId,
+        testComponentData
+      );
       const definitionWithoutExport = definition.replace('export const ', 'const ');
 
       // Mock the dependencies and test compilation
@@ -520,6 +524,18 @@ describe('Artifact Component Generator', () => {
       expect(props.url.isPreview).toBe(true);
       expect(props.record_type.isPreview).toBe(true);
       expect(props.content.isPreview).toBeUndefined(); // Should not be preview
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...testComponentData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should generate code for artifact component without preview fields that compiles', () => {
