@@ -513,11 +513,17 @@ describe('Project Generator', () => {
       expect(definition).toContain("id: 'project-v2_final',");
     });
 
-    it('should handle project ID starting with numbers', () => {
-      const definition = generateProjectDefinition('2nd-generation-project', basicProjectData);
+    it.only('should handle project ID starting with numbers', async () => {
+      const projectId = '2nd-generation-project';
+      const definition = generateProjectDefinition(projectId, basicProjectData);
 
       expect(definition).toContain('export const _2ndGenerationProject = project({');
-      expect(definition).toContain("id: '2nd-generation-project',");
+      expect(definition).toContain(`id: '${projectId}',`);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it.only('should throw error for empty string name', () => {
