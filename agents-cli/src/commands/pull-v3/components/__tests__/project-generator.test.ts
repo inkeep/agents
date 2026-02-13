@@ -379,8 +379,9 @@ describe('Project Generator', () => {
   });
 
   describe('generateProjectFile', () => {
-    it('should generate complete project file', () => {
-      const file = generateProjectFile('customer-support-project', basicProjectData);
+    it.only('should generate complete project file', async () => {
+      const projectId = 'customer-support-project';
+      const file = generateProjectFile(projectId, basicProjectData);
 
       expect(file).toContain("import { project } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const customerSupportProject = project({');
@@ -389,6 +390,11 @@ describe('Project Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
+      const testName = expect.getState().currentTestName;
+      await expect(file).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it.only('should generate complex project file with all features', async () => {
