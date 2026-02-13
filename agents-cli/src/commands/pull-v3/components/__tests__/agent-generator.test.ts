@@ -3,13 +3,13 @@
  * Unit tests for agent generator
  */
 
-import { describe, expect, it } from 'vitest';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateAgentDefinition,
   generateAgentFile,
   generateAgentImports,
 } from '../agent-generator';
+import { generateAgentDefinition as generateAgentDefinitionV4 } from '../../../pull-v4/agent-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -120,13 +120,9 @@ describe('Agent Generator', () => {
   });
 
   describe('generateAgentDefinition', () => {
-    it('should generate basic agent definition', () => {
-      const definition = generateAgentDefinition(
-        'personal-agent',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    it.only('should generate basic agent definition', async () => {
+      const agentId = 'personal-agent';
+      const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
       expect(definition).toContain('export const personalAgent = agent({');
       expect(definition).toContain("id: 'personal-agent',");
@@ -141,6 +137,11 @@ describe('Agent Generator', () => {
       expect(definition).toContain('contextConfig: personalAgentContext');
       expect(definition).toContain('});');
       expect(definition).not.toContain('coordinatesAgent,'); // No trailing comma
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should generate agent with status updates', () => {
