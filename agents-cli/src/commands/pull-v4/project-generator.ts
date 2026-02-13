@@ -76,7 +76,7 @@ ${z.prettifyError(result.error)}`);
   const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
   const projectVarName = toCamelCase(parsed.projectId);
-  sourceFile.addVariableStatement({
+  const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
     declarations: [
@@ -87,7 +87,10 @@ ${z.prettifyError(result.error)}`);
     ],
   });
 
-  const declaration = sourceFile.getVariableDeclarationOrThrow(projectVarName);
+  const [declaration] = variableStatement.getDeclarations();
+  if (!declaration) {
+    throw new Error(`Failed to create variable declaration for project '${parsed.projectId}'`);
+  }
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]
@@ -291,20 +294,16 @@ function escapeTemplateLiteral(value: string): string {
 }
 
 function toCamelCase(input: string): string {
-  const parts = input
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .split(/[^a-zA-Z0-9]+/)
-    .filter(Boolean);
+  const result = input
+    .replace(/[-_](.)/g, (_, char: string) => char.toUpperCase())
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .replace(/^[0-9]/, '_$&');
 
-  if (parts.length === 0) {
+  if (!result) {
     return 'projectDefinition';
   }
 
-  const [first, ...rest] = parts;
-  return (
-    first.toLowerCase() +
-    rest.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join('')
-  );
+  return result.charAt(0).toLowerCase() + result.slice(1);
 }
 
 function hasStopWhen(
