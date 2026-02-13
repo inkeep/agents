@@ -299,7 +299,8 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should handle stopWhen with only transferCountIs', () => {
+    it.only('should handle stopWhen with only transferCountIs', async () => {
+      const projectId = 'transfer-only-project';
       const transferOnlyData = {
         name: 'Transfer Only Project',
         models: {
@@ -310,12 +311,17 @@ describe('Project Generator', () => {
         },
       };
 
-      const definition = generateProjectDefinition('transfer-only-project', transferOnlyData);
+      const definition = generateProjectDefinition(projectId, transferOnlyData);
 
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 5 // Max transfers for agents'); // No trailing comma when it's the only property
       expect(definition).toContain('}');
       expect(definition).not.toContain('stepCountIs');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...transferOnlyData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should handle stopWhen with only stepCountIs', () => {
