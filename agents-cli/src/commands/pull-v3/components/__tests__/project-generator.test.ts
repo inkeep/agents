@@ -411,9 +411,10 @@ describe('Project Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate project code that compiles', () => {
+    it.only('should generate project code that compiles', async () => {
+      const projectId = 'test-project';
       const definition = generateProjectDefinition(
-        'test-project',
+        projectId,
         basicProjectData,
         undefined,
         mockRegistry
@@ -446,6 +447,11 @@ describe('Project Generator', () => {
       expect(result.agents).toBeDefined();
       expect(typeof result.agents).toBe('function');
       expect(result.agents()).toHaveLength(2);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it.only('should generate complex project code that compiles', async () => {
