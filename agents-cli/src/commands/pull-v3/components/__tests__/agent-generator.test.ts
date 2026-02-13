@@ -323,7 +323,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it('should handle statusUpdates without all optional fields', () => {
+    it.only('should handle statusUpdates without all optional fields', async () => {
       const partialStatusData = {
         name: 'Partial Status Agent',
         defaultSubAgentId: 'defaultSubAgent',
@@ -334,8 +334,9 @@ describe('Agent Generator', () => {
         },
       };
 
+      const agentId = 'partial-status-agent';
       const definition = generateAgentDefinition(
-        'partial-status-agent',
+        agentId,
         partialStatusData,
         undefined,
         mockRegistry
@@ -346,6 +347,11 @@ describe('Agent Generator', () => {
       expect(definition).toContain('statusComponents: [\n      summary.config,\n    ]');
       expect(definition).not.toContain('timeInSeconds:');
       expect(definition).not.toContain('prompt:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...partialStatusData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should not generate stopWhen without transferCountIs', () => {
