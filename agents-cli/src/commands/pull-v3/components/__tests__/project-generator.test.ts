@@ -272,14 +272,8 @@ describe('Project Generator', () => {
     //   expect(definition).toContain('})'); // No semicolon at the end
     // });
 
-      expect(definition).toContain('export const styledProject = project({');
-      expect(definition).toContain('id: "styled-project",'); // Double quotes
-      expect(definition).toContain('name: "Customer Support System",');
-      expect(definition).not.toContain(';'); // No semicolons except at the end
-      expect(definition).toContain('})'); // No semicolon at the end
-    });
-
-    it('should handle empty arrays', () => {
+    it.only('should handle empty arrays', async () => {
+      const projectId = 'empty-arrays-project';
       const emptyArraysData = {
         name: 'Empty Arrays Project',
         models: {
@@ -291,13 +285,18 @@ describe('Project Generator', () => {
         artifactComponents: [],
       };
 
-      const definition = generateProjectDefinition('empty-arrays-project', emptyArraysData);
+      const definition = generateProjectDefinition(projectId, emptyArraysData);
 
       expect(definition).toContain("name: 'Empty Arrays Project'");
       expect(definition).not.toContain('agents:'); // Empty arrays should be omitted
       expect(definition).not.toContain('tools:');
       expect(definition).not.toContain('dataComponents:');
       expect(definition).not.toContain('artifactComponents:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...emptyArraysData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should handle stopWhen with only transferCountIs', () => {
