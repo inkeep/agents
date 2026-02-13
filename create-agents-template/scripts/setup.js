@@ -243,6 +243,9 @@ async function setupProjectInDatabase(isCloud) {
         logError('Both databases failed health checks - cannot proceed with migrations');
         logInfo('Check that Docker is running and containers started successfully');
         process.exit(1);
+      } else if (doltgresResult.status === 'rejected' || postgresResult.status === 'rejected') {
+        const failedDb = doltgresResult.status === 'rejected' ? 'DoltgreSQL' : 'PostgreSQL';
+        logWarning(`${failedDb} is not healthy — its migration will likely fail`);
       }
 
       logSuccess('Database health checks complete');
@@ -308,7 +311,13 @@ async function setupProjectInDatabase(isCloud) {
       process.exit(1);
     }
 
-    writeFileSync('.setup-complete', new Date().toISOString());
+    if (manageResult.status === 'fulfilled' && runResult.status === 'fulfilled') {
+      writeFileSync('.setup-complete', new Date().toISOString());
+    } else {
+      logWarning(
+        'Partial migration success — .setup-complete not written so next run retries fresh'
+      );
+    }
   } else {
     logStep(2, 'Running database migrations and upgrading packages');
     try {
