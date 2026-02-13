@@ -266,7 +266,7 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should generate trigger with regex in signature source', () => {
+    it.only('should generate trigger with regex in signature source', async () => {
       const triggerDataWithRegex = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -279,14 +279,20 @@ describe('Trigger Generator', () => {
         },
       };
 
+      const triggerId = 'webhook-regex';
       const definition = generateTriggerDefinition(
-        'webhook-regex',
+        triggerId,
         triggerDataWithRegex,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
       );
 
       expect(definition).toContain("regex: 't=([^,]+)'");
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataWithRegex });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should handle optional signed components', () => {

@@ -1,0 +1,25 @@
+import { Trigger } from '@inkeep/agents-sdk';
+
+export const webhookRegex = new Trigger({
+  id: 'webhook-regex',
+  name: 'GitHub Webhook with Signature',
+  messageTemplate: 'New push event from GitHub',
+  signatureVerification: {
+    algorithm: 'sha256',
+    encoding: 'hex',
+    signature: {
+      source: 'header',
+      key: 'x-stripe-signature',
+      regex: 't=([^,]+)'
+    },
+    signedComponents: [{
+      source: 'body',
+      required: true
+    }],
+    componentJoin: {
+      strategy: 'concatenate',
+      separator: ''
+    }
+  },
+  signingSecretCredentialReference: githubWebhookSecret
+});
