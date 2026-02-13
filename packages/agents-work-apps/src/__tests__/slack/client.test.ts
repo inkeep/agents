@@ -5,13 +5,15 @@
  * - WebClient instantiation
  * - User info retrieval
  * - Team info retrieval
- * - Channel listing
+ * - Channel listing (with cursor-based pagination)
+ * - Channel membership checking (with cursor-based pagination)
  * - Message posting (channels and threads)
  */
 
 import { WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  checkUserIsChannelMember,
   getSlackChannels,
   getSlackClient,
   getSlackTeamInfo,
@@ -30,6 +32,7 @@ vi.mock('@slack/web-api', () => ({
     },
     conversations: {
       list: vi.fn(),
+      members: vi.fn(),
     },
     chat: {
       postMessage: vi.fn(),
@@ -232,7 +235,7 @@ describe('Slack Client', () => {
       ]);
     });
 
-    it('should fetch public and private channels with default limit', async () => {
+    it('should fetch public and private channels with default limit of 200', async () => {
       const mockClient = {
         conversations: {
           list: vi.fn().mockResolvedValue({ ok: true, channels: [] }),
@@ -244,7 +247,8 @@ describe('Slack Client', () => {
       expect(mockClient.conversations.list).toHaveBeenCalledWith({
         types: 'public_channel,private_channel',
         exclude_archived: true,
-        limit: 20,
+        limit: 200,
+        cursor: undefined,
       });
     });
 
@@ -261,7 +265,119 @@ describe('Slack Client', () => {
         types: 'public_channel,private_channel',
         exclude_archived: true,
         limit: 50,
+        cursor: undefined,
       });
+    });
+
+    it('should cap page size at 200 even with higher limit', async () => {
+      const mockClient = {
+        conversations: {
+          list: vi.fn().mockResolvedValue({ ok: true, channels: [] }),
+        },
+      } as unknown as WebClient;
+
+      await getSlackChannels(mockClient, 500);
+
+      expect(mockClient.conversations.list).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 200 })
+      );
+    });
+
+    it('should paginate through multiple pages using cursor', async () => {
+      const mockClient = {
+        conversations: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C1', name: 'ch1', num_members: 1, is_member: true, is_private: false },
+                { id: 'C2', name: 'ch2', num_members: 2, is_member: true, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C3', name: 'ch3', num_members: 3, is_member: false, is_private: true },
+              ],
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannels(mockClient, 200);
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+      expect(mockClient.conversations.list).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ cursor: undefined })
+      );
+      expect(mockClient.conversations.list).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ cursor: 'cursor_page2' })
+      );
+      expect(result).toHaveLength(3);
+      expect(result.map((c) => c.id)).toEqual(['C1', 'C2', 'C3']);
+    });
+
+    it('should stop paginating once limit is reached', async () => {
+      const mockClient = {
+        conversations: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C1', name: 'ch1', num_members: 1, is_member: true, is_private: false },
+                { id: 'C2', name: 'ch2', num_members: 2, is_member: true, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C3', name: 'ch3', num_members: 3, is_member: false, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page3' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannels(mockClient, 2);
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(1);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should trim results to exact limit when last page overshoots', async () => {
+      const mockClient = {
+        conversations: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C1', name: 'ch1', num_members: 1, is_member: true, is_private: false },
+                { id: 'C2', name: 'ch2', num_members: 2, is_member: true, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C3', name: 'ch3', num_members: 3, is_member: false, is_private: false },
+                { id: 'C4', name: 'ch4', num_members: 4, is_member: false, is_private: false },
+              ],
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannels(mockClient, 3);
+
+      expect(result).toHaveLength(3);
+      expect(result.map((c) => c.id)).toEqual(['C1', 'C2', 'C3']);
     });
 
     it('should return empty array when request fails', async () => {
@@ -286,6 +402,121 @@ describe('Slack Client', () => {
       const result = await getSlackChannels(mockClient);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('checkUserIsChannelMember', () => {
+    it('should return true when user is found on first page', async () => {
+      const mockClient = {
+        conversations: {
+          members: vi.fn().mockResolvedValue({
+            ok: true,
+            members: ['U001', 'U002', 'U003'],
+            response_metadata: { next_cursor: '' },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U002');
+
+      expect(result).toBe(true);
+      expect(mockClient.conversations.members).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return false when user is not a member', async () => {
+      const mockClient = {
+        conversations: {
+          members: vi.fn().mockResolvedValue({
+            ok: true,
+            members: ['U001', 'U002'],
+            response_metadata: { next_cursor: '' },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U999');
+
+      expect(result).toBe(false);
+    });
+
+    it('should paginate to find user on later page', async () => {
+      const mockClient = {
+        conversations: {
+          members: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              members: ['U001', 'U002'],
+              response_metadata: { next_cursor: 'members_cursor2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              members: ['U003', 'U004'],
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U004');
+
+      expect(result).toBe(true);
+      expect(mockClient.conversations.members).toHaveBeenCalledTimes(2);
+      expect(mockClient.conversations.members).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ cursor: undefined })
+      );
+      expect(mockClient.conversations.members).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ cursor: 'members_cursor2' })
+      );
+    });
+
+    it('should return false when user not found after all pages', async () => {
+      const mockClient = {
+        conversations: {
+          members: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              members: ['U001', 'U002'],
+              response_metadata: { next_cursor: 'members_cursor2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              members: ['U003'],
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U999');
+
+      expect(result).toBe(false);
+      expect(mockClient.conversations.members).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return false when API returns ok: false', async () => {
+      const mockClient = {
+        conversations: {
+          members: vi.fn().mockResolvedValue({ ok: false }),
+        },
+      } as unknown as WebClient;
+
+      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U001');
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false on error', async () => {
+      const mockClient = {
+        conversations: {
+          members: vi.fn().mockRejectedValue(new Error('channel_not_found')),
+        },
+      } as unknown as WebClient;
+
+      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U001');
+
+      expect(result).toBe(false);
     });
   });
 

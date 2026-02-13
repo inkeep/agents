@@ -10,6 +10,31 @@ import { getLogger } from '../../logger';
 
 const logger = getLogger('slack-client');
 
+interface PaginateSlackOptions<TResponse, TItem> {
+  fetchPage: (cursor?: string) => Promise<TResponse>;
+  extractItems: (response: TResponse) => TItem[];
+  getNextCursor: (response: TResponse) => string | undefined;
+  limit?: number;
+}
+
+async function paginateSlack<TResponse, TItem>({
+  fetchPage,
+  extractItems,
+  getNextCursor,
+  limit = 200,
+}: PaginateSlackOptions<TResponse, TItem>): Promise<TItem[]> {
+  const items: TItem[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const response = await fetchPage(cursor);
+    items.push(...extractItems(response));
+    cursor = getNextCursor(response);
+  } while (cursor && items.length < limit);
+
+  return items.slice(0, limit);
+}
+
 /**
  * Create a Slack WebClient with the provided bot token.
  *
@@ -81,27 +106,33 @@ export async function getSlackTeamInfo(client: WebClient) {
  * Users can invite the bot with `/invite @BotName` in the private channel.
  *
  * @param client - Authenticated Slack WebClient
- * @param limit - Maximum number of channels to return (default 20)
+ * @param limit - Maximum number of channels to return. Fetches in pages of up to 200 until the limit is reached or all channels are returned.
  * @returns Array of channel objects with id, name, member count, and privacy status
  */
-export async function getSlackChannels(client: WebClient, limit = 20) {
+export async function getSlackChannels(client: WebClient, limit = 200) {
   try {
-    const result = await client.conversations.list({
-      types: 'public_channel,private_channel',
-      exclude_archived: true,
+    return await paginateSlack({
+      fetchPage: (cursor) =>
+        client.conversations.list({
+          types: 'public_channel,private_channel',
+          exclude_archived: true,
+          limit: Math.min(limit, 200),
+          cursor,
+        }),
+      extractItems: (result) =>
+        result.ok && result.channels
+          ? result.channels.map((ch) => ({
+              id: ch.id,
+              name: ch.name,
+              memberCount: ch.num_members,
+              isBotMember: ch.is_member,
+              isPrivate: ch.is_private ?? false,
+              isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
+            }))
+          : [],
+      getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
       limit,
     });
-    if (result.ok && result.channels) {
-      return result.channels.map((ch) => ({
-        id: ch.id,
-        name: ch.name,
-        memberCount: ch.num_members,
-        isBotMember: ch.is_member,
-        isPrivate: ch.is_private ?? false,
-        isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
-      }));
-    }
-    return [];
   } catch (error) {
     logger.error({ error }, 'Failed to fetch Slack channels');
     return [];
@@ -191,26 +222,17 @@ export async function checkUserIsChannelMember(
   userId: string
 ): Promise<boolean> {
   try {
-    let cursor: string | undefined;
-    do {
-      const result = await client.conversations.members({
-        channel: channelId,
-        limit: 200,
-        cursor,
-      });
-
-      if (!result.ok || !result.members) {
-        return false;
-      }
-
-      if (result.members.includes(userId)) {
-        return true;
-      }
-
-      cursor = result.response_metadata?.next_cursor;
-    } while (cursor);
-
-    return false;
+    const members = await paginateSlack({
+      fetchPage: (cursor) =>
+        client.conversations.members({
+          channel: channelId,
+          limit: 200,
+          cursor,
+        }),
+      extractItems: (result) => (result.ok && result.members ? result.members : []),
+      getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+    });
+    return members.includes(userId);
   } catch (error) {
     logger.error({ error, channelId, userId }, 'Failed to check channel membership');
     return false;
