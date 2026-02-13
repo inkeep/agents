@@ -448,9 +448,10 @@ describe('Project Generator', () => {
       expect(result.agents()).toHaveLength(2);
     });
 
-    it('should generate complex project code that compiles', () => {
+    it.only('should generate complex project code that compiles', async () => {
+      const projectId = 'complex-test-project';
       const definition = generateProjectDefinition(
-        'complex-test-project',
+        projectId,
         complexProjectData,
         undefined,
         mockRegistry
@@ -494,6 +495,11 @@ describe('Project Generator', () => {
       expect(result.dataComponents()).toHaveLength(2);
       expect(result.artifactComponents()).toHaveLength(2);
       expect(result.credentialReferences()).toHaveLength(2);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it.only('should throw error for minimal project without required fields', () => {
