@@ -102,6 +102,7 @@
 
 /* type-table inline type links */
 .shiki code a {
+  color: var(--color-fd-primary);
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 2px;
