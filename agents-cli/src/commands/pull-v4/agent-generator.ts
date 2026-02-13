@@ -26,7 +26,7 @@ const AgentSchema = z.looseObject({
   subAgents: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]),
   contextConfig: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
   stopWhen: z
-    .strictObject({
+    .object({
       transferCountIs: z.int().optional(),
     })
     .optional(),

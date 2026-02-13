@@ -410,13 +410,9 @@ describe('Agent Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate agent code that compiles', () => {
-      const definition = generateAgentDefinition(
-        'test-agent',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    it.only('should generate agent code that compiles', async () => {
+      const agentId = 'test-agent';
+      const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const testAgent', 'const result');
 
       const moduleCode = `
@@ -439,6 +435,11 @@ describe('Agent Generator', () => {
       expect(result.id).toBe('test-agent');
       expect(result.name).toBe('Personal Assistant Agent');
       // Note: result here refers to the agent definition, not the mock variables
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should generate complex agent code that compiles', () => {
