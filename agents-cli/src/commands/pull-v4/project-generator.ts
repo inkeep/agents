@@ -75,6 +75,11 @@ ${z.prettifyError(result.error)}`);
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
+  sourceFile.addImportDeclaration({
+    namedImports: ['project'],
+    moduleSpecifier: '@inkeep/agents-sdk',
+  });
+
   const projectVarName = toCamelCase(parsed.projectId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,

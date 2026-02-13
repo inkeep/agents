@@ -1,3 +1,5 @@
+import { project } from '@inkeep/agents-sdk';
+
 export const transferOnlyProject = project({
   id: 'transfer-only-project',
   name: 'Transfer Only Project',

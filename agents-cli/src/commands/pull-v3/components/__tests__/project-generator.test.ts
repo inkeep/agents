@@ -391,8 +391,9 @@ describe('Project Generator', () => {
       expect(file.endsWith('\n')).toBe(true);
     });
 
-    it('should generate complex project file with all features', () => {
-      const file = generateProjectFile('enterprise-platform', complexProjectData);
+    it.only('should generate complex project file with all features', async () => {
+      const projectId = 'enterprise-platform';
+      const file = generateProjectFile(projectId, complexProjectData);
 
       expect(file).toContain("import { project } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const enterprisePlatform = project({');
@@ -407,6 +408,11 @@ describe('Project Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
+      await expect(file).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
   });
 

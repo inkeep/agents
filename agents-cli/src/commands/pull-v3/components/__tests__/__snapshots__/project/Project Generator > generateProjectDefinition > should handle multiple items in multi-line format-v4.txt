@@ -1,3 +1,5 @@
+import { project } from '@inkeep/agents-sdk';
+
 export const multiItemProject = project({
   id: 'multi-item-project',
   name: 'Enterprise AI Platform',

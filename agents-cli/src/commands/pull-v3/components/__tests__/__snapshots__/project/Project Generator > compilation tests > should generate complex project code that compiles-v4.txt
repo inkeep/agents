@@ -1,3 +1,5 @@
+import { project } from '@inkeep/agents-sdk';
+
 export const complexTestProject = project({
   id: 'complex-test-project',
   name: 'Enterprise AI Platform',
