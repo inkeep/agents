@@ -394,8 +394,9 @@ describe('Agent Generator', () => {
       expect(file.endsWith('\n')).toBe(true);
     });
 
-    it('should generate complex agent file with all features', () => {
-      const file = generateAgentFile('complex-agent', complexAgentData, undefined, mockRegistry);
+    it.only('should generate complex agent file with all features', async () => {
+      const agentId = 'complex-agent';
+      const file = generateAgentFile(agentId, complexAgentData, undefined, mockRegistry);
 
       expect(file).toContain("import { agent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const complexAgent = agent({');
@@ -406,6 +407,11 @@ describe('Agent Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expect(file).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
   });
 
