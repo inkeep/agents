@@ -24,7 +24,7 @@ const API_PORT = new URL(LOCAL_REMOTE.api).port;
 const UI_PORT = new URL(LOCAL_REMOTE.manageUi).port;
 
 describe('Port contract: all sources agree with LOCAL_REMOTE', () => {
-  it('LOCAL_REMOTE ports are defined', () => {
+  it('LOCAL_REMOTE defines expected canonical ports (api=3002, ui=3000)', () => {
     expect(API_PORT).toBe('3002');
     expect(UI_PORT).toBe('3000');
   });

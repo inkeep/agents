@@ -1,4 +1,5 @@
 import { defineProject } from 'vitest/config';
+import { LOCAL_REMOTE } from './src/utils/profiles';
 
 export default defineProject({
   test: {
@@ -9,7 +10,7 @@ export default defineProject({
     setupFiles: ['./vitest.setup.ts'],
     env: {
       ENVIRONMENT: 'test',
-      INKEEP_AGENTS_API_URL: 'http://localhost:3002',
+      INKEEP_AGENTS_API_URL: LOCAL_REMOTE.api,
     },
     testTimeout: 120000, // 120 second timeout for CLI tests
     hookTimeout: 30000, // 30 second timeout for setup/teardown hooks

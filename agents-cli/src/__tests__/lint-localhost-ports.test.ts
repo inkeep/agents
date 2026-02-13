@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 
 const SRC_ROOT = join(__dirname, '..');
 
+// types.ts: where LOCAL_REMOTE is defined; url.test.ts: URL formatting fixtures
 const EXEMPT_FILES = ['utils/profiles/types.ts', 'utils/__tests__/url.test.ts'];
 
 const PATTERN = /localhost:300[0-9]/g;

@@ -1,9 +1,10 @@
 // Set up environment variables before any imports
 
 import { vi } from 'vitest';
+import { LOCAL_REMOTE } from './src/utils/profiles';
 
 // Set default API URLs if not already set
-process.env.INKEEP_AGENTS_API_URL = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+process.env.INKEEP_AGENTS_API_URL = process.env.INKEEP_AGENTS_API_URL || LOCAL_REMOTE.api;
 
 // Global crypto mock for all tests
 vi.mock('node:crypto', async () => {
