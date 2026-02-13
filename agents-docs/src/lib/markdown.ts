@@ -14,8 +14,6 @@ const shikiOptions = {
 
 const processor = remark().use(remarkGfm).use(remarkRehype).use(rehypeCode, shikiOptions);
 
-const PASCAL_CASE_IDENT = /([A-Z][a-zA-Z0-9]*)(\[\])?/g;
-
 function textNode(value: string): any {
   return { type: 'text', value };
 }
@@ -29,46 +27,43 @@ function linkNode(anchor: string, display: string): any {
   };
 }
 
-function linkifyPascalCaseInHast(node: any, typeLinks: Map<string, string>): any | any[] {
+function buildTypePattern(typeLinks: Map<string, string>): RegExp {
+  const escaped = [...typeLinks.keys()].map((k) =>
+    k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+  );
+  return new RegExp(`(${escaped.join('|')})(\\[\\])?`, 'g');
+}
+
+function linkifyTypesInHast(node: any, typeLinks: Map<string, string>): any | any[] {
   if (typeLinks.size === 0) return node;
 
   if (node.type === 'text') {
+    const pattern = buildTypePattern(typeLinks);
     const value = node.value;
-    const parts: string[] = [];
+    const parts: any[] = [];
     let lastEnd = 0;
     let m: RegExpExecArray | null;
-    PASCAL_CASE_IDENT.lastIndex = 0;
-    while ((m = PASCAL_CASE_IDENT.exec(value)) !== null) {
-      parts.push(value.slice(lastEnd, m.index));
-      parts.push(m[1] + (m[2] ?? ''));
+    while ((m = pattern.exec(value)) !== null) {
+      if (m.index > lastEnd) parts.push(textNode(value.slice(lastEnd, m.index)));
+      const name = m[1];
+      const display = name + (m[2] ?? '');
+      const anchor = typeLinks.get(name) ?? name.toLowerCase();
+      parts.push(linkNode(anchor, display));
       lastEnd = m.index + m[0].length;
     }
     if (parts.length === 0) return node;
-    parts.push(value.slice(lastEnd));
-    const out: any[] = [];
-    for (let i = 0; i < parts.length; i++) {
-      if (i % 2 === 1) {
-        const display = parts[i];
-        const name = display.replace(/\[\]$/, '');
-        const anchor = typeLinks.get(name);
-        if (anchor) {
-          out.push(linkNode(anchor, display));
-        } else {
-          out.push(textNode(display));
-        }
-      } else if (parts[i]) {
-        out.push(textNode(parts[i]));
-      }
-    }
-    return out.length === 1 ? out[0] : out;
+    if (lastEnd < value.length) parts.push(textNode(value.slice(lastEnd)));
+    return parts.length === 1 ? parts[0] : parts;
   }
+
   if ((node.type === 'element' || node.type === 'root') && Array.isArray(node.children)) {
     const children = (node.children as any[]).flatMap((c: any) => {
-      const r = linkifyPascalCaseInHast(c, typeLinks);
+      const r = linkifyTypesInHast(c, typeLinks);
       return Array.isArray(r) ? r : [r];
     });
     return { ...node, children };
   }
+
   return node;
 }
 
@@ -82,7 +77,7 @@ export async function renderTypeToHast(
     structure: 'inline',
   });
 
-  const linkified = linkifyPascalCaseInHast(nodes, typeLinks);
+  const linkified = linkifyTypesInHast(nodes, typeLinks);
   let innerChildren: any[] =
     linkified?.type === 'element' || linkified?.type === 'root'
       ? ((linkified.children as any[]) ?? [])
