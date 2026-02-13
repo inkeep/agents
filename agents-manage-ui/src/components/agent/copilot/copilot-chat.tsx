@@ -209,16 +209,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               IkpTool: (props: any) =>
                 IkpTool({
                   ...props,
-                  copilotAgentId: PUBLIC_INKEEP_COPILOT_AGENT_ID,
-                  copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-                  copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
-                  apiUrl: PUBLIC_INKEEP_AGENTS_API_URL,
                   targetTenantId: tenantId,
                   targetProjectId: projectId,
                   onOAuthLogin: handleOAuthLogin,
                   refreshAgentGraph: refreshAgentGraph,
-                  cookieHeader: cookieHeader,
-                  copilotToken: copilotToken,
                 }),
             },
             conversationId,
