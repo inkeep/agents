@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as yaml from 'yaml';
 import { initCommand } from '../../commands/init';
-import { LOCAL_REMOTE } from '../../utils/profiles';
+import { LOCAL_REMOTE, ProfileManager } from '../../utils/profiles';
 import type { ProfilesConfig } from '../../utils/profiles/types';
 
 describe('init --local integration (real filesystem)', () => {
@@ -70,5 +70,21 @@ describe('init --local integration (real filesystem)', () => {
     const content = readFileSync(configPath, 'utf-8');
     expect(content).toContain(LOCAL_REMOTE.api);
     expect(content).toContain("tenantId: 'default'");
+  });
+
+  it('should roundtrip profiles.yaml through ProfileManager', async () => {
+    await initCommand({
+      local: true,
+      interactive: false,
+      path: configDir,
+      profilesDir,
+    });
+
+    const pm = new ProfileManager({ profilesDir });
+    const config = pm.loadProfiles();
+
+    expect(config.activeProfile).toBe('local');
+    expect(config.profiles.local.remote.api).toBe(LOCAL_REMOTE.api);
+    expect(config.profiles.local.remote.manageUi).toBe(LOCAL_REMOTE.manageUi);
   });
 });
