@@ -68,7 +68,6 @@
     "@opentelemetry/sdk-node": "^0.205.0",
     "@opentelemetry/sdk-trace-base": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
-    "@vercel/functions": "^1.4.0",
     "@vercel/sandbox": "^0.0.24",
     "@workflow/builders": "^4.0.1-beta.45",
     "@workflow/world-local": "^4.1.0-beta.30",
