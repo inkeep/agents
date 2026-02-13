@@ -167,9 +167,10 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it('should generate agent with stopWhen configuration', () => {
+    it.only('should generate agent with stopWhen configuration', async () => {
+      const agentId = 'transfer-limited-agent';
       const definition = generateAgentDefinition(
-        'transfer-limited-agent',
+        agentId,
         complexAgentData,
         undefined,
         mockRegistry
@@ -178,6 +179,11 @@ describe('Agent Generator', () => {
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 5 // Max transfers in one conversation');
       expect(definition).toContain('},');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should handle single sub-agent', () => {
