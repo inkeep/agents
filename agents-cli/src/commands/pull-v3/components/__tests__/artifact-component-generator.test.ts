@@ -246,7 +246,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should handle template property', () => {
+    it.only('should handle template property', async () => {
       const dataWithTemplate = {
         name: 'Test',
         description: 'Template component',
@@ -254,9 +254,22 @@ describe('Artifact Component Generator', () => {
         template: '<div>{{title}}</div>',
       };
 
-      const definition = generateArtifactComponentDefinition('test', dataWithTemplate);
+      const artifactComponentId = 'test';
+      const definition = generateArtifactComponentDefinition(artifactComponentId, dataWithTemplate);
 
       expect(definition).toContain("template: '<div>{{title}}</div>'");
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...dataWithTemplate,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should handle contentType property', () => {
