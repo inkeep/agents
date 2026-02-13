@@ -116,7 +116,7 @@ describe('Agent Generator', () => {
   // });
 
   describe('generateAgentDefinition', () => {
-    it.only('should generate basic agent definition', async () => {
+    it('should generate basic agent definition', async () => {
       const agentId = 'personal-agent';
       const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
@@ -140,7 +140,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should generate agent with status updates', async () => {
+    it('should generate agent with status updates', async () => {
       const agentId = 'complex-agent';
       const definition = generateAgentDefinition(
         agentId,
@@ -167,7 +167,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should generate agent with stopWhen configuration', async () => {
+    it('should generate agent with stopWhen configuration', async () => {
       const agentId = 'transfer-limited-agent';
       const definition = generateAgentDefinition(
         agentId,
@@ -215,7 +215,7 @@ describe('Agent Generator', () => {
     //   }).toThrow("Missing required fields for agent 'minimal-agent': defaultSubAgentId, subAgents");
     // });
 
-    it.only('should throw error for missing all required fields', () => {
+    it('should throw error for missing all required fields', () => {
       const agentId = 'fallback-agent';
       const noNameData = {};
 
@@ -237,7 +237,7 @@ describe('Agent Generator', () => {
       );
     });
 
-    it.only('should handle camelCase conversion for agent variable names', async () => {
+    it('should handle camelCase conversion for agent variable names', async () => {
       const agentId = 'my-complex-agent_v2';
       const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
@@ -249,7 +249,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should handle multiline descriptions and prompts', async () => {
+    it('should handle multiline descriptions and prompts', async () => {
       const multilineData = {
         name: 'Test Agent',
         description:
@@ -297,7 +297,7 @@ describe('Agent Generator', () => {
     //   expect(definition).toContain('})'); // No semicolon at the end
     // });
 
-    it.only('should handle empty statusComponents array', async () => {
+    it('should handle empty statusComponents array', async () => {
       const emptyStatusData = {
         ...complexAgentData,
         statusUpdates: {
@@ -323,7 +323,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should handle statusUpdates without all optional fields', async () => {
+    it('should handle statusUpdates without all optional fields', async () => {
       const partialStatusData = {
         name: 'Partial Status Agent',
         defaultSubAgentId: 'defaultSubAgent',
@@ -354,7 +354,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should not generate stopWhen without transferCountIs', async () => {
+    it('should not generate stopWhen without transferCountIs', async () => {
       const noTransferCountData = {
         name: 'No Transfer Count Agent',
         defaultSubAgentId: 'defaultSubAgent',
@@ -382,7 +382,7 @@ describe('Agent Generator', () => {
   });
 
   describe('generateAgentFile', () => {
-    it.only('should generate complete agent file', async () => {
+    it('should generate complete agent file', async () => {
       const agentId = 'personal-agent';
       const file = generateAgentFile(agentId, basicAgentData, undefined, mockRegistry);
 
@@ -400,7 +400,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should generate complex agent file with all features', async () => {
+    it('should generate complex agent file with all features', async () => {
       const agentId = 'complex-agent';
       const file = generateAgentFile(agentId, complexAgentData, undefined, mockRegistry);
 
@@ -422,7 +422,7 @@ describe('Agent Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it.only('should generate agent code that compiles', async () => {
+    it('should generate agent code that compiles', async () => {
       const agentId = 'test-agent';
       const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const testAgent', 'const result');
@@ -454,7 +454,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it.only('should generate complex agent code that compiles', async () => {
+    it('should generate complex agent code that compiles', async () => {
       const agentId = 'complex-test-agent';
       const definition = generateAgentDefinition(
         agentId,
@@ -506,11 +506,20 @@ describe('Agent Generator', () => {
 
     it('should throw error for minimal agent without required fields', () => {
       const minimalData = { name: 'Minimal Test Agent' };
-
+      const agentId = 'minimal-test-agent';
       expect(() => {
-        generateAgentDefinition('minimal-test-agent', minimalData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, minimalData, undefined, mockRegistry);
       }).toThrow(
         "Missing required fields for agent 'minimal-test-agent': defaultSubAgentId, subAgents"
+      );
+      expect(() => {
+        generateAgentDefinitionV4({ agentId, ...minimalData });
+      }).toThrow(
+        new Error(`Missing required fields for agent:
+✖ Invalid input: expected string, received undefined
+  → at defaultSubAgentId
+✖ Invalid input
+  → at subAgents`)
       );
     });
   });
@@ -540,7 +549,7 @@ describe('Agent Generator', () => {
     //   expect(definition).toContain("id: '2nd-generation-agent',");
     // });
 
-    it.only('should throw error for empty string name', () => {
+    it('should throw error for empty string name', () => {
       const emptyStringData = {
         name: '',
         description: '',
@@ -560,7 +569,7 @@ describe('Agent Generator', () => {
       );
     });
 
-    it.only('should throw error for null and undefined required values', () => {
+    it('should throw error for null and undefined required values', () => {
       const nullData = {
         name: 'Test Agent',
         description: null,
