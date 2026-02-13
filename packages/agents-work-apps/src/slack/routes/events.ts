@@ -88,6 +88,16 @@ app.post('/commands', async (c) => {
 });
 
 app.post('/events', async (c) => {
+  // Slack retries event delivery when the initial ack is slow (>3s).
+  // Retries include X-Slack-Retry-Num / X-Slack-Retry-Reason headers.
+  // Since we fire-and-forget background work, retries would cause duplicate processing.
+  const retryNum = c.req.header('x-slack-retry-num');
+  const retryReason = c.req.header('x-slack-retry-reason');
+  if (retryNum) {
+    logger.info({ retryNum, retryReason }, 'Acknowledging Slack retry without re-processing');
+    return c.json({ ok: true });
+  }
+
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.WEBHOOK, async (span) => {
     let outcome: SlackOutcome = 'ignored_unknown_event';
 
