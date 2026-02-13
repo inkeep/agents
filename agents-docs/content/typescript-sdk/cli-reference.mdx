@@ -44,7 +44,7 @@ inkeep init [path]
 
 **Options:**
 
-- `--local` - Initialize for local/self-hosted development (creates a local profile as default)
+- `--local` - Initialize for local development (creates a local profile with no authentication required)
 - `--no-interactive` - Skip interactive path selection
 - `--config <path>` - Path to use as template for new configuration
 
@@ -56,11 +56,13 @@ By default, `inkeep init` runs the cloud onboarding wizard which:
 - Creates project directories with configuration files
 - Sets up the `cloud` profile as the default in `~/.inkeep/profiles.yaml`
 
-Use `--local` for self-hosted or local development:
-- Prompts for tenant ID and API URLs (defaults to `localhost:3002` and `localhost:3003`)
+Use `--local` for local development:
+- Prompts for tenant ID and API URL (defaults to `localhost:3002`)
 - Creates `inkeep.config.ts` with your local configuration
 - Sets up a `local` profile as the default in `~/.inkeep/profiles.yaml`
 - No authentication required
+
+For self-hosted deployments that require authentication, use `inkeep profile add` and select **Custom**.
 
 **Examples:**
 
@@ -68,7 +70,7 @@ Use `--local` for self-hosted or local development:
 # Cloud initialization (default) - opens browser for auth
 inkeep init
 
-# Local/self-hosted initialization - no auth required
+# Local initialization - no auth required
 inkeep init --local
 
 # Initialize in specific directory
@@ -108,8 +110,7 @@ inkeep push
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--tenant-id <id>` - Override tenant ID
-- `--agents-manage-api-url <url>` - Override the management API URL from config
-- `--agents-run-api-url <url>` - Override agents run API URL
+- `--agents-api-url <url>` - Override the agents API URL from config
 - `--json` - Generate project data as JSON file instead of pushing to server
 - `--profile <name>` - Use a specific CLI profile (overrides the active profile)
 - `--quiet` - Suppress interactive prompts and extra logs
@@ -153,9 +154,8 @@ inkeep push --json
 # Override tenant ID
 inkeep push --tenant-id my-tenant
 
-# Override API URLs
-inkeep push --agents-manage-api-url https://api.example.com
-inkeep push --agents-run-api-url https://run.example.com
+# Override API URL
+inkeep push --agents-api-url https://api.example.com
 
 # Use specific config file
 inkeep push --config ./custom-config/inkeep.config.ts
@@ -746,17 +746,16 @@ profiles:
     environment: production
   local:
     remote:
-      manageApi: http://localhost:3002
+      api: http://localhost:3002
       manageUi: http://localhost:3000
-      runApi: http://localhost:3003
-    credential: inkeep-local
+    credential: none
     environment: development
 ```
 
 **Subcommands:**
 
 - `inkeep profile list` — Show all profiles and the active one.
-- `inkeep profile add <name>` — Interactive creation for cloud or custom URLs; writes to `profiles.yaml`.
+- `inkeep profile add <name>` — Interactive profile creation. Choose between Inkeep Cloud, Local (localhost defaults, no auth required), or Custom (self-hosted/staging URLs).
 - `inkeep profile use <name>` — Switch the active profile.
 - `inkeep profile current` — Show the active profile details and credential key.
 - `inkeep profile remove <name>` — Delete a profile (cannot remove the active one).
@@ -803,6 +802,50 @@ inkeep pull --profile local
 - The `credential` field in the profile is the key used to store the token; `login` writes to that key and `push/pull/status` read from it.
 - Repeat `login --profile <name>` for every profile/remote you operate against.
 - Use `inkeep logout --profile <name>` to clear a profile’s stored credentials if you need to rotate access.
+
+</SkillRule>
+
+<SkillRule
+  id="cli-login-command"
+  skills="typescript-sdk"
+  title="CLI inkeep login Command"
+  description="Authenticate with a deployment using the device code flow"
+>
+
+### `inkeep login`
+
+Authenticate with a deployment using the device code flow. Opens a browser window where you approve access, then stores credentials in your system keychain.
+
+```bash
+inkeep login
+```
+
+**Options:**
+
+- `--profile <name>` — Authenticate against a specific profile (defaults to active profile)
+
+Credentials are stored under the profile's `credential` key. Local profiles with `credential: none` do not require login.
+
+</SkillRule>
+
+<SkillRule
+  id="cli-logout-command"
+  skills="typescript-sdk"
+  title="CLI inkeep logout Command"
+  description="Clear stored credentials for a profile"
+>
+
+### `inkeep logout`
+
+Clear stored credentials for a profile.
+
+```bash
+inkeep logout
+```
+
+**Options:**
+
+- `--profile <name>` — Clear credentials for a specific profile (defaults to active profile)
 
 </SkillRule>
 
@@ -970,8 +1013,9 @@ import { defineConfig } from "@inkeep/agents-cli/config";
 
 export default defineConfig({
   tenantId: "your-tenant-id",
-  agentsManageApiUrl: "http://localhost:3002",
-  agentsRunApiUrl: "http://localhost:3003",
+  agentsApi: {
+    url: "http://localhost:3002",
+  },
 });
 ```
 
@@ -983,9 +1027,9 @@ The CLI resolves configuration values in the following order. Higher-priority so
 
 | Priority | Source | Example |
 |----------|--------|---------|
-| 1 (highest) | CLI flags | `--tenant-id`, `--agents-manage-api-url` |
+| 1 (highest) | CLI flags | `--tenant-id`, `--agents-api-url` |
 | 2 | Active profile | API URLs, API key, and tenant ID from `~/.inkeep/profiles.yaml` + keychain credentials |
-| 3 | `inkeep.config.ts` | `tenantId`, `agentsManageApiUrl` |
+| 3 | `inkeep.config.ts` | `tenantId`, `agentsApi.url` |
 | 4 (lowest) | Built-in defaults | Default API URLs |
 
 When a profile is active, it overrides `inkeep.config.ts` for these fields:
@@ -1003,9 +1047,9 @@ In CI environments, profiles are skipped entirely. The precedence becomes:
 
 | Priority | Source | Example |
 |----------|--------|---------|
-| 1 (highest) | CLI flags | `--tenant-id`, `--agents-manage-api-url` |
+| 1 (highest) | CLI flags | `--tenant-id`, `--agents-api-url` |
 | 2 | Environment variables | `INKEEP_API_KEY`, `INKEEP_TENANT_ID`, `INKEEP_AGENTS_API_URL` |
-| 3 | `inkeep.config.ts` | `tenantId`, `agentsManageApiUrl` |
+| 3 | `inkeep.config.ts` | `tenantId`, `agentsApi.url` |
 | 4 (lowest) | Built-in defaults | Default API URLs |
 
 <Tip>
@@ -1026,8 +1070,7 @@ Use `--profile <name>` on any command to override the active profile for a singl
 The CLI and SDK respect the following environment variables:
 
 - `INKEEP_TENANT_ID` - Tenant identifier
-- `INKEEP_AGENTS_MANAGE_API_URL` - Management API base URL
-- `INKEEP_AGENTS_RUN_API_URL` - Run API base URL
+- `INKEEP_AGENTS_API_URL` - Agents API base URL
 - `INKEEP_ENV` - Environment name for credentials loading during `inkeep push`
 - `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` - Optional bearer for Manage API (advanced)
 - `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` - Optional bearer for Run API (advanced)
