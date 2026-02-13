@@ -4,11 +4,7 @@
  */
 import { generateProjectDefinition as generateProjectDefinitionV4 } from '../../../pull-v4/project-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
-import {
-  generateProjectDefinition,
-  generateProjectFile,
-  generateProjectImports,
-} from '../project-generator';
+import { generateProjectDefinition, generateProjectFile } from '../project-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -55,23 +51,23 @@ describe('Project Generator', () => {
     credentialReferences: ['databaseCredentials', 'apiKeyCredentials'],
   } as const;
 
-  describe('generateProjectImports', () => {
-    // it('should generate basic imports', () => {
-    //   const imports = generateProjectImports(basicProjectData);
-    //
-    //   expect(imports).toHaveLength(1);
-    //   expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
-    // });
-    // it('should handle different code styles', () => {
-    //   const imports = generateProjectImports(basicProjectData, {
-    //     quotes: 'double',
-    //     semicolons: false,
-    //     indentation: '    ',
-    //   });
-    //
-    //   expect(imports[0]).toBe('import { project } from "@inkeep/agents-sdk"');
-    // });
-  });
+  // describe('generateProjectImports', () => {
+  // it('should generate basic imports', () => {
+  //   const imports = generateProjectImports(basicProjectData);
+  //
+  //   expect(imports).toHaveLength(1);
+  //   expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
+  // });
+  // it('should handle different code styles', () => {
+  //   const imports = generateProjectImports(basicProjectData, {
+  //     quotes: 'double',
+  //     semicolons: false,
+  //     indentation: '    ',
+  //   });
+  //
+  //   expect(imports[0]).toBe('import { project } from "@inkeep/agents-sdk"');
+  // });
+  // });
 
   describe('generateProjectDefinition', () => {
     it('should generate basic project definition', async () => {
