@@ -89,6 +89,34 @@ function createAgentsHono(config: AppConfig) {
   if (auth) {
     app.use('/api/auth/*', cors(authCorsConfig));
 
+    // Dev-only: auto-login endpoint — no credentials leave the server.
+    // MUST be registered BEFORE the catch-all /api/auth/* handler below (Hono uses first-match-wins).
+    if (env.ENVIRONMENT === 'development') {
+      app.post('/api/auth/dev-session', async (c) => {
+        const email = env.INKEEP_AGENTS_MANAGE_UI_USERNAME;
+        const password = env.INKEEP_AGENTS_MANAGE_UI_PASSWORD;
+
+        if (!email || !password) {
+          return c.json(
+            { error: 'Dev credentials not configured. Run pnpm db:auth:init first.' },
+            400
+          );
+        }
+
+        const signInUrl = new URL('/api/auth/sign-in/email', c.req.url);
+        const syntheticRequest = new Request(signInUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Origin: c.req.header('Origin') || 'http://localhost:3000',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        return auth.handler(syntheticRequest);
+      });
+    }
+
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
