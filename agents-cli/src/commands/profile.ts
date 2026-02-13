@@ -75,7 +75,7 @@ export async function profileAddCommand(name?: string): Promise<void> {
       message: 'Remote type:',
       options: [
         { value: 'cloud', label: 'Inkeep Cloud', hint: 'Default cloud deployment' },
-        { value: 'local', label: 'Local', hint: 'Local development (localhost)' },
+        { value: 'local', label: 'Local', hint: 'Local development (localhost, no auth)' },
         { value: 'custom', label: 'Custom', hint: 'Self-hosted or staging deployment' },
       ],
     });
