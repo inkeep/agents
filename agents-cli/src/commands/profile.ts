@@ -250,12 +250,14 @@ export async function profileCurrentCommand(): Promise<void> {
     console.log(`  Environment: ${profile.environment}`);
     console.log(`  Credential:  ${profile.credential}`);
 
-    // Check if credential exists
-    const credentialExists = await profileManager.checkCredentialExists(profile.credential);
-    if (!credentialExists) {
-      console.log();
-      console.log(chalk.yellow('⚠'), `Credential '${profile.credential}' not found in keychain.`);
-      console.log(chalk.gray('  Run "inkeep login" to authenticate.'));
+    // Check if credential exists and warn if not (skip for 'none')
+    if (profile.credential !== 'none') {
+      const credentialExists = await profileManager.checkCredentialExists(profile.credential);
+      if (!credentialExists) {
+        console.log();
+        console.log(chalk.yellow('⚠'), `Credential '${profile.credential}' not found in keychain.`);
+        console.log(chalk.gray('  Run "inkeep login" to authenticate.'));
+      }
     }
   } catch (error) {
     handleProfileError(error);

@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initCommand } from '../../commands/init';
+import { LOCAL_REMOTE } from '../../utils/profiles';
 
 // Mock @clack/prompts
 vi.mock('@clack/prompts');
@@ -273,7 +274,7 @@ describe('Init Command', () => {
           local: {
             remote: {
               api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'none',
             environment: 'development',
@@ -334,7 +335,7 @@ describe('Init Command', () => {
           local: {
             remote: {
               api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'none',
             environment: 'development',
