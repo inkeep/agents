@@ -28,9 +28,7 @@ function linkNode(anchor: string, display: string): any {
 }
 
 function buildTypePattern(typeLinks: Map<string, string>): RegExp {
-  const escaped = [...typeLinks.keys()].map((k) =>
-    k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-  );
+  const escaped = [...typeLinks.keys()].map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   return new RegExp(`(${escaped.join('|')})(\\[\\])?`, 'g');
 }
 
