@@ -21,13 +21,9 @@ import 'dotenv/config';
 
 export default defineConfig({
   tenantId: 'my-company',
-  agentsManageApi: {
+  agentsApi: {
     url: 'http://localhost:3002',
-    apiKey: process.env.MANAGE_API_KEY, // Optional
-  },
-  agentsRunApi: {
-    url: 'http://localhost:3003',
-    apiKey: process.env.RUN_API_KEY, // Optional
+    apiKey: process.env.API_KEY, // Optional
   },
   outputDirectory: './output',
 });
@@ -105,11 +101,8 @@ Values explicitly set in your `inkeep.config.ts`:
 ```typescript
 export default defineConfig({
   tenantId: 'my-tenant',
-  agentsManageApi: {
+  agentsApi: {
     url: 'http://localhost:3002',
-  },
-  agentsRunApi: {
-    url: 'http://localhost:3003',
   },
 });
 ```
@@ -120,8 +113,8 @@ Default values used when not specified elsewhere:
 
 ```typescript
 const defaults = {
-  agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
+  agentsApiUrl: 'http://localhost:3002',
+  manageUiUrl: 'http://localhost:3000',
 };
 ```
 
