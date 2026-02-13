@@ -1,18 +1,8 @@
 import { cookies } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { BETTER_AUTH_COOKIE_PREFIX, BETTER_AUTH_COOKIES } from '@/lib/auth/constants';
 import { getLogger } from '@/lib/logger';
-
-/**
- * Known better-auth cookie names to clear.
- * These follow the pattern: better-auth.{cookie_name}
- */
-const BETTER_AUTH_COOKIES = [
-  'better-auth.session_token',
-  'better-auth.session_data',
-  'better-auth.dont_remember',
-  'better-auth.two_factor',
-];
 
 const DEFAULT_REDIRECT = '/login';
 
@@ -49,7 +39,7 @@ export async function GET(request: NextRequest) {
 
   // Get all better-auth cookies to forward to the sign-out endpoint
   const allCookies = cookieStore.getAll();
-  const authCookies = allCookies.filter((c) => c.name.includes('better-auth'));
+  const authCookies = allCookies.filter((c) => c.name.includes(BETTER_AUTH_COOKIE_PREFIX));
   const cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
   // Call the better-auth sign-out endpoint on the agents API
