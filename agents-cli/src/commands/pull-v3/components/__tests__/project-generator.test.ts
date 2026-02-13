@@ -571,7 +571,8 @@ describe('Project Generator', () => {
       expect(definition).not.toContain('agent6,');
     });
 
-    it('should handle mixed array types', () => {
+    it.only('should handle mixed array types', async () => {
+      const projectId = 'mixed-types-project';
       const mixedData = {
         name: 'Mixed Types Project',
         models: {
@@ -581,15 +582,15 @@ describe('Project Generator', () => {
         tools: ['stringTool'],
       };
 
-      const definition = generateProjectDefinition(
-        'mixed-types-project',
-        mixedData,
-        undefined,
-        mockRegistry
-      );
+      const definition = generateProjectDefinition(projectId, mixedData, undefined, mockRegistry);
 
       expect(definition).toContain('agents: () => [stringAgent]');
       expect(definition).toContain('tools: () => [stringTool]');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...mixedData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it.only('should throw error for missing name only', () => {
