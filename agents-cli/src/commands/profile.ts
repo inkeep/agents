@@ -136,7 +136,7 @@ export async function profileAddCommand(name?: string): Promise<void> {
       };
     }
 
-    // Get environment name
+    // Cloud and custom (self-hosted/staging) default to 'production'; only local dev defaults to 'development'
     const envDefault = remoteType === 'local' ? 'development' : 'production';
     const environment = await p.text({
       message: 'Environment name:',
