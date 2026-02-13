@@ -94,26 +94,44 @@ function createAgentsHono(config: AppConfig) {
     if (env.ENVIRONMENT === 'development') {
       app.post('/api/auth/dev-session', async (c) => {
         const email = env.INKEEP_AGENTS_MANAGE_UI_USERNAME;
-        const password = env.INKEEP_AGENTS_MANAGE_UI_PASSWORD;
 
-        if (!email || !password) {
+        if (!email) {
           return c.json(
             { error: 'Dev credentials not configured. Run pnpm db:auth:init first.' },
             400
           );
         }
 
-        const signInUrl = new URL('/api/auth/sign-in/email', c.req.url);
-        const syntheticRequest = new Request(signInUrl.toString(), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Origin: c.req.header('Origin') || 'http://localhost:3000',
-          },
-          body: JSON.stringify({ email, password }),
-        });
+        const ctx = await auth.$context;
+        const found = await ctx.internalAdapter.findUserByEmail(email);
 
-        return auth.handler(syntheticRequest);
+        if (!found) {
+          return c.json({ error: 'Dev user not found. Run pnpm db:auth:init first.' }, 400);
+        }
+
+        const session = await ctx.internalAdapter.createSession(found.user.id);
+
+        // Sign the session token with HMAC-SHA-256 (matches Better Auth's internal cookie signing)
+        const key = await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(ctx.secret),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(session.token));
+        const base64Sig = btoa(String.fromCharCode(...new Uint8Array(sig)));
+        const encodedValue = encodeURIComponent(`${session.token}.${base64Sig}`);
+
+        const { name: cookieName, options } = ctx.authCookies.sessionToken;
+        const { path, httpOnly, secure, sameSite = 'lax' } = options;
+        const maxAge = ctx.sessionConfig.expiresIn;
+        const sameSiteValue = sameSite.charAt(0).toUpperCase() + sameSite.slice(1);
+
+        const cookieString = `${cookieName}=${encodedValue}; Path=${path}; Max-Age=${maxAge}${httpOnly ? '; HttpOnly' : ''}${secure ? '; Secure' : ''}; SameSite=${sameSiteValue}`;
+
+        c.header('set-cookie', cookieString);
+        return c.json({ ok: true });
       });
     }
 
