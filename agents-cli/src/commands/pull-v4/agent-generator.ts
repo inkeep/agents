@@ -8,7 +8,13 @@ import {
   VariableDeclarationKind,
 } from 'ts-morph';
 import { z } from 'zod';
-import { toCamelCase } from './utils';
+import {
+  formatInlineLiteral,
+  formatPropertyName,
+  formatStringLiteral,
+  isPlainObject,
+  toCamelCase,
+} from './utils';
 
 type AgentDefinitionData = {
   agentId: string;
@@ -299,58 +305,6 @@ function addObjectEntries(target: ObjectLiteralExpression, value: Record<string,
   }
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function formatPropertyName(key: string): string {
-  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
-    return key;
-  }
-  return formatStringLiteral(key);
-}
-
-function formatInlineLiteral(value: unknown): string {
-  if (typeof value === 'string') {
-    return formatStringLiteral(value);
-  }
-  if (typeof value === 'number' || typeof value === 'bigint') {
-    return String(value);
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  if (value === null) {
-    return 'null';
-  }
-  if (value === undefined) {
-    return 'undefined';
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => formatInlineLiteral(item)).join(', ')}]`;
-  }
-  if (isPlainObject(value)) {
-    const entries = Object.entries(value).filter(([, entryValue]) => entryValue !== undefined);
-    if (entries.length === 0) {
-      return '{}';
-    }
-    return `{ ${entries
-      .map(([key, entryValue]) => `${formatPropertyName(key)}: ${formatInlineLiteral(entryValue)}`)
-      .join(', ')} }`;
-  }
-  return 'undefined';
-}
-
-function formatStringLiteral(value: string): string {
-  if (value.includes('\n')) {
-    return `\`${escapeTemplateLiteral(value)}\``;
-  }
-  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
-}
-
-function escapeTemplateLiteral(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
-}
 
 function extractIds(value: string[] | Record<string, unknown>): string[] {
   if (Array.isArray(value)) {
