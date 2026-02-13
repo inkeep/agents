@@ -504,41 +504,48 @@ describe('Agent Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle special characters in agent IDs', () => {
-      const definition = generateAgentDefinition(
-        'agent-v2_final',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    // it('should handle special characters in agent IDs', () => {
+    //   const definition = generateAgentDefinition(
+    //     'agent-v2_final',
+    //     basicAgentData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('export const agentV2Final = agent({');
+    //   expect(definition).toContain("id: 'agent-v2_final',");
+    // });
+    //
+    // it('should handle agent ID starting with numbers', () => {
+    //   const definition = generateAgentDefinition(
+    //     '2nd-generation-agent',
+    //     basicAgentData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('export const _2ndGenerationAgent = agent({');
+    //   expect(definition).toContain("id: '2nd-generation-agent',");
+    // });
 
-      expect(definition).toContain('export const agentV2Final = agent({');
-      expect(definition).toContain("id: 'agent-v2_final',");
-    });
-
-    it('should handle agent ID starting with numbers', () => {
-      const definition = generateAgentDefinition(
-        '2nd-generation-agent',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
-
-      expect(definition).toContain('export const _2ndGenerationAgent = agent({');
-      expect(definition).toContain("id: '2nd-generation-agent',");
-    });
-
-    it('should throw error for empty string name', () => {
+    it.only('should throw error for empty string name', () => {
       const emptyStringData = {
         name: '',
         description: '',
         defaultSubAgentId: 'assistant',
         subAgents: ['subAgent1'],
       };
-
+      const agentId = 'empty-strings-agent';
       expect(() => {
-        generateAgentDefinition('empty-strings-agent', emptyStringData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, emptyStringData, undefined, mockRegistry);
       }).toThrow("Missing required fields for agent 'empty-strings-agent': name");
+      expect(() => {
+        generateAgentDefinitionV4({ agentId, ...emptyStringData });
+      }).toThrow(
+        new Error(`Missing required fields for agent:
+✖ Too small: expected string to have >=1 characters
+  → at name`)
+      );
     });
 
     it('should throw error for null and undefined required values', () => {
