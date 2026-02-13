@@ -4,6 +4,7 @@ name: Deploy to Vercel Production
 # or manually via workflow_dispatch (deploys latest main).
 # 1. Deploy to production (builds with production env vars, assigns production domains)
 # 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
+# 3. Promote the deployment to active production (handles projects with staged deployments)
 #
 # Required secrets (configure in GitHub Repository Settings > Secrets):
 # - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
@@ -60,3 +61,8 @@ jobs:
         run: |
           echo "Waiting for Vercel deployment checks to complete..."
           vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
+
+      - name: Promote to Active Production
+        run: |
+          echo "Promoting ${{ matrix.project.name }} to active production..."
+          vercel promote ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
