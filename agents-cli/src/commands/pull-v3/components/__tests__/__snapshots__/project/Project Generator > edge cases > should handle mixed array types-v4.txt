@@ -1,0 +1,11 @@
+export const mixedTypesProject = project({
+  id: 'mixed-types-project',
+  name: 'Mixed Types Project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini'
+    }
+  },
+  agents: () => [stringAgent],
+  tools: () => [stringTool]
+});
