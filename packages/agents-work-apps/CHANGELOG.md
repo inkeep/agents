@@ -1,5 +1,12 @@
 # @inkeep/agents-work-apps
 
+## 0.48.1
+
+### Patch Changes
+
+- a0464cb: Fix Slack API retry import
+  - @inkeep/agents-core@0.48.1
+
 ## 0.48.0
 
 ### Patch Changes
