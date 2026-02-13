@@ -26,7 +26,7 @@ import { createGenerator } from 'fumadocs-typescript';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { ComparisonTable } from '@/components/comparisons-table';
-import { type TypeLinksInput, AutoTypeTable } from '@/components/mdx/auto-type-table';
+import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-table';
 import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card';
 import { SkillRule } from '@/components/mdx/skill-rule';
