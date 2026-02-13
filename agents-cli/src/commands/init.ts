@@ -17,6 +17,7 @@ export interface InitOptions {
   config?: string;
   interactive?: boolean;
   local?: boolean;
+  profilesDir?: string;
 }
 
 /**
@@ -74,7 +75,9 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
   console.log();
 
   const s = p.spinner();
-  const profileManager = new ProfileManager();
+  const profileManager = new ProfileManager(
+    options?.profilesDir ? { profilesDir: options.profilesDir } : undefined
+  );
 
   // Step 1: Check authentication
   s.start('Checking authentication...');
@@ -450,7 +453,9 @@ export default defineConfig({
 
     // Set up local profile
     try {
-      const profileManager = new ProfileManager();
+      const profileManager = new ProfileManager(
+        options?.profilesDir ? { profilesDir: options.profilesDir } : undefined
+      );
       const localProfile: Profile = {
         remote: {
           api: apiUrl,
