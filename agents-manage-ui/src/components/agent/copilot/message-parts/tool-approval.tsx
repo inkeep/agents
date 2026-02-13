@@ -20,9 +20,6 @@ interface EntityData {
 interface ToolApprovalProps {
   tool: ToolUIPart;
   approve: (approved?: boolean) => Promise<void>;
-  apiUrl?: string;
-  cookieHeader?: string;
-  copilotToken?: string;
 }
 
 const FallbackApproval = ({ toolName }: { toolName: string }) => {
