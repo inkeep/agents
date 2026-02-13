@@ -44,13 +44,14 @@ export function DevAutoLoginProvider({ children }: { children: React.ReactNode }
           // Auto-login failed (init not run, or credentials wrong).
           // Fall through to normal login page.
           console.warn(
-            '[DevAutoLogin] Auto-login failed. Run `pnpm db:auth:init` to set up dev credentials.'
+            `[DevAutoLogin] Auto-login failed (HTTP ${res.status}). Run \`pnpm db:auth:init\` to set up dev credentials.`
           );
           setReady(true);
         }
       })
-      .catch(() => {
-        // Network error (API not running). Fall through to login.
+      .catch((err) => {
+        // Network error (API not running, CORS, port mismatch). Fall through to login.
+        console.warn('[DevAutoLogin] Fetch failed:', err);
         setReady(true);
       });
   }, [isLoading, isAuthenticated, PUBLIC_INKEEP_AGENTS_API_URL]);
