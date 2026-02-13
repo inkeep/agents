@@ -1,5 +1,70 @@
 # @inkeep/agents-sdk
 
+## 0.48.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 95a3abc: Add scheduled/cron trigger support across the full stack — database schema, API routes, Manage UI
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [228d4e2]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+  - @inkeep/agents-core@0.48.0
+
 ## 0.47.5
 
 ### Patch Changes

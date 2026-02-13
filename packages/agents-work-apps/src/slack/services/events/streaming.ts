@@ -16,6 +16,8 @@ const logger = getLogger('slack-streaming');
 
 const STREAM_TIMEOUT_MS = 120_000;
 const CHATSTREAM_OP_TIMEOUT_MS = 10_000;
+/** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
+const CLEANUP_TIMEOUT_MS = 3_000;
 
 /**
  * Wrap a promise with a timeout to prevent indefinite blocking on Slack API calls.
@@ -129,9 +131,28 @@ export async function streamAgentResponse(params: {
         span.end();
         return { success: false, errorType, errorMessage };
       }
+      const errorType = classifyError(fetchError);
+      const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
+
+      await slackClient.chat
+        .postMessage({
+          channel,
+          thread_ts: threadTs,
+          text: errorMessage,
+        })
+        .catch((e) => logger.warn({ error: e }, 'Failed to send fetch error notification'));
+
+      if (thinkingMessageTs) {
+        try {
+          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
+        } catch {
+          // Ignore delete errors
+        }
+      }
+
       if (fetchError instanceof Error) setSpanWithError(span, fetchError);
       span.end();
-      throw fetchError;
+      return { success: false, errorType, errorMessage };
     }
 
     if (!response.ok) {
@@ -200,6 +221,8 @@ export async function streamAgentResponse(params: {
     });
 
     try {
+      let agentCompleted = false;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -217,6 +240,10 @@ export async function streamAgentResponse(params: {
             const data = JSON.parse(jsonStr);
 
             if (data.type === 'data-operation') {
+              if (data.data?.type === 'completion') {
+                agentCompleted = true;
+                break;
+              }
               continue;
             }
 
@@ -255,16 +282,28 @@ export async function streamAgentResponse(params: {
             // Skip invalid JSON
           }
         }
+
+        if (agentCompleted) break;
       }
 
       clearTimeout(timeoutId);
 
       const contextBlock = createContextBlock({ agentName });
-      await withTimeout(
-        streamer.stop({ blocks: [contextBlock] }),
-        CHATSTREAM_OP_TIMEOUT_MS,
-        'streamer.stop'
-      );
+      try {
+        await withTimeout(
+          streamer.stop({ blocks: [contextBlock] }),
+          CHATSTREAM_OP_TIMEOUT_MS,
+          'streamer.stop'
+        );
+      } catch (stopError) {
+        // If content was already delivered to the user, a streamer.stop() timeout
+        // is a non-critical finalization error — log it but don't surface to user
+        span.setAttribute(SLACK_SPAN_KEYS.STREAM_FINALIZATION_FAILED, true);
+        logger.warn(
+          { stopError, channel, threadTs, responseLength: fullText.length },
+          'Failed to finalize chatStream — content was already delivered'
+        );
+      }
 
       if (thinkingMessageTs) {
         try {
@@ -287,8 +326,36 @@ export async function streamAgentResponse(params: {
     } catch (streamError) {
       clearTimeout(timeoutId);
       if (streamError instanceof Error) setSpanWithError(span, streamError);
+
+      const contentAlreadyDelivered = fullText.length > 0;
+
+      if (contentAlreadyDelivered) {
+        // Content was already streamed to the user — a late error (e.g. streamer.append
+        // timeout on the final chunk) should not surface as a user-facing error message.
+        span.setAttribute(SLACK_SPAN_KEYS.CONTENT_ALREADY_DELIVERED, true);
+        logger.warn(
+          { streamError, channel, threadTs, responseLength: fullText.length },
+          'Error during Slack streaming after content was already delivered — suppressing user-facing error'
+        );
+        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
+          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+        );
+
+        if (thinkingMessageTs) {
+          try {
+            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
+          } catch {
+            // Ignore delete errors in error path
+          }
+        }
+
+        span.end();
+        return { success: true };
+      }
+
+      // No content was delivered — surface the error to the user
       logger.error({ streamError }, 'Error during Slack streaming');
-      await withTimeout(streamer.stop(), CHATSTREAM_OP_TIMEOUT_MS, 'streamer.stop').catch((e) =>
+      await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
         logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
       );
 

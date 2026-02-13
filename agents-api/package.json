@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.47.5",
+  "version": "0.48.2",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
