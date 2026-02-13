@@ -108,6 +108,14 @@ This usually means the manage UI was unreachable when you tried to approve the d
 - Local profiles with `credential: none` don't require login — the local server accepts unauthenticated requests
 - Check which profile is active: `inkeep profile current`
 
+## Authentication Issues (Local Development)
+
+If auto-login isn't working when you open `http://localhost:3000`:
+
+- **`pnpm db:auth:init` not run**: The admin user must exist in the database. Run `pnpm db:auth:init` to create it.
+- **API not running**: The auto-login calls `POST /api/auth/dev-session` on the API server. Make sure the API is running on `localhost:3002`.
+- **Credentials missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_UI_USERNAME` and `INKEEP_AGENTS_MANAGE_UI_PASSWORD` are set in your `.env` file.
+
 ## Common Configuration Issues
 
 ### General Configuration Issues
