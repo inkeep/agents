@@ -350,7 +350,8 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should handle complex models with temperature settings', () => {
+    it.only('should handle complex models with temperature settings', async () => {
+      const projectId = 'complex-models-project';
       const complexModelsData = {
         name: 'Complex Models Project',
         models: {
@@ -360,7 +361,7 @@ describe('Project Generator', () => {
         },
       };
 
-      const definition = generateProjectDefinition('complex-models-project', complexModelsData);
+      const definition = generateProjectDefinition(projectId, complexModelsData);
 
       expect(definition).toContain('models: {');
       expect(definition).toContain('base: {');
@@ -369,6 +370,11 @@ describe('Project Generator', () => {
       expect(definition).toContain('maxTokens: 4096');
       expect(definition).toContain('structuredOutput: {');
       expect(definition).toContain('temperature: 0.3');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexModelsData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
   });
 
