@@ -325,13 +325,12 @@ export const slackApi = {
       return 'No linked users to export';
     }
 
-    const headers = ['Slack Username', 'Slack Email', 'Slack User ID', 'Linked At', 'Last Used'];
+    const headers = ['Slack Username', 'Slack Email', 'Slack User ID', 'Linked At'];
     const rows = users.map((user) => [
       user.slackUsername || '',
       user.slackEmail || '',
       user.slackUserId,
       new Date(user.linkedAt).toISOString(),
-      user.lastUsedAt ? new Date(user.lastUsedAt).toISOString() : '',
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
