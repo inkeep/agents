@@ -209,7 +209,7 @@ describe('Project Generator', () => {
       expect(() => {
         // @ts-expect-error
         generateProjectDefinitionV4({ projectId });
-      }).toThrowError(
+      }).toThrow(
         new Error(`Missing required fields for project:
 ✖ Invalid input: expected string, received undefined
   → at name
@@ -519,10 +519,12 @@ describe('Project Generator', () => {
       const projectId = 'minimal-test-project';
       const minimalData = { name: 'Minimal Test Project' };
 
-      expect(() => generateProjectDefinition(projectId, minimalData)).toThrow(
-        `Missing required fields for project '${projectId}': models, models.base`
-      );
-      expect(() => generateProjectDefinitionV4({ projectId, ...minimalData })).toThrow(
+      expect(() => {
+        generateProjectDefinition(projectId, minimalData);
+      }).toThrow(`Missing required fields for project '${projectId}': models, models.base`);
+      expect(() => {
+        generateProjectDefinitionV4({ projectId, ...minimalData });
+      }).toThrow(
         new Error(`Missing required fields for project:
 ✖ Invalid input: expected object, received undefined
   → at models`)
@@ -567,10 +569,12 @@ describe('Project Generator', () => {
         },
       };
 
-      expect(() => generateProjectDefinition(projectId, emptyStringData)).toThrow(
-        `Missing required fields for project '${projectId}': name`
-      );
-      expect(() => generateProjectDefinitionV4({ projectId, ...emptyStringData })).toThrow(
+      expect(() => {
+        generateProjectDefinition(projectId, emptyStringData);
+      }).toThrow(`Missing required fields for project '${projectId}': name`);
+      expect(() => {
+        generateProjectDefinitionV4({ projectId, ...emptyStringData });
+      }).toThrow(
         new Error(`Missing required fields for project:
 ✖ Too small: expected string to have >=1 characters
   → at name`)
@@ -587,10 +591,12 @@ describe('Project Generator', () => {
         tools: undefined,
       };
 
-      expect(() => generateProjectDefinition(projectId, nullData)).toThrow(
-        `Missing required fields for project '${projectId}': models, models.base`
-      );
-      expect(() => generateProjectDefinitionV4({ projectId, ...nullData })).toThrow(
+      expect(() => {
+        generateProjectDefinition(projectId, nullData);
+      }).toThrow(`Missing required fields for project '${projectId}': models, models.base`);
+      expect(() => {
+        generateProjectDefinitionV4({ projectId, ...nullData });
+      }).toThrow(
         new Error(`Missing required fields for project:
 ✖ Invalid input: expected string, received null
   → at description
@@ -651,10 +657,12 @@ describe('Project Generator', () => {
       const data = {
         models: { base: { model: 'gpt-4o-mini' } },
       };
-      expect(() => generateProjectDefinition(projectId, data)).toThrow(
-        `Missing required fields for project '${projectId}': name`
-      );
-      expect(() => generateProjectDefinitionV4({ projectId, ...data })).toThrow(
+      expect(() => {
+        generateProjectDefinition(projectId, data);
+      }).toThrow(`Missing required fields for project '${projectId}': name`);
+      expect(() => {
+        generateProjectDefinitionV4({ projectId, ...data });
+      }).toThrow(
         new Error(`Missing required fields for project:
 ✖ Invalid input: expected string, received undefined
   → at name`)
@@ -667,10 +675,12 @@ describe('Project Generator', () => {
         name: 'Test Project',
         models: { structuredOutput: { model: 'gpt-4o' } },
       };
-      expect(() => generateProjectDefinition(projectId, data)).toThrow(
-        `Missing required fields for project '${projectId}': models.base`
-      );
-      expect(() => generateProjectDefinitionV4({ projectId, ...data })).toThrow(
+      expect(() => {
+        generateProjectDefinition(projectId, data);
+      }).toThrow(`Missing required fields for project '${projectId}': models.base`);
+      expect(() => {
+        generateProjectDefinitionV4({ projectId, ...data });
+      }).toThrow(
         new Error(`Missing required fields for project:
 ✖ Invalid input: expected object, received undefined
   → at models.base`)
