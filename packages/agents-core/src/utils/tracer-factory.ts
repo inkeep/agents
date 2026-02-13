@@ -128,7 +128,7 @@ export async function flushTraces(): Promise<void> {
     if (typeof delegate.forceFlush === 'function') {
       await delegate.forceFlush();
     }
-  } catch {
-    // Silently ignore flush failures to avoid disrupting request handling
+  } catch (error) {
+    logger.warn({ error }, 'Failed to flush traces');
   }
 }
