@@ -324,7 +324,8 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should handle stopWhen with only stepCountIs', () => {
+    it.only('should handle stopWhen with only stepCountIs', async () => {
+      const projectId = 'step-only-project';
       const stepOnlyData = {
         name: 'Step Only Project',
         models: {
@@ -335,13 +336,18 @@ describe('Project Generator', () => {
         },
       };
 
-      const definition = generateProjectDefinition('step-only-project', stepOnlyData);
+      const definition = generateProjectDefinition(projectId, stepOnlyData);
 
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('stepCountIs: 50 // Max steps for sub-agents');
       expect(definition).toContain('}');
       expect(definition).not.toContain('transferCountIs');
       expect(definition).not.toContain('stepCountIs: 50,'); // No trailing comma
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...stepOnlyData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should handle complex models with temperature settings', () => {
