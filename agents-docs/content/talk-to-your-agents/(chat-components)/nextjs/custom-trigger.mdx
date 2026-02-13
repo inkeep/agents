@@ -5,7 +5,8 @@ icon: LuMousePointerClick
 ---
 
 <Note>
-For Next.js apps that use App Router, use the `"use client"` directive at the top of the file to load the widget client-side.
+  For Next.js apps that use App Router, use the `"use client"` directive at the
+  top of the file to load the widget client-side.
 </Note>
 
 Custom triggers give you complete control over how users open Inkeep modals in your Next.js application. Load `InkeepModalChat` with `next/dynamic` and `ssr: false`.
@@ -131,12 +132,18 @@ pnpm add @inkeep/agents-ui
 
 ## Props
 
-<AutoTypeTable name="default" type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'" typeLinks={{ InkeepBaseSettings: 'inkeepbasesettings', InkeepAIChatSettings: 'inkeepaichatsettings', OpenSettingsModal: 'open-settings' }} />
+<AutoTypeTable
+  name="default"
+  type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'"
+/>
 
 <Snippet file="chat-components/base-settings.mdx" />
 
 <Snippet file="chat-components/ai-chat-settings.mdx" />
 
-### Open Settings
+### OpenSettingsModal
 
-<AutoTypeTable name="default" type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'" typeLinks={['InkeepBaseSettings', 'InkeepAIChatSettings']} />
+<AutoTypeTable
+  name="default"
+  type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'"
+/>

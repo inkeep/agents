@@ -16,26 +16,32 @@ icon: LuSettings
 The `inkeep.config.ts` file at the workspace root defines settings for all projects in this workspace. See [Project Management](/typescript-sdk/project-management) for where this file should be placed.
 
 ```typescript
-import { defineConfig } from '@inkeep/agents-cli/config';
-import 'dotenv/config';
+import { defineConfig } from "@inkeep/agents-cli/config";
+import "dotenv/config";
 
 export default defineConfig({
-  tenantId: 'my-company',
+  tenantId: "my-company",
   agentsManageApi: {
-    url: 'http://localhost:3002',
+    url: "http://localhost:3002",
     apiKey: process.env.MANAGE_API_KEY, // Optional
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: "http://localhost:3003",
     apiKey: process.env.RUN_API_KEY, // Optional
   },
-  outputDirectory: './output',
+  outputDirectory: "./output",
 });
 ```
 
-<AutoTypeTable name="default" type="export { NestedInkeepConfig as default } from '@inkeep/agents-cli/config'" typeLinks={['NestedInkeepConfig', 'ApiConfig']} />
+<AutoTypeTable
+  name="default"
+  type="export { NestedInkeepConfig as default } from '@inkeep/agents-cli/config'"
+/>
 
-<AutoTypeTable name="default" type="export { ApiConfig as default } from '@inkeep/agents-cli/config'" typeLinks={['NestedInkeepConfig', 'ApiConfig']} />
+<AutoTypeTable
+  name="default"
+  type="export { ApiConfig as default } from '@inkeep/agents-cli/config'"
+/>
 
 </SkillRule>
 
@@ -90,11 +96,11 @@ inkeep push
 
 **Supported Environment Variables:**
 
-| Variable | Config Equivalent | Description |
-|----------|-------------------|-------------|
-| `INKEEP_TENANT_ID` | `tenantId` | Tenant identifier |
+| Variable                       | Config Equivalent    | Description        |
+| ------------------------------ | -------------------- | ------------------ |
+| `INKEEP_TENANT_ID`             | `tenantId`           | Tenant identifier  |
 | `INKEEP_AGENTS_MANAGE_API_URL` | `agentsManageApiUrl` | Management API URL |
-| `INKEEP_AGENTS_RUN_API_URL` | `agentsRunApiUrl` | Runtime API URL |
+| `INKEEP_AGENTS_RUN_API_URL`    | `agentsRunApiUrl`    | Runtime API URL    |
 
 </SkillRule>
 
@@ -104,12 +110,12 @@ Values explicitly set in your `inkeep.config.ts`:
 
 ```typescript
 export default defineConfig({
-  tenantId: 'my-tenant',
+  tenantId: "my-tenant",
   agentsManageApi: {
-    url: 'http://localhost:3002',
+    url: "http://localhost:3002",
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: "http://localhost:3003",
   },
 });
 ```
@@ -120,8 +126,8 @@ Default values used when not specified elsewhere:
 
 ```typescript
 const defaults = {
-  agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
+  agentsManageApiUrl: "http://localhost:3002",
+  agentsRunApiUrl: "http://localhost:3003",
 };
 ```
 
@@ -133,15 +139,15 @@ You can use environment-based logic in your workspace config:
 
 ```typescript
 // inkeep.config.ts
-import { defineConfig } from '@inkeep/agents-cli/config';
+import { defineConfig } from "@inkeep/agents-cli/config";
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === "development";
 
 export default defineConfig({
-  tenantId: process.env.TENANT_ID || 'default-tenant',
+  tenantId: process.env.TENANT_ID || "default-tenant",
   agentsManageApiUrl: isDevelopment
-    ? 'http://localhost:3002'
-    : 'https://api.production.com',
+    ? "http://localhost:3002"
+    : "https://api.production.com",
 });
 ```
 
@@ -152,16 +158,16 @@ For workspaces requiring different configurations:
 ```typescript
 // inkeep.config.ts
 export default defineConfig({
-  tenantId: 'production-tenant',
-  agentsManageApiUrl: 'https://api.production.com',
+  tenantId: "production-tenant",
+  agentsManageApiUrl: "https://api.production.com",
 });
 ```
 
 ```typescript
 // inkeep.dev.config.ts
 export default defineConfig({
-  tenantId: 'dev-tenant',
-  agentsManageApiUrl: 'http://localhost:3002',
+  tenantId: "dev-tenant",
+  agentsManageApiUrl: "http://localhost:3002",
 });
 ```
 

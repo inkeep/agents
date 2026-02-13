@@ -20,6 +20,7 @@ function normalizeTypeLinks(input?: TypeLinksInput): Map<string, string> {
 export async function AutoTypeTable({
   generator,
   options = {},
+  defaultTypeLinks,
   typeLinks: typeLinksInput,
   renderType,
   renderMarkdown = renderMarkdownDefault,
@@ -28,10 +29,14 @@ export async function AutoTypeTable({
   generator: any;
   renderMarkdown?: typeof renderMarkdownDefault;
   renderType?: (type: string) => Promise<ReactNode>;
+  defaultTypeLinks?: TypeLinksInput;
   typeLinks?: TypeLinksInput;
   options?: any;
 }) {
-  const typeLinksMap = normalizeTypeLinks(typeLinksInput);
+  const typeLinksMap = new Map([
+    ...normalizeTypeLinks(defaultTypeLinks),
+    ...normalizeTypeLinks(typeLinksInput),
+  ]);
   if (!renderType) {
     renderType = (type: string) => renderTypeWithLinks(type, typeLinksMap);
   }
