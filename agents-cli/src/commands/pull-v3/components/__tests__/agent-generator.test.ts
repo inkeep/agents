@@ -237,15 +237,16 @@ describe('Agent Generator', () => {
       );
     });
 
-    it('should handle camelCase conversion for agent variable names', () => {
-      const definition = generateAgentDefinition(
-        'my-complex-agent_v2',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    it.only('should handle camelCase conversion for agent variable names', async () => {
+      const agentId = 'my-complex-agent_v2';
+      const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
       expect(definition).toContain('export const myComplexAgentV2 = agent({');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should handle multiline descriptions and prompts', () => {
