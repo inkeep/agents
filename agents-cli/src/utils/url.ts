@@ -1,3 +1,5 @@
+import { LOCAL_REMOTE } from './profiles';
+
 /**
  * Normalizes a base URL by removing trailing slashes and validating format
  * @param url The URL to normalize
@@ -31,6 +33,6 @@ export function buildAgentViewUrl(
   projectId: string,
   agentId: string
 ): string {
-  const baseUrl = normalizeBaseUrl(manageUiUrl || 'http://localhost:3000');
+  const baseUrl = normalizeBaseUrl(manageUiUrl || LOCAL_REMOTE.manageUi);
   return `${baseUrl}/${tenantId}/projects/${projectId}/agents/${agentId}`;
 }

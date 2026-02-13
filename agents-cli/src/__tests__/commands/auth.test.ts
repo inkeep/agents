@@ -8,6 +8,7 @@ import {
   getCredentialExpiryInfo,
   isCredentialExpired,
 } from '../../utils/credentials';
+import { LOCAL_REMOTE } from '../../utils/profiles';
 import type { ProfilesConfig } from '../../utils/profiles/types';
 
 describe('CLI Authentication', () => {
@@ -155,8 +156,8 @@ describe('CLI Authentication', () => {
           },
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -193,8 +194,8 @@ describe('CLI Authentication', () => {
           },
           development: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-dev',
             environment: 'development',

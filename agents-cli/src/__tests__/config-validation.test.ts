@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { maskSensitiveConfig, validateConfiguration } from '../utils/config';
+import { LOCAL_REMOTE } from '../utils/profiles';
 
 // Save original env and cwd
 const originalEnv = process.env;
@@ -76,13 +77,13 @@ describe('maskSensitiveConfig', () => {
   it('should handle config without API keys', () => {
     const config = {
       tenantId: 'test-tenant',
-      agentsApiUrl: 'http://localhost:3002',
+      agentsApiUrl: LOCAL_REMOTE.api,
     };
 
     const masked = maskSensitiveConfig(config);
 
     expect(masked.tenantId).toBe('test-tenant');
-    expect(masked.agentsApiUrl).toBe('http://localhost:3002');
+    expect(masked.agentsApiUrl).toBe(LOCAL_REMOTE.api);
     expect(masked.agentsApiKey).toBeUndefined();
   });
 
@@ -127,14 +128,14 @@ describe('Configuration Validation', () => {
         (importWithTypeScriptSupport as any).mockResolvedValue({
           default: {
             tenantId: 'test-tenant',
-            agentsApiUrl: 'http://localhost:3002',
+            agentsApiUrl: LOCAL_REMOTE.api,
           },
         });
 
         const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('test-tenant');
-        expect(config.agentsApiUrl).toBe('http://localhost:3002');
+        expect(config.agentsApiUrl).toBe(LOCAL_REMOTE.api);
         expect(config.sources.tenantId).toContain('config file');
         expect(config.sources.agentsApiUrl).toContain('config file');
       });
@@ -183,7 +184,7 @@ describe('Configuration Validation', () => {
 
         expect(config.tenantId).toBe('test-tenant');
         // Default values should be applied by loadConfig
-        expect(config.agentsApiUrl).toBe('http://localhost:3002');
+        expect(config.agentsApiUrl).toBe(LOCAL_REMOTE.api);
       });
     });
 
@@ -336,7 +337,7 @@ describe('Configuration Validation', () => {
           default: {
             tenantId: 'test-tenant',
             agentsApi: {
-              url: 'http://localhost:3002',
+              url: LOCAL_REMOTE.api,
               apiKey: 'secret-manage-key-12345',
             },
           },
@@ -376,7 +377,7 @@ describe('Configuration Validation', () => {
           default: {
             tenantId: 'test-tenant',
             agentsApi: {
-              url: 'http://localhost:3002',
+              url: LOCAL_REMOTE.api,
               // No API key
             },
           },

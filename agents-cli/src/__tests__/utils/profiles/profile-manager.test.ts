@@ -7,6 +7,7 @@ import { ProfileError, ProfileManager } from '../../../utils/profiles/profile-ma
 import {
   CLOUD_REMOTE,
   DEFAULT_PROFILES_CONFIG,
+  LOCAL_REMOTE,
   type Profile,
   type ProfilesConfig,
 } from '../../../utils/profiles/types';
@@ -54,8 +55,8 @@ describe('ProfileManager', () => {
         profiles: {
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'local-cred',
             environment: 'development',
@@ -219,8 +220,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -256,8 +257,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -282,8 +283,8 @@ describe('ProfileManager', () => {
     it('should add a new profile', () => {
       const profile: Profile = {
         remote: {
-          api: 'http://localhost:3002',
-          manageUi: 'http://localhost:3000',
+          api: LOCAL_REMOTE.api,
+          manageUi: LOCAL_REMOTE.manageUi,
         },
         credential: 'new-cred',
         environment: 'development',
@@ -328,8 +329,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -364,8 +365,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-local',
             environment: 'development',

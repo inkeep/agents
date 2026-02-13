@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as yaml from 'yaml';
-import { ProfileManager } from '../../utils/profiles';
+import { LOCAL_REMOTE, ProfileManager } from '../../utils/profiles';
 import type { ProfilesConfig } from '../../utils/profiles/types';
 
 describe('Profile Configuration', () => {
@@ -135,8 +135,8 @@ describe('Profile Configuration', () => {
         profiles: {
           local: {
             remote: {
-              api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3000',
+              api: LOCAL_REMOTE.api,
+              manageUi: LOCAL_REMOTE.manageUi,
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -147,8 +147,8 @@ describe('Profile Configuration', () => {
       writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(config));
 
       const profile = profileManager.getActiveProfile();
-      expect(profile.remote.api).toBe('http://localhost:3002');
-      expect(profile.remote.manageUi).toBe('http://localhost:3000');
+      expect(profile.remote.api).toBe(LOCAL_REMOTE.api);
+      expect(profile.remote.manageUi).toBe(LOCAL_REMOTE.manageUi);
     });
   });
 

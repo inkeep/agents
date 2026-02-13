@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import * as p from '@clack/prompts';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
+import { LOCAL_REMOTE } from '../../utils/profiles';
 
 // Mock dependencies
 vi.mock('node:fs', async () => {
@@ -16,16 +17,20 @@ vi.mock('@inkeep/agents-core');
 vi.mock('../../utils/project-directory.js', () => ({
   findProjectDirectory: vi.fn(),
 }));
-vi.mock('../../utils/config.js', () => ({
-  validateConfiguration: vi.fn().mockResolvedValue({
-    tenantId: 'test-tenant',
-    agentsApiUrl: 'http://localhost:3002',
-    sources: {
-      tenantId: 'config',
-      agentsApiUrl: 'config',
-    },
-  }),
-}));
+vi.mock('../../utils/config.js', async () => {
+  const { LOCAL_REMOTE: lr } =
+    await vi.importActual<typeof import('../../utils/profiles')>('../../utils/profiles');
+  return {
+    validateConfiguration: vi.fn().mockResolvedValue({
+      tenantId: 'test-tenant',
+      agentsApiUrl: lr.api,
+      sources: {
+        tenantId: 'config',
+        agentsApiUrl: 'config',
+      },
+    }),
+  };
+});
 vi.mock('../../api.js', () => ({
   ManagementApiClient: {
     create: vi.fn().mockResolvedValue({}),
@@ -62,7 +67,7 @@ describe('Push Command - TypeScript Loading', () => {
     const { validateConfiguration } = await import('../../utils/config.js');
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
-      agentsApiUrl: 'http://localhost:3002',
+      agentsApiUrl: LOCAL_REMOTE.api,
       sources: {},
     });
 
@@ -106,7 +111,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      agentsApiUrl: 'http://localhost:3002',
+      agentsApiUrl: LOCAL_REMOTE.api,
     };
 
     mockImportWithTypeScriptSupport
@@ -163,7 +168,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      agentsApiUrl: 'http://localhost:3002',
+      agentsApiUrl: LOCAL_REMOTE.api,
     };
 
     mockImportWithTypeScriptSupport

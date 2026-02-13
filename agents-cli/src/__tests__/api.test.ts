@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExecutionApiClient, ManagementApiClient } from '../api';
+import { LOCAL_REMOTE } from '../utils/profiles';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -10,7 +11,7 @@ vi.mock('../utils/config.js', () => ({
   loadConfig: vi.fn(),
   validateConfiguration: vi.fn(async () => ({
     tenantId: 'test-tenant-id',
-    agentsApiUrl: 'http://localhost:3002',
+    agentsApiUrl: LOCAL_REMOTE.api,
     agentsApiKey: undefined,
     sources: {
       tenantId: 'test',
@@ -72,7 +73,7 @@ describe('ApiClient', () => {
       const result = await apiClient.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
+        `${LOCAL_REMOTE.api}/manage/tenants/test-tenant-id/projects/test-project-id/agents?limit=100`,
         {
           method: 'GET',
           headers: {
@@ -108,7 +109,7 @@ describe('ApiClient', () => {
       // Mock validateConfiguration to return a config with empty tenant ID
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: '',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         agentsApiKey: undefined,
         sources: {
           tenantId: 'test',
@@ -127,7 +128,7 @@ describe('ApiClient', () => {
       const { validateConfiguration } = await import('../utils/config.js');
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: 'test-tenant-id',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         agentsApiKey: 'test-api-key-123',
         sources: {
           tenantId: 'test',
@@ -151,7 +152,7 @@ describe('ApiClient', () => {
       await clientWithApiKey.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
+        `${LOCAL_REMOTE.api}/manage/tenants/test-tenant-id/projects/test-project-id/agents?limit=100`,
         {
           method: 'GET',
           headers: {
@@ -217,7 +218,7 @@ describe('ApiClient', () => {
       const result = await apiClient.pushAgent(agentDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
+        `${LOCAL_REMOTE.api}/manage/tenants/test-tenant-id/projects/test-project-id/agents/test-agent`,
         {
           method: 'PUT',
           headers: {
@@ -265,7 +266,7 @@ describe('ApiClient', () => {
       const { validateConfiguration } = await import('../utils/config.js');
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: 'test-tenant-id',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         agentsApiKey: 'test-manage-key-456',
         sources: {
           tenantId: 'test',
@@ -293,7 +294,7 @@ describe('ApiClient', () => {
       await clientWithApiKey.pushAgent(agentDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
+        `${LOCAL_REMOTE.api}/manage/tenants/test-tenant-id/projects/test-project-id/agents/test-agent`,
         {
           method: 'PUT',
           headers: {
@@ -435,7 +436,7 @@ describe('ApiClient', () => {
       const { validateConfiguration } = await import('../utils/config.js');
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: 'test-tenant-id',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         agentsApiKey: 'test-run-key-789',
         sources: {
           tenantId: 'test',
@@ -463,7 +464,7 @@ describe('ApiClient', () => {
 
       await clientWithApiKey.chatCompletion('test-agent', messages);
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3002/run/v1/chat/completions', {
+      expect(mockFetch).toHaveBeenCalledWith(`${LOCAL_REMOTE.api}/run/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -489,7 +490,7 @@ describe('ApiClient', () => {
       // Mock validateConfiguration to return a config with no tenant ID
       vi.mocked(validateConfiguration).mockResolvedValue({
         tenantId: '',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         agentsApiKey: undefined,
         sources: {
           tenantId: 'test',

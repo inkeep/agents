@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { configGetCommand, configListCommand, configSetCommand } from '../../commands/config';
+import { LOCAL_REMOTE } from '../../utils/profiles';
 
 // Mock fs functions
 vi.mock('node:fs', async () => {
@@ -109,14 +110,14 @@ export default defineConfig({
 
 export default defineConfig({
     tenantId: 'old-tenant',
-    apiUrl: 'http://localhost:3002',
+    apiUrl: '${LOCAL_REMOTE.api}',
 });`;
 
       const expectedConfig = `import { defineConfig } from '@inkeep/agents-cli';
 
 export default defineConfig({
     tenantId: 'new-tenant-456',
-    apiUrl: 'http://localhost:3002',
+    apiUrl: '${LOCAL_REMOTE.api}',
 });`;
 
       vi.mocked(existsSync).mockReturnValue(true);
@@ -140,7 +141,7 @@ export default defineConfig({
 
 export default defineConfig({
     tenantId: 'test-tenant',
-    apiUrl: 'http://localhost:3002',
+    apiUrl: '${LOCAL_REMOTE.api}',
 });`;
 
       vi.mocked(existsSync).mockReturnValue(true);
@@ -194,7 +195,7 @@ export default defineConfig({
       const originalConfig = `import { defineConfig } from '@inkeep/agents-cli';
 
 export default defineConfig({
-    apiUrl: 'http://localhost:3002',
+    apiUrl: '${LOCAL_REMOTE.api}',
 });`;
 
       vi.mocked(existsSync).mockReturnValue(true);
@@ -215,7 +216,7 @@ export default defineConfig({
 
 export default defineConfig({
     tenantId: 'test-tenant',
-    apiUrl: 'http://localhost:3002',
+    apiUrl: '${LOCAL_REMOTE.api}',
 });`;
 
       vi.mocked(existsSync).mockReturnValue(true);

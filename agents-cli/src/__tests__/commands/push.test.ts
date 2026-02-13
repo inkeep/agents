@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import * as p from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
+import { LOCAL_REMOTE } from '../../utils/profiles';
 import { importWithTypeScriptSupport } from '../../utils/tsx-loader';
 
 // Mock all external dependencies
@@ -30,13 +31,17 @@ vi.mock('../../utils/tsx-loader.js', () => ({
   importWithTypeScriptSupport: vi.fn(),
 }));
 
-vi.mock('../../utils/config.js', () => ({
-  validateConfiguration: vi.fn().mockResolvedValue({
-    tenantId: 'test-tenant',
-    agentsApiUrl: 'http://localhost:3002',
-    sources: {},
-  }),
-}));
+vi.mock('../../utils/config.js', async () => {
+  const { LOCAL_REMOTE: lr } =
+    await vi.importActual<typeof import('../../utils/profiles')>('../../utils/profiles');
+  return {
+    validateConfiguration: vi.fn().mockResolvedValue({
+      tenantId: 'test-tenant',
+      agentsApiUrl: lr.api,
+      sources: {},
+    }),
+  };
+});
 
 vi.mock('../../utils/cli-pipeline.js', () => ({
   initializeCommand: vi.fn(),
@@ -69,7 +74,7 @@ describe('Push Command - Project Validation', () => {
     const { validateConfiguration } = await import('../../utils/config.js');
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
-      agentsApiUrl: 'http://localhost:3002',
+      agentsApiUrl: LOCAL_REMOTE.api,
       sources: {},
     });
 
@@ -78,7 +83,7 @@ describe('Push Command - Project Validation', () => {
     (initializeCommand as Mock).mockResolvedValue({
       config: {
         tenantId: 'test-tenant',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         sources: {},
       },
       spinner: undefined,
@@ -133,7 +138,7 @@ describe('Push Command - Project Validation', () => {
     // Verify config was set on project
     expect(mockProject.setConfig).toHaveBeenCalledWith(
       'test-tenant',
-      'http://localhost:3002',
+      LOCAL_REMOTE.api,
       undefined, // models
       undefined // apiKey (not set in mock config)
     );
@@ -308,7 +313,7 @@ describe('Push Command - Output Messages', () => {
     const { validateConfiguration } = await import('../../utils/config.js');
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
-      agentsApiUrl: 'http://localhost:3002',
+      agentsApiUrl: LOCAL_REMOTE.api,
       sources: {},
     });
 
@@ -317,7 +322,7 @@ describe('Push Command - Output Messages', () => {
     (initializeCommand as Mock).mockResolvedValue({
       config: {
         tenantId: 'test-tenant',
-        agentsApiUrl: 'http://localhost:3002',
+        agentsApiUrl: LOCAL_REMOTE.api,
         sources: {},
       },
       spinner: undefined,
