@@ -16,28 +16,6 @@ import {
   toCamelCase,
 } from './utils';
 
-type AgentDefinitionData = {
-  agentId: string;
-  name: string;
-  description?: string;
-  prompt?: string;
-  models?: Record<string, unknown>;
-  defaultSubAgentId: string;
-  subAgents: string[] | Record<string, unknown>;
-  contextConfig?: string | { id?: string };
-  stopWhen?: {
-    transferCountIs?: number;
-  };
-  statusUpdates?: {
-    numEvents?: number;
-    timeInSeconds?: number;
-    statusComponents?: Array<string | { id?: string; type?: string; name?: string }>;
-    prompt?: string;
-  };
-  credentials?: Array<string | { id?: string }>;
-  triggers?: string[] | Record<string, unknown>;
-};
-
 const AgentSchema = z.looseObject({
   agentId: z.string().nonempty(),
   name: z.string().nonempty(),
@@ -45,25 +23,37 @@ const AgentSchema = z.looseObject({
   prompt: z.string().optional(),
   models: z.looseObject({}).optional(),
   defaultSubAgentId: z.string().nonempty(),
-  subAgents: z.union([z.array(z.any()), z.record(z.string(), z.any())]),
+  subAgents: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]),
   contextConfig: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
   stopWhen: z
     .strictObject({
-      transferCountIs: z.number().optional(),
+      transferCountIs: z.int().optional(),
     })
     .optional(),
   statusUpdates: z
     .strictObject({
-      numEvents: z.number().optional(),
-      timeInSeconds: z.number().optional(),
-      statusComponents: z.array(z.any()).optional(),
+      numEvents: z.int().optional(),
+      timeInSeconds: z.int().optional(),
+      statusComponents: z
+        .array(
+          z.union([
+            z.string(),
+            z.strictObject({
+              id: z.string(),
+              type: z.string(),
+              name: z.string(),
+            }),
+          ])
+        )
+        .optional(),
       prompt: z.string().optional(),
     })
     .optional(),
-  credentials: z.array(z.any()).optional(),
-  triggers: z.union([z.array(z.any()), z.record(z.string(), z.any())]).optional(),
+  credentials: z.array(z.union([z.string(), z.strictObject({ id: z.string() })])).optional(),
+  triggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
 });
 
+type AgentDefinitionData = z.input<typeof AgentSchema>;
 type ParsedAgentDefinitionData = z.infer<typeof AgentSchema>;
 
 export function generateAgentDefinition(data: AgentDefinitionData): string {
