@@ -12,7 +12,7 @@ import { z } from 'zod';
 import {
   addObjectEntries,
   addReferenceGetterProperty,
-  formatStringLiteral,
+  addStringProperty,
   toCamelCase,
 } from './utils';
 
@@ -152,13 +152,6 @@ function writeProjectConfig(
   if (hasReferences(data.credentialReferences)) {
     addReferenceGetterProperty(configObject, 'credentialReferences', data.credentialReferences);
   }
-}
-
-function addStringProperty(configObject: ObjectLiteralExpression, key: string, value: string) {
-  configObject.addPropertyAssignment({
-    name: key,
-    initializer: formatStringLiteral(value),
-  });
 }
 
 function addModelsProperty(

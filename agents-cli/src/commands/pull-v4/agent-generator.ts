@@ -11,6 +11,7 @@ import { z } from 'zod';
 import {
   addObjectEntries,
   addReferenceGetterProperty,
+  addStringProperty,
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
@@ -249,13 +250,6 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
       });
     }
   }
-}
-
-function addStringProperty(configObject: ObjectLiteralExpression, key: string, value: string) {
-  configObject.addPropertyAssignment({
-    name: key,
-    initializer: formatStringLiteral(value),
-  });
 }
 
 function extractIds(value: string[] | Record<string, unknown>): string[] {

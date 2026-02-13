@@ -98,3 +98,14 @@ export function addObjectEntries(target: ObjectLiteralExpression, value: Record<
     });
   }
 }
+
+export function addStringProperty(
+  configObject: ObjectLiteralExpression,
+  key: string,
+  value: string
+) {
+  configObject.addPropertyAssignment({
+    name: key,
+    initializer: formatStringLiteral(value),
+  });
+}
