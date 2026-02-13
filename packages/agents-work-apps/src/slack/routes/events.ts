@@ -39,6 +39,7 @@ import {
   handleOpenFollowUpModal,
   sendResponseUrlMessage,
 } from '../services/events';
+import { KnownInnerEventSchema, SlackEventSchema } from '../services/slack-event-schemas';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, type SlackOutcome, tracer } from '../tracer';
 import type { WorkAppsVariables } from '../types';
 
@@ -97,9 +98,9 @@ app.post('/events', async (c) => {
       const timestamp = c.req.header('x-slack-request-timestamp') || '';
       const signature = c.req.header('x-slack-signature') || '';
 
-      let eventBody: Record<string, unknown>;
+      let raw: Record<string, unknown>;
       try {
-        eventBody = parseSlackEventBody(body, contentType);
+        raw = parseSlackEventBody(body, contentType);
       } catch (error) {
         outcome = 'validation_error';
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -111,9 +112,39 @@ app.post('/events', async (c) => {
         return c.json({ error: 'Invalid payload' }, 400);
       }
 
-      const eventType = eventBody.type as string | undefined;
-      span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType || 'unknown');
-      span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType || 'unknown'}`);
+      const parsed = SlackEventSchema.safeParse(raw);
+
+      if (!parsed.success) {
+        const eventType = (raw.type as string) || 'unknown';
+        span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType);
+        span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType}`);
+
+        if (!env.SLACK_SIGNING_SECRET) {
+          outcome = 'error';
+          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+          logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
+          span.end();
+          return c.json({ error: 'Server configuration error' }, 500);
+        }
+
+        if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
+          outcome = 'signature_invalid';
+          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+          logger.error({ eventType }, 'Invalid Slack request signature');
+          span.end();
+          return c.json({ error: 'Invalid request signature' }, 401);
+        }
+
+        outcome = 'ignored_unknown_event';
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+        logger.info({ eventType }, `Ignoring unhandled Slack event type: ${eventType}`);
+        span.end();
+        return c.json({ ok: true });
+      }
+
+      const event = parsed.data;
+      span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, event.type);
+      span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${event.type}`);
 
       if (!env.SLACK_SIGNING_SECRET) {
         outcome = 'error';
@@ -126,398 +157,395 @@ app.post('/events', async (c) => {
       if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
         outcome = 'signature_invalid';
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-        logger.error({ eventType }, 'Invalid Slack request signature');
+        logger.error({ eventType: event.type }, 'Invalid Slack request signature');
         span.end();
         return c.json({ error: 'Invalid request signature' }, 401);
       }
 
-      if (eventType === 'url_verification') {
-        outcome = 'url_verification';
-        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-        logger.info({}, 'Responding to Slack URL verification challenge');
-        span.end();
-        return c.text(String(eventBody.challenge));
-      }
-
-      if (eventType === 'event_callback') {
-        const teamId = eventBody.team_id as string | undefined;
-        const event = eventBody.event as
-          | {
-              type?: string;
-              user?: string;
-              text?: string;
-              channel?: string;
-              ts?: string;
-              thread_ts?: string;
-              bot_id?: string;
-              subtype?: string;
-            }
-          | undefined;
-
-        const innerEventType = event?.type || 'unknown';
-        span.setAttribute(SLACK_SPAN_KEYS.INNER_EVENT_TYPE, innerEventType);
-        if (teamId) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
-        if (event?.channel) span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, event.channel);
-        if (event?.user) span.setAttribute(SLACK_SPAN_KEYS.USER_ID, event.user);
-        span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} event_callback.${innerEventType}`);
-
-        if (event?.bot_id || event?.subtype === 'bot_message') {
-          outcome = 'ignored_bot_message';
-          span.setAttribute(SLACK_SPAN_KEYS.IS_BOT_MESSAGE, true);
+      switch (event.type) {
+        case 'url_verification': {
+          outcome = 'url_verification';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          logger.info(
-            { botId: event.bot_id, subtype: event?.subtype, teamId, innerEventType },
-            'Ignoring bot message'
-          );
+          logger.info({}, 'Responding to Slack URL verification challenge');
           span.end();
-          return c.json({ ok: true });
+          return c.text(String(event.challenge));
         }
 
-        if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
-          outcome = 'handled';
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          const question = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
-          span.setAttribute(SLACK_SPAN_KEYS.HAS_QUERY, question.length > 0);
-          if (event.thread_ts) span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, event.thread_ts);
-          if (event.ts) span.setAttribute(SLACK_SPAN_KEYS.MESSAGE_TS, event.ts);
+        case 'event_callback': {
+          const teamId = event.team_id;
+          const innerEvent = event.event;
 
-          logger.info(
-            { userId: event.user, channel: event.channel, teamId, hasQuery: question.length > 0 },
-            'Handling event: app_mention'
-          );
-
-          handleAppMention({
-            slackUserId: event.user,
-            channel: event.channel,
-            text: question,
-            threadTs: event.thread_ts || event.ts || '',
-            messageTs: event.ts || '',
-            teamId,
-          }).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            const errorStack = err instanceof Error ? err.stack : undefined;
-            logger.error(
-              { errorMessage, errorStack },
-              'Failed to handle app mention (outer catch)'
-            );
-          });
-        } else {
-          outcome = 'ignored_unknown_event';
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          logger.info(
-            { innerEventType, teamId },
-            `Ignoring unhandled event_callback: ${innerEventType}`
-          );
-        }
-      }
-
-      if (eventType === 'block_actions' || eventType === 'interactive_message') {
-        const actions = eventBody.actions as
-          | Array<{
-              action_id: string;
-              value?: string;
-            }>
-          | undefined;
-
-        const teamId = (eventBody.team as { id?: string })?.id;
-        const responseUrl = eventBody.response_url as string | undefined;
-        const triggerId = eventBody.trigger_id as string | undefined;
-        const actionIds = actions?.map((a) => a.action_id) || [];
-
-        if (teamId) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
-        span.setAttribute(SLACK_SPAN_KEYS.ACTION_IDS, actionIds.join(','));
-        span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType} [${actionIds.join(',')}]`);
-
-        if (actions && teamId) {
-          let anyHandled = false;
-          for (const action of actions) {
-            if (action.action_id === 'open_agent_selector_modal' && action.value && triggerId) {
-              anyHandled = true;
-              logger.info(
-                { teamId, actionId: action.action_id },
-                'Handling block_action: open_agent_selector_modal'
-              );
-              handleOpenAgentSelectorModal({
-                triggerId,
-                actionValue: action.value,
-                teamId,
-                responseUrl: responseUrl || '',
-              }).catch(async (err: unknown) => {
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                logger.error(
-                  { errorMessage, actionId: action.action_id },
-                  'Failed to open agent selector modal'
-                );
-                if (responseUrl) {
-                  await sendResponseUrlMessage(responseUrl, {
-                    text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
-                    response_type: 'ephemeral',
-                  }).catch((e) =>
-                    logger.warn({ error: e }, 'Failed to send error notification via response URL')
-                  );
-                }
-              });
-            }
-
-            if (action.action_id === 'modal_project_select') {
-              anyHandled = true;
-              const selectedOption = (action as { selected_option?: { value?: string } })
-                .selected_option;
-              const selectedProjectId = selectedOption?.value;
-              const view = eventBody.view as {
-                id?: string;
-                private_metadata?: string;
-              };
-
-              logger.info(
-                { teamId, actionId: action.action_id, selectedProjectId },
-                'Handling block_action: modal_project_select'
-              );
-
-              if (selectedProjectId && view?.id) {
-                (async () => {
-                  try {
-                    const metadata = JSON.parse(view.private_metadata || '{}');
-                    const tenantId = metadata.tenantId;
-                    if (!tenantId) {
-                      logger.warn(
-                        { teamId },
-                        'No tenantId in modal metadata — skipping project update'
-                      );
-                      return;
-                    }
-
-                    const workspace = await findWorkspaceConnectionByTeamId(teamId);
-                    if (!workspace?.botToken) return;
-
-                    const slackClient = getSlackClient(workspace.botToken);
-
-                    const { fetchProjectsForTenant, fetchAgentsForProject } = await import(
-                      '../services/events/utils'
-                    );
-                    const { buildAgentSelectorModal, buildMessageShortcutModal } = await import(
-                      '../services/modals'
-                    );
-
-                    const projectList = await fetchProjectsForTenant(tenantId);
-                    const agentList = await fetchAgentsForProject(tenantId, selectedProjectId);
-
-                    const agentOptions = agentList.map((a) => ({
-                      id: a.id,
-                      name: a.name,
-                      projectId: a.projectId,
-                      projectName: a.projectName || a.projectId,
-                    }));
-
-                    const modal = metadata.messageContext
-                      ? buildMessageShortcutModal({
-                          projects: projectList,
-                          agents: agentOptions,
-                          metadata,
-                          selectedProjectId,
-                          messageContext: metadata.messageContext,
-                        })
-                      : buildAgentSelectorModal({
-                          projects: projectList,
-                          agents: agentOptions,
-                          metadata,
-                          selectedProjectId,
-                        });
-
-                    await slackClient.views.update({
-                      view_id: view.id as string,
-                      view: modal,
-                    });
-
-                    logger.debug(
-                      { selectedProjectId, agentCount: agentList.length },
-                      'Updated modal with agents for selected project'
-                    );
-                  } catch (err) {
-                    logger.error(
-                      { err, selectedProjectId },
-                      'Failed to update modal on project change'
-                    );
-                  }
-                })();
-              }
-            }
-
-            if (action.action_id === 'open_follow_up_modal' && action.value && triggerId) {
-              anyHandled = true;
-              logger.info(
-                { teamId, actionId: action.action_id },
-                'Handling block_action: open_follow_up_modal'
-              );
-              handleOpenFollowUpModal({
-                triggerId,
-                actionValue: action.value,
-                teamId,
-                responseUrl: responseUrl || undefined,
-              }).catch((err: unknown) => {
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                logger.error(
-                  { errorMessage, actionId: action.action_id },
-                  'Failed to open follow-up modal'
-                );
-              });
-            }
-          }
-
-          outcome = anyHandled ? 'handled' : 'ignored_no_action_match';
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          if (!anyHandled) {
-            logger.info(
-              { teamId, actionIds, eventType },
-              'Ignoring block_actions: no matching action handlers'
-            );
-          }
-        } else {
-          outcome = 'ignored_no_action_match';
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          logger.info(
-            { teamId, eventType, hasActions: Boolean(actions) },
-            'Ignoring block_actions: missing actions or teamId'
-          );
-        }
-      }
-
-      if (eventType === 'message_action') {
-        const callbackId = eventBody.callback_id as string | undefined;
-        span.setAttribute(SLACK_SPAN_KEYS.CALLBACK_ID, callbackId || 'unknown');
-        span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} message_action.${callbackId || 'unknown'}`);
-
-        if (callbackId === 'ask_agent_shortcut') {
-          const triggerId = eventBody.trigger_id as string | undefined;
-          const teamId = (eventBody.team as { id?: string })?.id;
-          const channelId = (eventBody.channel as { id?: string })?.id;
-          const userId = (eventBody.user as { id?: string })?.id;
-          const message = eventBody.message as {
-            ts?: string;
-            text?: string;
-            thread_ts?: string;
-          };
-          const responseUrl = eventBody.response_url as string | undefined;
-
+          const innerEventType = innerEvent?.type || 'unknown';
+          span.setAttribute(SLACK_SPAN_KEYS.INNER_EVENT_TYPE, innerEventType);
           if (teamId) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
-          if (channelId) span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channelId);
-          if (userId) span.setAttribute(SLACK_SPAN_KEYS.USER_ID, userId);
+          if (innerEvent?.channel) span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, innerEvent.channel);
+          if (innerEvent?.user) span.setAttribute(SLACK_SPAN_KEYS.USER_ID, innerEvent.user);
+          span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} event_callback.${innerEventType}`);
 
-          if (triggerId && teamId && channelId && userId && message?.ts) {
-            outcome = 'handled';
+          if (innerEvent?.bot_id || innerEvent?.subtype === 'bot_message') {
+            outcome = 'ignored_bot_message';
+            span.setAttribute(SLACK_SPAN_KEYS.IS_BOT_MESSAGE, true);
             span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
             logger.info(
-              { teamId, channelId, userId, callbackId },
-              'Handling message_action: ask_agent_shortcut'
+              { botId: innerEvent.bot_id, subtype: innerEvent?.subtype, teamId, innerEventType },
+              'Ignoring bot message'
             );
-            handleMessageShortcut({
-              triggerId,
-              teamId,
-              channelId,
-              userId,
-              messageTs: message.ts,
-              messageText: message.text || '',
-              threadTs: message.thread_ts,
-              responseUrl,
-            }).catch((err: unknown) => {
-              const errorMessage = err instanceof Error ? err.message : String(err);
-              logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
-            });
+            span.end();
+            return c.json({ ok: true });
+          }
+
+          if (innerEvent) {
+            const innerParsed = KnownInnerEventSchema.safeParse(innerEvent);
+            if (innerParsed.success) {
+              switch (innerParsed.data.type) {
+                case 'app_mention': {
+                  if (teamId) {
+                    outcome = 'handled';
+                    span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+                    const question = (innerParsed.data.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
+                    span.setAttribute(SLACK_SPAN_KEYS.HAS_QUERY, question.length > 0);
+                    if (innerParsed.data.thread_ts)
+                      span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, innerParsed.data.thread_ts);
+                    if (innerParsed.data.ts)
+                      span.setAttribute(SLACK_SPAN_KEYS.MESSAGE_TS, innerParsed.data.ts);
+
+                    logger.info(
+                      {
+                        userId: innerParsed.data.user,
+                        channel: innerParsed.data.channel,
+                        teamId,
+                        hasQuery: question.length > 0,
+                      },
+                      'Handling event: app_mention'
+                    );
+
+                    handleAppMention({
+                      slackUserId: innerParsed.data.user,
+                      channel: innerParsed.data.channel,
+                      text: question,
+                      threadTs: innerParsed.data.thread_ts || innerParsed.data.ts || '',
+                      messageTs: innerParsed.data.ts || '',
+                      teamId,
+                    }).catch((err: unknown) => {
+                      const errorMessage = err instanceof Error ? err.message : String(err);
+                      const errorStack = err instanceof Error ? err.stack : undefined;
+                      logger.error(
+                        { errorMessage, errorStack },
+                        'Failed to handle app mention (outer catch)'
+                      );
+                    });
+                  } else {
+                    outcome = 'ignored_unknown_event';
+                    span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+                    logger.info(
+                      { innerEventType, teamId },
+                      `Ignoring unhandled event_callback: ${innerEventType}`
+                    );
+                  }
+                  break;
+                }
+              }
+            } else {
+              outcome = 'ignored_unknown_event';
+              span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+              logger.info(
+                { innerEventType, teamId },
+                `Ignoring unhandled event_callback: ${innerEventType}`
+              );
+            }
           } else {
             outcome = 'ignored_unknown_event';
             span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
             logger.info(
-              { teamId, channelId, userId, callbackId, hasTriggerId: Boolean(triggerId) },
-              'Ignoring message_action: missing required fields'
+              { innerEventType, teamId },
+              `Ignoring unhandled event_callback: ${innerEventType}`
             );
           }
-        } else {
-          outcome = 'ignored_unknown_event';
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          logger.info({ callbackId }, `Ignoring unhandled message_action: ${callbackId}`);
+          break;
         }
-      }
 
-      if (eventType === 'view_submission') {
-        const callbackId = (eventBody.view as { callback_id?: string })?.callback_id;
-        span.setAttribute(SLACK_SPAN_KEYS.CALLBACK_ID, callbackId || 'unknown');
-        span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} view_submission.${callbackId || 'unknown'}`);
+        case 'block_actions':
+        case 'interactive_message': {
+          const actions = event.actions;
+          const teamId = event.team?.id;
+          const responseUrl = event.response_url;
+          const triggerId = event.trigger_id;
+          const actionIds = actions?.map((a) => a.action_id) || [];
 
-        if (callbackId === 'agent_selector_modal') {
-          const view = eventBody.view as {
-            private_metadata?: string;
-            state?: { values?: Record<string, Record<string, unknown>> };
-          };
+          if (teamId) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
+          span.setAttribute(SLACK_SPAN_KEYS.ACTION_IDS, actionIds.join(','));
+          span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${event.type} [${actionIds.join(',')}]`);
 
-          const agentSelect = view.state?.values?.agent_select_block?.agent_select as
-            | {
-                selected_option?: { value?: string };
+          if (actions && teamId) {
+            let anyHandled = false;
+            for (const action of actions) {
+              if (action.action_id === 'open_agent_selector_modal' && action.value && triggerId) {
+                anyHandled = true;
+                logger.info(
+                  { teamId, actionId: action.action_id },
+                  'Handling block_action: open_agent_selector_modal'
+                );
+                handleOpenAgentSelectorModal({
+                  triggerId,
+                  actionValue: action.value,
+                  teamId,
+                  responseUrl: responseUrl || '',
+                }).catch(async (err: unknown) => {
+                  const errorMessage = err instanceof Error ? err.message : String(err);
+                  logger.error(
+                    { errorMessage, actionId: action.action_id },
+                    'Failed to open agent selector modal'
+                  );
+                  if (responseUrl) {
+                    await sendResponseUrlMessage(responseUrl, {
+                      text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
+                      response_type: 'ephemeral',
+                    }).catch((e) =>
+                      logger.warn({ error: e }, 'Failed to send error notification via response URL')
+                    );
+                  }
+                });
               }
-            | undefined;
-          if (
-            !agentSelect?.selected_option?.value ||
-            agentSelect.selected_option.value === 'none'
-          ) {
-            outcome = 'validation_error';
+
+              if (action.action_id === 'modal_project_select') {
+                anyHandled = true;
+                const selectedProjectId = action.selected_option?.value;
+                const view = event.view;
+
+                logger.info(
+                  { teamId, actionId: action.action_id, selectedProjectId },
+                  'Handling block_action: modal_project_select'
+                );
+
+                const viewId = view?.id;
+                if (selectedProjectId && viewId) {
+                  (async () => {
+                    try {
+                      const metadata = JSON.parse(view?.private_metadata || '{}');
+                      const tenantId = metadata.tenantId;
+                      if (!tenantId) {
+                        logger.warn(
+                          { teamId },
+                          'No tenantId in modal metadata — skipping project update'
+                        );
+                        return;
+                      }
+
+                      const workspace = await findWorkspaceConnectionByTeamId(teamId);
+                      if (!workspace?.botToken) return;
+
+                      const slackClient = getSlackClient(workspace.botToken);
+
+                      const { fetchProjectsForTenant, fetchAgentsForProject } = await import(
+                        '../services/events/utils'
+                      );
+                      const { buildAgentSelectorModal, buildMessageShortcutModal } = await import(
+                        '../services/modals'
+                      );
+
+                      const projectList = await fetchProjectsForTenant(tenantId);
+                      const agentList = await fetchAgentsForProject(tenantId, selectedProjectId);
+
+                      const agentOptions = agentList.map((a) => ({
+                        id: a.id,
+                        name: a.name,
+                        projectId: a.projectId,
+                        projectName: a.projectName || a.projectId,
+                      }));
+
+                      const modal = metadata.messageContext
+                        ? buildMessageShortcutModal({
+                            projects: projectList,
+                            agents: agentOptions,
+                            metadata,
+                            selectedProjectId,
+                            messageContext: metadata.messageContext,
+                          })
+                        : buildAgentSelectorModal({
+                            projects: projectList,
+                            agents: agentOptions,
+                            metadata,
+                            selectedProjectId,
+                          });
+
+                      await slackClient.views.update({
+                        view_id: viewId,
+                        view: modal,
+                      });
+
+                      logger.debug(
+                        { selectedProjectId, agentCount: agentList.length },
+                        'Updated modal with agents for selected project'
+                      );
+                    } catch (err) {
+                      logger.error(
+                        { err, selectedProjectId },
+                        'Failed to update modal on project change'
+                      );
+                    }
+                  })();
+                }
+              }
+
+              if (action.action_id === 'open_follow_up_modal' && action.value && triggerId) {
+                anyHandled = true;
+                logger.info(
+                  { teamId, actionId: action.action_id },
+                  'Handling block_action: open_follow_up_modal'
+                );
+                handleOpenFollowUpModal({
+                  triggerId,
+                  actionValue: action.value,
+                  teamId,
+                  responseUrl: responseUrl || undefined,
+                }).catch((err: unknown) => {
+                  const errorMessage = err instanceof Error ? err.message : String(err);
+                  logger.error(
+                    { errorMessage, actionId: action.action_id },
+                    'Failed to open follow-up modal'
+                  );
+                });
+              }
+            }
+
+            outcome = anyHandled ? 'handled' : 'ignored_no_action_match';
             span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-            logger.info({ callbackId }, 'Rejecting view_submission: no agent selected');
-            span.end();
-            return c.json({
-              response_action: 'errors',
-              errors: {
-                agent_select_block:
-                  'Please select an agent. If none are available, add agents to this project in the dashboard.',
-              },
+            if (!anyHandled) {
+              logger.info(
+                { teamId, actionIds, eventType: event.type },
+                'Ignoring block_actions: no matching action handlers'
+              );
+            }
+          } else {
+            outcome = 'ignored_no_action_match';
+            span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+            logger.info(
+              { teamId, eventType: event.type, hasActions: Boolean(actions) },
+              'Ignoring block_actions: missing actions or teamId'
+            );
+          }
+          break;
+        }
+
+        case 'message_action': {
+          const callbackId = event.callback_id;
+          span.setAttribute(SLACK_SPAN_KEYS.CALLBACK_ID, callbackId || 'unknown');
+          span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} message_action.${callbackId || 'unknown'}`);
+
+          if (callbackId === 'ask_agent_shortcut') {
+            const triggerId = event.trigger_id;
+            const teamId = event.team?.id;
+            const channelId = event.channel?.id;
+            const userId = event.user?.id;
+            const message = event.message;
+            const responseUrl = event.response_url;
+
+            if (teamId) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
+            if (channelId) span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channelId);
+            if (userId) span.setAttribute(SLACK_SPAN_KEYS.USER_ID, userId);
+
+            if (triggerId && teamId && channelId && userId && message?.ts) {
+              outcome = 'handled';
+              span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+              logger.info(
+                { teamId, channelId, userId, callbackId },
+                'Handling message_action: ask_agent_shortcut'
+              );
+              handleMessageShortcut({
+                triggerId,
+                teamId,
+                channelId,
+                userId,
+                messageTs: message.ts,
+                messageText: message.text || '',
+                threadTs: message.thread_ts,
+                responseUrl,
+              }).catch((err: unknown) => {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
+              });
+            } else {
+              outcome = 'ignored_unknown_event';
+              span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+              logger.info(
+                { teamId, channelId, userId, callbackId, hasTriggerId: Boolean(triggerId) },
+                'Ignoring message_action: missing required fields'
+              );
+            }
+          } else {
+            outcome = 'ignored_unknown_event';
+            span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+            logger.info({ callbackId }, `Ignoring unhandled message_action: ${callbackId}`);
+          }
+          break;
+        }
+
+        case 'view_submission': {
+          const callbackId = event.view?.callback_id;
+          span.setAttribute(SLACK_SPAN_KEYS.CALLBACK_ID, callbackId || 'unknown');
+          span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} view_submission.${callbackId || 'unknown'}`);
+
+          if (callbackId === 'agent_selector_modal' && event.view) {
+            const view = event.view;
+
+            const agentSelectRaw = view.state?.values?.agent_select_block?.agent_select;
+            const selectedOption =
+              agentSelectRaw != null &&
+              typeof agentSelectRaw === 'object' &&
+              'selected_option' in agentSelectRaw &&
+              agentSelectRaw.selected_option != null &&
+              typeof agentSelectRaw.selected_option === 'object' &&
+              'value' in agentSelectRaw.selected_option
+                ? String(agentSelectRaw.selected_option.value)
+                : undefined;
+            if (!selectedOption || selectedOption === 'none') {
+              outcome = 'validation_error';
+              span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+              logger.info({ callbackId }, 'Rejecting view_submission: no agent selected');
+              span.end();
+              return c.json({
+                response_action: 'errors',
+                errors: {
+                  agent_select_block:
+                    'Please select an agent. If none are available, add agents to this project in the dashboard.',
+                },
+              });
+            }
+
+            outcome = 'handled';
+            span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+            logger.info({ callbackId }, 'Handling view_submission: agent_selector_modal');
+
+            handleModalSubmission(view).catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
             });
+
+            span.end();
+            return new Response(null, { status: 200 });
           }
 
-          outcome = 'handled';
+          if (callbackId === 'follow_up_modal' && event.view) {
+            const view = event.view;
+
+            outcome = 'handled';
+            span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+            logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
+
+            handleFollowUpSubmission(view).catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
+            });
+
+            span.end();
+            return new Response(null, { status: 200 });
+          }
+
+          outcome = 'ignored_unknown_event';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          logger.info({ callbackId }, 'Handling view_submission: agent_selector_modal');
-
-          handleModalSubmission(view).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
-          });
-
-          span.end();
-          return new Response(null, { status: 200 });
+          logger.info({ callbackId }, `Ignoring unhandled view_submission: ${callbackId}`);
+          break;
         }
-
-        if (callbackId === 'follow_up_modal') {
-          const view = eventBody.view as {
-            private_metadata?: string;
-            state?: { values?: Record<string, Record<string, unknown>> };
-          };
-
-          outcome = 'handled';
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-          logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
-
-          handleFollowUpSubmission(view).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
-          });
-
-          span.end();
-          return new Response(null, { status: 200 });
-        }
-
-        outcome = 'ignored_unknown_event';
-        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-        logger.info({ callbackId }, `Ignoring unhandled view_submission: ${callbackId}`);
-      }
-
-      if (
-        eventType !== 'event_callback' &&
-        eventType !== 'block_actions' &&
-        eventType !== 'interactive_message' &&
-        eventType !== 'message_action' &&
-        eventType !== 'view_submission'
-      ) {
-        outcome = 'ignored_unknown_event';
-        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-        logger.info({ eventType }, `Ignoring unhandled Slack event type: ${eventType}`);
       }
 
       span.end();
