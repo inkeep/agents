@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import { checkKeychainAvailability, loadCredentials } from '../utils/credentials';
 import {
   DEFAULT_PROFILES_CONFIG,
+  LOCAL_REMOTE,
   type Profile,
   ProfileManager,
   type ProfilesConfig,
@@ -387,7 +388,7 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
 
   if (options?.interactive === false) {
     tenantId = 'default';
-    apiUrl = 'http://localhost:3002';
+    apiUrl = LOCAL_REMOTE.api;
   } else {
     const tenantIdInput = await p.text({
       message: 'Enter your tenant ID:',
@@ -420,8 +421,8 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
 
     const apiUrlInput = await p.text({
       message: 'Enter the Agents API URL:',
-      placeholder: 'http://localhost:3002',
-      initialValue: 'http://localhost:3002',
+      placeholder: LOCAL_REMOTE.api,
+      initialValue: LOCAL_REMOTE.api,
       validate: validateUrl,
     });
 
@@ -453,7 +454,7 @@ export default defineConfig({
       const localProfile: Profile = {
         remote: {
           api: apiUrl,
-          manageUi: 'http://localhost:3001',
+          manageUi: LOCAL_REMOTE.manageUi,
         },
         credential: 'none',
         environment: 'development',
