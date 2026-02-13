@@ -8,6 +8,7 @@ import {
   generateArtifactComponentFile,
   generateArtifactComponentImports,
 } from '../artifact-component-generator';
+import { generateArtifactComponentDefinition as generateArtifactComponentDefinitionV4 } from '../../../pull-v4/artifact-component-generator';
 
 describe('Artifact Component Generator', () => {
   const testComponentData = {
@@ -121,8 +122,12 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('generateArtifactComponentDefinition', () => {
-    it.only('should generate correct definition with all properties', () => {
-      const definition = generateArtifactComponentDefinition('citation', testComponentData);
+    it.only('should generate correct definition with all properties', async () => {
+      const artifactComponentId = 'citation';
+      const definition = generateArtifactComponentDefinition(
+        artifactComponentId,
+        testComponentData
+      );
 
       expect(definition).toContain('export const citation = artifactComponent({');
       expect(definition).toContain("id: 'citation',");
@@ -132,6 +137,18 @@ describe('Artifact Component Generator', () => {
       );
       expect(definition).toContain('props: z.object({');
       expect(definition).toContain('});');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...testComponentData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should handle component ID to camelCase conversion', () => {
