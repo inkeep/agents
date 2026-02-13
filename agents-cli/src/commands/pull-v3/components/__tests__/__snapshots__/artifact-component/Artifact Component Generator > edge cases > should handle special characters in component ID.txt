@@ -1,0 +1,7 @@
+export const userArtifact2023 = artifactComponent({
+  id: 'user-artifact_2023',
+  name: 'User Artifact',
+  description: 'Component with special chars',
+  props: z.object({
+  })
+});
