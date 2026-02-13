@@ -249,7 +249,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it('should handle multiline descriptions and prompts', () => {
+    it.only('should handle multiline descriptions and prompts', async () => {
       const multilineData = {
         name: 'Test Agent',
         description:
@@ -265,16 +265,17 @@ describe('Agent Generator', () => {
         },
       };
 
-      const definition = generateAgentDefinition(
-        'multiline-agent',
-        multilineData,
-        undefined,
-        mockRegistry
-      );
+      const agentId = 'multiline-agent';
+      const definition = generateAgentDefinition(agentId, multilineData, undefined, mockRegistry);
 
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...multilineData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     // it('should handle different code styles', () => {
