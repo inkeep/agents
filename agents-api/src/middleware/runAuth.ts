@@ -244,6 +244,7 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
   try {
     const canUse = await canUseProjectStrict({
       userId: payload.sub,
+      tenantId: payload.tenantId,
       projectId: reqData.projectId,
     });
     if (!canUse) {
