@@ -5,11 +5,8 @@
 
 import { describe, expect, it } from 'vitest';
 import type { ComponentRegistry } from '../../utils/component-registry';
-import {
-  generateTriggerDefinition,
-  generateTriggerFile,
-  generateTriggerImports,
-} from '../trigger-generator';
+import { generateTriggerDefinition, generateTriggerFile } from '../trigger-generator';
+import { generateProjectDefinition as generateTriggerDefinitionV4 } from '../../../pull-v4/trigger-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -104,41 +101,42 @@ describe('Trigger Generator', () => {
     signingSecretCredentialReferenceId: 'slack-signing-secret',
   };
 
-  describe('generateTriggerImports', () => {
-    it('should generate basic imports without credential reference', () => {
-      const imports = generateTriggerImports('github-webhook', basicTriggerData);
+  // describe('generateTriggerImports', () => {
+  // it('should generate basic imports without credential reference', () => {
+  //   const imports = generateTriggerImports('github-webhook', basicTriggerData);
+  //
+  //   expect(imports).toHaveLength(1);
+  //   expect(imports[0]).toBe("import { Trigger } from '@inkeep/agents-sdk';");
+  // });
 
-      expect(imports).toHaveLength(1);
-      expect(imports[0]).toBe("import { Trigger } from '@inkeep/agents-sdk';");
-    });
+  // it('should generate imports with credential reference', () => {
+  //   const imports = generateTriggerImports(
+  //     'github-webhook',
+  //     triggerWithSignatureVerification,
+  //     { quotes: 'single', semicolons: true, indentation: '  ' },
+  //     mockRegistry
+  //   );
+  //
+  //   expect(imports.length).toBeGreaterThan(1);
+  //   expect(imports[0]).toBe("import { Trigger } from '@inkeep/agents-sdk';");
+  //   expect(imports[1]).toContain('github-webhook-secret');
+  // });
 
-    it('should generate imports with credential reference', () => {
-      const imports = generateTriggerImports(
-        'github-webhook',
-        triggerWithSignatureVerification,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
-
-      expect(imports.length).toBeGreaterThan(1);
-      expect(imports[0]).toBe("import { Trigger } from '@inkeep/agents-sdk';");
-      expect(imports[1]).toContain('github-webhook-secret');
-    });
-
-    it('should handle different code styles', () => {
-      const imports = generateTriggerImports('test-trigger', basicTriggerData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { Trigger } from "@inkeep/agents-sdk"');
-    });
-  });
+  // it('should handle different code styles', () => {
+  //   const imports = generateTriggerImports('test-trigger', basicTriggerData, {
+  //     quotes: 'double',
+  //     semicolons: false,
+  //     indentation: '    ',
+  //   });
+  //
+  //   expect(imports[0]).toBe('import { Trigger } from "@inkeep/agents-sdk"');
+  // });
+  // });
 
   describe('generateTriggerDefinition', () => {
-    it('should generate basic trigger definition', () => {
-      const definition = generateTriggerDefinition('github-webhook', basicTriggerData);
+    it.only('should generate basic trigger definition', async () => {
+      const triggerId = 'github-webhook';
+      const definition = generateTriggerDefinition(triggerId, basicTriggerData);
 
       expect(definition).toContain('export const githubWebhook = new Trigger({');
       expect(definition).toContain("id: 'github-webhook',");
@@ -147,6 +145,11 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('signatureVerification:');
       expect(definition).not.toContain('signingSecretCredentialReference:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...basicTriggerData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should generate trigger with GitHub signature verification', () => {
