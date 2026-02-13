@@ -1,7 +1,7 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 
@@ -59,7 +59,7 @@ export function DevAutoLoginProvider({ children }: { children: React.ReactNode }
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        <Spinner className="text-muted-foreground" />
       </div>
     );
   }
