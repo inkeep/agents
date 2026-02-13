@@ -115,41 +115,36 @@ export async function getSlackTeamInfo(client: WebClient) {
  * @returns Array of channel objects with id, name, member count, and privacy status
  */
 export async function getSlackChannels(client: WebClient, limit = 200) {
-  try {
-    return await paginateSlack({
-      fetchPage: (cursor) =>
-        client.conversations.list({
-          types: 'public_channel,private_channel',
-          exclude_archived: true,
-          limit: Math.min(limit, 200),
-          cursor,
-        }),
-      extractItems: (result) => {
-        if (!result.ok) {
-          logger.warn(
-            { error: result.error },
-            'Slack API returned ok: false during channel pagination'
-          );
-          return [];
-        }
-        return result.channels
-          ? result.channels.map((ch) => ({
-              id: ch.id,
-              name: ch.name,
-              memberCount: ch.num_members,
-              isBotMember: ch.is_member,
-              isPrivate: ch.is_private ?? false,
-              isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
-            }))
-          : [];
-      },
-      getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
-      limit,
-    });
-  } catch (error) {
-    logger.error({ error }, 'Failed to fetch Slack channels');
-    return [];
-  }
+  return paginateSlack({
+    fetchPage: (cursor) =>
+      client.conversations.list({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: Math.min(limit, 200),
+        cursor,
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        logger.warn(
+          { error: result.error },
+          'Slack API returned ok: false during channel pagination'
+        );
+        return [];
+      }
+      return result.channels
+        ? result.channels.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            memberCount: ch.num_members,
+            isBotMember: ch.is_member,
+            isPrivate: ch.is_private ?? false,
+            isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
+          }))
+        : [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+    limit,
+  });
 }
 
 /**
@@ -234,31 +229,26 @@ export async function checkUserIsChannelMember(
   channelId: string,
   userId: string
 ): Promise<boolean> {
-  try {
-    const members = await paginateSlack({
-      fetchPage: (cursor) =>
-        client.conversations.members({
-          channel: channelId,
-          limit: 200,
-          cursor,
-        }),
-      extractItems: (result) => {
-        if (!result.ok) {
-          logger.warn(
-            { error: result.error },
-            'Slack API returned ok: false during members pagination'
-          );
-          return [];
-        }
-        return result.members ?? [];
-      },
-      getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
-    });
-    return members.includes(userId);
-  } catch (error) {
-    logger.error({ error, channelId, userId }, 'Failed to check channel membership');
-    return false;
-  }
+  const members = await paginateSlack({
+    fetchPage: (cursor) =>
+      client.conversations.members({
+        channel: channelId,
+        limit: 200,
+        cursor,
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        logger.warn(
+          { error: result.error },
+          'Slack API returned ok: false during members pagination'
+        );
+        return [];
+      }
+      return result.members ?? [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+  });
+  return members.includes(userId);
 }
 
 /**

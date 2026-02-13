@@ -412,7 +412,7 @@ describe('Slack Client', () => {
       expect(result[0].id).toBe('C1');
     });
 
-    it('should return empty array when error is thrown mid-pagination', async () => {
+    it('should throw when error occurs mid-pagination', async () => {
       const mockClient = {
         conversations: {
           list: vi
@@ -428,12 +428,10 @@ describe('Slack Client', () => {
         },
       } as unknown as WebClient;
 
-      const result = await getSlackChannels(mockClient, 200);
-
-      expect(result).toEqual([]);
+      await expect(getSlackChannels(mockClient, 200)).rejects.toThrow('ratelimited');
     });
 
-    it('should return empty array when request fails', async () => {
+    it('should return empty array when ok: false on first page', async () => {
       const mockClient = {
         conversations: {
           list: vi.fn().mockResolvedValue({ ok: false }),
@@ -445,16 +443,14 @@ describe('Slack Client', () => {
       expect(result).toEqual([]);
     });
 
-    it('should return empty array on error', async () => {
+    it('should throw on API error', async () => {
       const mockClient = {
         conversations: {
           list: vi.fn().mockRejectedValue(new Error('API error')),
         },
       } as unknown as WebClient;
 
-      const result = await getSlackChannels(mockClient);
-
-      expect(result).toEqual([]);
+      await expect(getSlackChannels(mockClient)).rejects.toThrow('API error');
     });
   });
 
@@ -562,16 +558,16 @@ describe('Slack Client', () => {
       expect(result).toBe(false);
     });
 
-    it('should return false on error', async () => {
+    it('should throw on API error', async () => {
       const mockClient = {
         conversations: {
           members: vi.fn().mockRejectedValue(new Error('channel_not_found')),
         },
       } as unknown as WebClient;
 
-      const result = await checkUserIsChannelMember(mockClient, 'C123', 'U001');
-
-      expect(result).toBe(false);
+      await expect(checkUserIsChannelMember(mockClient, 'C123', 'U001')).rejects.toThrow(
+        'channel_not_found'
+      );
     });
   });
 
