@@ -273,7 +273,7 @@ describe('Init Command', () => {
           local: {
             remote: {
               api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3001',
+              manageUi: 'http://localhost:3000',
             },
             credential: 'none',
             environment: 'development',
@@ -310,7 +310,7 @@ describe('Init Command', () => {
       expect(mockProfileManager.addProfile).toHaveBeenCalledWith('local', {
         remote: {
           api: 'http://localhost:3002',
-          manageUi: 'http://localhost:3001',
+          manageUi: 'http://localhost:3000',
         },
         credential: 'none',
         environment: 'development',
@@ -334,7 +334,7 @@ describe('Init Command', () => {
           local: {
             remote: {
               api: 'http://localhost:3002',
-              manageUi: 'http://localhost:3001',
+              manageUi: 'http://localhost:3000',
             },
             credential: 'none',
             environment: 'development',
