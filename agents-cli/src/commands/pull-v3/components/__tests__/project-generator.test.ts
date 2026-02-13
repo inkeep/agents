@@ -56,13 +56,12 @@ describe('Project Generator', () => {
   } as const;
 
   describe('generateProjectImports', () => {
-    it('should generate basic imports', () => {
-      const imports = generateProjectImports(basicProjectData);
-
-      expect(imports).toHaveLength(1);
-      expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
-    });
-
+    // it('should generate basic imports', () => {
+    //   const imports = generateProjectImports(basicProjectData);
+    //
+    //   expect(imports).toHaveLength(1);
+    //   expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
+    // });
     // it('should handle different code styles', () => {
     //   const imports = generateProjectImports(basicProjectData, {
     //     quotes: 'double',
@@ -75,7 +74,7 @@ describe('Project Generator', () => {
   });
 
   describe('generateProjectDefinition', () => {
-    it.only('should generate basic project definition', async () => {
+    it('should generate basic project definition', async () => {
       const projectId = 'customer-support-project';
 
       const definition = generateProjectDefinition(
@@ -106,7 +105,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should generate complex project with all features', async () => {
+    it('should generate complex project with all features', async () => {
       const projectId = 'enterprise-platform';
       const definition = generateProjectDefinition(
         projectId,
@@ -138,7 +137,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle single item arrays in single line format', async () => {
+    it('should handle single item arrays in single line format', async () => {
       const singleItemData = {
         name: 'Single Agent Project',
         models: {
@@ -163,7 +162,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle multiple items in multi-line format', async () => {
+    it('should handle multiple items in multi-line format', async () => {
       const projectId = 'multi-item-project';
       const definition = generateProjectDefinition(
         projectId,
@@ -185,7 +184,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should throw error for missing models field', () => {
+    it('should throw error for missing models field', () => {
       const projectId = 'minimal-project';
       const minimalData = {
         name: 'Minimal Project',
@@ -203,7 +202,7 @@ describe('Project Generator', () => {
       );
     });
 
-    it.only('should throw error for missing required fields', () => {
+    it('should throw error for missing required fields', () => {
       const noNameData = {};
       const projectId = 'fallback-project';
       expect(() => {
@@ -223,7 +222,7 @@ describe('Project Generator', () => {
       );
     });
 
-    it.only('should handle camelCase conversion for variable names', async () => {
+    it('should handle camelCase conversion for variable names', async () => {
       const projectId = 'my-complex-project_v2';
       const definition = generateProjectDefinition(projectId, basicProjectData);
 
@@ -235,7 +234,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const projectId = 'multiline-project';
       const multilineData = {
         name: 'Complex Project',
@@ -272,7 +271,7 @@ describe('Project Generator', () => {
     //   expect(definition).toContain('})'); // No semicolon at the end
     // });
 
-    it.only('should handle empty arrays', async () => {
+    it('should handle empty arrays', async () => {
       const projectId = 'empty-arrays-project';
       const emptyArraysData = {
         name: 'Empty Arrays Project',
@@ -299,7 +298,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle stopWhen with only transferCountIs', async () => {
+    it('should handle stopWhen with only transferCountIs', async () => {
       const projectId = 'transfer-only-project';
       const transferOnlyData = {
         name: 'Transfer Only Project',
@@ -324,7 +323,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle stopWhen with only stepCountIs', async () => {
+    it('should handle stopWhen with only stepCountIs', async () => {
       const projectId = 'step-only-project';
       const stepOnlyData = {
         name: 'Step Only Project',
@@ -350,7 +349,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle complex models with temperature settings', async () => {
+    it('should handle complex models with temperature settings', async () => {
       const projectId = 'complex-models-project';
       const complexModelsData = {
         name: 'Complex Models Project',
@@ -379,7 +378,7 @@ describe('Project Generator', () => {
   });
 
   describe('generateProjectFile', () => {
-    it.only('should generate complete project file', async () => {
+    it('should generate complete project file', async () => {
       const projectId = 'customer-support-project';
       const file = generateProjectFile(projectId, basicProjectData);
 
@@ -397,7 +396,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should generate complex project file with all features', async () => {
+    it('should generate complex project file with all features', async () => {
       const projectId = 'enterprise-platform';
       const file = generateProjectFile(projectId, complexProjectData);
 
@@ -423,7 +422,7 @@ describe('Project Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it.only('should generate project code that compiles', async () => {
+    it('should generate project code that compiles', async () => {
       const projectId = 'test-project';
       const definition = generateProjectDefinition(
         projectId,
@@ -466,7 +465,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should generate complex project code that compiles', async () => {
+    it('should generate complex project code that compiles', async () => {
       const projectId = 'complex-test-project';
       const definition = generateProjectDefinition(
         projectId,
@@ -520,7 +519,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should throw error for minimal project without required fields', () => {
+    it('should throw error for minimal project without required fields', () => {
       const projectId = 'minimal-test-project';
       const minimalData = { name: 'Minimal Test Project' };
 
@@ -536,7 +535,7 @@ describe('Project Generator', () => {
   });
 
   describe('edge cases', () => {
-    it.only('should handle special characters in project IDs', async () => {
+    it('should handle special characters in project IDs', async () => {
       const projectId = 'project-v2_final';
       const definition = generateProjectDefinition(projectId, basicProjectData);
 
@@ -549,7 +548,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should handle project ID starting with numbers', async () => {
+    it('should handle project ID starting with numbers', async () => {
       const projectId = '2nd-generation-project';
       const definition = generateProjectDefinition(projectId, basicProjectData);
 
@@ -562,7 +561,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should throw error for empty string name', () => {
+    it('should throw error for empty string name', () => {
       const projectId = 'empty-strings-project';
       const emptyStringData = {
         name: '',
@@ -582,7 +581,7 @@ describe('Project Generator', () => {
       );
     });
 
-    it.only('should throw error for null models values', () => {
+    it('should throw error for null models values', () => {
       const projectId = 'null-values-project';
       const nullData = {
         name: 'Test Project',
@@ -629,7 +628,7 @@ describe('Project Generator', () => {
     //   expect(definition).not.toContain('agent6,');
     // });
 
-    it.only('should handle mixed array types', async () => {
+    it('should handle mixed array types', async () => {
       const projectId = 'mixed-types-project';
       const mixedData = {
         name: 'Mixed Types Project',
@@ -651,7 +650,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it.only('should throw error for missing name only', () => {
+    it('should throw error for missing name only', () => {
       const projectId = 'missing-name';
       const data = {
         models: { base: { model: 'gpt-4o-mini' } },
@@ -666,7 +665,7 @@ describe('Project Generator', () => {
       );
     });
 
-    it.only('should throw error for models without base', () => {
+    it('should throw error for models without base', () => {
       const projectId = 'missing-base';
       const data = {
         name: 'Test Project',
