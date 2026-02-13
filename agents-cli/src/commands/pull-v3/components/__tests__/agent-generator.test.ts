@@ -3,13 +3,13 @@
  * Unit tests for agent generator
  */
 
+import { generateAgentDefinition as generateAgentDefinitionV4 } from '../../../pull-v4/agent-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateAgentDefinition,
   generateAgentFile,
   generateAgentImports,
 } from '../agent-generator';
-import { generateAgentDefinition as generateAgentDefinitionV4 } from '../../../pull-v4/agent-generator';
 
 // Mock registry for tests
 const mockRegistry = {

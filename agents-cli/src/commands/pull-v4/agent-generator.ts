@@ -305,7 +305,6 @@ function addObjectEntries(target: ObjectLiteralExpression, value: Record<string,
   }
 }
 
-
 function extractIds(value: string[] | Record<string, unknown>): string[] {
   if (Array.isArray(value)) {
     return value
