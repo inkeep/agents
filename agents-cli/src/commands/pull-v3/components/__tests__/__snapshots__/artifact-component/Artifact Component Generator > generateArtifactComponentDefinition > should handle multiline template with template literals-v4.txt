@@ -1,0 +1,18 @@
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const test = artifactComponent({
+  id: 'test',
+  name: 'Test',
+  description: 'Component with multiline template',
+  props: z.object({
+      title: z.string(),
+      url: z.string(),
+      content: z.string(),
+    }),
+  template: `<div class="citation">
+  <h3>{{title}}</h3>
+  <a href="{{url}}">{{url}}</a>
+  <div>{{content}}</div>
+</div>`
+});
