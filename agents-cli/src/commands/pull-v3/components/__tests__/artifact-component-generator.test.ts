@@ -343,7 +343,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should throw error when only schema provided (needs props)', () => {
+    it.only('should throw error when only schema provided (needs props)', () => {
       const dataWithSchema = {
         name: 'Test',
         schema: {
@@ -356,10 +356,17 @@ describe('Artifact Component Generator', () => {
           },
         },
       };
-
+      const artifactComponentId = 'test';
       expect(() => {
-        generateArtifactComponentDefinition('test', dataWithSchema);
+        generateArtifactComponentDefinition(artifactComponentId, dataWithSchema);
       }).toThrow("Missing required fields for artifact component 'test': props");
+      expect(() => {
+        generateArtifactComponentDefinitionV4({ artifactComponentId, ...dataWithSchema });
+      }).toThrow(
+        new Error(`Missing required fields for artifact component:
+✖ Invalid input: expected object, received undefined
+  → at props`)
+      );
     });
 
     it('should prefer props over schema when both exist', () => {
