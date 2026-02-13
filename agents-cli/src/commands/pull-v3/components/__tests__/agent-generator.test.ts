@@ -548,7 +548,7 @@ describe('Agent Generator', () => {
       );
     });
 
-    it('should throw error for null and undefined required values', () => {
+    it.only('should throw error for null and undefined required values', () => {
       const nullData = {
         name: 'Test Agent',
         description: null,
@@ -556,11 +556,22 @@ describe('Agent Generator', () => {
         subAgents: null,
         contextConfig: undefined,
       };
-
+      const agentId = 'null-values-agent';
       expect(() => {
-        generateAgentDefinition('null-values-agent', nullData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, nullData, undefined, mockRegistry);
       }).toThrow(
         "Missing required fields for agent 'null-values-agent': defaultSubAgentId, subAgents"
+      );
+      expect(() => {
+        generateAgentDefinitionV4({ agentId, ...nullData });
+      }).toThrow(
+        new Error(`Missing required fields for agent:
+✖ Invalid input: expected string, received null
+  → at description
+✖ Invalid input: expected string, received undefined
+  → at defaultSubAgentId
+✖ Invalid input
+  → at subAgents`)
       );
     });
 
