@@ -1,0 +1,16 @@
+import { agent } from '@inkeep/agents-sdk';
+
+export const multilineAgent = agent({
+  id: 'multiline-agent',
+  name: 'Test Agent',
+  description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings',
+  defaultSubAgent: defaultSubAgent,
+  subAgents: () => [subAgent1, subAgent2],
+  statusUpdates: {
+    numEvents: 2,
+    timeInSeconds: 10,
+    statusComponents: [statusconfig],
+    prompt: `This is a very long prompt that should be handled as a multiline string
+It even contains newlines which should trigger multiline formatting`
+  }
+});
