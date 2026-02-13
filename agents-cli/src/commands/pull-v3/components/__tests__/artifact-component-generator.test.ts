@@ -301,7 +301,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should handle multiline template with template literals', () => {
+    it.only('should handle multiline template with template literals', async () => {
       const longTemplate = `<div class="citation">
   <h3>{{title}}</h3>
   <a href="{{url}}">{{url}}</a>
@@ -322,9 +322,25 @@ describe('Artifact Component Generator', () => {
         template: longTemplate,
       };
 
-      const definition = generateArtifactComponentDefinition('test', dataWithLongTemplate);
+      const artifactComponentId = 'test';
+      const definition = generateArtifactComponentDefinition(
+        artifactComponentId,
+        dataWithLongTemplate
+      );
 
       expect(definition).toContain(`template: \`${longTemplate}\``);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...dataWithLongTemplate,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should throw error when only schema provided (needs props)', () => {
