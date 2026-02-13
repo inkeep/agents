@@ -297,7 +297,7 @@ describe('Agent Generator', () => {
     //   expect(definition).toContain('})'); // No semicolon at the end
     // });
 
-    it('should handle empty statusComponents array', () => {
+    it.only('should handle empty statusComponents array', async () => {
       const emptyStatusData = {
         ...complexAgentData,
         statusUpdates: {
@@ -308,18 +308,19 @@ describe('Agent Generator', () => {
         },
       };
 
-      const definition = generateAgentDefinition(
-        'empty-status-agent',
-        emptyStatusData,
-        undefined,
-        mockRegistry
-      );
+      const agentId = 'empty-status-agent';
+      const definition = generateAgentDefinition(agentId, emptyStatusData, undefined, mockRegistry);
 
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 3,');
       expect(definition).toContain('timeInSeconds: 15,');
       expect(definition).toContain("prompt: 'Test prompt'");
       expect(definition).not.toContain('statusComponents:'); // Empty array should be omitted
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...emptyStatusData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should handle statusUpdates without all optional fields', () => {
