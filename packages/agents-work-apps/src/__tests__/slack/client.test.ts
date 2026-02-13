@@ -10,7 +10,7 @@
  * - Message posting (channels and threads)
  */
 
-import { retryPolicies, WebClient } from '@slack/web-api';
+import type { WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkUserIsChannelMember,
@@ -22,8 +22,8 @@ import {
   postMessageInThread,
 } from '../../slack/services/client';
 
-vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
+const { mockWebClient } = vi.hoisted(() => {
+  const mockWebClient = vi.fn().mockImplementation(() => ({
     users: {
       info: vi.fn(),
     },
@@ -37,11 +37,16 @@ vi.mock('@slack/web-api', () => ({
     chat: {
       postMessage: vi.fn(),
     },
-  })),
-  retryPolicies: {
-    fiveRetriesInFiveMinutes: { retries: 5, factor: 3.86, randomize: true },
-  },
-}));
+  }));
+
+  return { mockWebClient };
+});
+
+vi.mock('@slack/web-api', () => {
+  return {
+    WebClient: mockWebClient,
+  };
+});
 
 vi.mock('../../logger', () => ({
   getLogger: () => ({
@@ -58,14 +63,12 @@ describe('Slack Client', () => {
   });
 
   describe('getSlackClient', () => {
-    it('should create a WebClient with the provided token and retry config', () => {
+    it('should create a WebClient with the provided token', () => {
       const token = 'xoxb-test-token';
 
       const client = getSlackClient(token);
 
-      expect(WebClient).toHaveBeenCalledWith(token, {
-        retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
-      });
+      expect(mockWebClient).toHaveBeenCalledWith(token);
       expect(client).toBeDefined();
     });
 
@@ -76,8 +79,8 @@ describe('Slack Client', () => {
       getSlackClient(token1);
       getSlackClient(token2);
 
-      expect(WebClient).toHaveBeenCalledWith(token1, expect.anything());
-      expect(WebClient).toHaveBeenCalledWith(token2, expect.anything());
+      expect(mockWebClient).toHaveBeenCalledWith(token1);
+      expect(mockWebClient).toHaveBeenCalledWith(token2);
     });
   });
 
