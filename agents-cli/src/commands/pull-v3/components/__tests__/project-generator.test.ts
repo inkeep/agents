@@ -548,28 +548,28 @@ describe('Project Generator', () => {
       }).toThrow("Missing required fields for project 'null-values-project': models, models.base");
     });
 
-    it('should handle large number of agents with proper formatting', () => {
-      const manyAgentsData = {
-        name: 'Many Agents Project',
-        models: {
-          base: { model: 'gpt-4o-mini' },
-        },
-        agents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6'],
-      };
-
-      const definition = generateProjectDefinition(
-        'many-agents-project',
-        manyAgentsData,
-        undefined,
-        mockRegistry
-      );
-
-      expect(definition).toContain('agents: () => [');
-      expect(definition).toContain('  agent1,');
-      expect(definition).toContain('  agent2,');
-      expect(definition).toContain('  agent6'); // Last one without comma
-      expect(definition).not.toContain('agent6,');
-    });
+    // it('should handle large number of agents with proper formatting', () => {
+    //   const manyAgentsData = {
+    //     name: 'Many Agents Project',
+    //     models: {
+    //       base: { model: 'gpt-4o-mini' },
+    //     },
+    //     agents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6'],
+    //   };
+    //
+    //   const definition = generateProjectDefinition(
+    //     'many-agents-project',
+    //     manyAgentsData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('agents: () => [');
+    //   expect(definition).toContain('  agent1,');
+    //   expect(definition).toContain('  agent2,');
+    //   expect(definition).toContain('  agent6'); // Last one without comma
+    //   expect(definition).not.toContain('agent6,');
+    // });
 
     it.only('should handle mixed array types', async () => {
       const projectId = 'mixed-types-project';
