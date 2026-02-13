@@ -11,12 +11,14 @@ import {
   MessageSquare,
   MoreHorizontal,
   Send,
+  SlackIcon,
   Trash2,
   Users,
   XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import EmptyState from '@/components/layout/empty-state';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -205,26 +207,16 @@ export function WorkspaceHero() {
 
   if (!hasWorkspace) {
     return (
-      <Card className="overflow-hidden border-dashed">
-        <CardContent className="p-8">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="rounded-full bg-primary/10 p-4">
-              <MessageSquare className="h-8 w-8 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">Connect Your Slack Workspace</h3>
-              <p className="text-muted-foreground max-w-md">
-                Install the Inkeep Agent to your Slack workspace to enable AI-powered responses to
-                @mentions and /inkeep commands.
-              </p>
-            </div>
-            <Button size="lg" className="gap-2 mt-2" onClick={handleInstallClick}>
-              <MessageSquare className="h-4 w-4" />
-              Install to Slack
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState
+        title="No Slack connections."
+        description="Install the Inkeep Agent to your Slack workspace to enable AI-powered responses to @mentions and /inkeep commands."
+        action={
+          <Button size="lg" className="gap-2 mt-2" onClick={handleInstallClick}>
+            <SlackIcon className="h-4 w-4" />
+            Install to Slack
+          </Button>
+        }
+      />
     );
   }
 
