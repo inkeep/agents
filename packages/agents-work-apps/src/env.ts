@@ -23,10 +23,6 @@ const envSchema = z.object({
   INKEEP_AGENTS_RUN_DATABASE_URL: z
     .string()
     .describe('PostgreSQL connection URL for the runtime database'),
-  INKEEP_AGENTS_MANAGE_DATABASE_URL: z
-    .string()
-    .optional()
-    .describe('PostgreSQL connection URL for the management database'),
   INKEEP_AGENTS_MANAGE_UI_URL: z
     .string()
     .optional()
@@ -62,6 +58,14 @@ const envSchema = z.object({
   NANGO_SLACK_SECRET_KEY: z.string().optional().describe('Nango Slack-specific Secret Key'),
   NANGO_SLACK_INTEGRATION_ID: z.string().optional().describe('Nango Slack Integration ID'),
   NANGO_SERVER_URL: z.string().optional().describe('Nango Server URL'),
+
+  // JWT (shared with @inkeep/agents-core — required in production for Slack user/link tokens)
+  INKEEP_AGENTS_JWT_SIGNING_SECRET: z
+    .string()
+    .optional()
+    .describe(
+      'JWT signing secret shared with agents-api. Required in production (min 32 chars). Used for Slack user tokens and link tokens.'
+    ),
 
   // API URLs
   INKEEP_AGENTS_API_URL: z.string().optional().describe('Inkeep Agents API URL'),

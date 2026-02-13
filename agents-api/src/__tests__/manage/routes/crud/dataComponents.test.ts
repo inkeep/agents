@@ -18,7 +18,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       properties: {
         items: {
           type: 'array',
-          items: { type: 'string' },
+          items: { type: 'string', description: `A test item${suffix}` },
           description: `Test items${suffix}`,
         },
       },
@@ -420,16 +420,23 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
           properties: {
             items: {
               type: 'array',
+              description: 'List of items',
               items: {
                 type: 'object',
+                description: 'A single item entry',
                 properties: {
-                  id: { type: 'string' },
-                  name: { type: 'string' },
+                  id: { type: 'string', description: 'Item identifier' },
+                  name: { type: 'string', description: 'Item name' },
                   metadata: {
                     type: 'object',
+                    description: 'Item metadata',
                     properties: {
-                      tags: { type: 'array', items: { type: 'string' } },
-                      priority: { type: 'number' },
+                      tags: {
+                        type: 'array',
+                        description: 'Item tags',
+                        items: { type: 'string', description: 'A tag' },
+                      },
+                      priority: { type: 'number', description: 'Item priority' },
                     },
                   },
                 },
@@ -438,9 +445,10 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
             },
             config: {
               type: 'object',
+              description: 'Configuration options',
               properties: {
-                theme: { type: 'string', enum: ['light', 'dark'] },
-                sortBy: { type: 'string', default: 'name' },
+                theme: { type: 'string', description: 'UI theme', enum: ['light', 'dark'] },
+                sortBy: { type: 'string', description: 'Sort field', default: 'name' },
               },
             },
           },
@@ -482,7 +490,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
           properties: {
             updatedItems: {
               type: 'array',
-              items: { type: 'string' },
+              items: { type: 'string', description: 'An updated item' },
               description: 'Updated items',
             },
           },
@@ -521,7 +529,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
           properties: {
             items: {
               type: 'array',
-              items: { type: 'string' },
+              description: 'Test items',
+              items: { type: 'string', description: 'A test item' },
             },
           },
           required: ['items'],

@@ -6,7 +6,8 @@ icon: LuPanelLeft
 ---
 
 <Note>
-For Next.js apps that use App Router, use the `"use client"` directive at the top of the file to load the widget client-side.
+  For Next.js apps that use App Router, use the `"use client"` directive at the
+  top of the file to load the widget client-side.
 </Note>
 
 The InkeepSidebarChat component provides a slide-out panel for conversing with your agents. In Next.js, load it with `next/dynamic` and `ssr: false`. It can be positioned on either side and supports state or data-attribute triggers.
@@ -210,20 +211,26 @@ pnpm add @inkeep/agents-ui
 
 ### Required Props
 
-| Property                   | Type   | Description                              |
-| -------------------------- | ------ | ---------------------------------------- |
-| `aiChatSettings`           | object | Configuration for the AI chat connection |
-| `aiChatSettings.agentUrl`  | string | The URL of your agent endpoint           |
-| `aiChatSettings.headers`   | object | Headers for authentication (dev)         |
+| Property                  | Type   | Description                              |
+| ------------------------- | ------ | ---------------------------------------- |
+| `aiChatSettings`          | object | Configuration for the AI chat connection |
+| `aiChatSettings.agentUrl` | string | The URL of your agent endpoint           |
+| `aiChatSettings.headers`  | object | Headers for authentication (dev)         |
 
 ## Props
 
-<AutoTypeTable name="default" type="export { InkeepSidebarChatProps as default } from '@inkeep/agents-ui'" />
+<AutoTypeTable
+  name="default"
+  type="export { InkeepSidebarChatProps as default } from '@inkeep/agents-ui'"
+/>
 
 <Snippet file="chat-components/base-settings.mdx" />
 
 <Snippet file="chat-components/ai-chat-settings.mdx" />
 
-### Open Settings
+### OpenSettingsSidebar
 
-<AutoTypeTable name="default" type="export { OpenSettingsSidebar as default } from '@inkeep/agents-ui/types'" />
+<AutoTypeTable
+  name="default"
+  type="export { OpenSettingsSidebar as default } from '@inkeep/agents-ui/types'"
+/>

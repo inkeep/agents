@@ -92,11 +92,17 @@ function extractRequestData(c: { req: any }): RequestData {
  * Build the final execution context from auth result and request data
  */
 function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
+  // For team delegation, use the parent agent ID from the request header (x-inkeep-agent-id)
+  // instead of the JWT's audience (which is the sub-agent being called).
+  // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
+  const agentId =
+    authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
     tenantId: authResult.tenantId,
     projectId: authResult.projectId,
-    agentId: authResult.agentId,
+    agentId,
     apiKeyId: authResult.apiKeyId,
     baseUrl: reqData.baseUrl,
     subAgentId: reqData.subAgentId,
@@ -278,7 +284,7 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
 
   return {
     authResult: {
-      apiKey: 'slack-user-jwt',
+      apiKey: token,
       tenantId: payload.tenantId,
       projectId: reqData.projectId,
       agentId: reqData.agentId,
@@ -335,7 +341,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
 
   return {
     authResult: {
-      apiKey: 'team-agent-jwt',
+      apiKey: token,
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       agentId: payload.aud,

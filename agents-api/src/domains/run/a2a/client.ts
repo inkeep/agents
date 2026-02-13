@@ -22,6 +22,7 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core';
+import { unwrapError } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 
 const logger = getLogger('a2aClient');
@@ -48,6 +49,7 @@ export interface A2AClientOptions {
   retryConfig?: RetryConfig;
   ref?: ResolvedRef;
   headers?: Record<string, string>;
+  fetchFn?: typeof fetch;
 }
 
 const DEFAULT_BACKOFF: BackoffStrategy = {
@@ -134,6 +136,7 @@ export class A2AClient {
   private requestIdCounter = 1;
   private serviceEndpointUrl?: string; // To be populated from AgentCard after fetching
   private options: A2AClientOptions;
+  private fetchFn: typeof fetch;
 
   /**
    * Constructs an A2AClient instance.
@@ -145,6 +148,7 @@ export class A2AClient {
    */
   constructor(agentBaseUrl: string, options?: A2AClientOptions) {
     this.agentBaseUrl = agentBaseUrl.replace(/\/$/, ''); // Remove trailing slash if any
+    this.fetchFn = options?.fetchFn ?? fetch;
     this.options = {
       retryConfig: {
         strategy: 'backoff',
@@ -176,7 +180,7 @@ export class A2AClient {
       'agentCardUrl'
     );
     try {
-      const response = await fetch(url.toString(), {
+      const response = await this.fetchFn(url.toString(), {
         headers: {
           Accept: 'application/json',
           ...(this.options.headers || {}),
@@ -197,8 +201,9 @@ export class A2AClient {
       this.serviceEndpointUrl = agentCard.url; // Cache the service endpoint URL from the agent card
       return agentCard;
     } catch (error) {
-      console.error('Error fetching or parsing Agent Card:', error);
-      throw error;
+      const rootCause = unwrapError(error);
+      logger.error({ error: rootCause }, 'Error fetching or parsing Agent Card');
+      throw rootCause;
     }
   }
 
@@ -221,7 +226,7 @@ export class A2AClient {
         url.searchParams.set('ref', this.options.ref.name);
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await this.fetchFn(url.toString(), {
         headers: {
           Accept: 'application/json',
           ...(this.options.headers || {}),
@@ -376,7 +381,7 @@ export class A2AClient {
         return res;
       } catch (err: unknown) {
         if (err instanceof PermanentError) {
-          throw err.cause;
+          throw unwrapError(err.cause);
         }
 
         const elapsed = Date.now() - start;
@@ -392,7 +397,7 @@ export class A2AClient {
           if (err instanceof TemporaryError) {
             return err.response;
           }
-          throw err;
+          throw unwrapError(err);
         }
 
         let retryInterval = 0;
@@ -465,11 +470,11 @@ export class A2AClient {
     };
 
     const httpResponse = await this.retry(async () => {
-      return fetch(endpoint, {
+      return this.fetchFn(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json', // Expect JSON response for non-streaming requests
+          Accept: 'application/json',
           ...(this.options.headers || {}),
         },
         body: JSON.stringify(rpcRequest),
@@ -558,11 +563,11 @@ export class A2AClient {
       id: clientRequestId,
     };
 
-    const response = await fetch(endpoint, {
+    const response = await this.fetchFn(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'text/event-stream', // Crucial for SSE
+        Accept: 'text/event-stream',
         ...(this.options.headers || {}),
       },
       body: JSON.stringify(rpcRequest),
@@ -674,7 +679,7 @@ export class A2AClient {
       id: clientRequestId,
     };
 
-    const response = await fetch(endpoint, {
+    const response = await this.fetchFn(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -774,8 +779,9 @@ export class A2AClient {
         }
       }
     } catch (error: any) {
-      console.error('Error reading or parsing SSE stream:', error.message);
-      throw error;
+      const rootCause = unwrapError(error);
+      logger.error({ error: rootCause }, 'Error reading or parsing SSE stream');
+      throw rootCause;
     } finally {
       reader.releaseLock(); // Ensure the reader lock is released
     }

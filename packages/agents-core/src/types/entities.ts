@@ -154,6 +154,12 @@ import type {
   ProjectMetadataSelectSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  SkillApiInsertSchema,
+  SkillApiSelectSchema,
+  SkillApiUpdateSchema,
+  SkillInsertSchema,
+  SkillSelectSchema,
+  SkillUpdateSchema,
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
@@ -184,6 +190,13 @@ import type {
   SubAgentRelationSelectSchema,
   SubAgentRelationUpdateSchema,
   SubAgentSelectSchema,
+  SubAgentSkillApiInsertSchema,
+  SubAgentSkillApiSelectSchema,
+  SubAgentSkillApiUpdateSchema,
+  SubAgentSkillInsertSchema,
+  SubAgentSkillSelectSchema,
+  SubAgentSkillUpdateSchema,
+  SubAgentSkillWithIndexSchema,
   SubAgentTeamAgentRelationApiInsertSchema,
   SubAgentTeamAgentRelationApiSelectSchema,
   SubAgentTeamAgentRelationApiUpdateSchema,
@@ -451,6 +464,13 @@ export type ContextCacheApiSelect = z.infer<typeof ContextCacheApiSelectSchema>;
 export type ContextCacheApiInsert = z.infer<typeof ContextCacheApiInsertSchema>;
 export type ContextCacheApiUpdate = z.infer<typeof ContextCacheApiUpdateSchema>;
 
+export type SkillSelect = z.infer<typeof SkillSelectSchema>;
+export type SkillInsert = z.infer<typeof SkillInsertSchema>;
+export type SkillUpdate = z.infer<typeof SkillUpdateSchema>;
+export type SkillApiSelect = z.infer<typeof SkillApiSelectSchema>;
+export type SkillApiInsert = z.infer<typeof SkillApiInsertSchema>;
+export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
+
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;
 export type DataComponentUpdate = z.infer<typeof DataComponentUpdateSchema>;
@@ -484,6 +504,14 @@ export type SubAgentArtifactComponentApiInsert = z.infer<
 export type SubAgentArtifactComponentApiUpdate = z.infer<
   typeof SubAgentArtifactComponentApiUpdateSchema
 >;
+
+export type SubAgentSkillSelect = z.infer<typeof SubAgentSkillSelectSchema>;
+export type SubAgentSkillInsert = z.infer<typeof SubAgentSkillInsertSchema>;
+export type SubAgentSkillUpdate = z.infer<typeof SubAgentSkillUpdateSchema>;
+export type SubAgentSkillApiSelect = z.infer<typeof SubAgentSkillApiSelectSchema>;
+export type SubAgentSkillApiInsert = z.infer<typeof SubAgentSkillApiInsertSchema>;
+export type SubAgentSkillApiUpdate = z.infer<typeof SubAgentSkillApiUpdateSchema>;
+export type SubAgentSkillWithIndex = z.infer<typeof SubAgentSkillWithIndexSchema>;
 
 export type ExternalAgentSelect = z.infer<typeof ExternalAgentSelectSchema>;
 export type ExternalAgentInsert = z.infer<typeof ExternalAgentInsertSchema>;

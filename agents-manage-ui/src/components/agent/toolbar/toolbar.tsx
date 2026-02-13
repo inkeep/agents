@@ -1,6 +1,4 @@
-import { Play, Settings, Webhook } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { Play, Settings } from 'lucide-react';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -22,12 +20,6 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   const dirty = useAgentStore((state) => state.dirty);
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
-  const { tenantId, projectId, agentId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>();
-
   const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
@@ -108,14 +100,6 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
         <Button {...commonProps} onClick={toggleSidePane}>
           <Settings className="size-4" />
           Agent Settings
-        </Button>
-      )}
-      {canEdit && (
-        <Button {...commonProps} asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
-            <Webhook className="size-4" />
-            Triggers
-          </Link>
         </Button>
       )}
     </div>

@@ -80,7 +80,7 @@ export function getStateSigningSecret(): string {
 export function createOAuthState(tenantId?: string): string {
   const state: OAuthState = {
     nonce: crypto.randomBytes(16).toString('hex'),
-    tenantId: tenantId || 'default',
+    tenantId: tenantId || '',
     timestamp: Date.now(),
   };
   const data = Buffer.from(JSON.stringify(state)).toString('base64url');
@@ -116,6 +116,10 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
     const state = JSON.parse(decoded) as OAuthState;
 
     if (!state.nonce || !state.timestamp) {
+      logger.warn(
+        { hasNonce: !!state.nonce, hasTimestamp: !!state.timestamp },
+        'OAuth state missing required fields'
+      );
       return null;
     }
 
@@ -184,7 +188,7 @@ app.openapi(
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
     slackAuthUrl.searchParams.set('state', state);
 
-    logger.info({ redirectUri, tenantId: tenantId || 'default' }, 'Redirecting to Slack OAuth');
+    logger.info({ redirectUri, tenantId: tenantId || '' }, 'Redirecting to Slack OAuth');
 
     return c.redirect(slackAuthUrl.toString());
   }
@@ -215,7 +219,7 @@ app.openapi(
     const { code, error, state: stateParam } = c.req.valid('query');
 
     const parsedState = stateParam ? parseOAuthState(stateParam) : null;
-    const tenantId = parsedState?.tenantId || 'default';
+    const tenantId = parsedState?.tenantId || '';
     const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
     if (!stateParam || !parsedState) {
@@ -349,25 +353,37 @@ app.openapi(
             );
           } catch (dbError) {
             const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-            if (
+            const isDuplicate =
               dbErrorMessage.includes('duplicate key') ||
-              dbErrorMessage.includes('unique constraint')
-            ) {
+              dbErrorMessage.includes('unique constraint');
+
+            if (isDuplicate) {
               logger.info(
                 { teamId: workspaceData.teamId, tenantId },
                 'Workspace already exists in database'
               );
             } else {
+              const pgCode =
+                dbError && typeof dbError === 'object' && 'code' in dbError
+                  ? (dbError as { code: string }).code
+                  : undefined;
+
               logger.error(
-                { error: dbErrorMessage, teamId: workspaceData.teamId },
+                {
+                  err: dbError,
+                  dbErrorMessage,
+                  pgCode,
+                  teamId: workspaceData.teamId,
+                  tenantId,
+                  connectionId: nangoResult.connectionId,
+                },
                 'Failed to persist workspace to database, rolling back Nango connection'
               );
-              // Rollback: delete from Nango to avoid split-brain state
               try {
                 await deleteWorkspaceInstallation(nangoResult.connectionId);
               } catch (rollbackError) {
                 logger.error(
-                  { error: rollbackError, connectionId: nangoResult.connectionId },
+                  { err: rollbackError, connectionId: nangoResult.connectionId },
                   'Failed to rollback Nango connection after DB failure'
                 );
               }
@@ -376,7 +392,12 @@ app.openapi(
           }
         } else {
           logger.warn(
-            { teamId: workspaceData.teamId },
+            {
+              teamId: workspaceData.teamId,
+              tenantId,
+              nangoSuccess: nangoResult.success,
+              nangoError: 'error' in nangoResult ? nangoResult.error : undefined,
+            },
             'Failed to store in Nango, falling back to memory'
           );
         }
@@ -416,7 +437,7 @@ app.openapi(
       const encodedData = encodeURIComponent(JSON.stringify(safeWorkspaceData));
       return c.redirect(`${dashboardUrl}?success=true&workspace=${encodedData}`);
     } catch (err) {
-      logger.error({ error: err }, 'Slack OAuth callback error');
+      logger.error({ err, tenantId }, 'Slack OAuth callback error');
       return c.redirect(`${dashboardUrl}?error=callback_error`);
     }
   }

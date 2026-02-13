@@ -12,6 +12,7 @@
  * 4. Session cookie → sessionAuth
  */
 
+import { createApiError } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
 import { env } from '../env';
 import { manageApiKeyAuth } from './manageAuth';
@@ -53,5 +54,18 @@ export const workAppsAuth = async (c: Context, next: Next) => {
     return manageApiKeyAuth()(c as any, next);
   }
 
-  return sessionAuth()(c as any, next);
+  // Session auth for dashboard users
+  await sessionAuth()(c as any, async () => {
+    // Resolve tenantId from the session's active organization
+    // sessionAuth sets userId/userEmail but not tenantId — we need it for tenant-scoped queries
+    const session = c.get('session') as { activeOrganizationId?: string } | null;
+    if (!session?.activeOrganizationId) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'No active organization selected. Please select an organization first.',
+      });
+    }
+    c.set('tenantId', session.activeOrganizationId);
+    await next();
+  });
 };

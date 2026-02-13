@@ -18,6 +18,7 @@ import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
@@ -512,6 +513,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();
             }
+            await flushBatchProcessor();
           }
         },
       });

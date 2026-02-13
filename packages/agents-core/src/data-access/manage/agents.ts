@@ -30,6 +30,8 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
+import { listScheduledTriggers } from './scheduledTriggers';
+import { getSkillsForSubAgents } from './skills';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
@@ -331,6 +333,20 @@ export const getAgentSubAgentInfos =
     return agentInfos.filter((agent): agent is NonNullable<typeof agent> => agent !== null);
   };
 
+type SkillWithIndex = {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  alwaysLoaded: boolean;
+  subAgentSkillId: string;
+  subAgentId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const getFullAgentDefinitionInternal =
   (db: AgentsManageDatabaseClient) =>
   async ({
@@ -359,6 +375,8 @@ const getFullAgentDefinitionInternal =
       ),
     });
 
+    const subAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
+
     const externalAgentRelations = await getSubAgentExternalAgentRelationsByAgent(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -375,6 +393,29 @@ const getFullAgentDefinitionInternal =
     const externalSubAgentIds = new Set<string>();
     for (const relation of externalAgentRelations) {
       externalSubAgentIds.add(relation.externalAgentId);
+    }
+
+    const subAgentSkillsList = await getSkillsForSubAgents(db)({
+      scopes: { tenantId, projectId, agentId },
+      subAgentIds,
+    });
+
+    const skillsBySubAgent: Record<string, SkillWithIndex[]> = {};
+    for (const skill of subAgentSkillsList) {
+      skillsBySubAgent[skill.subAgentId] ??= [];
+      skillsBySubAgent[skill.subAgentId].push({
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        metadata: skill.metadata,
+        index: skill.index,
+        alwaysLoaded: skill.alwaysLoaded,
+        subAgentSkillId: skill.subAgentSkillId,
+        subAgentId: skill.subAgentId,
+        createdAt: skill.createdAt,
+        updatedAt: skill.updatedAt,
+      });
     }
 
     const processedSubAgents = await Promise.all(
@@ -557,6 +598,7 @@ const getFullAgentDefinitionInternal =
           stopWhen: agent.stopWhen,
           canTransferTo,
           canDelegateTo,
+          skills: skillsBySubAgent[agent.id] || [],
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
           canUse,
@@ -643,9 +685,6 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
-      const subAgentIds = Array.from(internalAgentIds);
-
       await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
@@ -664,9 +703,6 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
-      const subAgentIds = Array.from(internalAgentIds);
-
       await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
@@ -910,6 +946,36 @@ const getFullAgentDefinitionInternal =
       }
     } catch (error) {
       console.warn('Failed to load triggers:', error);
+    }
+
+    // Fetch scheduled triggers (agent-scoped)
+    try {
+      const scheduledTriggersList = await listScheduledTriggers(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+
+      if (scheduledTriggersList.length > 0) {
+        const scheduledTriggersObject: Record<string, any> = {};
+        for (const scheduledTrigger of scheduledTriggersList) {
+          scheduledTriggersObject[scheduledTrigger.id] = {
+            id: scheduledTrigger.id,
+            name: scheduledTrigger.name,
+            description: scheduledTrigger.description,
+            enabled: scheduledTrigger.enabled,
+            cronExpression: scheduledTrigger.cronExpression,
+            cronTimezone: scheduledTrigger.cronTimezone,
+            runAt: scheduledTrigger.runAt,
+            payload: scheduledTrigger.payload,
+            messageTemplate: scheduledTrigger.messageTemplate,
+            maxRetries: scheduledTrigger.maxRetries,
+            retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
+            timeoutSeconds: scheduledTrigger.timeoutSeconds,
+          };
+        }
+        result.scheduledTriggers = scheduledTriggersObject;
+      }
+    } catch (error) {
+      console.warn('Failed to load scheduled triggers:', error);
     }
 
     return result;

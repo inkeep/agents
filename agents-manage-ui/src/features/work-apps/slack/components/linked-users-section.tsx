@@ -152,11 +152,8 @@ export function LinkedUsersSection() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => setUserToUnlink(user)}
-              className="text-destructive focus:text-destructive"
-            >
-              <UserMinus className="h-4 w-4 mr-2" />
+            <DropdownMenuItem onClick={() => setUserToUnlink(user)} variant="destructive">
+              <UserMinus className="h-4 w-4" />
               Unlink user
             </DropdownMenuItem>
           </DropdownMenuContent>

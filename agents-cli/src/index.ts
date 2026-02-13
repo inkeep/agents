@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import './env'; // Load environment files first (needed by instrumentation)
 import './instrumentation'; // Initialize Langfuse tracing second
 
@@ -49,9 +50,16 @@ program
   .description('Add a new template to the project')
   .option('--project <template>', 'Project template to add')
   .option('--mcp <template>', 'MCP template to add')
+  .option(
+    '--ui [component-id]',
+    'Add UI component(s) to apps/agents-ui/src/ui (omit id to add all)'
+  )
+  .option('--list', 'List available UI components (use with --ui)')
   .option('--target-path <path>', 'Target path to add the template to')
   .option('--local-prefix <path_prefix>', 'Use local templates from the given path prefix')
   .option('--config <path>', 'Path to configuration file')
+  .option('--profile <name>', 'Profile to use for authentication')
+  .option('--quiet', 'Suppress profile/config logging')
   .action(async (template, options) => {
     await addCommand({ template, ...options });
   });

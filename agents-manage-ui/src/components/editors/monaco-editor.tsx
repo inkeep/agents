@@ -117,9 +117,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       tabSize: 2,
       readOnly,
       // Monaco doesn't render whitespace at the beginning of the lines
-      placeholder: placeholder.replaceAll(/^\s+/gm, (substring) =>
-        '\u00A0'.repeat(substring.length)
-      ),
+      placeholder: placeholder.replaceAll(' ', '\u00A0'),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
       editContext: false,

@@ -41,10 +41,10 @@ describe('OAuth State Management', () => {
       expect(parts[1]).toBeTruthy();
     });
 
-    it('should default tenantId to "default"', () => {
+    it('should default tenantId to empty string when not provided', () => {
       const state = createOAuthState();
       const parsed = parseOAuthState(state);
-      expect(parsed?.tenantId).toBe('default');
+      expect(parsed?.tenantId).toBe('');
     });
   });
 

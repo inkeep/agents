@@ -42,6 +42,7 @@ import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
 import type { AppConfig, AppVariables } from './types';
+import { getInProcessFetch, registerAppFetch } from './utils/in-process-fetch';
 
 const logger = getLogger('agents-api');
 
@@ -174,6 +175,10 @@ function createAgentsHono(config: AppConfig) {
       pino: getLogger('agents-api').getPinoInstance(),
       http: {
         onResLevel(c) {
+          // Workflow sleep responses use 503 - this is expected behavior, not an error
+          if (c.res.status === 503 && c.req.path.startsWith('/.well-known/workflow/')) {
+            return 'info';
+          }
           if (c.res.status >= 500) {
             return 'error';
           }
@@ -300,6 +305,24 @@ function createAgentsHono(config: AppConfig) {
     app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
   }
 
+  app.use('*', async (_c, next) => {
+    await next();
+    if (process.env.VERCEL) {
+      try {
+        const { waitUntil } = await import('@vercel/functions');
+        waitUntil(flushBatchProcessor());
+      } catch (importError) {
+        logger.debug(
+          { error: importError },
+          '@vercel/functions import failed, flushing synchronously'
+        );
+        await flushBatchProcessor();
+      }
+    } else {
+      await flushBatchProcessor();
+    }
+  });
+
   // Apply API key authentication to all protected run routes
   app.use('/run/tenants/*', runApiKeyAuthExcept(isWebhookRoute));
   app.use('/run/agents/*', runApiKeyAuth());
@@ -360,7 +383,7 @@ function createAgentsHono(config: AppConfig) {
       body: bodyBuffer,
     });
 
-    return fetch(forwardedRequest);
+    return getInProcessFetch()(forwardedRequest);
   });
 
   app.route('/evals', evalRoutes);
@@ -382,14 +405,11 @@ function createAgentsHono(config: AppConfig) {
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
-  app.use('/run/*', async (_c, next) => {
-    await next();
-    await flushBatchProcessor();
-  });
-
   // Wrap in base Hono for framework detection
   const base = new Hono();
   base.route('/', app);
+
+  registerAppFetch(base.request.bind(base) as typeof fetch);
 
   return base;
 }

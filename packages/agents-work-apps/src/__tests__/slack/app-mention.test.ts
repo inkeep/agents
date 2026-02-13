@@ -23,6 +23,45 @@ vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
 }));
 
+const mockSpan = {
+  setAttribute: vi.fn(),
+  updateName: vi.fn(),
+  setStatus: vi.fn(),
+  recordException: vi.fn(),
+  end: vi.fn(),
+};
+
+vi.mock('../../slack/tracer', () => ({
+  tracer: {
+    startActiveSpan: vi.fn((_name: string, fn: (span: unknown) => unknown) => fn(mockSpan)),
+  },
+  setSpanWithError: vi.fn(),
+  SLACK_SPAN_NAMES: {
+    WEBHOOK: 'slack.webhook',
+    APP_MENTION: 'slack.app_mention',
+    STREAM_AGENT_RESPONSE: 'slack.stream_agent_response',
+  },
+  SLACK_SPAN_KEYS: {
+    TEAM_ID: 'slack.team_id',
+    CHANNEL_ID: 'slack.channel_id',
+    USER_ID: 'slack.user_id',
+    EVENT_TYPE: 'slack.event_type',
+    INNER_EVENT_TYPE: 'slack.inner_event_type',
+    TENANT_ID: 'slack.tenant_id',
+    PROJECT_ID: 'slack.project_id',
+    AGENT_ID: 'slack.agent_id',
+    CONVERSATION_ID: 'slack.conversation_id',
+    OUTCOME: 'slack.outcome',
+    IS_BOT_MESSAGE: 'slack.is_bot_message',
+    HAS_QUERY: 'slack.has_query',
+    IS_IN_THREAD: 'slack.is_in_thread',
+    THREAD_TS: 'slack.thread_ts',
+    MESSAGE_TS: 'slack.message_ts',
+    CALLBACK_ID: 'slack.callback_id',
+    ACTION_IDS: 'slack.action_ids',
+  },
+}));
+
 vi.mock('../../db/runDbClient', () => ({ default: {} }));
 
 vi.mock('../../env', () => ({

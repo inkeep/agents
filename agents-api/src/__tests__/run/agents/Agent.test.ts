@@ -1,11 +1,13 @@
 import {
   type DataComponentSelect,
+  type JsonSchemaForLlmSchemaType,
   MCPServerType,
   MCPTransportType,
   type McpTool,
   type MessageType,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
@@ -283,6 +285,7 @@ vi.mock('../../../domains/run/services/ResponseFormatter.js', () => ({
 // Mock OpenTelemetry
 vi.mock('@opentelemetry/api', () => ({
   trace: {
+    getActiveSpan: vi.fn().mockReturnValue(null),
     getTracerProvider: vi.fn().mockReturnValue({
       getTracer: vi.fn().mockReturnValue({
         startActiveSpan: vi.fn().mockImplementation((_name, fn) => {
@@ -561,6 +564,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
           usageGuidelines: 'Use this tool when appropriate for the task at hand.',
         },
       ],
+      skills: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -584,6 +588,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
+      skills: [],
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -608,6 +613,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
+      skills: [],
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -644,6 +650,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
       tools: [], // Empty tools array since availableTools is undefined
+      skills: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -1336,7 +1343,10 @@ describe('Two-Pass Generation System', () => {
       projectId: 'test-project',
       name: 'TestComponent',
       description: 'Test component',
-      props: { type: 'object', properties: { message: { type: 'string' } } },
+      props: {
+        type: 'object',
+        properties: { message: { type: 'string' } },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       render: {
@@ -1527,7 +1537,10 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
@@ -1551,7 +1564,10 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
@@ -1611,6 +1627,18 @@ describe('Agent Model Settings', () => {
 
 describe('Agent Conditional Tool Availability', () => {
   let mockExecutionContext: any;
+  const baseConfig: Omit<AgentConfig, 'agentId'> = {
+    id: 'test-agent',
+    projectId: 'test-project',
+    name: 'Test Agent',
+    description: 'Test agent',
+    tenantId: 'test-tenant',
+    baseUrl: 'http://localhost:3000',
+    prompt: 'Test instructions',
+    subAgentRelations: [],
+    transferRelations: [],
+    delegateRelations: [],
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1658,20 +1686,8 @@ describe('Agent Conditional Tool Availability', () => {
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-no-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
     };
 
     const agent = new Agent(config, mockExecutionContext); // No artifact components
@@ -1688,21 +1704,8 @@ describe('Agent Conditional Tool Availability', () => {
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-with-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
-      artifactComponents: [],
     };
 
     const agent = new Agent(config, mockExecutionContext); // No artifact components
@@ -1731,27 +1734,15 @@ describe('Agent Conditional Tool Availability', () => {
             name: { type: 'string', inPreview: true },
             details: { type: 'string', inPreview: false },
           },
-        },
+        } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
     ];
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-with-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
       artifactComponents: mockArtifactComponents,
     };
 
@@ -1762,6 +1753,38 @@ describe('Agent Conditional Tool Availability', () => {
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
+  });
+
+  test('agent with on-demand skills should have load_skill tool', async () => {
+    agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
+    const config: AgentConfig = {
+      ...baseConfig,
+      agentId: 'test-agent-on-demand',
+      skills: [
+        {
+          id: 'always-loaded-skill',
+          name: 'always-loaded-skill',
+          content: '',
+          alwaysLoaded: false,
+        },
+        {
+          id: 'on-demand-skill',
+          name: 'on-demand-skill',
+          content: '',
+          alwaysLoaded: false,
+        },
+      ] as AgentConfig['skills'],
+    };
+
+    const agent = new Agent(config, mockExecutionContext);
+    const tools = await (agent as any).getDefaultTools();
+
+    expect(tools.load_skill).toBeDefined();
+    const result = await tools.load_skill.execute({ name: 'on-demand-skill' });
+    expect(result).toMatchObject({
+      id: 'on-demand-skill',
+      name: 'on-demand-skill',
+    });
   });
 });
 

@@ -1100,36 +1100,6 @@ const getServer = async (toolId: string) => {
   return server;
 };
 
-const SERVER_CACHE_TTL_MS = 5 * 60 * 1000;
-const SERVER_CACHE_MAX_SIZE = 100;
-
-type ServerCacheEntry = { server: Awaited<ReturnType<typeof getServer>>; expiresAt: number };
-const serverCache = new Map<string, ServerCacheEntry>();
-
-const getCachedServer = async (toolId: string) => {
-  const cached = serverCache.get(toolId);
-  if (cached && cached.expiresAt > Date.now()) {
-    // Move to end for LRU ordering
-    serverCache.delete(toolId);
-    serverCache.set(toolId, cached);
-    return cached.server;
-  }
-  serverCache.delete(toolId);
-
-  const server = await getServer(toolId);
-  serverCache.set(toolId, { server, expiresAt: Date.now() + SERVER_CACHE_TTL_MS });
-
-  // Evict oldest entries if over capacity
-  if (serverCache.size > SERVER_CACHE_MAX_SIZE) {
-    const firstKey = serverCache.keys().next().value;
-    if (firstKey !== undefined) {
-      serverCache.delete(firstKey);
-    }
-  }
-
-  return server;
-};
-
 const app = new Hono<{
   Variables: {
     toolId: string;
@@ -1144,20 +1114,22 @@ app.post('/', async (c) => {
   const toolId = c.get('toolId');
   const body = await c.req.json();
 
-  const server = await getCachedServer(toolId);
+  const server = await getServer(toolId);
 
-  // Create fresh transport and server for this request
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
 
-  server.connect(transport);
+  await server.connect(transport);
 
   const { req, res } = toReqRes(c.req.raw);
 
-  await transport.handleRequest(req, res, body);
-
-  return toFetchResponse(res);
+  try {
+    await transport.handleRequest(req, res, body);
+    return toFetchResponse(res);
+  } finally {
+    await server.close();
+  }
 });
 
 app.delete('/', async (c) => {

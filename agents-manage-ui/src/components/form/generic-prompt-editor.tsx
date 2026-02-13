@@ -47,10 +47,10 @@ export function GenericPromptEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex">
+              <FormLabel isRequired={isRequired} className="inline-flex grow">
                 {label}
               </FormLabel>
-              <AddVariableAction uri={uri} className="ml-auto" />
+              {uri.endsWith('.template') && <AddVariableAction uri={uri} />}
               {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>

@@ -17,8 +17,12 @@ interface DefaultAgentConfig {
 }
 
 export const slackApi = {
-  getInstallUrl(): string {
-    return `${getApiUrl()}/work-apps/slack/install`;
+  getInstallUrl(tenantId?: string): string {
+    const url = `${getApiUrl()}/work-apps/slack/install`;
+    if (tenantId) {
+      return `${url}?tenant_id=${encodeURIComponent(tenantId)}`;
+    }
+    return url;
   },
 
   async listWorkspaceInstallations(): Promise<{
@@ -95,6 +99,7 @@ export const slackApi = {
     const response = await fetch(`${getApiUrl()}/work-apps/slack/users/link/verify-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(params),
     });
     const data = await response.json();
@@ -320,13 +325,12 @@ export const slackApi = {
       return 'No linked users to export';
     }
 
-    const headers = ['Slack Username', 'Slack Email', 'Slack User ID', 'Linked At', 'Last Used'];
+    const headers = ['Slack Username', 'Slack Email', 'Slack User ID', 'Linked At'];
     const rows = users.map((user) => [
       user.slackUsername || '',
       user.slackEmail || '',
       user.slackUserId,
       new Date(user.linkedAt).toISOString(),
-      user.lastUsedAt ? new Date(user.lastUsedAt).toISOString() : '',
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');

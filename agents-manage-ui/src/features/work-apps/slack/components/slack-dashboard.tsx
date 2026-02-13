@@ -1,13 +1,14 @@
 'use client';
 
-import { ArrowLeft, HelpCircle, MessageSquare, Shield, User } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { MessageSquare } from 'lucide-react';
 import { useEffect } from 'react';
+import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useSlack } from '../context/slack-provider';
 import { AgentConfigurationCard } from './agent-configuration-card';
@@ -17,7 +18,6 @@ import { NotificationBanner } from './notification-banner';
 import { WorkspaceHero } from './workspace-hero';
 
 export function SlackDashboard() {
-  const { tenantId } = useParams<{ tenantId: string }>();
   const { user, installedWorkspaces, actions } = useSlack();
   const { handleInstallClick, setNotification } = actions;
   const { isAdmin, isLoading: isLoadingRole } = useIsOrgAdmin();
@@ -77,62 +77,17 @@ export function SlackDashboard() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="-ml-2">
-            <Link href={`/${tenantId}/work-apps`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Work Apps
-            </Link>
-          </Button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <a
-                  href="https://docs.inkeep.com/talk-to-your-agents/slack/overview"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="View Slack integration documentation"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </a>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>View documentation</TooltipContent>
-          </Tooltip>
-        </div>
-
+      <div className="space-y-6 h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold flex items-center gap-2">
-                <MessageSquare className="h-6 w-6" />
-                Slack Integration
-              </h1>
+        <PageHeader
+          title={
+            <div className="flex items-center gap-2">
+              Slack Integration
               {!isLoadingRole && (
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Badge
-                      variant="outline"
-                      className={
-                        isAdmin
-                          ? 'border-primary/50 text-primary bg-primary/5'
-                          : 'border-muted-foreground/30'
-                      }
-                    >
-                      {isAdmin ? (
-                        <>
-                          <Shield className="h-3 w-3 mr-1" />
-                          Admin
-                        </>
-                      ) : (
-                        <>
-                          <User className="h-3 w-3 mr-1" />
-                          Member
-                        </>
-                      )}
+                  <TooltipTrigger asChild>
+                    <Badge variant={isAdmin ? 'primary' : 'code'} className="uppercase">
+                      {isAdmin ? 'Admin' : 'Member'}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -143,19 +98,27 @@ export function SlackDashboard() {
                 </Tooltip>
               )}
             </div>
-            <p className="text-muted-foreground mt-1">
+          }
+          description={
+            <>
               {isAdmin
-                ? 'Manage workspace settings, channel configurations, and linked users'
-                : 'Configure AI agents for your Slack channels'}
-            </p>
-          </div>
-          {hasWorkspace && isAdmin && (
-            <Button className="gap-2" onClick={handleInstallClick}>
-              <MessageSquare className="h-4 w-4" />
-              Add Workspace
-            </Button>
-          )}
-        </div>
+                ? 'Manage workspace settings, channel configurations, and linked users.'
+                : 'Configure AI agents for your Slack channels.'}
+              <ExternalLink href={`${DOCS_BASE_URL}/talk-to-your-agents/slack/overview`}>
+                Learn more
+              </ExternalLink>
+            </>
+          }
+          action={
+            hasWorkspace &&
+            isAdmin && (
+              <Button className="gap-2" onClick={handleInstallClick}>
+                <MessageSquare className="h-4 w-4" />
+                Add Workspace
+              </Button>
+            )
+          }
+        />
 
         <NotificationBanner />
 

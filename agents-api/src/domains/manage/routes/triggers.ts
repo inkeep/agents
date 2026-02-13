@@ -3,6 +3,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   createTrigger,
+  DateTimeFilterQueryParamsSchema,
   deleteTrigger,
   errorSchemaFactory,
   generateId,
@@ -538,17 +539,13 @@ app.openapi(
  */
 
 // Query params for invocation filtering (extends base pagination with status/date filters)
-const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: TriggerInvocationStatusEnum.optional().openapi({
-    description: 'Filter by invocation status',
-  }),
-  from: z.string().datetime().optional().openapi({
-    description: 'Start date for filtering (ISO8601)',
-  }),
-  to: z.string().datetime().optional().openapi({
-    description: 'End date for filtering (ISO8601)',
-  }),
-}).openapi('TriggerInvocationQueryParams');
+const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.merge(
+  DateTimeFilterQueryParamsSchema
+)
+  .extend({
+    status: TriggerInvocationStatusEnum.optional().describe('Filter by invocation status'),
+  })
+  .openapi('TriggerInvocationQueryParams');
 
 /**
  * List Trigger Invocations
@@ -578,7 +575,6 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
@@ -598,7 +594,6 @@ app.openapi(
       },
     });
 
-    // Remove sensitive scope fields from invocations
     const dataWithoutScopes = result.data.map((invocation) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
@@ -640,7 +635,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
     logger.debug(
