@@ -1,24 +1,12 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import type { FC } from 'react';
 import { HeaderMenus } from '@/components/layout/header-menus';
 import { SentryScopeProvider } from '@/components/sentry-scope-provider';
 import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { BETTER_AUTH_SESSION_TOKEN_COOKIE } from '@/lib/auth/constants';
 import { cn } from '@/lib/utils';
 
-export default async function Layout({ children, breadcrumbs }: LayoutProps<'/[tenantId]'>) {
-  // Server-side auth gate: redirect to login if no session cookie is present.
-  // This protects all routes under /[tenantId]/* (work-apps, stats, settings, etc.)
-  // from being rendered without authentication.
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(BETTER_AUTH_SESSION_TOKEN_COOKIE);
-
-  if (!sessionToken?.value) {
-    redirect('/login');
-  }
-
+const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
   return (
     <AppSidebarProvider>
       <SentryScopeProvider>
@@ -55,4 +43,6 @@ export default async function Layout({ children, breadcrumbs }: LayoutProps<'/[t
       </SentryScopeProvider>
     </AppSidebarProvider>
   );
-}
+};
+
+export default Layout;
