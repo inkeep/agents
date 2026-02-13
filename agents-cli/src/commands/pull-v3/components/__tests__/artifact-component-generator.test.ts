@@ -369,7 +369,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should prefer props over schema when both exist', () => {
+    it.only('should prefer props over schema when both exist', async () => {
       const dataWithBoth = {
         name: 'Test',
         description: 'Component with both props and schema',
@@ -393,10 +393,23 @@ describe('Artifact Component Generator', () => {
         },
       };
 
-      const definition = generateArtifactComponentDefinition('test', dataWithBoth);
+      const artifactComponentId = 'test';
+      const definition = generateArtifactComponentDefinition(artifactComponentId, dataWithBoth);
 
       expect(definition).toContain('prop: preview(');
       expect(definition).not.toContain('schema:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...dataWithBoth,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should handle mixed preview and non-preview fields', () => {
