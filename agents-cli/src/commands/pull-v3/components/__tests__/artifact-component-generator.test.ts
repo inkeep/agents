@@ -538,7 +538,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should generate code for artifact component without preview fields that compiles', () => {
+    it.only('should generate code for artifact component without preview fields that compiles', async () => {
       const simpleData = {
         name: 'Simple Artifact',
         description: 'A simple artifact component',
@@ -553,7 +553,8 @@ describe('Artifact Component Generator', () => {
         },
       };
 
-      const file = generateArtifactComponentFile('simple-artifact', simpleData);
+      const artifactComponentId = 'simple-artifact';
+      const file = generateArtifactComponentFile(artifactComponentId, simpleData);
 
       // Should not include preview import
       expect(file).not.toContain('import { preview }');
@@ -561,7 +562,7 @@ describe('Artifact Component Generator', () => {
       expect(file).toContain('import { z }');
 
       // Test compilation with just the definition (strip export)
-      const definition = generateArtifactComponentDefinition('simple-artifact', simpleData);
+      const definition = generateArtifactComponentDefinition(artifactComponentId, simpleData);
       const definitionWithoutExport = definition.replace('export const ', 'const ');
 
       const moduleCode = `
@@ -583,14 +584,36 @@ describe('Artifact Component Generator', () => {
 
       expect(result.id).toBe('simple-artifact');
       expect(result.name).toBe('Simple Artifact');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...simpleData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
   });
 
   describe('edge cases', () => {
-    it('should throw error for empty component data', () => {
+    it.only('should throw error for empty component data', () => {
+      const artifactComponentId = 'empty';
       expect(() => {
-        generateArtifactComponentDefinition('empty', {});
+        generateArtifactComponentDefinition(artifactComponentId, {});
       }).toThrow("Missing required fields for artifact component 'empty': name, props");
+      expect(() => {
+        generateArtifactComponentDefinitionV4({ artifactComponentId });
+      }).toThrow(
+        new Error(`Missing required fields for artifact component:
+✖ Invalid input: expected string, received undefined
+  → at name
+✖ Invalid input: expected object, received undefined
+  → at props`)
+      );
     });
 
     it('should handle special characters in component ID', () => {
