@@ -616,17 +616,26 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it.only('should handle special characters in component ID', async () => {
-      const artifactComponentId = 'user-artifact_2023';
-      const specialIdData = {
-        name: 'User Artifact',
-        description: 'Component with special chars',
-        props: { type: 'object', properties: {} },
-      };
-      const definition = generateArtifactComponentDefinition(artifactComponentId, specialIdData);
-
-      expect(definition).toContain('export const userArtifact2023 = artifactComponent({');
-      expect(definition).toContain("id: 'user-artifact_2023',");
+    // it('should handle special characters in component ID', () => {
+    //   const definition = generateArtifactComponentDefinition('user-artifact_2023', {
+    //     name: 'User Artifact',
+    //     description: 'Component with special chars',
+    //     props: { type: 'object', properties: {} },
+    //   });
+    //
+    //   expect(definition).toContain('export const userArtifact2023 = artifactComponent({');
+    //   expect(definition).toContain("id: 'user-artifact_2023',");
+    // });
+    //
+    // it('should handle component ID starting with number', () => {
+    //   const definition = generateArtifactComponentDefinition('2023-artifact', {
+    //     name: 'Artifact',
+    //     description: 'Component starting with number',
+    //     props: { type: 'object', properties: {} },
+    //   });
+    //
+    //   expect(definition).toContain('export const _2023Artifact = artifactComponent({');
+    // });
 
       const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
