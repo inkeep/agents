@@ -20,9 +20,6 @@ interface EntityData {
 interface ToolApprovalProps {
   tool: ToolUIPart;
   approve: (approved?: boolean) => Promise<void>;
-  copilotAgentId?: string;
-  copilotProjectId?: string;
-  copilotTenantId?: string;
   apiUrl?: string;
   cookieHeader?: string;
   copilotToken?: string;
