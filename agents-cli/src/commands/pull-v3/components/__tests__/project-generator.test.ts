@@ -534,7 +534,8 @@ describe('Project Generator', () => {
       }).toThrow("Missing required fields for project 'empty-strings-project': name");
     });
 
-    it('should throw error for null models values', () => {
+    it.only('should throw error for null models values', () => {
+      const projectId = 'null-values-project';
       const nullData = {
         name: 'Test Project',
         description: null,
@@ -543,9 +544,18 @@ describe('Project Generator', () => {
         tools: undefined,
       };
 
-      expect(() => {
-        generateProjectDefinition('null-values-project', nullData);
-      }).toThrow("Missing required fields for project 'null-values-project': models, models.base");
+      expect(() => generateProjectDefinition(projectId, nullData)).toThrow(
+        `Missing required fields for project '${projectId}': models, models.base`
+      );
+      expect(() => generateProjectDefinitionV4({ projectId, ...nullData })).toThrow(
+        new Error(`Missing required fields for project:
+✖ Invalid input: expected string, received null
+  → at description
+✖ Invalid input: expected object, received undefined
+  → at models
+✖ Invalid input: expected array, received null
+  → at agents`)
+      );
     });
 
     // it('should handle large number of agents with proper formatting', () => {
