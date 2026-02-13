@@ -69,7 +69,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHre
         <Button {...commonProps} asChild>
           <Link href={tracesHref}>
             <Activity className="size-4 text-muted-foreground" />
-            View Traces
+            Traces
           </Link>
         </Button>
       )}
