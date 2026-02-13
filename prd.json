@@ -1,0 +1,92 @@
+{
+  "name": "Dev Auto-Login for Manage UI",
+  "description": "Eliminate manual login in local development by adding a dev-only API endpoint and a UI provider that auto-authenticates using existing admin credentials. See specs/dev-auto-login.md for the full spec.",
+  "branch": "ralph/dev-auto-login",
+  "stories": [
+    {
+      "id": "DAL-1",
+      "title": "Add POST /api/auth/dev-session endpoint",
+      "description": "Add a dev-only endpoint in createApp.ts that reads INKEEP_AGENTS_MANAGE_UI_USERNAME and INKEEP_AGENTS_MANAGE_UI_PASSWORD from env, constructs a synthetic sign-in request, and delegates to auth.handler() to produce a real Set-Cookie response. The route MUST be registered AFTER the CORS middleware for /api/auth/* but BEFORE the catch-all app.on(['POST', 'GET'], '/api/auth/*', ...) handler. The route must be guarded by `if (auth && env.ENVIRONMENT === 'development')` so it doesn't exist in production. If credentials are missing, return 400 with message 'Dev credentials not configured. Run pnpm db:auth:init first.' See specs/dev-auto-login.md Section 4.1 for the exact code.",
+      "priority": 1,
+      "passes": false,
+      "acceptance_criteria": [
+        "POST /api/auth/dev-session route exists in createApp.ts inside `if (auth && env.ENVIRONMENT === 'development')` block",
+        "Route is registered BEFORE the catch-all `app.on(['POST', 'GET'], '/api/auth/*', ...)` handler",
+        "Route reads env.INKEEP_AGENTS_MANAGE_UI_USERNAME and env.INKEEP_AGENTS_MANAGE_UI_PASSWORD",
+        "Route constructs a synthetic Request to /api/auth/sign-in/email and passes it to auth.handler()",
+        "Returns 400 with error message when credentials are not configured",
+        "Typecheck passes"
+      ],
+      "notes": "The synthetic request must include Content-Type: application/json and Origin header. No Cookie header (CSRF is skipped for cookieless requests). See spec Section 6.2-6.3 for why auth.handler() is used instead of auth.api."
+    },
+    {
+      "id": "DAL-2",
+      "title": "Create DevAutoLoginProvider component",
+      "description": "Create a new file agents-manage-ui/src/components/providers/dev-auto-login-provider.tsx. This React provider gates children rendering in dev mode until auto-login resolves. It uses useAuthSession() to check if already authenticated, and if not, fetches POST /api/auth/dev-session with credentials: 'include'. On success, calls window.location.reload(). On failure, sets ready=true and falls through to normal login. In production (NODE_ENV !== 'development'), it's a no-op — children render immediately. See specs/dev-auto-login.md Section 4.2 for the exact code.",
+      "priority": 2,
+      "passes": false,
+      "acceptance_criteria": [
+        "New file exists at agents-manage-ui/src/components/providers/dev-auto-login-provider.tsx",
+        "Component exports DevAutoLoginProvider that accepts { children: React.ReactNode }",
+        "In production (NODE_ENV !== 'development'), children render immediately with no gate",
+        "In dev mode, children are gated behind a ready state (initially false)",
+        "Uses useAuthSession() from @/hooks/use-auth and useRuntimeConfig() from @/contexts/runtime-config",
+        "Fetches POST {PUBLIC_INKEEP_AGENTS_API_URL}/api/auth/dev-session with credentials: 'include'",
+        "On success: calls window.location.reload()",
+        "On failure or network error: sets ready=true, logs console.warn with actionable message",
+        "Uses attemptedRef to prevent double attempts",
+        "Shows a centered Loader2 spinner while waiting",
+        "Typecheck passes"
+      ],
+      "notes": "The rendering gate is critical — without it, child useEffects (like page.tsx redirect to /login) fire before the auto-login fetch. React fires child effects before parent effects (depth-first). See spec Section 6.5."
+    },
+    {
+      "id": "DAL-3",
+      "title": "Mount DevAutoLoginProvider in layout.tsx",
+      "description": "In agents-manage-ui/src/app/layout.tsx, wrap {children} and <Toaster /> with <DevAutoLoginProvider> inside <AuthClientProvider>. The provider needs both AuthClientProvider (for useAuthSession) and RuntimeConfigProvider (for useRuntimeConfig) as ancestors. See specs/dev-auto-login.md Section 4.3 for the exact diff.",
+      "priority": 3,
+      "passes": false,
+      "acceptance_criteria": [
+        "DevAutoLoginProvider wraps {children} and Toaster inside AuthClientProvider in layout.tsx",
+        "DevAutoLoginProvider is imported from @/components/providers/dev-auto-login-provider",
+        "Provider hierarchy is: RuntimeConfigProvider > ... > AuthClientProvider > DevAutoLoginProvider > {children}",
+        "Typecheck passes"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "DAL-4",
+      "title": "Add automated tests for dev-session endpoint",
+      "description": "Add tests for the dev-session endpoint. Test 3 cases: (1) returns 200 with Set-Cookie when ENVIRONMENT=development and credentials are configured, (2) returns 400 when credentials are not configured, (3) endpoint is not registered (404 or caught by catch-all) when ENVIRONMENT is not development. Follow existing test patterns in agents-api/src/__tests__/. See specs/dev-auto-login.md Section 11.2.",
+      "priority": 4,
+      "passes": false,
+      "acceptance_criteria": [
+        "Test file exists in agents-api for the dev-session endpoint",
+        "Test verifies 200 response with Set-Cookie when ENVIRONMENT=development and credentials configured",
+        "Test verifies 400 response when credentials are not configured",
+        "Test verifies endpoint does not exist when ENVIRONMENT !== development",
+        "All tests pass",
+        "Typecheck passes"
+      ],
+      "notes": "Follow existing test patterns. Check agents-api/src/__tests__/ for conventions. Tests use vitest with embedded pglite database."
+    },
+    {
+      "id": "DAL-5",
+      "title": "Update documentation and supplemental files",
+      "description": "Make surgical doc edits per specs/dev-auto-login.md Section 4.5. (1) authentication.mdx Step 4: note auto-login in dev, manual sign-in in production. (2) docker-local.mdx L99: append auto-login note. (3) contributing/overview.mdx Step 4: add 'signed in automatically'. (4) troubleshooting.mdx: add 'Authentication Issues (Local Development)' section after the service logs section with 3 bullet causes (init not run, API not running, credentials missing). (5) .env.example L67-69: add 2 comment lines explaining what auth vars do and noting auto-login. (6) .env.docker.example L26-28: clarify comment about creating admin user. (7) packages/create-agents/README.md L57: append 'You'll be signed in automatically.'",
+      "priority": 5,
+      "passes": false,
+      "acceptance_criteria": [
+        "authentication.mdx Step 4 mentions auto-login in dev and manual sign-in in production",
+        "docker-local.mdx mentions automatic sign-in after opening localhost:3000",
+        "contributing/overview.mdx Step 4 mentions automatic sign-in",
+        "troubleshooting.mdx has new 'Authentication Issues (Local Development)' section with 3 causes and fixes",
+        ".env.example auth section has comments explaining auto-login behavior",
+        ".env.docker.example comment clarifies credentials create the admin user",
+        "packages/create-agents/README.md mentions automatic sign-in",
+        "Typecheck passes"
+      ],
+      "notes": "Each edit is 1-3 sentences. Go for clarity and semantic utility, not verbosity. See spec Section 4.5 for the exact list of files and changes."
+    }
+  ]
+}
