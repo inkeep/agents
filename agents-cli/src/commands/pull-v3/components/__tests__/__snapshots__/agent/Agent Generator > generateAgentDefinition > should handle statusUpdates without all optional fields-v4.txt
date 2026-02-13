@@ -1,0 +1,12 @@
+import { agent } from '@inkeep/agents-sdk';
+
+export const partialStatusAgent = agent({
+  id: 'partial-status-agent',
+  name: 'Partial Status Agent',
+  defaultSubAgent: defaultSubAgent,
+  subAgents: () => [subAgent1],
+  statusUpdates: {
+    numEvents: 5,
+    statusComponents: [summary.config]
+  }
+});
