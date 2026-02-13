@@ -187,9 +187,10 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should generate trigger with Slack signature verification', () => {
+    it.only('should generate trigger with Slack signature verification', async () => {
+      const triggerId = 'slack-webhook';
       const definition = generateTriggerDefinition(
-        'slack-webhook',
+        triggerId,
         triggerWithSlackSignature,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
@@ -208,6 +209,11 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('allowEmptyBody: false,');
       expect(definition).toContain('normalizeUnicode: false');
       expect(definition).toContain('signingSecretCredentialReference: slackSigningSecret');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerWithSlackSignature });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should generate trigger with multiple algorithms', () => {
