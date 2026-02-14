@@ -12,6 +12,7 @@ import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
+  flushTraces,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../db/runDbClient';
@@ -209,14 +210,16 @@ app.post('/events', async (c) => {
             threadTs: event.thread_ts || event.ts || '',
             messageTs: event.ts || '',
             teamId,
-          }).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            const errorStack = err instanceof Error ? err.stack : undefined;
-            logger.error(
-              { errorMessage, errorStack },
-              'Failed to handle app mention (outer catch)'
-            );
-          });
+          })
+            .catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              const errorStack = err instanceof Error ? err.stack : undefined;
+              logger.error(
+                { errorMessage, errorStack },
+                'Failed to handle app mention (outer catch)'
+              );
+            })
+            .finally(() => flushTraces());
         } else {
           outcome = 'ignored_unknown_event';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -258,21 +261,26 @@ app.post('/events', async (c) => {
                 actionValue: action.value,
                 teamId,
                 responseUrl: responseUrl || '',
-              }).catch(async (err: unknown) => {
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                logger.error(
-                  { errorMessage, actionId: action.action_id },
-                  'Failed to open agent selector modal'
-                );
-                if (responseUrl) {
-                  await sendResponseUrlMessage(responseUrl, {
-                    text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
-                    response_type: 'ephemeral',
-                  }).catch((e) =>
-                    logger.warn({ error: e }, 'Failed to send error notification via response URL')
+              })
+                .catch(async (err: unknown) => {
+                  const errorMessage = err instanceof Error ? err.message : String(err);
+                  logger.error(
+                    { errorMessage, actionId: action.action_id },
+                    'Failed to open agent selector modal'
                   );
-                }
-              });
+                  if (responseUrl) {
+                    await sendResponseUrlMessage(responseUrl, {
+                      text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
+                      response_type: 'ephemeral',
+                    }).catch((e) =>
+                      logger.warn(
+                        { error: e },
+                        'Failed to send error notification via response URL'
+                      )
+                    );
+                  }
+                })
+                .finally(() => flushTraces());
             }
 
             if (action.action_id === 'modal_project_select') {
@@ -354,6 +362,8 @@ app.post('/events', async (c) => {
                       { err, selectedProjectId },
                       'Failed to update modal on project change'
                     );
+                  } finally {
+                    await flushTraces();
                   }
                 })();
               }
@@ -370,13 +380,15 @@ app.post('/events', async (c) => {
                 actionValue: action.value,
                 teamId,
                 responseUrl: responseUrl || undefined,
-              }).catch((err: unknown) => {
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                logger.error(
-                  { errorMessage, actionId: action.action_id },
-                  'Failed to open follow-up modal'
-                );
-              });
+              })
+                .catch((err: unknown) => {
+                  const errorMessage = err instanceof Error ? err.message : String(err);
+                  logger.error(
+                    { errorMessage, actionId: action.action_id },
+                    'Failed to open follow-up modal'
+                  );
+                })
+                .finally(() => flushTraces());
             }
           }
 
@@ -435,10 +447,12 @@ app.post('/events', async (c) => {
               messageText: message.text || '',
               threadTs: message.thread_ts,
               responseUrl,
-            }).catch((err: unknown) => {
-              const errorMessage = err instanceof Error ? err.message : String(err);
-              logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
-            });
+            })
+              .catch((err: unknown) => {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
+              })
+              .finally(() => flushTraces());
           } else {
             outcome = 'ignored_unknown_event';
             span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -491,10 +505,12 @@ app.post('/events', async (c) => {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
           logger.info({ callbackId }, 'Handling view_submission: agent_selector_modal');
 
-          handleModalSubmission(view).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
-          });
+          handleModalSubmission(view)
+            .catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
+            })
+            .finally(() => flushTraces());
 
           span.end();
           return new Response(null, { status: 200 });
@@ -510,10 +526,12 @@ app.post('/events', async (c) => {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
           logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
 
-          handleFollowUpSubmission(view).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
-          });
+          handleFollowUpSubmission(view)
+            .catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
+            })
+            .finally(() => flushTraces());
 
           span.end();
           return new Response(null, { status: 200 });
