@@ -54,7 +54,7 @@ Make sure your DATABASE_URL environment variable is configured for your cloud da
 pnpm dev
 ```
 
-The Visual Builder will auto-open at http://localhost:3000.
+The Visual Builder will auto-open at http://localhost:3000. You'll be signed in automatically.
 
 ### Step 4: Chat with your agent
 
