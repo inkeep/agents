@@ -235,9 +235,11 @@ docker compose up -d       # Start detached
 docker attach claude-sandbox  # Then attach
 ```
 
-## Ralph Loop (Autonomous Agent)
+## Ralph Loop (Legacy — Superseded)
 
-Ralph is an autonomous loop that runs Claude iteratively until a PRD is complete.
+> **Note:** The standalone ralph loop below has been superseded by the `/ralph`, `/prd`, and `/feature-dev` skills in `inkeep/team-skills`. Those skills provide a more capable workflow with spec-driven PRDs, iterative implementation with review, multi-tier testing, and PR review iteration. The scripts below are preserved for reference but should not be used for new work.
+
+Ralph was an autonomous loop that ran Claude iteratively until a PRD was complete.
 
 ### How It Works
 
