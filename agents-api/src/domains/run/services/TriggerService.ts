@@ -46,7 +46,6 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { tracer } from '../utils/tracer';
 
-
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
 

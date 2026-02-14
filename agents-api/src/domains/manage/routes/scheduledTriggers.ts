@@ -49,7 +49,6 @@ import {
 } from '../../run/services/ScheduledTriggerService';
 import { executeAgentAsync } from '../../run/services/TriggerService';
 
-
 const logger = getLogger('scheduled-triggers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
