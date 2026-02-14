@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { slackApi } from './slack-api';
 
-export const slackQueryKeys = {
+const slackQueryKeys = {
   all: ['slack'] as const,
   workspaces: () => [...slackQueryKeys.all, 'workspaces'] as const,
   linkedUsers: (teamId: string) => [...slackQueryKeys.all, 'linked-users', teamId] as const,
