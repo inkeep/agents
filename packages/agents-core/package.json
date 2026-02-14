@@ -98,7 +98,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "knip": "knip --directory ../.. --workspace packages/agents-core --dependencies",
+    "knip": "knip --directory ../.. --workspace packages/agents-core --config packages/agents-core/knip.config.ts --dependencies",
     "build": "tsdown",
     "dev": "pnpm build --watch",
     "test": "vitest --run",

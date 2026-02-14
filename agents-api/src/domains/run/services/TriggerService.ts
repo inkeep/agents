@@ -25,6 +25,7 @@ import {
   getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
+  getWaitUntil,
   interpolateTemplate,
   JsonTransformer,
   setActiveAgentForConversation,
@@ -44,22 +45,6 @@ import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { tracer } from '../utils/tracer';
-
-let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
-let _waitUntilResolved = false;
-
-async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | undefined> {
-  if (_waitUntilResolved) return _waitUntil;
-  _waitUntilResolved = true;
-  if (!process.env.VERCEL) return undefined;
-  try {
-    const mod = await import('@vercel/functions');
-    _waitUntil = mod.waitUntil;
-  } catch (e) {
-    console.error('[TriggerService] Failed to import @vercel/functions:', e);
-  }
-  return _waitUntil;
-}
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
