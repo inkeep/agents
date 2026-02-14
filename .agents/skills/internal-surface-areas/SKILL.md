@@ -207,7 +207,7 @@ Developer/operator goal: guide AI coding agents and automate AI-assisted workflo
 | **PR review orchestrator agent (`pr-review`)** | Multi-phase PR review coordinator that dispatches domain reviewers and aggregates findings. | Skills library (`.agents/skills`), Claude Code agents (`.claude/agents`) | `.claude/agents/pr-review.md`, `.claude/agents/` |
 | **AI artifact validation script** | Validates agent/skill YAML frontmatter for discovery and blocks invalid artifacts via pre-commit checks. | — | `scripts/validate-ai-artifacts.ts` |
 | **Cursor automation commands (`.cursor/commands`)** | Lightweight operational playbooks for common git/CI workflows (PR creation, rebase, flaky test fixes). | — | `.cursor/commands/`, `.cursor/worktrees.json` |
-| **Internal spec & AI-dev scaffolding** | Maintainer-only Docker sandbox and legacy automation scaffolding. The standalone ralph loop (`.ai-dev/ralph.sh`) and PRD template are **superseded** by the `/ralph`, `/prd`, and `/feature-dev` skills in `inkeep/team-skills`. The Docker sandbox (proxy, container) remains useful for network-isolated AI development. | — | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile.claude`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/squid.conf` |
+| **Internal AI-dev Docker sandbox** | Maintainer-only Docker sandbox for network-isolated AI development (proxy, container). PRD authoring and autonomous implementation use the `/spec`, `/ralph`, and `/feature-dev` skills in `inkeep/team-skills`. | — | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile.claude`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/squid.conf` |
 
 ### Package Publishing & Versioning
 Developer/operator goal: version packages consistently and publish safely to npm and internal registries.
