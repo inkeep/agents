@@ -62,11 +62,7 @@ export function DeleteEvaluatorConfirmation({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="bg-white text-gray-900 border border-gray-300 hover:bg-gray-100"
-          >
+          <AlertDialogAction onClick={handleDelete} disabled={isDeleting} variant="destructive">
             {isDeleting ? 'Deleting...' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
