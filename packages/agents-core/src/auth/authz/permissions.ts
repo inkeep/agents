@@ -5,6 +5,7 @@
  */
 
 import { checkPermission, lookupResources } from './client';
+import { fromSpiceDbProjectId, toSpiceDbProjectId } from './config';
 import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes } from './types';
 
 /**
@@ -16,6 +17,7 @@ import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes
  */
 export async function canViewProject(params: {
   userId: string;
+  tenantId: string;
   projectId: string;
   orgRole: OrgRole;
 }): Promise<boolean> {
@@ -29,7 +31,7 @@ export async function canViewProject(params: {
   // Check SpiceDB for non-admin users
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
     permission: SpiceDbProjectPermissions.VIEW,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
@@ -45,6 +47,7 @@ export async function canViewProject(params: {
  */
 export async function canUseProject(params: {
   userId: string;
+  tenantId: string;
   projectId: string;
   orgRole: OrgRole;
 }): Promise<boolean> {
@@ -58,7 +61,7 @@ export async function canUseProject(params: {
   // Check SpiceDB for non-admin users
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
     permission: SpiceDbProjectPermissions.USE,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
@@ -72,6 +75,7 @@ export async function canUseProject(params: {
  */
 export async function canUseProjectStrict(params: {
   userId: string;
+  tenantId: string;
   projectId: string;
 }): Promise<boolean> {
   // System users and API key users bypass project access checks
@@ -81,7 +85,7 @@ export async function canUseProjectStrict(params: {
   }
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
     permission: SpiceDbProjectPermissions.USE,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
@@ -97,6 +101,7 @@ export async function canUseProjectStrict(params: {
  */
 export async function canEditProject(params: {
   userId: string;
+  tenantId: string;
   projectId: string;
   orgRole: OrgRole;
 }): Promise<boolean> {
@@ -110,7 +115,7 @@ export async function canEditProject(params: {
   // Check SpiceDB for non-admin users
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
     permission: SpiceDbProjectPermissions.EDIT,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
@@ -126,6 +131,7 @@ export async function canEditProject(params: {
  */
 export async function listAccessibleProjectIds(params: {
   userId: string;
+  tenantId: string;
   orgRole: OrgRole;
 }): Promise<string[] | 'all'> {
   const isAdmin = params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN;
@@ -135,22 +141,45 @@ export async function listAccessibleProjectIds(params: {
   }
 
   // Use SpiceDB LookupResources for non-admin users
-  return lookupResources({
+  const compositeIds = await lookupResources({
     resourceType: SpiceDbResourceTypes.PROJECT,
     permission: SpiceDbProjectPermissions.VIEW,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
+  });
+
+  // Extract project IDs belonging to this tenant
+  return compositeIds.flatMap((id) => {
+    try {
+      const parsed = fromSpiceDbProjectId(id);
+      return parsed.tenantId === params.tenantId ? [parsed.projectId] : [];
+    } catch {
+      return [];
+    }
   });
 }
 
 /**
  * Get list of usable project IDs for a user - always checks SpiceDB.
  */
-export async function listUsableProjectIds(params: { userId: string }): Promise<string[]> {
-  return lookupResources({
+export async function listUsableProjectIds(params: {
+  userId: string;
+  tenantId: string;
+}): Promise<string[]> {
+  const compositeIds = await lookupResources({
     resourceType: SpiceDbResourceTypes.PROJECT,
     permission: SpiceDbProjectPermissions.USE,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
+  });
+
+  // Extract project IDs belonging to this tenant
+  return compositeIds.flatMap((id) => {
+    try {
+      const parsed = fromSpiceDbProjectId(id);
+      return parsed.tenantId === params.tenantId ? [parsed.projectId] : [];
+    } catch {
+      return [];
+    }
   });
 }

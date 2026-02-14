@@ -77,6 +77,7 @@
     "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
+    "spicedb:migrate-ids": "pnpm --filter @inkeep/agents-core spicedb:migrate-ids",
     "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
     "check:env-descriptions": "node scripts/check-env-descriptions.mjs"
   },

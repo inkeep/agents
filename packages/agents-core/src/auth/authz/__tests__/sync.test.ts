@@ -98,16 +98,16 @@ describe('authz/sync', () => {
       expect(mockSpiceClient.promises.writeRelationships).toHaveBeenCalledWith({
         updates: expect.arrayContaining([
           expect.objectContaining({
-            operation: 1, // CREATE
+            operation: 2, // TOUCH (idempotent upsert)
             relationship: expect.objectContaining({
-              resource: { objectType: 'project', objectId: 'project-1' },
+              resource: { objectType: 'project', objectId: 'tenant-1/project-1' },
               relation: 'organization',
             }),
           }),
           expect.objectContaining({
-            operation: 1, // CREATE
+            operation: 2, // TOUCH (idempotent upsert)
             relationship: expect.objectContaining({
-              resource: { objectType: 'project', objectId: 'project-1' },
+              resource: { objectType: 'project', objectId: 'tenant-1/project-1' },
               relation: 'project_admin',
             }),
           }),
@@ -129,7 +129,7 @@ describe('authz/sync', () => {
 
       expect(mockWriteRelationship).toHaveBeenCalledWith({
         resourceType: 'project',
-        resourceId: 'project-1',
+        resourceId: 'test-tenant/project-1',
         relation: 'project_member',
         subjectType: 'user',
         subjectId: 'user-1',
@@ -148,7 +148,7 @@ describe('authz/sync', () => {
 
       expect(mockDeleteRelationship).toHaveBeenCalledWith({
         resourceType: 'project',
-        resourceId: 'project-1',
+        resourceId: 'test-tenant/project-1',
         relation: 'project_admin',
         subjectType: 'user',
         subjectId: 'user-1',
@@ -195,7 +195,7 @@ describe('authz/sync', () => {
       expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith({
         relationshipFilter: {
           resourceType: 'project',
-          optionalResourceId: 'project-1',
+          optionalResourceId: 'test-tenant/project-1',
           optionalResourceIdPrefix: '',
           optionalRelation: '',
         },

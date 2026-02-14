@@ -89,6 +89,7 @@ app.openapi(
     // This allows project_admin and project_member roles, but not project_viewer
     const canUse = await canUseProject({
       userId,
+      tenantId,
       projectId,
       orgRole: tenantRole,
     });

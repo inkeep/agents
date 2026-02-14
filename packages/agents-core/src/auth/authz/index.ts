@@ -15,8 +15,14 @@ export {
   resetSpiceClient,
   writeRelationship,
 } from './client';
+
 // Configuration
-export { getSpiceDbConfig } from './config';
+export {
+  fromSpiceDbProjectId,
+  getSpiceDbConfig,
+  toSpiceDbProjectId,
+} from './config';
+
 // Permission checks
 export {
   canEditProject,

@@ -30,6 +30,7 @@ describe('authz/permissions', () => {
     it('should return true for org owner without checking SpiceDB', async () => {
       const result = await canViewProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'owner',
       });
@@ -41,6 +42,7 @@ describe('authz/permissions', () => {
     it('should return true for org admin without checking SpiceDB', async () => {
       const result = await canViewProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'admin',
       });
@@ -54,6 +56,7 @@ describe('authz/permissions', () => {
 
       const result = await canViewProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'member',
       });
@@ -61,7 +64,7 @@ describe('authz/permissions', () => {
       expect(result).toBe(true);
       expect(mockCheckPermission).toHaveBeenCalledWith({
         resourceType: 'project',
-        resourceId: 'project-1',
+        resourceId: 'test-tenant/project-1',
         permission: 'view',
         subjectType: 'user',
         subjectId: 'user-1',
@@ -73,6 +76,7 @@ describe('authz/permissions', () => {
 
       const result = await canViewProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'member',
       });
@@ -85,6 +89,7 @@ describe('authz/permissions', () => {
     it('should return true for org owner without checking SpiceDB', async () => {
       const result = await canUseProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'owner',
       });
@@ -98,6 +103,7 @@ describe('authz/permissions', () => {
 
       const result = await canUseProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'member',
       });
@@ -105,7 +111,7 @@ describe('authz/permissions', () => {
       expect(result).toBe(true);
       expect(mockCheckPermission).toHaveBeenCalledWith({
         resourceType: 'project',
-        resourceId: 'project-1',
+        resourceId: 'test-tenant/project-1',
         permission: 'use',
         subjectType: 'user',
         subjectId: 'user-1',
@@ -117,6 +123,7 @@ describe('authz/permissions', () => {
 
       const result = await canUseProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'member',
       });
@@ -129,6 +136,7 @@ describe('authz/permissions', () => {
     it('should return true for org owner without checking SpiceDB', async () => {
       const result = await canEditProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'owner',
       });
@@ -140,6 +148,7 @@ describe('authz/permissions', () => {
     it('should return true for org admin without checking SpiceDB', async () => {
       const result = await canEditProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'admin',
       });
@@ -153,6 +162,7 @@ describe('authz/permissions', () => {
 
       const result = await canEditProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'member',
       });
@@ -160,7 +170,7 @@ describe('authz/permissions', () => {
       expect(result).toBe(true);
       expect(mockCheckPermission).toHaveBeenCalledWith({
         resourceType: 'project',
-        resourceId: 'project-1',
+        resourceId: 'test-tenant/project-1',
         permission: 'edit',
         subjectType: 'user',
         subjectId: 'user-1',
@@ -172,6 +182,7 @@ describe('authz/permissions', () => {
 
       const result = await canEditProject({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         orgRole: 'member',
       });
@@ -184,6 +195,7 @@ describe('authz/permissions', () => {
     it('should return "all" for org owner', async () => {
       const result = await listAccessibleProjectIds({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         orgRole: 'owner',
       });
 
@@ -194,6 +206,7 @@ describe('authz/permissions', () => {
     it('should return "all" for org admin', async () => {
       const result = await listAccessibleProjectIds({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         orgRole: 'admin',
       });
 
@@ -202,10 +215,11 @@ describe('authz/permissions', () => {
     });
 
     it('should use lookupResources for regular members', async () => {
-      mockLookupResources.mockResolvedValue(['project-1', 'project-2']);
+      mockLookupResources.mockResolvedValue(['test-tenant/project-1', 'test-tenant/project-2']);
 
       const result = await listAccessibleProjectIds({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         orgRole: 'member',
       });
 
@@ -218,11 +232,28 @@ describe('authz/permissions', () => {
       });
     });
 
+    it('should filter out projects from other tenants', async () => {
+      mockLookupResources.mockResolvedValue([
+        'test-tenant/project-1',
+        'other-tenant/project-2',
+        'test-tenant/project-3',
+      ]);
+
+      const result = await listAccessibleProjectIds({
+        userId: 'user-1',
+        tenantId: 'test-tenant',
+        orgRole: 'member',
+      });
+
+      expect(result).toEqual(['project-1', 'project-3']);
+    });
+
     it('should return empty array when user has no accessible projects', async () => {
       mockLookupResources.mockResolvedValue([]);
 
       const result = await listAccessibleProjectIds({
         userId: 'user-1',
+        tenantId: 'test-tenant',
         orgRole: 'member',
       });
 

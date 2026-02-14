@@ -105,6 +105,7 @@ describe('requireProjectPermission middleware', () => {
       expect(res.status).toBe(200);
       expect(canViewProject).toHaveBeenCalledWith({
         userId: 'test-user',
+        tenantId: 'test-tenant',
         projectId: 'test-project',
         orgRole: 'member',
       });

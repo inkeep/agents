@@ -62,6 +62,7 @@ export const requireProjectPermission = <
         case 'view':
           hasAccess = await canViewProject({
             userId,
+            tenantId,
             projectId,
             orgRole: tenantRole,
           });
@@ -69,6 +70,7 @@ export const requireProjectPermission = <
         case 'use':
           hasAccess = await canUseProject({
             userId,
+            tenantId,
             projectId,
             orgRole: tenantRole,
           });
@@ -76,6 +78,7 @@ export const requireProjectPermission = <
         case 'edit':
           hasAccess = await canEditProject({
             userId,
+            tenantId,
             projectId,
             orgRole: tenantRole,
           });

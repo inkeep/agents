@@ -11,6 +11,7 @@ import {
   readRelationships,
   writeRelationship,
 } from './client';
+import { fromSpiceDbProjectId, toSpiceDbProjectId } from './config';
 import { type OrgRole, type ProjectRole, SpiceDbRelations, SpiceDbResourceTypes } from './types';
 
 /**
@@ -131,14 +132,16 @@ export async function syncProjectToSpiceDb(params: {
     (r) => r.relation === SpiceDbRelations.ADMIN || r.relation === SpiceDbRelations.OWNER
   );
 
+  const spiceProjectId = toSpiceDbProjectId(params.tenantId, params.projectId);
+
   const updates: Parameters<typeof spice.promises.writeRelationships>[0]['updates'] = [
     // Link project to organization
     {
-      operation: RelationshipOperation.CREATE,
+      operation: RelationshipOperation.TOUCH,
       relationship: {
         resource: {
           objectType: SpiceDbResourceTypes.PROJECT,
-          objectId: params.projectId,
+          objectId: spiceProjectId,
         },
         relation: SpiceDbRelations.ORGANIZATION,
         subject: {
@@ -156,11 +159,11 @@ export async function syncProjectToSpiceDb(params: {
   // Only grant project_admin if user is NOT org admin/owner
   if (!isOrgAdminOrOwner) {
     updates.push({
-      operation: RelationshipOperation.CREATE,
+      operation: RelationshipOperation.TOUCH,
       relationship: {
         resource: {
           objectType: SpiceDbResourceTypes.PROJECT,
-          objectId: params.projectId,
+          objectId: spiceProjectId,
         },
         relation: SpiceDbRelations.PROJECT_ADMIN,
         subject: {
@@ -193,7 +196,7 @@ export async function grantProjectAccess(params: {
 }): Promise<void> {
   await writeRelationship({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
     relation: params.role,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
@@ -211,7 +214,7 @@ export async function revokeProjectAccess(params: {
 }): Promise<void> {
   await deleteRelationship({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
     relation: params.role,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
@@ -235,6 +238,7 @@ export async function changeProjectRole(params: {
   }
 
   const spice = getSpiceClient();
+  const spiceProjectId = toSpiceDbProjectId(params.tenantId, params.projectId);
 
   // Atomic batch: DELETE old role + TOUCH new role
   await spice.promises.writeRelationships({
@@ -245,7 +249,7 @@ export async function changeProjectRole(params: {
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.PROJECT,
-            objectId: params.projectId,
+            objectId: spiceProjectId,
           },
           relation: params.oldRole,
           subject: {
@@ -264,7 +268,7 @@ export async function changeProjectRole(params: {
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.PROJECT,
-            objectId: params.projectId,
+            objectId: spiceProjectId,
           },
           relation: params.newRole,
           subject: {
@@ -293,11 +297,11 @@ export async function removeProjectFromSpiceDb(params: {
 }): Promise<void> {
   const spice = getSpiceClient();
 
-  // Delete all relationships for this project
+  // Delete all relationships for this project (tenant-scoped ID prevents cross-tenant deletion)
   await spice.promises.deleteRelationships({
     relationshipFilter: {
       resourceType: SpiceDbResourceTypes.PROJECT,
-      optionalResourceId: params.projectId,
+      optionalResourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
       optionalResourceIdPrefix: '',
       optionalRelation: '',
     },
@@ -318,7 +322,7 @@ export async function listProjectMembers(params: {
 }): Promise<Array<{ userId: string; role: ProjectRole }>> {
   const relationships = await readRelationships({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    resourceId: params.projectId,
+    resourceId: toSpiceDbProjectId(params.tenantId, params.projectId),
   });
 
   // Filter to only user subjects with project roles
@@ -351,7 +355,7 @@ export async function listUserProjectMembershipsInSpiceDb(params: {
     subjectId: params.userId,
   });
 
-  // Filter to only project roles
+  // Filter to only project roles within this tenant
   return relationships
     .filter(
       (rel) =>
@@ -359,10 +363,15 @@ export async function listUserProjectMembershipsInSpiceDb(params: {
         rel.relation === SpiceDbRelations.PROJECT_MEMBER ||
         rel.relation === SpiceDbRelations.PROJECT_VIEWER
     )
-    .map((rel) => ({
-      projectId: rel.resourceId,
-      role: rel.relation as ProjectRole,
-    }));
+    .flatMap((rel) => {
+      try {
+        const parsed = fromSpiceDbProjectId(rel.resourceId);
+        if (parsed.tenantId !== params.tenantId) return [];
+        return [{ projectId: parsed.projectId, role: rel.relation as ProjectRole }];
+      } catch {
+        return [];
+      }
+    });
 }
 
 /**
@@ -377,14 +386,17 @@ export async function revokeAllProjectMemberships(params: {
 }): Promise<void> {
   const spice = getSpiceClient();
 
-  // Efficiently delete ALL project memberships for this user in parallel
+  // Efficiently delete project memberships for this user within this tenant.
+  // Use the tenant prefix to scope deletions — prevents cross-tenant side effects.
+  const tenantPrefix = `${params.tenantId}/`;
+
   // One call per project role type (project_admin, project_member, project_viewer)
   await Promise.all([
     spice.promises.deleteRelationships({
       relationshipFilter: {
         resourceType: SpiceDbResourceTypes.PROJECT,
         optionalResourceId: '',
-        optionalResourceIdPrefix: '',
+        optionalResourceIdPrefix: tenantPrefix,
         optionalRelation: SpiceDbRelations.PROJECT_ADMIN,
         optionalSubjectFilter: {
           subjectType: SpiceDbResourceTypes.USER,
@@ -401,7 +413,7 @@ export async function revokeAllProjectMemberships(params: {
       relationshipFilter: {
         resourceType: SpiceDbResourceTypes.PROJECT,
         optionalResourceId: '',
-        optionalResourceIdPrefix: '',
+        optionalResourceIdPrefix: tenantPrefix,
         optionalRelation: SpiceDbRelations.PROJECT_MEMBER,
         optionalSubjectFilter: {
           subjectType: SpiceDbResourceTypes.USER,
@@ -418,7 +430,7 @@ export async function revokeAllProjectMemberships(params: {
       relationshipFilter: {
         resourceType: SpiceDbResourceTypes.PROJECT,
         optionalResourceId: '',
-        optionalResourceIdPrefix: '',
+        optionalResourceIdPrefix: tenantPrefix,
         optionalRelation: SpiceDbRelations.PROJECT_VIEWER,
         optionalSubjectFilter: {
           subjectType: SpiceDbResourceTypes.USER,
