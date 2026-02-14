@@ -13,6 +13,7 @@ import {
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
   flushTraces,
+  getWaitUntil,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../db/runDbClient';
@@ -104,6 +105,8 @@ app.post('/events', async (c) => {
       return c.json({ ok: true });
     });
   }
+
+  const waitUntil = await getWaitUntil();
 
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.WEBHOOK, async (span) => {
     let outcome: SlackOutcome = 'ignored_unknown_event';
@@ -203,7 +206,7 @@ app.post('/events', async (c) => {
             'Handling event: app_mention'
           );
 
-          handleAppMention({
+          const mentionWork = handleAppMention({
             slackUserId: event.user,
             channel: event.channel,
             text: question,
@@ -220,6 +223,7 @@ app.post('/events', async (c) => {
               );
             })
             .finally(() => flushTraces());
+          if (waitUntil) waitUntil(mentionWork);
         } else {
           outcome = 'ignored_unknown_event';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -256,7 +260,7 @@ app.post('/events', async (c) => {
                 { teamId, actionId: action.action_id },
                 'Handling block_action: open_agent_selector_modal'
               );
-              handleOpenAgentSelectorModal({
+              const selectorWork = handleOpenAgentSelectorModal({
                 triggerId,
                 actionValue: action.value,
                 teamId,
@@ -281,6 +285,7 @@ app.post('/events', async (c) => {
                   }
                 })
                 .finally(() => flushTraces());
+              if (waitUntil) waitUntil(selectorWork);
             }
 
             if (action.action_id === 'modal_project_select') {
@@ -299,7 +304,7 @@ app.post('/events', async (c) => {
               );
 
               if (selectedProjectId && view?.id) {
-                (async () => {
+                const projectSelectWork = (async () => {
                   try {
                     const metadata = JSON.parse(view.private_metadata || '{}');
                     const tenantId = metadata.tenantId;
@@ -366,6 +371,7 @@ app.post('/events', async (c) => {
                     await flushTraces();
                   }
                 })();
+                if (waitUntil) waitUntil(projectSelectWork);
               }
             }
 
@@ -375,7 +381,7 @@ app.post('/events', async (c) => {
                 { teamId, actionId: action.action_id },
                 'Handling block_action: open_follow_up_modal'
               );
-              handleOpenFollowUpModal({
+              const followUpModalWork = handleOpenFollowUpModal({
                 triggerId,
                 actionValue: action.value,
                 teamId,
@@ -389,6 +395,7 @@ app.post('/events', async (c) => {
                   );
                 })
                 .finally(() => flushTraces());
+              if (waitUntil) waitUntil(followUpModalWork);
             }
           }
 
@@ -438,7 +445,7 @@ app.post('/events', async (c) => {
               { teamId, channelId, userId, callbackId },
               'Handling message_action: ask_agent_shortcut'
             );
-            handleMessageShortcut({
+            const shortcutWork = handleMessageShortcut({
               triggerId,
               teamId,
               channelId,
@@ -453,6 +460,7 @@ app.post('/events', async (c) => {
                 logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
               })
               .finally(() => flushTraces());
+            if (waitUntil) waitUntil(shortcutWork);
           } else {
             outcome = 'ignored_unknown_event';
             span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -505,12 +513,13 @@ app.post('/events', async (c) => {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
           logger.info({ callbackId }, 'Handling view_submission: agent_selector_modal');
 
-          handleModalSubmission(view)
+          const modalWork = handleModalSubmission(view)
             .catch((err: unknown) => {
               const errorMessage = err instanceof Error ? err.message : String(err);
               logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
             })
             .finally(() => flushTraces());
+          if (waitUntil) waitUntil(modalWork);
 
           span.end();
           return new Response(null, { status: 200 });
@@ -526,12 +535,13 @@ app.post('/events', async (c) => {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
           logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
 
-          handleFollowUpSubmission(view)
+          const followUpWork = handleFollowUpSubmission(view)
             .catch((err: unknown) => {
               const errorMessage = err instanceof Error ? err.message : String(err);
               logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
             })
             .finally(() => flushTraces());
+          if (waitUntil) waitUntil(followUpWork);
 
           span.end();
           return new Response(null, { status: 200 });
