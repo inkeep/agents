@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageSquare } from 'lucide-react';
+import { SlackIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -113,7 +113,7 @@ export function SlackDashboard() {
             hasWorkspace &&
             isAdmin && (
               <Button className="gap-2" onClick={handleInstallClick}>
-                <MessageSquare className="h-4 w-4" />
+                <SlackIcon className="h-4 w-4" />
                 Add Workspace
               </Button>
             )
@@ -140,85 +140,18 @@ export function SlackDashboard() {
               </div>
             ) : isAdmin ? (
               /* Admin Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2">
-                  <AgentConfigurationCard />
-                </div>
-
-                {/* Sidebar - Admin Tools */}
-                <div className="space-y-6">
-                  <LinkedUsersSection />
-
-                  {/* Admin Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Admin Tips</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Set a <strong>workspace default</strong> agent for all channels
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Use <strong>channel defaults</strong> to set a specific agent per channel
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Members can configure channels they&apos;re in</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Export linked users for auditing or reporting</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+              <div className="grid gap-6">
+                {/* Agent Configuration  */}
+                <AgentConfigurationCard />
+                <LinkedUsersSection />
               </div>
             ) : (
               /* Member Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2 space-y-6">
-                  <AgentConfigurationCard />
-                </div>
-
+              <div className="grid gap-6 ">
+                {/* Agent Configuration */}
+                <AgentConfigurationCard />
                 {/* Sidebar - Member Tools */}
-                <div className="space-y-6">
-                  <MyLinkStatus currentUserId={user?.id} />
-
-                  {/* Member Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Getting Started</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Run <code className="bg-muted px-1 rounded">/inkeep link</code> in Slack
-                          to connect your account
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          @mention the bot or use{' '}
-                          <code className="bg-muted px-1 rounded">/inkeep</code> to ask questions
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Configure agents for channels you&apos;re a member of</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>The workspace default is set by your admin</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                <MyLinkStatus currentUserId={user?.id} />
               </div>
             )}
           </>

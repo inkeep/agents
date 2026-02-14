@@ -2,19 +2,13 @@
 
 import {
   AlertCircle,
-  Bot,
-  CheckCircle2,
-  ExternalLink,
-  Hash,
+  ArrowUpRight,
   HeartPulse,
   Loader2,
-  MessageSquare,
   MoreHorizontal,
   Send,
   SlackIcon,
   Trash2,
-  Users,
-  XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -54,8 +48,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { WorkAppIcon } from '../../common/components/work-app-icon';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
 
@@ -190,19 +186,7 @@ export function WorkspaceHero() {
   };
 
   if (!mounted || isLoading) {
-    return (
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="space-y-3">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <Skeleton className="h-18 w-full" />;
   }
 
   if (!hasWorkspace) {
@@ -222,18 +206,17 @@ export function WorkspaceHero() {
 
   return (
     <>
-      <Card className="overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-green-500 to-emerald-500" />
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="space-y-4">
+      <Card className="shadow-none py-4">
+        <CardContent>
+          <div className="flex items-center justify-between flex-wrap">
+            <div className="flex gap-4">
               <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2.5">
-                  <MessageSquare className="h-6 w-6 text-primary" />
+                <div className="rounded-lg">
+                  <WorkAppIcon appId="slack" className="h-6 w-6 text-primary" />
                 </div>
-                <div>
+                <div className="flex gap-4">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold">{workspace.teamName}</h2>
+                    <h2 className="text-md font-medium">{workspace.teamName}</h2>
                     <a
                       href={`https://app.slack.com/client/${workspace.teamId}`}
                       target="_blank"
@@ -241,29 +224,18 @@ export function WorkspaceHero() {
                       aria-label="Open workspace in Slack"
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ArrowUpRight className="h-4 w-4 opacity-60" />
                     </a>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Badge
-                          variant="secondary"
-                          className={
-                            health.checking
-                              ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-                              : health.healthy
-                                ? 'bg-green-500/10 text-green-600 border-green-500/20'
-                                : 'bg-red-500/10 text-red-600 border-red-500/20'
+                          variant={
+                            health.healthy ? 'success' : health.checking ? 'warning' : 'error'
                           }
                         >
-                          {health.checking ? (
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          ) : health.healthy ? (
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                          ) : (
-                            <XCircle className="h-3 w-3 mr-1" />
-                          )}
+                          {health.checking && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                           {health.checking ? 'Checking...' : health.healthy ? 'Healthy' : 'Issue'}
                         </Badge>
                       </TooltipTrigger>
@@ -276,16 +248,27 @@ export function WorkspaceHero() {
                       </TooltipContent>
                     </Tooltip>
                     {workspace.hasDefaultAgent && (
-                      <Badge variant="outline" className="text-xs">
-                        <Bot className="h-3 w-3 mr-1" />
-                        {workspace.defaultAgentName}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="code" className="text-xs">
+                            {workspace.defaultAgentName}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            The default agent for all <code>@Inkeep</code> mentions and{' '}
+                            <code>/inkeep</code> commands in {workspace.teamName}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4 text-sm">
                 {loadingStats ? (
                   <>
                     <Skeleton className="h-4 w-24" />
@@ -293,68 +276,61 @@ export function WorkspaceHero() {
                   </>
                 ) : stats ? (
                   <>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>
-                        <strong className="text-foreground">{stats.linkedUsers}</strong> linked user
-                        {stats.linkedUsers !== 1 ? 's' : ''}
-                      </span>
+                    <div className="flex items-center text-muted-foreground font-light gap-2">
+                      <span className="text-foreground font-mono font-semibold">
+                        {stats.linkedUsers}
+                      </span>{' '}
+                      user
+                      {stats.linkedUsers !== 1 ? 's' : ''}
                     </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Hash className="h-4 w-4" />
-                      <span>
-                        <strong className="text-foreground">{stats.totalChannels}</strong> channel
-                        {stats.totalChannels !== 1 ? 's' : ''}
-                        {stats.channelsWithCustomAgent > 0 && (
-                          <span className="text-xs">
-                            {' '}
-                            ({stats.channelsWithCustomAgent} with custom agent)
-                          </span>
-                        )}
-                      </span>
+                    <Separator orientation="vertical" className="h-4! border-border" />
+                    <div className="flex items-center gap-1.5 text-muted-foreground font-light">
+                      <span className="text-foreground font-mono font-semibold">
+                        {stats.totalChannels}
+                      </span>{' '}
+                      channel
+                      {stats.totalChannels !== 1 ? 's' : ''}
                     </div>
                   </>
                 ) : null}
               </div>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Workspace options">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <a
-                    href={`https://app.slack.com/client/${workspace.teamId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Workspace options">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={`https://app.slack.com/client/${workspace.teamId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowUpRight className="h-4 w-4" />
+                      Open in Slack
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowTestMessageDialog(true)}>
+                    <Send className="h-4 w-4" />
+                    Send test message
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={checkHealth} disabled={health.checking}>
+                    <HeartPulse className="h-4 w-4" />
+                    Check health
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setShowUninstallDialog(true)}
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    Open in Slack
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowTestMessageDialog(true)}>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Test Message
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={checkHealth} disabled={health.checking}>
-                  <HeartPulse className="h-4 w-4 mr-2" />
-                  Check Health
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setShowUninstallDialog(true)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Uninstall
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    <Trash2 className="h-4 w-4" />
+                    Uninstall
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -377,7 +353,7 @@ export function WorkspaceHero() {
             <AlertDialogAction
               onClick={handleUninstall}
               disabled={uninstalling}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
             >
               {uninstalling ? (
                 <>
@@ -435,12 +411,12 @@ export function WorkspaceHero() {
             >
               {sendingTestMessage ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Sending...
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send className="h-4 w-4" />
                   Send Test
                 </>
               )}

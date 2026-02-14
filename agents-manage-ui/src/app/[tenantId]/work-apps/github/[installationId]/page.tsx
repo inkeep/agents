@@ -35,7 +35,7 @@ interface PageParams {
 function getStatusBadgeVariant(status: string) {
   switch (status) {
     case 'active':
-      return 'primary';
+      return 'success';
     case 'pending':
       return 'warning';
     case 'suspended':
@@ -147,13 +147,15 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
     <div className="space-y-8">
       {/* Back link and Header */}
       <div className="space-y-4">
-        <Link
-          href={`/${tenantId}/work-apps/github`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Back to GitHub Settings
-        </Link>
+        <Button variant="ghost" asChild>
+          <Link
+            href={`/${tenantId}/work-apps/github`}
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back to GitHub Settings
+          </Link>
+        </Button>
 
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
