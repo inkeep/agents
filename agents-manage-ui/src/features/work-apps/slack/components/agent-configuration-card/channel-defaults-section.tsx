@@ -187,7 +187,7 @@ export function ChannelDefaultsSection({
         ) : (
           <div className="rounded-lg border overflow-hidden">
             <Table
-              className="table-fixed border-collapse bg-background rounded-lg"
+              className="table-fixed border-collapse rounded-lg"
               containerClassName="max-h-[500px] overflow-auto scrollbar-thin"
             >
               <colgroup>
@@ -197,8 +197,8 @@ export function ChannelDefaultsSection({
                 <col className="w-24" />
                 <col className="w-40" />
               </colgroup>
-              <TableHeader className="sticky top-0 z-10 [&_tr]:bg-background [&_th]:border-b [&_th]:border-border [&_tr]:shadow-[0_1px_0_0_var(--border)]">
-                <TableRow className="hover:bg-background">
+              <TableHeader className="sticky top-0 z-10 [&_th]:border-b [&_th]:border-border">
+                <TableRow className="hover:bg-background bg-card shadow-[0_1px_0_0_var(--border)]">
                   <TableHead className="w-fit">
                     <Checkbox
                       checked={
