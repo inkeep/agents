@@ -56,7 +56,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Tools',
+    summary: 'List MCP Tools',
     operationId: 'list-tools',
     tags: ['Tools'],
     request: {
@@ -155,7 +155,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Tool',
+    summary: 'Get MCP Tool',
     operationId: 'get-tool',
     tags: ['Tools'],
     request: {
@@ -197,7 +197,7 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Tool',
+    summary: 'Create MCP Tool',
     operationId: 'create-tool',
     tags: ['Tools'],
     request: {
@@ -259,7 +259,7 @@ app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Tool',
+    summary: 'Update MCP Tool',
     operationId: 'update-tool',
     tags: ['Tools'],
     request: {
@@ -330,7 +330,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}/user-credential',
-    summary: 'Get User Credential for Tool',
+    summary: 'Get User Credential for MCP Tool',
     operationId: 'get-user-credential-for-tool',
     tags: ['Tools'],
     request: {
@@ -382,7 +382,7 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Tool',
+    summary: 'Delete MCP Tool',
     operationId: 'delete-tool',
     tags: ['Tools'],
     request: {
