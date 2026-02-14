@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "setup": "mkdir -p .claude && echo '{\"permissions\":{\"additionalDirectories\":[\"'\"$HOME\"'/.claude\",\"'\"$HOME\"'/.claude/reports\",\"'\"$HOME\"'/.claude/specs\",\"'\"$HOME\"'/.claude/skills\",\"'\"$HOME\"'/.claude/agents\"]}}' > .claude/settings.local.json && if [ -L .claude/skills ]; then resolved=$(cd .claude/skills && pwd -P) && rm .claude/skills && mkdir -p .claude/skills && cp -R \"$resolved\"/* .claude/skills/ 2>/dev/null; fi && mkdir -p .claude/skills && for s in \"$HOME\"/.claude/skills/*/; do n=$(basename \"$s\"); [ ! -e \".claude/skills/$n\" ] && cp -R \"$s\" \".claude/skills/$n\"; done"
+  }
+}
