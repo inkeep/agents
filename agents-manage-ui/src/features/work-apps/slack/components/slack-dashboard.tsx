@@ -2,6 +2,7 @@
 
 import { SlackIcon } from 'lucide-react';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,11 @@ import { useSlack } from '../context/slack-provider';
 import { AgentConfigurationCard } from './agent-configuration-card';
 import { LinkedUsersSection } from './linked-users-section';
 import { MyLinkStatus } from './my-link-status';
-import { NotificationBanner } from './notification-banner';
 import { WorkspaceHero } from './workspace-hero';
 
 export function SlackDashboard() {
   const { user, installedWorkspaces, actions } = useSlack();
-  const { handleInstallClick, setNotification } = actions;
+  const { handleInstallClick } = actions;
   const { isAdmin, isLoading: isLoadingRole } = useIsOrgAdmin();
 
   const hasWorkspace = installedWorkspaces.data.length > 0;
@@ -34,18 +34,10 @@ export function SlackDashboard() {
 
     if (error) {
       if (error === 'access_denied') {
-        setNotification({
-          type: 'info',
-          message: 'Slack installation was cancelled.',
-          action: 'cancelled',
-        });
+        toast.info('Slack installation was cancelled.');
       } else {
         console.error('Slack OAuth Error:', error);
-        setNotification({
-          type: 'error',
-          message: `Slack installation failed: ${error}`,
-          action: 'error',
-        });
+        toast.error(`Slack installation failed: ${error}`);
       }
       window.history.replaceState({}, '', window.location.pathname);
       return;
@@ -55,25 +47,16 @@ export function SlackDashboard() {
       try {
         const workspace = JSON.parse(workspaceData);
 
-        setNotification({
-          type: 'success',
-          message: `Workspace "${workspace.teamName}" installed successfully!`,
-          action: 'installed',
-        });
-
+        toast.success(`Workspace "${workspace.teamName}" installed successfully!`);
         installedWorkspaces.refetch();
       } catch (e) {
         console.error('Failed to parse workspace data:', e);
-        setNotification({
-          type: 'error',
-          message: 'Failed to process workspace data',
-          action: 'error',
-        });
+        toast.error('Failed to process workspace data');
       }
 
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [setNotification, installedWorkspaces]);
+  }, [installedWorkspaces]);
 
   return (
     <TooltipProvider>
@@ -119,8 +102,6 @@ export function SlackDashboard() {
             )
           }
         />
-
-        <NotificationBanner />
 
         {/* Workspace Status */}
         <WorkspaceHero />

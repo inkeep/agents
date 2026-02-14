@@ -1,16 +1,10 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
-import { createContext, type ReactNode, use, useCallback, useEffect } from 'react';
+import { createContext, type ReactNode, use, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useAuthSession } from '@/hooks/use-auth';
-import {
-  slackQueryKeys,
-  useSlackUninstallWorkspaceMutation,
-  useSlackWorkspacesQuery,
-} from '../api/queries';
+import { useSlackUninstallWorkspaceMutation, useSlackWorkspacesQuery } from '../api/queries';
 import { slackApi } from '../api/slack-api';
-import { useSlackStore } from '../store/slack-store';
-import type { SlackNotification } from '../types';
 
 interface SlackContextValue {
   user: { id: string; email?: string; name?: string } | null;
@@ -31,15 +25,9 @@ interface SlackContextValue {
     refetch: () => void;
   };
 
-  ui: {
-    notification: SlackNotification | null;
-  };
-
   actions: {
     handleInstallClick: () => void;
     uninstallWorkspace: (connectionId: string) => Promise<void>;
-    setNotification: (notification: SlackNotification | null) => void;
-    clearNotification: () => void;
   };
 }
 
@@ -52,20 +40,9 @@ interface SlackProviderProps {
 
 export function SlackProvider({ children, tenantId }: SlackProviderProps) {
   const { user, isLoading: isAuthLoading } = useAuthSession();
-  const queryClient = useQueryClient();
-
-  const notification = useSlackStore((state) => state.notification);
-  const setNotification = useSlackStore((state) => state.setNotification);
-  const clearNotification = useSlackStore((state) => state.clearNotification);
 
   const workspacesQuery = useSlackWorkspacesQuery();
   const uninstallMutation = useSlackUninstallWorkspaceMutation();
-
-  useEffect(() => {
-    if (notification?.type === 'success' && notification.action === 'installed') {
-      queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaces() });
-    }
-  }, [notification, queryClient]);
 
   const handleInstallClick = useCallback(() => {
     window.location.href = slackApi.getInstallUrl(tenantId);
@@ -75,22 +52,13 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
     async (connectionId: string) => {
       try {
         await uninstallMutation.mutateAsync(connectionId);
-
-        setNotification({
-          type: 'success',
-          message: 'Workspace uninstalled successfully',
-          action: 'disconnected',
-        });
+        toast.success('Workspace uninstalled successfully');
       } catch (error) {
         console.error('Failed to uninstall workspace:', error);
-        setNotification({
-          type: 'error',
-          message: error instanceof Error ? error.message : 'Failed to uninstall workspace',
-          action: 'error',
-        });
+        toast.error(error instanceof Error ? error.message : 'Failed to uninstall workspace');
       }
     },
-    [uninstallMutation, setNotification]
+    [uninstallMutation]
   );
 
   const value: SlackContextValue = {
@@ -107,15 +75,9 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
       refetch: () => workspacesQuery.refetch(),
     },
 
-    ui: {
-      notification,
-    },
-
     actions: {
       handleInstallClick,
       uninstallWorkspace,
-      setNotification,
-      clearNotification,
     },
   };
 

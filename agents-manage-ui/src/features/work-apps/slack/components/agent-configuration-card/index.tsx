@@ -17,7 +17,7 @@ import { WorkspaceDefaultSection } from './workspace-default-section';
 
 export function AgentConfigurationCard() {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const { installedWorkspaces, actions } = useSlack();
+  const { installedWorkspaces } = useSlack();
   const { isAdmin } = useIsOrgAdmin();
 
   const [agents, setAgents] = useState<SlackAgentOption[]>([]);
@@ -132,18 +132,10 @@ export function AgentConfigurationCard() {
       });
 
       installedWorkspaces.refetch();
-      actions.setNotification({
-        type: 'success',
-        message: `Default agent set to "${config.agentName}"`,
-        action: 'connected',
-      });
+      toast.success(`Default agent set to "${config.agentName}"`);
     } catch (error) {
       console.error('Failed to save default agent:', error);
-      actions.setNotification({
-        type: 'error',
-        message: 'Failed to save default agent',
-        action: 'error',
-      });
+      toast.error('Failed to save default agent');
     } finally {
       setSavingDefault(false);
     }
@@ -178,22 +170,14 @@ export function AgentConfigurationCard() {
         )
       );
 
-      actions.setNotification({
-        type: 'success',
-        message: `#${channelName} now uses "${config.agentName}"`,
-        action: 'connected',
-      });
+      toast.success(`#${channelName} now uses "${config.agentName}"`);
     } catch (error) {
       console.error('Failed to set channel agent:', error);
       const errorMessage =
         error instanceof Error && error.message.includes('forbidden')
           ? `You can only configure channels you're a member of`
           : 'Failed to set channel agent';
-      actions.setNotification({
-        type: 'error',
-        message: errorMessage,
-        action: 'error',
-      });
+      toast.error(errorMessage);
     } finally {
       setSavingChannel(null);
     }
@@ -213,22 +197,14 @@ export function AgentConfigurationCard() {
         )
       );
 
-      actions.setNotification({
-        type: 'success',
-        message: `#${channelName} now uses the workspace default`,
-        action: 'connected',
-      });
+      toast.success(`#${channelName} now uses the workspace default`);
     } catch (error) {
       console.error('Failed to reset channel:', error);
       const errorMessage =
         error instanceof Error && error.message.includes('forbidden')
           ? `You can only configure channels you're a member of`
           : 'Failed to reset channel to default';
-      actions.setNotification({
-        type: 'error',
-        message: errorMessage,
-        action: 'error',
-      });
+      toast.error(errorMessage);
     } finally {
       setSavingChannel(null);
     }
