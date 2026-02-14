@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
@@ -75,6 +76,7 @@ export default function AllProjectsAICallsBreakdown({
 }: {
   params: Promise<{ tenantId: string }>;
 }) {
+  useRequireAuth();
   const { tenantId } = use(params);
 
   const backLink = `/${tenantId}/stats`;

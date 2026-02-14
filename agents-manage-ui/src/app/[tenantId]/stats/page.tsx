@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DOCS_BASE_URL } from '@/constants/theme';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import {
   useConversationsPerDayAcrossProjects,
@@ -41,6 +42,7 @@ const TIME_RANGES = {
 } as const;
 
 export default function ProjectsStatsPage({ params }: { params: Promise<{ tenantId: string }> }) {
+  useRequireAuth();
   const { tenantId } = use(params);
   const router = useRouter();
   const {

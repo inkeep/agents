@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import type { WorkAppGitHubInstallationDetail, WorkAppGitHubRepository } from '@/lib/api/github';
 import {
   disconnectWorkAppGitHubInstallation,
@@ -71,6 +72,7 @@ const ItemValue = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function GitHubInstallationDetailPage({ params }: PageParams) {
+  useRequireAuth();
   const { tenantId, installationId } = use(params);
   const router = useRouter();
   const [data, setData] = useState<WorkAppGitHubInstallationDetail | null>(null);

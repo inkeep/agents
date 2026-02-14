@@ -8,6 +8,7 @@ import { ErrorContent } from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { WorkAppGitHubInstallButton } from '@/components/settings/work-app-github-install-button';
 import { WorkAppGitHubInstallationsList } from '@/components/settings/work-app-github-installations-list';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import type { WorkAppGitHubInstallation } from '@/lib/api/github';
 import { fetchWorkAppGitHubInstallations } from '@/lib/api/github';
 import GitHubSettingsLoading from './loading';
@@ -17,6 +18,7 @@ interface PageParams {
 }
 
 export default function WorkAppGitHubSettingsPage({ params }: PageParams) {
+  useRequireAuth();
   const { tenantId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
