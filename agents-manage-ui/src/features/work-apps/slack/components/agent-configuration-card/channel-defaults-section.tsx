@@ -1,10 +1,10 @@
 'use client';
 
-import { ChevronRight, Globe, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
+import { Globe, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -64,8 +64,6 @@ interface ChannelDefaultsSectionProps {
   savingChannel: string | null;
   bulkSaving: boolean;
   isAdmin: boolean;
-  expanded: boolean;
-  onExpandedChange: (expanded: boolean) => void;
   onChannelFilterChange: (filter: 'all' | 'private' | 'connect') => void;
   onSearchQueryChange: (query: string) => void;
   onToggleChannel: (channelId: string) => void;
@@ -90,8 +88,6 @@ export function ChannelDefaultsSection({
   savingChannel,
   bulkSaving,
   isAdmin,
-  expanded,
-  onExpandedChange,
   onChannelFilterChange,
   onSearchQueryChange,
   onToggleChannel,
@@ -104,37 +100,21 @@ export function ChannelDefaultsSection({
   onClearFilters,
 }: ChannelDefaultsSectionProps) {
   return (
-    <Collapsible open={expanded} onOpenChange={onExpandedChange}>
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center justify-between w-full group hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Hash className="h-4 w-4 text-muted-foreground" />
-              <span className="text-base font-medium">Channel Defaults</span>
-            </div>
-
-            {channelsWithCustomAgent.length > 0 && (
-              <Badge variant="count">{channelsWithCustomAgent.length}</Badge>
-            )}
-          </div>
-          <ChevronRight
-            className={cn(
-              'h-4 w-4 text-muted-foreground transition-transform duration-200',
-              expanded && 'rotate-90'
-            )}
-          />
-        </button>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent className="mt-3 space-y-2">
-        <p className="text-sm text-muted-foreground mb-8">
+    <Card className="shadow-none">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Hash className="h-4 w-4 text-muted-foreground" />
+          <span className="text-base font-medium">Channel Defaults</span>
+          {channelsWithCustomAgent.length > 0 && (
+            <Badge variant="count">{channelsWithCustomAgent.length}</Badge>
+          )}
+        </CardTitle>
+        <CardDescription>
           Set a default agent for individual channels instead of using the workspace default.
           {!isAdmin && <> You can configure channels you&apos;re a member of.</>}
-        </p>
-
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
         {channels.length > 0 && (
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3">
@@ -205,8 +185,11 @@ export function ChannelDefaultsSection({
             </Button>
           </div>
         ) : (
-          <div className="rounded-lg border">
-            <Table className="table-fixed">
+          <div className="rounded-lg border overflow-hidden">
+            <Table
+              className="table-fixed border-collapse bg-background rounded-lg"
+              containerClassName="max-h-[500px] overflow-auto scrollbar-thin"
+            >
               <colgroup>
                 <col className="w-10" />
                 <col style={{ width: '50%' }} />
@@ -214,7 +197,7 @@ export function ChannelDefaultsSection({
                 <col className="w-24" />
                 <col className="w-40" />
               </colgroup>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 [&_tr]:bg-background [&_th]:border-b [&_th]:border-border [&_tr]:shadow-[0_1px_0_0_var(--border)]">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-fit">
                     <Checkbox
@@ -231,7 +214,7 @@ export function ChannelDefaultsSection({
                     />
                   </TableHead>
                   {selectedChannels.size > 0 ? (
-                    <TableHead colSpan={4} className=" font-sans normal-case py-1.5">
+                    <TableHead colSpan={4} className="font-sans normal-case py-1.5">
                       <BulkSelectAgentBar
                         selectedCount={selectedChannels.size}
                         agents={agents}
@@ -267,11 +250,20 @@ export function ChannelDefaultsSection({
                     <TableCell>
                       <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
                         {channel.isShared ? (
-                          <Globe className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <Globe
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                          />
                         ) : channel.isPrivate ? (
-                          <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <Lock
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                          />
                         ) : (
-                          <Hash className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <Hash
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                          />
                         )}
                         <span className="min-w-0 truncate">{channel.name}</span>
                       </span>
@@ -315,7 +307,7 @@ export function ChannelDefaultsSection({
             </Table>
           </div>
         )}
-      </CollapsibleContent>
-    </Collapsible>
+      </CardContent>
+    </Card>
   );
 }

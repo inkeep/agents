@@ -1,12 +1,12 @@
 'use client';
 
-import { Bot, Loader2, RefreshCw, Settings2 } from 'lucide-react';
+import { Layers2, Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { getAllAgentsForSlack } from '../../actions/agents';
 import { slackApi } from '../../api/slack-api';
@@ -18,7 +18,7 @@ import { WorkspaceDefaultSection } from './workspace-default-section';
 export function AgentConfigurationCard() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const { installedWorkspaces, actions } = useSlack();
-  const { isAdmin, isLoading: isLoadingAdmin } = useIsOrgAdmin();
+  const { isAdmin } = useIsOrgAdmin();
 
   const [agents, setAgents] = useState<SlackAgentOption[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -28,7 +28,6 @@ export function AgentConfigurationCard() {
   const [savingChannel, setSavingChannel] = useState<string | null>(null);
   const [defaultAgent, setDefaultAgent] = useState<DefaultAgentConfig | null>(null);
   const [defaultOpen, setDefaultOpen] = useState(false);
-  const [channelsExpanded, setChannelsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
@@ -323,23 +322,24 @@ export function AgentConfigurationCard() {
     }
   };
 
+  const cardTitle = (
+    <CardTitle className="flex items-center gap-2">
+      <Layers2 className="h-4 w-4 text-muted-foreground" />
+      <span className="text-base font-medium">Agent Configuration</span>
+    </CardTitle>
+  );
+
   if (!teamId) {
     return (
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
-            Agent Configuration
-          </CardTitle>
+          {cardTitle}
           <CardDescription>
             Configure which AI agents respond in your Slack workspace
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="rounded-full bg-muted p-3 mb-4">
-              <Bot className="h-6 w-6 text-muted-foreground" />
-            </div>
             <p className="text-sm text-muted-foreground max-w-[280px]">
               Install the Slack app to a workspace first to configure agents.
             </p>
@@ -351,13 +351,8 @@ export function AgentConfigurationCard() {
 
   if (!mounted) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
-            Agent Configuration
-          </CardTitle>
-        </CardHeader>
+      <Card className="shadow-none">
+        <CardHeader>{cardTitle}</CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
             <div className="h-16 bg-muted rounded-lg" />
@@ -369,86 +364,82 @@ export function AgentConfigurationCard() {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div>
+    <>
+      <Card className="shadow-none">
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5" />
-              Agent Configuration
+              <Layers2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-base font-medium">Workspace Default</span>
             </CardTitle>
-            <CardDescription className="mt-1.5">
-              Configure which AI agents respond to @mentions and commands
-            </CardDescription>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => {
+                fetchAgents();
+                fetchChannels();
+                fetchWorkspaceSettings();
+              }}
+              disabled={loadingAgents || loadingChannels}
+              aria-label="Refresh agent and channel data"
+              title="Refresh"
+            >
+              {loadingAgents || loadingChannels ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              fetchAgents();
-              fetchChannels();
-              fetchWorkspaceSettings();
-            }}
-            disabled={loadingAgents || loadingChannels}
-            aria-label="Refresh agent and channel data"
-            title="Refresh"
-          >
-            {loadingAgents || loadingChannels ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </CardHeader>
+          <p className="text-sm text-muted-foreground">
+            The default agent for all <Badge variant="code">@Inkeep</Badge> mentions and{' '}
+            <Badge variant="code">/inkeep</Badge> commands in{' '}
+            <span className="font-medium">{workspaceName}</span>.{' '}
+            {defaultAgent &&
+              `Used by ${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''}.`}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <WorkspaceDefaultSection
+            defaultAgent={defaultAgent}
+            agents={agents}
+            loadingAgents={loadingAgents}
+            savingDefault={savingDefault}
+            canEdit={canEditWorkspaceDefault}
+            onSetDefaultAgent={handleSetDefaultAgent}
+            onFetchAgents={fetchAgents}
+            open={defaultOpen}
+            onOpenChange={setDefaultOpen}
+          />
+        </CardContent>
+      </Card>
 
-      <CardContent className="space-y-6">
-        <WorkspaceDefaultSection
-          workspaceName={workspaceName}
-          defaultAgent={defaultAgent}
-          agents={agents}
-          loadingAgents={loadingAgents}
-          savingDefault={savingDefault}
-          canEdit={canEditWorkspaceDefault}
-          isLoadingAdmin={isLoadingAdmin}
-          channelsUsingDefault={channelsUsingDefault.length}
-          onSetDefaultAgent={handleSetDefaultAgent}
-          onFetchAgents={fetchAgents}
-          open={defaultOpen}
-          onOpenChange={setDefaultOpen}
-        />
-
-        <Separator />
-
-        <ChannelDefaultsSection
-          channels={channels}
-          filteredChannels={filteredChannels}
-          loadingChannels={loadingChannels}
-          channelsWithCustomAgent={channelsWithCustomAgent}
-          channelFilter={channelFilter}
-          channelSearchQuery={channelSearchQuery}
-          selectedChannels={selectedChannels}
-          agents={agents}
-          savingChannel={savingChannel}
-          bulkSaving={bulkSaving}
-          isAdmin={isAdmin}
-          expanded={channelsExpanded}
-          onExpandedChange={setChannelsExpanded}
-          onChannelFilterChange={setChannelFilter}
-          onSearchQueryChange={setChannelSearchQuery}
-          onToggleChannel={handleToggleChannel}
-          onSelectAll={handleSelectAll}
-          onClearSelection={() => setSelectedChannels(new Set())}
-          onSetChannelAgent={handleSetChannelAgent}
-          onResetChannelToDefault={handleResetChannelToDefault}
-          onBulkSetAgent={handleBulkSetAgent}
-          onBulkResetToDefault={handleBulkResetToDefault}
-          onClearFilters={() => {
-            setChannelSearchQuery('');
-            setChannelFilter('all');
-          }}
-        />
-      </CardContent>
-    </Card>
+      <ChannelDefaultsSection
+        channels={channels}
+        filteredChannels={filteredChannels}
+        loadingChannels={loadingChannels}
+        channelsWithCustomAgent={channelsWithCustomAgent}
+        channelFilter={channelFilter}
+        channelSearchQuery={channelSearchQuery}
+        selectedChannels={selectedChannels}
+        agents={agents}
+        savingChannel={savingChannel}
+        bulkSaving={bulkSaving}
+        isAdmin={isAdmin}
+        onChannelFilterChange={setChannelFilter}
+        onSearchQueryChange={setChannelSearchQuery}
+        onToggleChannel={handleToggleChannel}
+        onSelectAll={handleSelectAll}
+        onClearSelection={() => setSelectedChannels(new Set())}
+        onSetChannelAgent={handleSetChannelAgent}
+        onResetChannelToDefault={handleResetChannelToDefault}
+        onBulkSetAgent={handleBulkSetAgent}
+        onBulkResetToDefault={handleBulkResetToDefault}
+        onClearFilters={() => {
+          setChannelSearchQuery('');
+          setChannelFilter('all');
+        }}
+      />
+    </>
   );
 }

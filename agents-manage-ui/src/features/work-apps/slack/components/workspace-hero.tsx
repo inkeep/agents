@@ -186,19 +186,7 @@ export function WorkspaceHero() {
   };
 
   if (!mounted || isLoading) {
-    return (
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="space-y-3">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <Skeleton className="h-18 w-full" />;
   }
 
   if (!hasWorkspace) {

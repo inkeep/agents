@@ -140,57 +140,18 @@ export function SlackDashboard() {
               </div>
             ) : isAdmin ? (
               /* Admin Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2">
-                  <AgentConfigurationCard />
-                </div>
-
-                {/* Sidebar - Admin Tools */}
-                <div className="space-y-6">
-                  <LinkedUsersSection />
-                </div>
+              <div className="grid gap-6">
+                {/* Agent Configuration  */}
+                <AgentConfigurationCard />
+                <LinkedUsersSection />
               </div>
             ) : (
               /* Member Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2 space-y-6">
-                  <AgentConfigurationCard />
-                </div>
-
+              <div className="grid gap-6 ">
+                {/* Agent Configuration */}
+                <AgentConfigurationCard />
                 {/* Sidebar - Member Tools */}
-                <div className="space-y-6">
-                  <MyLinkStatus currentUserId={user?.id} />
-                  {/* Member Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Getting Started</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Run <code className="bg-muted px-1 rounded">/inkeep link</code> in Slack
-                          to connect your account
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          @mention the bot or use{' '}
-                          <code className="bg-muted px-1 rounded">/inkeep</code> to ask questions
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Configure agents for channels you&apos;re a member of</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>The workspace default is set by your admin</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                <MyLinkStatus currentUserId={user?.id} />
               </div>
             )}
           </>

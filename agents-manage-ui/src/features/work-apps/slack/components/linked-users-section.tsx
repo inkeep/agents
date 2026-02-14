@@ -152,30 +152,24 @@ export function LinkedUsersSection() {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Users className="h-4 w-4" />
-                Linked Users
-                {linkedUsers.length > 0 && (
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {linkedUsers.length}
-                  </Badge>
-                )}
+              <CardTitle className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-base font-medium"> Linked Users</span>
+                </div>
+                {linkedUsers.length > 0 && <Badge variant="count">{linkedUsers.length}</Badge>}
               </CardTitle>
-              <CardDescription className="text-xs mt-1">
-                Manage Slack users linked to Inkeep accounts
-              </CardDescription>
             </div>
             <div className="flex items-center gap-1">
               {linkedUsers.length > 0 && (
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="icon-sm"
                   onClick={handleExportUsers}
-                  className="h-8 w-8"
                   aria-label="Export linked users to CSV"
                   title="Export to CSV"
                 >
@@ -184,10 +178,9 @@ export function LinkedUsersSection() {
               )}
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 onClick={() => fetchLinkedUsers()}
                 disabled={isLoading}
-                className="h-8 w-8"
                 aria-label="Refresh linked users"
                 title="Refresh"
               >
@@ -199,6 +192,7 @@ export function LinkedUsersSection() {
               </Button>
             </div>
           </div>
+          <CardDescription>Manage Slack users linked to Inkeep accounts</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading && linkedUsers.length === 0 ? (

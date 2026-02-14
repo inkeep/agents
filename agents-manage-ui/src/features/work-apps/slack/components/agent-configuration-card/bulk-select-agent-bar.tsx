@@ -49,7 +49,7 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
               className="h-7 text-muted-foreground"
               disabled={bulkSaving}
             >
-              {bulkSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <> </>}
+              {bulkSaving && <Loader2 className="h-3 w-3 animate-spin" />}
               Select Agent
               <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
             </Button>

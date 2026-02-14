@@ -49,7 +49,9 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
             {channel.agentConfig ? (
               <span className="min-w-0 truncate">{channel.agentConfig.agentName}</span>
             ) : (
-              <span className="text-muted-foreground/80 font-light">Default</span>
+              <span className="min-w-0 truncate text-muted-foreground font-light">
+                Workspace default
+              </span>
             )}
             <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
           </Button>
