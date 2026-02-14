@@ -700,7 +700,7 @@ describe('generateTaskHandler', () => {
       const result = await taskHandler(task);
 
       expect(result.status.state).toBe(TaskState.Failed);
-      expect(result.status.message).toBe('No text content found in task input');
+      expect(result.status.message).toBe('No content found in task input');
       expect(result.artifacts).toEqual([]);
     });
 
