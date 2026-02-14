@@ -72,7 +72,7 @@
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "profile:prepush": "node scripts/profile-prepush.mjs",
     "setup-dev": "sh scripts/setup.sh",
-    "setup-skills": "claude plugin marketplace add inkeep/team-skills && claude plugin install eng@inkeep-team-skills",
+    "setup-skills": "claude plugin marketplace add inkeep/team-skills && claude plugin install eng@inkeep-team-skills && claude plugin install ralph-loop@claude-plugins-official",
     "spicedb:schema:read": "zed schema read --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:orgs": "zed relationship read organization --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
