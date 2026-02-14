@@ -13,6 +13,7 @@ import {
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
+  getWaitUntil,
   interpolateTemplate,
   listScheduledTriggerInvocationsPaginated,
   listScheduledTriggersPaginated,
@@ -48,23 +49,6 @@ import {
 } from '../../run/services/ScheduledTriggerService';
 import { executeAgentAsync } from '../../run/services/TriggerService';
 
-// Lazy-load waitUntil for Vercel serverless environments
-let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
-let _waitUntilResolved = false;
-
-async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | undefined> {
-  if (_waitUntilResolved) return _waitUntil;
-  _waitUntilResolved = true;
-  if (!process.env.VERCEL) return undefined;
-  try {
-    const mod = await import('@vercel/functions');
-    _waitUntil = mod.waitUntil;
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    console.error('[ScheduledTriggers] Failed to import @vercel/functions:', errorMessage);
-  }
-  return _waitUntil;
-}
 
 const logger = getLogger('scheduled-triggers');
 

@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { OrgRoles } from '@inkeep/agents-core';
+import { getWaitUntil, OrgRoles } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -307,17 +307,9 @@ function createAgentsHono(config: AppConfig) {
 
   app.use('*', async (_c, next) => {
     await next();
-    if (process.env.VERCEL) {
-      try {
-        const { waitUntil } = await import('@vercel/functions');
-        waitUntil(flushBatchProcessor());
-      } catch (importError) {
-        logger.debug(
-          { error: importError },
-          '@vercel/functions import failed, flushing synchronously'
-        );
-        await flushBatchProcessor();
-      }
+    const waitUntil = await getWaitUntil();
+    if (waitUntil) {
+      waitUntil(flushBatchProcessor());
     } else {
       await flushBatchProcessor();
     }
