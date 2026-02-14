@@ -198,7 +198,7 @@ export function ChannelDefaultsSection({
                 <col className="w-40" />
               </colgroup>
               <TableHeader className="sticky top-0 z-10 [&_tr]:bg-background [&_th]:border-b [&_th]:border-border [&_tr]:shadow-[0_1px_0_0_var(--border)]">
-                <TableRow className="hover:bg-transparent">
+                <TableRow className="hover:bg-background">
                   <TableHead className="w-fit">
                     <Checkbox
                       checked={
