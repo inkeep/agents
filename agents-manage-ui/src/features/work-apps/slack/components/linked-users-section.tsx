@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { useSlackLinkedUsersQuery, useSlackUnlinkUserMutation } from '../api/queries';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
@@ -106,19 +107,6 @@ export function LinkedUsersSection() {
     }
   };
 
-  const formatRelativeTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
-
   if (!selectedWorkspace) {
     return null;
   }
@@ -134,10 +122,10 @@ export function LinkedUsersSection() {
         <p className="text-sm font-medium truncate">
           {user.slackUsername || user.slackEmail || 'Unknown User'}
         </p>
-        <p className="text-xs text-muted-foreground">Linked {formatRelativeTime(user.linkedAt)}</p>
+        <p className="text-xs text-muted-foreground">Linked {formatDateAgo(user.linkedAt)}</p>
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 shrink-0">
+        <Badge variant="success" className="shrink-0">
           Active
         </Badge>
         <DropdownMenu>
@@ -280,7 +268,7 @@ export function LinkedUsersSection() {
             <AlertDialogAction
               onClick={handleUnlinkUser}
               disabled={unlinkMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
             >
               {unlinkMutation.isPending ? (
                 <>

@@ -3,6 +3,7 @@
 import {
   Activity,
   BarChart3,
+  Blocks,
   BookOpen,
   Component,
   Globe,
@@ -12,7 +13,6 @@ import {
   LifeBuoy,
   Lock,
   LucideHexagon,
-  Plug,
   Settings,
   Users,
   Workflow,
@@ -81,7 +81,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
               {
                 title: STATIC_LABELS['work-apps'],
                 url: `/${tenantId}/work-apps`,
-                icon: Plug,
+                icon: Blocks,
               },
             ]
           : []),
