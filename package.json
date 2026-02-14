@@ -37,7 +37,7 @@
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
-    "validate:ai-artifacts": "tsx scripts/validate-ai-artifacts.ts",
+    "validate:ai-artifacts": "pnpx tsx scripts/validate-ai-artifacts.ts",
     "clean": "pnpm -r --parallel exec rm -rf node_modules/ dist/ build/ .next/ .turbo/",
     "clean:turbo": "rm -rf .turbo/",
     "turbo:login": "turbo login && turbo link",
