@@ -93,7 +93,9 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { toolCallId, input, type: toolName } = tool;
+  const { toolCallId, input, type } = tool;
+
+  const toolName = type.replace(/^tool-/, '');
   const { displayName: entityType, operationType, icon } = parseToolNameForDisplay(toolName);
   const { projectId, tenantId } = (input as Record<string, any>).request || input;
   const isDeleteOperation = toolName.includes('delete');
