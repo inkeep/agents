@@ -10848,7 +10848,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}": {
       "delete": {
         "description": "Permanently deletes a GitHub App installation from the tenant. This hard deletes the installation record, all associated repositories, and project repository access entries. This action cannot be undone. Use POST /disconnect for soft delete instead. Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.",
         "operationId": "delete-github-installation",
@@ -11161,7 +11161,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId/disconnect": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}/disconnect": {
       "post": {
         "description": "Disconnects a GitHub App installation from the tenant. This soft deletes the installation (sets status to \"disconnected\") and removes all project repository access entries. The installation record is preserved for audit purposes. Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.",
         "operationId": "disconnect-github-installation",
@@ -11266,7 +11266,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId/reconnect": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}/reconnect": {
       "post": {
         "description": "Reconnects a previously disconnected GitHub App installation by setting its status back to \"active\" and syncing the available repositories from GitHub. This can only be used on installations with \"disconnected\" status.",
         "operationId": "reconnect-github-installation",
@@ -11450,7 +11450,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId/sync": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}/sync": {
       "post": {
         "description": "Manually refreshes the repository list for a GitHub App installation by fetching the current list from GitHub API. This is useful if webhooks were missed or to ensure the local data is in sync with GitHub.",
         "operationId": "sync-github-installation-repositories",

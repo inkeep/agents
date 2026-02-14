@@ -214,7 +214,7 @@ const InstallationDetailResponseSchema = z.object({
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/installations/:installationId',
+    path: '/installations/{installationId}',
     summary: 'Get GitHub App installation details',
     operationId: 'get-github-installation-details',
     tags: ['GitHub'],
@@ -288,7 +288,7 @@ const DisconnectInstallationResponseSchema = z.object({
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/installations/:installationId/disconnect',
+    path: '/installations/{installationId}/disconnect',
     summary: 'Disconnect a GitHub App installation',
     operationId: 'disconnect-github-installation',
     tags: ['GitHub'],
@@ -413,7 +413,7 @@ const serviceUnavailableSchema = {
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/installations/:installationId/reconnect',
+    path: '/installations/{installationId}/reconnect',
     summary: 'Reconnect a disconnected GitHub App installation',
     operationId: 'reconnect-github-installation',
     tags: ['GitHub'],
@@ -540,7 +540,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/installations/:installationId',
+    path: '/installations/{installationId}',
     summary: 'Delete a GitHub App installation permanently',
     operationId: 'delete-github-installation',
     tags: ['GitHub'],
@@ -603,7 +603,7 @@ const SyncRepositoriesResponseSchema = z.object({
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/installations/:installationId/sync',
+    path: '/installations/{installationId}/sync',
     summary: 'Sync repositories for a GitHub App installation',
     operationId: 'sync-github-installation-repositories',
     tags: ['GitHub'],
