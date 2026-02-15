@@ -206,6 +206,7 @@ app.post('/events', async (c) => {
             'Handling event: app_mention'
           );
 
+          const dispatchedAt = Date.now();
           const mentionWork = handleAppMention({
             slackUserId: event.user,
             channel: event.channel,
@@ -213,6 +214,7 @@ app.post('/events', async (c) => {
             threadTs: event.thread_ts || event.ts || '',
             messageTs: event.ts || '',
             teamId,
+            dispatchedAt,
           })
             .catch((err: unknown) => {
               const errorMessage = err instanceof Error ? err.message : String(err);
@@ -223,7 +225,18 @@ app.post('/events', async (c) => {
               );
             })
             .finally(() => flushTraces());
-          if (waitUntil) waitUntil(mentionWork);
+          if (waitUntil) {
+            waitUntil(mentionWork);
+            logger.info(
+              { teamId, channel: event.channel, dispatchedAt },
+              'app_mention work registered with waitUntil'
+            );
+          } else {
+            logger.warn(
+              { teamId, channel: event.channel, dispatchedAt },
+              'waitUntil unavailable — app_mention background work is untracked fire-and-forget'
+            );
+          }
         } else {
           outcome = 'ignored_unknown_event';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
