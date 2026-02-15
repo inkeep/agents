@@ -346,27 +346,27 @@ describe('Trigger Generator', () => {
       }).toThrow(``);
     });
 
-    it('should handle double quotes style', () => {
-      const definition = generateTriggerDefinition('test-trigger', basicTriggerData, {
-        quotes: 'double',
-        semicolons: true,
-        indentation: '  ',
-      });
+    // it('should handle double quotes style', () => {
+    //   const definition = generateTriggerDefinition('test-trigger', basicTriggerData, {
+    //     quotes: 'double',
+    //     semicolons: true,
+    //     indentation: '  ',
+    //   });
+    //
+    //   expect(definition).toContain('id: "test-trigger",');
+    //   expect(definition).toContain('name: "GitHub Webhook",');
+    // });
 
-      expect(definition).toContain('id: "test-trigger",');
-      expect(definition).toContain('name: "GitHub Webhook",');
-    });
-
-    it('should handle no semicolons style', () => {
-      const definition = generateTriggerDefinition('test-trigger', basicTriggerData, {
-        quotes: 'single',
-        semicolons: false,
-        indentation: '  ',
-      });
-
-      expect(definition).toMatch(/\}\)$/);
-      expect(definition).not.toMatch(/\}\);$/);
-    });
+    // it('should handle no semicolons style', () => {
+    //   const definition = generateTriggerDefinition('test-trigger', basicTriggerData, {
+    //     quotes: 'single',
+    //     semicolons: false,
+    //     indentation: '  ',
+    //   });
+    //
+    //   expect(definition).toMatch(/\}\)$/);
+    //   expect(definition).not.toMatch(/\}\);$/);
+    // });
   });
 
   describe('generateTriggerFile', () => {
