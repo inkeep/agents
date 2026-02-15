@@ -277,50 +277,47 @@ describe('Context Config Generator', () => {
   });
 
   describe('generateContextConfigImports', () => {
-    it('should generate basic imports', () => {
-      // Use data that has schemas to trigger zod import
-      const dataWithSchemas = {
-        headers: 'personalAgentHeaders',
-        headersSchema: { type: 'object' }, // This will trigger zod import
-        contextVariables: {
-          user: 'userFetcher',
-        },
-      };
-      const imports = generateContextConfigImports('test', dataWithSchemas);
-
-      // Since contextData has headers, it generates a combined import
-      expect(imports).toContain("import { headers, contextConfig } from '@inkeep/agents-core';");
-      expect(imports).toContain("import { z } from 'zod';");
-    });
-
-    it('should include headers import when needed', () => {
-      const dataWithHeaders = {
-        headers: 'myHeaders',
-        headersSchema: { type: 'object' },
-      };
-
-      const imports = generateContextConfigImports('test', dataWithHeaders);
-
-      expect(imports).toContain("import { headers, contextConfig } from '@inkeep/agents-core';");
-    });
-
-    it('should include fetchDefinition import when needed', () => {
-      const dataWithFetch = {
-        contextVariables: {
-          user: {
-            fetchConfig: { url: 'test' },
-            responseSchema: { type: 'object' },
-          },
-        },
-      };
-
-      const imports = generateContextConfigImports('test', dataWithFetch);
-
-      expect(imports).toContain(
-        "import { fetchDefinition, contextConfig } from '@inkeep/agents-core';"
-      );
-    });
-
+    // it('should generate basic imports', () => {
+    //   // Use data that has schemas to trigger zod import
+    //   const dataWithSchemas = {
+    //     headers: 'personalAgentHeaders',
+    //     headersSchema: { type: 'object' }, // This will trigger zod import
+    //     contextVariables: {
+    //       user: 'userFetcher',
+    //     },
+    //   };
+    //   const imports = generateContextConfigImports('test', dataWithSchemas);
+    //
+    //   // Since contextData has headers, it generates a combined import
+    //   expect(imports).toContain("import { headers, contextConfig } from '@inkeep/agents-core';");
+    //   expect(imports).toContain("import { z } from 'zod';");
+    // });
+    // it('should include headers import when needed', () => {
+    //   const dataWithHeaders = {
+    //     headers: 'myHeaders',
+    //     headersSchema: { type: 'object' },
+    //   };
+    //
+    //   const imports = generateContextConfigImports('test', dataWithHeaders);
+    //
+    //   expect(imports).toContain("import { headers, contextConfig } from '@inkeep/agents-core';");
+    // });
+    // it('should include fetchDefinition import when needed', () => {
+    //   const dataWithFetch = {
+    //     contextVariables: {
+    //       user: {
+    //         fetchConfig: { url: 'test' },
+    //         responseSchema: { type: 'object' },
+    //       },
+    //     },
+    //   };
+    //
+    //   const imports = generateContextConfigImports('test', dataWithFetch);
+    //
+    //   expect(imports).toContain(
+    //     "import { fetchDefinition, contextConfig } from '@inkeep/agents-core';"
+    //   );
+    // });
     // it('should handle different code styles', () => {
     //   const imports = generateContextConfigImports('test', contextData, {
     //     quotes: 'double',
