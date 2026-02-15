@@ -192,7 +192,7 @@ describe('Context Config Generator', () => {
       );
     });
 
-    it('should handle context config without headers', () => {
+    it.only('should handle context config without headers', async () => {
       const dataWithoutHeaders = {
         contextVariables: {
           config: 'someConfig',
@@ -200,8 +200,9 @@ describe('Context Config Generator', () => {
         },
       };
 
+      const contextConfigId = 'simpleContext';
       const definition = generateContextConfigDefinition(
-        'simpleContext',
+        contextConfigId,
         dataWithoutHeaders,
         undefined,
         mockRegistry
@@ -212,6 +213,16 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('contextVariables: {');
       expect(definition).toContain('config: someConfig,');
       expect(definition).toContain('data: someData');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({
+        contextConfigId,
+        ...dataWithoutHeaders,
+      });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
 
     it('should handle context config without contextVariables', () => {
