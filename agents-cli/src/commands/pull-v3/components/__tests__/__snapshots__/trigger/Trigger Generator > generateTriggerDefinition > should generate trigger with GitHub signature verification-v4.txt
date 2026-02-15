@@ -1,4 +1,5 @@
 import { Trigger } from '@inkeep/agents-sdk';
+import { githubWebhookSecret } from '../../credentials/github-webhook-secret';
 
 export const githubWebhook = new Trigger({
   id: 'github-webhook',

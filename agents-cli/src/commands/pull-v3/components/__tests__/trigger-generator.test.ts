@@ -385,9 +385,10 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should generate complete trigger file with signature verification', () => {
+    it.only('should generate complete trigger file with signature verification', async () => {
+      const triggerId = 'github-webhook';
       const file = generateTriggerFile(
-        'github-webhook',
+        triggerId,
         triggerWithSignatureVerification,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
@@ -397,6 +398,14 @@ describe('Trigger Generator', () => {
       expect(file).toContain('github-webhook-secret');
       expect(file).toContain('signatureVerification: {');
       expect(file).toContain('signingSecretCredentialReference: githubWebhookSecret');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({
+        triggerId,
+        ...triggerWithSignatureVerification,
+      });
+      await expect(file).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should generate complete trigger file with all features', () => {

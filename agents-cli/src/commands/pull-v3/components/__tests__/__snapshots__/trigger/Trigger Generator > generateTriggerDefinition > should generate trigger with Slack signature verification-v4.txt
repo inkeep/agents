@@ -1,4 +1,5 @@
 import { Trigger } from '@inkeep/agents-sdk';
+import { slackSigningSecret } from '../../credentials/slack-signing-secret';
 
 export const slackWebhook = new Trigger({
   id: 'slack-webhook',
