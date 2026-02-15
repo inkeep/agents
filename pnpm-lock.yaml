@@ -1241,10 +1241,10 @@ importers:
     dependencies:
       '@react-email/components':
         specifier: ^0.0.36
-        version: 0.0.36(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3))(react@19.2.3)
+        version: 0.0.36(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@react-email/render':
         specifier: ^1.1.2
-        version: 1.4.0(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3))(react@19.2.3)
+        version: 1.4.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       nodemailer:
         specifier: ^7.0.3
         version: 7.0.13
@@ -1261,6 +1261,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.3
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.3(react@19.2.3)
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
@@ -21956,7 +21959,7 @@ snapshots:
     dependencies:
       react: 19.2.3
 
-  '@react-email/components@0.0.36(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3))(react@19.2.3)':
+  '@react-email/components@0.0.36(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@react-email/body': 0.0.11(react@19.2.3)
       '@react-email/button': 0.0.19(react@19.2.3)
@@ -21973,7 +21976,7 @@ snapshots:
       '@react-email/link': 0.0.12(react@19.2.3)
       '@react-email/markdown': 0.0.14(react@19.2.3)
       '@react-email/preview': 0.0.12(react@19.2.3)
-      '@react-email/render': 1.0.6(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3))(react@19.2.3)
+      '@react-email/render': 1.0.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@react-email/row': 0.0.12(react@19.2.3)
       '@react-email/section': 0.0.16(react@19.2.3)
       '@react-email/tailwind': 1.0.4(react@19.2.3)
@@ -22023,20 +22026,20 @@ snapshots:
     dependencies:
       react: 19.2.3
 
-  '@react-email/render@1.0.6(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3))(react@19.2.3)':
+  '@react-email/render@1.0.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       html-to-text: 9.0.5
       prettier: 3.5.3
       react: 19.2.3
-      react-dom: 19.3.0-canary-87ae75b3-20260128(react@19.2.3)
+      react-dom: 19.2.3(react@19.2.3)
       react-promise-suspense: 0.3.4
 
-  '@react-email/render@1.4.0(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3))(react@19.2.3)':
+  '@react-email/render@1.4.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       html-to-text: 9.0.5
       prettier: 3.8.1
       react: 19.2.3
-      react-dom: 19.3.0-canary-87ae75b3-20260128(react@19.2.3)
+      react-dom: 19.2.3(react@19.2.3)
       react-promise-suspense: 0.3.4
 
   '@react-email/row@0.0.12(react@19.2.3)':
@@ -29798,11 +29801,6 @@ snapshots:
     dependencies:
       react: 19.2.3
       scheduler: 0.27.0
-
-  react-dom@19.3.0-canary-87ae75b3-20260128(react@19.2.3):
-    dependencies:
-      react: 19.2.3
-      scheduler: 0.28.0-canary-87ae75b3-20260128
 
   react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128):
     dependencies:
