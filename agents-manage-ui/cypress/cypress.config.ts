@@ -28,7 +28,12 @@ export default defineConfig({
     setupNodeEvents(on, _config) {
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && browser.isHeadless) {
-          launchOptions.args.push('--disable-dev-shm-usage');
+          launchOptions.args.push(
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-sandbox',
+            '--disable-features=IsolateOrigins,site-per-process'
+          );
         }
         return launchOptions;
       });
