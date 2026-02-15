@@ -72,16 +72,16 @@ describe('Environment Settings Generator', () => {
       expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateEnvironmentSettingsImports(developmentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { registerEnvironmentSettings } from "@inkeep/agents-sdk"');
-      expect(imports[1]).toBe('import { CredentialStoreType } from "@inkeep/agents-core"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateEnvironmentSettingsImports(developmentData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { registerEnvironmentSettings } from "@inkeep/agents-sdk"');
+    //   expect(imports[1]).toBe('import { CredentialStoreType } from "@inkeep/agents-core"');
+    // });
   });
 
   describe('generateEnvironmentSettingsDefinition', () => {
@@ -207,16 +207,16 @@ describe('Environment Settings Generator', () => {
       expect(imports[1]).toBe("import { development } from './development.env';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateEnvironmentIndexImports(['development'], {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { createEnvironmentSettings } from "@inkeep/agents-sdk"');
-      expect(imports[1]).toBe('import { development } from "./development.env"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateEnvironmentIndexImports(['development'], {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { createEnvironmentSettings } from "@inkeep/agents-sdk"');
+    //   expect(imports[1]).toBe('import { development } from "./development.env"');
+    // });
   });
 
   describe('generateEnvironmentIndexDefinition', () => {

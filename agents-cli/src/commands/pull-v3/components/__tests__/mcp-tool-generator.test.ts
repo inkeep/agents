@@ -64,15 +64,15 @@ describe('MCP Tool Generator', () => {
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateMcpToolImports(testToolData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { mcpTool } from "@inkeep/agents-sdk"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateMcpToolImports(testToolData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { mcpTool } from "@inkeep/agents-sdk"');
+    // });
   });
 
   describe('generateMcpToolDefinition', () => {

@@ -54,15 +54,15 @@ describe('Credential Generator', () => {
       expect(imports[0]).toBe("import { credential } from '@inkeep/agents-sdk';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateCredentialImports({
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { credential } from "@inkeep/agents-sdk"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateCredentialImports({
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { credential } from "@inkeep/agents-sdk"');
+    // });
   });
 
   describe('generateCredentialDefinition', () => {

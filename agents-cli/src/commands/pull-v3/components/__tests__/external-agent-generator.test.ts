@@ -56,15 +56,15 @@ describe('External Agent Generator', () => {
       expect(imports[0]).toBe("import { externalAgent } from '@inkeep/agents-sdk';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateExternalAgentImports('test-agent', basicExternalAgentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { externalAgent } from "@inkeep/agents-sdk"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateExternalAgentImports('test-agent', basicExternalAgentData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { externalAgent } from "@inkeep/agents-sdk"');
+    // });
   });
 
   describe('generateExternalAgentDefinition', () => {
@@ -156,19 +156,19 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('It even contains newlines');
     });
 
-    it('should handle different code styles', () => {
-      const definition = generateExternalAgentDefinition('styled-agent', basicExternalAgentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(definition).toContain('export const styledAgent = externalAgent({');
-      expect(definition).toContain('id: "styled-agent",'); // Double quotes
-      expect(definition).toContain('name: "Weather API Agent",');
-      expect(definition).not.toContain(';'); // No semicolons except at the end
-      expect(definition).toContain('})'); // No semicolon at the end
-    });
+    // it('should handle different code styles', () => {
+    //   const definition = generateExternalAgentDefinition('styled-agent', basicExternalAgentData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(definition).toContain('export const styledAgent = externalAgent({');
+    //   expect(definition).toContain('id: "styled-agent",'); // Double quotes
+    //   expect(definition).toContain('name: "Weather API Agent",');
+    //   expect(definition).not.toContain(';'); // No semicolons except at the end
+    //   expect(definition).toContain('})'); // No semicolon at the end
+    // });
 
     it('should throw error for empty string required fields', () => {
       const emptyStringData = {

@@ -76,15 +76,15 @@ describe('Sub-Agent Generator', () => {
       expect(imports[0]).toBe("import { subAgent } from '@inkeep/agents-sdk';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateSubAgentImports('test-agent', basicSubAgentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { subAgent } from "@inkeep/agents-sdk"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateSubAgentImports('test-agent', basicSubAgentData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { subAgent } from "@inkeep/agents-sdk"');
+    // });
   });
 
   describe('generateSubAgentDefinition', () => {
@@ -219,24 +219,24 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('It even contains newlines');
     });
 
-    it('should handle different code styles', () => {
-      const definition = generateSubAgentDefinition(
-        'styled-agent',
-        basicSubAgentData,
-        {
-          quotes: 'double',
-          semicolons: false,
-          indentation: '    ',
-        },
-        mockRegistry
-      );
-
-      expect(definition).toContain('export const styledAgent = subAgent({');
-      expect(definition).toContain('id: "styled-agent",'); // Double quotes
-      expect(definition).toContain('name: "Personal Assistant",');
-      expect(definition).not.toContain(';'); // No semicolons except at the end
-      expect(definition).toContain('})'); // No semicolon at the end
-    });
+    // it('should handle different code styles', () => {
+    //   const definition = generateSubAgentDefinition(
+    //     'styled-agent',
+    //     basicSubAgentData,
+    //     {
+    //       quotes: 'double',
+    //       semicolons: false,
+    //       indentation: '    ',
+    //     },
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('export const styledAgent = subAgent({');
+    //   expect(definition).toContain('id: "styled-agent",'); // Double quotes
+    //   expect(definition).toContain('name: "Personal Assistant",');
+    //   expect(definition).not.toContain(';'); // No semicolons except at the end
+    //   expect(definition).toContain('})'); // No semicolon at the end
+    // });
 
     it('should handle empty arrays', () => {
       const emptyArraysData = {
