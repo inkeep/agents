@@ -43,7 +43,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/sub-agent/{subAgentId}',
-    summary: 'Get Function Tools for SubAgent',
+    summary: 'List Function Tools assigned to a SubAgent',
     operationId: 'get-function-tools-for-sub-agent',
     tags: ['SubAgents', 'Function Tools'],
     request: {
@@ -78,7 +78,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/function-tool/{functionToolId}/sub-agents',
-    summary: 'Get SubAgents Using Function Tool',
+    summary: 'List SubAgents that use a given Function Tool',
     operationId: 'get-sub-agents-using-function-tool',
     tags: ['SubAgents', 'Function Tools'],
     request: {
@@ -115,7 +115,7 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Associate Function Tool with SubAgent',
+    summary: 'Assign an existing Function Tool to a SubAgent',
     operationId: 'associate-function-tool-with-sub-agent',
     tags: ['SubAgents', 'Function Tools'],
     request: {
@@ -199,7 +199,7 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/sub-agent/{subAgentId}/function-tool/{functionToolId}',
-    summary: 'Remove Function Tool from SubAgent',
+    summary: 'Unassign a Function Tool from a SubAgent',
     operationId: 'remove-function-tool-from-sub-agent',
     tags: ['SubAgents', 'Function Tools'],
     request: {
@@ -247,7 +247,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/sub-agent/{subAgentId}/function-tool/{functionToolId}/exists',
-    summary: 'Check if Function Tool is Associated with SubAgent',
+    summary: 'Check if a Function Tool is assigned to a SubAgent',
     operationId: 'check-function-tool-sub-agent-association',
     tags: ['SubAgents', 'Function Tools'],
     request: {

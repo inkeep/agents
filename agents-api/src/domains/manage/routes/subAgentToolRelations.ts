@@ -47,7 +47,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List SubAgent Tool Relations',
+    summary: 'List MCP Tools assigned to SubAgents',
     operationId: 'list-subagent-tool-relations',
     tags: ['SubAgents', 'Tools'],
     request: {
@@ -128,7 +128,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get SubAgent Tool Relation',
+    summary: 'Get a SubAgent MCP Tool assignment by ID',
     operationId: 'get-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
     request: {
@@ -169,7 +169,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/tool/{toolId}/sub-agents',
-    summary: 'Get SubAgents for Tool',
+    summary: 'List SubAgents that use a given MCP Tool',
     operationId: 'get-subagents-for-tool',
     tags: ['SubAgents', 'Tools'],
     request: {
@@ -209,7 +209,7 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create SubAgent Tool Relation',
+    summary: 'Assign an existing MCP Tool to a SubAgent',
     operationId: 'create-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
     request: {
@@ -278,7 +278,7 @@ app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update SubAgent Tool Relation',
+    summary: 'Update a SubAgent MCP Tool assignment',
     operationId: 'update-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
     request: {
@@ -336,7 +336,7 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete SubAgent Tool Relation',
+    summary: 'Unassign an MCP Tool from a SubAgent',
     operationId: 'delete-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
     request: {

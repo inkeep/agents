@@ -46,7 +46,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Functions',
+    summary: 'List Function Definitions',
     operationId: 'list-functions',
     tags: ['Functions'],
     request: {
@@ -93,7 +93,7 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Function by ID',
+    summary: 'Get Function Definition by ID',
     operationId: 'get-function',
     tags: ['Functions'],
     request: {
@@ -144,7 +144,7 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Function',
+    summary: 'Create Function Definition',
     operationId: 'create-function',
     tags: ['Functions'],
     request: {
@@ -208,7 +208,7 @@ app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Function',
+    summary: 'Update Function Definition',
     operationId: 'update-function',
     tags: ['Functions'],
     request: {
@@ -281,7 +281,7 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Function',
+    summary: 'Delete Function Definition',
     operationId: 'delete-function',
     tags: ['Functions'],
     request: {
