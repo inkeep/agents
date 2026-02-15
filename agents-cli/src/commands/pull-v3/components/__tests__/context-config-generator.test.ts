@@ -253,9 +253,10 @@ describe('Context Config Generator', () => {
       );
     });
 
-    it('should handle empty context config', () => {
+    it.only('should handle empty context config', async () => {
+      const contextConfigId = 'emptyContext';
       const definition = generateContextConfigDefinition(
-        'emptyContext',
+        contextConfigId,
         {},
         undefined,
         mockRegistry
@@ -265,6 +266,13 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('headers:');
       expect(definition).not.toContain('contextVariables:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
   });
 
