@@ -22,6 +22,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
 
+const SETUP_COMPLETE_FILE = '.setup-complete';
+
 // ANSI color codes for better terminal output
 const colors = {
   reset: '\x1b[0m',
@@ -277,7 +279,7 @@ async function setupProjectInDatabase(isCloud) {
   }
 
   // Step 2: Run database migrations (and optionally upgrade packages)
-  const isFirstRun = !existsSync('.setup-complete');
+  const isFirstRun = !existsSync(SETUP_COMPLETE_FILE);
 
   if (process.env.SKIP_UPGRADE === 'true' || isFirstRun) {
     logStep(
@@ -312,10 +314,10 @@ async function setupProjectInDatabase(isCloud) {
     }
 
     if (manageResult.status === 'fulfilled' && runResult.status === 'fulfilled') {
-      writeFileSync('.setup-complete', new Date().toISOString());
+      writeFileSync(SETUP_COMPLETE_FILE, new Date().toISOString());
     } else {
       logWarning(
-        'Partial migration success — .setup-complete not written so next run retries fresh'
+        `Partial migration success — ${SETUP_COMPLETE_FILE} not written so next run retries fresh`
       );
     }
   } else {
