@@ -531,6 +531,7 @@ export async function dispatchExecution(params: {
 
   // Wrap agent execution in a single promise protected by waitUntil
   // The trigger.message_received span is created inside executeAgentAsync
+  const dispatchedAt = Date.now();
   const executionPromise = executeAgentAsync({
     tenantId,
     projectId,
@@ -541,6 +542,7 @@ export async function dispatchExecution(params: {
     userMessage: userMessageText,
     messageParts,
     resolvedRef,
+    dispatchedAt,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -607,6 +609,7 @@ export async function executeAgentAsync(params: {
   userMessage: string;
   messageParts: Part[];
   resolvedRef: ResolvedRef;
+  dispatchedAt?: number;
 }): Promise<void> {
   const {
     tenantId,
@@ -618,12 +621,32 @@ export async function executeAgentAsync(params: {
     userMessage,
     messageParts,
     resolvedRef,
+    dispatchedAt,
   } = params;
 
+  const execStartedAt = Date.now();
+  const dispatchDelayMs = dispatchedAt ? execStartedAt - dispatchedAt : undefined;
+
   logger.info(
-    { tenantId, projectId, agentId, triggerId, invocationId },
+    { tenantId, projectId, agentId, triggerId, invocationId, dispatchDelayMs },
     'executeAgentAsync: started, loading project'
   );
+
+  if (dispatchDelayMs !== undefined && dispatchDelayMs > 5000) {
+    logger.warn(
+      {
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        invocationId,
+        dispatchDelayMs,
+        dispatchedAt,
+        execStartedAt,
+      },
+      'Significant delay between dispatch and executeAgentAsync start — possible instance suspension'
+    );
+  }
 
   // Load project FIRST to get agent name
   const project = await withRef(manageDbPool, resolvedRef, async (db) => {
