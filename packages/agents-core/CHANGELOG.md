@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.48.3
+
+### Patch Changes
+
+- 79dffed: Add shared getWaitUntil utility for Vercel serverless function lifetime extension
+
 ## 0.48.2
 
 ## 0.48.1
