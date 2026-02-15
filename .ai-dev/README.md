@@ -28,6 +28,32 @@ Host (interactive)                    Docker (autonomous)
 - **Execution** (Docker) — ralph.sh iterates autonomously. This is where it works.
 - **Coordination** (host) — push, PR, review. This is where you ship.
 
+## When to use Docker vs host execution
+
+| Scenario | Recommended | Why |
+|----------|-------------|-----|
+| Short feature (1-5 stories), developer present | Host | Simpler — Ralph Phase 3 runs directly |
+| Long-running feature, run overnight or AFK | Docker | Network jail, memory limits, detachable terminal |
+| CI/CD integration | Docker | Reproducible, isolated |
+| No `.ai-dev/` infrastructure in repo | Host | Docker is optional |
+
+## Skill integration
+
+The `/ralph` and `/ship` skills support Docker execution via flags:
+
+```
+/ralph path/to/SPEC.md --docker
+/ship path/to/SPEC.md --ralph-docker
+```
+
+Ralph auto-discovers the compose file in the repo (searches for a `docker-compose.yml` defining a `sandbox` service). To skip discovery, pass the path explicitly:
+
+```
+/ralph path/to/SPEC.md --docker .ai-dev/docker-compose.yml
+```
+
+When passed, Ralph runs `ralph.sh` inside the Docker sandbox instead of on the host. Phases 1-2 (Convert, Prepare) still run on the host — only Phase 3 (Execute) moves into the container.
+
 ## Prerequisites
 
 - Docker and Docker Compose
@@ -46,7 +72,13 @@ cp .env.example .env
 docker compose build
 ```
 
-### Per-feature workflow
+### Usage patterns
+
+There are three ways to use the Docker sandbox, depending on where you are in the workflow.
+
+#### Pattern A: Host prepares, Docker executes (most common)
+
+Use when you want the interactive spec/prd work on host, then hand off execution to Docker for autonomous iteration.
 
 **1. Prepare on host (interactive Claude Code session):**
 
@@ -57,6 +89,8 @@ docker compose build
 # Ralph Phase 1 converts the spec → prd.json
 # Ralph Phase 2 crafts the prompt → .claude/ralph-prompt.md
 #                                  → .claude/ralph.sh (execution script)
+#
+# Tell Ralph to stop after Phase 2 — you'll handle execution via Docker.
 
 # Create feature branch
 git checkout -b feat/my-feature
@@ -69,27 +103,20 @@ git add prd.json .claude/ralph-prompt.md .claude/ralph.sh
 git commit -m "chore: add Ralph artifacts for my-feature"
 ```
 
-**2. Start the sandbox:**
+**2. Start the sandbox and execute:**
 
 ```bash
 cd .ai-dev
 docker compose up -d
 docker compose exec sandbox bash
-```
 
-**3. Run Ralph inside the container:**
-
-```bash
 # Inside the container — you are now at /workspace
-.claude/ralph.sh --create-branch --force
-
-# Or with custom parameters:
 .claude/ralph.sh --max-iterations 20 --max-turns 100 --force
 ```
 
 You can detach (`Ctrl+P, Ctrl+Q`) and check back later.
 
-**4. Review on host:**
+**3. Review and ship on host:**
 
 ```bash
 # Changes are already in your repo (bind mount)
@@ -101,12 +128,41 @@ git push origin feat/my-feature
 gh pr create --title "feat: my-feature" --body "..."
 ```
 
-**5. Clean up:**
+**4. Clean up:**
 
 ```bash
 cd .ai-dev
 docker compose down
 ```
+
+#### Pattern B: Artifacts already exist, just execute
+
+Use when `prd.json` and `.claude/ralph-prompt.md` already exist from a previous session — you just need to resume or re-run execution.
+
+```bash
+cd .ai-dev
+docker compose up -d
+docker compose exec sandbox bash
+
+# Inside the container:
+.claude/ralph.sh --force
+```
+
+#### Pattern C: Everything inside Docker
+
+Use when you want the full Ralph workflow inside the container. Host plugins (including `/ralph`) are available inside Docker via the plugin mount.
+
+```bash
+cd .ai-dev
+docker compose up -d
+docker compose exec sandbox bash
+
+# Inside the container — start Claude Code and use /ralph normally:
+claude
+# Then: /ralph path/to/SPEC.md
+```
+
+Note: Interactive spec work is less convenient inside Docker (no browser tools, no macOS computer use). Pattern A is preferred for most workflows.
 
 ## What the sandbox can and cannot access
 
@@ -278,6 +334,21 @@ Run `/ralph` Phase 1-2 on the host first. The prompt must exist at `.claude/ralp
 Run `pnpm install` on the host before starting Docker. The container accesses `node_modules/` via the bind mount.
 
 If a story requires a NEW dependency, the container can install it (npm registry is in the allowlist). But run `pnpm install` on the host afterward to ensure the lockfile is consistent.
+
+## Future work
+
+The current sandbox is **execution-only** — ralph.sh iterates inside Docker, host handles everything else (spec, push, PR, review). A future upgrade could enable full autonomous operation inside the container:
+
+| Item | What it enables | Trigger to revisit |
+|------|----------------|-------------------|
+| Git credential helper in entrypoint | `git push` from inside the container | Want to push/PR from Docker instead of host |
+| `CLAUDE_SPECS_DIR=/workspace/.claude/specs` | `/spec` output persists via bind mount | Want to run `/spec` inside the container |
+| `gh` auth config (`GH_TOKEN` export) | `gh pr create`, `gh api` from inside | Want full `/ship` review loop inside Docker |
+| Git URL HTTPS rewrite (`insteadOf ssh`) | Prevents SSH attempts through the proxy | If tools default to SSH and silently fail |
+| Health checks in docker-compose | Proxy readiness before sandbox starts | Intermittent startup failures |
+| Convenience start script | Pre-flight checks (token set, plugins exist) | Team onboarding friction |
+
+See `~/.claude/specs/docker-sandbox-upgrade/SPEC.md` for the full analysis that drove these decisions.
 
 ## Security notes
 
