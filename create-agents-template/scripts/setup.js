@@ -16,9 +16,13 @@
  *   environment variable for authentication in CI pipelines.
  */
 
+import { generateKeyPairSync } from 'node:crypto';
+import { existsSync, writeFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
+
+const SETUP_COMPLETE_FILE = '.setup-complete';
 
 // ANSI color codes for better terminal output
 const colors = {
@@ -103,11 +107,12 @@ async function setupProjectInDatabase(isCloud) {
   ) {
     logStep(0, 'Generating JWT keys for playground authentication');
     try {
-      // Generate RSA key pair using openssl
-      const { stdout: privateKey } = await execAsync('openssl genrsa 2048 2>/dev/null');
-      const { stdout: publicKey } = await execAsync(
-        `echo '${privateKey.replace(/'/g, "'\\''")}' | openssl rsa -pubout 2>/dev/null`
-      );
+      // Generate RSA key pair using Node's crypto module (no openssl dependency needed)
+      const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+      });
 
       // Base64 encode the keys
       const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
@@ -161,6 +166,25 @@ async function setupProjectInDatabase(isCloud) {
     logInfo('JWT keys already configured, skipping generation');
   }
 
+  // Validate required database URLs before starting Docker (fail-fast for misconfigured .env)
+  if (!isCloud) {
+    const missingVars = [];
+    if (!process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL) {
+      missingVars.push('INKEEP_AGENTS_MANAGE_DATABASE_URL (DoltgreSQL connection string)');
+    }
+    if (!process.env.INKEEP_AGENTS_RUN_DATABASE_URL) {
+      missingVars.push('INKEEP_AGENTS_RUN_DATABASE_URL (PostgreSQL connection string)');
+    }
+    if (missingVars.length > 0) {
+      logError('Missing required database environment variables:');
+      for (const v of missingVars) {
+        logInfo(`  - ${v}`);
+      }
+      logInfo('Check your .env file and ensure these variables are set.');
+      process.exit(1);
+    }
+  }
+
   // Step 1: Start database (skip if --cloud flag is set)
   if (isCloud) {
     logStep(
@@ -176,9 +200,57 @@ async function setupProjectInDatabase(isCloud) {
     try {
       await execAsync('docker-compose -f docker-compose.db.yml up -d');
       logSuccess('Database containers started successfully');
-      logInfo('Waiting for databases to be ready (10 seconds)...');
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      logSuccess('Databases should be ready');
+
+      logInfo('Polling Docker health status for databases...');
+      async function waitForDockerHealth(serviceName, timeout = 30000) {
+        const start = Date.now();
+        let lastError = null;
+        while (Date.now() - start < timeout) {
+          try {
+            const { stdout } = await execAsync(
+              `docker inspect --format='{{.State.Health.Status}}' $(docker-compose -f docker-compose.db.yml ps -q ${serviceName})`
+            );
+            const status = stdout.trim();
+            if (status === 'healthy') return;
+          } catch (error) {
+            lastError = error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        throw new Error(
+          `${serviceName} not healthy after ${timeout}ms${lastError ? ` (last error: ${lastError.message || lastError})` : ''}`
+        );
+      }
+
+      // DoltgreSQL has start_period: 20s in its healthcheck, so give it 60s.
+      // PostgreSQL is typically ready in <5s, 30s is plenty.
+      const [doltgresResult, postgresResult] = await Promise.allSettled([
+        waitForDockerHealth('doltgres-db', 60000),
+        waitForDockerHealth('postgres-db', 30000),
+      ]);
+
+      if (doltgresResult.status === 'fulfilled') {
+        logSuccess('DoltgreSQL is healthy');
+      } else {
+        logWarning(`DoltgreSQL health check timed out: ${doltgresResult.reason.message}`);
+      }
+
+      if (postgresResult.status === 'fulfilled') {
+        logSuccess('PostgreSQL is healthy');
+      } else {
+        logWarning(`PostgreSQL health check timed out: ${postgresResult.reason.message}`);
+      }
+
+      if (doltgresResult.status === 'rejected' && postgresResult.status === 'rejected') {
+        logError('Both databases failed health checks - cannot proceed with migrations');
+        logInfo('Check that Docker is running and containers started successfully');
+        process.exit(1);
+      } else if (doltgresResult.status === 'rejected' || postgresResult.status === 'rejected') {
+        const failedDb = doltgresResult.status === 'rejected' ? 'DoltgreSQL' : 'PostgreSQL';
+        logWarning(`${failedDb} is not healthy — its migration will likely fail`);
+      }
+
+      logSuccess('Database health checks complete');
     } catch (error) {
       const errorMessage = error.message || error.toString();
       const stderr = error.stderr || '';
@@ -207,17 +279,46 @@ async function setupProjectInDatabase(isCloud) {
   }
 
   // Step 2: Run database migrations (and optionally upgrade packages)
-  if (process.env.SKIP_UPGRADE === 'true') {
-    logStep(2, 'Skipping package upgrade (SKIP_UPGRADE=true), running migrations only');
-    try {
-      const { stdout } = await execAsync('pnpm db:migrate');
-      if (stdout) {
-        console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
-      }
-      logSuccess('Database migrations completed successfully');
-    } catch (error) {
-      logError('Failed to run database migrations', error);
-      logWarning('This may cause issues with the setup. Consider checking your database schema.');
+  const isFirstRun = !existsSync(SETUP_COMPLETE_FILE);
+
+  if (process.env.SKIP_UPGRADE === 'true' || isFirstRun) {
+    logStep(
+      2,
+      isFirstRun
+        ? 'Fresh install detected - skipping package upgrade, running migrations only'
+        : 'Skipping package upgrade (SKIP_UPGRADE=true), running migrations only'
+    );
+    logInfo('Running DoltgreSQL and PostgreSQL migrations in parallel...');
+    const [manageResult, runResult] = await Promise.allSettled([
+      execAsync('pnpm db:manage:migrate'),
+      execAsync('pnpm db:run:migrate'),
+    ]);
+
+    if (manageResult.status === 'fulfilled') {
+      logSuccess('DoltgreSQL migrations completed');
+    } else {
+      logWarning(
+        `DoltgreSQL migrations failed: ${manageResult.reason.message || manageResult.reason}`
+      );
+    }
+
+    if (runResult.status === 'fulfilled') {
+      logSuccess('PostgreSQL migrations completed');
+    } else {
+      logWarning(`PostgreSQL migrations failed: ${runResult.reason.message || runResult.reason}`);
+    }
+
+    if (manageResult.status === 'rejected' && runResult.status === 'rejected') {
+      logError('Both database migrations failed');
+      process.exit(1);
+    }
+
+    if (manageResult.status === 'fulfilled' && runResult.status === 'fulfilled') {
+      writeFileSync(SETUP_COMPLETE_FILE, new Date().toISOString());
+    } else {
+      logWarning(
+        `Partial migration success — ${SETUP_COMPLETE_FILE} not written so next run retries fresh`
+      );
     }
   } else {
     logStep(2, 'Running database migrations and upgrading packages');
@@ -317,13 +418,17 @@ async function setupProjectInDatabase(isCloud) {
       let lastError = null;
       while (Date.now() - start < timeout) {
         try {
-          const response = await fetch(url);
+          const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
           if (response.ok) {
             return;
           }
           lastError = `HTTP ${response.status}`;
         } catch (error) {
-          lastError = error.message || error;
+          if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+            lastError = 'fetch timeout (>5s per attempt)';
+          } else {
+            lastError = error.message || error;
+          }
           // Server not ready yet, continue polling
         }
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
@@ -349,24 +454,28 @@ async function setupProjectInDatabase(isCloud) {
     devApiProcess.stdout.on('data', checkForApiPortErrors);
     dashboardProcess.stdout.on('data', checkForDashboardPortErrors);
 
-    // Step 6: Wait for servers to be ready
+    // Step 6: Wait for servers to be ready (poll in parallel)
     logStep(6, 'Waiting for servers to be ready');
 
-    logInfo('Checking Agents API health endpoint (http://localhost:3002/health)...');
-    try {
-      await waitForServerReady(`http://localhost:3002/health`, 60000);
+    logInfo(
+      'Checking Agents API (http://localhost:3002/health) and Dashboard (http://localhost:3000) in parallel...'
+    );
+    const [apiResult, dashboardResult] = await Promise.allSettled([
+      waitForServerReady(`http://localhost:3002/health`, 60000),
+      waitForServerReady(`http://localhost:3000`, 60000),
+    ]);
+
+    if (apiResult.status === 'fulfilled') {
       logSuccess('Agents API is ready');
-    } catch (error) {
-      logError('Agents API failed to start within timeout', error);
+    } else {
+      logError('Agents API failed to start within timeout', apiResult.reason);
       logWarning('Continuing anyway, but subsequent steps may fail');
     }
 
-    logInfo('Checking Dashboard health endpoint (http://localhost:3000)...');
-    try {
-      await waitForServerReady(`http://localhost:3000`, 60000);
+    if (dashboardResult.status === 'fulfilled') {
       logSuccess('Dashboard is ready');
-    } catch (error) {
-      logError('Dashboard failed to start within timeout', error);
+    } else {
+      logError('Dashboard failed to start within timeout', dashboardResult.reason);
       logWarning('Continuing anyway, but subsequent steps may fail');
     }
 
