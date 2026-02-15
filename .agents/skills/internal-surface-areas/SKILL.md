@@ -107,7 +107,7 @@ Developer/operator goal: run the system in containers for local development and 
 | **Full local stack (Docker Compose)** | Compose definition running UI + APIs + migration job alongside the database stack for local integration testing. | Local database stack (Docker Compose), Runtime env schemas (API/CLI/Core) | `docker-compose.yml` |
 | **Doltgres container init** | Doltgres container config and entrypoint that initializes the `inkeep_agents` database on first boot. | Local database stack (Docker Compose) | `doltgres-config.yml`, `docker-doltgres-entrypoint.sh`, `init-dolt.sql` |
 | **Test Dockerfiles (Playwright/Manage API)** | Docker images used to run manage API tests and UI snapshot tests in a consistent environment. | pnpm workspace & dependency catalog, Turborepo task graph | `Dockerfile.manage-api-test`, `Dockerfile.manage-ui-test` |
-| **AI dev containers (`.ai-dev`)** | Internal Docker-based harness for AI automation (proxy, Claude container, ralph scripts) used by maintainers. | Environment templates (`.env.example`, `.env.docker.example`) | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile.claude`, `.ai-dev/Dockerfile.proxy` |
+| **AI dev containers (`.ai-dev`)** | Internal Docker-based harness for AI automation (proxy, Claude sandbox container) used by maintainers. | Environment templates (`.env.example`, `.env.docker.example`) | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/entrypoint.sh` |
 
 ### Database Schemas & Migrations
 Developer/operator goal: evolve data models safely and reproducibly via migration tooling.
@@ -207,7 +207,7 @@ Developer/operator goal: guide AI coding agents and automate AI-assisted workflo
 | **PR review orchestrator agent (`pr-review`)** | Multi-phase PR review coordinator that dispatches domain reviewers and aggregates findings. | Skills library (`.agents/skills`), Claude Code agents (`.claude/agents`) | `.claude/agents/pr-review.md`, `.claude/agents/` |
 | **AI artifact validation script** | Validates agent/skill YAML frontmatter for discovery and blocks invalid artifacts via pre-commit checks. | — | `scripts/validate-ai-artifacts.ts` |
 | **Cursor automation commands (`.cursor/commands`)** | Lightweight operational playbooks for common git/CI workflows (PR creation, rebase, flaky test fixes). | — | `.cursor/commands/`, `.cursor/worktrees.json` |
-| **Internal AI-dev Docker sandbox** | Maintainer-only Docker sandbox for network-isolated AI development (proxy, container). PRD authoring and autonomous implementation use the `/spec`, `/ralph`, and `/feature-dev` skills in `inkeep/team-skills`. | — | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile.claude`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/squid.conf` |
+| **Internal AI-dev Docker sandbox** | Maintainer-only Docker sandbox for network-isolated AI development (proxy, container). PRD authoring and autonomous implementation use the `/spec`, `/ralph`, and `/feature-dev` skills in `inkeep/team-skills`. | — | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/squid.conf`, `.ai-dev/entrypoint.sh` |
 
 ### Package Publishing & Versioning
 Developer/operator goal: version packages consistently and publish safely to npm and internal registries.
