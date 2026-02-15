@@ -118,6 +118,17 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
+  const credentialReferenceId = extractCredentialReferenceId(
+    parsed.signingSecretCredentialReferenceId,
+    parsed.signingSecretCredentialReference
+  );
+  if (credentialReferenceId) {
+    sourceFile.addImportDeclaration({
+      namedImports: [toTriggerVariableName(credentialReferenceId)],
+      moduleSpecifier: `../../credentials/${credentialReferenceId}`,
+    });
+  }
+
   const triggerVarName = toTriggerVariableName(parsed.triggerId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
