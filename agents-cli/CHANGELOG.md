@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.48.3
+
+### Patch Changes
+
+- baa7e46: Fix CLI port mismatch by centralizing local dev URLs via --local flag
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-manage-ui@0.48.3
+  - @inkeep/agents-sdk@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes
