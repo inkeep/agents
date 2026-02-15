@@ -225,13 +225,14 @@ describe('Context Config Generator', () => {
       );
     });
 
-    it('should handle context config without contextVariables', () => {
+    it.only('should handle context config without contextVariables', async () => {
       const dataWithoutVariables = {
         headers: 'myHeaders',
       };
 
+      const contextConfigId = 'headerOnlyContext';
       const definition = generateContextConfigDefinition(
-        'headerOnlyContext',
+        contextConfigId,
         dataWithoutVariables,
         undefined,
         mockRegistry
@@ -240,6 +241,16 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('const headerOnlyContext = contextConfig({');
       expect(definition).toContain('headers: myHeaders');
       expect(definition).not.toContain('contextVariables:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({
+        contextConfigId,
+        ...dataWithoutVariables,
+      });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
 
     it('should handle empty context config', () => {
