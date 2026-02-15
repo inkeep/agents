@@ -57,7 +57,6 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   const contextConfigVarName = toContextConfigVariableName(parsed.contextConfigId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
     declarations: [
       {
         name: contextConfigVarName,
