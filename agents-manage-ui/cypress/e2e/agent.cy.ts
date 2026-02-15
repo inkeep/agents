@@ -12,11 +12,8 @@ function dragNode(selector: string) {
     .trigger('drop', { dataTransfer });
 }
 function connectEdge(selector: string) {
-  // React Flow panels (z-index: 5) can overlap node handles, so force is needed
-  cy.get(selector).trigger('mousedown', { button: 0, force: true });
-  cy.get('[data-handleid="target-agent"]')
-    .trigger('mousemove', { force: true })
-    .trigger('mouseup', { force: true });
+  cy.get(selector).trigger('mousedown', { button: 0 });
+  cy.get('[data-handleid="target-agent"]').trigger('mousemove').trigger('mouseup');
 }
 
 describe('Agent', () => {
