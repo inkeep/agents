@@ -44,6 +44,9 @@ coverage/
 *.temp
 .cache/
 
+# Setup marker
+.setup-complete
+
 # Runtime data
 pids/
 *.pid
