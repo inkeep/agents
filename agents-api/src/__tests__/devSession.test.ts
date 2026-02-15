@@ -8,6 +8,14 @@ const mockEnv = vi.hoisted(() => ({
 
 vi.mock('../env', () => ({ env: mockEnv }));
 
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const original = await importOriginal<Record<string, unknown>>();
+  return {
+    ...original,
+    getWaitUntil: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 const defaultServerConfig = { port: 3002, serverOptions: {} };
 const defaultCredentialStores = { getAll: () => [], get: () => null } as any;
 
