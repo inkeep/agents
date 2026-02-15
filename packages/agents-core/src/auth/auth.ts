@@ -9,6 +9,7 @@ import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { type OrgRole, OrgRoles } from './authz/types';
+import { setEmailSendStatus } from './email-send-status-store';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
@@ -80,6 +81,24 @@ export interface SSOProviderConfig {
   samlConfig?: SAMLProviderConfig;
 }
 
+export interface EmailServiceConfig {
+  sendInvitationEmail(data: {
+    to: string;
+    inviterName: string;
+    organizationName: string;
+    role: string;
+    invitationUrl: string;
+    authMethod?: string;
+    expiresInDays?: number;
+  }): Promise<{ emailSent: boolean; error?: string }>;
+  sendPasswordResetEmail(data: {
+    to: string;
+    resetUrl: string;
+    expiresInMinutes?: number;
+  }): Promise<{ emailSent: boolean; error?: string }>;
+  isConfigured: boolean;
+}
+
 export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
@@ -90,6 +109,7 @@ export interface BetterAuthConfig {
     google?: GoogleOptions;
   };
   advanced?: BetterAuthAdvancedOptions;
+  emailService?: EmailServiceConfig;
 }
 
 export interface UserAuthConfig {
@@ -202,6 +222,16 @@ export function createAuth(config: BetterAuthConfig) {
       resetPasswordTokenExpiresIn: 60 * 30,
       sendResetPassword: async ({ user, url, token }) => {
         setPasswordResetLink({ email: user.email, url, token });
+        if (config.emailService?.isConfigured) {
+          try {
+            await config.emailService.sendPasswordResetEmail({
+              to: user.email,
+              resetUrl: url,
+            });
+          } catch (err) {
+            console.error('[email] Failed to send password reset email:', err);
+          }
+        }
       },
     },
     account: {
@@ -294,12 +324,32 @@ export function createAuth(config: BetterAuthConfig) {
             invitationId: data.id,
           });
 
-          // Note: The invitation link is displayed in the UI with a copy button.
-          // If you want to send actual emails, configure an email provider:
-          // - Resend: await resend.emails.send({ ... })
-          // - SendGrid: await sgMail.send({ ... })
-          // - AWS SES: await ses.sendEmail({ ... })
-          // - Postmark: await postmark.sendEmail({ ... })
+          if (config.emailService?.isConfigured) {
+            try {
+              const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+              const invitationUrl = `${manageUiUrl}/accept-invitation/${data.id}?email=${encodeURIComponent(data.email)}`;
+              const result = await config.emailService.sendInvitationEmail({
+                to: data.email,
+                inviterName: data.inviter.user.name || data.inviter.user.email,
+                organizationName: data.organization.name,
+                role: data.role,
+                invitationUrl,
+                authMethod: (data.invitation as Record<string, unknown> | undefined)?.authMethod as
+                  | string
+                  | undefined,
+              });
+              setEmailSendStatus(data.id, {
+                emailSent: result.emailSent,
+                error: result.error,
+              });
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error(`[email] Failed to send invitation email to ${data.email}:`, message);
+              setEmailSendStatus(data.id, { emailSent: false, error: message });
+            }
+          } else {
+            setEmailSendStatus(data.id, { emailSent: false });
+          }
         },
         schema: {
           invitation: {
