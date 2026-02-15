@@ -29,14 +29,16 @@ import { getLogger } from '../logger';
 
 const logger = getLogger('in-process-fetch');
 
-let _appFetch: typeof fetch | undefined;
+const GLOBAL_KEY = '__inkeep_appFetch' as const;
 
 export function registerAppFetch(fn: typeof fetch): void {
-  _appFetch = fn;
+  (globalThis as any)[GLOBAL_KEY] = fn;
 }
 
 export function getInProcessFetch(): typeof fetch {
-  if (!_appFetch) {
+  const appFetch: typeof fetch | undefined = (globalThis as any)[GLOBAL_KEY];
+
+  if (!appFetch) {
     if (process.env.ENVIRONMENT === 'test' || process.env.ENVIRONMENT === 'development') {
       return fetch;
     }
@@ -45,7 +47,6 @@ export function getInProcessFetch(): typeof fetch {
     );
   }
 
-  const appFetch = _appFetch;
   return ((input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const activeSpan = trace.getActiveSpan();
