@@ -4,9 +4,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { generateTriggerDefinition as generateTriggerDefinitionV4 } from '../../../pull-v4/trigger-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import { generateTriggerDefinition, generateTriggerFile } from '../trigger-generator';
-import { generateTriggerDefinition as generateTriggerDefinitionV4 } from '../../../pull-v4/trigger-generator';
 
 // Mock registry for tests
 const mockRegistry = {

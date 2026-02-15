@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { generateContextConfigDefinition as generateContextConfigDefinitionV4 } from '../../../pull-v4/context-config-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateContextConfigDefinition,
@@ -168,9 +169,10 @@ describe('Context Config Generator', () => {
   });
 
   describe('generateContextConfigDefinition', () => {
-    it('should generate correct context config definition', () => {
+    it.only('should generate correct context config definition', async () => {
+      const contextConfigId = 'personalAgentContext';
       const definition = generateContextConfigDefinition(
-        'personalAgentContext',
+        contextConfigId,
         contextData,
         undefined,
         mockRegistry
@@ -181,6 +183,13 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('contextVariables: {');
       expect(definition).toContain('user: userFetcher');
       expect(definition).toContain('});');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...contextData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
 
     it('should handle context config without headers', () => {
