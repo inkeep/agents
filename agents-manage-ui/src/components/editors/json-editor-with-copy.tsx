@@ -1,12 +1,12 @@
 import { Copy, Download, TextWrap } from 'lucide-react';
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
+import { toast } from '@/lib/toast';
 import { JsonEditor } from './json-editor';
 import './json-editor-with-copy.css';
 

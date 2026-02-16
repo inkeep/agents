@@ -3,7 +3,6 @@
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
@@ -11,6 +10,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { sentry } from '@/lib/sentry';
+import { toast } from '@/lib/toast';
 import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpMessage } from './message-parts/message';

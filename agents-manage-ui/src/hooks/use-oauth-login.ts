@@ -5,7 +5,6 @@ import {
 } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
-import { toast } from 'sonner';
 import type {
   OAuthLoginHandler,
   OAuthLoginParams,
@@ -13,6 +12,7 @@ import type {
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
+import { toast } from '@/lib/toast';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';

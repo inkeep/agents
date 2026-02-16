@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
@@ -16,6 +15,7 @@ import {
   createArtifactComponentAction,
   updateArtifactComponentAction,
 } from '@/lib/actions/artifact-components';
+import { toast } from '@/lib/toast';
 import { isRequired } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';

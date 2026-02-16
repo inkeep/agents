@@ -9,7 +9,6 @@ import { ArrowDown, ArrowUp, Check, ChevronDown, KeyRound, Plus, Trash2 } from '
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
@@ -36,6 +35,7 @@ import { Switch } from '@/components/ui/switch';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
+import { toast } from '@/lib/toast';
 
 // Adapter functions that convert ValidationResult to string | undefined for form validation
 const validateJMESPath = (value: string): string | undefined => {

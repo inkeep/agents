@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { updateDatasetAction } from '@/lib/actions/datasets';
+import { toast } from '@/lib/toast';
 
 const renameSchema = z.object({
   name: z.string().min(1, 'Name is required'),

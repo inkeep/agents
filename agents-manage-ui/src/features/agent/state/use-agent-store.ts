@@ -2,7 +2,6 @@
 
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
-import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
@@ -17,6 +16,7 @@ import { resolveCollisions } from '@/components/agent/configuration/resolve-coll
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { sentry } from '@/lib/sentry';
+import { toast } from '@/lib/toast';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,

@@ -2,7 +2,6 @@
 
 import { type ProjectRole, ProjectRoles } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import {
   getProjectRoleLabel,
   ProjectRoleSelector,
@@ -27,6 +26,7 @@ import {
   updateProjectMember,
 } from '@/lib/api/project-members';
 import { fetchProjects } from '@/lib/api/projects';
+import { toast } from '@/lib/toast';
 import type { Project } from '@/lib/types/project';
 
 interface ProjectAssignment {

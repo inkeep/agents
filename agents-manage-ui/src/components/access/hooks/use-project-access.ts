@@ -2,7 +2,6 @@
 
 import { OrgRoles, type ProjectRole } from '@inkeep/agents-core/client-exports';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { useAuthClient } from '@/contexts/auth-client';
 import {
   addProjectMember,
@@ -10,6 +9,7 @@ import {
   removeProjectMember,
   updateProjectMember,
 } from '@/lib/api/project-members';
+import { toast } from '@/lib/toast';
 import type {
   AccessPrincipal,
   InheritedAccessConfig,

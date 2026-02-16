@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteEvaluatorAction } from '@/lib/actions/evaluators';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { toast } from '@/lib/toast';
 
 interface DeleteEvaluatorConfirmationProps {
   tenantId: string;

@@ -2,7 +2,6 @@
 
 import { SlackIcon } from 'lucide-react';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
+import { toast } from '@/lib/toast';
 import { useSlack } from '../context/slack-provider';
 import { AgentConfigurationCard } from './agent-configuration-card';
 import { LinkedUsersSection } from './linked-users-section';

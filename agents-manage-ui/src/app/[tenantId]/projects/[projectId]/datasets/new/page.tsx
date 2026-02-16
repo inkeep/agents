@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { use, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { DeleteDatasetConfirmation } from '@/components/datasets/delete-dataset-confirmation';
 import { type DatasetFormData, datasetSchema } from '@/components/datasets/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
@@ -13,6 +12,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { createDatasetAction, updateDatasetAction } from '@/lib/actions/datasets';
 import type { Dataset } from '@/lib/api/datasets';
+import { toast } from '@/lib/toast';
 
 const formatFormData = (data?: DatasetFormData): DatasetFormData => {
   if (!data) {

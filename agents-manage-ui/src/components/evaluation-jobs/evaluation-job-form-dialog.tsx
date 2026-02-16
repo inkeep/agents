@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { createEvaluationJobConfigAction } from '@/lib/actions/evaluation-job-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
+import { toast } from '@/lib/toast';
 import { type EvaluationJobConfigFormData, evaluationJobConfigSchema } from './validation';
 
 interface EvaluationJobFormDialogProps {

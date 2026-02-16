@@ -2,10 +2,10 @@
 
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog } from '@/components/ui/dialog';
 import { deleteApiKeyAction } from '@/lib/actions/api-keys';
+import { toast } from '@/lib/toast';
 
 interface DeleteApiKeyConfirmationProps {
   apiKeyId: string;
