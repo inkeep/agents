@@ -3,7 +3,6 @@
 import { MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -22,6 +21,7 @@ import {
 } from '@/components/ui/item-card';
 import { useProjectPermissions } from '@/contexts/project';
 import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
+import { toast } from '@/lib/toast';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';

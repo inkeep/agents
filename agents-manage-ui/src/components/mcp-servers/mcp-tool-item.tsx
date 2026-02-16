@@ -3,7 +3,6 @@
 import { Loader2, MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -23,6 +22,7 @@ import {
 import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { toast } from '@/lib/toast';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';

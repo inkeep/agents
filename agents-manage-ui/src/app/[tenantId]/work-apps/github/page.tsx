@@ -3,13 +3,13 @@
 import { Github } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { WorkAppGitHubInstallButton } from '@/components/settings/work-app-github-install-button';
 import { WorkAppGitHubInstallationsList } from '@/components/settings/work-app-github-installations-list';
 import type { WorkAppGitHubInstallation } from '@/lib/api/github';
 import { fetchWorkAppGitHubInstallations } from '@/lib/api/github';
+import { toast } from '@/lib/toast';
 import GitHubSettingsLoading from './loading';
 
 interface PageParams {

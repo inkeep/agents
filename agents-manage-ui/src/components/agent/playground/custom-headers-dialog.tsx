@@ -2,7 +2,6 @@ import type { StringRecordSchema } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
 import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { toast } from 'sonner';
 import type { z } from 'zod';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
@@ -18,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { customHeadersTemplate } from '@/lib/templates';
+import { toast } from '@/lib/toast';
 
 type DefaultHeaders = z.infer<typeof StringRecordSchema>;
 

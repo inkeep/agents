@@ -3,10 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
+import { toast } from '@/lib/toast';
 import { idSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
 import { GenericTextarea } from '../form/generic-textarea';

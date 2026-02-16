@@ -4,7 +4,6 @@ import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { AlertCircle, Check, ChevronDown, Copy } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { toast } from '@/lib/toast';
 import { OrgRoleSelector } from './org-role-selector';
 
 type InviteAuthMethod = 'email-password' | 'google' | 'sso';

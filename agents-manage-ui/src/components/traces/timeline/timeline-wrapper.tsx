@@ -9,7 +9,6 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
 import { ActivityDetailsSidePane } from '@/components/traces/timeline/activity-details-sidepane';
@@ -33,6 +32,7 @@ import {
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { DOCS_BASE_URL } from '@/constants/theme';
+import { toast } from '@/lib/toast';
 import { buildFullTrace, buildSummarizedTrace } from '@/lib/utils/trace-formatter';
 
 function panelTitle(selected: SelectedPanel) {

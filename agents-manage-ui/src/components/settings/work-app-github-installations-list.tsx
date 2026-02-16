@@ -12,7 +12,6 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +34,7 @@ import {
   reconnectWorkAppGitHubInstallation,
   syncWorkAppGitHubRepositories,
 } from '@/lib/api/github';
+import { toast } from '@/lib/toast';
 import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import { DisconnectInstallationDialog } from './work-app-github-disconnect-dialog';
 

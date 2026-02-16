@@ -2,9 +2,9 @@
 
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { deleteFullAgentAction } from '@/lib/actions/agent-full';
+import { toast } from '@/lib/toast';
 
 interface DeleteAgentConfirmationProps {
   agentId: string;

@@ -3,7 +3,6 @@
 import { Dialog } from '@radix-ui/react-dialog';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import {
@@ -15,6 +14,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { deleteProjectAction } from '@/lib/actions/projects';
+import { toast } from '@/lib/toast';
 
 interface DeleteProjectConfirmationProps {
   projectId: string;

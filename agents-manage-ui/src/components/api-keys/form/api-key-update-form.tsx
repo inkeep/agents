@@ -2,13 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { updateApiKeyAction } from '@/lib/actions/api-keys';
 import type { ApiKey } from '@/lib/api/api-keys';
+import { toast } from '@/lib/toast';
 import { type ApiKeyUpdateData, apiKeyUpdateSchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
 interface ApiKeyUpdateFormProps {

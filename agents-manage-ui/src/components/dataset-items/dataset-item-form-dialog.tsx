@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,6 +20,7 @@ import {
   updateDatasetItemAction,
 } from '@/lib/actions/dataset-items';
 import type { DatasetItem } from '@/lib/api/dataset-items';
+import { toast } from '@/lib/toast';
 import { ExpectedOutputForm } from './expected-output-form';
 import { MessagesInputForm } from './messages-input-form';
 import { SimulationAgentForm } from './simulation-agent-form';

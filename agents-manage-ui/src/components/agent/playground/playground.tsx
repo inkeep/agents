@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
 import { type Dispatch, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
+import { toast } from '@/lib/toast';
 import { generateId } from '@/lib/utils/id-utils';
 import {
   copyFullTraceToClipboard,

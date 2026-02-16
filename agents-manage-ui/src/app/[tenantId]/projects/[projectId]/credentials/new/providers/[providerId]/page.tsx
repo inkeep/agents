@@ -5,7 +5,6 @@ import type { ApiProvider } from '@nangohq/types';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { requiresCredentialForm } from '@/components/credentials/views/auth-form-config';
 import { GenericAuthForm } from '@/components/credentials/views/generic-auth-form';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
+import { toast } from '@/lib/toast';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 

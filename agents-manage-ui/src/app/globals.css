@@ -285,25 +285,6 @@ li[data-sonner-toast][data-type="error"] {
   @apply text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl;
 }
 
-/* Make toast text selectable (swipe-to-dismiss is disabled via swipeDirections={[]}) */
-[data-sonner-toast] {
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-/* Move toast close button from left to right */
-:where([data-sonner-toaster][dir="ltr"] button[data-close-button]) {
-  --toast-close-button-start: auto;
-  --toast-close-button-end: 0;
-  --toast-close-button-transform: translate(35%, -35%);
-}
-
-:where([data-sonner-toaster][dir="rtl"] button[data-close-button]) {
-  --toast-close-button-start: 0;
-  --toast-close-button-end: auto;
-  --toast-close-button-transform: translate(-35%, -35%);
-}
-
 /* Node execution pulse animation */
 @keyframes node-pulse {
   0% {

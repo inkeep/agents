@@ -13,7 +13,6 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +35,7 @@ import {
   rerunScheduledTriggerInvocationAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocation } from '@/lib/api/scheduled-triggers';
+import { toast } from '@/lib/toast';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 

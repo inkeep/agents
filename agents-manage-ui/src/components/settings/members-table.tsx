@@ -1,7 +1,6 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/settings/change-password-dialog';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
+import { toast } from '@/lib/toast';
 import { ProjectAccessDialog } from './project-access-dialog';
 
 type AuthClient = ReturnType<typeof useAuthClient>;

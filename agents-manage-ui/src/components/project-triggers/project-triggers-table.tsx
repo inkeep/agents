@@ -4,7 +4,6 @@ import { Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import { deleteTriggerAction, updateTriggerEnabledAction } from '@/lib/actions/triggers';
 import type { TriggerWithAgent } from '@/lib/api/project-triggers';
+import { toast } from '@/lib/toast';
 
 interface ProjectTriggersTableProps {
   triggers: TriggerWithAgent[];

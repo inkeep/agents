@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteEvaluationRunConfigAction } from '@/lib/actions/evaluation-run-configs';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
+import { toast } from '@/lib/toast';
 
 interface DeleteEvaluationRunConfigConfirmationProps {
   tenantId: string;

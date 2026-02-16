@@ -1,12 +1,12 @@
 import type { DataOperationEvent } from '@inkeep/agents-core';
 import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { FieldDiff } from '@/lib/actions/tool-approval';
 import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
+import { toast } from '@/lib/toast';
 import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
 import { LoadingIndicator } from './loading';

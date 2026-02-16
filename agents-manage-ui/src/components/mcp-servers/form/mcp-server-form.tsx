@@ -5,7 +5,6 @@ import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -23,6 +22,7 @@ import {
 } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { useMcpToolInvalidation } from '@/lib/query/mcp-tools';
+import { toast } from '@/lib/toast';
 import type { MCPTool } from '@/lib/types/tools';
 import { cn } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';

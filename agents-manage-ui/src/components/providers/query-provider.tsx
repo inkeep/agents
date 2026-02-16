@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-query';
 import type { FC, ReactNode } from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 const QUERY_CONFIG: QueryClientConfig = {
   defaultOptions: {

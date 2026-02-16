@@ -4,10 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
-
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +14,7 @@ import { InfoCard } from '@/components/ui/info-card';
 import { useCredentialStoresQuery } from '@/lib/query/credential-stores';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { toast } from '@/lib/toast';
 import {
   type CredentialFormData,
   type CredentialFormOutput,

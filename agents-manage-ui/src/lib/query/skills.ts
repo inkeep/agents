@@ -2,9 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { toast } from 'sonner';
 import type { SkillOutput } from '@/components/skills/form/validation';
 import { createSkill, fetchSkill, updateSkill } from '@/lib/api/skills';
+import { toast } from '@/lib/toast';
 import type { Skill } from '@/lib/types/skills';
 
 const skillQueryKeys = {

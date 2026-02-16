@@ -11,7 +11,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import EmptyState from '@/components/layout/empty-state';
 import {
   AlertDialog,
@@ -51,6 +50,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from '@/lib/toast';
 import { WorkAppIcon } from '../../common/components/work-app-icon';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';

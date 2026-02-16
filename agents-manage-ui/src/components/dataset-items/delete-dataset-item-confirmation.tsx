@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { deleteDatasetItemAction } from '@/lib/actions/dataset-items';
+import { toast } from '@/lib/toast';
 
 interface DeleteDatasetItemConfirmationProps {
   tenantId: string;

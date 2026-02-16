@@ -2,7 +2,6 @@
 
 import { Building2, Github, Loader2, RefreshCw, User } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,6 +28,7 @@ import {
   type WorkAppGitHubProjectAccess,
   type WorkAppGitHubRepository,
 } from '@/lib/api/github';
+import { toast } from '@/lib/toast';
 import type { MCPTool } from '@/lib/types/tools';
 
 interface GitHubAccessEditDialogProps {

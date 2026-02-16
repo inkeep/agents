@@ -2,9 +2,9 @@
 
 import { Github, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { getWorkAppGitHubInstallUrl } from '@/lib/api/github';
+import { toast } from '@/lib/toast';
 
 interface WorkAppGitHubInstallButtonProps {
   tenantId: string;

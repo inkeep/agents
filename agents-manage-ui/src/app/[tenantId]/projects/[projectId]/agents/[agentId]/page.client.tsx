@@ -14,7 +14,6 @@ import {
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { type ComponentProps, type FC, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -63,6 +62,7 @@ import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
+import { toast } from '@/lib/toast';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
