@@ -98,31 +98,26 @@ inkeep push
   style={{ border: "1px solid #e1e5e9" }}
 />
 
-# Set up live traces
+# Set up optional services (traces + credentials)
 
-For full instructions, see [Traces](/get-started/traces). Short version:
+A single command sets up all optional local services — Nango (credential store), SigNoz (trace viewer), OTEL Collector, and Jaeger:
 
 ```bash
-pnpm setup-dev:full
+pnpm setup-dev:optional
 ```
 
-This automatically sets up SigNoz, OTEL Collector, Jaeger, and all related env vars. Restart `pnpm dev`, then open `http://localhost:3080` to view traces.
+This automatically clones the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) companion repo, starts all services via Docker Compose, and wires the required env vars to your `.env`. Restart `pnpm dev` to pick up the new variables.
+
+- **Traces**: Open `http://localhost:3080` to view traces in SigNoz. See [Traces](/get-started/traces) for full instructions.
+- **Credentials**: Create a credential in the Visual Builder (Credentials tab) using Nango Store. See [Use Nango as a credential store](/typescript-sdk/credentials/nango) for full instructions.
+
+Use `pnpm optional:status` to check service health, `pnpm optional:stop` to stop services, or `pnpm optional:reset` to start fresh.
 
 <Image
   src="/images/live-traces.png"
   alt="Live traces showing"
   style={{ border: "1px solid #e1e5e9" }}
 />
-
-# Set up credentials
-
-For Nango setup (cloud or local), follow [Use Nango as a credential store](/typescript-sdk/credentials/nango). Short version:
-
-```bash
-pnpm setup-dev:full
-```
-
-This automatically sets up Nango and wires the secret key to your `.env`. Restart `pnpm dev`, then create a credential in the Visual Builder (Credentials tab).
 
 # Development Workflow
 
