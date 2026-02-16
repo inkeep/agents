@@ -1,6 +1,7 @@
 import { sso } from '@better-auth/sso';
 import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { APIError } from 'better-auth/api';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
@@ -363,9 +364,10 @@ export function createAuth(config: BetterAuthConfig) {
                 `❌ SpiceDB: Failed to sync role change for member ${member.userId} in org ${org.name}:`,
                 error
               );
-              throw new Error(
-                `Failed to sync authorization for role change. Please try again or contact support.`
-              );
+              throw new APIError('INTERNAL_SERVER_ERROR', {
+                message:
+                  'Failed to sync authorization for role change. Please try again or contact support.',
+              });
             }
           },
           afterRemoveMember: async ({ member, organization: org }) => {
