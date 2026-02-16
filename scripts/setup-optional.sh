@@ -106,7 +106,7 @@ cmd_status() {
   echo ""
   docker compose -f "$COMPANION_DIR/docker-compose.yml" \
     --profile nango --profile signoz --profile otel-collector --profile jaeger \
-    ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  No containers running."
+    ps 2>/dev/null || echo "  No containers running."
 }
 
 cmd_reset() {
@@ -119,6 +119,9 @@ cmd_reset() {
       down -v 2>/dev/null || true
     echo "  Removing companion .env..."
     rm -f "$COMPANION_DIR/.env"
+    echo "  Clearing stale keys from main .env..."
+    set_env_var "$ENV_FILE" "NANGO_SECRET_KEY" ""
+    set_env_var "$ENV_FILE" "SIGNOZ_API_KEY" ""
     echo -e "  ${GREEN}✓${NC} Companion state cleared"
   fi
   echo ""
@@ -173,21 +176,7 @@ cmd_setup() {
   set_env_var "$COMPANION_ENV" "COMPOSE_PROFILES" "nango,signoz,otel-collector,jaeger"
   echo -e "  ${GREEN}✓${NC} COMPOSE_PROFILES set"
 
-  # ── Step 3: Generate Nango secret key ───────────────────────────────────
-  # Re-use existing key from main repo .env if present; otherwise generate
-  EXISTING_NANGO_KEY="$(get_env_var "$ENV_FILE" "NANGO_SECRET_KEY")"
-  if [ -n "$EXISTING_NANGO_KEY" ]; then
-    NANGO_KEY="$EXISTING_NANGO_KEY"
-    echo -e "  ${GREEN}✓${NC} Re-using existing NANGO_SECRET_KEY from .env"
-  else
-    NANGO_KEY="$(openssl rand -hex 32)"
-    echo -e "  ${GREEN}✓${NC} Generated new NANGO_SECRET_KEY"
-  fi
-
-  # Pass the key to the companion .env so Nango reads it as NANGO_SECRET_KEY_DEV
-  set_env_var "$COMPANION_ENV" "NANGO_SECRET_KEY_DEV" "$NANGO_KEY"
-
-  # ── Step 4: Start Docker Compose ────────────────────────────────────────
+  # ── Step 3: Start Docker Compose ────────────────────────────────────────
   echo ""
   echo "Starting optional services..."
   docker compose -f "$COMPANION_DIR/docker-compose.yml" \
@@ -203,8 +192,20 @@ cmd_setup() {
   # Nango
   wait_for_http "http://localhost:3050/health" "Nango" 90
 
-  # Wire Nango vars to main repo .env
-  set_env_var "$ENV_FILE" "NANGO_SECRET_KEY" "$NANGO_KEY"
+  # Retrieve the Nango secret key from its database (Nango generates UUID keys internally)
+  EXISTING_NANGO_KEY="$(get_env_var "$ENV_FILE" "NANGO_SECRET_KEY")"
+  if [ -n "$EXISTING_NANGO_KEY" ]; then
+    echo -e "  ${GREEN}✓${NC} Re-using existing NANGO_SECRET_KEY from .env"
+  else
+    NANGO_KEY=$(docker exec nango-db psql -U nango -d nango -t -A -c "SELECT secret_key FROM _nango_environments WHERE name='dev';" 2>/dev/null | tr -d '[:space:]')
+    if [ -n "$NANGO_KEY" ]; then
+      set_env_var "$ENV_FILE" "NANGO_SECRET_KEY" "$NANGO_KEY"
+      echo -e "  ${GREEN}✓${NC} Retrieved NANGO_SECRET_KEY from Nango database"
+    else
+      echo -e "  ${YELLOW}⚠️  Could not retrieve Nango secret key. Get it from http://localhost:3050 → Environment Settings${NC}"
+    fi
+  fi
+
   set_env_var "$ENV_FILE" "NANGO_SERVER_URL" "http://localhost:3050"
   set_env_var "$ENV_FILE" "PUBLIC_NANGO_SERVER_URL" "http://localhost:3050"
   set_env_var "$ENV_FILE" "PUBLIC_NANGO_CONNECT_BASE_URL" "http://localhost:3051"
@@ -252,7 +253,7 @@ cmd_setup() {
         PAT_RESPONSE=$(curl -s -X POST "$SIGNOZ_URL/api/v1/pats" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
-          -d '{"name":"local-dev-automation","role":"admin","expiresAt":0}' 2>/dev/null || echo "")
+          -d '{"name":"local-dev-automation","role":"ADMIN","expiresAt":0}' 2>/dev/null || echo "")
 
         if [ -n "$PAT_RESPONSE" ]; then
           SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',d).get('token',''))" 2>/dev/null || echo "")

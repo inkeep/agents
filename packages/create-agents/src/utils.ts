@@ -478,7 +478,7 @@ export const createAgents = async (
         `  cd ${dirName}\n` +
         `  pnpm setup-dev   ${color.dim('# Database and project initialization')}\n` +
         `  pnpm dev          ${color.dim('# Start development servers')}\n\n` +
-        `${color.yellow('When ran:')}\n` +
+        `${color.yellow('On `pnpm dev`:')}\n` +
         `  • Dashboard:  http://127.0.0.1:3000\n` +
         `  • Agents API: http://127.0.0.1:3002\n\n` +
         `${color.yellow('Configuration:')}\n` +
