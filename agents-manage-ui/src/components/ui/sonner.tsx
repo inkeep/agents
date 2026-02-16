@@ -10,6 +10,7 @@ const Toaster = (props: ToasterProps) => {
     <Sonner
       theme={resolvedTheme as ToasterProps['theme']}
       className="toaster group"
+      swipeDirections={[]}
       style={{
         ['--normal-bg' as string]: 'var(--popover)',
         ['--normal-text' as string]: 'var(--popover-foreground)',
