@@ -139,7 +139,7 @@ cd agents-optional-local-dev
 Run the following command to start SigNoz and related services:
 
 ```bash
-docker-compose --profile signoz up -d
+docker compose --profile signoz up -d
 ```
 
 This will start:
@@ -160,9 +160,9 @@ In your **root project directory** (e.g., `my-agents`), update your `.env` file:
 SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key
 
-# IMPORTANT: Comment out the OTEL Configuration
-# OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
-# OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
+# Local SigNoz OTEL endpoint (port 4318 — the SigNoz collector)
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+OTEL_SERVICE_NAME=inkeep-agents
 ```
 
 To get your SigNoz API key:
