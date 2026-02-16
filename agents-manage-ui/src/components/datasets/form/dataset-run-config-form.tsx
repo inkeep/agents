@@ -58,8 +58,8 @@ export function DatasetRunConfigForm({
   const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
   const { data: evaluators, isFetching: loadingEvaluators } = useEvaluatorsQuery();
 
-  const form = useForm<DatasetRunConfigFormData>({
-    resolver: zodResolver(datasetRunConfigSchema) as any,
+  const form = useForm({
+    resolver: zodResolver(datasetRunConfigSchema),
     defaultValues: {
       name: initialData?.name || '',
       description: initialData?.description || '',
