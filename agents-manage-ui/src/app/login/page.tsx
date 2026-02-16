@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircleIcon, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
@@ -22,7 +23,8 @@ function LoginForm() {
   const invitationId = searchParams.get('invitation');
   const returnUrl = searchParams.get('returnUrl');
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
+    useRuntimeConfig();
   const posthog = usePostHog();
   const { isAuthenticated, isLoading: isSessionLoading } = useAuthSession();
 
@@ -196,7 +198,18 @@ function LoginForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {PUBLIC_IS_SMTP_CONFIGURED && (
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
