@@ -59,8 +59,12 @@ export function InviteMemberDialog({
   const params = useParams();
   const organizationId = params.tenantId as string;
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED, PUBLIC_INKEEP_AGENTS_API_URL } =
-    useRuntimeConfig();
+  const {
+    PUBLIC_AUTH0_DOMAIN,
+    PUBLIC_GOOGLE_CLIENT_ID,
+    PUBLIC_IS_SMTP_CONFIGURED,
+    PUBLIC_INKEEP_AGENTS_API_URL,
+  } = useRuntimeConfig();
 
   // Build available auth methods based on env config
   // Priority: Google > SSO > Email+Password
@@ -370,11 +374,14 @@ export function InviteMemberDialog({
                       Invitation email sent
                     </p>
                   )}
-                  {result.status === 'success' && PUBLIC_IS_SMTP_CONFIGURED && !result.emailSent && result.emailError && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
-                      Email could not be sent. Copy the link to share manually.
-                    </p>
-                  )}
+                  {result.status === 'success' &&
+                    PUBLIC_IS_SMTP_CONFIGURED &&
+                    !result.emailSent &&
+                    result.emailError && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
+                        Email could not be sent. Copy the link to share manually.
+                      </p>
+                    )}
                   {result.status === 'error' && result.error && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-6">
                       {result.error}
