@@ -161,6 +161,8 @@ export async function handleAppMention(params: {
 
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentConfig.agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, agentConfig.projectId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, true);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTH_SOURCE, agentConfig.source);
       const agentDisplayName = agentConfig.agentName || agentConfig.agentId;
 
       if (!existingLink) {

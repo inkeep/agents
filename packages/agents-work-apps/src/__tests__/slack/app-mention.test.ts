@@ -59,6 +59,8 @@ vi.mock('../../slack/tracer', () => ({
     MESSAGE_TS: 'slack.message_ts',
     CALLBACK_ID: 'slack.callback_id',
     ACTION_IDS: 'slack.action_ids',
+    AUTHORIZED: 'slack.authorized',
+    AUTH_SOURCE: 'slack.auth_source',
   },
 }));
 
@@ -301,5 +303,54 @@ describe('handleAppMention', () => {
         question: expect.stringContaining('What is Inkeep?'),
       })
     );
+    expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.authorized', true);
+    expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.auth_source', 'channel');
+  });
+
+  it('should set workspace auth source span attribute when agent resolved from workspace', async () => {
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
+
+    vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
+      connectionId: 'conn-1',
+      teamId: 'T789',
+      botToken: 'xoxb-123',
+      tenantId: 'default',
+    });
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'workspace',
+    });
+    vi.mocked(findCachedUserMapping).mockResolvedValue({
+      id: 'map-1',
+      tenantId: 'default',
+      slackUserId: 'U123',
+      slackTeamId: 'T789',
+      slackEnterpriseId: null,
+      inkeepUserId: 'user-1',
+      clientId: 'work-apps-slack',
+      slackUsername: null,
+      slackEmail: null,
+      linkedAt: '2026-01-01',
+      lastUsedAt: null,
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+    });
+
+    const { signSlackUserToken } = await import('@inkeep/agents-core');
+
+    await handleAppMention({ ...baseParams, text: 'Hello' });
+
+    expect(signSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: true,
+        slackAuthSource: 'workspace',
+      })
+    );
+    expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.authorized', true);
+    expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.auth_source', 'workspace');
   });
 });
