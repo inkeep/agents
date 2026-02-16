@@ -213,6 +213,18 @@ export function InviteMemberDialog({
 
     setInvitationResults(results);
     setIsSubmitting(false);
+
+    // Auto-copy invite link when email is not configured and exactly one invitation succeeded
+    const successfulResults = results.filter((r) => r.status === 'success' && r.link);
+    if (
+      !PUBLIC_IS_SMTP_CONFIGURED &&
+      successfulResults.length === 1 &&
+      successfulResults[0]?.link
+    ) {
+      navigator.clipboard.writeText(successfulResults[0].link).catch(() => {
+        // Clipboard write can fail silently (e.g. no permissions)
+      });
+    }
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -394,14 +406,23 @@ export function InviteMemberDialog({
 
             {successCount > 0 && (
               <div className="rounded-md bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
-                <p className="font-medium mb-1">Next Steps:</p>
-                <p className="text-xs">
-                  {invitationResults.some((r) => r.emailSent)
-                    ? successCount === 1
+                {invitationResults.some((r) => r.emailSent) ? (
+                  <p className="text-xs">
+                    {successCount === 1
                       ? 'An invitation email has been sent. The invite link is also available as a backup.'
-                      : 'Invitation emails have been sent. Invite links are also available as a backup.'
-                    : 'Share the invite links with the invited users so they can join your organization.'}
-                </p>
+                      : 'Invitation emails have been sent. Invite links are also available as a backup.'}
+                  </p>
+                ) : successCount === 1 ? (
+                  <p className="text-xs">
+                    An invite link has been copied to your clipboard. Share the invite link with
+                    your team member to have them join!
+                  </p>
+                ) : (
+                  <ol className="text-xs list-decimal list-inside space-y-1">
+                    <li>Copy the link for each team member.</li>
+                    <li>Share the invite link and ask them to redeem!</li>
+                  </ol>
+                )}
               </div>
             )}
 

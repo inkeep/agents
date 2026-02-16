@@ -1,4 +1,4 @@
-import { Button, Text } from '@react-email/components';
+import { Button, Link, Text } from '@react-email/components';
 import type { ReactNode } from 'react';
 import { emailColors } from '../theme.js';
 
@@ -17,8 +17,11 @@ export function EmailButton({ href, children }: EmailButtonProps) {
       >
         {children}
       </Button>
-      <Text className="text-email-text-muted text-[12px] leading-[16px] mt-[16px] break-all font-mono">
-        {href}
+      <Text className="text-email-text-muted text-[11px] leading-[16px] mt-[16px] mb-0">
+        Or copy and paste this link:{' '}
+        <Link href={href} className="text-email-text-muted underline">
+          {href}
+        </Link>
       </Text>
     </>
   );
