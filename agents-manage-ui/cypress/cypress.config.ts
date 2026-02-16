@@ -32,7 +32,8 @@ export default defineConfig({
             '--disable-dev-shm-usage',
             '--disable-gpu',
             '--no-sandbox',
-            '--disable-features=IsolateOrigins,site-per-process'
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--js-flags=--max-old-space-size=4096'
           );
         }
         return launchOptions;
