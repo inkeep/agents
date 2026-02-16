@@ -282,7 +282,7 @@ export function createAuth(config: BetterAuthConfig) {
           admin: adminRole,
           owner: ownerRole,
         },
-        creatorRole: OrgRoles.ADMIN,
+        creatorRole: OrgRoles.OWNER,
         membershipLimit: 300,
         invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
@@ -331,33 +331,40 @@ export function createAuth(config: BetterAuthConfig) {
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
-            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
-            const oldRole = member.role as OrgRole;
-            const targetRole = newRole as OrgRole;
+            try {
+              const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
+              const oldRole = member.role as OrgRole;
+              const targetRole = newRole as OrgRole;
 
-            // Update org role in SpiceDB
-            await changeOrgRole({
-              tenantId: org.id,
-              userId: member.userId,
-              oldRole,
-              newRole: targetRole,
-            });
-            console.log(
-              `🔐 SpiceDB: Updated member ${member.userId} role from ${oldRole} to ${targetRole} in org ${org.name}`
-            );
-
-            // When promoting to admin, revoke all project-level roles
-            // (they become redundant as admins have inherited access to all projects)
-            const isPromotion =
-              oldRole === OrgRoles.MEMBER &&
-              (targetRole === OrgRoles.ADMIN || targetRole === OrgRoles.OWNER);
-            if (isPromotion) {
-              await revokeAllProjectMemberships({
+              await changeOrgRole({
                 tenantId: org.id,
                 userId: member.userId,
+                oldRole,
+                newRole: targetRole,
               });
               console.log(
-                `🔐 SpiceDB: Revoked all project memberships for ${member.userId} (promoted to ${targetRole})`
+                `🔐 SpiceDB: Updated member ${member.userId} role from ${oldRole} to ${targetRole} in org ${org.name}`
+              );
+
+              const isPromotion =
+                oldRole === OrgRoles.MEMBER &&
+                (targetRole === OrgRoles.ADMIN || targetRole === OrgRoles.OWNER);
+              if (isPromotion) {
+                await revokeAllProjectMemberships({
+                  tenantId: org.id,
+                  userId: member.userId,
+                });
+                console.log(
+                  `🔐 SpiceDB: Revoked all project memberships for ${member.userId} (promoted to ${targetRole})`
+                );
+              }
+            } catch (error) {
+              console.error(
+                `❌ SpiceDB: Failed to sync role change for member ${member.userId} in org ${org.name}:`,
+                error
+              );
+              throw new Error(
+                `Failed to sync authorization for role change. Please try again or contact support.`
               );
             }
           },
