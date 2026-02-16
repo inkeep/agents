@@ -119,6 +119,9 @@
     ],
     "scripts/setup-optional.sh": [
       "bash -c 'cp scripts/setup-optional.sh create-agents-template/scripts/setup-optional.sh && git add create-agents-template/scripts/setup-optional.sh'"
+    ],
+    "scripts/generate-jwt-keys.sh": [
+      "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
     ]
   },
   "packageManager": "pnpm@10.10.0"
