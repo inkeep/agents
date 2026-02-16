@@ -53,6 +53,20 @@ SpiceDB manages organization and project-level permissions using a relationship-
 | `PUBLIC_GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
 
+### Email (Optional)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `RESEND_API_KEY` | No | Resend API key (recommended for cloud deployments) |
+| `SMTP_HOST` | No | SMTP server hostname |
+| `SMTP_PORT` | No | SMTP server port |
+| `SMTP_USER` | No | SMTP username |
+| `SMTP_PASSWORD` | No | SMTP password |
+| `SMTP_SECURE` | No | Use TLS (default: `false`) |
+| `SMTP_FROM_ADDRESS` | No | From email address |
+| `SMTP_FROM_NAME` | No | From display name |
+| `SMTP_REPLY_TO` | No | Reply-to address (defaults to from address) |
+
 ## Configuring Authentication
 
 Authentication is enabled by default. Configure the required environment variables to set up your admin credentials and session security.
@@ -98,6 +112,48 @@ Authentication is enabled by default. Configure the required environment variabl
     Open http://localhost:3000 and sign in with the credentials you configured.
   </Step>
 </Steps>
+
+## Configuring Email (Optional)
+
+Email configuration is optional. When not configured, invitation links and password reset links are displayed in the UI for manual sharing.
+
+When email is configured:
+- Team invitations are sent via email automatically
+- Users can reset their password via the **Forgot password** link on the login page
+
+### Option 1: Resend (Recommended for Cloud)
+
+Add your [Resend](https://resend.com) API key:
+
+```dotenv title=".env"
+RESEND_API_KEY=re_xxxxx
+SMTP_FROM_ADDRESS=notifications@yourdomain.com
+SMTP_FROM_NAME=Your Company
+```
+
+### Option 2: Generic SMTP
+
+Use any SMTP provider (Mailgun, SendGrid, self-hosted, etc.):
+
+```dotenv title=".env"
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-username
+SMTP_PASSWORD=your-password
+SMTP_FROM_ADDRESS=notifications@yourdomain.com
+SMTP_FROM_NAME=Your Company
+```
+
+### Local Development with Mailpit
+
+The Docker Compose setup includes [Mailpit](https://mailpit.axllent.org/) for local email testing. Emails are captured and viewable at http://localhost:8025.
+
+```dotenv title=".env"
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_FROM_ADDRESS=notifications@localhost
+SMTP_FROM_NAME=Inkeep Local
+```
 
 ## Adding OAuth Providers
 
@@ -160,3 +216,7 @@ Verify these environment variables are set correctly:
 Organization Members need explicit project-level roles to access projects. Either:
 - Assign them a project role via **Project Settings** → **Members**
 - Promote them to organization Admin (gives access to all projects)
+
+### Forgot password link not showing
+
+The **Forgot password** option on the login page is only visible when email is configured. Configure SMTP or Resend to enable self-service password reset. See [Configuring Email](#configuring-email-optional).
