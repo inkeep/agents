@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16gb
+    timeout-minutes: 30
 
     services:
       doltgres:
@@ -87,10 +88,7 @@ jobs:
           restore-keys: ${{ runner.os }}-turbo-
 
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          # Ensure agents-manage-ui dependencies are properly installed
-          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
@@ -134,3 +132,4 @@ jobs:
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
           BETTER_AUTH_SECRET: test-secret-key-for-ci
           SPICEDB_PRESHARED_KEY: dev-secret-key
+          CYPRESS_NO_COMMAND_LOG: 1

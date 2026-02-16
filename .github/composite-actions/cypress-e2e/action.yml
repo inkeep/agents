@@ -23,10 +23,11 @@ runs:
 
     - name: Install Cypress binary
       shell: bash
-      run: cd agents-manage-ui && npx cypress install
+      run: cd agents-manage-ui && pnpm exec cypress install
 
-    - run: pnpm setup-dev
+    - name: Setup development environment
       shell: bash
+      run: pnpm setup-dev
 
     - name: Start backend API server
       shell: bash
@@ -102,3 +103,4 @@ runs:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
         retention-days: 7
+

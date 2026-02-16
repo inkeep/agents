@@ -12,6 +12,7 @@ export default defineConfig({
   experimentalMemoryManagement: true,
   numTestsKeptInMemory: 0,
   defaultBrowser: 'chrome',
+  waitForAnimations: false,
   retries: {
     runMode: 2,
     openMode: 0,
@@ -29,11 +30,11 @@ export default defineConfig({
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && browser.isHeadless) {
           launchOptions.args.push(
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
             '--no-sandbox',
             '--disable-features=IsolateOrigins,site-per-process',
-            '--js-flags=--max-old-space-size=4096'
+            '--disable-extensions',
+            '--disable-translate',
+            '--mute-audio'
           );
         }
         return launchOptions;
