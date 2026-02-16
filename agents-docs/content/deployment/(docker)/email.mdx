@@ -75,21 +75,9 @@ SMTP_FROM_NAME=Inkeep
 
 [Mailpit](https://mailpit.axigen.com/) captures outgoing email locally without sending it to real recipients. This is the recommended setup for development and testing.
 
+Mailpit is included in the default Docker Compose configuration. Configure the SMTP environment variables to point to it:
+
 <Steps>
-  <Step>
-    ### Add Mailpit to Docker Compose
-
-    Add the Mailpit service to your `docker-compose.override.yml`:
-
-    ```yaml title="docker-compose.override.yml"
-    services:
-      mailpit:
-        image: axllent/mailpit:latest
-        ports:
-          - "8025:8025"  # Web UI
-          - "1025:1025"  # SMTP
-    ```
-  </Step>
   <Step>
     ### Configure environment variables
 
