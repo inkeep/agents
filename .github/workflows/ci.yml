@@ -150,7 +150,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
