@@ -279,6 +279,10 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
    
    **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
 
+### PR Review Agents
+
+The `.claude/agents/pr-review*.md` agents are for **on-demand invocation only** (user requests a review, or CI triggers one). Do NOT invoke them during autonomous implementation workflows like `/ship` — those workflows delegate review to external reviewers via `/review`.
+
 ### 📁 Git Worktrees for Parallel Feature Development
 
 Git worktrees allow you to work on multiple features simultaneously without switching branches in your main working directory. This is especially useful when you need to quickly switch context between different Linear tickets or have multiple features in progress.
