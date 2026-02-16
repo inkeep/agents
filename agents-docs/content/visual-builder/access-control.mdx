@@ -41,12 +41,34 @@ Each organization operates as an isolated tenant:
 | **Admin** | Full access to all projects and settings, can add members |
 | **Member** | Access determined by project-level roles |
 
-### Managing Team Members
+### Inviting Team Members
 
 1. Go to **Settings** in the left sidebar
 2. View current members and their roles
-3. Click **Add** to add new team members
-4. Select a role (Admin or Member) for the new team member
+3. Click **Invite** to invite a new team member
+4. Enter the member's email and select a role (Admin or Member)
+5. Click **Send Invitation**
+
+If email is enabled for your tenant, the invited user receives a branded email with a link to accept the invitation and set up their account. The invitation expires after 7 days.
+
+If email is not configured, the invitation link is displayed directly in the UI — copy and share it manually with the team member.
+
+<Tip>
+  For self-hosted deployments, email requires SMTP configuration. See [Configure Email](/deployment/email) for setup instructions.
+</Tip>
+
+## Password Reset
+
+If email is enabled for your tenant, users can reset their password through a self-service flow:
+
+1. On the sign-in page, click **Forgot password?**
+2. Enter the email address associated with your account
+3. Check your inbox for a password reset link
+4. Click the link and set a new password
+
+The reset link expires after a limited time. If you don't receive the email, check your spam folder.
+
+If email is not configured for your tenant, contact your organization administrator to reset your password.
 
 ## Project Roles & Permissions
 

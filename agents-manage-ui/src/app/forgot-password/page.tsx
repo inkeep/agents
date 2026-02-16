@@ -27,7 +27,7 @@ function ForgotPasswordForm() {
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
           <div className="px-6">
-            <InkeepIcon size={48} />
+            <InkeepIcon size={48} aria-hidden="true" />
           </div>
           <CardHeader>
             <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
@@ -41,7 +41,7 @@ function ForgotPasswordForm() {
           <CardContent>
             <Button variant="ghost" asChild className="px-0">
               <Link href="/login">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                 Back to sign in
               </Link>
             </Button>
@@ -56,11 +56,11 @@ function ForgotPasswordForm() {
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
           <div className="px-6">
-            <InkeepIcon size={48} />
+            <InkeepIcon size={48} aria-hidden="true" />
           </div>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Mail className="h-6 w-6 text-muted-foreground" />
+              <Mail className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
                 Check your email
               </CardTitle>
@@ -73,7 +73,7 @@ function ForgotPasswordForm() {
           <CardContent>
             <Button variant="ghost" asChild className="px-0">
               <Link href="/login">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                 Back to sign in
               </Link>
             </Button>
@@ -111,7 +111,7 @@ function ForgotPasswordForm() {
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
         <div className="px-6">
-          <InkeepIcon size={48} />
+          <InkeepIcon size={48} aria-hidden="true" />
         </div>
         <CardHeader>
           <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
@@ -124,7 +124,7 @@ function ForgotPasswordForm() {
         <CardContent className="space-y-5">
           {error && (
             <Alert variant="destructive" className="border-destructive/10 dark:border-border">
-              <AlertCircleIcon className="h-4 w-4" />
+              <AlertCircleIcon className="h-4 w-4" aria-hidden="true" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -147,7 +147,7 @@ function ForgotPasswordForm() {
             <Button type="submit" className="w-full" disabled={isSubmitting || !email}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                   Sending...
                 </>
               ) : (
@@ -158,7 +158,7 @@ function ForgotPasswordForm() {
 
           <Button variant="ghost" asChild className="px-0">
             <Link href="/login">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
               Back to sign in
             </Link>
           </Button>
@@ -173,7 +173,7 @@ export default function ForgotPasswordPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center">
-          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
         </div>
       }
     >

@@ -1,0 +1,151 @@
+---
+title: Configure Email
+sidebarTitle: Email
+description: Set up SMTP email for team invitations and password resets
+icon: LuMail
+---
+
+Configure email delivery so the platform can send team invitation emails and password reset links. Without email configured, these features degrade gracefully — invitation links are shown directly in the UI and password reset is disabled.
+
+<Note>
+  For a feature overview of invitations and password reset, see [Access Control](/visual-builder/access-control).
+</Note>
+
+## How It Works
+
+The email system uses a priority-based transport selection:
+
+| Priority | Transport | When used |
+|----------|-----------|-----------|
+| 1 | **Resend** | `RESEND_API_KEY` is set |
+| 2 | **Generic SMTP** | `SMTP_HOST` is set (and no Resend key) |
+| 3 | **Disabled** | Neither is set — email features are turned off |
+
+Both transports require `SMTP_FROM_ADDRESS` to be set. If the from address is missing, email is disabled even when a transport is configured.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SMTP_FROM_ADDRESS` | Yes | Sender email address (e.g., `noreply@example.com`) |
+| `SMTP_FROM_NAME` | No | Sender display name (e.g., `Inkeep`). Defaults to the address. |
+| `SMTP_REPLY_TO` | No | Reply-to address. Defaults to the from address. |
+
+### Option A: Resend (Recommended for Production)
+
+[Resend](https://resend.com) provides a managed email delivery service with high deliverability.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `RESEND_API_KEY` | Yes | Your Resend API key |
+
+```dotenv title=".env"
+RESEND_API_KEY=re_your_api_key
+SMTP_FROM_ADDRESS=notifications@yourdomain.com
+SMTP_FROM_NAME=Inkeep
+```
+
+<Tip>
+  When using Resend, you don't need to configure any SMTP host or port variables — the system connects to Resend's SMTP relay automatically.
+</Tip>
+
+### Option B: Generic SMTP
+
+Use any SMTP server (Amazon SES, SendGrid, Gmail, self-hosted Postfix, etc.).
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SMTP_HOST` | Yes | SMTP server hostname |
+| `SMTP_PORT` | No | Server port. Default: `587` |
+| `SMTP_SECURE` | No | Use TLS/SSL. Auto-detected from port if not set (`true` for port 465). |
+| `SMTP_USER` | No | SMTP authentication username |
+| `SMTP_PASSWORD` | No | SMTP authentication password |
+
+```dotenv title=".env"
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=apikey
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM_ADDRESS=noreply@example.com
+SMTP_FROM_NAME=Inkeep
+```
+
+## Local Development with Mailpit
+
+[Mailpit](https://mailpit.axigen.com/) captures outgoing email locally without sending it to real recipients. This is the recommended setup for development and testing.
+
+<Steps>
+  <Step>
+    ### Add Mailpit to Docker Compose
+
+    Add the Mailpit service to your `docker-compose.override.yml`:
+
+    ```yaml title="docker-compose.override.yml"
+    services:
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - "8025:8025"  # Web UI
+          - "1025:1025"  # SMTP
+    ```
+  </Step>
+  <Step>
+    ### Configure environment variables
+
+    ```dotenv title=".env"
+    SMTP_HOST=localhost
+    SMTP_PORT=1025
+    SMTP_SECURE=false
+    SMTP_FROM_ADDRESS=noreply@inkeep.local
+    SMTP_FROM_NAME=Inkeep
+    ```
+  </Step>
+  <Step>
+    ### Start services and verify
+
+    ```bash
+    docker compose up -d
+    ```
+
+    Open [http://localhost:8025](http://localhost:8025) to view the Mailpit inbox. Any emails sent by the platform (invitations, password resets) will appear here.
+  </Step>
+</Steps>
+
+## What Happens Without Email
+
+When email is not configured, the platform adjusts its behavior:
+
+| Feature | With email | Without email |
+|---------|-----------|---------------|
+| **Team invitations** | Invitation email sent to the recipient | Invitation link shown directly in the UI |
+| **Password reset** | Reset link emailed to the user | "Forgot password?" link hidden from the sign-in page |
+
+No errors are thrown — the UI adapts automatically based on whether email is available.
+
+## Verifying Email Configuration
+
+After configuring your environment variables, restart services and test:
+
+1. Go to **Settings** in the sidebar
+2. Click **Invite** and send a test invitation
+3. Verify the email arrives (in Mailpit for local dev, or the real inbox for production)
+
+If using Mailpit, open [http://localhost:8025](http://localhost:8025) to see the captured email.
+
+## Troubleshooting
+
+### Emails not being sent
+
+- Verify `SMTP_FROM_ADDRESS` is set — this is required for all transports
+- Check the API server logs for `[email]` warnings about missing configuration
+- For Resend: confirm your API key is valid and the from address domain is verified in Resend
+- For generic SMTP: verify the host, port, and credentials are correct
+
+### Invitation link shown instead of email
+
+This is expected behavior when email is not configured. Set up SMTP or Resend to enable email delivery.
+
+### "Password reset unavailable" message
+
+The forgot-password page shows this when email is not configured. Configure email to enable self-service password resets.
