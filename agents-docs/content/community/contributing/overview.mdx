@@ -28,7 +28,7 @@ cd agents
 
 ### Step 2: Run the setup script
 
-For first-time setup, run:
+Ensure Docker Desktop (or Docker daemon) is running, then run:
 
 ```bash
 pnpm setup-dev
@@ -41,6 +41,11 @@ This will:
 - Add `.env` to `.gitignore` if needed
 - Install dependencies
 - Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml` and run migrations
+- Create the admin user for auto-login (`pnpm db:auth:init`)
+
+<Tip>
+`pnpm setup-dev` is idempotent — safe to re-run after pulling new changes, resetting your database, or switching branches. It will apply any new migrations without breaking existing state.
+</Tip>
 
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 

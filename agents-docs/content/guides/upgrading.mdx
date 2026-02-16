@@ -30,6 +30,10 @@ pnpm upgrade-agents
 
 This will update all the packages to the latest version and migrate your database schema to the latest version.
 
+<Note>
+Your Docker databases must be running before upgrading. If they aren't running, start them first with `pnpm setup-dev`, then run `pnpm upgrade-agents`.
+</Note>
+
 ### Troubleshooting:
 
 If you encounter migration errors during the upgrade, this indicates a breaking schema change. You'll need to reset your database:

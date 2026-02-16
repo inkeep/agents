@@ -471,20 +471,20 @@ export const createAgents = async (
       await addInkeepMcp();
     }
 
-    p.note(
-      `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
-        `${color.yellow('Next steps:')}\n` +
+    p.log.success(`Workspace created at: ${color.cyan(directoryPath)}`);
+
+    p.log.message(
+      `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
-        `  pnpm setup   # Setup project in database\n` +
-        `  pnpm dev     # Start development servers\n\n` +
-        `${color.yellow('Available services:')}\n` +
-        `  • Agents API: http://127.0.0.1:3002\n` +
-        `  • Manage UI: Available with management API\n` +
-        `\n${color.yellow('Configuration:')}\n` +
-        `  • Edit .env for environment variables\n` +
-        `  • Edit files in src/projects/${projectId}/ for agent definitions\n` +
-        `  • Use 'inkeep push' to deploy agents to the platform\n`,
-      'Ready to go!'
+        `  pnpm setup-dev   ${color.dim('# Database and project initialization')}\n` +
+        `  pnpm dev          ${color.dim('# Start development servers')}\n\n` +
+        `${color.yellow('When ran:')}\n` +
+        `  • Dashboard:  http://127.0.0.1:3000\n` +
+        `  • Agents API: http://127.0.0.1:3002\n\n` +
+        `${color.yellow('Configuration:')}\n` +
+        `  • See .env for environment variables\n` +
+        `  • Edit files in src/projects/ for agent definitions\n` +
+        `  • Use 'inkeep push' to deploy agents to Agents API`
     );
   } catch (error) {
     s.stop();
