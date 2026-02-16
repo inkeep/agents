@@ -53,6 +53,23 @@ Channel defaults let you assign a specific agent to individual channels. This is
   </Step>
 </Steps>
 
+### Grant access to channel members
+
+When you assign an agent to a channel, a **Grant access to members** toggle appears in the channel's agent selector. This controls whether channel members can use the assigned agent without being explicit project members.
+
+| Setting | Behavior |
+|---------|----------|
+| **Enabled** (default) | Channel members can use the agent via `@Inkeep` and `/inkeep` without needing explicit project access. The channel configuration acts as implicit authorization. |
+| **Disabled** | Channel members must have explicit project access (configured separately) to use the agent. The channel default still determines *which* agent responds, but doesn't grant access. |
+
+<Tip>
+This toggle defaults to **enabled** — assigning an agent to a channel automatically grants access to all channel members. Disable it if you want to control project access separately (e.g., for channels where only certain members should use the agent).
+</Tip>
+
+<Note>
+The grant access setting applies per channel. Workspace defaults always grant access to members — the toggle is only available for channel-level overrides.
+</Note>
+
 ## Agent resolution priority
 
 When a team member uses `@Inkeep` or `/inkeep`, the app resolves which agent to use:
