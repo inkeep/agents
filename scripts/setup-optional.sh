@@ -40,9 +40,11 @@ set_env_var() {
   fi
   # If key exists (uncommented), replace the line
   if grep -q "^${key}=" "$file" 2>/dev/null; then
-    # Use a temp file for portable sed -i
+    # Use a temp file for portable sed -i; escape sed special chars in value
     local tmp="$file.tmp.$$"
-    sed "s|^${key}=.*|${key}=${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
+    local escaped_value
+    escaped_value=$(printf '%s\n' "$value" | sed -e 's/[&/\|]/\\&/g')
+    sed "s|^${key}=.*|${key}=${escaped_value}|" "$file" > "$tmp" && mv "$tmp" "$file"
   else
     echo "$key=$value" >> "$file"
   fi
@@ -223,48 +225,53 @@ cmd_setup() {
   echo ""
   echo "Setting up SigNoz API key..."
 
-  SIGNOZ_URL="http://localhost:3080"
-  SIGNOZ_EMAIL="admin@localhost.dev"
-  SIGNOZ_PASSWORD="LocalDev123!"
+  EXISTING_SIGNOZ_KEY="$(get_env_var "$ENV_FILE" "SIGNOZ_API_KEY")"
+  if [ -n "$EXISTING_SIGNOZ_KEY" ]; then
+    echo -e "  ${GREEN}✓${NC} SIGNOZ_API_KEY already configured"
+  else
+    SIGNOZ_URL="http://localhost:3080"
+    SIGNOZ_EMAIL="admin@localhost.dev"
+    SIGNOZ_PASSWORD="LocalDev123!"
 
-  # Register admin (idempotent — fails silently on re-run)
-  curl -sf -X POST "$SIGNOZ_URL/api/v1/register" \
-    -H "Content-Type: application/json" \
-    -d "{\"name\":\"Admin\",\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\",\"orgDisplayName\":\"Local Dev\"}" \
-    >/dev/null 2>&1 || true
+    # Register admin (idempotent — fails silently on re-run)
+    curl -sf -X POST "$SIGNOZ_URL/api/v1/register" \
+      -H "Content-Type: application/json" \
+      -d "{\"name\":\"Admin\",\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\",\"orgDisplayName\":\"Local Dev\"}" \
+      >/dev/null 2>&1 || true
 
-  # Login to get JWT
-  LOGIN_RESPONSE=$(curl -sf -X POST "$SIGNOZ_URL/api/v1/login" \
-    -H "Content-Type: application/json" \
-    -d "{\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\"}" 2>/dev/null || echo "")
+    # Login to get JWT
+    LOGIN_RESPONSE=$(curl -sf -X POST "$SIGNOZ_URL/api/v1/login" \
+      -H "Content-Type: application/json" \
+      -d "{\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\"}" 2>/dev/null || echo "")
 
-  if [ -n "$LOGIN_RESPONSE" ]; then
-    ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('accessJwt',''))" 2>/dev/null || echo "")
+    if [ -n "$LOGIN_RESPONSE" ]; then
+      ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('accessJwt',''))" 2>/dev/null || echo "")
 
-    if [ -n "$ACCESS_TOKEN" ]; then
-      # Create PAT
-      PAT_RESPONSE=$(curl -sf -X POST "$SIGNOZ_URL/api/v1/pats" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $ACCESS_TOKEN" \
-        -d '{"name":"local-dev-automation","role":"admin","expiresAt":0}' 2>/dev/null || echo "")
+      if [ -n "$ACCESS_TOKEN" ]; then
+        # Create PAT
+        PAT_RESPONSE=$(curl -sf -X POST "$SIGNOZ_URL/api/v1/pats" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $ACCESS_TOKEN" \
+          -d '{"name":"local-dev-automation","role":"admin","expiresAt":0}' 2>/dev/null || echo "")
 
-      if [ -n "$PAT_RESPONSE" ]; then
-        SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
+        if [ -n "$PAT_RESPONSE" ]; then
+          SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
 
-        if [ -n "$SIGNOZ_API_KEY" ]; then
-          set_env_var "$ENV_FILE" "SIGNOZ_API_KEY" "$SIGNOZ_API_KEY"
-          echo -e "  ${GREEN}✓${NC} SigNoz API key created and written to .env"
+          if [ -n "$SIGNOZ_API_KEY" ]; then
+            set_env_var "$ENV_FILE" "SIGNOZ_API_KEY" "$SIGNOZ_API_KEY"
+            echo -e "  ${GREEN}✓${NC} SigNoz API key created and written to .env"
+          else
+            echo -e "  ${YELLOW}⚠️  Could not extract SigNoz API key. You may need to create one manually at $SIGNOZ_URL${NC}"
+          fi
         else
-          echo -e "  ${YELLOW}⚠️  Could not extract SigNoz API key. You may need to create one manually at $SIGNOZ_URL${NC}"
+          echo -e "  ${YELLOW}⚠️  Could not create SigNoz PAT. You may need to create one manually at $SIGNOZ_URL${NC}"
         fi
       else
-        echo -e "  ${YELLOW}⚠️  Could not create SigNoz PAT. You may need to create one manually at $SIGNOZ_URL${NC}"
+        echo -e "  ${YELLOW}⚠️  Could not login to SigNoz. You may need to create an API key manually at $SIGNOZ_URL${NC}"
       fi
     else
-      echo -e "  ${YELLOW}⚠️  Could not login to SigNoz. You may need to create an API key manually at $SIGNOZ_URL${NC}"
+      echo -e "  ${YELLOW}⚠️  Could not connect to SigNoz API. You may need to create an API key manually at $SIGNOZ_URL${NC}"
     fi
-  else
-    echo -e "  ${YELLOW}⚠️  Could not connect to SigNoz API. You may need to create an API key manually at $SIGNOZ_URL${NC}"
   fi
 
   # ── Summary ─────────────────────────────────────────────────────────────
