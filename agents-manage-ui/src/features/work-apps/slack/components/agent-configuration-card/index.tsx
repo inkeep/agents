@@ -279,6 +279,7 @@ export function AgentConfigurationCard() {
         projectId: agent.projectId,
         agentId: agent.id,
         agentName: agent.name || agent.id,
+        grantAccessToMembers: true,
       });
 
       setChannels((prev) =>
@@ -291,6 +292,7 @@ export function AgentConfigurationCard() {
                   projectId: agent.projectId,
                   agentId: agent.id,
                   agentName: agent.name || agent.id,
+                  grantAccessToMembers: true,
                 },
               }
             : ch

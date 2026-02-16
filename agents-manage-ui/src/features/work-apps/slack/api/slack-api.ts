@@ -139,6 +139,7 @@ export const slackApi = {
         projectId: string;
         agentId: string;
         agentName?: string;
+        grantAccessToMembers?: boolean;
       };
     }>;
   }> {

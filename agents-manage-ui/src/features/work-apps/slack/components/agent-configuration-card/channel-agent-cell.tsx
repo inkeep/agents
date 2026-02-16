@@ -87,7 +87,10 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                           htmlFor={`grant-access-${channel.id}`}
                           className="flex items-center gap-2 text-xs cursor-pointer"
                         >
-                          <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                          <ShieldCheck
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 text-muted-foreground"
+                          />
                           <span>Grant access to members</span>
                         </label>
                       </TooltipTrigger>

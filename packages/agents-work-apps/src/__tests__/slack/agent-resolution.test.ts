@@ -97,6 +97,38 @@ describe('Agent Resolution', () => {
       });
     });
 
+    it('should propagate explicit grantAccessToMembers: false from workspace config', async () => {
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
+
+      vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
+        vi.fn().mockResolvedValue(null)
+      );
+      vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
+        agentId: 'workspace-agent',
+        projectId: 'workspace-project',
+        agentName: 'Workspace Agent',
+        grantAccessToMembers: false,
+      });
+
+      const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+
+      const result = await resolveEffectiveAgent({
+        tenantId: 'tenant-1',
+        teamId: 'T123',
+        channelId: 'C123',
+        userId: 'U123',
+      });
+
+      expect(result).toEqual({
+        projectId: 'workspace-project',
+        agentId: 'workspace-agent',
+        agentName: 'Workspace Agent',
+        source: 'workspace',
+        grantAccessToMembers: false,
+      });
+    });
+
     it('should return null when no config exists at any level', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
