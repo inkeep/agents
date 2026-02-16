@@ -25,6 +25,23 @@ runs:
       shell: bash
       run: cd agents-manage-ui && pnpm exec cypress install
 
+    - name: Wait for DoltGres to be fully initialized
+      shell: bash
+      run: |
+        echo "Waiting for DoltGres system tables to be available..."
+        for i in $(seq 1 30); do
+          if PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' 2>/dev/null; then
+            echo "DoltGres is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Timeout waiting for DoltGres after 60 seconds"
+            exit 1
+          fi
+          echo "  Attempt $i/30..."
+          sleep 2
+        done
+
     - name: Setup development environment
       shell: bash
       run: pnpm setup-dev
