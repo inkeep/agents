@@ -57,7 +57,7 @@
     "@inkeep/agents-manage-mcp": "workspace:^",
     "@inkeep/agents-mcp": "workspace:^",
     "@inkeep/agents-work-apps": "workspace:^",
-    "@inkeep/agents-email": "workspace:*",
+    "@inkeep/agents-email": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.64.1",

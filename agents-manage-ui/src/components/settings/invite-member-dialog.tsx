@@ -382,7 +382,7 @@ export function InviteMemberDialog({
                   </div>
                   {result.status === 'success' && result.emailSent && (
                     <p className="text-xs text-muted-foreground mt-1 ml-6 flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
+                      <Mail className="h-3 w-3" aria-hidden="true" />
                       Invitation email sent
                     </p>
                   )}

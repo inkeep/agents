@@ -139,7 +139,10 @@ invitationsRoutes.get('/:id/email-status', async (c) => {
     return c.json({ emailSent: false });
   }
 
-  return c.json({ emailSent: status.emailSent, error: status.error });
+  return c.json({
+    emailSent: status.emailSent,
+    error: status.error ? 'Email delivery failed' : undefined,
+  });
 });
 
 // GET /api/invitations/pending?email=user@example.com - Get pending invitations for an email
