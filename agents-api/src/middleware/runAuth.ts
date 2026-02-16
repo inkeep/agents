@@ -311,7 +311,7 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
         ...(slackAuthorized && {
           slack: {
             authorized: true,
-            authSource: payload.slack.authSource!,
+            authSource: payload.slack.authSource ?? 'channel',
             channelId: payload.slack.channelId,
             teamId: payload.slack.teamId,
           },
