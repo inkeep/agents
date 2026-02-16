@@ -1,3 +1,5 @@
+'use client';
+
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { type ExternalToast, toast as sonnerToast } from 'sonner';
@@ -8,13 +10,16 @@ function ToastCopyAction({ text }: { text: string }) {
   return (
     <button
       type="button"
-      className="ml-auto shrink-0 p-1 rounded border border-border opacity-50 hover:opacity-100 hover:bg-muted/50 transition-all"
+      className="ml-auto shrink-0 p-1 rounded border border-border opacity-50 hover:opacity-100 hover:bg-muted/50 transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       onClick={() => {
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(text).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          });
+          navigator.clipboard
+            .writeText(text)
+            .then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            })
+            .catch(() => {});
         }
       }}
     >
