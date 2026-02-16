@@ -9,7 +9,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
-import { createEmailService } from '@inkeep/email';
+import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
 import { createAgentsAuth } from './factory';

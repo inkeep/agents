@@ -1,5 +1,5 @@
 {
-  "name": "@inkeep/email",
+  "name": "@inkeep/agents-email",
   "version": "0.1.0",
   "description": "Email service for Inkeep Agents — transactional emails via Nodemailer/SMTP",
   "private": true,
@@ -52,6 +52,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inkeep/agents.git",
-    "directory": "packages/email"
+    "directory": "packages/agents-email"
   }
 }
