@@ -64,7 +64,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHre
   }, [onSubmit]);
 
   return (
-    <div className="flex gap-2 flex-wrap justify-end content-start">
+    <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
       {tracesHref && (
         <Button {...commonProps} asChild>
           <Link href={tracesHref}>

@@ -12,9 +12,8 @@ function dragNode(selector: string) {
     .trigger('drop', { dataTransfer });
 }
 function connectEdge(selector: string) {
-  // React flow doesn't use onDragStart
   cy.get(selector).trigger('mousedown', { button: 0 });
-  cy.get('[data-handleid="target-agent"]').trigger('mousemove').trigger('mouseup', { force: true });
+  cy.get('[data-handleid="target-agent"]').trigger('mousemove').trigger('mouseup');
 }
 
 describe('Agent', () => {
