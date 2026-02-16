@@ -162,7 +162,7 @@ services:
       retries: 30
   # Mailpit for local email testing
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.24.1
     ports:
       - '8025:8025'
       - '1025:1025'

@@ -98,7 +98,8 @@ function ForgotPasswordForm() {
       }
 
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      console.error('[forgot-password] Request failed:', err);
       setError('Could not send reset email. Please try again later.');
       setIsSubmitting(false);
     }

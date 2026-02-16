@@ -183,8 +183,8 @@ export function InviteMemberDialog({
                 emailSent = statusData.emailSent === true;
                 emailError = statusData.error;
               }
-            } catch {
-              // Email status check failed — fall back to copy-link
+            } catch (err) {
+              console.debug('[invite-member] Email status check failed:', err);
             }
           }
 
@@ -376,10 +376,11 @@ export function InviteMemberDialog({
                   )}
                   {result.status === 'success' &&
                     PUBLIC_IS_SMTP_CONFIGURED &&
-                    !result.emailSent &&
-                    result.emailError && (
+                    !result.emailSent && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
-                        Email could not be sent. Copy the link to share manually.
+                        {result.emailError
+                          ? 'Email could not be sent. Copy the link to share manually.'
+                          : 'Email status unknown. Copy the link to share manually.'}
                       </p>
                     )}
                   {result.status === 'error' && result.error && (

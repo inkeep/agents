@@ -19,6 +19,7 @@ const targetPackages = [
   './packages/agents-core',
   './packages/agents-sdk',
   './packages/create-agents',
+  './packages/email',
 ];
 
 // Header to add to generated LICENSE files
