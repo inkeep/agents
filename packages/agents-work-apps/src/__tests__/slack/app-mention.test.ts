@@ -114,11 +114,14 @@ vi.mock('../../slack/services/events/utils', () => ({
   generateSlackConversationId: vi.fn().mockReturnValue('conv-123'),
   getThreadContext: vi.fn().mockResolvedValue('Thread context here'),
   getUserFriendlyErrorMessage: vi.fn().mockReturnValue('Something went wrong'),
-  resolveChannelAgentConfig: vi.fn(),
   timedOp: vi.fn().mockImplementation(async (operation: Promise<unknown>) => ({
     result: await operation,
     durationMs: 0,
   })),
+}));
+
+vi.mock('../../slack/services/agent-resolution', () => ({
+  resolveEffectiveAgent: vi.fn(),
 }));
 
 const baseParams = {
@@ -148,9 +151,8 @@ describe('handleAppMention', () => {
 
   it('should prompt to set up agents when no agent config found', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
-      '../../slack/services/events/utils'
-    );
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -158,7 +160,7 @@ describe('handleAppMention', () => {
       botToken: 'xoxb-123',
       tenantId: 'default',
     });
-    vi.mocked(resolveChannelAgentConfig).mockResolvedValue(null);
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue(null);
     vi.mocked(findCachedUserMapping).mockResolvedValue(null);
 
     await handleAppMention(baseParams);
@@ -174,9 +176,8 @@ describe('handleAppMention', () => {
 
   it('should prompt to link account when user not linked', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
-      '../../slack/services/events/utils'
-    );
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -184,10 +185,11 @@ describe('handleAppMention', () => {
       botToken: 'xoxb-123',
       tenantId: 'default',
     });
-    vi.mocked(resolveChannelAgentConfig).mockResolvedValue({
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
       agentId: 'agent-1',
       agentName: 'Test Agent',
       projectId: 'proj-1',
+      source: 'channel',
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue(null);
 
@@ -202,9 +204,8 @@ describe('handleAppMention', () => {
 
   it('should show usage hint for channel mention with no query', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
-      '../../slack/services/events/utils'
-    );
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -212,10 +213,11 @@ describe('handleAppMention', () => {
       botToken: 'xoxb-123',
       tenantId: 'default',
     });
-    vi.mocked(resolveChannelAgentConfig).mockResolvedValue({
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
       agentId: 'agent-1',
       agentName: 'Test Agent',
       projectId: 'proj-1',
+      source: 'channel',
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue({
       id: 'map-1',
@@ -244,9 +246,8 @@ describe('handleAppMention', () => {
 
   it('should stream response for channel mention with query', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
-      '../../slack/services/events/utils'
-    );
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
     const { streamAgentResponse } = await import('../../slack/services/events/streaming');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
@@ -255,10 +256,11 @@ describe('handleAppMention', () => {
       botToken: 'xoxb-123',
       tenantId: 'default',
     });
-    vi.mocked(resolveChannelAgentConfig).mockResolvedValue({
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
       agentId: 'agent-1',
       agentName: 'Test Agent',
       projectId: 'proj-1',
+      source: 'channel',
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue({
       id: 'map-1',
