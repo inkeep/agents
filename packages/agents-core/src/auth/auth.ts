@@ -346,7 +346,11 @@ export function createAuth(config: BetterAuthConfig) {
             } catch (err) {
               const message = err instanceof Error ? err.message : String(err);
               console.error(`[email] Failed to send invitation email to ${data.email}:`, message);
-              setEmailSendStatus(data.id, { emailSent: false, error: message, organizationId: data.organization.id });
+              setEmailSendStatus(data.id, {
+                emailSent: false,
+                error: message,
+                organizationId: data.organization.id,
+              });
             }
           } else {
             setEmailSendStatus(data.id, { emailSent: false, organizationId: data.organization.id });
