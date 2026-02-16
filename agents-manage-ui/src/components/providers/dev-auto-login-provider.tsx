@@ -19,6 +19,12 @@ export function DevAutoLoginProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;
 
+    // Skip auto-login under Cypress — it manages its own login flow via cy.login()
+    if ('Cypress' in window) {
+      setReady(true);
+      return;
+    }
+
     // Already authenticated — no auto-login needed
     if (isAuthenticated) {
       setReady(true);
