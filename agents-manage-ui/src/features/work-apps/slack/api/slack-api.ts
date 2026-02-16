@@ -181,6 +181,7 @@ export const slackApi = {
       projectId: string;
       agentId: string;
       agentName?: string;
+      grantAccessToMembers?: boolean;
     };
     channelName?: string;
   }): Promise<{ success: boolean; configId: string }> {
@@ -218,7 +219,12 @@ export const slackApi = {
   async bulkSetChannelAgents(
     teamId: string,
     channelIds: string[],
-    agentConfig: { projectId: string; agentId: string; agentName?: string }
+    agentConfig: {
+      projectId: string;
+      agentId: string;
+      agentName?: string;
+      grantAccessToMembers?: boolean;
+    }
   ): Promise<{
     success: boolean;
     updated: number;

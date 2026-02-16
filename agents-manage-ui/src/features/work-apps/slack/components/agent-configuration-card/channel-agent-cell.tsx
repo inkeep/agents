@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, Loader2, RotateCcw } from 'lucide-react';
+import { Check, ChevronDown, Loader2, RotateCcw, ShieldCheck } from 'lucide-react';
 import { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,8 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Channel, SlackAgentOption } from './types';
 
@@ -22,6 +24,7 @@ interface ChannelAgentCellProps {
   savingChannel: string | null;
   onSetAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
   onResetToDefault: (channelId: string, channelName: string) => void;
+  onToggleGrantAccess: (channelId: string, grantAccess: boolean) => void;
 }
 
 export const ChannelAgentCell = memo(function ChannelAgentCell({
@@ -30,6 +33,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
   savingChannel,
   onSetAgent,
   onResetToDefault,
+  onToggleGrantAccess,
 }: ChannelAgentCellProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -75,6 +79,29 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                       Reset to workspace default
                     </CommandItem>
                   </CommandGroup>
+                  <CommandSeparator />
+                  <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label
+                          htmlFor={`grant-access-${channel.id}`}
+                          className="flex items-center gap-2 text-xs cursor-pointer"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Grant access to members</span>
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[220px]">
+                        When enabled, channel members can use this agent without explicit project
+                        access.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Switch
+                      id={`grant-access-${channel.id}`}
+                      checked={channel.agentConfig?.grantAccessToMembers !== false}
+                      onCheckedChange={(checked) => onToggleGrantAccess(channel.id, checked)}
+                    />
+                  </div>
                   <CommandSeparator />
                 </>
               )}

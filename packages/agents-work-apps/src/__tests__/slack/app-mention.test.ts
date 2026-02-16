@@ -192,6 +192,7 @@ describe('handleAppMention', () => {
       agentName: 'Test Agent',
       projectId: 'proj-1',
       source: 'channel',
+      grantAccessToMembers: true,
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue(null);
 
@@ -220,6 +221,7 @@ describe('handleAppMention', () => {
       agentName: 'Test Agent',
       projectId: 'proj-1',
       source: 'channel',
+      grantAccessToMembers: true,
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue({
       id: 'map-1',
@@ -263,6 +265,7 @@ describe('handleAppMention', () => {
       agentName: 'Test Agent',
       projectId: 'proj-1',
       source: 'channel',
+      grantAccessToMembers: true,
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue({
       id: 'map-1',
@@ -323,6 +326,7 @@ describe('handleAppMention', () => {
       agentName: 'Test Agent',
       projectId: 'proj-1',
       source: 'workspace',
+      grantAccessToMembers: true,
     });
     vi.mocked(findCachedUserMapping).mockResolvedValue({
       id: 'map-1',
@@ -352,5 +356,53 @@ describe('handleAppMention', () => {
     );
     expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.authorized', true);
     expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.auth_source', 'workspace');
+  });
+
+  it('should set slackAuthorized false when grantAccessToMembers is false', async () => {
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
+
+    vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
+      connectionId: 'conn-1',
+      teamId: 'T789',
+      botToken: 'xoxb-123',
+      tenantId: 'default',
+    });
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'channel',
+      grantAccessToMembers: false,
+    });
+    vi.mocked(findCachedUserMapping).mockResolvedValue({
+      id: 'map-1',
+      tenantId: 'default',
+      slackUserId: 'U123',
+      slackTeamId: 'T789',
+      slackEnterpriseId: null,
+      inkeepUserId: 'user-1',
+      clientId: 'work-apps-slack',
+      slackUsername: null,
+      slackEmail: null,
+      linkedAt: '2026-01-01',
+      lastUsedAt: null,
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+    });
+
+    const { signSlackUserToken } = await import('@inkeep/agents-core');
+
+    await handleAppMention({ ...baseParams, text: 'What is Inkeep?' });
+
+    expect(signSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: false,
+        slackAuthSource: 'channel',
+        slackAuthorizedProjectId: 'proj-1',
+      })
+    );
+    expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.authorized', false);
   });
 });

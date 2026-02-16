@@ -161,7 +161,7 @@ export async function handleAppMention(params: {
 
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentConfig.agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, agentConfig.projectId);
-      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, true);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, agentConfig.grantAccessToMembers);
       span.setAttribute(SLACK_SPAN_KEYS.AUTH_SOURCE, agentConfig.source);
       const agentDisplayName = agentConfig.agentName || agentConfig.agentId;
 
@@ -242,7 +242,7 @@ export async function handleAppMention(params: {
           tenantId,
           slackTeamId: teamId,
           slackUserId,
-          slackAuthorized: agentConfig != null,
+          slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
           slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
           slackChannelId: channel,
           slackAuthorizedProjectId: agentConfig?.projectId,
@@ -344,7 +344,7 @@ Respond naturally as if you're joining the conversation to help.`;
         tenantId,
         slackTeamId: teamId,
         slackUserId,
-        slackAuthorized: agentConfig != null,
+        slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
         slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
         slackChannelId: channel,
         slackAuthorizedProjectId: agentConfig?.projectId,

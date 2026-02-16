@@ -339,7 +339,7 @@ export async function handleQuestionCommand(
     question,
     userTenantId,
     {
-      slackAuthorized: true,
+      slackAuthorized: resolvedAgent.grantAccessToMembers,
       slackAuthSource: resolvedAgent.source === 'none' ? undefined : resolvedAgent.source,
       slackChannelId: payload.channelId,
       slackAuthorizedProjectId: resolvedAgent.projectId,

@@ -154,6 +154,7 @@ export function AgentConfigurationCard() {
       projectId: agent.projectId,
       agentId: agent.id,
       agentName: agent.name || agent.id,
+      grantAccessToMembers: true,
     };
 
     try {
@@ -205,6 +206,44 @@ export function AgentConfigurationCard() {
           ? `You can only configure channels you're a member of`
           : 'Failed to reset channel to default';
       toast.error(errorMessage);
+    } finally {
+      setSavingChannel(null);
+    }
+  };
+
+  const handleToggleGrantAccess = async (channelId: string, grantAccess: boolean) => {
+    if (!teamId) return;
+
+    const channel = channels.find((ch) => ch.id === channelId);
+    if (!channel?.agentConfig) return;
+
+    setSavingChannel(channelId);
+
+    const updatedConfig = {
+      ...channel.agentConfig,
+      grantAccessToMembers: grantAccess,
+    };
+
+    try {
+      await slackApi.setChannelDefaultAgent({
+        teamId,
+        channelId,
+        agentConfig: updatedConfig,
+        channelName: channel.name,
+      });
+
+      setChannels((prev) =>
+        prev.map((ch) => (ch.id === channelId ? { ...ch, agentConfig: updatedConfig } : ch))
+      );
+
+      toast.success(
+        grantAccess
+          ? `#${channel.name}: channel members can now use this agent`
+          : `#${channel.name}: channel members need explicit project access`
+      );
+    } catch (error) {
+      console.error('Failed to toggle grant access:', error);
+      toast.error('Failed to update access setting');
     } finally {
       setSavingChannel(null);
     }
@@ -409,6 +448,7 @@ export function AgentConfigurationCard() {
         onClearSelection={() => setSelectedChannels(new Set())}
         onSetChannelAgent={handleSetChannelAgent}
         onResetChannelToDefault={handleResetChannelToDefault}
+        onToggleGrantAccess={handleToggleGrantAccess}
         onBulkSetAgent={handleBulkSetAgent}
         onBulkResetToDefault={handleBulkResetToDefault}
         onClearFilters={() => {
