@@ -135,7 +135,11 @@ invitationsRoutes.get('/:id/email-status', async (c) => {
     return c.json({ emailSent: false });
   }
 
-  return c.json(status);
+  if (status.organizationId && status.organizationId !== activeMember.organizationId) {
+    return c.json({ emailSent: false });
+  }
+
+  return c.json({ emailSent: status.emailSent, error: status.error });
 });
 
 // GET /api/invitations/pending?email=user@example.com - Get pending invitations for an email

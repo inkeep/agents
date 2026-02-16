@@ -1,6 +1,7 @@
 type EmailSendStatus = {
   emailSent: boolean;
   error?: string;
+  organizationId?: string;
 };
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes
