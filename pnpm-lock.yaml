@@ -85,7 +85,7 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-core
       '@inkeep/agents-email':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/agents-email
       '@inkeep/agents-manage-mcp':
         specifier: workspace:^
