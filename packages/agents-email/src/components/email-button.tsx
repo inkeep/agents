@@ -18,7 +18,7 @@ export function EmailButton({ href, children }: EmailButtonProps) {
         {children}
       </Button>
       <Text className="text-email-text-muted text-[11px] leading-[16px] mt-[16px] mb-0">
-        Or copy and paste this link:{' '}
+        Link:{' '}
         <Link href={href} className="text-email-text-muted underline">
           {href}
         </Link>
