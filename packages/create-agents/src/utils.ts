@@ -474,18 +474,17 @@ export const createAgents = async (
     p.log.success(`Workspace created at: ${color.cyan(directoryPath)}`);
 
     p.note(
-      `${color.yellow('Next steps:')}\n` +
-        `  cd ${dirName}\n` +
-        `  pnpm setup-dev   ${color.dim('# Database and project initialization')}\n` +
-        `  pnpm dev          ${color.dim('# Start development servers')}\n\n` +
-        `${color.yellow('On `pnpm dev`:')}\n` +
-        `  • Dashboard:  http://127.0.0.1:3000\n` +
-        `  • Agents API: http://127.0.0.1:3002\n\n` +
-        `${color.yellow('Configuration:')}\n` +
-        `  • See .env for environment variables\n` +
-        `  • Edit files in src/projects/ for agent definitions\n` +
-        `  • Use 'inkeep push' to deploy agents to Agents API`,
-      'Ready to go! 🚀'
+      `${color.yellow('1. Start:')}\n` +
+        `   cd ${dirName}\n` +
+        `   pnpm setup-dev\n` +
+        `   pnpm dev\n\n` +
+        `${color.yellow('2. Explore:')}\n` +
+        `   • Dashboard:  http://127.0.0.1:3000\n` +
+        `   • Agents API: http://127.0.0.1:3002\n\n` +
+        `${color.yellow('3. Customize:')}\n` +
+        `   • Edit your agents in src/projects/\n` +
+        `   • Use 'inkeep push' to apply`,
+      'Next steps 🚀'
     );
   } catch (error) {
     s.stop();
