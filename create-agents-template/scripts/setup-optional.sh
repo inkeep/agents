@@ -214,6 +214,19 @@ cmd_setup() {
     echo -e "  ${GREEN}✓${NC} NANGO_ENCRYPTION_KEY already set"
   fi
 
+  # Generate Nango secret key for the dev environment (used for API auth)
+  EXISTING_NANGO_KEY="$(get_env_var "$ENV_FILE" "NANGO_SECRET_KEY")"
+  if [ -n "$EXISTING_NANGO_KEY" ]; then
+    # Re-use existing key — also ensure it's in the companion .env
+    set_env_var "$COMPANION_ENV" "NANGO_SECRET_KEY_DEV" "$EXISTING_NANGO_KEY"
+    echo -e "  ${GREEN}✓${NC} Re-using existing NANGO_SECRET_KEY"
+  else
+    NANGO_KEY="$(openssl rand -hex 16)"
+    set_env_var "$COMPANION_ENV" "NANGO_SECRET_KEY_DEV" "$NANGO_KEY"
+    set_env_var "$ENV_FILE" "NANGO_SECRET_KEY" "$NANGO_KEY"
+    echo -e "  ${GREEN}✓${NC} Generated NANGO_SECRET_KEY"
+  fi
+
   set_env_var "$COMPANION_ENV" "COMPOSE_PROFILES" "nango,signoz,otel-collector,jaeger"
   echo -e "  ${GREEN}✓${NC} COMPOSE_PROFILES set"
 
@@ -231,27 +244,9 @@ cmd_setup() {
   echo "Waiting for services to become healthy..."
 
   # Nango (non-fatal — first run may need time for DB migrations)
-  NANGO_READY=1
   if ! wait_for_http "http://localhost:3050/health" "Nango" 180; then
-    NANGO_READY=0
-    echo -e "  ${YELLOW}Nango is still starting. Env vars will be set, but secret key retrieval will be skipped.${NC}"
-    echo -e "  ${YELLOW}Once Nango is ready, re-run 'pnpm setup-dev:optional' or get the key from http://localhost:3050${NC}"
-  fi
-
-  # Retrieve the Nango secret key from its database (Nango generates UUID keys internally)
-  EXISTING_NANGO_KEY="$(get_env_var "$ENV_FILE" "NANGO_SECRET_KEY")"
-  if [ -n "$EXISTING_NANGO_KEY" ]; then
-    echo -e "  ${GREEN}✓${NC} Re-using existing NANGO_SECRET_KEY from .env"
-  elif [ "$NANGO_READY" = "0" ]; then
-    echo -e "  ${YELLOW}⚠️  Skipped — Nango not ready yet. Re-run 'pnpm setup-dev:optional' once it's up.${NC}"
-  else
-    NANGO_KEY=$(docker exec nango-db psql -U nango -d nango -t -A -c "SELECT secret_key FROM _nango_environments WHERE name='dev';" 2>/dev/null | tr -d '[:space:]')
-    if [ -n "$NANGO_KEY" ]; then
-      set_env_var "$ENV_FILE" "NANGO_SECRET_KEY" "$NANGO_KEY"
-      echo -e "  ${GREEN}✓${NC} Retrieved NANGO_SECRET_KEY from Nango database"
-    else
-      echo -e "  ${YELLOW}⚠️  Could not retrieve Nango secret key. Get it from http://localhost:3050 → Environment Settings${NC}"
-    fi
+    echo -e "  ${YELLOW}Nango is still starting but env vars are already configured.${NC}"
+    echo -e "  ${YELLOW}The API key will work once Nango finishes booting.${NC}"
   fi
 
   set_env_var "$ENV_FILE" "NANGO_SERVER_URL" "http://localhost:3050"
