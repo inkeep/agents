@@ -473,7 +473,7 @@ export const createAgents = async (
 
     p.log.success(`Workspace created at: ${color.cyan(directoryPath)}`);
 
-    p.log.message(
+    p.note(
       `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
         `  pnpm setup-dev   ${color.dim('# Database and project initialization')}\n` +
@@ -484,7 +484,8 @@ export const createAgents = async (
         `${color.yellow('Configuration:')}\n` +
         `  • See .env for environment variables\n` +
         `  • Edit files in src/projects/ for agent definitions\n` +
-        `  • Use 'inkeep push' to deploy agents to Agents API`
+        `  • Use 'inkeep push' to deploy agents to Agents API`,
+      'Ready to go! 🚀'
     );
   } catch (error) {
     s.stop();

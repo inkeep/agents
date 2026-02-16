@@ -116,6 +116,9 @@
     ],
     ".agents/skills/**/SKILL.md": [
       "bash -c 'pnpm validate:ai-artifacts'"
+    ],
+    "scripts/setup-optional.sh": [
+      "bash -c 'cp scripts/setup-optional.sh create-agents-template/scripts/setup-optional.sh && git add create-agents-template/scripts/setup-optional.sh'"
     ]
   },
   "packageManager": "pnpm@10.10.0"
