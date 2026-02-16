@@ -24,6 +24,9 @@ export function createTransport(env: EmailEnv): TransportResult {
         user: 'resend',
         pass: env.RESEND_API_KEY,
       },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
     });
 
     return { transporter, isConfigured: true };
@@ -47,6 +50,9 @@ export function createTransport(env: EmailEnv): TransportResult {
       ...(env.SMTP_USER && env.SMTP_PASSWORD
         ? { auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } }
         : {}),
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
     });
 
     return { transporter, isConfigured: true };
