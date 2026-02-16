@@ -66,6 +66,18 @@ When a team member uses `@Inkeep` or `/inkeep`, the app resolves which agent to 
 Channel defaults take priority over the workspace default. If you remove a channel default, that channel falls back to the workspace default agent.
 </Tip>
 
+## Automatic authorization
+
+When you configure a workspace or channel default agent, users in those channels are automatically authorized to use that agent. This eliminates the need for admins to manually add each user as an explicit project member.
+
+- **Channel defaults** — Users in the channel can execute the assigned agent
+- **Workspace defaults** — All linked Slack users in the workspace can execute the assigned agent
+- **Project-scoped** — Authorization is limited to the specific project the agent belongs to
+
+<Note>
+Users must still link their Slack account with `/inkeep link` before they can interact with agents.
+</Note>
+
 ## Managing linked users
 
 The dashboard shows all users who have linked their Slack accounts to Inkeep. You can:
