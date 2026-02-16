@@ -278,8 +278,18 @@ describe('handleAppMention', () => {
       updatedAt: '2026-01-01',
     });
 
+    const { signSlackUserToken } = await import('@inkeep/agents-core');
+
     await handleAppMention({ ...baseParams, text: 'What is Inkeep?' });
 
+    expect(signSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: true,
+        slackAuthSource: 'channel',
+        slackChannelId: 'C456',
+        slackAuthorizedProjectId: 'proj-1',
+      })
+    );
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         text: expect.stringContaining('preparing a response'),

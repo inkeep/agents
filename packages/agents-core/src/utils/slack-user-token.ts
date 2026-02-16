@@ -30,16 +30,20 @@ export const SlackAccessTokenPayloadSchema = z.object({
 
   tenantId: z.string().min(1),
 
-  slack: z.object({
-    teamId: z.string().min(1),
-    userId: z.string().min(1),
-    enterpriseId: z.string().min(1).optional(),
-    email: z.string().email().optional(),
-    authorized: z.boolean().optional(),
-    authSource: z.enum(['channel', 'workspace']).optional(),
-    channelId: z.string().min(1).optional(),
-    authorizedProjectId: z.string().min(1).optional(),
-  }),
+  slack: z
+    .object({
+      teamId: z.string().min(1),
+      userId: z.string().min(1),
+      enterpriseId: z.string().min(1).optional(),
+      email: z.string().email().optional(),
+      authorized: z.boolean().optional(),
+      authSource: z.enum(['channel', 'workspace']).optional(),
+      channelId: z.string().min(1).optional(),
+      authorizedProjectId: z.string().min(1).optional(),
+    })
+    .refine((data) => !data.authorized || (data.authorizedProjectId && data.authSource), {
+      message: 'When authorized is true, authorizedProjectId and authSource are required',
+    }),
 });
 
 export type SlackAccessTokenPayload = z.infer<typeof SlackAccessTokenPayloadSchema>;

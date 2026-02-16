@@ -994,6 +994,42 @@ describe('API Key Authentication Middleware', () => {
       });
       expect(canUseProjectStrictMock).not.toHaveBeenCalled();
     });
+
+    it('should default authSource to channel when missing from JWT', async () => {
+      const payloadWithoutAuthSource = {
+        ...mockSlackPayload,
+        slack: {
+          ...mockSlackPayload.slack,
+          authorized: true,
+          authorizedProjectId: 'project_789',
+        },
+      };
+
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: payloadWithoutAuthSource,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata.slack.authSource).toBe('channel');
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('optionalAuth middleware', () => {

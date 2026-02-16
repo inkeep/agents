@@ -248,6 +248,16 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
     payload.slack.authorized === true && payload.slack.authorizedProjectId === reqData.projectId;
 
   if (!slackAuthorized) {
+    logger.debug(
+      {
+        slackAuthorizedClaim: payload.slack.authorized,
+        slackAuthorizedProjectId: payload.slack.authorizedProjectId,
+        requestedProjectId: reqData.projectId,
+        projectMatch: payload.slack.authorizedProjectId === reqData.projectId,
+      },
+      'Slack channel auth bypass not applied, falling through to SpiceDB'
+    );
+
     // Verify the requested projectId belongs to the authenticated tenant
     try {
       const canUse = await canUseProjectStrict({

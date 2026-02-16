@@ -307,7 +307,7 @@ export interface BaseExecutionContext {
       id: string;
     };
     slack?: {
-      authorized: boolean;
+      authorized: true;
       authSource: 'channel' | 'workspace';
       channelId?: string;
       teamId: string;
