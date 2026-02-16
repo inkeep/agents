@@ -49,7 +49,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Exit if checkout failed
+      - name: Log checkout failure
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'failure'
         run: |
           echo "::notice::Checkout failed — branch was likely deleted (PR merged). Skipping."
