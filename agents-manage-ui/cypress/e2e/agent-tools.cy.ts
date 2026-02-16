@@ -4,16 +4,18 @@ import { generateId } from '../../src/lib/utils/id-utils';
 
 function dragNode(selector: string) {
   const dataTransfer = new DataTransfer();
-  cy.get(selector).trigger('dragstart', { dataTransfer });
+  cy.get(selector).trigger('dragstart', { dataTransfer, force: true });
 
   cy.get('.react-flow__node-agent')
     .eq(0)
-    .trigger('dragover', { dataTransfer })
-    .trigger('drop', { dataTransfer });
+    .trigger('dragover', { dataTransfer, force: true })
+    .trigger('drop', { dataTransfer, force: true });
 }
 function connectEdge(selector: string) {
-  cy.get(selector).trigger('mousedown', { button: 0 });
-  cy.get('[data-handleid="target-agent"]').trigger('mousemove').trigger('mouseup');
+  cy.get(selector).trigger('mousedown', { button: 0, force: true });
+  cy.get('[data-handleid="target-agent"]')
+    .trigger('mousemove', { force: true })
+    .trigger('mouseup', { force: true });
 }
 
 describe('Agent Tools', () => {

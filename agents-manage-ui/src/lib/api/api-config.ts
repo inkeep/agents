@@ -64,8 +64,8 @@ async function makeApiRequestInternal<T>(
     'Content-Type': 'application/json',
     ...options.headers,
     ...(cookieHeader && { Cookie: cookieHeader }),
-    ...(process.env.INKEEP_AGENTS_API_BYPASS_SECRET && {
-      Authorization: `Bearer ${process.env.INKEEP_AGENTS_API_BYPASS_SECRET}`,
+    ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+      Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
     }),
   };
 
