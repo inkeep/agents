@@ -80,10 +80,10 @@ If `pnpm dev` fails or services aren't reachable, the most common cause is that 
 **How to fix:**
 
 1. Ensure Docker Desktop (or Docker daemon) is running
-2. Run `pnpm setup-dev` — this is idempotent and will start any stopped databases, apply pending migrations, and re-create the admin user
+2. Run `pnpm setup-dev` — this is idempotent and will start any stopped databases, apply pending migrations, and ensure the admin user exists
 3. Run `pnpm dev` again
 
-For the [quickstart template](/quick-start/start-development), the same applies: run `pnpm setup-dev` from the workspace root before `pnpm dev`.
+For the [quickstart template](/get-started/quick-start), the same applies: run `pnpm setup-dev` from the workspace root before `pnpm dev`.
 
 ## Check service logs (local development)
 

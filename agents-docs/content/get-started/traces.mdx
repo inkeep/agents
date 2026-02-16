@@ -88,9 +88,7 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 ### Automated Setup (Recommended)
 
-<Note>
-  Run `pnpm setup-dev` first to set up core databases and migrations. `setup-dev:optional` only starts optional services.
-</Note>
+<Snippet file="setup-dev-optional-prereq.mdx" />
 
 Run the following from your project root:
 
@@ -102,10 +100,9 @@ This automatically:
 - Clones the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) companion repo (if not already present)
 - Starts SigNoz, OTEL Collector, Jaeger, and [Nango](/typescript-sdk/credentials/nango) via Docker Compose
 - Registers a SigNoz admin account and creates an API key
-- Retrieves the Nango secret key
 - Writes all required env vars to your `.env`
 
-After setup completes, restart your dev server and traces will flow automatically:
+After setup completes, restart your dev server:
 
 ```bash
 pnpm dev
@@ -113,7 +110,7 @@ pnpm dev
 
 Open SigNoz at `http://localhost:3080` to view traces. Jaeger is also available at `http://localhost:16686`.
 
-Use `pnpm optional:status` to check service health, `pnpm optional:stop` to stop optional services, or `pnpm optional:reset` to start fresh.
+<Snippet file="setup-dev-optional-lifecycle.mdx" />
 
 ### Manual Setup
 

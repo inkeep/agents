@@ -46,7 +46,7 @@ Or if you are using a cloud database, you can skip the local Docker database sta
 pnpm setup-dev:cloud
 ```
 
-Make sure your `INKEEP_AGENTS_MANAGE_DATABASE_URL` and `INKEEP_AGENTS_RUN_DATABASE_URL` environment variables are configured in `.env` for your cloud database.
+Make sure your `INKEEP_AGENTS_MANAGE_DATABASE_URL` and `INKEEP_AGENTS_RUN_DATABASE_URL` environment variables are configured in `.env` for your cloud databases.
 
 ### Step 3: Launch the dev environment
 
