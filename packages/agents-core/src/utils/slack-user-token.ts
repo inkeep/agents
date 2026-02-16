@@ -35,6 +35,10 @@ export const SlackAccessTokenPayloadSchema = z.object({
     userId: z.string().min(1),
     enterpriseId: z.string().min(1).optional(),
     email: z.string().email().optional(),
+    authorized: z.boolean().optional(),
+    authSource: z.enum(['channel', 'workspace']).optional(),
+    channelId: z.string().min(1).optional(),
+    authorizedProjectId: z.string().min(1).optional(),
   }),
 });
 
@@ -50,6 +54,10 @@ export interface SignSlackUserTokenParams {
   slackUserId: string;
   slackEnterpriseId?: string;
   slackEmail?: string;
+  slackAuthorized?: boolean;
+  slackAuthSource?: 'channel' | 'workspace';
+  slackChannelId?: string;
+  slackAuthorizedProjectId?: string;
 }
 
 /**
@@ -83,6 +91,12 @@ export async function signSlackUserToken(params: SignSlackUserTokenParams): Prom
           userId: params.slackUserId,
           ...(params.slackEnterpriseId && { enterpriseId: params.slackEnterpriseId }),
           ...(params.slackEmail && { email: params.slackEmail }),
+          ...(params.slackAuthorized != null && { authorized: params.slackAuthorized }),
+          ...(params.slackAuthSource && { authSource: params.slackAuthSource }),
+          ...(params.slackChannelId && { channelId: params.slackChannelId }),
+          ...(params.slackAuthorizedProjectId && {
+            authorizedProjectId: params.slackAuthorizedProjectId,
+          }),
         },
       },
     });

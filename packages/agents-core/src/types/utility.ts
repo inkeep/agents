@@ -306,6 +306,12 @@ export interface BaseExecutionContext {
       type: 'user' | 'api_key';
       id: string;
     };
+    slack?: {
+      authorized: boolean;
+      authSource: 'channel' | 'workspace';
+      channelId?: string;
+      teamId: string;
+    };
   };
 }
 

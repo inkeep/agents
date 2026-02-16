@@ -661,6 +661,341 @@ describe('API Key Authentication Middleware', () => {
     });
   });
 
+  describe('Slack User JWT Authentication', () => {
+    const mockSlackPayload = {
+      iss: 'inkeep-auth',
+      aud: 'inkeep-api',
+      sub: 'user_123',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 300,
+      tokenUse: 'slackUser',
+      act: { sub: 'inkeep-work-app-slack' },
+      tenantId: 'tenant_456',
+      slack: {
+        teamId: 'T12345678',
+        userId: 'U87654321',
+      },
+    };
+
+    const slackToken =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJpbmtlZXAtYXV0aCIsInRva2VuVXNlIjoic2xhY2tVc2VyIn0.test-signature-long-enough';
+
+    beforeEach(() => {
+      isSlackUserTokenMock.mockReturnValue(false);
+    });
+
+    it('should accept valid slack user JWT with SpiceDB check', async () => {
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockSlackPayload,
+      });
+      canUseProjectStrictMock.mockResolvedValueOnce(true);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toMatchObject({
+        apiKey: slackToken,
+        tenantId: 'tenant_456',
+        projectId: 'project_789',
+        agentId: 'agent_abc',
+        apiKeyId: 'slack-user-token',
+        metadata: {
+          initiatedBy: { type: 'user', id: 'user_123' },
+        },
+      });
+      expect(body.metadata.slack).toBeUndefined();
+      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
+        userId: 'user_123',
+        projectId: 'project_789',
+      });
+    });
+
+    it('should bypass SpiceDB when channel-authorized with matching project', async () => {
+      const authorizedPayload = {
+        ...mockSlackPayload,
+        slack: {
+          ...mockSlackPayload.slack,
+          authorized: true,
+          authSource: 'channel',
+          channelId: 'C12345678',
+          authorizedProjectId: 'project_789',
+        },
+      };
+
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: authorizedPayload,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toMatchObject({
+        tenantId: 'tenant_456',
+        projectId: 'project_789',
+        agentId: 'agent_abc',
+        apiKeyId: 'slack-user-token',
+        metadata: {
+          initiatedBy: { type: 'user', id: 'user_123' },
+          slack: {
+            authorized: true,
+            authSource: 'channel',
+            channelId: 'C12345678',
+            teamId: 'T12345678',
+          },
+        },
+      });
+      // SpiceDB should NOT be called when channel-authorized
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+    });
+
+    it('should fall through to SpiceDB when authorizedProjectId does not match (D8)', async () => {
+      const mismatchPayload = {
+        ...mockSlackPayload,
+        slack: {
+          ...mockSlackPayload.slack,
+          authorized: true,
+          authSource: 'channel',
+          channelId: 'C12345678',
+          authorizedProjectId: 'project_DIFFERENT',
+        },
+      };
+
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mismatchPayload,
+      });
+      canUseProjectStrictMock.mockResolvedValueOnce(true);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      // SpiceDB SHOULD be called because project doesn't match
+      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
+        userId: 'user_123',
+        projectId: 'project_789',
+      });
+      // metadata.slack should NOT be set (bypass didn't apply)
+      expect(body.metadata.slack).toBeUndefined();
+    });
+
+    it('should fall through to SpiceDB when authorized is not true', async () => {
+      const noAuthPayload = {
+        ...mockSlackPayload,
+        slack: {
+          ...mockSlackPayload.slack,
+          authorized: false,
+          authorizedProjectId: 'project_789',
+        },
+      };
+
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: noAuthPayload,
+      });
+      canUseProjectStrictMock.mockResolvedValueOnce(true);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(canUseProjectStrictMock).toHaveBeenCalled();
+    });
+
+    it('should fall through to SpiceDB when channel auth claims are missing', async () => {
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockSlackPayload,
+      });
+      canUseProjectStrictMock.mockResolvedValueOnce(true);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(canUseProjectStrictMock).toHaveBeenCalled();
+    });
+
+    it('should deny access when SpiceDB denies and no channel auth', async () => {
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockSlackPayload,
+      });
+      canUseProjectStrictMock.mockResolvedValueOnce(false);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.text();
+      expect(body).toContain('insufficient permissions');
+    });
+
+    it('should reject when missing required headers', async () => {
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockSlackPayload,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          // Missing x-inkeep-project-id and x-inkeep-agent-id
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.text();
+      expect(body).toContain('requires x-inkeep-project-id and x-inkeep-agent-id');
+    });
+
+    it('should return 503 when SpiceDB is unavailable', async () => {
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockSlackPayload,
+      });
+      canUseProjectStrictMock.mockRejectedValueOnce(new Error('SpiceDB connection failed'));
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(503);
+      const body = await res.text();
+      expect(body).toContain('Authorization service temporarily unavailable');
+    });
+
+    it('should bypass SpiceDB with workspace auth source', async () => {
+      const workspacePayload = {
+        ...mockSlackPayload,
+        slack: {
+          ...mockSlackPayload.slack,
+          authorized: true,
+          authSource: 'workspace',
+          channelId: 'C12345678',
+          authorizedProjectId: 'project_789',
+        },
+      };
+
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: workspacePayload,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata.slack).toMatchObject({
+        authorized: true,
+        authSource: 'workspace',
+        teamId: 'T12345678',
+      });
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe('optionalAuth middleware', () => {
     it('should continue without auth when no header is present', async () => {
       app.use('*', optionalAuth());

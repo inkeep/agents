@@ -18,6 +18,7 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
+import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   getSlackChannelInfo,
   getSlackClient,
@@ -34,7 +35,6 @@ import {
   generateSlackConversationId,
   getThreadContext,
   getUserFriendlyErrorMessage,
-  resolveChannelAgentConfig,
   timedOp,
 } from './utils';
 
@@ -138,7 +138,7 @@ export async function handleAppMention(params: {
         result: [agentConfig, existingLink],
       } = await timedOp(
         Promise.all([
-          resolveChannelAgentConfig(teamId, channel, workspaceConnection),
+          resolveEffectiveAgent({ tenantId, teamId, channelId: channel }),
           findCachedUserMapping(tenantId, slackUserId, teamId),
         ]),
         {
@@ -234,12 +234,16 @@ export async function handleAppMention(params: {
           return;
         }
 
-        // Sign JWT token for authentication
+        // Sign JWT token for authentication with channel auth context
         const slackUserToken = await signSlackUserToken({
           inkeepUserId: existingLink.inkeepUserId,
           tenantId,
           slackTeamId: teamId,
           slackUserId,
+          slackAuthorized: agentConfig != null,
+          slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
+          slackChannelId: channel,
+          slackAuthorizedProjectId: agentConfig?.projectId,
         });
 
         // Post acknowledgement message
@@ -332,12 +336,16 @@ Respond naturally as if you're joining the conversation to help.`;
         queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
       }
 
-      // Sign JWT token for authentication
+      // Sign JWT token for authentication with channel auth context
       const slackUserToken = await signSlackUserToken({
         inkeepUserId: existingLink.inkeepUserId,
         tenantId,
         slackTeamId: teamId,
         slackUserId,
+        slackAuthorized: agentConfig != null,
+        slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
+        slackChannelId: channel,
+        slackAuthorizedProjectId: agentConfig?.projectId,
       });
 
       // Post acknowledgement message
