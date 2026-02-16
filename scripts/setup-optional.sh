@@ -231,31 +231,31 @@ cmd_setup() {
   else
     SIGNOZ_URL="http://localhost:3080"
     SIGNOZ_EMAIL="admin@localhost.dev"
-    SIGNOZ_PASSWORD="LocalDev123!"
+    SIGNOZ_PASSWORD='LocalDev1234@'
 
     # Register admin (idempotent — fails silently on re-run)
-    curl -sf -X POST "$SIGNOZ_URL/api/v1/register" \
+    curl -s -X POST "$SIGNOZ_URL/api/v1/register" \
       -H "Content-Type: application/json" \
       -d "{\"name\":\"Admin\",\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\",\"orgDisplayName\":\"Local Dev\"}" \
       >/dev/null 2>&1 || true
 
-    # Login to get JWT
-    LOGIN_RESPONSE=$(curl -sf -X POST "$SIGNOZ_URL/api/v1/login" \
+    # Login to get JWT (use -s without -f so we get the response body on errors too)
+    LOGIN_RESPONSE=$(curl -s -X POST "$SIGNOZ_URL/api/v1/login" \
       -H "Content-Type: application/json" \
       -d "{\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\"}" 2>/dev/null || echo "")
 
     if [ -n "$LOGIN_RESPONSE" ]; then
-      ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('accessJwt',''))" 2>/dev/null || echo "")
+      ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',d).get('accessJwt',''))" 2>/dev/null || echo "")
 
       if [ -n "$ACCESS_TOKEN" ]; then
-        # Create PAT
-        PAT_RESPONSE=$(curl -sf -X POST "$SIGNOZ_URL/api/v1/pats" \
+        # Create PAT (use -s without -f)
+        PAT_RESPONSE=$(curl -s -X POST "$SIGNOZ_URL/api/v1/pats" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -d '{"name":"local-dev-automation","role":"admin","expiresAt":0}' 2>/dev/null || echo "")
 
         if [ -n "$PAT_RESPONSE" ]; then
-          SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
+          SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',d).get('token',''))" 2>/dev/null || echo "")
 
           if [ -n "$SIGNOZ_API_KEY" ]; then
             set_env_var "$ENV_FILE" "SIGNOZ_API_KEY" "$SIGNOZ_API_KEY"
