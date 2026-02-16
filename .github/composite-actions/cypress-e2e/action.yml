@@ -44,11 +44,14 @@ runs:
 
     - name: Setup development environment
       shell: bash
+      env:
+        ENVIRONMENT: development
       run: pnpm setup-dev
 
     - name: Start backend API server
       shell: bash
       env:
+        ENVIRONMENT: development
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
         BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
       run: pnpm dev --filter='@inkeep/agents-api' & # & means run job in background
