@@ -366,7 +366,7 @@ export function createAuth(config: BetterAuthConfig) {
               );
               throw new APIError('INTERNAL_SERVER_ERROR', {
                 message:
-                  'Failed to sync authorization for role change. Please try again or contact support.',
+                  'Unable to update role permissions. Please try again, or contact support if the problem persists.',
               });
             }
           },
