@@ -29,11 +29,11 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-          --health-start-period 20s
+          --health-retries 10
+          --health-start-period 30s
       postgres:
         image: postgres:18
         env:
@@ -125,6 +125,7 @@ jobs:
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+          ENVIRONMENT: test
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: test-bypass-secret-for-ci
