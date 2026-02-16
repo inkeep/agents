@@ -10,9 +10,10 @@ function ToastCopyAction({ text }: { text: string }) {
       type="button"
       className="ml-auto shrink-0 p-1 rounded border border-border opacity-50 hover:opacity-100 hover:bg-muted/50 transition-all"
       onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        navigator.clipboard?.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
       }}
     >
       {copied ? (
@@ -20,6 +21,7 @@ function ToastCopyAction({ text }: { text: string }) {
       ) : (
         <Copy className="w-3 h-3 text-muted-foreground" />
       )}
+      <span className="sr-only">{copied ? 'Copied' : 'Copy to clipboard'}</span>
     </button>
   );
 }
