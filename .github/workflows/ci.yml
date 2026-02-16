@@ -56,6 +56,15 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
+      - name: Setup Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: agents-manage-ui/.next/cache
+          key: ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-manage-ui/src/**', 'packages/agents-core/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-build-
+
       - name: Setup Playwright cache
         uses: actions/cache@v4
         with:
