@@ -97,9 +97,11 @@ inkeep push
 
 For full instructions, see [Traces](/get-started/traces). Short version:
 
-- For local SigNoz, clone `agents-optional-local-dev` and run `docker-compose --profile signoz up -d`.
-- Set `SIGNOZ_URL`, `SIGNOZ_API_KEY`, and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` in the root `.env` (see `.env.example`).
-- Restart `pnpm dev`, then open `http://localhost:3080` to view traces.
+```bash
+pnpm setup-dev:full
+```
+
+This automatically sets up SigNoz, OTEL Collector, Jaeger, and all related env vars. Restart `pnpm dev`, then open `http://localhost:3080` to view traces.
 
 <Image
   src="/images/live-traces.png"
@@ -111,9 +113,11 @@ For full instructions, see [Traces](/get-started/traces). Short version:
 
 For Nango setup (cloud or local), follow [Use Nango as a credential store](/typescript-sdk/credentials/nango). Short version:
 
-- Set `NANGO_SECRET_KEY` in the root `.env`.
-- For local Nango, start services from `agents-optional-local-dev` (`docker-compose --profile nango up -d`) and set `NANGO_SERVER_URL` / `PUBLIC_NANGO_CONNECT_BASE_URL` as needed (see `.env.example`).
-- Restart `pnpm dev`, then create a credential in the Visual Builder (Credentials tab).
+```bash
+pnpm setup-dev:full
+```
+
+This automatically sets up Nango and wires the secret key to your `.env`. Restart `pnpm dev`, then create a credential in the Visual Builder (Credentials tab).
 
 # Development Workflow
 
