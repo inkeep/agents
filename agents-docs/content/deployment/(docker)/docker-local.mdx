@@ -103,3 +103,17 @@ Then open http://localhost:3000 in a browser!
 - Run API Docs (http://localhost:3003/docs)
 - Nango Dashboard (http://localhost:3050)
 - SigNoz Dashboard (http://localhost:3080)
+- Mailpit Web UI (http://localhost:8025)
+
+## Testing Email Locally
+
+The Docker Compose setup includes [Mailpit](https://mailpit.axllent.org/), a local email server that captures all outgoing emails. This allows you to test email functionality (invitations, password resets) without sending real emails.
+
+The default SMTP configuration in `.env.example` already points to Mailpit:
+
+```dotenv title=".env"
+SMTP_HOST=localhost
+SMTP_PORT=1025
+```
+
+To view captured emails, open the Mailpit web UI at http://localhost:8025. All invitation and password reset emails sent by the application will appear in the Mailpit inbox.
