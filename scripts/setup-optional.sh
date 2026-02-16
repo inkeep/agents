@@ -35,18 +35,18 @@ if [ ! -d "$COMPANION_DIR" ]; then
   else
     echo "failed."
     [ -d "$COMPANION_DIR" ] && [ ! -d "$COMPANION_DIR/.git" ] && rm -rf "$COMPANION_DIR"
-    echo -e "${RED}Check your internet connection and try again.${NC}"
+    printf '%b\n' "${RED}Check your internet connection and try again.${NC}"
     exit 1
   fi
 elif [ "$NO_UPDATE" != "1" ]; then
   if ! git -C "$COMPANION_DIR" pull --ff-only origin main >/dev/null 2>&1; then
-    echo -e "${YELLOW}Note: Could not update companion repo (local changes?). Continuing...${NC}"
+    printf '%b\n' "${YELLOW}Note: Could not update companion repo (local changes?). Continuing...${NC}"
   fi
 fi
 
 # Verify companion script exists (handles pre-migration clones)
 if [ ! -f "$COMPANION_SCRIPT" ]; then
-  echo -e "${RED}Error: $COMPANION_SCRIPT not found.${NC}"
+  printf '%b\n' "${RED}Error: $COMPANION_SCRIPT not found.${NC}"
   echo "  Your companion repo may be outdated. Try: cd $COMPANION_DIR && git pull"
   exit 1
 fi
