@@ -22,6 +22,23 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+# ── Pre-flight checks ────────────────────────────────────────────────────────
+check_docker() {
+  if ! docker ps >/dev/null 2>&1; then
+    echo -e "${RED}Error: Docker is not running.${NC}"
+    echo "  Start Docker Desktop (or the Docker daemon) and try again."
+    exit 1
+  fi
+}
+
+check_env_file() {
+  if [ ! -f "$ENV_FILE" ]; then
+    echo -e "${RED}Error: .env file not found at $ENV_FILE${NC}"
+    echo "  Run 'pnpm setup-dev' first to create the core environment, then re-run this command."
+    exit 1
+  fi
+}
+
 # ── Resolve paths ─────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -83,6 +100,7 @@ wait_for_http() {
 # ── Subcommands ───────────────────────────────────────────────────────────────
 
 cmd_stop() {
+  check_docker
   echo -e "${BOLD}Stopping optional services...${NC}"
   if [ ! -d "$COMPANION_DIR" ]; then
     echo -e "${YELLOW}  Companion repo not found at $COMPANION_DIR — nothing to stop.${NC}"
@@ -95,6 +113,7 @@ cmd_stop() {
 }
 
 cmd_status() {
+  check_docker
   echo -e "${BOLD}Optional services status${NC}"
   echo ""
   if [ ! -d "$COMPANION_DIR" ]; then
@@ -104,12 +123,21 @@ cmd_status() {
   fi
   echo -e "  ${CYAN}Companion repo:${NC} $COMPANION_DIR"
   echo ""
-  docker compose -f "$COMPANION_DIR/docker-compose.yml" \
+  CONTAINER_COUNT=$(docker compose -f "$COMPANION_DIR/docker-compose.yml" \
     --profile nango --profile signoz --profile otel-collector --profile jaeger \
-    ps 2>/dev/null || echo "  No containers running."
+    ps -q 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$CONTAINER_COUNT" -gt 0 ] 2>/dev/null; then
+    docker compose -f "$COMPANION_DIR/docker-compose.yml" \
+      --profile nango --profile signoz --profile otel-collector --profile jaeger \
+      ps 2>/dev/null
+  else
+    echo "  No optional service containers are running."
+    echo "  Run 'pnpm setup-dev:optional' to start them."
+  fi
 }
 
 cmd_reset() {
+  check_docker
   echo -e "${BOLD}Resetting optional services (full nuke + re-setup)...${NC}"
   echo ""
   if [ -d "$COMPANION_DIR" ]; then
@@ -132,6 +160,9 @@ cmd_reset() {
 # ── Main setup ────────────────────────────────────────────────────────────────
 
 cmd_setup() {
+  check_docker
+  check_env_file
+
   echo ""
   echo "================================================"
   echo "  Inkeep Agents — Optional Services Setup"
@@ -148,12 +179,22 @@ cmd_setup() {
       if git -C "$COMPANION_DIR" pull --ff-only origin main 2>/dev/null; then
         echo -e "  ${GREEN}✓${NC} Updated to latest"
       else
-        echo -e "  ${YELLOW}⚠️  Could not fast-forward. Skipping update (local changes?).${NC}"
+        echo -e "  ${YELLOW}⚠️  Could not fast-forward — you may have local changes in $COMPANION_DIR${NC}"
+        echo -e "  ${YELLOW}    To update manually: cd $COMPANION_DIR && git pull${NC}"
+        echo -e "  ${YELLOW}    Continuing with existing version...${NC}"
       fi
     fi
   else
     echo "  Companion repo not found — cloning..."
-    git clone https://github.com/inkeep/agents-optional-local-dev.git "$COMPANION_DIR" 2>&1
+    if ! git clone https://github.com/inkeep/agents-optional-local-dev.git "$COMPANION_DIR" 2>&1; then
+      # If clone failed and left a partial directory, clean it up
+      if [ -d "$COMPANION_DIR" ] && [ ! -d "$COMPANION_DIR/.git" ]; then
+        echo -e "  ${YELLOW}Cleaning up partial clone...${NC}"
+        rm -rf "$COMPANION_DIR"
+      fi
+      echo -e "${RED}Failed to clone companion repo. Check your internet connection and try again.${NC}"
+      exit 1
+    fi
     echo -e "${GREEN}✓${NC} Cloned companion repo to $COMPANION_DIR"
   fi
 
@@ -189,13 +230,20 @@ cmd_setup() {
   echo ""
   echo "Waiting for services to become healthy..."
 
-  # Nango
-  wait_for_http "http://localhost:3050/health" "Nango" 90
+  # Nango (non-fatal — first run may need time for DB migrations)
+  NANGO_READY=1
+  if ! wait_for_http "http://localhost:3050/health" "Nango" 180; then
+    NANGO_READY=0
+    echo -e "  ${YELLOW}Nango is still starting. Env vars will be set, but secret key retrieval will be skipped.${NC}"
+    echo -e "  ${YELLOW}Once Nango is ready, re-run 'pnpm setup-dev:optional' or get the key from http://localhost:3050${NC}"
+  fi
 
   # Retrieve the Nango secret key from its database (Nango generates UUID keys internally)
   EXISTING_NANGO_KEY="$(get_env_var "$ENV_FILE" "NANGO_SECRET_KEY")"
   if [ -n "$EXISTING_NANGO_KEY" ]; then
     echo -e "  ${GREEN}✓${NC} Re-using existing NANGO_SECRET_KEY from .env"
+  elif [ "$NANGO_READY" = "0" ]; then
+    echo -e "  ${YELLOW}⚠️  Skipped — Nango not ready yet. Re-run 'pnpm setup-dev:optional' once it's up.${NC}"
   else
     NANGO_KEY=$(docker exec nango-db psql -U nango -d nango -t -A -c "SELECT secret_key FROM _nango_environments WHERE name='dev';" 2>/dev/null | tr -d '[:space:]')
     if [ -n "$NANGO_KEY" ]; then
@@ -216,8 +264,13 @@ cmd_setup() {
   set_env_var "$ENV_FILE" "OTEL_SERVICE_NAME" "inkeep-agents"
   echo -e "  ${GREEN}✓${NC} OTEL env vars written to .env"
 
-  # SigNoz
-  wait_for_http "http://localhost:3080/api/v1/health" "SigNoz" 120
+  # SigNoz (non-fatal — SigNoz has many infra services and may be slow to start)
+  SIGNOZ_READY=1
+  if ! wait_for_http "http://localhost:3080/api/v1/health" "SigNoz" 240; then
+    SIGNOZ_READY=0
+    echo -e "  ${YELLOW}SigNoz is still starting. Env vars will be set, but API key automation will be skipped.${NC}"
+    echo -e "  ${YELLOW}Once SigNoz is ready, re-run 'pnpm setup-dev:optional' or create an API key at http://localhost:3080${NC}"
+  fi
 
   set_env_var "$ENV_FILE" "SIGNOZ_URL" "http://localhost:3080"
   set_env_var "$ENV_FILE" "PUBLIC_SIGNOZ_URL" "http://localhost:3080"
@@ -229,6 +282,8 @@ cmd_setup() {
   EXISTING_SIGNOZ_KEY="$(get_env_var "$ENV_FILE" "SIGNOZ_API_KEY")"
   if [ -n "$EXISTING_SIGNOZ_KEY" ]; then
     echo -e "  ${GREEN}✓${NC} SIGNOZ_API_KEY already configured"
+  elif [ "$SIGNOZ_READY" = "0" ]; then
+    echo -e "  ${YELLOW}⚠️  Skipped — SigNoz not ready yet. Re-run 'pnpm setup-dev:optional' once it's up.${NC}"
   else
     SIGNOZ_URL="http://localhost:3080"
     SIGNOZ_EMAIL="admin@localhost.dev"
@@ -246,7 +301,7 @@ cmd_setup() {
       -d "{\"email\":\"$SIGNOZ_EMAIL\",\"password\":\"$SIGNOZ_PASSWORD\"}" 2>/dev/null || echo "")
 
     if [ -n "$LOGIN_RESPONSE" ]; then
-      ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',d).get('accessJwt',''))" 2>/dev/null || echo "")
+      ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8'));console.log((d.data||d).accessJwt||'')" 2>/dev/null || echo "")
 
       if [ -n "$ACCESS_TOKEN" ]; then
         # Create PAT (use -s without -f)
@@ -256,7 +311,7 @@ cmd_setup() {
           -d '{"name":"local-dev-automation","role":"ADMIN","expiresAt":0}' 2>/dev/null || echo "")
 
         if [ -n "$PAT_RESPONSE" ]; then
-          SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',d).get('token',''))" 2>/dev/null || echo "")
+          SIGNOZ_API_KEY=$(echo "$PAT_RESPONSE" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8'));console.log((d.data||d).token||'')" 2>/dev/null || echo "")
 
           if [ -n "$SIGNOZ_API_KEY" ]; then
             set_env_var "$ENV_FILE" "SIGNOZ_API_KEY" "$SIGNOZ_API_KEY"
