@@ -38,7 +38,8 @@ Each organization operates as an isolated tenant:
 
 | Role | Permissions |
 |------|-------------|
-| **Admin** | Full access to all projects and settings, can add members |
+| **Owner** | Supreme organization role. Full access to all projects and settings, can manage all members including admins |
+| **Admin** | Full access to all projects and settings, can manage members (except owners) |
 | **Member** | Access determined by project-level roles |
 
 ### Managing Team Members
@@ -46,7 +47,7 @@ Each organization operates as an isolated tenant:
 1. Go to **Settings** in the left sidebar
 2. View current members and their roles
 3. Click **Add** to add new team members
-4. Select a role (Admin or Member) for the new team member
+4. Select a role (Owner, Admin, or Member) for the new team member
 
 ## Project Roles & Permissions
 
@@ -76,7 +77,7 @@ Assign granular roles at the project level to give organization Members specific
 4. Choose a role for the selected members and click **Add**
 
 <Tip>
-  Organization Admins always have full access to all projects, regardless of project-level roles.
+  Organization Owners and Admins always have full access to all projects, regardless of project-level roles.
 </Tip>
 
 ## User-Scoped vs Project-Scoped Resources
