@@ -38,9 +38,9 @@ Each organization operates as an isolated tenant:
 
 | Role | Permissions |
 |------|-------------|
-| **Owner** | All Admin permissions, plus protection from role changes by Admins. Only other Owners can change an Owner's role |
-| **Admin** | Full access to all projects and settings, can manage members and roles |
-| **Member** | Access determined by project-level roles |
+| **Owner** | All Admin permissions, plus: only other Owners can change an Owner's role, and only Owners can delete the organization |
+| **Admin** | Full access to all projects and settings, can manage members (invite, remove, change roles), manage teams, and configure access control |
+| **Member** | Access determined by project-level roles; cannot manage organization settings or other members |
 
 Organization creators are automatically assigned the Owner role.
 
