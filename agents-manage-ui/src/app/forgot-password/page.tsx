@@ -2,6 +2,7 @@
 
 import { AlertCircleIcon, ArrowLeft, Loader2, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,7 +16,8 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 function ForgotPasswordForm() {
   const authClient = useAuthClient();
   const { PUBLIC_IS_SMTP_CONFIGURED } = useRuntimeConfig();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -89,7 +91,7 @@ function ForgotPasswordForm() {
     try {
       const result = await authClient.requestPasswordReset({
         email,
-        redirectTo: '/reset-password',
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (result?.error) {

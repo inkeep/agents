@@ -198,18 +198,7 @@ function LoginForm() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                {PUBLIC_IS_SMTP_CONFIGURED && (
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
-                  >
-                    Forgot password?
-                  </Link>
-                )}
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -221,6 +210,14 @@ function LoginForm() {
                 minLength={8}
               />
             </div>
+            {PUBLIC_IS_SMTP_CONFIGURED && (
+              <Link
+                href={`/forgot-password${formData.email ? `?email=${encodeURIComponent(formData.email)}` : ''}`}
+                className="block text-right text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors -mt-2"
+              >
+                Forgot password?
+              </Link>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
