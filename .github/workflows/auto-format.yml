@@ -23,35 +23,63 @@ jobs:
       contents: write
 
     steps:
+      - name: Check if PR is still open
+        if: github.event_name == 'pull_request'
+        id: pr-check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_STATE=$(gh pr view ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} --json state --jq '.state')
+          if [ "$PR_STATE" != "OPEN" ]; then
+            echo "PR is $PR_STATE — skipping auto-format (branch likely deleted)"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout code
+        if: steps.pr-check.outputs.skip != 'true'
+        id: checkout
         uses: actions/checkout@v5
+        continue-on-error: true
         with:
           # On PRs, check out the PR branch so we push back to it.
           # On push, check out the default ref (main).
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Exit if checkout failed
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'failure'
+        run: |
+          echo "::notice::Checkout failed — branch was likely deleted (PR merged). Skipping."
+
       - name: Setup Node.js
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
 
       - name: Setup pnpm
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         uses: pnpm/action-setup@v4
         with:
           version: 10.10.0
           run_install: false
 
       - name: Get pnpm store directory
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Prepare directories
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -59,14 +87,17 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
       - name: Run formatter
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         run: pnpm format
 
       - name: Check for changes
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         id: changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then
@@ -76,7 +107,7 @@ jobs:
           fi
 
       - name: Commit and push formatting fixes
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success' && steps.changes.outputs.has_changes == 'true'
         env:
           PUSH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
         run: |
@@ -84,9 +115,21 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "style: auto-format with biome"
+
+          # Verify remote branch still exists before pushing
+          if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
+            echo "::notice::Remote branch '$PUSH_REF' no longer exists (PR likely merged). Skipping push."
+            exit 0
+          fi
+
           for i in 1 2 3; do
             git push && break
             echo "Push failed, attempting pull --rebase and retry ($i/3)"
+            # Check branch still exists before retry
+            if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
+              echo "::notice::Remote branch '$PUSH_REF' was deleted during retry. Skipping."
+              exit 0
+            fi
             git pull --rebase origin "$PUSH_REF" || exit 1
             sleep $((i * 2))
           done

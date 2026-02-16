@@ -101,6 +101,9 @@
     "*.{ts,tsx,js,jsx,json,md}": [
       "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
+    "agents-api/src/{domains/**/routes/**,openapi,createApp}.{ts,tsx}": [
+      "bash -c 'cd agents-api && pnpm openapi:update-snapshot && git add __snapshots__/openapi.json'"
+    ],
     "agents-api/**/*.{ts,tsx}": [
       "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
     ],
