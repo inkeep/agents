@@ -1,7 +1,7 @@
 'use client';
 
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { AlertCircle, Check, ChevronDown, Copy } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, Copy, Mail } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -46,6 +46,8 @@ interface InvitationResult {
   status: 'success' | 'error';
   link?: string;
   error?: string;
+  emailSent?: boolean;
+  emailError?: string;
 }
 
 export function InviteMemberDialog({
@@ -57,7 +59,8 @@ export function InviteMemberDialog({
   const params = useParams();
   const organizationId = params.tenantId as string;
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED, PUBLIC_INKEEP_AGENTS_API_URL } =
+    useRuntimeConfig();
 
   // Build available auth methods based on env config
   // Priority: Google > SSO > Email+Password
@@ -162,10 +165,31 @@ export function InviteMemberDialog({
           const invitationId = result.data.id;
           const baseUrl = window.location.origin;
           const link = `${baseUrl}/accept-invitation/${invitationId}?email=${encodeURIComponent(email)}`;
+
+          let emailSent = false;
+          let emailError: string | undefined;
+          if (PUBLIC_IS_SMTP_CONFIGURED) {
+            try {
+              const statusRes = await fetch(
+                `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/api/invitations/${invitationId}/email-status`,
+                { credentials: 'include' }
+              );
+              if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                emailSent = statusData.emailSent === true;
+                emailError = statusData.error;
+              }
+            } catch {
+              // Email status check failed — fall back to copy-link
+            }
+          }
+
           results.push({
             email,
             status: 'success',
             link,
+            emailSent,
+            emailError,
           });
         } else {
           results.push({
@@ -322,26 +346,35 @@ export function InviteMemberDialog({
                       )}
                       <span className="font-medium text-sm truncate">{result.email}</span>
                     </div>
-                    {result.status === 'success' &&
-                      selectedAuthMethod === 'email-password' &&
-                      result.link && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-xs gap-1 shrink-0"
-                          onClick={() => {
-                            if (result.link) {
-                              navigator.clipboard.writeText(result.link);
-                              toast.success('Invite link copied');
-                            }
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                          Copy link
-                        </Button>
-                      )}
+                    {result.status === 'success' && result.link && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs gap-1 shrink-0"
+                        onClick={() => {
+                          if (result.link) {
+                            navigator.clipboard.writeText(result.link);
+                            toast.success('Invite link copied');
+                          }
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy link
+                      </Button>
+                    )}
                   </div>
+                  {result.status === 'success' && result.emailSent && (
+                    <p className="text-xs text-muted-foreground mt-1 ml-6 flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      Invitation email sent
+                    </p>
+                  )}
+                  {result.status === 'success' && PUBLIC_IS_SMTP_CONFIGURED && !result.emailSent && result.emailError && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
+                      Email could not be sent. Copy the link to share manually.
+                    </p>
+                  )}
                   {result.status === 'error' && result.error && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-6">
                       {result.error}
@@ -355,33 +388,11 @@ export function InviteMemberDialog({
               <div className="rounded-md bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
                 <p className="font-medium mb-1">Next Steps:</p>
                 <p className="text-xs">
-                  {selectedAuthMethod === 'email-password' ? (
-                    successCount === 1 ? (
-                      <>
-                        Share the invite link with the user. They'll use it to create their account
-                        and join your organization.
-                      </>
-                    ) : (
-                      <>
-                        Share the invite links with the users. They'll use them to create their
-                        accounts and join your organization.
-                      </>
-                    )
-                  ) : successCount === 1 ? (
-                    <>
-                      Let the user know they can sign in at{' '}
-                      <span className="font-medium">{window.location.origin}/login</span> using{' '}
-                      {selectedAuthMethod === 'google' ? 'Google' : 'Inkeep SSO'}. They'll
-                      automatically join your organization.
-                    </>
-                  ) : (
-                    <>
-                      Let the users know they can sign in at{' '}
-                      <span className="font-medium">{window.location.origin}/login</span> using{' '}
-                      {selectedAuthMethod === 'google' ? 'Google' : 'Inkeep SSO'}. They'll
-                      automatically join your organization.
-                    </>
-                  )}
+                  {invitationResults.some((r) => r.emailSent)
+                    ? successCount === 1
+                      ? 'An invitation email has been sent. The invite link is also available as a backup.'
+                      : 'Invitation emails have been sent. Invite links are also available as a backup.'
+                    : 'Share the invite links with the invited users so they can join your organization.'}
                 </p>
               </div>
             )}

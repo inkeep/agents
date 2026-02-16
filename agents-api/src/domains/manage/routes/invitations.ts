@@ -1,4 +1,4 @@
-import { createApiError, getPendingInvitationsByEmail } from '@inkeep/agents-core';
+import { createApiError, getEmailSendStatus, getPendingInvitationsByEmail } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../../../data/db/runDbClient';
@@ -103,6 +103,17 @@ invitationsRoutes.get('/verify', async (c) => {
 
 // Require authentication for remaining routes
 invitationsRoutes.use('*', sessionAuth());
+
+invitationsRoutes.get('/:id/email-status', async (c) => {
+  const invitationId = c.req.param('id');
+  const status = getEmailSendStatus(invitationId);
+
+  if (!status) {
+    return c.json({ emailSent: false });
+  }
+
+  return c.json(status);
+});
 
 // GET /api/invitations/pending?email=user@example.com - Get pending invitations for an email
 // Internal route - not exposed in OpenAPI spec
