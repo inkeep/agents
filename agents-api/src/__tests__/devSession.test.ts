@@ -9,7 +9,7 @@ const mockEnv = vi.hoisted(() => ({
 vi.mock('../env', () => ({ env: mockEnv }));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const original = await importOriginal<Record<string, unknown>>();
+  const original = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...original,
     getWaitUntil: vi.fn().mockResolvedValue(undefined),

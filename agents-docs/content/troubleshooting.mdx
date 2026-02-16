@@ -114,7 +114,7 @@ If auto-login isn't working when you open `http://localhost:3000`:
 
 - **`pnpm db:auth:init` not run**: The admin user must exist in the database. Run `pnpm db:auth:init` to create it.
 - **API not running**: The auto-login calls `POST /api/auth/dev-session` on the API server. Make sure the API is running on `localhost:3002`.
-- **Credentials missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_UI_USERNAME` and `INKEEP_AGENTS_MANAGE_UI_PASSWORD` are set in your `.env` file.
+- **Credentials missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_UI_USERNAME` is set in your `.env` file. The password env var is only used by `pnpm db:auth:init` to create the admin user, not for auto-login.
 
 ## Common Configuration Issues
 
