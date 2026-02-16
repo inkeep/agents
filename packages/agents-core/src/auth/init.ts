@@ -124,21 +124,21 @@ async function init() {
     console.log(`   ✅ User created: ${user.email}`);
   }
 
-  // 5. Add user to organization as admin
+  // 5. Add user to organization as owner
   console.log(`\n🔗 Adding user to organization...`);
   await addUserToOrganization(dbClient)({
     userId: user.id,
     organizationId: TENANT_ID,
-    role: OrgRoles.ADMIN,
+    role: OrgRoles.OWNER,
   });
-  console.log(`   ✅ User ${user.email} added as ${OrgRoles.ADMIN}`);
+  console.log(`   ✅ User ${user.email} added as ${OrgRoles.OWNER}`);
 
   // 6. Sync to SpiceDB
   try {
     await syncOrgMemberToSpiceDb({
       tenantId: TENANT_ID,
       userId: user.id,
-      role: OrgRoles.ADMIN, // User is admin via Better Auth
+      role: OrgRoles.OWNER, // User is owner via Better Auth
       action: 'add',
     });
     console.log('   ✅ Synced to SpiceDB');
