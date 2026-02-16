@@ -3,6 +3,7 @@ import type { FieldPath } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
 import { z } from 'zod';
 
+export type CssTemplate = ReturnType<typeof String.raw>;
 export const css = String.raw;
 
 export function isMacOs() {
