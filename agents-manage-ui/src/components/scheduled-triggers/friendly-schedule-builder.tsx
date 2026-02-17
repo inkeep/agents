@@ -11,14 +11,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import type { FrequencyType } from '@/lib/utils/cron';
 import {
   DAYS_OF_WEEK,
   getCronDescription,
   getOrdinalSuffix,
   parseCronExpression,
 } from '@/lib/utils/cron';
-
-type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
 interface FriendlyScheduleBuilderProps {
   value: string;

@@ -3,4 +3,4 @@
 "@inkeep/agents-api": patch
 ---
 
-cron ui trigger improvements
+Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression

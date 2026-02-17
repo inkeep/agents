@@ -1,4 +1,4 @@
-type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
+export type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
 export const DAYS_OF_WEEK = [
   { value: '0', label: 'Sunday', short: 'Sun' },
@@ -82,7 +82,9 @@ export function getCronDescription(cron: string): string {
 
   switch (parsed.frequency) {
     case 'minutes':
-      return `Every ${parsed.minuteInterval} min`;
+      return parsed.minuteInterval === '1'
+        ? 'Every minute'
+        : `Every ${parsed.minuteInterval} minutes`;
     case 'hourly': {
       const min = parsed.minute?.padStart(2, '0') || '00';
       return `Hourly at :${min}`;
