@@ -5,3 +5,4 @@ artifact-components/ticket-summary.ts
 context-configs/support-context.ts
 credentials/api-credentials.ts
 index.ts
+status-components/tool-summary.ts
