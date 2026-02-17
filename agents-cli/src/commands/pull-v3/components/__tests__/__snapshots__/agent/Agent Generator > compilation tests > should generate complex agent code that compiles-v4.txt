@@ -1,4 +1,7 @@
 import { agent } from '@inkeep/agents-sdk';
+import { mainAssistant } from './sub-agents/mainAssistant';
+import { helperAgent } from './sub-agents/helperAgent';
+import { coordinatorAgent } from './sub-agents/coordinatorAgent';
 
 export const complexTestAgent = agent({
   id: 'complex-test-agent',
