@@ -368,7 +368,12 @@ export abstract class BaseCompressor {
         },
         'Reusing existing artifact from batch lookup'
       );
-      // Existing artifact - assume not oversized (we don't have metadata for existing)
+      // Existing artifact - assume not oversized since we don't have metadata for existing artifacts
+      // LIMITATION: This assumption is safe when compressing new conversations, but could be problematic
+      // when re-compressing conversations that already contain oversized artifacts. In such cases,
+      // the distillation prompt may incorrectly try to include the full tool result output instead
+      // of just metadata. To fix this properly, getLedgerArtifacts() would need to return the
+      // metadata.isOversized flag along with artifact IDs.
       return {
         artifactId: existingArtifactId,
         isOversized: false,

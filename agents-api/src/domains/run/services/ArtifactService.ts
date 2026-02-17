@@ -36,6 +36,19 @@ export interface ArtifactFullData {
   description: string;
   type?: string;
   data: any;
+  metadata?: {
+    isOversized?: boolean;
+    retrievalBlocked?: boolean;
+    originalTokenSize?: number;
+    contextWindowSize?: number;
+    toolName?: string;
+    toolArgs?: unknown;
+    toolCallId?: string;
+    baseSelector?: string;
+    detailsSelector?: Record<string, string>;
+    sessionId?: string;
+    artifactType?: string;
+  };
 }
 
 export interface ArtifactCreateRequest {

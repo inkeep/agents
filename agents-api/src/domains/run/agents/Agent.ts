@@ -2053,14 +2053,13 @@ export class Agent {
         }
 
         // Check if artifact is oversized and block retrieval
-        const metadata = (artifactData as any).metadata;
-        if (metadata?.isOversized || metadata?.retrievalBlocked) {
+        if (artifactData.metadata?.isOversized || artifactData.metadata?.retrievalBlocked) {
           logger.warn(
             {
               artifactId,
               toolCallId,
-              tokenSize: metadata?.originalTokenSize,
-              contextWindowSize: metadata?.contextWindowSize,
+              tokenSize: artifactData.metadata?.originalTokenSize,
+              contextWindowSize: artifactData.metadata?.contextWindowSize,
             },
             'Blocked retrieval of oversized artifact'
           );
@@ -2073,10 +2072,10 @@ export class Agent {
             status: 'retrieval_blocked',
             warning:
               '⚠️ This artifact contains an oversized tool result that cannot be retrieved to prevent context overflow.',
-            reason: `Tool result is ~${Math.floor((metadata?.originalTokenSize || 0) / 1000)}K tokens, which exceeds safe context limits (max safe: ${Math.floor(((metadata?.contextWindowSize || 0) * 0.3) / 1000)}K tokens).`,
+            reason: `Tool result is ~${Math.floor((artifactData.metadata?.originalTokenSize || 0) / 1000)}K tokens, which exceeds safe context limits (max safe: ${Math.floor(((artifactData.metadata?.contextWindowSize || 0) * 0.3) / 1000)}K tokens).`,
             toolInfo: {
-              toolName: metadata?.toolName,
-              toolArgs: metadata?.toolArgs,
+              toolName: artifactData.metadata?.toolName,
+              toolArgs: artifactData.metadata?.toolArgs,
               structureInfo: (artifactData.data as any)?._structureInfo,
             },
             recommendation:
