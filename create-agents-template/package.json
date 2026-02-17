@@ -18,6 +18,10 @@
     "postinstall": "node --experimental-strip-types scripts/postinstall.ts",
     "setup-dev": "node scripts/setup.js",
     "setup-dev:cloud": "node scripts/setup.js --cloud",
+    "setup-dev:optional": "sh scripts/setup-optional.sh",
+    "optional:stop": "sh scripts/setup-optional.sh --stop",
+    "optional:status": "sh scripts/setup-optional.sh --status",
+    "optional:reset": "sh scripts/setup-optional.sh --reset",
     "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh",
     "db:auth:init": "node node_modules/@inkeep/agents-core/dist/auth/init.js"
   },
