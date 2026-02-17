@@ -227,7 +227,7 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, definition);
     });
 
-    it('should handle multiline prompts and descriptions', () => {
+    it.only('should handle multiline prompts and descriptions', async () => {
       const multilineData = {
         name: 'Multiline Agent',
         description:
@@ -235,9 +235,10 @@ describe('Sub-Agent Generator', () => {
         prompt:
           'This is a very long prompt that should be handled as a multiline string\nIt even contains newlines which should trigger multiline formatting',
       };
+      const subAgentId = 'multiline-agent';
 
       const definition = generateSubAgentDefinition(
-        'multiline-agent',
+        subAgentId,
         multilineData,
         undefined,
         mockRegistry
@@ -246,6 +247,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
+
+      await expectDefinitionSnapshotPair(subAgentId, multilineData, definition);
     });
 
     // it('should handle different code styles', () => {
