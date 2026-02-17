@@ -420,9 +420,14 @@ async function pushProject(pushConfig: SetupPushConfig) {
 
   logInfo(`Pushing project: ${pushConfig.projectPath}`);
   try {
-    const { stdout } = await execAsync(
-      `pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`
-    );
+    const pushCmd = `pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;
+    const { stdout } = await execAsync(pushCmd, {
+      env: {
+        ...process.env,
+        INKEEP_CI: 'true',
+        INKEEP_API_KEY: pushConfig.apiKey,
+      },
+    });
     if (stdout) console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
     logSuccess('Project pushed successfully');
     return true;

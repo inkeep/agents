@@ -3,15 +3,18 @@ import type { SetupConfig } from '../setup.js';
 
 const mockExecImpl = vi.fn();
 const mockSpawn = vi.fn();
+const execCalls: Array<{ cmd: string; options?: Record<string, unknown> }> = [];
 
 vi.mock('node:child_process', () => ({
   exec: vi.fn((...args: unknown[]) => {
     const cmd = args[0] as string;
+    const options = args.length === 3 ? (args[1] as Record<string, unknown>) : undefined;
     const callback = args[args.length - 1] as (
       error: Error | null,
       stdout: string,
       stderr: string
     ) => void;
+    execCalls.push({ cmd, options });
     const result = mockExecImpl(cmd);
     if (result instanceof Promise) {
       result.then(
@@ -41,6 +44,7 @@ describe('runSetup', () => {
   beforeEach(() => {
     originalEnv = { ...process.env };
     vi.clearAllMocks();
+    execCalls.length = 0;
     vi.stubGlobal('fetch', mockFetch);
 
     process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL = 'postgresql://localhost:5432/test';
@@ -239,6 +243,29 @@ describe('runSetup', () => {
     expect(mockExecImpl).toHaveBeenCalledWith(
       'pnpm inkeep push --project src/projects/my-project --config src/inkeep.config.ts'
     );
+  });
+
+  it('should pass INKEEP_CI and INKEEP_API_KEY env vars when pushing', async () => {
+    const { runSetup } = await import('../setup.js');
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await runSetup(
+      baseConfig({
+        pushProject: {
+          projectPath: 'src/projects/test',
+          configPath: 'src/inkeep.config.ts',
+          apiKey: 'my-bypass-secret',
+        },
+        apiHealthUrl: 'http://localhost:3002/health',
+      })
+    );
+
+    const pushCall = execCalls.find((c) => c.cmd.includes('inkeep push'));
+    expect(pushCall).toBeDefined();
+    expect(pushCall?.options).toBeDefined();
+    const env = (pushCall?.options as { env: Record<string, string> })?.env;
+    expect(env?.INKEEP_CI).toBe('true');
+    expect(env?.INKEEP_API_KEY).toBe('my-bypass-secret');
   });
 
   it('should exit if database URLs are missing (non-cloud)', async () => {
