@@ -65,14 +65,30 @@ async function checkPort(port: number): Promise<boolean> {
   }
 }
 
-async function getContainerOnPort(port: number): Promise<string | null> {
+async function getContainerOnPort(
+  port: number
+): Promise<{ name: string; project: string | null } | null> {
   try {
     const { stdout } = await execAsync(
       `docker ps --format '{{.Names}}' --filter "publish=${port}"`,
       { timeout: 5000 }
     );
     const name = stdout.trim();
-    return name || null;
+    if (!name) return null;
+
+    // Get the compose project name from the container label
+    let project: string | null = null;
+    try {
+      const { stdout: labelOut } = await execAsync(
+        `docker inspect ${name} --format '{{index .Config.Labels "com.docker.compose.project"}}'`,
+        { timeout: 5000 }
+      );
+      project = labelOut.trim() || null;
+    } catch {
+      /* non-compose container */
+    }
+
+    return { name, project };
   } catch {
     return null;
   }
@@ -140,21 +156,26 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
     ownProjectPrefix = dirName.replace(/[^a-z0-9]/g, '').toLowerCase();
   }
 
-  const occupiedPorts: Array<{ port: number; service: string; container: string }> = [];
+  const occupiedPorts: Array<{
+    port: number;
+    service: string;
+    container: string;
+    project: string | null;
+  }> = [];
 
   await Promise.all(
     REQUIRED_PORTS.map(async ({ port, service }) => {
       const inUse = await checkPort(port);
       if (!inUse) return;
 
-      const container = await getContainerOnPort(port);
-      if (!container) return; // port used by non-Docker process — still try docker compose
+      const info = await getContainerOnPort(port);
+      if (!info) return; // port used by non-Docker process — still try docker compose
 
       // Check if the container belongs to our compose project
-      const normalized = container.replace(/[^a-z0-9]/g, '').toLowerCase();
+      const normalized = info.name.replace(/[^a-z0-9]/g, '').toLowerCase();
       if (normalized.startsWith(ownProjectPrefix)) return; // our own container, fine
 
-      occupiedPorts.push({ port, service, container });
+      occupiedPorts.push({ port, service, container: info.name, project: info.project });
     })
   );
 
@@ -164,13 +185,9 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
       issues.push(`  :${port} (${service}) → ${container}`);
     }
 
-    // Determine unique project names from container names (format: projectname-service-1)
+    // Collect unique project names from container labels
     const projectNames = new Set(
-      occupiedPorts.map(({ container }) => {
-        const parts = container.split('-');
-        // Remove the trailing replica number and service name
-        return parts.length >= 3 ? parts.slice(0, -2).join('-') : container;
-      })
+      occupiedPorts.map(({ project }) => project).filter((p): p is string => p !== null)
     );
 
     for (const project of projectNames) {
