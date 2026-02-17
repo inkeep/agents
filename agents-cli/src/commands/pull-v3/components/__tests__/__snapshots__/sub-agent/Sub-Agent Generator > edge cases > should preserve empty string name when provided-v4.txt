@@ -1,0 +1,8 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const emptyStringsSubAgent = subAgent({
+  id: 'empty-strings-sub-agent',
+  name: '',
+  description: '',
+  prompt: ''
+});

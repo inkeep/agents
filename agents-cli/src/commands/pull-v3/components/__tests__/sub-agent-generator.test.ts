@@ -530,31 +530,29 @@ describe('Sub-Agent Generator', () => {
     //   expect(definition).toContain("id: '2nd-generation-sub-agent',");
     // });
 
-    it('should preserve empty string name when provided', () => {
+    it.only('should preserve empty string name when provided', async () => {
       const emptyStringData = {
         name: '',
         description: '',
         prompt: '',
       };
+      const subAgentId = 'empty-strings-sub-agent';
 
       expect(() => {
-        generateSubAgentDefinition(
-          'empty-strings-sub-agent',
-          emptyStringData,
-          undefined,
-          mockRegistry
-        );
+        generateSubAgentDefinition(subAgentId, emptyStringData, undefined, mockRegistry);
       }).not.toThrow();
 
       // Empty strings are intentionally preserved (not auto-generated from ID)
       // This allows remote projects to have empty names if needed
       const definition = generateSubAgentDefinition(
-        'empty-strings-sub-agent',
+        subAgentId,
         emptyStringData,
         undefined,
         mockRegistry
       );
       expect(definition).toContain("name: '',");
+
+      await expectDefinitionSnapshotPair(subAgentId, emptyStringData, definition);
     });
 
     it('should not throw error when name is provided (other fields can be null/undefined)', () => {
