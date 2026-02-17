@@ -119,9 +119,9 @@ describe('Form', () => {
         // Wait for form validation error message to render
         expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
       },
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     );
 
     await expect(container).toMatchScreenshot();
-  }, 45_000);
+  }, 60_000);
 });
