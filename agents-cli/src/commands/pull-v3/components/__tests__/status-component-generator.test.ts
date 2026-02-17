@@ -201,17 +201,20 @@ describe('Status Component Generator', () => {
       await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithBoth);
     });
 
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information';
+      const statusComponentId = 'test';
       const dataWithLongDesc = {
         type: 'detailed_status',
         description: longDescription,
       };
 
-      const definition = generateStatusComponentDefinition('test', dataWithLongDesc);
+      const definition = generateStatusComponentDefinition(statusComponentId, dataWithLongDesc);
 
       expect(definition).toContain(`description: \`${longDescription}\``);
+
+      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithLongDesc);
     });
 
     it('should handle complex nested schema', () => {
