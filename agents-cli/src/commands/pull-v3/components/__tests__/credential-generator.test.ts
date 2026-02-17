@@ -168,8 +168,9 @@ describe('Credential Generator', () => {
       await expectCredentialDefinitionSnapshots({ credentialId, ...envCredentialData }, definition);
     });
 
-    it('should handle keychain credential with service and account', () => {
-      const definition = generateCredentialDefinition('slack-token', keychainCredentialData);
+    it.only('should handle keychain credential with service and account', async () => {
+      const credentialId = 'slack-token';
+      const definition = generateCredentialDefinition(credentialId, keychainCredentialData);
 
       expect(definition).toContain('export const slackToken = credential({');
       expect(definition).toContain("type: 'keychain',");
@@ -177,6 +178,11 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("service: 'slack-bot',");
       expect(definition).toContain("account: 'my-workspace'");
+
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...keychainCredentialData },
+        definition
+      );
     });
 
     it('should not generate retrieval params when not specified', () => {
