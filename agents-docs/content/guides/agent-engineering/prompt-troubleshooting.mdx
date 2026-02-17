@@ -1,18 +1,26 @@
 ---
 title: Prompt Troubleshooting
 sidebarTitle: Prompt Troubleshooting
-description: Diagnose and fix common Sub Agent prompt issues with symptom-based checks and concrete prompt edits.
+description: Fix common Sub Agent prompt issues.
 ---
 
-When a Sub Agent underperforms, treat it like debugging. Identify the behavior, find the prompt gap causing it, and apply the smallest change that addresses the issue.
+If your Sub Agent gives weak or inconsistent results, you usually do not need a full prompt rewrite. Start by matching what you see to a common issue, apply one small fix, and test again.
+
+## How to use this page 
+
+1. Find the issue that best matches what you are seeing.
+2. Read the likely prompt cause to understand why it happens.
+3. Copy one prompt fix into your prompt.
+4. Re-run the same task 2-3 times.
+5. Keep the fix if it helps, and remove it if it does not.
 
 ## Common prompt issues and fixes
 
 ### 1. The agent assumes missing details and proceeds
 
-**Symptoms:** Silent assumptions, fabricated defaults, no clarification before action.
+**Symptoms:** The agent makes silent assumptions, fabricates defaults, and proceeds without clarifying missing details.
 
-**Likely prompt cause:** The prompt says what to do but not when to pause for ambiguity.
+**Likely prompt cause:** The prompt says what to do, but it does not say when to pause and ask questions.
 
 **Prompt fixes:**
 - Add: "If requirements are ambiguous and the decision is high impact, ask before proceeding."
@@ -20,9 +28,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 2. The agent flattens nuance across conflicting sources
 
-**Symptoms:** Treats conflicting docs as if they agree, picks one interpretation without acknowledging alternatives.
+**Symptoms:** The agent treats conflicting sources as if they agree and picks one interpretation without naming alternatives.
 
-**Likely prompt cause:** No instruction for handling ambiguity in evidence.
+**Likely prompt cause:** The prompt does not explain how to handle conflicting or ambiguous evidence.
 
 **Prompt fixes:**
 - Add: "When sources conflict, state the conflict and provide options with tradeoffs."
@@ -30,9 +38,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 3. The agent treats weak sources as equally authoritative
 
-**Symptoms:** Relies on low-trust examples over official docs or codebase conventions.
+**Symptoms:** The agent relies on low-trust examples instead of official docs or established codebase patterns.
 
-**Likely prompt cause:** The prompt lacks a source hierarchy.
+**Likely prompt cause:** The prompt does not define a source-priority order.
 
 **Prompt fixes:**
 - Add source priority guidance, for example: official docs -> established repo patterns -> examples -> blog posts.
@@ -40,9 +48,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 4. The agent misses downstream effects
 
-**Symptoms:** Reasonable local change, unexpected breakage elsewhere.
+**Symptoms:** The change looks reasonable in one place, but it causes unexpected breakage elsewhere.
 
-**Likely prompt cause:** The prompt does not require blast-radius checks before action.
+**Likely prompt cause:** The prompt does not require a pre-change blast-radius check.
 
 **Prompt fixes:**
 - Add a pre-action checklist: "What could this break? Which consumers depend on this?"
@@ -50,9 +58,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 5. The agent invents details when uncertain
 
-**Symptoms:** Plausible but unverified claims, confident wording without evidence.
+**Symptoms:** The agent makes plausible but unverified claims and sounds confident without evidence.
 
-**Likely prompt cause:** The prompt does not permit uncertainty language.
+**Likely prompt cause:** The prompt does not allow uncertainty language, so the agent feels pressure to guess.
 
 **Prompt fixes:**
 - Add: "'I don't know' is valid when confidence is low."
@@ -60,9 +68,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 6. The agent never escalates
 
-**Symptoms:** Attempts to answer everything, including decisions outside scope or authority.
+**Symptoms:** The agent tries to answer everything, including decisions outside its scope or authority.
 
-**Likely prompt cause:** Escalation boundaries are missing.
+**Likely prompt cause:** The prompt does not define escalation boundaries.
 
 **Prompt fixes:**
 - Add explicit escalation criteria: out-of-scope requests, low confidence on high-impact decisions, missing permissions.
@@ -70,9 +78,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 7. The agent misreads directive strength
 
-**Symptoms:** Treats suggestions as mandates or ignores hard requirements.
+**Symptoms:** The agent treats suggestions as hard requirements, or it ignores non-negotiable requirements.
 
-**Likely prompt cause:** Requirement strength is not clearly calibrated.
+**Likely prompt cause:** The prompt does not clearly define directive strength.
 
 **Prompt fixes:**
 - Define terms once: `must` = non-negotiable, `should` = strong default, `consider` = optional.
@@ -80,9 +88,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 8. The agent presents one path with overconfidence
 
-**Symptoms:** Gives a single recommendation where multiple valid options exist.
+**Symptoms:** The agent presents one recommendation even when multiple valid options exist.
 
-**Likely prompt cause:** The prompt does not require tradeoff framing under uncertainty.
+**Likely prompt cause:** The prompt does not require tradeoff framing when uncertainty is high.
 
 **Prompt fixes:**
 - Add: "When multiple valid paths exist, present options with tradeoffs."
@@ -90,9 +98,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 9. The agent is verbose, repetitive, or buries key points
 
-**Symptoms:** Long preambles, repeated phrasing, important findings hard to locate.
+**Symptoms:** The response has long preambles, repeated phrasing, and key findings that are hard to locate.
 
-**Likely prompt cause:** Output shape is underspecified.
+**Likely prompt cause:** The prompt does not define a clear output shape.
 
 **Prompt fixes:**
 - Add a strict output format with ordered headings.
@@ -100,9 +108,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 10. The agent asks too many clarifying questions
 
-**Symptoms:** Repeated low-stakes questions, slow progress on reversible decisions.
+**Symptoms:** The agent asks repeated low-stakes questions and makes slow progress on reversible decisions.
 
-**Likely prompt cause:** The prompt does not define when asking is required vs optional.
+**Likely prompt cause:** The prompt does not define when asking is required versus optional.
 
 **Prompt fixes:**
 - Add ask policy: ask only for high-impact ambiguity or preference-sensitive decisions.
@@ -110,9 +118,9 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 11. The agent overreacts to the most recent message
 
-**Symptoms:** New feedback causes it to ignore earlier constraints and goals.
+**Symptoms:** New feedback causes the agent to ignore earlier goals and constraints.
 
-**Likely prompt cause:** Prompt lacks continuity guidance.
+**Likely prompt cause:** The prompt does not include continuity guidance.
 
 **Prompt fixes:**
 - Add: "New input adds context; it does not erase prior requirements."
@@ -120,25 +128,25 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### 12. Assumptions compound without visibility
 
-**Symptoms:** Output depends on multiple hidden assumptions that were never validated.
+**Symptoms:** The output depends on multiple hidden assumptions that were never validated.
 
-**Likely prompt cause:** Prompt does not require assumption disclosure.
+**Likely prompt cause:** The prompt does not require explicit assumption disclosure.
 
 **Prompt fixes:**
 - Add: "When assumptions affect outcome, list them explicitly before final recommendations."
 - Add: "If assumptions stack, pause and request confirmation before further work."
 
-## Applying fixes in your prompt
+## Adding fixes to your prompt
 
-### Option A: Dedicated troubleshooting section
+You can add these guardrails in three ways. If you are new to prompt writing, start with Option A.
+
+### Option A: Dedicated troubleshooting section (easiest)
 
 ```markdown
 ## Prompt pitfalls to avoid
 
-- If requirements are unclear on a high-impact decision, ask before
-  proceeding.
-- When sources conflict, acknowledge the conflict and separate evidence
-  from inference.
+- If requirements are unclear on a high-impact decision, ask before proceeding.
+- When sources conflict, acknowledge the conflict and separate evidence from inference.
 - Lead with key findings and avoid repeated wording.
 ```
 
@@ -154,4 +162,4 @@ When a Sub Agent underperforms, treat it like debugging. Identify the behavior, 
 
 ### Option C: Hybrid
 
-Use operating principles for defaults, then include a short "watch-outs" callout near the end of the prompt.
+Use operating principles for defaults, then add a short "watch-outs" block near the end of the prompt.
