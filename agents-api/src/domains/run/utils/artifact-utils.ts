@@ -89,7 +89,7 @@ export function detectOversizedArtifact(
       'Artifact data exceeds safe context size - marking as oversized'
     );
 
-    result.oversizedWarning = `⚠️ OVERSIZED: Result is ~${Math.floor(result.originalTokenSize / 1000)}K tokens, exceeds safe context limits. Full data saved but cannot be retrieved.`;
+    result.oversizedWarning = `⚠️ OVERSIZED ARTIFACT - DO NOT RETRY: Result is ~${Math.floor(result.originalTokenSize / 1000)}K tokens, exceeds safe context limits. The tool call succeeded and data was saved to database, but the result is too large to include in conversation context. DO NOT call this tool again with the same arguments - you already have the data, it just cannot be retrieved into context. If you need this data, ask the user to break it into smaller chunks or use a different approach.`;
     result.structureInfo = generateStructureInfo(data);
   }
 

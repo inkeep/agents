@@ -31,7 +31,9 @@ import {
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
+import { getModelContextWindow } from '../utils/model-context-utils';
 import { getStreamHelper } from '../utils/stream-registry';
+import { estimateTokens } from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { ArtifactParser } from './ArtifactParser';
 import { ArtifactService } from './ArtifactService';
@@ -509,6 +511,11 @@ export class AgentSession {
       return;
     }
 
+    // Skip if status updates are explicitly disabled
+    if (this.statusUpdateState.config.enabled === false) {
+      return;
+    }
+
     const statusUpdateState = this.statusUpdateState;
 
     // Schedule async update check with proper error handling
@@ -529,6 +536,11 @@ export class AgentSession {
         { sessionId: this.sessionId },
         'No status updates configured for time-based check'
       );
+      return;
+    }
+
+    // Skip if status updates are explicitly disabled
+    if (this.statusUpdateState.config.enabled === false) {
       return;
     }
 
@@ -1463,37 +1475,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const toolName = artifactData.metadata?.toolName || 'unknown';
           const toolCallId = artifactData.metadata?.toolCallId || 'unknown';
 
-          const prompt = `Create a unique name and description for this tool result artifact.
-
-CRITICAL: Your name must be different from these existing artifacts: ${existingNames.length > 0 ? existingNames.join(', ') : 'None yet'}
-
-Tool Context: ${toolContext ? JSON.stringify(toolContext.args, null, 2) : 'No args'}
-Context: ${conversationHistory?.slice(-200) || 'No context'}
-Type: ${artifactData.artifactType || 'data'}
-Data: ${JSON.stringify(artifactData.data || artifactData.summaryData || {}, null, 2)}
-
-Requirements:
-- Name: Max 50 chars, be extremely specific to THIS EXACT tool execution
-- Description: Max 150 chars, describe what THIS SPECIFIC tool call returned  
-- Focus on the unique aspects of this particular tool execution result
-- Be descriptive about the actual content returned, not just the tool type
-
-BAD Examples (too generic):
-- "Search Results"
-- "Tool Results" 
-- "${toolName} Results"
-- "Data from ${toolName}"
-- "Tool Output"
-- "Search Data"
-
-GOOD Examples:
-- "GitHub API Rate Limits & Auth Methods"
-- "React Component Props Documentation"
-- "Database Schema for User Tables"
-- "Pricing Tiers with Enterprise Features"
-
-Make the name extremely specific to what this tool call actually returned, not generic.`;
-
+          // First, determine which model to use
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
@@ -1554,6 +1536,60 @@ Make the name extremely specific to what this tool call actually returned, not g
               description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool'} (${artifactData.metadata?.toolCallId || 'tool results'})`,
             };
           } else {
+            // Truncate artifact data based on model context limits (use 20% for data preview)
+            const fullDataStr = JSON.stringify(
+              artifactData.data || artifactData.summaryData || {},
+              null,
+              2
+            );
+            let truncatedData = fullDataStr;
+
+            // Get model context window and calculate safe data size
+            const modelContextInfo = getModelContextWindow(modelToUse);
+            if (modelContextInfo.hasValidContextWindow && modelContextInfo.contextWindow) {
+              const maxDataTokens = Math.floor(modelContextInfo.contextWindow * 0.2); // 20% for data
+              const fullDataTokens = estimateTokens(fullDataStr);
+
+              if (fullDataTokens > maxDataTokens) {
+                // Truncate to character count based on max tokens
+                const maxDataChars = maxDataTokens * 4; // ~4 chars per token
+                truncatedData =
+                  fullDataStr.slice(0, maxDataChars) +
+                  `\n...\n[Truncated: showing first ~${Math.floor(maxDataTokens / 1000)}K tokens of ~${Math.floor(fullDataTokens / 1000)}K total. Full data saved in artifact.]`;
+              }
+            }
+
+            const prompt = `Create a unique name and description for this tool result artifact.
+
+CRITICAL: Your name must be different from these existing artifacts: ${existingNames.length > 0 ? existingNames.join(', ') : 'None yet'}
+
+Tool Context: ${toolContext ? JSON.stringify(toolContext.args, null, 2) : 'No args'}
+Context: ${conversationHistory?.slice(-200) || 'No context'}
+Type: ${artifactData.artifactType || 'data'}
+Data: ${truncatedData}
+
+Requirements:
+- Name: Max 50 chars, be extremely specific to THIS EXACT tool execution
+- Description: Max 150 chars, describe what THIS SPECIFIC tool call returned
+- Focus on the unique aspects of this particular tool execution result
+- Be descriptive about the actual content returned, not just the tool type
+
+BAD Examples (too generic):
+- "Search Results"
+- "Tool Results"
+- "${toolName} Results"
+- "Data from ${toolName}"
+- "Tool Output"
+- "Search Data"
+
+GOOD Examples:
+- "GitHub API Rate Limits & Auth Methods"
+- "React Component Props Documentation"
+- "Database Schema for User Tables"
+- "Pricing Tiers with Enterprise Features"
+
+Make the name extremely specific to what this tool call actually returned, not generic.`;
+
             const model = ModelFactory.createModel(modelToUse);
 
             const schema = z.object({

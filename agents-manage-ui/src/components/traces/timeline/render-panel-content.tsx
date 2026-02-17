@@ -647,8 +647,8 @@ export function renderPanelContent({
                     )}
                     {a.artifactRetrievalBlocked && (
                       <div className="text-sm">
-                        Data saved to database but agent cannot retrieve it. Result exceeds model's
-                        context window capacity.
+                        Tool call succeeded and data saved to database, but result is too large to
+                        retrieve into conversation. Agent should not retry this operation.
                       </div>
                     )}
                   </div>
