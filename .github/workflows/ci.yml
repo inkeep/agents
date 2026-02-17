@@ -15,7 +15,13 @@ concurrency:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16gb
+    timeout-minutes: 30
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+      TURBO_CACHE_DIR: .turbo
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
     steps:
       - name: Checkout code
@@ -103,10 +109,6 @@ jobs:
           # This will build once and cache, then run lint, typecheck, and test in parallel
           pnpm check
         env:
-          TURBO_TELEMETRY_DISABLED: 1
-          TURBO_CACHE_DIR: .turbo
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
