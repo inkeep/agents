@@ -270,7 +270,7 @@ describe('Sub-Agent Generator', () => {
     //   expect(definition).toContain('})'); // No semicolon at the end
     // });
 
-    it('should handle empty arrays', () => {
+    it.only('should handle empty arrays', async () => {
       const emptyArraysData = {
         name: 'Empty Arrays Agent',
         description: 'Agent with empty arrays',
@@ -280,9 +280,10 @@ describe('Sub-Agent Generator', () => {
         dataComponents: [],
         artifactComponents: [],
       };
+      const subAgentId = 'empty-arrays-agent';
 
       const definition = generateSubAgentDefinition(
-        'empty-arrays-agent',
+        subAgentId,
         emptyArraysData,
         undefined,
         mockRegistry
@@ -293,6 +294,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('canDelegateTo:');
       expect(definition).not.toContain('dataComponents:');
       expect(definition).not.toContain('artifactComponents:');
+
+      await expectDefinitionSnapshotPair(subAgentId, emptyArraysData, definition);
     });
 
     it('should handle canTransferTo (legacy support)', () => {
