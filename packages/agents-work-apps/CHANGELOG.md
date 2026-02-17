@@ -1,5 +1,12 @@
 # @inkeep/agents-work-apps
 
+## 0.48.5
+
+### Patch Changes
+
+- f39f8b0: Update slack message formatting to include channel and user names.
+  - @inkeep/agents-core@0.48.5
+
 ## 0.48.4
 
 ### Patch Changes
