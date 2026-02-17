@@ -210,6 +210,7 @@ export function useProjectOverviewStats(options?: {
     avgUserMessagesPerConversation: 0,
     totalUserMessages: 0,
     totalTriggerInvocations: 0,
+    totalSlackConversations: 0,
     totalAICalls: 0,
     totalMCPCalls: 0,
   });
