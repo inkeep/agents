@@ -1,3 +1,6 @@
-import { contextConfig } from '@inkeep/agents-core';
+import { headers } from '@inkeep/agents-core';
+import { z } from 'zod';
 
-export const emptyHeaders = contextConfig({});
+const emptyHeaders = headers({
+  schema: z.any()
+});

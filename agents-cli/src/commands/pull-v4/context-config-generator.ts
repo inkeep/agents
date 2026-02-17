@@ -16,6 +16,7 @@ import { addObjectEntries, addStringProperty, isPlainObject, toCamelCase } from 
 type ContextConfigDefinitionData = {
   contextConfigId: string;
   id?: string;
+  schema?: Record<string, unknown>;
   headers?: string | { id?: string; name?: string };
   headersSchema?: Record<string, unknown>;
   contextVariables?: Record<string, unknown>;
@@ -24,6 +25,7 @@ type ContextConfigDefinitionData = {
 const ContextConfigSchema = z.looseObject({
   contextConfigId: z.string().nonempty(),
   id: z.string().optional(),
+  schema: z.looseObject({}).optional(),
   headers: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
   headersSchema: z.looseObject({}).optional(),
   contextVariables: z.record(z.string(), z.unknown()).optional(),
@@ -53,6 +55,10 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   const sourceFile = project.createSourceFile('context-config-definition.ts', '', {
     overwrite: true,
   });
+
+  if (isHeadersDefinitionData(parsed)) {
+    return generateStandaloneHeadersDefinition(sourceFile, parsed);
+  }
 
   if (isFetchDefinitionData(parsed)) {
     return generateStandaloneFetchDefinition(sourceFile, parsed);
@@ -316,6 +322,54 @@ function writeFetchDefinition(
   }
 }
 
+function generateStandaloneHeadersDefinition(
+  sourceFile: SourceFile,
+  data: ParsedContextConfigDefinitionData
+): string {
+  sourceFile.addImportDeclaration({
+    namedImports: ['headers'],
+    moduleSpecifier: '@inkeep/agents-core',
+  });
+  sourceFile.addImportDeclaration({
+    namedImports: ['z'],
+    moduleSpecifier: 'zod',
+  });
+
+  const headersVarName = toContextConfigVariableName(data.contextConfigId);
+  const variableStatement = sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    declarations: [
+      {
+        name: headersVarName,
+        initializer: 'headers({})',
+      },
+    ],
+  });
+
+  const [declaration] = variableStatement.getDeclarations();
+  if (!declaration) {
+    throw new Error(`Failed to create headers declaration '${headersVarName}'`);
+  }
+
+  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
+  const configObject = callExpression
+    .getArguments()[0]
+    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  configObject.addPropertyAssignment({
+    name: 'schema',
+    initializer: convertJsonSchemaToZod(data.schema),
+  });
+
+  return sourceFile.getFullText().trimEnd();
+}
+
+function isHeadersDefinitionData(
+  value: ParsedContextConfigDefinitionData
+): value is ParsedContextConfigDefinitionData & { schema: Record<string, unknown> } {
+  return isPlainObject(value.schema);
+}
+
 function generateStandaloneFetchDefinition(
   sourceFile: SourceFile,
   data: ParsedContextConfigDefinitionData
@@ -359,6 +413,10 @@ function generateStandaloneFetchDefinition(
 }
 
 function convertJsonSchemaToZod(schema: Record<string, unknown>): string {
+  if (Object.keys(schema).length === 0) {
+    return 'z.any()';
+  }
+
   try {
     return jsonSchemaToZod(schema, { module: 'none' });
   } catch {
