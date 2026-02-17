@@ -228,8 +228,9 @@ describe('MCP Tool Generator', () => {
   });
 
   describe('generateMcpToolFile', () => {
-    it('should generate complete file with imports and definition', () => {
-      const file = generateMcpToolFile('weather-mcp', testToolData);
+    it.only('should generate complete file with imports and definition', async () => {
+      const mcpToolId = 'weather-mcp';
+      const file = generateMcpToolFile(mcpToolId, testToolData);
 
       expect(file).toContain("import { mcpTool } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const weatherMcp = mcpTool({');
@@ -238,6 +239,8 @@ describe('MCP Tool Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolData, file.trimEnd());
     });
 
     it('should generate complete file with direct credential', () => {
