@@ -1,5 +1,6 @@
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import {
+  type ArrayLiteralExpression,
   IndentationText,
   NewLineKind,
   type ObjectLiteralExpression,
@@ -144,4 +145,45 @@ export function addStringProperty(
     name: key,
     initializer: formatStringLiteral(value),
   });
+}
+
+export function addValueToObject(obj: ObjectLiteralExpression, key: string, value: unknown) {
+  if (value === undefined) return;
+
+  if (isPlainObject(value)) {
+    const p = obj.addPropertyAssignment({ name: formatPropertyName(key), initializer: '{}' });
+    const child = p.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    for (const [k, v] of Object.entries(value)) addValueToObject(child, k, v);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    const p = obj.addPropertyAssignment({ name: formatPropertyName(key), initializer: '[]' });
+    const arr = p.getInitializerIfKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+    for (const item of value) addValueToArray(arr, item);
+    return;
+  }
+
+  obj.addPropertyAssignment({
+    name: formatPropertyName(key),
+    initializer: formatInlineLiteral(value),
+  });
+}
+
+function addValueToArray(arr: ArrayLiteralExpression, value: unknown) {
+  if (isPlainObject(value)) {
+    const expr = arr.addElement('{}');
+    const child = expr.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    for (const [k, v] of Object.entries(value)) addValueToObject(child, k, v);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    const expr = arr.addElement('[]');
+    const child = expr.asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+    for (const item of value) addValueToArray(child, item);
+    return;
+  }
+
+  arr.addElement(formatInlineLiteral(value));
 }

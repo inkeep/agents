@@ -2,8 +2,8 @@ import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } fro
 import { z } from 'zod';
 import {
   addStringProperty,
+  addValueToObject,
   createInMemoryProject,
-  formatInlineLiteral,
   toCamelCase,
 } from './utils';
 
@@ -30,7 +30,7 @@ const FunctionToolSchema = z
   .superRefine((value, context) => {
     if (value.inputSchema === undefined && value.schema === undefined) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'inputSchema is required',
         path: ['inputSchema'],
       });
@@ -38,7 +38,7 @@ const FunctionToolSchema = z
 
     if (value.executeCode === undefined && value.execute === undefined) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'executeCode is required',
         path: ['executeCode'],
       });

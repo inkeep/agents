@@ -3,7 +3,15 @@ import { functionTool } from '@inkeep/agents-sdk';
 export const test = functionTool({
   name: 'test-tool',
   description: 'Test tool',
-  inputSchema: { type: 'object', properties: { value: { type: 'string', description: 'Input value' } } },
+  inputSchema: {
+    type: 'object',
+    properties: {
+      value: {
+        type: 'string',
+        description: 'Input value'
+      }
+    }
+  },
   execute: async ({}) => {
       return { result: "test" };
     }

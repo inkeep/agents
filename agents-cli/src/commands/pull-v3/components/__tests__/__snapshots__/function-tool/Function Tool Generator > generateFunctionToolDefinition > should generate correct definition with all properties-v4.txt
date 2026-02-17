@@ -3,7 +3,20 @@ import { functionTool } from '@inkeep/agents-sdk';
 export const calculateBmi = functionTool({
   name: 'calculate-bmi',
   description: 'Calculate BMI and health category',
-  inputSchema: { type: 'object', properties: { weight: { type: 'number', description: 'Weight in kilograms' }, height: { type: 'number', description: 'Height in meters' } }, required: ['weight', 'height'] },
+  inputSchema: {
+    type: 'object',
+    properties: {
+      weight: {
+        type: 'number',
+        description: 'Weight in kilograms'
+      },
+      height: {
+        type: 'number',
+        description: 'Height in meters'
+      }
+    },
+    required: ['weight', 'height']
+  },
   execute: async ({ weight, height }) => {
       const bmi = weight / (height * height);
       let category = 'Normal';
