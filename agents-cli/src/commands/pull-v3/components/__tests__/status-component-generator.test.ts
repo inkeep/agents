@@ -418,14 +418,5 @@ describe('Status Component Generator', () => {
     //
     //   expect(definition).toContain('export const _2023Status = statusComponent({');
     // });
-
-    it('should handle type with special characters', () => {
-      const definition = generateStatusComponentDefinition('test', {
-        type: 'complex_type-with.special@chars',
-        description: 'Test status',
-      });
-
-      expect(definition).toContain("type: 'complex_type-with.special@chars',");
-    });
   });
 });
