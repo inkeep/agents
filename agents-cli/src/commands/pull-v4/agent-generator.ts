@@ -73,6 +73,12 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
   const subAgentIds = new Set(extractIds(parsed.subAgents));
   subAgentIds.add(parsed.defaultSubAgentId);
   addSubAgentImports(sourceFile, subAgentIds);
+  const contextConfigId = extractContextConfigId(parsed.contextConfig);
+  if (contextConfigId) {
+    addContextConfigImport(sourceFile, contextConfigId);
+  }
+  const triggerIds = parsed.triggers ? extractIds(parsed.triggers) : [];
+  addTriggerImports(sourceFile, triggerIds);
 
   const agentVarName = toCamelCase(parsed.agentId);
   const variableStatement = sourceFile.addVariableStatement({
@@ -278,6 +284,23 @@ function addSubAgentImports(sourceFile: SourceFile, subAgentIds: Set<string>): v
     sourceFile.addImportDeclaration({
       namedImports: [toCamelCase(subAgentId)],
       moduleSpecifier: `./sub-agents/${subAgentId}`,
+    });
+  }
+}
+
+function addContextConfigImport(sourceFile: SourceFile, contextConfigId: string): void {
+  sourceFile.addImportDeclaration({
+    namedImports: [toCamelCase(contextConfigId)],
+    moduleSpecifier: `../context-configs/${contextConfigId}`,
+  });
+}
+
+function addTriggerImports(sourceFile: SourceFile, triggerIds: string[]): void {
+  const uniqueTriggerIds = new Set(triggerIds);
+  for (const triggerId of uniqueTriggerIds) {
+    sourceFile.addImportDeclaration({
+      namedImports: [toCamelCase(triggerId)],
+      moduleSpecifier: `./triggers/${triggerId}`,
     });
   }
 }
