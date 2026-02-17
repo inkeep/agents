@@ -7,7 +7,11 @@ icon: LuFileText
 
 A well-structured prompt is the foundation of reliable agent behavior. This page covers the recommended sections for a sub agent prompt and how to write each one effectively.
 
-Structure your agent prompt in this order:
+<Callout type="tip" title="Use the Agent Prompt for shared instructions">
+The **Agent Prompt** is inherited by all sub-agents in an agent and is often underutilized. Use it for instructions you don't want to repeat across every sub-agent: MCP tool usage guidelines, global constraints, output conventions, and other rules that apply universally. Reserve sub-agent prompts for role-specific behavior.
+</Callout>
+
+Structure your sub-agent prompt in this order:
 
 1. **Role and mission** — who the agent is and what it optimizes for
 2. **Scope and non-goals** — prevents accidental overreach
