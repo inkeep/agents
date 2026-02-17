@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { generateCredentialDefinition as generateCredentialDefinitionV4 } from '../../../pull-v4/credential-generator';
 import {
   generateCredentialDefinition,
   generateCredentialFile,
@@ -46,6 +47,17 @@ describe('Credential Generator', () => {
     },
   };
 
+  const expectCredentialDefinitionSnapshots = async (
+    credentialId: string,
+    credentialData: Record<string, unknown>,
+    definition: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    const definitionV4 = generateCredentialDefinitionV4({ credentialId, ...credentialData });
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/credential/${testName}.txt`);
+    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/credential/${testName}-v4.txt`);
+  };
+
   describe('generateCredentialImports', () => {
     it('should generate correct imports', () => {
       const imports = generateCredentialImports();
@@ -66,8 +78,9 @@ describe('Credential Generator', () => {
   });
 
   describe('generateCredentialDefinition', () => {
-    it('should generate correct definition with all properties', () => {
-      const definition = generateCredentialDefinition('inkeep-api-key', testCredentialData);
+    it.only('should generate correct definition with all properties', async () => {
+      const credentialId = 'inkeep-api-key';
+      const definition = generateCredentialDefinition(credentialId, testCredentialData);
 
       expect(definition).toContain('export const inkeepApiKey = credential({');
       expect(definition).toContain("id: 'inkeep-api-key',");
@@ -79,6 +92,8 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'INKEEP_API_KEY'");
       expect(definition).toContain('});');
+
+      await expectCredentialDefinitionSnapshots(credentialId, testCredentialData, definition);
     });
 
     it('should handle credential ID to camelCase conversion', () => {
