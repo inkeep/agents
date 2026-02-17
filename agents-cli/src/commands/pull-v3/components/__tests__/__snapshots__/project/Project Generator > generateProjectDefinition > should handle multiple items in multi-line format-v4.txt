@@ -1,4 +1,7 @@
 import { project } from '@inkeep/agents-sdk';
+import { primaryAgent } from './agents/primaryAgent';
+import { analyticsAgent } from './agents/analyticsAgent';
+import { reportingAgent } from './agents/reportingAgent';
 
 export const multiItemProject = project({
   id: 'multi-item-project',
