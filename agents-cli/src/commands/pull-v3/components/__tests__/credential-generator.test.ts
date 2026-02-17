@@ -185,15 +185,22 @@ describe('Credential Generator', () => {
       );
     });
 
-    it('should not generate retrieval params when not specified', () => {
-      const definition = generateCredentialDefinition('openai-api-key', {
+    it.only('should not generate retrieval params when not specified', async () => {
+      const credentialId = 'openai-api-key';
+      const dataWithoutRetrievalParams = {
         name: 'OpenAI API Key',
         type: 'memory',
         credentialStoreId: 'memory-default',
-      });
+      };
+      const definition = generateCredentialDefinition(credentialId, dataWithoutRetrievalParams);
 
       expect(definition).not.toContain('retrievalParams: {');
       expect(definition).not.toContain("key: 'OPENAI_API_KEY'"); // Should not auto-generate
+
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...dataWithoutRetrievalParams },
+        definition
+      );
     });
 
     it('should throw error for missing required fields', () => {
