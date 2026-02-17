@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.48.4
+
+### Patch Changes
+
+- 11f4e14: Add mock AI provider for testing run routes without API keys
+
 ## 0.48.3
 
 ### Patch Changes
