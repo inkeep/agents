@@ -112,11 +112,16 @@ describe('Form', () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
 
-    await waitFor(() => {
-      const message = container.querySelector<HTMLParagraphElement>('[data-slot="form-message"]');
-      expect(message).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        // Wait for Monaco editor to fully initialize (not just the skeleton loading state)
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
+        // Wait for form validation error message to render
+        expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+      },
+      { timeout: 20_000 }
+    );
 
     await expect(container).toMatchScreenshot();
-  }, 30_000);
+  }, 45_000);
 });

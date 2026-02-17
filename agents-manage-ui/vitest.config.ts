@@ -60,8 +60,10 @@ export default defineConfig({
             instances: [{ browser: 'chromium' }],
             expect: {
               toMatchScreenshot: {
-                // Increase timeout because the default `5s` is insufficient on CI
-                timeout: 15_000,
+                // Increase timeout because the default `5s` is insufficient on CI.
+                // Monaco editor requires extra time to stabilize (dynamic imports,
+                // syntax highlighting, height recalculation).
+                timeout: 20_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
                 comparatorOptions: {
