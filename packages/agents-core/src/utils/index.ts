@@ -11,6 +11,7 @@ export * from './json-parser';
 export * from './jwt-helpers';
 export * from './logger';
 export * from './mcp-client';
+export * from './mock-provider';
 export * from './model-factory';
 export * from './schema-conversion';
 export * from './service-token-auth';
