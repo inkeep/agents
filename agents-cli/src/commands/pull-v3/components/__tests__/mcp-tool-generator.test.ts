@@ -140,10 +140,13 @@ describe('MCP Tool Generator', () => {
       }).toThrow("Missing required fields for MCP tool 'no-server': serverUrl");
     });
 
-    it('should handle credential as direct reference', () => {
-      const definition = generateMcpToolDefinition('stripe-mcp', testToolWithCredential);
+    it.only('should handle credential as direct reference', async () => {
+      const mcpToolId = 'stripe-mcp';
+      const definition = generateMcpToolDefinition(mcpToolId, testToolWithCredential);
 
       expect(definition).toContain('credential: mock-credential-stripe_api_key');
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolWithCredential, definition);
     });
 
     it('should handle credential as object', () => {
