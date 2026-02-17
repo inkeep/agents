@@ -21,7 +21,6 @@
     "ignoreUnknown": false,
     "includes": [
       "**",
-      "!packages/agents-manage-mcp",
       "!packages/agents-mcp",
       "!**/__snapshots__/*.json"
     ]
