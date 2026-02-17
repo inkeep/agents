@@ -45,7 +45,5 @@ export const complex = functionTool({
     },
     required: ['user']
   },
-  execute: async ({}) => {
-      return { processed: true };
-    }
+  execute: return { processed: true };
 });

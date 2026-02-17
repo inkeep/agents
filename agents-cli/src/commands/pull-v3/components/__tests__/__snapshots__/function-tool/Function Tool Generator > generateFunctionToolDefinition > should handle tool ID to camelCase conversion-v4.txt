@@ -7,7 +7,5 @@ export const emailSenderTool = functionTool({
     type: 'object',
     properties: {}
   },
-  execute: async ({}) => {
-      return { sent: true };
-    }
+  execute: return { sent: true };
 });

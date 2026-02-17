@@ -6,7 +6,5 @@ export const simple = functionTool({
     type: 'object',
     properties: {}
   },
-  execute: async ({}) => {
-      return { message: "Hello World" };
-    }
+  execute: return { message: "Hello World" };
 });

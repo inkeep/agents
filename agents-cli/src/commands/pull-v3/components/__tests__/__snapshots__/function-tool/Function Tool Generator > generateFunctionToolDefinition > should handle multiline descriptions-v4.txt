@@ -7,7 +7,5 @@ export const test = functionTool({
     type: 'object',
     properties: {}
   },
-  execute: async ({}) => {
-      return { processed: true };
-    }
+  execute: return { processed: true };
 });

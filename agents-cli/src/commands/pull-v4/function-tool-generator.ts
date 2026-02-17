@@ -111,24 +111,7 @@ function writeFunctionToolConfig(
   if (executeCode !== undefined) {
     configObject.addPropertyAssignment({
       name: 'execute',
-      initializer: formatExecuteFunction(executeCode),
+      initializer: executeCode,
     });
   }
-}
-
-function formatExecuteFunction(executeCode: string): string {
-  const trimmed = executeCode.trim();
-  if (!trimmed) {
-    return 'async ({}) => {\n  return {};\n}';
-  }
-
-  if (trimmed.startsWith('async') || trimmed.startsWith('function') || trimmed.startsWith('(')) {
-    return trimmed;
-  }
-
-  const indentedCode = trimmed
-    .split('\n')
-    .map((line) => `  ${line}`)
-    .join('\n');
-  return `async ({}) => {\n${indentedCode}\n}`;
 }

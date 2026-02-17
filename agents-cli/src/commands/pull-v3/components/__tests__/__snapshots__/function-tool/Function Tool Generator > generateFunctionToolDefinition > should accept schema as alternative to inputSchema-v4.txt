@@ -12,7 +12,5 @@ export const test = functionTool({
       }
     }
   },
-  execute: async ({}) => {
-      return { result: "test" };
-    }
+  execute: return { result: "test" };
 });

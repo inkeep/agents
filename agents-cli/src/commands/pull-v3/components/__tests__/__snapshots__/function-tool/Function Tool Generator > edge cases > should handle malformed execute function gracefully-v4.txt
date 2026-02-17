@@ -6,7 +6,5 @@ export const badExecute = functionTool({
     type: 'object',
     properties: {}
   },
-  execute: async ({}) => {
-      not a valid function
-    }
+  execute: not a valid function
 });
