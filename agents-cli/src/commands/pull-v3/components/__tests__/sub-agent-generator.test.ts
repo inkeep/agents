@@ -3,7 +3,7 @@
  * Unit tests for sub-agent generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateSubAgentDefinition as generateSubAgentDefinitionV4 } from '../../../pull-v4/sub-agent-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateSubAgentDefinition,
@@ -88,9 +88,10 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('generateSubAgentDefinition', () => {
-    it('should generate basic sub-agent definition', () => {
+    it.only('should generate basic sub-agent definition', async () => {
+      const subAgentId = 'personal-assistant';
       const definition = generateSubAgentDefinition(
-        'personal-assistant',
+        subAgentId,
         basicSubAgentData,
         undefined,
         mockRegistry
@@ -110,6 +111,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('dataComponents: () => [taskList]');
       expect(definition).toContain('artifactComponents: () => [citation]');
       expect(definition).toContain('});');
+
+      await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, definition);
     });
 
     it('should generate sub-agent with stopWhen configuration', () => {
