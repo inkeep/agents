@@ -188,6 +188,24 @@ function createProjectFixture(): FullProjectDefinition {
             messageTemplate: 'New webhook event',
           },
         },
+        statusUpdates: {
+          numEvents: 1,
+          statusComponents: [
+            {
+              id: 'tool-summary',
+              type: 'tool_summary',
+              description: 'Tool summary status component',
+              detailsSchema: {
+                type: 'object',
+                properties: {
+                  tool_name: {
+                    type: 'string',
+                  },
+                },
+              },
+            },
+          ],
+        },
       },
     },
     createdAt: new Date().toISOString(),
