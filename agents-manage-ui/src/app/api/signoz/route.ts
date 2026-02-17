@@ -103,6 +103,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const { paginationPayload, detailPayloadTemplate } = validationResult.data;
+
+      const paginationTimeValidation = validateTimeRange(paginationPayload.start, paginationPayload.end);
+      if (!paginationTimeValidation.valid) {
+        return NextResponse.json(
+          { error: 'Invalid time range in paginationPayload', details: paginationTimeValidation.error },
+          { status: 400 }
+        );
+      }
+
+      const detailTimeValidation = validateTimeRange(detailPayloadTemplate.start, detailPayloadTemplate.end);
+      if (!detailTimeValidation.valid) {
+        return NextResponse.json(
+          { error: 'Invalid time range in detailPayloadTemplate', details: detailTimeValidation.error },
+          { status: 400 }
+        );
+      }
+
       const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query-batch`;
       logger.info({ endpoint }, 'Forwarding batch request to agents-api');
 

@@ -173,6 +173,10 @@ app.post('/query-batch', async (c) => {
         orgRole: tenantRole,
       });
       if (!hasAccess) {
+        logger.warn(
+          { tenantId, projectId: requestedProjectId, userId },
+          'Project not found or access denied'
+        );
         return c.json(
           { error: 'Forbidden', message: 'You do not have access to this project' },
           403
@@ -185,6 +189,7 @@ app.post('/query-batch', async (c) => {
   const signozApiKey = env.SIGNOZ_API_KEY;
 
   if (!signozUrl || !signozApiKey) {
+    logger.error({}, 'SigNoz not configured');
     return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
   }
 
@@ -230,12 +235,21 @@ app.post('/query-batch', async (c) => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        logger.error({ error: error.message }, 'SigNoz service unavailable');
         return c.json(
           { error: 'Service Unavailable', message: 'SigNoz service is unavailable' },
           503
         );
       }
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logger.error({ status: error.response.status }, 'SigNoz authentication failed');
+        return c.json(
+          { error: 'Internal Server Error', message: 'SigNoz authentication failed' },
+          500
+        );
+      }
       if (error.response?.status === 400) {
+        logger.warn({ status: error.response.status }, 'Invalid SigNoz query');
         return c.json({ error: 'Bad Request', message: 'Invalid query parameters' }, 400);
       }
     }
