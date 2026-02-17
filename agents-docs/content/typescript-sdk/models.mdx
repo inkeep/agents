@@ -74,6 +74,7 @@ const mySubAgent = subAgent({
 | **Gateway** | `gateway/openai/gpt-4.1-mini` | `AI_GATEWAY_API_KEY` |
 | **NVIDIA NIM** | `nim/nvidia/llama-3.3-nemotron-super-49b-v1.5`<br/>`nim/nvidia/nemotron-4-340b-instruct` | `NIM_API_KEY` |
 | **Custom OpenAI-compatible** | `custom/my-custom-model`<br/>`custom/llama-3-custom` | `CUSTOM_LLM_API_KEY` |
+| **Echo** (testing) | `echo/default`<br/>`echo/any-name` | None required |
 
 <Note>*`openai/gpt-5`, `openai/gpt-5-mini`, and `openai/gpt-5-nano` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
 
@@ -301,6 +302,53 @@ Custom OpenAI-compatible providers **require** a base URL to be specified in `pr
 </Note>
 
 </SkillRule>
+
+## Echo Provider (Testing and Development)
+
+The echo provider returns deterministic, structured responses without making any API calls or requiring API keys. Use it for testing, CI/CD pipelines, and local development when you need to verify run route behavior without real LLM costs.
+
+### Configuration
+
+```typescript
+models: {
+  base: {
+    model: "echo/default",
+  }
+}
+```
+
+The model name after `echo/` can be anything — `echo/default`, `echo/fast`, `echo/my-test` all work. The name is included in the response for identification.
+
+### Response format
+
+Every echo response includes five lines:
+
+```
+Echo response.
+Model: echo/default
+Input messages: 2
+Last user message: "Hello, echo!"
+Timestamp: 2026-02-17T04:00:00.000Z
+```
+
+| Field | Description |
+|-------|-------------|
+| `Model` | The full `echo/{modelName}` identifier |
+| `Input messages` | Number of messages in the prompt |
+| `Last user message` | The last user message text (truncated to 200 characters) |
+| `Timestamp` | ISO 8601 timestamp of the response |
+
+### Token usage
+
+The echo provider returns synthetic token counts based on character length (characters / 4). This lets you test token-aware logic without real API calls.
+
+### Streaming
+
+The echo provider supports both non-streaming (`doGenerate`) and streaming (`doStream`) responses. In streaming mode, each line of the response is emitted as a separate text delta with a small delay between chunks, simulating real streaming behavior.
+
+<Warning>
+The echo provider logs a warning when invoked with `ENVIRONMENT=production`. It's intended for development and testing only.
+</Warning>
 
 ## CLI Defaults
 
