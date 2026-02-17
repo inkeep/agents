@@ -169,7 +169,7 @@ function collectCredentialRecords(
       filePath: join(context.paths.credentialsDir, `${credentialId}.ts`),
       payload: {
         credentialId,
-        ...(asRecord(credentialData) ?? {}),
+        ...credentialData,
       } as Parameters<typeof generateCredentialDefinition>[0],
     })
   );
@@ -188,7 +188,7 @@ function collectArtifactComponentRecords(
       filePath: join(context.paths.artifactComponentsDir, `${artifactComponentId}.ts`),
       payload: {
         artifactComponentId,
-        ...(asRecord(artifactComponentData) ?? {}),
+        ...artifactComponentData,
       } as Parameters<typeof generateArtifactComponentDefinition>[0],
     })
   );
@@ -253,7 +253,7 @@ function collectTriggerRecords(
         filePath: join(context.paths.agentsDir, 'triggers', `${triggerId}.ts`),
         payload: {
           triggerId,
-          ...(asRecord(triggerData) ?? {}),
+          ...triggerData,
         } as Parameters<typeof generateTriggerDefinition>[0],
       });
     }
@@ -280,7 +280,7 @@ function collectAgentRecords(
       filePath: join(context.paths.agentsDir, `${agentId}.ts`),
       payload: {
         agentId,
-        ...(asRecord(agentData) ?? {}),
+        ...agentData,
       } as Parameters<typeof generateAgentDefinition>[0],
     });
   }
