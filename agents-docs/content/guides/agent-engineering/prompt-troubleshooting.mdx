@@ -4,25 +4,7 @@ sidebarTitle: Prompt Troubleshooting
 description: Fix common Sub Agent prompt issues.
 ---
 
-If your Sub Agent gives weak or inconsistent results, you usually do not need a full rewrite.
-Start by matching symptoms, apply one targeted fix, and test again.
-
-## Start here
-
-<Steps>
-  <Step>
-    Use the symptom picker to find the closest failure pattern.
-  </Step>
-  <Step>
-    Copy one fix into your prompt.
-  </Step>
-  <Step>
-    Re-run the same task 2-3 times.
-  </Step>
-  <Step>
-    Keep the fix if behavior improves; remove it if it does not.
-  </Step>
-</Steps>
+If your Sub Agent gives weak or inconsistent results, you usually do not need a full prompt rewrite. Start by matching symptoms, apply one targeted prompt fix, and testing again.
 
 ## Quick symptom picker
 
@@ -30,7 +12,7 @@ Start by matching symptoms, apply one targeted fix, and test again.
 |---|---|
 | Silent assumptions or over-questioning | [Ambiguity and assumptions](#ambiguity-and-assumptions) |
 | Conflicting sources handled poorly | [Evidence and source quality](#evidence-and-source-quality) |
-| Good local output, bad downstream impact | [Decision boundaries and risk](#decision-boundaries-and-risk) |
+| No escalation when blocked | [Decision boundaries and risk](#decision-boundaries-and-risk) |
 | Long, repetitive responses with buried findings | [Output clarity and structure](#output-clarity-and-structure) |
 
 ## Copy-paste guardrails by category
@@ -72,7 +54,7 @@ Use these snippets as starting points.
   </Tab>
 </Tabs>
 
-## Troubleshooting catalog
+## Common issues and fixes
 
 ### Ambiguity and assumptions
 
@@ -150,15 +132,6 @@ Use these snippets as starting points.
 ### Decision boundaries and risk
 
 <Accordions>
-  <Accordion title="The agent misses downstream effects">
-    **What you see:** A local change seems fine but causes breakage elsewhere.
-
-    **Why it happens:** The prompt does not require a pre-change blast-radius check.
-
-    **Fix:**
-    - Add a pre-action checklist: "What could this break? Which consumers depend on this?"
-    - Add: "For risky changes, include side effects and mitigation steps in the response."
-  </Accordion>
   <Accordion title="The agent never escalates">
     **What you see:** The agent tries to answer everything, including out-of-scope decisions.
 
@@ -177,14 +150,13 @@ Use these snippets as starting points.
     - Define terms once: `must` = non-negotiable, `should` = strong default, `consider` = optional.
     - Rewrite ambiguous constraints to use one of those terms consistently.
   </Accordion>
-  <Accordion title="The agent presents one path with overconfidence">
-    **What you see:** One recommendation is presented even when multiple valid options exist.
+  <Accordion title="The agent presents one option only">
+    **What you see:** One option is presented even when multiple valid options exist.
 
     **Why it happens:** The prompt does not require tradeoff framing when uncertainty is high.
 
     **Fix:**
-    - Add: "When multiple valid paths exist, present options with tradeoffs."
-    - Add confidence calibration guidance: "Match certainty of wording to certainty of evidence."
+    - Add: "When multiple valid options exist, present options with tradeoffs."
   </Accordion>
 </Accordions>
 
