@@ -505,15 +505,25 @@ describe('Context Config Generator', () => {
     //   expect(definition).toContain('const contextConfigV2 = contextConfig({');
     // });
 
-    it('should handle empty schemas', () => {
+    it.only('should handle empty schemas', async () => {
       const emptySchemaData = {
         schema: {},
       };
-
-      const definition = generateHeadersDefinition('emptyHeaders', emptySchemaData);
+      const contextConfigId = 'emptyHeaders';
+      const definition = generateHeadersDefinition(contextConfigId, emptySchemaData);
 
       expect(definition).toContain('const emptyHeaders = headers({');
       expect(definition).toContain('schema: z.any()');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({
+        contextConfigId,
+        ...emptySchemaData,
+      });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
 
     it.only('should handle fetch definition with null and undefined values', async () => {
