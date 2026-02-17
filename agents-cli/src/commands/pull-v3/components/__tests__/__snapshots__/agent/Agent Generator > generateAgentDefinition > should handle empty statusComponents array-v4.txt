@@ -2,6 +2,7 @@ import { agent } from '@inkeep/agents-sdk';
 import { mainAssistant } from './sub-agents/mainAssistant';
 import { helperAgent } from './sub-agents/helperAgent';
 import { coordinatorAgent } from './sub-agents/coordinatorAgent';
+import { complexAgentContext } from '../context-configs/complexAgentContext';
 
 export const emptyStatusAgent = agent({
   id: 'empty-status-agent',

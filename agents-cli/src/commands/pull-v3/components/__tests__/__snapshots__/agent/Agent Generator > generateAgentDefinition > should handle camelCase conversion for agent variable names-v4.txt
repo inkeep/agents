@@ -1,6 +1,7 @@
 import { agent } from '@inkeep/agents-sdk';
 import { personalAssistant } from './sub-agents/personalAssistant';
 import { coordinatesAgent } from './sub-agents/coordinatesAgent';
+import { personalAgentContext } from '../context-configs/personalAgentContext';
 
 export const myComplexAgentV2 = agent({
   id: 'my-complex-agent_v2',
