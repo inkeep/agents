@@ -13,7 +13,6 @@ import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { resolveEffectiveAgent } from '../agent-resolution';
 import {
-  createAgentListMessage,
   createAlreadyLinkedMessage,
   createContextBlock,
   createErrorMessage,
@@ -34,140 +33,10 @@ import { buildAgentSelectorModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId, type SlackWorkspaceConnection } from '../nango';
 import type { SlackCommandPayload, SlackCommandResponse } from '../types';
 
-interface AgentInfo {
-  id: string;
-  name: string | null;
-  projectId: string;
-  projectName: string | null;
-}
-
-/**
- * Fetch all agents from the manage API.
- * This uses the proper ref-middleware and Dolt branch resolution.
- * Requires an auth token to access the manage API.
- */
-const INTERNAL_FETCH_TIMEOUT_MS = 10_000;
-
-async function fetchAgentsFromManageApi(tenantId: string, authToken: string): Promise<AgentInfo[]> {
-  const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
-
-  try {
-    // First fetch projects
-    const projectsResponse = await fetch(`${apiBaseUrl}/manage/tenants/${tenantId}/projects`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      },
-      signal: controller.signal,
-    });
-
-    if (!projectsResponse.ok) {
-      logger.error(
-        { status: projectsResponse.status, tenantId },
-        'Failed to fetch projects from manage API'
-      );
-      return [];
-    }
-
-    const projectsData = await projectsResponse.json();
-    const projects = projectsData.data || projectsData || [];
-
-    logger.info({ projectCount: projects.length, tenantId }, 'Fetched projects from manage API');
-
-    // Fetch agents for all projects in parallel
-    const agentResults = await Promise.all(
-      projects.map(async (project: { id: string; name: string | null }) => {
-        try {
-          const agentsResponse = await fetch(
-            `${apiBaseUrl}/manage/tenants/${tenantId}/projects/${project.id}/agents`,
-            {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${authToken}`,
-              },
-              signal: controller.signal,
-            }
-          );
-
-          if (agentsResponse.ok) {
-            const agentsData = await agentsResponse.json();
-            const agents = agentsData.data || agentsData || [];
-
-            return agents.map((agent: { id: string; name: string | null }) => ({
-              id: agent.id,
-              name: agent.name,
-              projectId: project.id,
-              projectName: project.name,
-            }));
-          }
-          logger.warn(
-            { status: agentsResponse.status, projectId: project.id },
-            'Failed to fetch agents for project'
-          );
-          return [];
-        } catch (error) {
-          logger.error({ error, projectId: project.id }, 'Failed to fetch agents for project');
-          return [];
-        }
-      })
-    );
-
-    return agentResults.flat();
-  } catch (error) {
-    logger.error({ error, tenantId }, 'Failed to fetch agents from manage API');
-    return [];
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-/**
- * Find an agent by name or ID from the manage API.
- */
-async function findAgentByIdentifier(
-  tenantId: string,
-  identifier: string,
-  authToken: string
-): Promise<AgentInfo | null> {
-  const allAgents = await fetchAgentsFromManageApi(tenantId, authToken);
-
-  return (
-    allAgents.find(
-      (a) => a.id === identifier || a.name?.toLowerCase() === identifier.toLowerCase()
-    ) || null
-  );
-}
-
 const DEFAULT_CLIENT_ID = 'work-apps-slack';
 const LINK_CODE_TTL_MINUTES = 10;
 
 const logger = getLogger('slack-commands');
-
-/**
- * Parse agent name and question from command text.
- * Agent name must be in quotes: "agent name" question
- */
-function parseAgentAndQuestion(text: string): {
-  agentName: string | null;
-  question: string | null;
-} {
-  if (!text.trim()) {
-    return { agentName: null, question: null };
-  }
-
-  // Agent name must be in quotes: "agent name" question
-  const quotedMatch = text.match(/^["']([^"']+)["']\s+(.+)$/);
-  if (quotedMatch) {
-    return { agentName: quotedMatch[1].trim(), question: quotedMatch[2].trim() };
-  }
-
-  return { agentName: null, question: null };
-}
 
 export async function handleLinkCommand(
   payload: SlackCommandPayload,
@@ -451,7 +320,7 @@ export async function handleQuestionCommand(
 
   if (!resolvedAgent) {
     const message = createErrorMessage(
-      'No default agent configured. Ask your admin to set a workspace default in the dashboard.\n\nUse `/inkeep list` to see available agents.'
+      'No default agent configured. Ask your admin to set a workspace default in the dashboard.'
     );
     return { response_type: 'ephemeral', ...message };
   }
@@ -592,147 +461,6 @@ async function executeAgentInBackground(
   }
 }
 
-export async function handleRunCommand(
-  payload: SlackCommandPayload,
-  agentIdentifier: string,
-  question: string,
-  _dashboardUrl: string,
-  tenantId: string
-): Promise<SlackCommandResponse> {
-  // Find user mapping without tenant filter to get the correct tenant
-  const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
-    payload.userId,
-    payload.teamId,
-    DEFAULT_CLIENT_ID
-  );
-
-  if (!existingLink) {
-    return generateLinkCodeWithIntent(payload, tenantId);
-  }
-
-  // Use the tenant from the user's mapping
-  const userTenantId = existingLink.tenantId;
-
-  try {
-    // Sign a token for manage API access
-    const authToken = await signSlackUserToken({
-      inkeepUserId: existingLink.inkeepUserId,
-      tenantId: userTenantId,
-      slackTeamId: payload.teamId,
-      slackUserId: payload.userId,
-      slackEnterpriseId: payload.enterpriseId,
-    });
-
-    // Use manage API to find agent with proper Dolt branch resolution
-    const targetAgent = await findAgentByIdentifier(userTenantId, agentIdentifier, authToken);
-
-    if (!targetAgent) {
-      const message = createErrorMessage(
-        `Agent "${agentIdentifier}" not found. Use \`/inkeep list\` to see available agents.`
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-
-    const runWork = executeAgentInBackground(
-      payload,
-      existingLink,
-      targetAgent,
-      question,
-      userTenantId
-    )
-      .catch((error) => {
-        logger.error({ error }, 'Background execution promise rejected');
-      })
-      .finally(() => flushTraces());
-    const waitUntil = await getWaitUntil();
-    if (waitUntil) waitUntil(runWork);
-
-    // Return empty object - Slack will just acknowledge the command without showing a message
-    // The background task will send the actual response via response_url
-    return {};
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage, tenantId: userTenantId }, 'Failed to run agent');
-
-    const message = createErrorMessage(
-      'Failed to run agent. Please try again or visit the dashboard.'
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-}
-
-export async function handleAgentListCommand(
-  payload: SlackCommandPayload,
-  dashboardUrl: string,
-  _tenantId: string
-): Promise<SlackCommandResponse> {
-  // Find user mapping without tenant filter to get the correct tenant
-  const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
-    payload.userId,
-    payload.teamId,
-    DEFAULT_CLIENT_ID
-  );
-
-  if (!existingLink) {
-    const message = createNotLinkedMessage();
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  // Use the tenant from the user's mapping, not the workspace default
-  const userTenantId = existingLink.tenantId;
-
-  logger.info(
-    {
-      slackUserId: payload.userId,
-      existingLinkTenantId: existingLink.tenantId,
-      existingLinkInkeepUserId: existingLink.inkeepUserId,
-    },
-    'Found user mapping for list command'
-  );
-
-  try {
-    // Sign a token for manage API access
-    const authToken = await signSlackUserToken({
-      inkeepUserId: existingLink.inkeepUserId,
-      tenantId: userTenantId,
-      slackTeamId: payload.teamId,
-      slackUserId: payload.userId,
-      slackEnterpriseId: payload.enterpriseId,
-    });
-
-    // Use manage API to get agents with proper Dolt branch resolution
-    const allAgents = await fetchAgentsFromManageApi(userTenantId, authToken);
-
-    logger.info(
-      {
-        slackUserId: payload.userId,
-        tenantId: userTenantId,
-        agentCount: allAgents.length,
-      },
-      'Listed agents for linked Slack user'
-    );
-
-    if (allAgents.length === 0) {
-      const message = createErrorMessage(
-        'No agents found. Create an agent in the Inkeep dashboard first.'
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-
-    const userDashboardUrl = dashboardUrl.replace('/work-apps/slack', '');
-    const message = createAgentListMessage(allAgents, userDashboardUrl);
-    return { response_type: 'ephemeral', ...message };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage, tenantId: userTenantId }, 'Failed to list agents');
-
-    const message = createErrorMessage(
-      'Failed to list agents. Please try again or visit the dashboard.'
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-}
-
 export async function handleCommand(payload: SlackCommandPayload): Promise<SlackCommandResponse> {
   const text = payload.text.trim();
   const parts = text.split(/\s+/);
@@ -773,25 +501,6 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
     case 'logout':
     case 'disconnect':
       return handleUnlinkCommand(payload, tenantId);
-
-    case 'list':
-      return handleAgentListCommand(payload, dashboardUrl, tenantId);
-
-    case 'run': {
-      const runText = text.slice(4).trim();
-      const parsed = parseAgentAndQuestion(runText);
-
-      if (!parsed.agentName || !parsed.question) {
-        const message = createErrorMessage(
-          'Usage: `/inkeep run "agent name" [question]`\n\n' +
-            'Example: `/inkeep run "my agent" What is the weather?`\n\n' +
-            'Agent name must be in quotes.'
-        );
-        return { response_type: 'ephemeral', ...message };
-      }
-
-      return handleRunCommand(payload, parsed.agentName, parsed.question, dashboardUrl, tenantId);
-    }
 
     case 'help':
       return handleHelpCommand();
