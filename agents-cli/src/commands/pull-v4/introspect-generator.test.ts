@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { introspectGenerate, type ProjectPaths } from './introspect-generator';
 
@@ -40,29 +40,16 @@ describe('pull-v4 introspect generator', () => {
 
     await introspectGenerate(project, projectPaths, 'development', false);
 
-    const projectFile = join(testDir, 'index.ts');
-    const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
-    const artifactFile = join(testDir, 'artifact-components', 'ticket-summary.ts');
-    const contextConfigFile = join(testDir, 'context-configs', 'support-context.ts');
-    const triggerFile = join(testDir, 'agents', 'triggers', 'github-webhook.ts');
-    const agentFile = join(testDir, 'agents', 'support-agent.ts');
+    const generatedTsFiles = collectTypeScriptFiles(testDir);
+    await expect(generatedTsFiles.join('\n')).toMatchFileSnapshot(
+      '__snapshots__/introspect/generates-supported-v4-components/structure.txt'
+    );
 
-    expect(existsSync(projectFile)).toBe(true);
-    expect(existsSync(credentialFile)).toBe(true);
-    expect(existsSync(artifactFile)).toBe(true);
-    expect(existsSync(contextConfigFile)).toBe(true);
-    expect(existsSync(triggerFile)).toBe(true);
-    expect(existsSync(agentFile)).toBe(true);
-
-    expect(readFileSync(projectFile, 'utf-8')).toContain(
-      "import { project } from '@inkeep/agents-sdk';"
-    );
-    expect(readFileSync(credentialFile, 'utf-8')).toContain(
-      'export const apiCredentials = credential({'
-    );
-    expect(readFileSync(agentFile, 'utf-8')).toContain(
-      "import { agent } from '@inkeep/agents-sdk';"
-    );
+    for (const filePath of generatedTsFiles) {
+      await expect(readFileSync(join(testDir, filePath), 'utf-8')).toMatchFileSnapshot(
+        `__snapshots__/introspect/generates-supported-v4-components/${filePath}.txt`
+      );
+    }
   });
 
   it('merges generated code with existing files by default', async () => {
