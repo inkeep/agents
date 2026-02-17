@@ -10,6 +10,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
 - **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
 - **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
+- **Check (full CI gate)**: `pnpm check` — runs lint + typecheck + test + format:check + env-descriptions + knip (mirrors CI exactly)
 - **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
 - **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
 - **Typecheck**: `pnpm typecheck`
@@ -265,10 +266,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 2. **Run verification commands** to ensure everything passes:
    ```bash
-   pnpm test
-   pnpm typecheck  # or pnpm tsc --noEmit
-   pnpm build
-   pnpm lint
+   pnpm check      # runs the full CI gate: lint + typecheck + test + format + env-descriptions + knip
    pnpm format     # IMPORTANT: Always run formatter before committing
    ```
 
