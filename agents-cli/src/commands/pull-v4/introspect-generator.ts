@@ -25,6 +25,7 @@ export interface ProjectPaths {
 export interface IntrospectOptions {
   /** @default "merge" */
   writeMode?: 'merge' | 'overwrite';
+  /** @default false */
   failOnUnsupportedComponents?: boolean;
 }
 
@@ -65,7 +66,7 @@ export async function introspectGenerate(
   paths: ProjectPaths,
   _environment: string,
   debug: boolean,
-  { writeMode = 'merge', failOnUnsupportedComponents }: IntrospectOptions = {}
+  { writeMode = 'merge', failOnUnsupportedComponents = false }: IntrospectOptions = {}
 ): Promise<void> {
   validateProject(project);
 
