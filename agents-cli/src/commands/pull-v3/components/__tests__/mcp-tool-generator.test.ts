@@ -197,7 +197,8 @@ describe('MCP Tool Generator', () => {
       await expectMcpToolDefinitionSnapshots(mcpToolId, dataWithLongDesc, definition);
     });
 
-    it('should handle special characters in URLs', () => {
+    it.only('should handle special characters in URLs', async () => {
+      const mcpToolId = 'special';
       const toolData = {
         name: 'Special Tool',
         config: {
@@ -213,7 +214,7 @@ describe('MCP Tool Generator', () => {
         imageUrl: 'https://images.example.com/icon.png?size=256&format=webp',
       };
 
-      const definition = generateMcpToolDefinition('special', toolData);
+      const definition = generateMcpToolDefinition(mcpToolId, toolData);
 
       expect(definition).toContain(
         "serverUrl: 'https://api.example.com/mcp?key=value&param=test',"
@@ -221,6 +222,8 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain(
         "imageUrl: 'https://images.example.com/icon.png?size=256&format=webp'"
       );
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
     });
   });
 
