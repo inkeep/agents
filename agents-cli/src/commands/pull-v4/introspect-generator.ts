@@ -23,6 +23,7 @@ export interface ProjectPaths {
 }
 
 export interface IntrospectOptions {
+  /** @default "merge" */
   writeMode?: 'merge' | 'overwrite';
   failOnUnsupportedComponents?: boolean;
 }
@@ -64,11 +65,10 @@ export async function introspectGenerate(
   paths: ProjectPaths,
   _environment: string,
   debug: boolean,
-  options: IntrospectOptions = {}
+  { writeMode = 'merge', failOnUnsupportedComponents }: IntrospectOptions = {}
 ): Promise<void> {
   validateProject(project);
 
-  const writeMode = options.writeMode ?? 'merge';
   const skippedAgents: SkippedAgent[] = [];
   const completeAgentIds = collectCompleteAgentIds(project, skippedAgents);
   const context: GenerationContext = { project, paths, completeAgentIds };
@@ -92,7 +92,7 @@ export async function introspectGenerate(
   }
 
   const unsupportedCounts = collectUnsupportedComponentCounts(project);
-  if (options.failOnUnsupportedComponents && hasUnsupportedComponents(unsupportedCounts)) {
+  if (failOnUnsupportedComponents && hasUnsupportedComponents(unsupportedCounts)) {
     failures.push(formatUnsupportedComponentsError(unsupportedCounts));
   }
 
