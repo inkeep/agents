@@ -28,10 +28,6 @@ import { formatDate, formatDateTimeTable } from '@/lib/utils/format-date';
 import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import GitHubInstallationDetailLoading from './loading';
 
-interface PageParams {
-  params: Promise<{ tenantId: string; installationId: string }>;
-}
-
 function getStatusBadgeVariant(status: string) {
   switch (status) {
     case 'active':
@@ -70,7 +66,9 @@ const ItemValue = ({ children }: { children: React.ReactNode }) => {
   return <div className="flex w-full text-sm text-muted-foreground">{children}</div>;
 };
 
-export default function GitHubInstallationDetailPage({ params }: PageParams) {
+export default function GitHubInstallationDetailPage({
+  params,
+}: PageProps<'/[tenantId]/work-apps/github/[installationId]'>) {
   const { tenantId, installationId } = use(params);
   const router = useRouter();
   const [data, setData] = useState<WorkAppGitHubInstallationDetail | null>(null);

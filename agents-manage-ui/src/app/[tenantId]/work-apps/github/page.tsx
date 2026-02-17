@@ -12,11 +12,9 @@ import { fetchWorkAppGitHubInstallations } from '@/lib/api/github';
 import { toast } from '@/lib/toast';
 import GitHubSettingsLoading from './loading';
 
-interface PageParams {
-  params: Promise<{ tenantId: string }>;
-}
-
-export default function WorkAppGitHubSettingsPage({ params }: PageParams) {
+export default function WorkAppGitHubSettingsPage({
+  params,
+}: PageProps<'/[tenantId]/work-apps/github'>) {
   const { tenantId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();

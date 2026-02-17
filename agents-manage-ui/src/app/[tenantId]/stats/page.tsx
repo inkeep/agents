@@ -40,7 +40,7 @@ const TIME_RANGES = {
   '30d': { label: 'Last 30 days', hours: 24 * 30 },
 } as const;
 
-export default function ProjectsStatsPage({ params }: { params: Promise<{ tenantId: string }> }) {
+export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/stats'>) {
   const { tenantId } = use(params);
   const router = useRouter();
   const {

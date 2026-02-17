@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.48.4
+
+### Patch Changes
+
+- 11f4e14: Add mock AI provider for testing run routes without API keys
+
+## 0.48.3
+
+### Patch Changes
+
+- 24e75fb: Fix peer dependency conflict for @openrouter/ai-sdk-provider with AI SDK v6
+- 79dffed: Add shared getWaitUntil utility for Vercel serverless function lifetime extension
+
 ## 0.48.2
 
 ## 0.48.1

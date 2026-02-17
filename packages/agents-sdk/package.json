@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-sdk",
-  "version": "0.48.2",
+  "version": "0.48.4",
   "description": "Agents SDK for building and managing agents in the Inkeep Agent Framework",
   "types": "dist/index.d.ts",
   "type": "module",

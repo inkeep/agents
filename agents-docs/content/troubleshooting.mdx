@@ -73,6 +73,18 @@ If your agent stops mid-conversation, it may have hit a configured stopWhen limi
 
 See [Configuring StopWhen](/typescript-sdk/agent-settings#configuring-stopwhen) for more details.
 
+## Local environment not starting
+
+If `pnpm dev` fails or services aren't reachable, the most common cause is that `pnpm setup-dev` hasn't been run (or Docker containers have stopped).
+
+**How to fix:**
+
+1. Ensure Docker Desktop (or Docker daemon) is running
+2. Run `pnpm setup-dev` — this is idempotent and will start any stopped databases, apply pending migrations, and ensure the admin user exists
+3. Run `pnpm dev` again
+
+For the [quickstart template](/get-started/quick-start), the same applies: run `pnpm setup-dev` from the workspace root before `pnpm dev`.
+
 ## Check service logs (local development)
 
 When running `pnpm dev` from your [quickstart workspace](/quick-start/start-development), you will see an interactive terminal interface. This interface allows you to inspect the logs of each [running service](/quick-start/start-development#service-ports). You can navigate between services using the up and down arrow keys.
