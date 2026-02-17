@@ -1,6 +1,6 @@
 import { contextConfig } from '@inkeep/agents-core';
 
-const personalAgentContext = contextConfig({
+export const personalAgentContext = contextConfig({
   headers: personalAgentHeaders,
   contextVariables: {
     user: userFetcher

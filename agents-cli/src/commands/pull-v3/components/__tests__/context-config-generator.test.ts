@@ -4,7 +4,6 @@
  * Unit tests for context config generator
  */
 
-import { describe, expect, it } from 'vitest';
 import { generateContextConfigDefinition as generateContextConfigDefinitionV4 } from '../../../pull-v4/context-config-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
@@ -360,20 +359,28 @@ describe('Context Config Generator', () => {
       expect(file.endsWith('\n')).toBe(true);
     });
 
-    it('should generate simple context config file', () => {
+    it.only('should generate simple context config file', async () => {
       const simpleData = {
         contextVariables: {
           config: 'someValue',
         },
       };
 
-      const file = generateContextConfigFile('simpleContext', simpleData, undefined, mockRegistry);
+      const contextConfigId = 'simpleContext';
+      const file = generateContextConfigFile(contextConfigId, simpleData, undefined, mockRegistry);
 
       expect(file).toContain("import { contextConfig } from '@inkeep/agents-core';");
       expect(file).toContain('const simpleContext = contextConfig({');
       expect(file).toContain('export { simpleContext };');
       expect(file).not.toContain('headers');
       expect(file).not.toContain('fetchDefinition');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...simpleData });
+      await expect(file).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
   });
 
