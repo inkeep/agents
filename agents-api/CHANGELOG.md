@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.48.4
+
+### Patch Changes
+
+- 37e72ed: Now localhost origins are only allowed when ENVIRONMENT is development or test. In production/pentest, CORS will require either INKEEP_AGENTS_MANAGE_UI_URL to be set or the origin to share the same base
+- Updated dependencies [11f4e14]
+- Updated dependencies [2a91f04]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-work-apps@0.48.4
+  - @inkeep/agents-manage-mcp@0.48.4
+  - @inkeep/agents-mcp@0.48.4
+
 ## 0.48.3
 
 ### Patch Changes
