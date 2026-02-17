@@ -345,7 +345,7 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, noStepCountData, definition);
     });
 
-    it('should handle stopWhen with only stepCountIs', () => {
+    it.only('should handle stopWhen with only stepCountIs', async () => {
       const stepCountOnlyData = {
         name: 'Step Count Only Agent',
         description: 'Agent with step count limit',
@@ -355,9 +355,10 @@ describe('Sub-Agent Generator', () => {
           otherProperty: 'ignored',
         },
       };
+      const subAgentId = 'step-count-agent';
 
       const definition = generateSubAgentDefinition(
-        'step-count-agent',
+        subAgentId,
         stepCountOnlyData,
         undefined,
         mockRegistry
@@ -367,6 +368,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('stepCountIs: 15 // Max tool calls + LLM responses');
       expect(definition).toContain('}');
       expect(definition).not.toContain('otherProperty');
+
+      await expectDefinitionSnapshotPair(subAgentId, stepCountOnlyData, definition);
     });
   });
 
