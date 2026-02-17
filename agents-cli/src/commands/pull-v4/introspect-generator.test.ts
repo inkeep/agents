@@ -57,19 +57,17 @@ describe('pull-v4 introspect generator', () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
     fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
-    const beforeCredentialContent = [
-      "import { credential } from '@inkeep/agents-sdk';",
-      '',
-      "const keepMe = () => 'keep-me';",
-      '',
-      'export const apiCredentials = credential({',
-      "  id: 'api-credentials',",
-      "  name: 'Old API Credentials',",
-      "  type: 'bearer',",
-      "  credentialStoreId: 'main-store'",
-      '});',
-      '',
-    ].join('\n');
+    const beforeCredentialContent = `import { credential } from '@inkeep/agents-sdk';
+
+const keepMe = () => 'keep-me';
+
+export const apiCredentials = credential({
+  id: 'api-credentials',
+  name: 'Old API Credentials',
+  type: 'bearer',
+  credentialStoreId: 'main-store'
+});
+`.trimStart();
     fs.writeFileSync(credentialFile, beforeCredentialContent, 'utf-8');
 
     await introspectGenerate(project, projectPaths, 'development', false, { writeMode: 'merge' });
@@ -89,19 +87,18 @@ describe('pull-v4 introspect generator', () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
     fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
-    const beforeCredentialContent = [
-      "import { credential } from '@inkeep/agents-sdk';",
-      '',
-      "const keepMe = () => 'keep-me';",
-      '',
-      'export const apiCredentials = credential({',
-      "  id: 'api-credentials',",
-      "  name: 'Old API Credentials',",
-      "  type: 'bearer',",
-      "  credentialStoreId: 'main-store'",
-      '});',
-      '',
-    ].join('\n');
+    const beforeCredentialContent = `
+import { credential } from '@inkeep/agents-sdk';
+
+const keepMe = () => 'keep-me';
+
+export const apiCredentials = credential({
+  id: 'api-credentials',
+  name: 'Old API Credentials',
+  type: 'bearer',
+  credentialStoreId: 'main-store'
+});
+`.trimStart();
     fs.writeFileSync(credentialFile, beforeCredentialContent, 'utf-8');
 
     await introspectGenerate(project, projectPaths, 'development', false, {
