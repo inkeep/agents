@@ -8,6 +8,7 @@
  *   pnpm setup-dev:cloud        - Run setup for cloud deployment (skips Docker)
  */
 
+import { execSync, spawnSync } from 'node:child_process';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import { runSetup } from '@inkeep/agents-core/setup';
 import dotenv from 'dotenv';
@@ -22,6 +23,23 @@ if (!projectId) {
 }
 
 const isCloud = process.argv.includes('--cloud');
+
+// Cloud mode without bypass secret: ensure CLI profile and login before setup.
+// This sets up the cloud API URL (via profile) and credentials (via keychain)
+// so that `inkeep push` can authenticate against the cloud API.
+if (isCloud && !process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
+  try {
+    execSync('pnpm inkeep init --no-interactive', { stdio: 'inherit' });
+  } catch {
+    console.warn('⚠ Could not set up cloud CLI profile. You may need to run: inkeep init');
+  }
+
+  try {
+    spawnSync('pnpm', ['inkeep', 'login'], { stdio: 'inherit', shell: true });
+  } catch {
+    console.warn('⚠ Could not log in to CLI. You may need to run: inkeep login');
+  }
+}
 
 await runSetup({
   dockerComposeFile: 'docker-compose.db.yml',

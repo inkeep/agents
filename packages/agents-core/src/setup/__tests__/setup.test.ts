@@ -165,7 +165,7 @@ describe('runSetup', () => {
     expect(pushCalls).toHaveLength(0);
   });
 
-  it('should warn and skip push when no API key is available', async () => {
+  it('should attempt push without CI mode when no API key is available', async () => {
     const { runSetup } = await import('../setup.js');
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
     delete process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
@@ -180,10 +180,13 @@ describe('runSetup', () => {
       })
     );
 
-    const pushCalls = mockExecImpl.mock.calls.filter((c: unknown[]) =>
-      (c[0] as string).includes('inkeep push')
-    );
-    expect(pushCalls).toHaveLength(0);
+    // Push should still be attempted — CLI resolves auth from keychain/profile
+    const pushCall = execCalls.find((c) => c.cmd.includes('inkeep push'));
+    expect(pushCall).toBeDefined();
+    // Should NOT set CI mode env vars when no bypass secret
+    const env = (pushCall?.options as { env: Record<string, string> })?.env;
+    expect(env?.INKEEP_CI).toBeUndefined();
+    expect(env?.INKEEP_API_KEY).toBeUndefined();
   });
 
   it('should detect running API server and not spawn a new one', async () => {
@@ -268,7 +271,7 @@ describe('runSetup', () => {
     );
   });
 
-  it('should pass INKEEP_CI and INKEEP_API_KEY env vars when pushing', async () => {
+  it('should pass INKEEP_CI, INKEEP_API_KEY, and INKEEP_TENANT_ID env vars when pushing with bypass secret', async () => {
     const { runSetup } = await import('../setup.js');
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
 
@@ -289,6 +292,7 @@ describe('runSetup', () => {
     const env = (pushCall?.options as { env: Record<string, string> })?.env;
     expect(env?.INKEEP_CI).toBe('true');
     expect(env?.INKEEP_API_KEY).toBe('my-bypass-secret');
+    expect(env?.INKEEP_TENANT_ID).toBe('default');
   });
 
   it('should skip docker startup when preflight detects port conflicts', async () => {

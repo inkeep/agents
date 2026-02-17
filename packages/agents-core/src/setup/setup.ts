@@ -582,22 +582,23 @@ function stopProcessGroup(pid: number, name: string) {
 }
 
 async function pushProject(pushConfig: SetupPushConfig) {
-  if (!pushConfig.apiKey) {
-    logWarning('No API key / bypass secret available — skipping project push');
-    logInfo('Set INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET in .env to enable auto-push');
-    return false;
-  }
-
   logInfo(`Pushing project: ${pushConfig.projectPath}`);
-  try {
-    const pushCmd = `pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;
-    const { stdout } = await execAsync(pushCmd, {
-      env: {
+
+  // When bypass secret is available, force CI mode (machine-to-machine auth).
+  // When no bypass secret, let the CLI resolve auth from keychain/profile
+  // (supports cloud users who have run `inkeep login`).
+  const pushEnv = pushConfig.apiKey
+    ? {
         ...process.env,
         INKEEP_CI: 'true',
         INKEEP_API_KEY: pushConfig.apiKey,
-      },
-    });
+        INKEEP_TENANT_ID: process.env.INKEEP_TENANT_ID || 'default',
+      }
+    : { ...process.env };
+
+  try {
+    const pushCmd = `pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;
+    const { stdout } = await execAsync(pushCmd, { env: pushEnv });
     if (stdout) console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
     logSuccess('Project pushed successfully');
     return true;
