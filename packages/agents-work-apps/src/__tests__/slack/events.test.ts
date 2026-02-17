@@ -119,8 +119,8 @@ describe('Event Utils', () => {
       };
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
-      expect(result).toContain('[Thread Start] U123: First message');
-      expect(result).toContain('U456: Second message');
+      expect(result).toContain('[Thread Start] U123: """First message"""');
+      expect(result).toContain('U456: """Second message"""');
       // Last message is excluded (it's the current @mention)
       expect(result).not.toContain('Current message');
     });
@@ -139,8 +139,8 @@ describe('Event Utils', () => {
       };
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
-      expect(result).toContain('[Thread Start] U123: Question');
-      expect(result).toContain('Inkeep Agent: Answer Powered by Agent');
+      expect(result).toContain('[Thread Start] U123: """Question"""');
+      expect(result).toContain('Inkeep Agent: """Answer Powered by Agent"""');
     });
 
     it('should handle API errors gracefully', async () => {

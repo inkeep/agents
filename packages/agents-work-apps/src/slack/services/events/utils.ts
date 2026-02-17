@@ -597,3 +597,25 @@ export async function getThreadContext(
 
   return '';
 }
+
+export async function timedOp<T>(
+  operation: Promise<T>,
+  opts: { warnThresholdMs?: number; label: string; context: Record<string, unknown> }
+): Promise<{ result: T; durationMs: number }> {
+  const { warnThresholdMs = 3000, label, context } = opts;
+  const start = Date.now();
+  const result = await operation;
+  const durationMs = Date.now() - start;
+  if (durationMs > warnThresholdMs)
+    logger.warn({ ...context, durationMs, operation: label }, `Slow ${label}`);
+  return { result, durationMs };
+}
+
+export function formatChannelLabel(channelInfo: { name?: string } | null): string {
+  return channelInfo?.name ? `#${channelInfo.name}` : '';
+}
+
+export function formatChannelContext(channelInfo: { name?: string } | null): string {
+  const label = formatChannelLabel(channelInfo);
+  return label ? `the Slack channel ${label}` : 'Slack';
+}
