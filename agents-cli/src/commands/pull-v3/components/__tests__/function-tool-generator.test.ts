@@ -275,8 +275,9 @@ describe('Function Tool Generator', () => {
   });
 
   describe('generateFunctionToolFile', () => {
-    it('should generate complete file with imports and definition', () => {
-      const file = generateFunctionToolFile('calculate-bmi', testToolData);
+    it.only('should generate complete file with imports and definition', async () => {
+      const functionToolId = 'calculate-bmi';
+      const file = generateFunctionToolFile(functionToolId, testToolData);
 
       expect(file).toContain("import { functionTool } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const calculateBmi = functionTool({');
@@ -285,6 +286,8 @@ describe('Function Tool Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, testToolData, file.trimEnd());
     });
   });
 
