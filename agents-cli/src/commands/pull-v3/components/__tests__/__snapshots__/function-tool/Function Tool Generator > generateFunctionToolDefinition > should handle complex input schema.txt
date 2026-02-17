@@ -1,0 +1,56 @@
+export const complex = functionTool({
+  name: 'complex-tool',
+  description: 'Complex tool with nested schema',
+  inputSchema: {
+    "type": "object",
+    "properties": {
+      "user": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID"
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "theme": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "dark"
+                ]
+              },
+              "notifications": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "required": [
+      "user"
+    ]
+  },
+  execute: async ({}) => {
+    return { processed: true };
+  }
+});

@@ -225,7 +225,8 @@ describe('Function Tool Generator', () => {
       );
     });
 
-    it('should handle complex input schema', () => {
+    it.only('should handle complex input schema', async () => {
+      const functionToolId = 'complex';
       const complexData = {
         name: 'complex-tool',
         description: 'Complex tool with nested schema',
@@ -262,12 +263,14 @@ describe('Function Tool Generator', () => {
         executeCode: 'return { processed: true };',
       };
 
-      const definition = generateFunctionToolDefinition('complex', complexData);
+      const definition = generateFunctionToolDefinition(functionToolId, complexData);
 
       expect(definition).toContain('inputSchema: {');
       expect(definition).toContain('"user"');
       expect(definition).toContain('"items"');
       expect(definition).toContain('"preferences"');
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, complexData, definition);
     });
   });
 
