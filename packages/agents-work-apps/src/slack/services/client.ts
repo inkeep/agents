@@ -103,6 +103,34 @@ export async function getSlackTeamInfo(client: WebClient) {
 }
 
 /**
+ * Fetch channel information from Slack.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelId - Slack channel ID (e.g., C0ABC123)
+ * @returns Channel info object, or null if not found
+ */
+export async function getSlackChannelInfo(client: WebClient, channelId: string) {
+  try {
+    const result = await client.conversations.info({ channel: channelId });
+    if (result.ok && result.channel) {
+      return {
+        id: result.channel.id,
+        name: result.channel.name,
+        topic: result.channel.topic?.value,
+        purpose: result.channel.purpose?.value,
+        isPrivate: result.channel.is_private ?? false,
+        isShared: result.channel.is_shared ?? result.channel.is_ext_shared ?? false,
+        isMember: result.channel.is_member ?? false,
+      };
+    }
+    return null;
+  } catch (error) {
+    logger.error({ error, channelId }, 'Failed to fetch Slack channel info');
+    return null;
+  }
+}
+
+/**
  * List channels in the workspace (public, private, and shared).
  *
  * Note: The bot must be a member of private channels to see them.
