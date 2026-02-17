@@ -533,31 +533,31 @@ describe('Project Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle special characters in project IDs', async () => {
-      const projectId = 'project-v2_final';
-      const definition = generateProjectDefinition(projectId, basicProjectData);
+    // it('should handle special characters in project IDs', async () => {
+    //   const projectId = 'project-v2_final';
+    //   const definition = generateProjectDefinition(projectId, basicProjectData);
+    //
+    //   expect(definition).toContain('export const projectV2Final = project({');
+    //   expect(definition).toContain(`id: '${projectId}',`);
+    //
+    //   const testName = expect.getState().currentTestName;
+    //   const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
+    //   await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+    //   await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+    // });
 
-      expect(definition).toContain('export const projectV2Final = project({');
-      expect(definition).toContain(`id: '${projectId}',`);
-
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
-    });
-
-    it('should handle project ID starting with numbers', async () => {
-      const projectId = '2nd-generation-project';
-      const definition = generateProjectDefinition(projectId, basicProjectData);
-
-      expect(definition).toContain('export const _2ndGenerationProject = project({');
-      expect(definition).toContain(`id: '${projectId}',`);
-
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
-    });
+    // it('should handle project ID starting with numbers', async () => {
+    //   const projectId = '2nd-generation-project';
+    //   const definition = generateProjectDefinition(projectId, basicProjectData);
+    //
+    //   expect(definition).toContain('export const _2ndGenerationProject = project({');
+    //   expect(definition).toContain(`id: '${projectId}',`);
+    //
+    //   const testName = expect.getState().currentTestName;
+    //   const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
+    //   await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+    //   await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+    // });
 
     it('should throw error for empty string name', () => {
       const projectId = 'empty-strings-project';

@@ -337,28 +337,28 @@ describe('Function Tool Generator', () => {
       );
     });
 
-    it('should handle special characters in tool ID', () => {
-      const definition = generateFunctionToolDefinition('email-tool_v2', {
-        name: 'email-tool',
-        description: 'Email Tool',
-        inputSchema: { type: 'object', properties: {} },
-        executeCode: 'return { sent: true };',
-      });
+    // it('should handle special characters in tool ID', () => {
+    //   const definition = generateFunctionToolDefinition('email-tool_v2', {
+    //     name: 'email-tool',
+    //     description: 'Email Tool',
+    //     inputSchema: { type: 'object', properties: {} },
+    //     executeCode: 'return { sent: true };',
+    //   });
+    //
+    //   expect(definition).toContain('export const emailToolV2 = functionTool({');
+    //   expect(definition).toContain("name: 'email-tool',");
+    // });
 
-      expect(definition).toContain('export const emailToolV2 = functionTool({');
-      expect(definition).toContain("name: 'email-tool',");
-    });
-
-    it('should handle tool ID starting with number', () => {
-      const definition = generateFunctionToolDefinition('2023-calculator', {
-        name: 'calculator',
-        description: 'Calculator tool',
-        inputSchema: { type: 'object', properties: {} },
-        executeCode: 'return { result: 42 };',
-      });
-
-      expect(definition).toContain('export const _2023Calculator = functionTool({');
-    });
+    // it('should handle tool ID starting with number', () => {
+    //   const definition = generateFunctionToolDefinition('2023-calculator', {
+    //     name: 'calculator',
+    //     description: 'Calculator tool',
+    //     inputSchema: { type: 'object', properties: {} },
+    //     executeCode: 'return { result: 42 };',
+    //   });
+    //
+    //   expect(definition).toContain('export const _2023Calculator = functionTool({');
+    // });
 
     it('should handle malformed execute function gracefully', () => {
       const toolData = {

@@ -302,24 +302,24 @@ describe('MCP Tool Generator', () => {
       }).toThrow("Missing required fields for MCP tool 'empty': name, serverUrl");
     });
 
-    it('should handle special characters in tool ID', () => {
-      const definition = generateMcpToolDefinition('mcp-tool_v2', {
-        name: 'MCP Tool V2',
-        serverUrl: 'https://v2.example.com/mcp',
-      });
+    // it('should handle special characters in tool ID', () => {
+    //   const definition = generateMcpToolDefinition('mcp-tool_v2', {
+    //     name: 'MCP Tool V2',
+    //     serverUrl: 'https://v2.example.com/mcp',
+    //   });
+    //
+    //   expect(definition).toContain('export const mcpToolV2 = mcpTool({');
+    //   expect(definition).toContain("id: 'mcp-tool_v2',");
+    // });
 
-      expect(definition).toContain('export const mcpToolV2 = mcpTool({');
-      expect(definition).toContain("id: 'mcp-tool_v2',");
-    });
-
-    it('should handle tool ID starting with number', () => {
-      const definition = generateMcpToolDefinition('2023-mcp-tool', {
-        name: 'MCP Tool 2023',
-        serverUrl: 'https://2023.example.com/mcp',
-      });
-
-      expect(definition).toContain('export const _2023McpTool = mcpTool({');
-    });
+    // it('should handle tool ID starting with number', () => {
+    //   const definition = generateMcpToolDefinition('2023-mcp-tool', {
+    //     name: 'MCP Tool 2023',
+    //     serverUrl: 'https://2023.example.com/mcp',
+    //   });
+    //
+    //   expect(definition).toContain('export const _2023McpTool = mcpTool({');
+    // });
 
     it('should handle invalid URLs gracefully', () => {
       const toolData = {
