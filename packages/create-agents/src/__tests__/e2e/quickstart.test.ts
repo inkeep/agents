@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { execa } from 'execa';
+import { chromium } from 'playwright';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   cleanupDir,
@@ -7,6 +8,7 @@ import {
   linkLocalPackages,
   runCommand,
   runCreateAgentsCLI,
+  startDashboardServer,
   verifyDirectoryStructure,
   verifyFile,
   waitForServerReady,
@@ -45,16 +47,15 @@ describe('create-agents quickstart e2e', () => {
     const result = await runCreateAgentsCLI(
       [
         workspaceName,
-        '--openai-key',
-        'test-openai-key',
-        '--disable-git', // Skip git init for faster tests
+        '--skip-provider',
+        '--disable-git',
         '--local-agents-prefix',
         createAgentsPrefix,
         '--local-templates-prefix',
         projectTemplatesPrefix,
         '--skip-inkeep-cli',
         '--skip-inkeep-mcp',
-        '--skip-install', // Skip initial install so we can link local packages first
+        '--skip-install',
       ],
       testDir
     );
@@ -86,11 +87,10 @@ describe('create-agents quickstart e2e', () => {
     console.log('Verifying .env file...');
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
-      /OPENAI_API_KEY=test-openai-key/,
       /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
       /INKEEP_AGENTS_API_URL="http:\/\/127\.0\.0\.1:3002"/,
-      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
+      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/,
     ]);
     console.log('.env file verified');
 
@@ -196,6 +196,87 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
+
+      // --- Dashboard Lap ---
+      console.log('Starting dashboard lap');
+      const dashboardProcess = await startDashboardServer(projectDir, {
+        INKEEP_AGENTS_API_URL: manageApiUrl,
+        NEXT_PUBLIC_API_URL: manageApiUrl,
+        PUBLIC_INKEEP_AGENTS_API_URL: manageApiUrl,
+        BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
+      });
+      console.log('Dashboard server started');
+
+      const browser = await chromium.launch({ headless: true });
+      try {
+        const page = await browser.newPage();
+
+        console.log('Navigating to login page');
+        await page.goto('http://localhost:3000/login', {
+          waitUntil: 'networkidle',
+          timeout: 15000,
+        });
+
+        console.log('Filling login form');
+        await page.fill('input[type="email"]', 'admin@example.com');
+        await page.fill('input[type="password"]', 'adminADMIN!@12');
+        await page.click('button[type="submit"]');
+
+        console.log('Waiting for redirect to projects page');
+        await page.waitForURL('**/default/projects**', { timeout: 15000 });
+        console.log('Redirected to projects page');
+
+        console.log('Clicking activities-planner project');
+        await page.click(`text=${projectId}`, { timeout: 15000 });
+        await page.waitForURL(`**/default/projects/${projectId}/**`, { timeout: 15000 });
+        console.log('Navigated to project page');
+
+        console.log('Clicking agent card');
+        await page.click('text=Activities planner', { timeout: 15000 });
+        await page.waitForURL(`**/agents/**`, { timeout: 15000 });
+        console.log('Navigated to agent page');
+
+        console.log('Clicking Try it button');
+        await page.click('button:has-text("Try it")', { timeout: 15000 });
+
+        console.log('Waiting for playground to open');
+        await page.waitForSelector(
+          '[data-testid="playground-panel"], iframe, [class*="chat"], [class*="playground"]',
+          { timeout: 15000 }
+        );
+        console.log('Playground panel is visible');
+
+        console.log('Dashboard lap complete');
+      } catch (dashboardError) {
+        console.error('Dashboard lap failed:', dashboardError);
+        try {
+          const page = browser.contexts()[0]?.pages()[0];
+          if (page) {
+            const screenshotPath = path.join(testDir, 'dashboard-failure.png');
+            await page.screenshot({ path: screenshotPath, fullPage: true });
+            console.log(`Screenshot saved to: ${screenshotPath}`);
+            console.log(`Current URL: ${page.url()}`);
+            console.log(`Page content: ${await page.content()}`);
+          }
+        } catch {
+          console.error('Failed to capture screenshot');
+        }
+        throw dashboardError;
+      } finally {
+        await browser.close();
+        try {
+          dashboardProcess.kill('SIGTERM');
+        } catch {
+          // already dead
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          dashboardProcess.kill('SIGKILL');
+        } catch {
+          // already dead
+        }
+      }
     } catch (error) {
       console.error('Test failed with error:', error);
       // Print server output for debugging

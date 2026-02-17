@@ -239,11 +239,21 @@ jobs:
         env:
           HUSKY: 0
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install Playwright
+        run: pnpx playwright install chromium --with-deps
+
       - name: Build create-agents and dependencies
         run: |
           # Build all packages that the e2e test links to local versions
           # These need dist/ directories for subpath exports like ./factory
-          pnpm turbo run build --filter=@inkeep/create-agents --filter=@inkeep/agents-api --filter=@inkeep/agents-cli
+          pnpm turbo run build --filter=@inkeep/create-agents --filter=@inkeep/agents-api --filter=@inkeep/agents-cli --filter=@inkeep/agents-manage-ui
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
