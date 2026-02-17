@@ -203,10 +203,22 @@ describe('Credential Generator', () => {
       );
     });
 
-    it('should throw error for missing required fields', () => {
+    it.only('should throw error for missing required fields', () => {
       expect(() => {
         generateCredentialDefinition('minimal', {});
       }).toThrow("Missing required fields for credential 'minimal': name, type, credentialStoreId");
+      expect(() => {
+        // @ts-expect-error -- test missing fields
+        generateCredentialDefinitionV4({ credentialId: 'minimal' });
+      }).toThrow(
+        new Error(`Missing required fields for credential:
+✖ Invalid input: expected string, received undefined
+  → at name
+✖ Invalid input: expected string, received undefined
+  → at type
+✖ Invalid input: expected string, received undefined
+  → at credentialStoreId`)
+      );
     });
 
     it('should handle multiline descriptions', () => {
