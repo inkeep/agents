@@ -104,8 +104,9 @@ describe('MCP Tool Generator', () => {
       await expectMcpToolDefinitionSnapshots(mcpToolId, testToolData, definition);
     });
 
-    it('should handle tool ID to camelCase conversion', () => {
-      const definition = generateMcpToolDefinition('stripe-payment-tool', {
+    it.only('should handle tool ID to camelCase conversion', async () => {
+      const mcpToolId = 'stripe-payment-tool';
+      const conversionData = {
         name: 'Stripe Payment',
         config: {
           mcp: {
@@ -115,10 +116,13 @@ describe('MCP Tool Generator', () => {
             transport: { type: 'streamable_http' },
           },
         },
-      });
+      };
+      const definition = generateMcpToolDefinition(mcpToolId, conversionData);
 
       expect(definition).toContain('export const stripePaymentTool = mcpTool({');
       expect(definition).toContain("id: 'stripe-payment-tool',");
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, conversionData, definition);
     });
 
     it('should throw error for missing name', () => {
