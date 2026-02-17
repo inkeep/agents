@@ -22,6 +22,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
 - **Check schema**: `pnpm db:check`
+- **Initialize auth**: `pnpm db:auth:init` - Create default organization and admin user for local development
 
 ### Creating Changelog Entries (Changesets)
 

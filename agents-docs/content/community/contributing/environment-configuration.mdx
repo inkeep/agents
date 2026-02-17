@@ -52,13 +52,11 @@ vim .env
 pnpm dev
 ```
 
-## Authentication (Local Development)
+## Troubleshooting
 
-The Manage UI supports **automatic login** in local development so you never need to sign in manually.
+### Auto-login not working
 
-### Required Variables
-
-Add these to your root `.env`:
+The Manage UI auto-logs you in during local development. If you're redirected to the login page instead, your `.env` is likely missing the auth variables. Ensure these are set:
 
 ```bash
 INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
@@ -66,27 +64,11 @@ INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
 BETTER_AUTH_SECRET=your-secret-key-change-in-production
 ```
 
-| Variable | Description |
-|----------|-------------|
-| `INKEEP_AGENTS_MANAGE_UI_USERNAME` | Email address for the admin user |
-| `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Password for the admin user (min 8 characters) |
-| `BETTER_AUTH_SECRET` | Secret key used to sign session cookies |
-
-### Setup
-
-After adding the variables, initialize the admin user in the database:
-
-```bash
-pnpm db:auth:init
-```
-
-This creates the default organization and admin user. Once initialized, `pnpm dev` will auto-login to the Manage UI dashboard — no manual sign-in needed.
+Then run `pnpm db:auth:init` to create the admin user, and restart `pnpm dev`. Check the browser console for `[DevAutoLogin]` messages if the issue persists.
 
 <Note>
-If auto-login isn't working, check the browser console for `[DevAutoLogin]` messages. The most common cause is missing environment variables or not having run `pnpm db:auth:init`.
+If you used `pnpm setup-dev`, these variables are already set from `.env.example` and the admin user is created automatically.
 </Note>
-
-## Troubleshooting
 
 ### Environment variables not loading
 
