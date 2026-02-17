@@ -80,16 +80,20 @@ describe('Function Tool Generator', () => {
       await expectFunctionToolDefinitionSnapshots(functionToolId, testToolData, definition);
     });
 
-    it('should handle tool ID to camelCase conversion', () => {
-      const definition = generateFunctionToolDefinition('email-sender-tool', {
+    it.only('should handle tool ID to camelCase conversion', async () => {
+      const functionToolId = 'email-sender-tool';
+      const conversionData = {
         name: 'email-sender',
         description: 'Send emails',
         inputSchema: { type: 'object', properties: {} },
         executeCode: 'return { sent: true };',
-      });
+      };
+      const definition = generateFunctionToolDefinition(functionToolId, conversionData);
 
       expect(definition).toContain('export const emailSenderTool = functionTool({');
       expect(definition).toContain("name: 'email-sender',");
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, conversionData, definition);
     });
 
     it('should throw error for missing name', () => {
