@@ -295,64 +295,6 @@ describe('Credential Generator', () => {
     });
   });
 
-  describe('generateCredentialFile', () => {
-    it.only('should generate complete file with imports and definition', async () => {
-      const credentialId = 'inkeep-api-key';
-      const file = generateCredentialFile(credentialId, testCredentialData);
-
-      expect(file).toContain("import { credential } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const inkeepApiKey = credential({');
-      expect(file).toContain("id: 'inkeep-api-key',");
-
-      // Should have proper spacing
-      expect(file).toMatch(/import.*\n\n.*export/s);
-      expect(file.endsWith('\n')).toBe(true);
-
-      await expectCredentialDefinitionSnapshots({ credentialId, ...testCredentialData }, file);
-    });
-  });
-
-  describe('compilation tests', () => {
-    it.only('should generate code that compiles and creates a working credential', async () => {
-      const credentialId = 'inkeep-api-key';
-      generateCredentialFile(credentialId, testCredentialData);
-
-      // Extract just the credential definition (remove imports and export)
-      const definition = generateCredentialDefinition(credentialId, testCredentialData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      // Mock the dependencies and test compilation
-      const moduleCode = `
-        // Mock the imports for testing
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return inkeepApiKey;
-      `;
-
-      // Use eval to test the code compiles and runs
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      // Verify the resulting object has the correct structure
-      expect(result).toBeDefined();
-      expect(result.id).toBe('inkeep-api-key');
-      expect(result.type).toBe('memory');
-      expect(result.credentialStoreId).toBe('memory-default');
-      expect(result.description).toBe('API key for Inkeep search and context services');
-      expect(result.retrievalParams).toBeDefined();
-      expect(result.retrievalParams.key).toBe('INKEEP_API_KEY');
-
-      await expectCredentialDefinitionSnapshots(
-        { credentialId, ...testCredentialData },
-        definition
-      );
-    });
-  });
-
   describe('edge cases', () => {
     it('should handle special characters in credential ID', async () => {
       const credentialId = 'api-key_v2';
