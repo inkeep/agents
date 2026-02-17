@@ -95,7 +95,6 @@ export async function handleAppMention(params: {
 
     // Step 1: Single workspace connection lookup (cached, includes bot token + default agent)
     const { result: workspaceConnection } = await timedOp(findWorkspaceConnectionByTeamId(teamId), {
-      warnThresholdMs: 3000,
       label: 'workspace connection lookup',
       context: { teamId },
     });
@@ -146,7 +145,6 @@ export async function handleAppMention(params: {
           findCachedUserMapping(tenantId, slackUserId, teamId),
         ]),
         {
-          warnThresholdMs: 3000,
           label: 'agent config / user mapping lookup',
           context: { teamId, channel },
         }
@@ -319,7 +317,6 @@ Respond naturally as if you're joining the conversation to help.`;
             getSlackUserInfo(slackClient, slackUserId),
           ]),
           {
-            warnThresholdMs: 3000,
             label: 'thread context fetch',
             context: { teamId, channel, threadTs },
           }
@@ -337,7 +334,7 @@ Respond naturally as if you're joining the conversation to help.`;
             getSlackChannelInfo(slackClient, channel),
             getSlackUserInfo(slackClient, slackUserId),
           ]),
-          { warnThresholdMs: 3000, label: 'channel/user info fetch', context: { teamId, channel } }
+          { label: 'channel/user info fetch', context: { teamId, channel } }
         );
         const channelContext = formatChannelContext(channelInfo);
         const userName = userInfo?.displayName || 'User';
