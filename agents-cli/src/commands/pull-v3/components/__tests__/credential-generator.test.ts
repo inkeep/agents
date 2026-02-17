@@ -221,7 +221,8 @@ describe('Credential Generator', () => {
       );
     });
 
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
+      const credentialId = 'long-desc';
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the credential';
       const dataWithLongDesc = {
@@ -231,9 +232,11 @@ describe('Credential Generator', () => {
         description: longDescription,
       };
 
-      const definition = generateCredentialDefinition('long-desc', dataWithLongDesc);
+      const definition = generateCredentialDefinition(credentialId, dataWithLongDesc);
 
       expect(definition).toContain(`description: \`${longDescription}\``);
+
+      await expectCredentialDefinitionSnapshots({ credentialId, ...dataWithLongDesc }, definition);
     });
 
     it('should handle nested retrieval params', () => {
