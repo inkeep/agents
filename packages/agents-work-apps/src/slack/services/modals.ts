@@ -122,7 +122,9 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     },
     {
       type: 'input',
-      block_id: 'agent_select_block',
+      block_id: selectedProjectId
+        ? `agent_select_block_${selectedProjectId}`
+        : 'agent_select_block',
       element: {
         type: 'static_select',
         action_id: 'agent_select',
@@ -131,7 +133,6 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
           text: SlackStrings.placeholders.selectAgent,
         },
         options: agentOptions,
-        ...(agents.length > 0 ? { initial_option: agentOptions[0] } : {}),
       },
       label: {
         type: 'plain_text',
@@ -380,7 +381,9 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     },
     {
       type: 'input',
-      block_id: 'agent_select_block',
+      block_id: selectedProjectId
+        ? `agent_select_block_${selectedProjectId}`
+        : 'agent_select_block',
       element: {
         type: 'static_select',
         action_id: 'agent_select',
@@ -389,7 +392,6 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
           text: SlackStrings.placeholders.selectAgent,
         },
         options: agentOptions,
-        ...(agents.length > 0 ? { initial_option: agentOptions[0] } : {}),
       },
       label: {
         type: 'plain_text',
