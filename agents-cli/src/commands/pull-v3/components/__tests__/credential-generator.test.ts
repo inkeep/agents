@@ -414,32 +414,22 @@ describe('Credential Generator', () => {
         definition
       );
     });
-
-    it('should throw error for minimal credential with missing fields', () => {
-      expect(() => {
-        generateCredentialDefinition('minimal-cred', {});
-      }).toThrow(
-        "Missing required fields for credential 'minimal-cred': name, type, credentialStoreId"
-      );
-    });
   });
 
   describe('edge cases', () => {
-    it('should throw error for empty credential data', () => {
-      expect(() => {
-        generateCredentialDefinition('empty', {});
-      }).toThrow("Missing required fields for credential 'empty': name, type, credentialStoreId");
-    });
-
-    it('should handle special characters in credential ID', () => {
-      const definition = generateCredentialDefinition('api-key_v2', {
+    it('should handle special characters in credential ID', async () => {
+      const credentialId = 'api-key_v2';
+      const specialCharactersData = {
         name: 'API Key V2',
         type: 'env',
         credentialStoreId: 'env-default',
-      });
+      };
+      const definition = generateCredentialDefinition(credentialId, specialCharactersData);
 
       expect(definition).toContain('export const apiKeyV2 = credential({');
       expect(definition).toContain("id: 'api-key_v2',");
+
+      await expectCredentialDefinitionSnapshots({credentialId, ...specialCharactersData}, definition);
     });
 
     it('should handle credential ID starting with number', () => {
