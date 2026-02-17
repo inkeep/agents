@@ -4,6 +4,19 @@ import { estimateTokens } from './token-estimator';
 const logger = getLogger('artifact-utils');
 
 /**
+ * Artifact metadata returned from saveToolResultsAsArtifacts
+ */
+export interface ArtifactInfo {
+  artifactId: string;
+  isOversized: boolean;
+  originalTokenSize?: number;
+  contextWindowSize?: number;
+  toolArgs?: Record<string, unknown>;
+  structureInfo?: string;
+  oversizedWarning?: string;
+}
+
+/**
  * Generate human-readable structure information for data
  */
 export function generateStructureInfo(data: any): string {

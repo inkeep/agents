@@ -5,7 +5,7 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
-import { detectOversizedArtifact } from '../utils/artifact-utils';
+import { type ArtifactInfo, detectOversizedArtifact } from '../utils/artifact-utils';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { tracer } from '../utils/tracer';
 import { agentSessionManager } from './AgentSession';
@@ -16,14 +16,6 @@ export interface CompressionConfig {
   hardLimit: number;
   safetyBuffer: number;
   enabled?: boolean;
-}
-
-export interface ArtifactInfo {
-  artifactId: string;
-  isOversized: boolean;
-  toolArgs?: any;
-  structureInfo?: string;
-  oversizedWarning?: string;
 }
 
 export interface CompressionResult {

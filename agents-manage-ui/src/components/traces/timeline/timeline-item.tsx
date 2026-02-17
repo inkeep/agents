@@ -429,7 +429,7 @@ export function TimelineItem({
                 {/* Oversized artifact warning */}
                 {activity.artifactIsOversized && (
                   <div className="flex items-center gap-2 p-2 bg-amber-100 border border-amber-300 dark:bg-amber-900/30 dark:border-amber-700 rounded text-amber-900 dark:text-amber-300">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                     <div className="flex-1 text-xs font-medium">
                       Oversized artifact
                       {activity.artifactOriginalTokenSize && (

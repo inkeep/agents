@@ -3,6 +3,7 @@ import { ModelFactory } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
+import type { ArtifactInfo } from '../utils/artifact-utils';
 
 const logger = getLogger('distill-conversation-history-tool');
 
@@ -82,14 +83,6 @@ export type ConversationHistorySummary = z.infer<typeof ConversationHistorySumma
 /**
  * Distill entire conversation history into a comprehensive summary that can replace the full message history
  */
-export interface ArtifactInfo {
-  artifactId: string;
-  isOversized: boolean;
-  toolArgs?: any;
-  structureInfo?: string;
-  oversizedWarning?: string;
-}
-
 export async function distillConversationHistory(params: {
   messages: any[];
   conversationId: string;
@@ -121,11 +114,24 @@ export async function distillConversationHistory(params: {
                 `[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`
               );
             } else if (block.type === 'tool-result') {
-              const artifactId = toolCallToArtifactMap?.[block.toolCallId];
-              const artifactInfo = artifactId ? `\n[ARTIFACT CREATED: ${artifactId}]` : '';
-              parts.push(
-                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.result)}`
-              );
+              const artifactInfo = toolCallToArtifactMap?.[block.toolCallId];
+
+              if (artifactInfo?.isOversized) {
+                // Oversized artifact - use metadata instead of full output
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\n${artifactInfo.oversizedWarning}\nStructure: ${artifactInfo.structureInfo}`
+                );
+              } else if (artifactInfo) {
+                // Normal artifact created - include tool args and result
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\nResult: ${JSON.stringify(block.result)}`
+                );
+              } else {
+                // No artifact - include full result
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nResult: ${JSON.stringify(block.result)}`
+                );
+              }
             }
           }
         } else if (msg.content?.text) {

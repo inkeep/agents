@@ -637,7 +637,7 @@ export function renderPanelContent({
               <LabeledBlock label="Oversized artifact">
                 <Bubble className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300">
                   <div className="space-y-1">
-                    <div className="font-semibold">⚠️ Artifact exceeds safe context size</div>
+                    <div className="font-semibold">⚠️ Artifact too large for agent context</div>
                     {a.artifactOriginalTokenSize && (
                       <div className="text-sm">
                         Size: ~{Math.floor(a.artifactOriginalTokenSize / 1000)}K tokens
@@ -647,7 +647,8 @@ export function renderPanelContent({
                     )}
                     {a.artifactRetrievalBlocked && (
                       <div className="text-sm">
-                        Full data saved but cannot be retrieved due to size constraints.
+                        Data saved to database but agent cannot retrieve it. Result exceeds model's
+                        context window capacity.
                       </div>
                     )}
                   </div>

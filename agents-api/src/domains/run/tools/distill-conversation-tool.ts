@@ -3,6 +3,7 @@ import { ModelFactory } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
+import type { ArtifactInfo } from '../utils/artifact-utils';
 
 const logger = getLogger('distill-conversation-tool');
 
@@ -50,14 +51,6 @@ export const ConversationSummarySchema = z.object({
 });
 
 export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
-
-export interface ArtifactInfo {
-  artifactId: string;
-  isOversized: boolean;
-  toolArgs?: any;
-  structureInfo?: string;
-  oversizedWarning?: string;
-}
 
 /**
  * Core conversation distillation - takes messages and creates structured summary
