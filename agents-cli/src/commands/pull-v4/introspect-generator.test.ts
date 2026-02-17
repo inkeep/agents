@@ -56,31 +56,32 @@ describe('pull-v4 introspect generator', () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
     fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
-    fs.writeFileSync(
-      credentialFile,
-      [
-        "import { credential } from '@inkeep/agents-sdk';",
-        '',
-        "const keepMe = () => 'keep-me';",
-        '',
-        'export const apiCredentials = credential({',
-        "  id: 'api-credentials',",
-        "  name: 'Old API Credentials',",
-        "  type: 'bearer',",
-        "  credentialStoreId: 'main-store'",
-        '});',
-        '',
-      ].join('\n'),
-      'utf-8'
-    );
+    const beforeCredentialContent = [
+      "import { credential } from '@inkeep/agents-sdk';",
+      '',
+      "const keepMe = () => 'keep-me';",
+      '',
+      'export const apiCredentials = credential({',
+      "  id: 'api-credentials',",
+      "  name: 'Old API Credentials',",
+      "  type: 'bearer',",
+      "  credentialStoreId: 'main-store'",
+      '});',
+      '',
+    ].join('\n');
+    fs.writeFileSync(credentialFile, beforeCredentialContent, 'utf-8');
 
     await introspectGenerate(project, projectPaths, 'development', false, { writeMode: 'merge' });
 
-    const credentialContent = readFileSync(credentialFile, 'utf-8');
-    expect(credentialContent).toContain("const keepMe = () => 'keep-me';");
-    expect(credentialContent).toContain("name: 'API Credentials'");
-    expect(credentialContent).toContain('retrievalParams: {');
-    expect(credentialContent).not.toContain("name: 'Old API Credentials'");
+    const afterCredentialContent = fs.readFileSync(credentialFile, 'utf8');
+    const credentialDiff = await createUnifiedDiff(
+      'credentials/api-credentials.ts',
+      beforeCredentialContent,
+      afterCredentialContent
+    );
+    await expect(credentialDiff).toMatchFileSnapshot(
+      '__snapshots__/introspect/merges-generated-code-with-existing-files-by-default-credential.diff'
+    );
   });
 
   it('overwrites existing files when writeMode is overwrite', async () => {
