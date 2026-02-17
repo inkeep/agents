@@ -28,12 +28,20 @@ export default defineConfig({
     name: pkgJson.name,
     globals: true,
     onUnhandledError(error) {
-      // Suppress known Vitest worker RPC shutdown race condition.
-      // Next.js triggers background dynamic imports that can outlive test execution;
-      // when the worker shuts down, these pending imports cause an unhandled rejection.
-      // See: https://github.com/vitest-dev/vitest/issues/9458
-      if (error instanceof Error && error.message?.includes('Closing rpc while')) {
-        return false;
+      if (error instanceof Error) {
+        // Suppress known Vitest worker RPC shutdown race condition.
+        // Next.js triggers background dynamic imports that can outlive test execution;
+        // when the worker shuts down, these pending imports cause an unhandled rejection.
+        // See: https://github.com/vitest-dev/vitest/issues/9458
+        if (error.message?.includes('Closing rpc while')) {
+          return false;
+        }
+        // Suppress Monaco editor web worker initialization errors in browser tests.
+        // Monaco falls back to main-thread execution when workers fail to load,
+        // which does not affect test correctness.
+        if (error.message?.includes('Cannot use import statement outside a module')) {
+          return false;
+        }
       }
     },
     projects: [
