@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import fs from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { introspectGenerate, type ProjectPaths } from './introspect-generator';
 
@@ -13,7 +13,7 @@ describe('pull-v4 introspect generator', () => {
       tmpdir(),
       `introspect-v4-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     );
-    mkdirSync(testDir, { recursive: true });
+    fs.mkdirSync(testDir, { recursive: true });
 
     projectPaths = {
       projectRoot: testDir,
@@ -30,9 +30,7 @@ describe('pull-v4 introspect generator', () => {
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    fs.rmSync(testDir, { recursive: true, force: true });
   });
 
   it('generates supported v4 components', async () => {
@@ -40,13 +38,14 @@ describe('pull-v4 introspect generator', () => {
 
     await introspectGenerate(project, projectPaths, 'development', false);
 
-    const generatedTsFiles = collectTypeScriptFiles(testDir);
-    await expect(generatedTsFiles.join('\n')).toMatchFileSnapshot(
+    const generatedTsFiles = fs.globSync('**/*.ts', { cwd: testDir });
+
+    await expect(generatedTsFiles.sort().join('\n')).toMatchFileSnapshot(
       '__snapshots__/introspect/generates-supported-v4-components/structure.txt'
     );
 
     for (const filePath of generatedTsFiles) {
-      await expect(readFileSync(join(testDir, filePath), 'utf-8')).toMatchFileSnapshot(
+      await expect(fs.readFileSync(join(testDir, filePath), 'utf8')).toMatchFileSnapshot(
         `__snapshots__/introspect/generates-supported-v4-components/${filePath}.txt`
       );
     }
@@ -55,8 +54,8 @@ describe('pull-v4 introspect generator', () => {
   it('merges generated code with existing files by default', async () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
-    mkdirSync(join(testDir, 'credentials'), { recursive: true });
-    writeFileSync(
+    fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
+    fs.writeFileSync(
       credentialFile,
       [
         "import { credential } from '@inkeep/agents-sdk';",
@@ -86,8 +85,8 @@ describe('pull-v4 introspect generator', () => {
   it('overwrites existing files when writeMode is overwrite', async () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
-    mkdirSync(join(testDir, 'credentials'), { recursive: true });
-    writeFileSync(
+    fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
+    fs.writeFileSync(
       credentialFile,
       [
         "import { credential } from '@inkeep/agents-sdk';",
