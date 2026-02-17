@@ -202,5 +202,10 @@
     "source": "/tutorials/upgrading",
     "destination": "/guides/upgrading",
     "permanent": true
+  },
+  {
+    "source": "/guides/agent-engineering/failure-modes",
+    "destination": "/guides/agent-engineering/prompt-troubleshooting",
+    "permanent": true
   }
 ]
