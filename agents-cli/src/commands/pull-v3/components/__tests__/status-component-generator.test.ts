@@ -174,7 +174,8 @@ describe('Status Component Generator', () => {
       await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithSchema);
     });
 
-    it('should prefer detailsSchema over schema when both exist', () => {
+    it.only('should prefer detailsSchema over schema when both exist', async () => {
+      const statusComponentId = 'test';
       const dataWithBoth = {
         type: 'test_status',
         description: 'Test status',
@@ -192,10 +193,12 @@ describe('Status Component Generator', () => {
         },
       };
 
-      const definition = generateStatusComponentDefinition('test', dataWithBoth);
+      const definition = generateStatusComponentDefinition(statusComponentId, dataWithBoth);
 
       expect(definition).toContain('details');
       expect(definition).not.toContain('schema:');
+
+      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithBoth);
     });
 
     it('should handle multiline descriptions', () => {

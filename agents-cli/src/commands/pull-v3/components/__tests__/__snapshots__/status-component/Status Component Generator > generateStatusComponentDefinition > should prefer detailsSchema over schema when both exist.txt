@@ -1,0 +1,5 @@
+export const test = statusComponent({
+  type: 'test_status',
+  description: 'Test status',
+  detailsSchema: z.object({ "details": z.string().describe("Details field").optional() })
+});
