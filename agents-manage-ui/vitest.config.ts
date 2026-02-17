@@ -28,9 +28,11 @@ export default defineConfig({
     name: pkgJson.name,
     globals: true,
     onUnhandledError(error) {
-      // Extract message from Error instances or serialized browser errors
-      // (browser-originated errors lose their prototype chain during serialization).
-      const message = error instanceof Error ? error.message : String(error);
+      // Extract message from Error instances or serialized browser errors.
+      // Browser-originated errors may lose their prototype chain during
+      // serialization, so we check .message directly without instanceof.
+      const message =
+        (error as { message?: string })?.message ?? (typeof error === 'string' ? error : '');
       // Suppress known Vitest worker RPC shutdown race condition.
       // Next.js triggers background dynamic imports that can outlive test execution;
       // when the worker shuts down, these pending imports cause an unhandled rejection.
