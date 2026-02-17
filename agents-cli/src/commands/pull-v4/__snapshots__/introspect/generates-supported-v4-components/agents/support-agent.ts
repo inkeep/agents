@@ -6,5 +6,5 @@ export const supportAgent = agent({
   defaultSubAgent: tierOne,
   subAgents: () => [tierOne],
   contextConfig: supportContext,
-  triggers: () => [githubWebhook],
+  triggers: () => [githubWebhook]
 });
