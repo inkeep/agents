@@ -98,6 +98,7 @@ interface PreflightResult {
   passed: boolean;
   dockerAvailable: boolean;
   portsAvailable: boolean;
+  composeCmd: string;
 }
 
 async function runPreflightChecks(composeFile: string): Promise<PreflightResult> {
@@ -114,7 +115,7 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
     ) {
       logWarning('Docker is not available, but database URLs are configured');
       logInfo('Assuming databases are managed externally.');
-      return { passed: true, dockerAvailable: false, portsAvailable: false };
+      return { passed: true, dockerAvailable: false, portsAvailable: false, composeCmd: '' };
     }
     logError('Docker is not running or not installed.');
     logInfo('  Start Docker Desktop, or install Docker: https://docs.docker.com/get-docker/');
@@ -122,11 +123,13 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
   }
 
   // Check 2: docker-compose / docker compose is available
+  let composeCmd = 'docker-compose';
   try {
     await execAsync('docker-compose version', { timeout: 5000 });
   } catch {
     try {
       await execAsync('docker compose version', { timeout: 5000 });
+      composeCmd = 'docker compose';
     } catch {
       if (
         process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
@@ -134,7 +137,7 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
       ) {
         logWarning('Docker Compose not available, but database URLs are configured');
         logInfo('Assuming databases are managed externally.');
-        return { passed: true, dockerAvailable: true, portsAvailable: false };
+        return { passed: true, dockerAvailable: true, portsAvailable: false, composeCmd };
       }
       logError('Docker Compose is not installed.');
       logInfo('  Install it: https://docs.docker.com/compose/install/');
@@ -145,7 +148,7 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
   // Check 3: Required ports — determine our compose project name
   let ownProjectPrefix: string;
   try {
-    const { stdout } = await execAsync(`docker-compose -f ${composeFile} config --format json`, {
+    const { stdout } = await execAsync(`${composeCmd} -f ${composeFile} config --format json`, {
       timeout: 10000,
     });
     const config = JSON.parse(stdout);
@@ -202,10 +205,10 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
     for (const fix of fixes) console.log(`${colors.cyan}  ${fix}${colors.reset}`);
     console.log();
     logInfo('Databases on those ports will be used as-is. Continuing with setup...');
-    return { passed: true, dockerAvailable: true, portsAvailable: false };
+    return { passed: true, dockerAvailable: true, portsAvailable: false, composeCmd };
   }
 
-  return { passed: true, dockerAvailable: true, portsAvailable: true };
+  return { passed: true, dockerAvailable: true, portsAvailable: true, composeCmd };
 }
 
 export interface SetupPushConfig {
@@ -298,13 +301,18 @@ async function generateJwtKeys() {
   }
 }
 
-async function waitForDockerHealth(composeFile: string, serviceName: string, timeout = 30000) {
+async function waitForDockerHealth(
+  composeFile: string,
+  serviceName: string,
+  composeCmd: string,
+  timeout = 30000
+) {
   const start = Date.now();
   let lastError: unknown = null;
   while (Date.now() - start < timeout) {
     try {
       const { stdout } = await execAsync(
-        `docker inspect --format='{{.State.Health.Status}}' $(docker-compose -f ${composeFile} ps -q ${serviceName})`
+        `docker inspect --format='{{.State.Health.Status}}' $(${composeCmd} -f ${composeFile} ps -q ${serviceName})`
       );
       if (stdout.trim() === 'healthy') return;
     } catch (error) {
@@ -318,17 +326,17 @@ async function waitForDockerHealth(composeFile: string, serviceName: string, tim
   );
 }
 
-async function startDockerDatabases(composeFile: string) {
+async function startDockerDatabases(composeFile: string, composeCmd: string) {
   logInfo('Starting database containers...');
   try {
-    await execAsync(`docker-compose -f ${composeFile} up -d`, { timeout: 60000 });
+    await execAsync(`${composeCmd} -f ${composeFile} up -d`, { timeout: 60000 });
     logSuccess('Database containers started');
 
     logInfo('Polling Docker health status...');
 
     const [doltgresResult, postgresResult] = await Promise.allSettled([
-      waitForDockerHealth(composeFile, 'doltgres-db', 60000),
-      waitForDockerHealth(composeFile, 'postgres-db', 30000),
+      waitForDockerHealth(composeFile, 'doltgres-db', composeCmd, 60000),
+      waitForDockerHealth(composeFile, 'postgres-db', composeCmd, 30000),
     ]);
 
     if (doltgresResult.status === 'fulfilled') logSuccess('DoltgreSQL is healthy');
@@ -642,7 +650,7 @@ export async function runSetup(config: SetupConfig) {
     const preflight = await runPreflightChecks(config.dockerComposeFile);
 
     if (preflight.dockerAvailable && preflight.portsAvailable) {
-      await startDockerDatabases(config.dockerComposeFile);
+      await startDockerDatabases(config.dockerComposeFile, preflight.composeCmd);
     } else if (preflight.dockerAvailable && !preflight.portsAvailable) {
       logInfo('Skipping Docker startup — using databases on existing ports.');
     }

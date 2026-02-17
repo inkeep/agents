@@ -38,14 +38,17 @@ This will:
 
 - Create `.env` from `.env.example` if missing
 - Generate JWT keys if not already configured
+- Check that Docker is running and required ports (5432, 5433, 5434) are free
 - Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml`
 - Run database migrations (manage + runtime)
 - Initialize the default organization and admin user
 - Push a sample project (weather-project) so the UI is pre-seeded
 
 <Tip>
-`pnpm setup-dev` is idempotent — safe to re-run after pulling changes, resetting your database, or switching branches.
+Safe to re-run at any time. Each step is additive — it won't drop tables, delete projects, or reset credentials. Migrations apply only what's new, and existing data is preserved. If Docker containers are already running, setup skips startup and proceeds to migrations.
 </Tip>
+
+If another Docker Compose project is using the required ports, setup tells you exactly which project is blocking and the command to stop it.
 
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
