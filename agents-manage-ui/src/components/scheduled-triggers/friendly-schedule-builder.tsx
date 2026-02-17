@@ -11,7 +11,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { parseCronExpression } from '@/lib/utils/cron';
+import {
+  DAYS_OF_WEEK,
+  getCronDescription,
+  getOrdinalSuffix,
+  parseCronExpression,
+} from '@/lib/utils/cron';
 
 type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -21,16 +26,6 @@ interface FriendlyScheduleBuilderProps {
   timezone?: string;
   className?: string;
 }
-
-const DAYS_OF_WEEK = [
-  { value: '0', label: 'Sunday', short: 'Sun' },
-  { value: '1', label: 'Monday', short: 'Mon' },
-  { value: '2', label: 'Tuesday', short: 'Tue' },
-  { value: '3', label: 'Wednesday', short: 'Wed' },
-  { value: '4', label: 'Thursday', short: 'Thu' },
-  { value: '5', label: 'Friday', short: 'Fri' },
-  { value: '6', label: 'Saturday', short: 'Sat' },
-];
 
 // Helper to convert hour/minute to time string (HH:MM)
 function toTimeString(hour: string, minute: string): string {
@@ -50,12 +45,6 @@ const DAY_OF_MONTH_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
   value: String(i + 1),
   label: `${i + 1}${getOrdinalSuffix(i + 1)}`,
 }));
-
-function getOrdinalSuffix(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-}
 
 // Generate cron expression from friendly values
 function generateCronExpression(
@@ -86,52 +75,6 @@ function generateCronExpression(
     default:
       return '';
   }
-}
-
-// Human-readable description of the schedule
-function getScheduleDescription(cron: string): string {
-  const parsed = parseCronExpression(cron);
-
-  switch (parsed.frequency) {
-    case 'minutes':
-      return `Runs every ${parsed.minuteInterval} minutes`;
-    case 'hourly': {
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      return `Runs hourly at ${min} minutes past the hour`;
-    }
-    case 'daily': {
-      const hour = Number.parseInt(parsed.hour || '9', 10);
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min, 10));
-      return `Runs daily at ${timeStr}`;
-    }
-    case 'weekly': {
-      const hour = Number.parseInt(parsed.hour || '9', 10);
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min, 10));
-      const dayNames = parsed.daysOfWeek
-        ?.map((d) => DAYS_OF_WEEK.find((day) => day.value === d)?.short)
-        .filter(Boolean)
-        .join(', ');
-      return `Runs weekly on ${dayNames || 'Monday'} at ${timeStr}`;
-    }
-    case 'monthly': {
-      const hour = Number.parseInt(parsed.hour || '9', 10);
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min, 10));
-      const day = parsed.dayOfMonth || '1';
-      return `Runs monthly on the ${day}${getOrdinalSuffix(Number.parseInt(day, 10))} at ${timeStr}`;
-    }
-    default:
-      return cron ? `Custom schedule: ${cron}` : 'No schedule configured';
-  }
-}
-
-function formatTime(hour: number, minute: number): string {
-  const period = hour < 12 ? 'AM' : 'PM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const displayMinute = minute.toString().padStart(2, '0');
-  return `${displayHour}:${displayMinute} ${period}`;
 }
 
 export function FriendlyScheduleBuilder({
@@ -387,7 +330,7 @@ export function FriendlyScheduleBuilder({
           <Badge variant="secondary" className="text-xs">
             Preview
           </Badge>
-          <span className="text-sm text-foreground">{getScheduleDescription(value)}</span>
+          <span className="text-sm text-foreground">{getCronDescription(value)}</span>
         </div>
         {value && frequency !== 'custom' && (
           <p className="mt-1 text-xs text-muted-foreground font-mono">Cron: {value}</p>
