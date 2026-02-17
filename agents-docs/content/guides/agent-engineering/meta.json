@@ -5,7 +5,7 @@
     "index",
     "prompt-structure",
     "workflow-orchestrators",
-    "failure-modes",
+    "prompt-troubleshooting",
     "testing-and-iteration"
   ]
 }

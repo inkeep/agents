@@ -26,7 +26,7 @@ When an agent fails, the first step is identifying whether the problem is in **y
 
 If any answer is "no," it's likely a designer failure. Fix the prompt before blaming the model.
 
-## Common designer failure modes
+## Common prompt design issues
 
 ### 1. Ambiguous instructions
 
@@ -62,11 +62,11 @@ Using weak language for requirements or strong language for preferences.
 | "Consider security" (when security is non-negotiable) | "You must check for security vulnerabilities" |
 | "Must follow style guide" (for cosmetic preferences) | "You should follow the style guide when possible" |
 
-### 4. Missing failure mode awareness
+### 4. Missing troubleshooting guardrails
 
-The prompt tells the agent what to do, but not what to watch out for.
+The prompt tells the agent what to do, but not what to check for when behavior drifts.
 
-**Fix:** Include 3-5 contextually relevant failure modes from the [failure mode catalog](/guides/agent-engineering/failure-modes).
+**Fix:** Include 3-5 contextually relevant checks from [Prompt Troubleshooting](/guides/agent-engineering/prompt-troubleshooting).
 
 ### 5. Underspecified output format
 
@@ -105,7 +105,7 @@ Before deploying a prompt, verify:
 - [ ] No instruction could be read two ways in a different context
 - [ ] No assumed context the agent won't have
 - [ ] Directive strength is clear throughout ("must" / "should" / "consider")
-- [ ] 3-5 relevant failure modes are addressed
+- [ ] 3-5 relevant troubleshooting checks are addressed
 - [ ] Output format is specific enough to validate against
 - [ ] Escalation rules are clear
 - [ ] Scope is manageable (the agent can hold all critical instructions in effective attention)
@@ -163,7 +163,7 @@ These can affect when the agent acts or how it judges:
 - Adding or removing examples from the prompt
 - Changing MUST/SHOULD wording or severity levels
 - Modifying personality statements or escalation thresholds
-- Adding or removing failure mode awareness
+- Adding or removing troubleshooting guardrails
 
 ### Changes that can break downstream consumers
 
@@ -178,7 +178,7 @@ These can break coordinators, integrations, or callers that depend on the agent'
 
 | Anti-pattern | Description |
 |---|---|
-| **Oversampling** | Adding rules or failure modes "because it seems good" — only add what's actually needed |
+| **Oversampling** | Adding rules or prompt checks "because it seems good" — only add what's actually needed |
 | **Tone normalization** | Rewriting personality into your own style, shifting strictness thresholds |
 | **Calibration creep** | Subtly shifting MUST to SHOULD without realizing the behavioral impact |
 | **Tool accumulation** | Adding tools "for convenience" without considering the expanded risk surface |

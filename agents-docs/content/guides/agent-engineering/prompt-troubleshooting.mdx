@@ -1,0 +1,157 @@
+---
+title: Prompt Troubleshooting
+sidebarTitle: Prompt Troubleshooting
+description: Diagnose and fix common Sub Agent prompt issues with symptom-based checks and concrete prompt edits.
+---
+
+When a Sub Agent underperforms, treat it like debugging. Identify the behavior, find the prompt gap causing it, and apply the smallest change that addresses the issue.
+
+## Common prompt issues and fixes
+
+### 1. The agent assumes missing details and proceeds
+
+**Symptoms:** Silent assumptions, fabricated defaults, no clarification before action.
+
+**Likely prompt cause:** The prompt says what to do but not when to pause for ambiguity.
+
+**Prompt fixes:**
+- Add: "If requirements are ambiguous and the decision is high impact, ask before proceeding."
+- Add: "If you proceed with assumptions, state them explicitly."
+
+### 2. The agent flattens nuance across conflicting sources
+
+**Symptoms:** Treats conflicting docs as if they agree, picks one interpretation without acknowledging alternatives.
+
+**Likely prompt cause:** No instruction for handling ambiguity in evidence.
+
+**Prompt fixes:**
+- Add: "When sources conflict, state the conflict and provide options with tradeoffs."
+- Add: "Separate direct evidence from inference."
+
+### 3. The agent treats weak sources as equally authoritative
+
+**Symptoms:** Relies on low-trust examples over official docs or codebase conventions.
+
+**Likely prompt cause:** The prompt lacks a source hierarchy.
+
+**Prompt fixes:**
+- Add source priority guidance, for example: official docs -> established repo patterns -> examples -> blog posts.
+- Add: "Call out when applying guidance outside its original context."
+
+### 4. The agent misses downstream effects
+
+**Symptoms:** Reasonable local change, unexpected breakage elsewhere.
+
+**Likely prompt cause:** The prompt does not require blast-radius checks before action.
+
+**Prompt fixes:**
+- Add a pre-action checklist: "What could this break? Which consumers depend on this?"
+- Add: "For risky changes, include side effects and mitigation steps in the response."
+
+### 5. The agent invents details when uncertain
+
+**Symptoms:** Plausible but unverified claims, confident wording without evidence.
+
+**Likely prompt cause:** The prompt does not permit uncertainty language.
+
+**Prompt fixes:**
+- Add: "'I don't know' is valid when confidence is low."
+- Add: "Do not invent missing details; state what must be verified."
+
+### 6. The agent never escalates
+
+**Symptoms:** Attempts to answer everything, including decisions outside scope or authority.
+
+**Likely prompt cause:** Escalation boundaries are missing.
+
+**Prompt fixes:**
+- Add explicit escalation criteria: out-of-scope requests, low confidence on high-impact decisions, missing permissions.
+- Add expected escalation output: what is blocked, why, and what is needed to continue.
+
+### 7. The agent misreads directive strength
+
+**Symptoms:** Treats suggestions as mandates or ignores hard requirements.
+
+**Likely prompt cause:** Requirement strength is not clearly calibrated.
+
+**Prompt fixes:**
+- Define terms once: `must` = non-negotiable, `should` = strong default, `consider` = optional.
+- Rewrite ambiguous constraints to use one of those terms consistently.
+
+### 8. The agent presents one path with overconfidence
+
+**Symptoms:** Gives a single recommendation where multiple valid options exist.
+
+**Likely prompt cause:** The prompt does not require tradeoff framing under uncertainty.
+
+**Prompt fixes:**
+- Add: "When multiple valid paths exist, present options with tradeoffs."
+- Add confidence calibration guidance: "Match certainty of wording to certainty of evidence."
+
+### 9. The agent is verbose, repetitive, or buries key points
+
+**Symptoms:** Long preambles, repeated phrasing, important findings hard to locate.
+
+**Likely prompt cause:** Output shape is underspecified.
+
+**Prompt fixes:**
+- Add a strict output format with ordered headings.
+- Add verbosity limits, for example: "Lead with 2-5 key bullets, then details."
+
+### 10. The agent asks too many clarifying questions
+
+**Symptoms:** Repeated low-stakes questions, slow progress on reversible decisions.
+
+**Likely prompt cause:** The prompt does not define when asking is required vs optional.
+
+**Prompt fixes:**
+- Add ask policy: ask only for high-impact ambiguity or preference-sensitive decisions.
+- Add proceed policy: for low-risk decisions, proceed with labeled assumptions.
+
+### 11. The agent overreacts to the most recent message
+
+**Symptoms:** New feedback causes it to ignore earlier constraints and goals.
+
+**Likely prompt cause:** Prompt lacks continuity guidance.
+
+**Prompt fixes:**
+- Add: "New input adds context; it does not erase prior requirements."
+- Add: "If new input conflicts with prior constraints, surface the conflict before proceeding."
+
+### 12. Assumptions compound without visibility
+
+**Symptoms:** Output depends on multiple hidden assumptions that were never validated.
+
+**Likely prompt cause:** Prompt does not require assumption disclosure.
+
+**Prompt fixes:**
+- Add: "When assumptions affect outcome, list them explicitly before final recommendations."
+- Add: "If assumptions stack, pause and request confirmation before further work."
+
+## Applying fixes in your prompt
+
+### Option A: Dedicated troubleshooting section
+
+```markdown
+## Prompt pitfalls to avoid
+
+- If requirements are unclear on a high-impact decision, ask before
+  proceeding.
+- When sources conflict, acknowledge the conflict and separate evidence
+  from inference.
+- Lead with key findings and avoid repeated wording.
+```
+
+### Option B: Weave fixes into operating principles
+
+```markdown
+## Operating principles
+
+- Clarify before action on high-impact ambiguity.
+- Weigh evidence by source authority and relevance.
+- Match confidence to certainty and provide options when needed.
+```
+
+### Option C: Hybrid
+
+Use operating principles for defaults, then include a short "watch-outs" callout near the end of the prompt.
