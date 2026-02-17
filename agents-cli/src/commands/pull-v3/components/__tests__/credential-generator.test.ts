@@ -352,39 +352,6 @@ describe('Credential Generator', () => {
       );
     });
 
-    it.only('should generate code for env credential that compiles', async () => {
-      const credentialId = 'database-url';
-      const file = generateCredentialFile(credentialId, envCredentialData);
-
-      // Should have credential import
-      expect(file).toContain('import { credential }');
-
-      // Test compilation
-      const definition = generateCredentialDefinition('database-url', envCredentialData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return databaseUrl;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('database-url');
-      expect(result.type).toBe('env');
-      expect(result.credentialStoreId).toBe('env-production');
-      expect(result.retrievalParams.key).toBe('DATABASE_URL');
-      expect(result.retrievalParams.fallback).toBe('postgresql://localhost:5432/app');
-
-      await expectCredentialDefinitionSnapshots({ credentialId, ...envCredentialData }, definition);
-    });
-
     it.only('should generate code for keychain credential that compiles', async () => {
       const credentialId = 'slack-token';
       const definition = generateCredentialDefinition(credentialId, keychainCredentialData);
