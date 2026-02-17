@@ -78,6 +78,10 @@ const mySubAgent = subAgent({
 
 <Note>*`openai/gpt-5`, `openai/gpt-5-mini`, and `openai/gpt-5-nano` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
 
+<Tip>
+The `echo/` provider (`echo/default`, `echo/any-name`) returns deterministic responses without API calls or keys. Use it for testing and CI/CD. It supports both streaming and non-streaming and returns synthetic token usage.
+</Tip>
+
 ### Pinned vs Unpinned Models
 
 **Pinned models** include a specific date or version (e.g., `anthropic/claude-sonnet-4-20250514`) and always use that exact version.
@@ -302,10 +306,6 @@ Custom OpenAI-compatible providers **require** a base URL to be specified in `pr
 </Note>
 
 </SkillRule>
-
-<Tip>
-The `echo/` provider (`echo/default`, `echo/any-name`) returns deterministic responses without API calls or keys. Use it for testing and CI/CD. It supports both streaming and non-streaming and returns synthetic token usage.
-</Tip>
 
 ## CLI Defaults
 
