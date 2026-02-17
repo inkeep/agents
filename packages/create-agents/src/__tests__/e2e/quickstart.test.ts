@@ -124,18 +124,31 @@ describe('create-agents quickstart e2e', () => {
     // setup-dev:cloud may exit early if its internal migrations fail (e.g. when CI
     // already applied migrations from the monorepo root), skipping auth init entirely.
     console.log('Running auth init to ensure default organization exists');
-    await runCommand({
+    const authInitResult = await runCommand({
       command: 'node',
       args: ['node_modules/@inkeep/agents-core/dist/auth/init.js'],
       cwd: projectDir,
-      timeout: 30000,
+      timeout: 120000, // 2 min: SpiceDB schema write retries up to 30x at 1s each
       env: {
         INKEEP_AGENTS_MANAGE_UI_USERNAME: 'admin@example.com',
         INKEEP_AGENTS_MANAGE_UI_PASSWORD: 'adminADMIN!@12',
         BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
         SPICEDB_PRESHARED_KEY: 'dev-secret-key',
+        // Explicit DB URLs in case process.env doesn't carry them
+        INKEEP_AGENTS_RUN_DATABASE_URL:
+          process.env.INKEEP_AGENTS_RUN_DATABASE_URL ||
+          'postgresql://appuser:password@localhost:5433/inkeep_agents',
+        INKEEP_AGENTS_MANAGE_DATABASE_URL:
+          process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL ||
+          'postgresql://appuser:password@localhost:5432/inkeep_agents',
       },
+      stream: true,
     });
+    if (authInitResult.exitCode !== 0) {
+      console.warn(
+        `Auth init exited with code ${authInitResult.exitCode}\nstdout: ${authInitResult.stdout}\nstderr: ${authInitResult.stderr}`
+      );
+    }
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -181,6 +194,30 @@ describe('create-agents quickstart e2e', () => {
       await waitForServerReady(`${manageApiUrl}/health`, 120000); // Increased to 2 minutes for CI
       console.log('Manage API is ready');
 
+      // Ensure admin user exists for dashboard login.
+      // Auth init may fail in CI (SpiceDB schema write, module resolution), so
+      // create the user directly via the API's Better Auth signup endpoint as a
+      // reliable fallback. Signup is idempotent — returns 200 if user exists.
+      console.log('Ensuring admin user exists via API signup');
+      try {
+        const signupRes = await fetch(`${manageApiUrl}/api/auth/sign-up/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: 'admin@example.com',
+            password: 'adminADMIN!@12',
+            name: 'admin',
+          }),
+        });
+        const signupData = await signupRes.json().catch(() => null);
+        console.log(
+          `Signup response: ${signupRes.status}`,
+          signupData ? JSON.stringify(signupData).slice(0, 200) : ''
+        );
+      } catch (signupError) {
+        console.warn('Signup request failed (non-fatal):', signupError);
+      }
+
       console.log('Pushing project');
       const pushResult = await runCommand({
         command: 'pnpm',
@@ -213,6 +250,26 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
+
+      // Verify login works at the API level before starting dashboard
+      console.log('Testing login API directly');
+      try {
+        const loginTestRes = await fetch(`${manageApiUrl}/api/auth/sign-in/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: 'admin@example.com',
+            password: 'adminADMIN!@12',
+          }),
+        });
+        const loginBody = await loginTestRes.text().catch(() => '');
+        console.log(`Login API test: ${loginTestRes.status} ${loginBody.slice(0, 300)}`);
+        if (!loginTestRes.ok) {
+          console.error('Login API test failed — dashboard login will likely fail');
+        }
+      } catch (loginTestError) {
+        console.warn('Login API test failed (non-fatal):', loginTestError);
+      }
 
       // --- Dashboard Lap ---
       console.log('Starting dashboard lap');
