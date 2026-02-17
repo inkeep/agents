@@ -298,16 +298,17 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, emptyArraysData, definition);
     });
 
-    it('should handle canTransferTo (legacy support)', () => {
+    it.only('should handle canTransferTo (legacy support)', async () => {
       const transferData = {
         name: 'Transfer Agent',
         description: 'Agent with transfer capability',
         prompt: 'I can transfer to legacy agents.',
         canTransferTo: ['legacyAgent1', 'legacyAgent2'],
       };
+      const subAgentId = 'transfer-agent';
 
       const definition = generateSubAgentDefinition(
-        'transfer-agent',
+        subAgentId,
         transferData,
         undefined,
         mockRegistry
@@ -317,6 +318,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('legacyAgent1,');
       expect(definition).toContain('legacyAgent2');
       expect(definition).not.toContain('legacyAgent2,');
+
+      await expectDefinitionSnapshotPair(subAgentId, transferData, definition);
     });
 
     it('should not generate stopWhen without stepCountIs', () => {
