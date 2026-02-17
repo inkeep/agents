@@ -1,10 +1,12 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   ResolvedRefSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -17,7 +19,7 @@ const ResolvedRefResponseSchema = z
 
 // Return the resolved ref from middleware
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/resolve',
     summary: 'Resolve Ref',
@@ -25,6 +27,7 @@ app.openapi(
       'Resolve a ref string (branch name, tag name, or commit hash) to its full resolved ref with type and commit hash. Pass the ref as a query parameter.',
     operationId: 'resolve-ref',
     tags: ['Refs'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },

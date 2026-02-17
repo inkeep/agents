@@ -34,7 +34,7 @@ describe('requireProjectPermission middleware', () => {
       c.set('userId', 'test-user');
       c.set('tenantId', 'test-tenant');
       c.set('tenantRole', 'member');
-      c.set('auth', null);
+      c.set('auth', null as any);
       c.set('userEmail', 'test@example.com');
       await next();
     });
@@ -63,7 +63,7 @@ describe('requireProjectPermission middleware', () => {
         c.set('userId', 'system');
         c.set('tenantId', 'test-tenant');
         c.set('tenantRole', 'owner');
-        c.set('auth', null);
+        c.set('auth', null as any);
         c.set('userEmail', 'system@example.com');
         await next();
       });
@@ -82,7 +82,7 @@ describe('requireProjectPermission middleware', () => {
         c.set('userId', 'apikey:abc123');
         c.set('tenantId', 'test-tenant');
         c.set('tenantRole', 'owner');
-        c.set('auth', null);
+        c.set('auth', null as any);
         c.set('userEmail', '');
         await next();
       });
@@ -174,7 +174,7 @@ describe('requireProjectPermission middleware', () => {
         c.set('userId', '');
         c.set('tenantId', 'test-tenant');
         c.set('tenantRole', 'member');
-        c.set('auth', null);
+        c.set('auth', null as any);
         c.set('userEmail', '');
         await next();
       });

@@ -7,8 +7,9 @@
  */
 
 import * as crypto from 'node:crypto';
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { createWorkAppSlackWorkspace } from '@inkeep/agents-core';
+import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
@@ -140,13 +141,14 @@ const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 export { getBotTokenForTeam, setBotTokenForTeam };
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/install',
     summary: 'Install Slack App',
     description: 'Redirects to Slack OAuth page for workspace installation',
     operationId: 'slack-install',
     tags: ['Work Apps', 'Slack', 'OAuth'],
+    permission: noAuth(),
     request: {
       query: z.object({
         tenant_id: z.string().optional(),
@@ -195,13 +197,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/oauth_redirect',
     summary: 'Slack OAuth Callback',
     description: 'Handles the OAuth callback from Slack after workspace installation',
     operationId: 'slack-oauth-redirect',
     tags: ['Work Apps', 'Slack', 'OAuth'],
+    permission: noAuth(),
     request: {
       query: z.object({
         code: z.string().optional(),

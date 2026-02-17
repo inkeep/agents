@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   cascadeDeleteByProject,
   commonGetErrorResponses,
@@ -26,42 +26,20 @@ import {
   TenantParamsSchema,
   updateProject,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
+import { requirePermission } from 'src/middleware/requirePermission';
 import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
-import { requirePermission } from '../../../middleware/requirePermission';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 // POST /projects - Create project (org-level action, requires org permission)
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requirePermission({ project: ['create'] })(c, next);
-  }
-  return next();
-});
-
 // GET/PATCH /projects/:id - Project-level actions (require SpiceDB permission)
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'GET') {
-    // View project requires 'view' permission
-    return requireProjectPermission('view')(c, next);
-  }
-  if (c.req.method === 'PATCH') {
-    // Update project requires 'edit' permission
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    // Delete project requires org-level 'delete' permission (not project-level)
-    return requirePermission({ project: ['delete'] })(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Projects',
@@ -69,6 +47,7 @@ app.openapi(
       'List all projects within a tenant with pagination. When authorization is enabled, only returns projects the user has access to.',
     operationId: 'list-projects',
     tags: ['Projects'],
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -133,13 +112,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Project',
     description: 'Get a single project by ID',
     operationId: 'get-project-by-id',
     tags: ['Projects'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantIdParamsSchema,
     },
@@ -172,7 +152,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Project',
@@ -180,6 +160,7 @@ app.openapi(
       'Create a new project. When authorization is enabled, the creator is automatically granted admin role.',
     operationId: 'create-project',
     tags: ['Projects'],
+    permission: requirePermission({ project: ['create'] }),
     request: {
       params: TenantParamsSchema,
       body: {
@@ -288,13 +269,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{id}',
     summary: 'Update Project',
     description: 'Update an existing project',
     operationId: 'update-project',
     tags: ['Projects'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantIdParamsSchema,
       body: {
@@ -341,13 +323,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Project',
     description: 'Delete a project and its branch. Must be called from the main branch.',
     operationId: 'delete-project',
     tags: ['Projects'],
+    permission: requirePermission({ project: ['delete'] }),
     request: {
       params: TenantIdParamsSchema,
     },

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   cascadeDeleteByProject,
   checkoutBranch,
@@ -28,6 +28,7 @@ import {
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
@@ -49,21 +50,7 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 // ============================================================================
 
 // POST /project-full → org 'project:create'
-app.use('/project-full', async (c, next) => {
-  if (c.req.method === 'POST') return requirePermission({ project: ['create'] })(c, next);
-  return next();
-});
-
 // GET /project-full/:projectId/* → project 'view'
-app.use('/project-full/:projectId', async (c, next) => {
-  if (c.req.method === 'GET') return requireProjectPermission('view')(c, next);
-  return next();
-});
-app.use('/project-full/:projectId/with-relation-ids', async (c, next) => {
-  if (c.req.method === 'GET') return requireProjectPermission('view')(c, next);
-  return next();
-});
-
 // PUT /project-full/:projectId → dynamic: 'project:create' (new) or 'edit' (existing)
 const requireProjectUpsertPermission = async (
   c: Parameters<ReturnType<typeof requireProjectPermission>>[0],
@@ -80,6 +67,10 @@ const requireProjectUpsertPermission = async (
     ? requireProjectPermission('edit')(c, next)
     : requirePermission({ project: ['create'] })(c, next);
 };
+registerAuthzMeta(requireProjectUpsertPermission, {
+  description:
+    'Dynamic: requires organization admin for new projects, or project edit permission for existing projects.',
+});
 
 // DELETE /project-full/:projectId → org 'project:delete'
 // Note: Registered after PUT to avoid path conflicts
@@ -89,7 +80,7 @@ const requireProjectUpsertPermission = async (
 // ============================================================================
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/project-full',
     summary: 'Create Full Project',
@@ -97,6 +88,7 @@ app.openapi(
     tags: ['Projects'],
     description:
       'Create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
+    permission: requirePermission({ project: ['create'] }),
     request: {
       params: TenantParamsSchema,
       body: {
@@ -237,7 +229,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/project-full/{projectId}',
     summary: 'Get Full Project',
@@ -245,6 +237,7 @@ app.openapi(
     tags: ['Projects'],
     description:
       'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -294,7 +287,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/project-full/{projectId}/with-relation-ids',
     summary: 'Get Full Project with Relation IDs',
@@ -302,6 +295,7 @@ app.openapi(
     tags: ['Projects'],
     description:
       'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -352,13 +346,8 @@ app.openapi(
 
 // Update/upsert full project
 // Authorization: dynamic - 'project:create' (new) or 'edit' (existing)
-app.use('/project-full/:projectId', async (c, next) => {
-  if (c.req.method === 'PUT') return requireProjectUpsertPermission(c, next);
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/project-full/{projectId}',
     summary: 'Update Full Project',
@@ -366,6 +355,7 @@ app.openapi(
     tags: ['Projects'],
     description:
       'Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
+    permission: requireProjectUpsertPermission,
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -646,13 +636,8 @@ app.openapi(
 );
 
 // Authorization: org 'project:delete'
-app.use('/project-full/:projectId', async (c, next) => {
-  if (c.req.method === 'DELETE') return requirePermission({ project: ['delete'] })(c, next);
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/project-full/{projectId}',
     summary: 'Delete Full Project',
@@ -660,6 +645,7 @@ app.openapi(
     tags: ['Projects'],
     description:
       'Delete a complete project and cascade to all related entities (Agents, Sub Agents, tools, relationships)',
+    permission: requirePermission({ project: ['delete'] }),
     request: {
       params: TenantProjectParamsSchema,
     },

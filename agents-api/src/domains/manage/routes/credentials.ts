@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,
@@ -20,6 +20,7 @@ import {
   TenantProjectParamsSchema,
   updateCredentialReference,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
@@ -27,27 +28,14 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 // Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH' || c.req.method === 'DELETE' || c.req.method === 'PUT') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Credentials',
     operationId: 'list-credentials',
     tags: ['Credentials'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -82,12 +70,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Credential',
     operationId: 'get-credential-by-id',
     tags: ['Credentials'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -123,12 +112,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Credential',
     operationId: 'create-credential',
     tags: ['Credentials'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -169,12 +159,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
     summary: 'Update Credential',
     operationId: 'update-credential',
     tags: ['Credentials'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -221,12 +212,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Credential',
     operationId: 'delete-credential',
     tags: ['Credentials'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },

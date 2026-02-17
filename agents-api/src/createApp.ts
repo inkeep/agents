@@ -1,5 +1,5 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { getWaitUntil, OrgRoles } from '@inkeep/agents-core';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { getWaitUntil } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -18,7 +18,7 @@ import {
   authCorsConfig,
   defaultCorsConfig,
   errorHandler,
-  manageApiKeyAuth,
+  manageApiKeyOrSessionAuth,
   playgroundCorsConfig,
   requireTenantAccess,
   runApiKeyAuth,
@@ -29,7 +29,6 @@ import {
   workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
-import { evalApiKeyAuth } from './middleware/evalsAuth';
 import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
 import {
   manageRefMiddleware,
@@ -37,16 +36,15 @@ import {
   runRefMiddleware,
   writeProtectionMiddleware,
 } from './middleware/ref';
-import { sessionAuth, sessionContext } from './middleware/sessionAuth';
+import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
+import { workflowProcessHandler } from './routes/workflowProcess';
 import type { AppConfig, AppVariables } from './types';
 import { getInProcessFetch, registerAppFetch } from './utils/in-process-fetch';
 
 const logger = getLogger('agents-api');
-
-const isTestEnvironment = () => env.ENVIRONMENT === 'test';
 
 // Helper to check if a path is a webhook/trigger route (no API key auth required)
 export const isWebhookRoute = (path: string) => {
@@ -58,39 +56,16 @@ function createAgentsHono(config: AppConfig) {
 
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-  const CapabilitiesResponseSchema = z
-    .object({
-      sandbox: z
-        .object({
-          configured: z
-            .boolean()
-            .describe(
-              'Whether a sandbox provider is configured. Required for Function Tools execution.'
-            ),
-          provider: z
-            .enum(['native', 'vercel'])
-            .optional()
-            .describe('The configured sandbox provider, if enabled.'),
-          runtime: z
-            .enum(['node22', 'typescript'])
-            .optional()
-            .describe('The configured sandbox runtime, if enabled.'),
-        })
-        .describe('Sandbox execution capabilities (used by Function Tools).'),
-    })
-    .describe('Optional server capabilities and configuration.')
-    .openapi('CapabilitiesResponseSchema');
-
   // Core middleware
   app.use('*', requestId());
 
   // Route-specific CORS (must be registered before global CORS)
-  // Better Auth routes - only mount if auth is enabled
-  if (auth) {
-    app.use('/api/auth/*', cors(authCorsConfig));
+  // Better Auth routes
+  app.use('/api/auth/*', cors(authCorsConfig));
 
+  if (auth) {
     // Dev-only: auto-login endpoint — no credentials leave the server.
-    // MUST be registered BEFORE the catch-all /api/auth/* handler below (Hono uses first-match-wins).
+    // Registered BEFORE the catch-all /api/auth/* handler (Hono uses first-match-wins).
     if (env.ENVIRONMENT === 'development') {
       app.post('/api/auth/dev-session', async (c) => {
         const email = env.INKEEP_AGENTS_MANAGE_UI_USERNAME;
@@ -154,7 +129,7 @@ function createAgentsHono(config: AppConfig) {
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS for routes with their own CORS config
-    if (auth && c.req.path.startsWith('/api/auth/')) {
+    if (c.req.path.startsWith('/api/auth/')) {
       return next();
     }
     if (c.req.path.startsWith('/run/')) {
@@ -181,21 +156,7 @@ function createAgentsHono(config: AppConfig) {
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
-    await next();
-  });
-
-  app.use('/manage/*', async (c, next) => {
     c.set('auth', auth);
-    await next();
-  });
-
-  // Work Apps routes - set auth context for session-based operations (before sessionContext)
-  app.use('/work-apps/*', async (c, next) => {
-    c.set('auth', auth);
-    await next();
-  });
-
-  app.use('/run/*', async (c, next) => {
     if (sandboxConfig) {
       c.set('sandboxConfig', sandboxConfig);
     }
@@ -248,108 +209,13 @@ function createAgentsHono(config: AppConfig) {
   app.route('/', healthChecksHandler);
 
   // Workflow process endpoint - called by Vercel cron to keep worker active
-  // The worker processes queued jobs while this request is active
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/api/workflow/process',
-      tags: ['Workflows'],
-      summary: 'Process workflow jobs',
-      description: 'Keeps the workflow worker active to process queued jobs (called by cron)',
-      responses: {
-        200: {
-          description: 'Processing complete',
-        },
-      },
-    }),
-    async (c) => {
-      // Worker is already started via world.start() at app initialization
-      // Keep the function alive for ~50s to process jobs (Vercel max is 60s)
-      await new Promise((resolve) => setTimeout(resolve, 50000));
-      return c.json({ processed: true, timestamp: new Date().toISOString() });
-    }
-  );
+  app.route('/', workflowProcessHandler);
 
   // Authentication middleware for protected manage routes
-  app.use('/manage/tenants/*', async (c, next) => {
-    // Skip auth if in test environment
-    if (isTestEnvironment()) {
-      await next();
-      return;
-    }
+  app.use('/manage/tenants/*', manageApiKeyOrSessionAuth());
 
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
-    }
-
-    return sessionAuth()(c as any, next);
-  });
-
-  // Authentication middleware for non-tenant manage routes
-  app.use('/manage/capabilities', async (c, next) => {
-    // Capabilities should be gated the same way as other manage routes, but still work
-    // when auth is disabled or not configured.
-    if (!auth || isTestEnvironment()) {
-      await next();
-      return;
-    }
-
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
-    }
-
-    return sessionAuth()(c as any, next);
-  });
-
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/manage/capabilities',
-      operationId: 'capabilities',
-      summary: 'Get server capabilities',
-      description: 'Get information about optional server-side capabilities and configuration.',
-      responses: {
-        200: {
-          description: 'Server capabilities',
-          content: {
-            'application/json': {
-              schema: CapabilitiesResponseSchema,
-            },
-          },
-        },
-      },
-    }),
-    (c) => {
-      if (!sandboxConfig) {
-        return c.json({ sandbox: { configured: false } });
-      }
-      return c.json({
-        sandbox: {
-          configured: true,
-          provider: sandboxConfig.provider,
-          runtime: sandboxConfig.runtime,
-        },
-      });
-    }
-  );
-
-  // Tenant access check (skip in test environments)
-  if (isTestEnvironment()) {
-    // When auth is disabled, just extract tenantId from URL param
-    app.use('/manage/tenants/:tenantId/*', async (c, next) => {
-      const tenantId = c.req.param('tenantId');
-      if (tenantId) {
-        c.set('tenantId', tenantId);
-        c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
-        c.set('tenantRole', OrgRoles.OWNER); // Grant owner role in test mode to bypass SpiceDB checks
-      }
-      await next();
-    });
-  } else {
-    app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
-  }
+  // Tenant access check (test-mode bypass handled inside requireTenantAccess)
+  app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
 
   app.use('*', async (_c, next) => {
     await next();
@@ -366,8 +232,6 @@ function createAgentsHono(config: AppConfig) {
   app.use('/run/agents/*', runApiKeyAuth());
   app.use('/run/v1/*', runApiKeyAuth());
   app.use('/run/api/*', runApiKeyAuth());
-
-  app.use('/evals/tenants/*', evalApiKeyAuth());
 
   // Ref versioning middleware for all tenant routes - MUST be before route mounting
   app.use('/manage/tenants/*', async (c, next) => manageRefMiddleware(c, next));

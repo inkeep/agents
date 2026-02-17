@@ -37,7 +37,7 @@ type BaseAppVariables = {
 export type AppVariables = BaseAppVariables & {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
-  auth: ReturnType<typeof createAuth> | null;
+  auth: ReturnType<typeof createAuth>;
   user: typeof authForTypes.$Infer.Session.user | null;
   session: typeof authForTypes.$Infer.Session.session | null;
   sandboxConfig?: SandboxConfig;
@@ -46,7 +46,7 @@ export type AppVariables = BaseAppVariables & {
 
 export type ManageAppVariables = AppVariables & {
   db: AgentsManageDatabaseClient;
-  auth: ReturnType<typeof createAuth> | null;
+  auth: ReturnType<typeof createAuth>;
   resolvedRef: ResolvedRef;
   /** Cached by projectFull middleware to avoid duplicate DB lookup for PUT upsert */
   isProjectCreate?: boolean;
@@ -55,7 +55,7 @@ export type ManageAppVariables = AppVariables & {
 export type AppConfig = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
-  auth: ReturnType<typeof createAuth> | null;
+  auth: ReturnType<typeof createAuth>;
   sandboxConfig?: SandboxConfig;
 };
 
