@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: agents-docs/.next/cache
-          key: ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-docs/content/**', 'agents-docs/src/**') }}
+          key: ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-docs/content/**', 'agents-docs/src/**', 'packages/agents-core/src/**') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-
             ${{ runner.os }}-nextjs-docs-build-
