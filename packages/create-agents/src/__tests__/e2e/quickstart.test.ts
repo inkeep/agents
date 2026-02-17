@@ -119,6 +119,23 @@ describe('create-agents quickstart e2e', () => {
       },
       stream: true,
     });
+
+    // Run auth init separately to create the "default" organization and admin user.
+    // setup-dev:cloud may exit early if its internal migrations fail (e.g. when CI
+    // already applied migrations from the monorepo root), skipping auth init entirely.
+    console.log('Running auth init to ensure default organization exists');
+    await runCommand({
+      command: 'node',
+      args: ['node_modules/@inkeep/agents-core/dist/auth/init.js'],
+      cwd: projectDir,
+      timeout: 30000,
+      env: {
+        INKEEP_AGENTS_MANAGE_UI_USERNAME: 'admin@example.com',
+        INKEEP_AGENTS_MANAGE_UI_PASSWORD: 'adminADMIN!@12',
+        BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
+        SPICEDB_PRESHARED_KEY: 'dev-secret-key',
+      },
+    });
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -259,8 +276,8 @@ describe('create-agents quickstart e2e', () => {
             console.log(`Current URL: ${activePage.url()}`);
             console.log(`Page content: ${await activePage.content()}`);
           }
-        } catch {
-          console.error('Failed to capture screenshot');
+        } catch (screenshotError) {
+          console.error('Failed to capture screenshot:', screenshotError);
         }
         throw dashboardError;
       } finally {

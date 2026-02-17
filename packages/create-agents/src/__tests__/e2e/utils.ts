@@ -293,6 +293,18 @@ export async function startDashboardServer(
     stdio: 'pipe',
   });
 
+  const outputHandler = (data: Buffer) => {
+    const text = data.toString();
+    if (process.env.CI) {
+      if (text.includes('Error') || text.includes('EADDRINUSE') || text.includes('ready')) {
+        console.log('[Dashboard]:', text.trim());
+      }
+    }
+  };
+
+  if (child.stdout) child.stdout.on('data', outputHandler);
+  if (child.stderr) child.stderr.on('data', outputHandler);
+
   await waitForServerReady('http://localhost:3000', 30000);
 
   return child;
