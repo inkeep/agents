@@ -1,18 +1,11 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
-import {
-  IndentationText,
-  NewLineKind,
-  type ObjectLiteralExpression,
-  Project,
-  QuoteKind,
-  SyntaxKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
   addReferenceGetterProperty,
   addStringProperty,
+  createInMemoryProject,
   toCamelCase,
 } from './utils';
 
@@ -69,15 +62,7 @@ export function generateProjectDefinition(data: ProjectDefinitionData): string {
 ${z.prettifyError(result.error)}`);
   }
 
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
+  const project = createInMemoryProject();
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
