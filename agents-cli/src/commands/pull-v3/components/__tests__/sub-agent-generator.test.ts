@@ -451,9 +451,10 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, definition);
     });
 
-    it('should generate complex sub-agent code that compiles', () => {
+    it.only('should generate complex sub-agent code that compiles', async () => {
+      const subAgentId = 'complex-test-sub-agent';
       const definition = generateSubAgentDefinition(
-        'complex-test-sub-agent',
+        subAgentId,
         complexSubAgentData,
         undefined,
         mockRegistry
@@ -491,6 +492,8 @@ describe('Sub-Agent Generator', () => {
       expect(result.canTransferTo()).toHaveLength(1);
       expect(result.dataComponents()).toHaveLength(2);
       expect(result.artifactComponents()).toHaveLength(1);
+
+      await expectDefinitionSnapshotPair(subAgentId, complexSubAgentData, definition);
     });
 
     it('should not throw error for minimal sub-agent with just name', () => {
