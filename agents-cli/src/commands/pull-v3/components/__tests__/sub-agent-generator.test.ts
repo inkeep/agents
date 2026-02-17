@@ -68,6 +68,17 @@ describe('Sub-Agent Generator', () => {
     },
   };
 
+  async function expectDefinitionSnapshotPair(
+    subAgentId: string,
+    subAgentData: Record<string, unknown>,
+    definition: string
+  ) {
+    const testName = expect.getState().currentTestName;
+    const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...subAgentData });
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/sub-agent/${testName}.txt`);
+    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/sub-agent/${testName}-v4.txt`);
+  }
+
   describe('generateSubAgentImports', () => {
     it('should generate basic imports', () => {
       const imports = generateSubAgentImports('personal-assistant', basicSubAgentData);
@@ -115,9 +126,10 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, definition);
     });
 
-    it('should generate sub-agent with stopWhen configuration', () => {
+    it.only('should generate sub-agent with stopWhen configuration', async () => {
+      const subAgentId = 'advanced-assistant';
       const definition = generateSubAgentDefinition(
-        'advanced-assistant',
+        subAgentId,
         complexSubAgentData,
         undefined,
         mockRegistry
@@ -127,6 +139,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('stepCountIs: 20 // Max tool calls + LLM responses');
       expect(definition).toContain('}');
+
+      await expectDefinitionSnapshotPair(subAgentId, complexSubAgentData, definition);
     });
 
     it('should handle single item arrays in single line format', () => {
