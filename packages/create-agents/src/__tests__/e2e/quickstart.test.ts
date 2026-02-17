@@ -305,7 +305,7 @@ describe('create-agents quickstart e2e', () => {
         console.log('Redirected to projects page');
 
         console.log('Clicking activities-planner project');
-        await page.click(`text=${projectId}`, { timeout: 15000 });
+        await page.click(`a[href*="${projectId}"]`, { timeout: 15000 });
         await page.waitForURL(`**/default/projects/${projectId}/**`, { timeout: 15000 });
         console.log('Navigated to project page');
 
