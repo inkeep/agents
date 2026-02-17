@@ -262,8 +262,9 @@ describe('Status Component Generator', () => {
   });
 
   describe('generateStatusComponentFile', () => {
-    it('should generate complete file with imports and definition', () => {
-      const file = generateStatusComponentFile('tool-summary', testComponentData);
+    it.only('should generate complete file with imports and definition', async () => {
+      const statusComponentId = 'tool-summary';
+      const file = generateStatusComponentFile(statusComponentId, testComponentData);
 
       expect(file).toContain("import { statusComponent } from '@inkeep/agents-sdk';");
       expect(file).toContain("import { z } from 'zod';");
@@ -273,6 +274,12 @@ describe('Status Component Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectStatusComponentDefinitionSnapshots(
+        statusComponentId,
+        file.trimEnd(),
+        testComponentData
+      );
     });
   });
 
