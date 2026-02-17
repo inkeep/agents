@@ -374,13 +374,9 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('generateSubAgentFile', () => {
-    it('should generate complete sub-agent file', () => {
-      const file = generateSubAgentFile(
-        'personal-assistant',
-        basicSubAgentData,
-        undefined,
-        mockRegistry
-      );
+    it.only('should generate complete sub-agent file', async () => {
+      const subAgentId = 'personal-assistant';
+      const file = generateSubAgentFile(subAgentId, basicSubAgentData, undefined, mockRegistry);
 
       expect(file).toContain("import { subAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const personalAssistant = subAgent({');
@@ -391,6 +387,8 @@ describe('Sub-Agent Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, file);
     });
 
     it('should generate complex sub-agent file with all features', () => {
