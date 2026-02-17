@@ -1,5 +1,13 @@
 # @inkeep/agents-work-apps
 
+## 0.48.4
+
+### Patch Changes
+
+- 2a91f04: Remove hostname allowlist validation for INKEEP_AGENTS_MANAGE_UI_URL to support custom domains
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
 ## 0.48.3
 
 ### Patch Changes
