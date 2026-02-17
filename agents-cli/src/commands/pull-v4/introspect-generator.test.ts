@@ -46,7 +46,8 @@ describe('pull-v4 introspect generator', () => {
     );
 
     for (const filePath of generatedTsFiles) {
-      await expect(fs.readFileSync(join(testDir, filePath), 'utf8')).toMatchFileSnapshot(
+      const { default: fileContent } = await import(`${testDir}/${filePath}?raw`);
+      await expect(fileContent).toMatchFileSnapshot(
         `__snapshots__/introspect/generates-supported-v4-components/${filePath}`
       );
     }
@@ -73,7 +74,7 @@ describe('pull-v4 introspect generator', () => {
 
     await introspectGenerate(project, projectPaths, 'development', false, { writeMode: 'merge' });
 
-    const afterCredentialContent = fs.readFileSync(credentialFile, 'utf8');
+    const { default: afterCredentialContent } = await import(`${credentialFile}?raw`);
     const credentialDiff = await createUnifiedDiff(
       'credentials/api-credentials.ts',
       beforeCredentialContent,
@@ -107,7 +108,7 @@ describe('pull-v4 introspect generator', () => {
       writeMode: 'overwrite',
     });
 
-    const afterCredentialContent = fs.readFileSync(credentialFile, 'utf8');
+    const { default: afterCredentialContent } = await import(`${credentialFile}?raw`);
     const credentialDiff = await createUnifiedDiff(
       'credentials/api-credentials.ts',
       beforeCredentialContent,
