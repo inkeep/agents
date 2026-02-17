@@ -239,7 +239,8 @@ describe('Credential Generator', () => {
       await expectCredentialDefinitionSnapshots({ credentialId, ...dataWithLongDesc }, definition);
     });
 
-    it('should handle nested retrieval params', () => {
+    it.only('should handle nested retrieval params', async () => {
+      const credentialId = 'complex';
       const complexCredential = {
         name: 'Complex Credential',
         type: 'keychain',
@@ -254,7 +255,7 @@ describe('Credential Generator', () => {
         },
       };
 
-      const definition = generateCredentialDefinition('complex', complexCredential);
+      const definition = generateCredentialDefinition(credentialId, complexCredential);
 
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("service: 'oauth-service',");
@@ -262,6 +263,8 @@ describe('Credential Generator', () => {
       expect(definition).toContain('config: {');
       expect(definition).toContain('timeout: 5000,');
       expect(definition).toContain('retries: 3');
+
+      await expectCredentialDefinitionSnapshots({ credentialId, ...complexCredential }, definition);
     });
 
     it('should handle different data types in retrieval params', () => {
