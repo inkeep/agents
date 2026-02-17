@@ -16,6 +16,9 @@ import {
 
 // Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
 const manageApiUrl = 'http://127.0.0.1:3002';
+// Dashboard must use localhost (not 127.0.0.1) so auth cookies share the same domain
+// between the dashboard (localhost:3000) and the API (localhost:3002).
+const dashboardApiUrl = 'http://localhost:3002';
 
 // Use a test bypass secret for authentication in CI
 // This bypasses the need for a real login/API key
@@ -202,7 +205,7 @@ describe('create-agents quickstart e2e', () => {
       try {
         const signupRes = await fetch(`${manageApiUrl}/api/auth/sign-up/email`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Origin: manageApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
             password: 'adminADMIN!@12',
@@ -256,7 +259,7 @@ describe('create-agents quickstart e2e', () => {
       try {
         const loginTestRes = await fetch(`${manageApiUrl}/api/auth/sign-in/email`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Origin: manageApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
             password: 'adminADMIN!@12',
@@ -274,9 +277,9 @@ describe('create-agents quickstart e2e', () => {
       // --- Dashboard Lap ---
       console.log('Starting dashboard lap');
       const dashboardProcess = await startDashboardServer(projectDir, {
-        INKEEP_AGENTS_API_URL: manageApiUrl,
-        NEXT_PUBLIC_API_URL: manageApiUrl,
-        PUBLIC_INKEEP_AGENTS_API_URL: manageApiUrl,
+        INKEEP_AGENTS_API_URL: dashboardApiUrl,
+        NEXT_PUBLIC_API_URL: dashboardApiUrl,
+        PUBLIC_INKEEP_AGENTS_API_URL: dashboardApiUrl,
         BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
       });
