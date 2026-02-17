@@ -25,7 +25,7 @@ await runSetup({
     configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
     apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
   },
-  devApiCommand: 'turbo dev --filter @inkeep/agents-api',
+  devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
   apiHealthUrl: 'http://localhost:3002/health',
   isCloud: false,
   skipPush,

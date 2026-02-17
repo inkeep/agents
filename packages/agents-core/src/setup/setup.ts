@@ -284,7 +284,7 @@ async function checkServerRunning(url: string, timeout = 5000): Promise<boolean>
   }
 }
 
-async function waitForServerReady(url: string, timeout = 60000) {
+async function waitForServerReady(url: string, timeout = 180000) {
   const start = Date.now();
   let lastError: string | null = null;
   while (Date.now() - start < timeout) {
@@ -308,18 +308,18 @@ async function waitForServerReady(url: string, timeout = 60000) {
 }
 
 interface SpawnedServers {
-  apiProcess: ReturnType<typeof spawn> | null;
-  uiProcess: ReturnType<typeof spawn> | null;
   startedApi: boolean;
   startedUi: boolean;
+  apiPid: number | null;
+  uiPid: number | null;
 }
 
 async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers> {
   const result: SpawnedServers = {
-    apiProcess: null,
-    uiProcess: null,
     startedApi: false,
     startedUi: false,
+    apiPid: null,
+    uiPid: null,
   };
 
   if (!config.apiHealthUrl) return result;
@@ -329,13 +329,15 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
     logSuccess('API server already running');
   } else if (config.devApiCommand) {
     logInfo('Starting API server temporarily...');
-    result.apiProcess = spawn('sh', ['-c', config.devApiCommand], {
-      stdio: ['pipe', 'pipe', 'pipe'],
+    const proc = spawn('sh', ['-c', config.devApiCommand], {
+      stdio: 'ignore',
       detached: true,
       cwd: process.cwd(),
     });
+    proc.unref();
     result.startedApi = true;
-    logSuccess(`API server process started (PID: ${result.apiProcess.pid})`);
+    result.apiPid = proc.pid ?? null;
+    logSuccess(`API server process started (PID: ${proc.pid})`);
   }
 
   if (config.uiHealthUrl) {
@@ -344,13 +346,15 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
       logSuccess('Dashboard already running');
     } else if (config.devUiCommand) {
       logInfo('Starting Dashboard temporarily...');
-      result.uiProcess = spawn('sh', ['-c', config.devUiCommand], {
-        stdio: ['pipe', 'pipe', 'pipe'],
+      const proc = spawn('sh', ['-c', config.devUiCommand], {
+        stdio: 'ignore',
         detached: true,
         cwd: process.cwd(),
       });
+      proc.unref();
       result.startedUi = true;
-      logSuccess(`Dashboard process started (PID: ${result.uiProcess.pid})`);
+      result.uiPid = proc.pid ?? null;
+      logSuccess(`Dashboard process started (PID: ${proc.pid})`);
     }
   }
 
@@ -377,27 +381,34 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
   return result;
 }
 
-async function stopProcess(proc: ReturnType<typeof spawn>, name: string) {
-  if (!proc.pid) {
-    logWarning(`${name} process PID not found, may still be running`);
-    return;
-  }
+function stopProcessGroup(pid: number, name: string) {
+  // Kill the entire process group (negative PID targets the group).
+  // Since we spawn with detached: true, the group leader PID === the spawned PID.
   try {
-    if (process.platform === 'win32') {
-      await execAsync(`taskkill /pid ${proc.pid} /T /F`);
-    } else {
-      process.kill(-proc.pid, 'SIGTERM');
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      try {
-        process.kill(-proc.pid, 'SIGKILL');
-      } catch {
-        /* already dead */
-      }
-    }
-    logSuccess(`${name} stopped`);
+    process.kill(-pid, 'SIGTERM');
   } catch {
-    logWarning(`Could not cleanly stop ${name} - may still be running in background`);
+    /* already dead or no such group */
   }
+  // Also kill the PID directly in case the group signal missed it
+  try {
+    process.kill(pid, 'SIGTERM');
+  } catch {
+    /* already dead */
+  }
+  // Give 2 seconds for graceful shutdown, then force kill
+  setTimeout(() => {
+    try {
+      process.kill(-pid, 'SIGKILL');
+    } catch {
+      /* already dead */
+    }
+    try {
+      process.kill(pid, 'SIGKILL');
+    } catch {
+      /* already dead */
+    }
+  }, 2000);
+  logSuccess(`${name} stopped`);
 }
 
 async function pushProject(pushConfig: SetupPushConfig) {
@@ -489,11 +500,11 @@ export async function runSetup(config: SetupConfig) {
       // Step 8: Cleanup — only stop servers we started
       if (servers.startedApi || servers.startedUi) {
         logStep(8, 'Cleaning up temporarily started servers');
-        if (servers.startedApi && servers.apiProcess) {
-          await stopProcess(servers.apiProcess, 'API server');
+        if (servers.startedApi && servers.apiPid) {
+          stopProcessGroup(servers.apiPid, 'API server');
         }
-        if (servers.startedUi && servers.uiProcess) {
-          await stopProcess(servers.uiProcess, 'Dashboard');
+        if (servers.startedUi && servers.uiPid) {
+          stopProcessGroup(servers.uiPid, 'Dashboard');
         }
       }
     }

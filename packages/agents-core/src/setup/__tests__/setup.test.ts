@@ -61,6 +61,7 @@ describe('runSetup', () => {
     mockSpawn.mockReturnValue({
       pid: 12345,
       on: vi.fn(),
+      unref: vi.fn(),
       stdout: { on: vi.fn() },
       stderr: { on: vi.fn() },
     });
