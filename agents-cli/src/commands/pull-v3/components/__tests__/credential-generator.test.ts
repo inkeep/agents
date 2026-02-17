@@ -267,7 +267,8 @@ describe('Credential Generator', () => {
       await expectCredentialDefinitionSnapshots({ credentialId, ...complexCredential }, definition);
     });
 
-    it('should handle different data types in retrieval params', () => {
+    it.only('should handle different data types in retrieval params', async () => {
+      const credentialId = 'mixed';
       const mixedParamsCredential = {
         name: 'Mixed Params Credential',
         type: 'env',
@@ -280,12 +281,17 @@ describe('Credential Generator', () => {
         },
       };
 
-      const definition = generateCredentialDefinition('mixed', mixedParamsCredential);
+      const definition = generateCredentialDefinition(credentialId, mixedParamsCredential);
 
       expect(definition).toContain("key: 'API_KEY',");
       expect(definition).toContain('port: 3000,');
       expect(definition).toContain('enabled: true,');
       expect(definition).toContain('timeout: 30.5');
+
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...mixedParamsCredential },
+        definition
+      );
     });
   });
 
