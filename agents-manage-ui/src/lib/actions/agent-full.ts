@@ -159,7 +159,7 @@ export async function createFullAgentAction(
 /**
  * Get a full agent by ID
  */
-async function $getFullAgentAction(
+export async function getFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -187,8 +187,6 @@ async function $getFullAgentAction(
     };
   }
 }
-
-export const getFullAgentAction = cache($getFullAgentAction);
 
 /**
  * Update or create a full agent (upsert)

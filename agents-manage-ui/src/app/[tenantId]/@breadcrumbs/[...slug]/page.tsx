@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
 import { STATIC_LABELS } from '@/constants/theme';
-import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { getFullAgent } from '@/lib/api/agent-full-client';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchCredential } from '@/lib/api/credentials';
 import { fetchDataComponent } from '@/lib/api/data-components';
@@ -49,14 +49,8 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       return project.data.name;
     },
     async agents(id) {
-      const result = await getFullAgentAction(tenantId, projectId, id);
-      if (result.success) {
-        return result.data.name;
-      }
-      throw {
-        message: result.error,
-        code: result.code,
-      };
+      const result = await getFullAgent(tenantId, projectId, id);
+      return result.data.name;
     },
     async artifacts(id) {
       const artifact = await fetchArtifactComponent(tenantId, projectId, id);
@@ -105,14 +99,8 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       return 'Run';
     },
     async webhooks(agentId: string) {
-      const result = await getFullAgentAction(tenantId, projectId, agentId);
-      if (result.success) {
-        return result.data.name;
-      }
-      throw {
-        message: result.error,
-        code: result.code,
-      };
+      const result = await getFullAgent(tenantId, projectId, agentId);
+      return result.data.name;
     },
     async skills(id) {
       const result = await fetchSkill(tenantId, projectId, id);
