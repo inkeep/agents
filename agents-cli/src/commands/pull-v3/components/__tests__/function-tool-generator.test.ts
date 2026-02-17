@@ -111,7 +111,8 @@ describe('Function Tool Generator', () => {
       }).toThrow("Missing required fields for function tool 'minimal': inputSchema, executeCode");
     });
 
-    it('should accept schema as alternative to inputSchema', () => {
+    it.only('should accept schema as alternative to inputSchema', async () => {
+      const functionToolId = 'test';
       const dataWithSchema = {
         name: 'test-tool',
         description: 'Test tool',
@@ -124,9 +125,8 @@ describe('Function Tool Generator', () => {
         executeCode: 'return { result: "test" };',
       };
 
-      expect(() => {
-        generateFunctionToolDefinition('test', dataWithSchema);
-      }).not.toThrow();
+      const definition = generateFunctionToolDefinition(functionToolId, dataWithSchema);
+      await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithSchema, definition);
     });
 
     it('should prefer inputSchema over schema when both exist', () => {
