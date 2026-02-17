@@ -53,6 +53,9 @@ yarn-error.log*
 next-env.d.ts
 local.db
 
+# Optional local dev services (cloned by pnpm setup-dev:optional)
+.optional-services/
+
 .ipc-hosted-tools/
 .hosted-tools/
 

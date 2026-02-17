@@ -96,19 +96,19 @@ Run the following from your project root:
 pnpm setup-dev:optional
 ```
 
-This automatically:
-- Clones the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) companion repo (if not already present)
+This:
+- Clones [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) into `.optional-services/` if not already present
 - Starts SigNoz, OTEL Collector, Jaeger, and [Nango](/typescript-sdk/credentials/nango) via Docker Compose
 - Registers a SigNoz admin account and creates an API key
 - Writes all required env vars to your `.env`
 
-After setup completes, restart your dev server:
+Restart your dev server after setup completes:
 
 ```bash
 pnpm dev
 ```
 
-Open SigNoz at `http://localhost:3080` to view traces. Jaeger is also available at `http://localhost:16686`.
+Open SigNoz at `http://localhost:3080` to view traces. Jaeger is available at `http://localhost:16686`.
 
 <Snippet file="setup-dev-optional-lifecycle.mdx" />
 
@@ -130,8 +130,8 @@ If you prefer manual setup:
 Clone the Inkeep optional local development services repository:
 
 ```bash
-git clone https://github.com/inkeep/agents-optional-local-dev
-cd agents-optional-local-dev
+git clone https://github.com/inkeep/agents-optional-local-dev .optional-services
+cd .optional-services
 ```
 
 #### Step 2: Start SigNoz Services
