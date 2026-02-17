@@ -5,68 +5,22 @@ description: Design AI agents that are focused, safe, and reliable. Learn the pr
 icon: LuBrain
 ---
 
-Agent engineering is the discipline of designing AI agents that reliably accomplish their goals without over-constraining them. The key principle: **treat tokens and attention as a shared budget**. Prefer small, high-signal prompts plus strong output contracts over long prose.
-
-This section covers the full lifecycle of agent design — from choosing the right pattern, to writing effective prompts, to testing and iterating on deployed agents.
+Agent engineering is the discipline of designing AI agents that reliably accomplish their goals. This section covers the full lifecycle of agent design — from writing effective prompts, to coordinating specialists, to troubleshooting and iterating on prompts.
 
 ## Who this is for
 
-These best practices apply to anyone designing AI agents — whether you're building single-purpose reviewers, multi-phase workflow orchestrators, or deciding if an agent is even the right tool for the job.
+These best practices apply to anyone designing AI agents with Inkeep — whether you're building a single-purpose sub agent or a multi-agent system.
 
 ## Section overview
 
 <Cards>
-  <Card title="Operating Principles" icon="LuCompass" href="/guides/agent-engineering/operating-principles">
-    Core principles that guide every agent design decision — treating attention as scarce, optimizing for reliability, and writing for execution.
-  </Card>
-  <Card title="Choosing the Right Pattern" icon="LuGitBranch" href="/guides/agent-engineering/choosing-patterns">
-    Decide between agents, skills, and always-on rules. Pick the right agent pattern: subagent vs workflow orchestrator.
-  </Card>
   <Card title="Prompt Structure" icon="LuFileText" href="/guides/agent-engineering/prompt-structure">
-    Structure agent prompts for correct execution — role and mission, scope, workflow checklists, tool policies, and output contracts.
+    Write high-quality sub agent prompts
   </Card>
-  <Card title="Personality and Identity" icon="LuUser" href="/guides/agent-engineering/personality-and-identity">
-    Write effective role and mission statements that guide agent judgment without creating risky escape hatches.
+  <Card title="Multiagent Workflows" icon="LuWorkflow" href="/guides/agent-engineering/multiagent-workflows">
+    Design coordinator sub agents that delegate to specialists
   </Card>
-  <Card title="LLM Failure Modes" icon="LuShieldAlert" href="/guides/agent-engineering/failure-modes">
-    A catalog of systematic LLM failure modes and concrete techniques to guard against them in agent prompts.
-  </Card>
-  <Card title="Workflow Orchestrators" icon="LuWorkflow" href="/guides/agent-engineering/workflow-orchestrators">
-    Design multi-phase coordinators that spawn subagents, aggregate results, and iterate with quality gates.
-  </Card>
-  <Card title="Handoff Protocol" icon="LuArrowLeftRight" href="/guides/agent-engineering/handoff-protocol">
-    Structure context passing between agents with handoff packets, return packets, and procedural patterns.
-  </Card>
-  <Card title="Testing and Iteration" icon="LuRefreshCw" href="/guides/agent-engineering/testing-and-iteration">
-    Tune delegation behavior, debug underperformance, and update existing agents without drift.
+  <Card title="Prompt Troubleshooting" icon="LuShieldAlert" href="/guides/agent-engineering/prompt-troubleshooting">
+    Diagnose common prompt quality issues and apply targeted fixes
   </Card>
 </Cards>
-
-## Key concepts
-
-### Agents vs skills vs rules
-
-Not every task needs an agent. Choose the lightest mechanism that reliably achieves the goal:
-
-| Mechanism | Use when | Why |
-|-----------|----------|-----|
-| **Always-on rules** | Repo-wide constraints, commands, conventions | Applied everywhere; no routing needed |
-| **Skills** | Reusable instructions in the main conversation context | Reuse without context isolation |
-| **Subagent** | Single specialized worker/reviewer with tool restrictions | Isolated context + least-privilege tools |
-| **Workflow orchestrator** | Multi-phase pipeline coordinating other agents | Encodes phase order, dispatch, aggregation, iteration |
-
-### The "Goldilocks zone" of strictness
-
-Agent prompts should hit the right altitude — specific enough to guide, general enough to generalize:
-
-| Failure mode | Symptom | Example |
-|--------------|---------|---------|
-| **Too rigid** | Brittle enumeration; breaks on unexpected inputs | "If .ts do X. If .tsx do Y. If .js do Z..." |
-| **Too vague** | Abstract principles without concrete signals | "Be helpful and thorough." |
-| **Just right** | Heuristics that generalize + clear escalation | "Prioritize correctness over style. When uncertain, ask." |
-
-### Quick reference: strictness by task type
-
-- **High freedom:** heuristics + output contract (reviews, audits, brainstorming)
-- **Medium:** step sequence + required checks (refactors, migrations)
-- **Low:** scripts/commands + strict validation loops (fragile operations)
