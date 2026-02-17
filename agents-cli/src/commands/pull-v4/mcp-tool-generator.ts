@@ -149,7 +149,9 @@ function writeMcpToolConfig(
       name: 'headers',
       initializer: '{}',
     });
-    const headersObject = headersProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    const headersObject = headersProperty.getInitializerIfKindOrThrow(
+      SyntaxKind.ObjectLiteralExpression
+    );
     addObjectEntries(headersObject, data.headers);
   }
 

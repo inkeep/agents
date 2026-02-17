@@ -482,7 +482,9 @@ function getObjectKeys(value: unknown): string[] {
   return Object.keys(record);
 }
 
-function resolveStatusComponentId(statusComponentData: Record<string, unknown>): string | undefined {
+function resolveStatusComponentId(
+  statusComponentData: Record<string, unknown>
+): string | undefined {
   if (typeof statusComponentData.id === 'string') {
     return statusComponentData.id;
   }

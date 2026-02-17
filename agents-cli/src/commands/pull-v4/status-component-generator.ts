@@ -28,12 +28,13 @@ type ParsedStatusComponentDefinitionData = z.infer<typeof StatusComponentSchema>
 export function generateStatusComponentDefinition(data: StatusComponentDefinitionData): string {
   const result = StatusComponentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for status component:\n${z.prettifyError(result.error)}`);
+    throw new Error(
+      `Missing required fields for status component:\n${z.prettifyError(result.error)}`
+    );
   }
 
   const parsed = result.data;
-  const detailsSchema =
-    parsed.detailsSchema !== undefined ? parsed.detailsSchema : parsed.schema;
+  const detailsSchema = parsed.detailsSchema !== undefined ? parsed.detailsSchema : parsed.schema;
 
   const project = createInMemoryProject();
   const sourceFile = project.createSourceFile('status-component-definition.ts', '', {
