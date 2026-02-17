@@ -88,13 +88,18 @@ export function useConversationStats(
           options?.agentId
         );
 
+        console.log('🔍 useConversationStats result:', {
+          pagination: result.pagination,
+          aggregateStats: result.aggregateStats,
+        });
+
         setStats(result.data);
         setPaginationInfo(result.pagination);
         if (result.aggregateStats) {
           setAggregateStats(result.aggregateStats);
         }
       } catch (err) {
-        console.error('Error fetching conversation stats:', err);
+        console.error('🔍 Error fetching conversation stats:', err);
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch conversation stats';
         setError(errorMessage);
