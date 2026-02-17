@@ -31,7 +31,7 @@ export function toCamelCase(input: string): string {
 
 export function convertJsonSchemaToZodSafe(
   schema: unknown,
-  options: {
+  options?: {
     conversionOptions?: Parameters<typeof jsonSchemaToZod>[1];
   }
 ): string {
