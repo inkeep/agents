@@ -1,4 +1,5 @@
 import { project } from '@inkeep/agents-sdk';
+import { stringAgent } from './agents/stringAgent';
 
 export const mixedTypesProject = project({
   id: 'mixed-types-project',
