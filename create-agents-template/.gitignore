@@ -39,6 +39,9 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Optional local dev services (cloned by pnpm setup-dev:optional)
+.optional-services/
+
 # Temporary files
 *.tmp
 *.temp
