@@ -1,0 +1,5 @@
+export const complex = statusComponent({
+  type: 'complex_status',
+  description: 'Complex status with nested schema',
+  detailsSchema: z.object({ "metadata": z.object({ "timestamp": z.string().describe("ISO timestamp"), "source": z.string().describe("Source system").optional() }).optional(), "items": z.array(z.object({ "id": z.string().optional(), "status": z.enum(["pending","completed","failed"]).optional() })).optional() })
+});

@@ -214,10 +214,15 @@ describe('Status Component Generator', () => {
 
       expect(definition).toContain(`description: \`${longDescription}\``);
 
-      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithLongDesc);
+      await expectStatusComponentDefinitionSnapshots(
+        statusComponentId,
+        definition,
+        dataWithLongDesc
+      );
     });
 
-    it('should handle complex nested schema', () => {
+    it.only('should handle complex nested schema', async () => {
+      const statusComponentId = 'complex';
       const complexData = {
         type: 'complex_status',
         description: 'Complex status with nested schema',
@@ -246,11 +251,13 @@ describe('Status Component Generator', () => {
         },
       };
 
-      const definition = generateStatusComponentDefinition('complex', complexData);
+      const definition = generateStatusComponentDefinition(statusComponentId, complexData);
 
       expect(definition).toContain('detailsSchema: z.object({');
       expect(definition).toContain('metadata');
       expect(definition).toContain('items');
+
+      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, complexData);
     });
   });
 
