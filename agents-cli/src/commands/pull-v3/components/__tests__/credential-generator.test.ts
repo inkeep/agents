@@ -385,8 +385,9 @@ describe('Credential Generator', () => {
       await expectCredentialDefinitionSnapshots({ credentialId, ...envCredentialData }, definition);
     });
 
-    it('should generate code for keychain credential that compiles', () => {
-      const definition = generateCredentialDefinition('slack-token', keychainCredentialData);
+    it.only('should generate code for keychain credential that compiles', async () => {
+      const credentialId = 'slack-token';
+      const definition = generateCredentialDefinition(credentialId, keychainCredentialData);
       const definitionWithoutExport = definition.replace('export const ', 'const ');
 
       const moduleCode = `
@@ -407,6 +408,11 @@ describe('Credential Generator', () => {
       expect(result.credentialStoreId).toBe('keychain-main');
       expect(result.retrievalParams.service).toBe('slack-bot');
       expect(result.retrievalParams.account).toBe('my-workspace');
+
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...keychainCredentialData },
+        definition
+      );
     });
 
     it('should throw error for minimal credential with missing fields', () => {
