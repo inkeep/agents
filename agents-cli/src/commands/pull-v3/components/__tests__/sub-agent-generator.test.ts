@@ -411,9 +411,10 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate sub-agent code that compiles', () => {
+    it.only('should generate sub-agent code that compiles', async () => {
+      const subAgentId = 'test-sub-agent';
       const definition = generateSubAgentDefinition(
-        'test-sub-agent',
+        subAgentId,
         basicSubAgentData,
         undefined,
         mockRegistry
@@ -446,6 +447,8 @@ describe('Sub-Agent Generator', () => {
       expect(typeof result.canUse).toBe('function');
       expect(result.canUse()).toHaveLength(2);
       expect(result.canDelegateTo()).toHaveLength(2);
+
+      await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, definition);
     });
 
     it('should generate complex sub-agent code that compiles', () => {
