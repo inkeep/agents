@@ -243,13 +243,16 @@ describe('MCP Tool Generator', () => {
       await expectMcpToolDefinitionSnapshots(mcpToolId, testToolData, file.trimEnd());
     });
 
-    it('should generate complete file with direct credential', () => {
-      const file = generateMcpToolFile('stripe-mcp', testToolWithCredential);
+    it.only('should generate complete file with direct credential', async () => {
+      const mcpToolId = 'stripe-mcp';
+      const file = generateMcpToolFile(mcpToolId, testToolWithCredential);
 
       expect(file).toContain("import { mcpTool } from '@inkeep/agents-sdk';");
       expect(file).not.toContain('import { envSettings }');
       expect(file).toContain('export const stripeMcp = mcpTool({');
       expect(file).toContain('credential: mock-credential-stripe_api_key');
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolWithCredential, file.trimEnd());
     });
   });
 
