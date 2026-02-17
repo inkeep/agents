@@ -6,6 +6,7 @@ import { MembersTable } from '@/components/settings/members-table';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { OrgRoles } from '@/constants/signoz';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import { getUserProviders, type UserProvider } from '@/lib/actions/user-accounts';
 import SettingsLoadingSkeleton from './loading';
 
@@ -16,6 +17,7 @@ type FullOrganization = NonNullable<
 >;
 
 export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings'>) {
+  useRequireAuth();
   const authClient = useAuthClient();
   const { tenantId } = use(params);
   const [organization, setOrganization] = useState<FullOrganization | null>();

@@ -12,6 +12,7 @@ import { ToolCallsByServerCard } from '@/components/traces/tool-calls/tool-calls
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
@@ -29,6 +30,7 @@ export default function AllProjectsToolCallsBreakdown({
 }: {
   params: Promise<{ tenantId: string }>;
 }) {
+  useRequireAuth();
   const { tenantId } = use(params);
 
   const backLink = `/${tenantId}/stats`;
