@@ -171,14 +171,47 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    // Call Next.js route which validates and forwards to agents-api
     const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
       withCredentials: true,
-    });
+      'axios-retry': {
+        retries: 3,
+        retryDelay: axiosRetry.exponentialDelay,
+        retryCondition: (error: import('axios').AxiosError) =>
+          axiosRetry.isNetworkError(error) ||
+          (error.response !== undefined && error.response.status >= 500),
+      },
+    } as any);
+    return response.data;
+  }
+
+  private async makePipelineRequest(
+    paginationPayload: any,
+    detailPayloadTemplate: any
+  ): Promise<{ paginationResponse: any; detailResponse: any }> {
+    if (!this.tenantId) {
+      throw new Error('TenantId not set. Call setTenantId() before making requests.');
+    }
+
+    const response = await axios.post(
+      `/api/signoz?tenantId=${this.tenantId}&mode=batch`,
+      { paginationPayload, detailPayloadTemplate },
+      {
+        timeout: 60000,
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true,
+        'axios-retry': {
+          retries: 3,
+          retryDelay: axiosRetry.exponentialDelay,
+          retryCondition: (error: import('axios').AxiosError) =>
+            axiosRetry.isNetworkError(error) ||
+            (error.response !== undefined && error.response.status >= 500),
+        },
+      } as any
+    );
     return response.data;
   }
 
@@ -224,52 +257,10 @@ class SigNozStatsAPI {
     }
   }
 
-  private async getConversationStatsPaginated(
-    startTime: number,
-    endTime: number,
-    filters: SpanFilterOptions | undefined,
-    projectId: string | undefined,
-    pagination: { page: number; limit: number },
-    searchQuery: string | undefined,
-    agentId: string | undefined
-  ): Promise<PaginatedConversationStats> {
-    // Step 1: Get total count, paginated conversation IDs, and aggregate stats
-    const { conversationIds, total, aggregateStats } = await this.getPaginatedConversationIds(
-      startTime,
-      endTime,
-      filters,
-      projectId,
-      pagination,
-      searchQuery,
-      agentId
-    );
-
-    if (conversationIds.length === 0) {
-      return {
-        data: [],
-        pagination: {
-          page: pagination.page,
-          limit: pagination.limit,
-          total,
-          totalPages: Math.ceil(total / pagination.limit),
-          hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
-          hasPreviousPage: pagination.page > 1,
-        },
-        aggregateStats,
-      };
-    }
-
-    // Step 2: Fetch detailed stats only for the paginated conversation IDs
-    const payload = this.buildCombinedPayload(
-      startTime,
-      endTime,
-      filters,
-      projectId,
-      agentId,
-      conversationIds
-    );
-    const resp = await this.makeRequest(payload);
-
+  private parseDetailResponse(
+    resp: any,
+    conversationIds: string[]
+  ): { orderedStats: ConversationStats[]; firstSeen: Map<string, number> } {
     const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
     const transfersSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TRANSFERS);
     const delegationsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.DELEGATIONS);
@@ -307,10 +298,7 @@ class SigNozStatsAPI {
       const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
       const t = numberFromSeries(s);
       if (!id || !content) continue;
-      (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({
-        t,
-        c: content,
-      });
+      (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({ t, c: content });
     }
     for (const [id, arr] of msgsByConv) {
       arr.sort((a, b) => a.t - b.t);
@@ -343,16 +331,143 @@ class SigNozStatsAPI {
       byFirstActivity(firstSeen.get(a.conversationId), firstSeen.get(b.conversationId))
     );
 
+    return { orderedStats, firstSeen };
+  }
+
+  private async getConversationStatsPaginated(
+    startTime: number,
+    endTime: number,
+    filters: SpanFilterOptions | undefined,
+    projectId: string | undefined,
+    pagination: { page: number; limit: number },
+    searchQuery: string | undefined,
+    agentId: string | undefined
+  ): Promise<PaginatedConversationStats> {
+    const hasSearchQuery = !!searchQuery?.trim();
+    const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
+    const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
+
+    const makePaginationResult = (
+      conversationIds: string[],
+      total: number
+    ) => ({
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages: Math.ceil(total / pagination.limit),
+      hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
+      hasPreviousPage: pagination.page > 1,
+    });
+
+    // Fast path: use server-side pipeline (1 browser round-trip instead of 2)
+    if (useServerSidePagination) {
+      const paginationPayload = this.buildFilteredConversationIdsPayload(
+        startTime,
+        endTime,
+        filters,
+        projectId,
+        agentId,
+        false,
+        pagination
+      );
+
+      const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
+      const detailPayloadTemplate = this.buildCombinedPayload(
+        startTime,
+        endTime,
+        filters,
+        projectId,
+        sanitizedAgentId,
+        undefined
+      );
+
+      const { paginationResponse, detailResponse } = await this.makePipelineRequest(
+        paginationPayload,
+        detailPayloadTemplate
+      );
+
+      const zeroSeries = { values: [{ value: '0' }] } as Series;
+      const aggregateStats: AggregateStats = {
+        totalToolCalls: countFromSeries(
+          this.extractSeries(paginationResponse, 'aggToolCalls')[0] || zeroSeries
+        ),
+        totalTransfers: countFromSeries(
+          this.extractSeries(paginationResponse, 'aggTransfers')[0] || zeroSeries
+        ),
+        totalDelegations: countFromSeries(
+          this.extractSeries(paginationResponse, 'aggDelegations')[0] || zeroSeries
+        ),
+        totalAICalls: countFromSeries(
+          this.extractSeries(paginationResponse, 'aggAICalls')[0] || zeroSeries
+        ),
+        totalConversations: 0,
+      };
+
+      const pageSeries = this.extractSeries(
+        paginationResponse,
+        QUERY_EXPRESSIONS.PAGE_CONVERSATIONS
+      );
+      const conversationIds = pageSeries
+        .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
+        .filter(Boolean) as string[];
+
+      const totalSeries = this.extractSeries(
+        paginationResponse,
+        QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS
+      );
+      const total = countFromSeries(totalSeries[0] || zeroSeries);
+      aggregateStats.totalConversations = total;
+
+      if (conversationIds.length === 0 || !detailResponse) {
+        return {
+          data: [],
+          pagination: makePaginationResult(conversationIds, total),
+          aggregateStats,
+        };
+      }
+
+      const { orderedStats } = this.parseDetailResponse(detailResponse, conversationIds);
+
+      return {
+        data: orderedStats,
+        pagination: makePaginationResult(conversationIds, total),
+        aggregateStats,
+      };
+    }
+
+    // Slow path: search or span filters require client-side processing (2 round-trips)
+    const { conversationIds, total, aggregateStats } = await this.getPaginatedConversationIds(
+      startTime,
+      endTime,
+      filters,
+      projectId,
+      pagination,
+      searchQuery,
+      agentId
+    );
+
+    if (conversationIds.length === 0) {
+      return {
+        data: [],
+        pagination: makePaginationResult(conversationIds, total),
+        aggregateStats,
+      };
+    }
+
+    const payload = this.buildCombinedPayload(
+      startTime,
+      endTime,
+      filters,
+      projectId,
+      agentId,
+      conversationIds
+    );
+    const resp = await this.makeRequest(payload);
+    const { orderedStats } = this.parseDetailResponse(resp, conversationIds);
+
     return {
       data: orderedStats,
-      pagination: {
-        page: pagination.page,
-        limit: pagination.limit,
-        total,
-        totalPages: Math.ceil(total / pagination.limit),
-        hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
-        hasPreviousPage: pagination.page > 1,
-      },
+      pagination: makePaginationResult(conversationIds, total),
       aggregateStats,
     };
   }
@@ -368,7 +483,6 @@ class SigNozStatsAPI {
   ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
-    const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
 
     const consolidatedPayload = this.buildFilteredConversationIdsPayload(
       startTime,
@@ -377,48 +491,27 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      useServerSidePagination ? pagination : undefined
+      undefined
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
 
-    const extractAggregates = (): AggregateStats => {
-      const zeroSeries = { values: [{ value: '0' }] } as Series;
-      return {
-        totalToolCalls: countFromSeries(
-          this.extractSeries(consolidatedResp, 'aggToolCalls')[0] || zeroSeries
-        ),
-        totalTransfers: countFromSeries(
-          this.extractSeries(consolidatedResp, 'aggTransfers')[0] || zeroSeries
-        ),
-        totalDelegations: countFromSeries(
-          this.extractSeries(consolidatedResp, 'aggDelegations')[0] || zeroSeries
-        ),
-        totalAICalls: countFromSeries(
-          this.extractSeries(consolidatedResp, 'aggAICalls')[0] || zeroSeries
-        ),
-        totalConversations: 0,
-      };
-    };
-
-    // Fast path: server-side pagination (no search, no span filters)
-    if (useServerSidePagination) {
-      const pageSeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.PAGE_CONVERSATIONS);
-      const conversationIds = pageSeries
-        .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
-        .filter(Boolean) as string[];
-
-      const totalSeries = this.extractSeries(
-        consolidatedResp,
-        QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS
-      );
-      const total = countFromSeries(totalSeries[0] || { values: [{ value: '0' }] });
-
-      const aggregateStats = extractAggregates();
-      if (aggregateStats) aggregateStats.totalConversations = total;
-
-      return { conversationIds, total, aggregateStats };
-    }
+    const zeroSeries = { values: [{ value: '0' }] } as Series;
+    const extractAggregates = (): AggregateStats => ({
+      totalToolCalls: countFromSeries(
+        this.extractSeries(consolidatedResp, 'aggToolCalls')[0] || zeroSeries
+      ),
+      totalTransfers: countFromSeries(
+        this.extractSeries(consolidatedResp, 'aggTransfers')[0] || zeroSeries
+      ),
+      totalDelegations: countFromSeries(
+        this.extractSeries(consolidatedResp, 'aggDelegations')[0] || zeroSeries
+      ),
+      totalAICalls: countFromSeries(
+        this.extractSeries(consolidatedResp, 'aggAICalls')[0] || zeroSeries
+      ),
+      totalConversations: 0,
+    });
 
     // Slow path: client-side filtering needed for search or span filters
     const activitySeries = this.extractSeries(
@@ -498,7 +591,7 @@ class SigNozStatsAPI {
     const paginatedIds = conversationIds.slice(start, start + pagination.limit);
 
     const aggregateStats = extractAggregates();
-    if (aggregateStats) aggregateStats.totalConversations = total;
+    aggregateStats.totalConversations = total;
 
     return { conversationIds: paginatedIds, total, aggregateStats };
   }

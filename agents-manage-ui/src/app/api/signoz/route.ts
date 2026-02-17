@@ -11,19 +11,25 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
-// Validation schema for the request body
-const signozRequestSchema = z.object({
+const compositeQuerySchema = z.object({
+  queryType: z.string(),
+  panelType: z.string(),
+  builderQueries: z.record(z.string(), z.any()),
+});
+
+const signozPayloadSchema = z.object({
   start: z.number().int().positive(),
   end: z.number().int().positive(),
   step: z.number().int().positive().optional().default(60),
   variables: z.record(z.string(), z.any()).optional().default({}),
-  compositeQuery: z.object({
-    queryType: z.string(),
-    panelType: z.string(),
-    builderQueries: z.record(z.string(), z.any()),
-  }),
+  compositeQuery: compositeQuerySchema,
   dataSource: z.string().optional(),
   projectId: z.string().optional(),
+});
+
+const pipelineRequestSchema = z.object({
+  paginationPayload: signozPayloadSchema,
+  detailPayloadTemplate: signozPayloadSchema,
 });
 
 // Custom validation function for time ranges
@@ -45,54 +51,86 @@ function validateTimeRange(start: number, end: number): { valid: boolean; error?
   return { valid: true };
 }
 
+function extractRequestContext(request: NextRequest) {
+  const url = new URL(request.url);
+  const tenantId = url.searchParams.get('tenantId') || 'default';
+  const mode = url.searchParams.get('mode');
+
+  const cookieHeader = request.headers.get('cookie');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cookieHeader) {
+    headers.Cookie = cookieHeader;
+  }
+
+  return { tenantId, mode, headers };
+}
+
+function handleProxyError(error: unknown, logger: ReturnType<typeof getLogger>) {
+  logger.error(
+    { error, stack: error instanceof Error ? error.stack : undefined },
+    'Error proxying to agents-api'
+  );
+
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status || 500;
+    const message = error.response?.data?.message || error.message;
+    return NextResponse.json({ error: 'Failed to query SigNoz', details: message }, { status });
+  }
+
+  return NextResponse.json(
+    { error: 'Failed to query SigNoz', details: error instanceof Error ? error.message : 'Unknown error' },
+    { status: 500 }
+  );
+}
+
 export async function POST(request: NextRequest) {
   const logger = getLogger('signoz-proxy');
+  const { tenantId, mode, headers } = extractRequestContext(request);
+  const agentsApiUrl = getAgentsApiUrl();
+
   try {
     const body = await request.json();
 
-    // 1. Validate request schema
-    const validationResult = signozRequestSchema.safeParse(body);
+    if (mode === 'batch') {
+      const validationResult = pipelineRequestSchema.safeParse(body);
+      if (!validationResult.success) {
+        return NextResponse.json(
+          { error: 'Invalid request body', details: validationResult.error.flatten() },
+          { status: 400 }
+        );
+      }
+
+      const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query-batch`;
+      logger.info({ endpoint }, 'Forwarding batch request to agents-api');
+
+      const response = await axios.post(endpoint, validationResult.data, {
+        headers,
+        timeout: 60000,
+        withCredentials: true,
+      });
+
+      return NextResponse.json(response.data);
+    }
+
+    const validationResult = signozPayloadSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        {
-          error: 'Invalid request body',
-          details: validationResult.error.flatten(),
-        },
+        { error: 'Invalid request body', details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
 
     const validatedBody = validationResult.data;
 
-    // 2. Validate time range
     const timeValidation = validateTimeRange(validatedBody.start, validatedBody.end);
     if (!timeValidation.valid) {
       return NextResponse.json(
-        {
-          error: 'Invalid time range',
-          details: timeValidation.error,
-        },
+        { error: 'Invalid time range', details: timeValidation.error },
         { status: 400 }
       );
     }
 
-    // 3. Extract tenantId from request
-    const url = new URL(request.url);
-    const tenantId = url.searchParams.get('tenantId') || 'default';
-
-    // 4. Forward cookies for authentication
-    const cookieHeader = request.headers.get('cookie');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
-
-    // 5. Forward to secure agents-api
-    const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
-
     logger.info({ endpoint }, 'Forwarding validated query to agents-api');
 
     const response = await axios.post(endpoint, validatedBody, {
@@ -105,32 +143,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response.data);
   } catch (error) {
-    logger.error(
-      { error, stack: error instanceof Error ? error.stack : undefined },
-      'Error proxying to agents-api'
-    );
-
-    // Enhanced error handling
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status || 500;
-      const message = error.response?.data?.message || error.message;
-
-      return NextResponse.json(
-        {
-          error: 'Failed to query SigNoz',
-          details: message,
-        },
-        { status }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: 'Failed to query SigNoz',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return handleProxyError(error, logger);
   }
 }
 
