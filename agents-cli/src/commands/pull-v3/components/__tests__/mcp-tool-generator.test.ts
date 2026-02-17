@@ -180,18 +180,21 @@ describe('MCP Tool Generator', () => {
       }).toThrow("Missing required fields for MCP tool 'minimal': name, serverUrl");
     });
 
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the MCP tool functionality';
+      const mcpToolId = 'detailed';
       const dataWithLongDesc = {
         name: 'detailed-mcp-tool',
         serverUrl: 'https://detailed.example.com/mcp',
         description: longDescription,
       };
 
-      const definition = generateMcpToolDefinition('detailed', dataWithLongDesc);
+      const definition = generateMcpToolDefinition(mcpToolId, dataWithLongDesc);
 
       expect(definition).toContain(`description: \`${longDescription}\``);
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, dataWithLongDesc, definition);
     });
 
     it('should handle special characters in URLs', () => {

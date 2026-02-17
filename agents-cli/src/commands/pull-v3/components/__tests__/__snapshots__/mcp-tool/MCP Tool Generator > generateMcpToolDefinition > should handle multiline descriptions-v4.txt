@@ -1,0 +1,8 @@
+import { mcpTool } from '@inkeep/agents-sdk';
+
+export const detailed = mcpTool({
+  id: 'detailed',
+  name: 'detailed-mcp-tool',
+  serverUrl: 'https://detailed.example.com/mcp',
+  description: 'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the MCP tool functionality'
+});
