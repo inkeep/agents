@@ -9,6 +9,7 @@ const configLogger = getLogger('config');
 configLogger.updateOptions({ level: 'silent' });
 
 import { Command } from 'commander';
+import pkgJson from '../package.json' with { type: 'json' };
 import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
@@ -28,7 +29,6 @@ import { pushCommand } from './commands/push';
 import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
 import { whoamiCommand } from './commands/whoami';
-import pkgJson from '../package.json' with { type: 'json' };
 
 const program = new Command();
 
