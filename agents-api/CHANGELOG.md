@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.48.3
+
+### Patch Changes
+
+- 9b64a7d: Fix internal fetch routing when deployed with Vercel bundling (cron triggers)
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-work-apps@0.48.3
+  - @inkeep/agents-manage-mcp@0.48.3
+  - @inkeep/agents-mcp@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes

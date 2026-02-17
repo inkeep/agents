@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.48.3
+
+### Patch Changes
+
+- 6b561f6: Fix Docker deployments to evaluate environment variables at request time instead of build time
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes
