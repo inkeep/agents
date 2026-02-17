@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.48.3",
+  "version": "0.48.4",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -95,8 +95,6 @@
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.20.1",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
-    "@opentelemetry/sdk-metrics": "^2.1.0",
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@types/pg": "^8.15.6",

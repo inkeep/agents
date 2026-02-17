@@ -257,9 +257,7 @@ describe('ModelFactory', () => {
         model: 'unsupported/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow(
-        'Unsupported provider: unsupported. Supported providers are: anthropic, azure, openai, google, openrouter, gateway, nim, custom, mock. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
-      );
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported');
     });
 
     test('should handle AI Gateway configuration', () => {
@@ -288,7 +286,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Unsupported provider: unknown-provider. Supported providers are: anthropic, azure, openai, google, openrouter, gateway, nim, custom, mock. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
+        'Unsupported provider: unknown-provider'
       );
     });
 
@@ -757,7 +755,7 @@ describe('ModelFactory', () => {
     describe('provider validation', () => {
       test('should throw error for unsupported provider', () => {
         expect(() => ModelFactory.parseModelString('unsupported-provider/some-model')).toThrow(
-          'Unsupported provider: unsupported-provider. Supported providers are: anthropic, azure, openai, google, openrouter, gateway, nim, custom, mock. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
+          'Unsupported provider: unsupported-provider'
         );
       });
 
