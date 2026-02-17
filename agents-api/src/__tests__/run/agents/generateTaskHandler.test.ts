@@ -1,4 +1,5 @@
-import { parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { extractTextFromParts } from 'src/domains/run/utils/message-parts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import {
@@ -131,7 +132,8 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       // Mock implementation
     }
 
-    async generate(message: string, _options: any) {
+    async generate(userParts: Part[], _options: unknown) {
+      const message = extractTextFromParts(userParts);
       // Mock different response types based on message content
       if (message.includes('transfer')) {
         return {
@@ -698,7 +700,7 @@ describe('generateTaskHandler', () => {
       const result = await taskHandler(task);
 
       expect(result.status.state).toBe(TaskState.Failed);
-      expect(result.status.message).toBe('No text content found in task input');
+      expect(result.status.message).toBe('No content found in task input');
       expect(result.artifacts).toEqual([]);
     });
 

@@ -1,5 +1,107 @@
 # @inkeep/agents-manage-ui
 
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- 6b561f6: Fix Docker deployments to evaluate environment variables at request time instead of build time
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- 5287615: Add "View Traces" button to agent builder toolbar for quick access to agent-specific trace analytics
+  - @inkeep/agents-core@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 26b3b88: Fix existingRender prop reference in ComponentRenderGenerator to use defaultValues instead of static initialData
+- 615713f: Fix fullscreen editor dialog styling and improve ExpandableField layout
+- e551124: Make `ExpandablePromptEditor` work on markdown files without the "Add variables" action button. The component now supports both template files (showing the variables button) and regular markdown files (without the button), enabling it to be used as a general-purpose markdown editor.
+- 5d3f136: Add `GenericJsonEditor` and `GenericPromptEditor` components with react-hook-form integration
+- 5b0b1f1: fix max height for card content on traces conversation page
+- 228d4e2: Fix nested error message display in form validation
+
+  - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
+  - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
+  - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
+  - Rename `HeadersSchema` to `StringRecordSchema` for broader applicability
+
+- c0c922b: fixed azure model selector
+- 627df66: Fix layout styling in GenericPromptEditor and GenericJsonEditor components
+- 9ed110c: Add `--ui` flag to CLI `add` command for downloading UI components from the dashboard
+- 7ad7e21: Refactor artifact and data component validation to use centralized Zod schemas from agents-core. This eliminates duplicate validation logic and improves consistency across the codebase.
+- 4476af0: performance improvements traces
+- 73d79bd: local time for traces, end date when agent is done running
+- 0bf078c: Render function execute code using the CodeDiff component instead of TextDiff
+- 95a3abc: Add scheduled/cron trigger support across the full stack — database schema, API routes, Manage UI
+- 32bff8f: Warn when trying to connect already connected MCP tools and show 'No tools' instead of '0' badge
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [228d4e2]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+  - @inkeep/agents-core@0.48.0
+
 ## 0.47.5
 
 ### Patch Changes

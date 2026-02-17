@@ -10848,7 +10848,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}": {
       "delete": {
         "description": "Permanently deletes a GitHub App installation from the tenant. This hard deletes the installation record, all associated repositories, and project repository access entries. This action cannot be undone. Use POST /disconnect for soft delete instead. Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.",
         "operationId": "delete-github-installation",
@@ -11161,7 +11161,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId/disconnect": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}/disconnect": {
       "post": {
         "description": "Disconnects a GitHub App installation from the tenant. This soft deletes the installation (sets status to \"disconnected\") and removes all project repository access entries. The installation record is preserved for audit purposes. Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.",
         "operationId": "disconnect-github-installation",
@@ -11266,7 +11266,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId/reconnect": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}/reconnect": {
       "post": {
         "description": "Reconnects a previously disconnected GitHub App installation by setting its status back to \"active\" and syncing the available repositories from GitHub. This can only be used on installations with \"disconnected\" status.",
         "operationId": "reconnect-github-installation",
@@ -11450,7 +11450,7 @@
         ]
       }
     },
-    "/manage/tenants/{tenantId}/github/installations/:installationId/sync": {
+    "/manage/tenants/{tenantId}/github/installations/{installationId}/sync": {
       "post": {
         "description": "Manually refreshes the repository list for a GitHub App installation by fetching the current list from GitHub API. This is useful if webhooks were missed or to ensure the local data is in sync with GitHub.",
         "operationId": "sync-github-installation-repositories",
@@ -35825,11 +35825,54 @@
                                     "type": "string"
                                   },
                                   "type": {
+                                    "enum": [
+                                      "text"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "text": {
+                                    "anyOf": [
+                                      {
+                                        "format": "uri",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "pattern": "^data:image\\/(png|jpeg|jpg|webp);base64,",
+                                        "type": "string"
+                                      }
+                                    ]
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "image"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
                                     "anyOf": [
                                       {
                                         "enum": [
-                                          "text",
-                                          "image",
                                           "audio",
                                           "video",
                                           "file"
@@ -36420,19 +36463,69 @@
                             },
                             {
                               "items": {
-                                "additionalProperties": false,
-                                "properties": {
-                                  "text": {
-                                    "type": "string"
+                                "oneOf": [
+                                  {
+                                    "properties": {
+                                      "text": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "text"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "text"
+                                    ],
+                                    "type": "object"
                                   },
-                                  "type": {
-                                    "type": "string"
+                                  {
+                                    "properties": {
+                                      "image_url": {
+                                        "properties": {
+                                          "detail": {
+                                            "enum": [
+                                              "auto",
+                                              "low",
+                                              "high"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "url": {
+                                            "anyOf": [
+                                              {
+                                                "format": "uri",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "pattern": "^data:image\\/(png|jpeg|jpg|webp);base64,",
+                                                "type": "string"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "url"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "image_url"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "image_url"
+                                    ],
+                                    "type": "object"
                                   }
-                                },
-                                "required": [
-                                  "type"
-                                ],
-                                "type": "object"
+                                ]
                               },
                               "type": "array"
                             }
@@ -37207,7 +37300,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId": {
+    "/work-apps/slack/workspaces/{teamId}": {
       "delete": {
         "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
         "operationId": "slack-delete-workspace",
@@ -37333,7 +37426,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId/channels": {
+    "/work-apps/slack/workspaces/{teamId}/channels": {
       "get": {
         "description": "List Slack channels in the workspace that the bot can see",
         "operationId": "slack-list-channels",
@@ -37458,7 +37551,189 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId/channels/:channelId/settings": {
+    "/work-apps/slack/workspaces/{teamId}/channels/bulk": {
+      "delete": {
+        "description": "Remove agent configuration from multiple channels at once",
+        "operationId": "slack-bulk-delete-channel-agents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "channelIds"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "removed": {
+                      "type": "number"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "removed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Configs removed"
+          }
+        },
+        "summary": "Bulk Remove Channel Configs",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      },
+      "put": {
+        "description": "Apply the same agent configuration to multiple channels at once",
+        "operationId": "slack-bulk-set-channel-agents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentConfig": {
+                    "properties": {
+                      "agentId": {
+                        "type": "string"
+                      },
+                      "agentName": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projectId",
+                      "agentId"
+                    ],
+                    "type": "object"
+                  },
+                  "channelIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "channelIds",
+                  "agentConfig"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "errors": {
+                      "items": {
+                        "properties": {
+                          "channelId": {
+                            "type": "string"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "channelId",
+                          "error"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "failed": {
+                      "type": "number"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "updated": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "updated",
+                    "failed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channels updated"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Bulk Set Channel Agents",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/{teamId}/channels/{channelId}/settings": {
       "delete": {
         "description": "Remove the default agent configuration for a channel",
         "operationId": "slack-delete-channel-settings",
@@ -37670,189 +37945,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId/channels/bulk": {
-      "delete": {
-        "description": "Remove agent configuration from multiple channels at once",
-        "operationId": "slack-bulk-delete-channel-agents",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "channelIds": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "channelIds"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "removed": {
-                      "type": "number"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "removed"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Configs removed"
-          }
-        },
-        "summary": "Bulk Remove Channel Configs",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      },
-      "put": {
-        "description": "Apply the same agent configuration to multiple channels at once",
-        "operationId": "slack-bulk-set-channel-agents",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "agentConfig": {
-                    "properties": {
-                      "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
-                        "type": "string"
-                      },
-                      "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "projectId",
-                      "agentId"
-                    ],
-                    "type": "object"
-                  },
-                  "channelIds": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "channelIds",
-                  "agentConfig"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "errors": {
-                      "items": {
-                        "properties": {
-                          "channelId": {
-                            "type": "string"
-                          },
-                          "error": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "channelId",
-                          "error"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "failed": {
-                      "type": "number"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "updated": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "updated",
-                    "failed"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Channels updated"
-          },
-          "400": {
-            "description": "Invalid request"
-          },
-          "404": {
-            "description": "Workspace not found"
-          }
-        },
-        "summary": "Bulk Set Channel Agents",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      }
-    },
-    "/work-apps/slack/workspaces/:teamId/health": {
+    "/work-apps/slack/workspaces/{teamId}/health": {
       "get": {
         "description": "Verify the bot token is valid and check permissions. Returns bot info and permission status.",
         "operationId": "slack-workspace-health",
@@ -37932,7 +38025,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId/settings": {
+    "/work-apps/slack/workspaces/{teamId}/settings": {
       "get": {
         "description": "Get settings for a Slack workspace including default agent",
         "operationId": "slack-get-workspace-settings",
@@ -38079,7 +38172,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId/test-message": {
+    "/work-apps/slack/workspaces/{teamId}/test-message": {
       "post": {
         "description": "Send a test message to verify the bot is working correctly.",
         "operationId": "slack-test-message",
@@ -38153,7 +38246,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/:teamId/users": {
+    "/work-apps/slack/workspaces/{teamId}/users": {
       "get": {
         "description": "List all users linked to Inkeep in this workspace",
         "operationId": "slack-list-linked-users",

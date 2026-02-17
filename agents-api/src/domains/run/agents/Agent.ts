@@ -8,6 +8,8 @@ import {
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type DataPart,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   getFunctionToolsForSubAgent,
@@ -23,6 +25,7 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
+  type Part,
   parseEmbeddedJson,
   type ResolvedRef,
   type SubAgentSkillWithIndex,
@@ -66,10 +69,12 @@ import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
+import { extractTextFromParts } from '../utils/message-parts';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 import type { StreamHelper } from '../utils/stream-helpers';
@@ -87,6 +92,19 @@ import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { PromptConfig, V1_BREAKDOWN_SCHEMA } from './versions/v1/PromptConfig';
+
+type AiSdkTextPart = {
+  type: 'text';
+  text: string;
+};
+
+type AiSdkImagePart = {
+  type: 'image';
+  image: string | URL;
+  experimental_providerMetadata?: { openai?: { imageDetail?: ImageDetail } };
+};
+
+type AiSdkContentPart = AiSdkTextPart | AiSdkImagePart;
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -2814,7 +2832,7 @@ ${output}`;
   }
 
   async generate(
-    userMessage: string,
+    userParts: Part[],
     runtimeContext?: {
       contextId: string;
       metadata: {
@@ -2826,6 +2844,25 @@ ${output}`;
       };
     }
   ) {
+    const textParts = extractTextFromParts(userParts);
+    const dataParts = userParts.filter(
+      (part): part is DataPart => part.kind === 'data' && part.data != null
+    );
+    const dataContext =
+      dataParts.length > 0
+        ? dataParts
+            .map((part) => {
+              const metadata = part.metadata as Record<string, unknown> | undefined;
+              const source = metadata?.source ? ` (source: ${metadata.source})` : '';
+              return `\n\n<structured_data${source}>\n${JSON.stringify(part.data, null, 2)}\n</structured_data>`;
+            })
+            .join('')
+        : '';
+    const userMessage = `${textParts}${dataContext}`;
+    const imageParts = userParts.filter(
+      (part): part is FilePart =>
+        part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
+    );
     // Extract conversation ID early for span attributes
     const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
 
@@ -2898,7 +2935,8 @@ ${output}`;
           const messages = this.buildInitialMessages(
             systemPrompt,
             conversationHistory,
-            userMessage
+            userMessage,
+            imageParts
           );
 
           // Setup compression for this generation
@@ -3275,7 +3313,8 @@ ${output}`;
   private buildInitialMessages(
     systemPrompt: string,
     conversationHistory: string,
-    userMessage: string
+    userMessage: string,
+    imageParts?: FilePart[]
   ): any[] {
     const messages: any[] = [];
     messages.push({ role: 'system', content: systemPrompt });
@@ -3283,12 +3322,53 @@ ${output}`;
     if (conversationHistory.trim() !== '') {
       messages.push({ role: 'user', content: conversationHistory });
     }
+
+    // Build user message content - use array format if images present
+    const userContent = this.buildUserMessageContent(userMessage, imageParts);
     messages.push({
       role: 'user',
-      content: userMessage,
+      content: userContent,
     });
 
     return messages;
+  }
+
+  /**
+   * Build user message content, formatting for multimodal if images are present
+   */
+  private buildUserMessageContent(
+    text: string,
+    imageParts?: FilePart[]
+  ): string | AiSdkContentPart[] {
+    // No images - return simple string for backward compatibility
+    if (!imageParts || imageParts.length === 0) {
+      return text;
+    }
+
+    const content: AiSdkContentPart[] = [{ type: 'text', text }];
+
+    for (const part of imageParts) {
+      const file = part.file;
+      // Transform directly from A2A FilePart to Vercel format:
+      // - HTTP URIs become URL objects
+      // - Base64 bytes become data URL strings (Vercel handles MIME detection)
+      const imageValue =
+        'uri' in file && file.uri
+          ? new URL(file.uri)
+          : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+
+      const imagePart: AiSdkContentPart = {
+        type: 'image',
+        image: imageValue,
+        ...(part.metadata?.detail && {
+          experimental_providerMetadata: { openai: { imageDetail: part.metadata.detail } },
+        }),
+      };
+
+      content.push(imagePart);
+    }
+
+    return content;
   }
 
   /**

@@ -76,11 +76,12 @@ export function GenericAuthForm({
     ? createFormSchema(formConfig)
     : z.object({ _placeholder: z.string().optional() });
 
-  type FormData = Record<string, string>;
-  const defaultValues: FormData = Object.fromEntries(allFields.map((field) => [field.key, '']));
+  const defaultValues: Record<string, string> = Object.fromEntries(
+    allFields.map((field) => [field.key, ''])
+  );
 
-  const form = useForm<FormData>({
-    resolver: formConfig ? zodResolver(FormSchema as any) : undefined,
+  const form = useForm({
+    resolver: formConfig ? zodResolver(FormSchema) : undefined,
     defaultValues,
   });
 
@@ -102,7 +103,7 @@ export function GenericAuthForm({
     );
   }
 
-  const handleSubmit = (data: FormData) => {
+  const handleSubmit = (data: Record<string, unknown>) => {
     // Prepare credentials object - only include non-empty values
     const credentials: Record<string, any> = {};
 

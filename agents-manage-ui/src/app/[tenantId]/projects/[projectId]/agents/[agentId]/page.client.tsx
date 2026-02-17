@@ -983,8 +983,8 @@ export const Agent: FC<AgentProps> = ({
           {!showEmptyState && (
             <Panel
               position="top-right"
-              // width of NodeLibrary
-              className="left-40"
+              // width of NodeLibrary; pointer-events-none so handles below are reachable
+              className="left-40 pointer-events-none"
             >
               <Toolbar
                 onSubmit={onSubmit}
@@ -993,6 +993,11 @@ export const Agent: FC<AgentProps> = ({
                   closeSidePane();
                   setShowPlayground(true);
                 }}
+                tracesHref={
+                  agent.id
+                    ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
+                    : undefined
+                }
               />
             </Panel>
           )}

@@ -37,7 +37,7 @@
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
-    "validate:ai-artifacts": "tsx scripts/validate-ai-artifacts.ts",
+    "validate:ai-artifacts": "pnpx tsx scripts/validate-ai-artifacts.ts",
     "clean": "pnpm -r --parallel exec rm -rf node_modules/ dist/ build/ .next/ .turbo/",
     "clean:turbo": "rm -rf .turbo/",
     "turbo:login": "turbo login && turbo link",
@@ -72,6 +72,11 @@
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "profile:prepush": "node scripts/profile-prepush.mjs",
     "setup-dev": "sh scripts/setup.sh",
+    "setup-dev:optional": "sh scripts/setup-optional.sh",
+    "optional:stop": "sh scripts/setup-optional.sh --stop",
+    "optional:status": "sh scripts/setup-optional.sh --status",
+    "optional:reset": "sh scripts/setup-optional.sh --reset",
+    "setup-skills": "claude plugin marketplace add inkeep/team-skills && claude plugin install eng@inkeep-team-skills && claude plugin install ralph-loop@claude-plugins-official",
     "spicedb:schema:read": "zed schema read --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:orgs": "zed relationship read organization --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
@@ -100,6 +105,9 @@
     "*.{ts,tsx,js,jsx,json,md}": [
       "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
+    "agents-api/src/{domains/**/routes/**,openapi,createApp}.{ts,tsx}": [
+      "bash -c 'cd agents-api && pnpm openapi:update-snapshot && git add __snapshots__/openapi.json'"
+    ],
     "agents-api/**/*.{ts,tsx}": [
       "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
     ],
@@ -108,6 +116,12 @@
     ],
     ".agents/skills/**/SKILL.md": [
       "bash -c 'pnpm validate:ai-artifacts'"
+    ],
+    "scripts/setup-optional.sh": [
+      "bash -c 'cp scripts/setup-optional.sh create-agents-template/scripts/setup-optional.sh && git add create-agents-template/scripts/setup-optional.sh'"
+    ],
+    "scripts/generate-jwt-keys.sh": [
+      "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
     ]
   },
   "packageManager": "pnpm@10.10.0"

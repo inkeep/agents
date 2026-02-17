@@ -56,6 +56,24 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
+      - name: Setup Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: agents-manage-ui/.next/cache
+          key: ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-manage-ui/src/**', 'packages/agents-core/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-build-
+
+      - name: Setup agents-docs build cache
+        uses: actions/cache@v4
+        with:
+          path: agents-docs/.next/cache
+          key: ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-docs/content/**', 'agents-docs/src/**', 'packages/agents-core/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-docs-build-
+
       - name: Setup Playwright cache
         uses: actions/cache@v4
         with:
@@ -150,7 +168,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -162,7 +180,7 @@ jobs:
           POSTGRES_USER: appuser
           POSTGRES_PASSWORD: password
         options: >-
-          --health-cmd "pg_isready -U appuser"
+          --health-cmd "pg_isready -U appuser -d inkeep_agents"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

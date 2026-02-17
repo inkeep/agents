@@ -402,8 +402,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
   const defaultValues = getDefaultValues();
 
-  const form = useForm<TriggerFormData>({
-    resolver: zodResolver(triggerFormSchema) as any,
+  const form = useForm({
+    resolver: zodResolver(triggerFormSchema),
     defaultValues,
   });
 

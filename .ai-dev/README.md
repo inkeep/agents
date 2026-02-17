@@ -1,123 +1,205 @@
-# Claude Code Sandboxed Development Environment
+# Docker Sandbox for Ralph Execution
 
-This directory contains a Docker-based sandbox for running Claude Code with network restrictions.
+Network-jailed Docker environment for running the Ralph iteration loop autonomously. The sandbox provides process isolation and network restrictions while sharing the repo filesystem with the host via bind mount.
 
-## Overview
+## How it works
 
-The sandbox provides:
-- **Network isolation**: Only whitelisted domains are accessible
-- **SSL inspection**: URL path-based filtering (e.g., only `github.com/inkeep/*`)
-- **Full repo access**: Your local repository is mounted into the container
-- **Persistent Claude data**: Authentication and settings survive container restarts
+```
+Host (interactive)                    Docker (autonomous)
+──────────────────                    ───────────────────
+1. /ralph Phase 1 → prd.json
+2. /ralph Phase 2 → .claude/ralph-prompt.md
+3. pnpm install
+4. git checkout -b feat/...
+5. docker compose up ───────────────→ 6. .claude/ralph.sh --force
+                                      7. Claude iterates (headless)
+                                         - reads prd.json         ←── bind mount
+                                         - writes code            ←── bind mount
+                                         - commits to .git        ←── bind mount
+                                         - updates prd.json       ←── bind mount
+                                      8. ralph.sh exits
+9. git log (sees commits) ←────────── (same filesystem)
+10. git push origin <branch>
+11. gh pr create
+```
 
-## Allowed Domains
+**Three zones:**
+- **Creative** (host) — spec authoring, prd.json conversion, prompt crafting. This is where you think.
+- **Execution** (Docker) — ralph.sh iterates autonomously. This is where it works.
+- **Coordination** (host) — push, PR, review. This is where you ship.
 
-| Domain | Access Level |
-|--------|--------------|
-| `*.inkeep.com` | Full access |
-| `github.com/inkeep/*` | Path-restricted |
-| `*.githubusercontent.com/inkeep/*` | Path-restricted |
-| `api.github.com/repos/inkeep/*` | Path-restricted |
-| `*.anthropic.com` | Full access (required for Claude) |
+## When to use Docker vs host execution
 
-All other domains are blocked.
+| Scenario | Recommended | Why |
+|----------|-------------|-----|
+| Short feature (1-5 stories), developer present | Host | Simpler — Ralph Phase 3 runs directly |
+| Long-running feature, run overnight or AFK | Docker | Network jail, memory limits, detachable terminal |
+| CI/CD integration | Docker | Reproducible, isolated |
+| No `.ai-dev/` infrastructure in repo | Host | Docker is optional |
 
-## Quick Start
+## Skill integration
+
+The `/ralph` and `/ship` skills support Docker execution via flags:
+
+```
+/ralph path/to/SPEC.md --docker
+/ship path/to/SPEC.md --ralph-docker
+```
+
+Ralph auto-discovers the compose file in the repo (searches for a `docker-compose.yml` defining a `sandbox` service). To skip discovery, pass the path explicitly:
+
+```
+/ralph path/to/SPEC.md --docker .ai-dev/docker-compose.yml
+```
+
+When passed, Ralph runs `ralph.sh` inside the Docker sandbox instead of on the host. Phases 1-2 (Convert, Prepare) still run on the host — only Phase 3 (Execute) moves into the container.
+
+## Prerequisites
+
+- Docker and Docker Compose
+- The `/ralph` skill installed (for Phase 1-2 on host)
+- `ANTHROPIC_API_KEY` set in your environment
+
+## Quick start
+
+### One-time setup
 
 ```bash
 cd .ai-dev
+cp .env.example .env
+# Edit .env — add your ANTHROPIC_API_KEY
 
-# Set your API key
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Start the sandbox
-docker compose up -d
-
-# Attach to get an interactive shell
-docker attach claude-sandbox
-
-# Inside the container, run claude
-claude
+docker compose build
 ```
 
-## Development Workflow
+### Usage patterns
 
-### Git Operations
+There are three ways to use the Docker sandbox, depending on where you are in the workflow.
 
-The container mounts the parent directory (`..`) to `/workspace`. This means:
+#### Pattern A: Host prepares, Docker executes (most common)
 
-- **Same git repo**: You're working on the exact same files as your host machine
-- **Branches are shared**: Any branch you create inside the container is immediately visible outside
-- **Commits persist**: All git history is on your host filesystem
-- **No sync needed**: Changes are real-time (it's a volume mount, not a copy)
+Use when you want the interactive spec/prd work on host, then hand off execution to Docker for autonomous iteration.
 
-#### Typical workflow:
+**1. Prepare on host (interactive Claude Code session):**
 
 ```bash
-# On host: create a feature branch
-git checkout -b feature/my-feature
+# In your repo root, start Claude Code and invoke /ralph with your spec:
+# /ralph path/to/SPEC.md
+#
+# Ralph Phase 1 converts the spec → prd.json
+# Ralph Phase 2 crafts the prompt → .claude/ralph-prompt.md
+#                                  → .claude/ralph.sh (execution script)
+#
+# Tell Ralph to stop after Phase 2 — you'll handle execution via Docker.
 
-# Start the sandbox
-cd .ai-dev && docker compose up -d
-docker attach claude-sandbox
+# Create feature branch
+git checkout -b feat/my-feature
 
-# Inside container: work with Claude
-claude
+# Install dependencies (container shares this via bind mount)
+pnpm install
 
-# Claude can:
-# - Read/write files in /workspace
-# - Create git commits
-# - Push to github.com/inkeep/* repos (if allowed)
-
-# Exit container (Ctrl+P, Ctrl+Q to detach, or exit to stop)
-
-# On host: your changes are already there
-git status
-git push origin feature/my-feature
+# Commit artifacts so the container starts clean
+git add prd.json .claude/ralph-prompt.md .claude/ralph.sh
+git commit -m "chore: add Ralph artifacts for my-feature"
 ```
 
-### File Persistence
-
-| Location | Persisted? | Notes |
-|----------|------------|-------|
-| `/workspace/*` | Yes | Mounted from host - your actual repo |
-| `/home/user/.claude` | Yes | Docker volume - survives restarts |
-| Other container files | No | Lost when container is removed |
-
-## Commands Reference
+**2. Start the sandbox and execute:**
 
 ```bash
-# Start services
+cd .ai-dev
 docker compose up -d
+docker compose exec sandbox bash
 
-# Stop services
+# Inside the container — you are now at /workspace
+.claude/ralph.sh --max-iterations 20 --max-turns 100 --force
+```
+
+You can detach (`Ctrl+P, Ctrl+Q`) and check back later.
+
+**3. Review and ship on host:**
+
+```bash
+# Changes are already in your repo (bind mount)
+git log --oneline
+git diff HEAD~5
+
+# Push and create PR
+git push origin feat/my-feature
+gh pr create --title "feat: my-feature" --body "..."
+```
+
+**4. Clean up:**
+
+```bash
+cd .ai-dev
 docker compose down
-
-# View proxy logs (see allowed/blocked requests)
-docker compose logs proxy
-
-# View Claude container logs
-docker compose logs claude-sandbox
-
-# Get interactive shell
-docker attach claude-sandbox
-
-# Detach without stopping: Ctrl+P, Ctrl+Q
-# Exit and stop: Ctrl+C or 'exit'
-
-# Run one-off command
-docker compose exec claude-sandbox claude --version
-
-# Rebuild after config changes
-docker compose build --no-cache
-docker compose up -d
 ```
+
+#### Pattern B: Artifacts already exist, just execute
+
+Use when `prd.json` and `.claude/ralph-prompt.md` already exist from a previous session — you just need to resume or re-run execution.
+
+```bash
+cd .ai-dev
+docker compose up -d
+docker compose exec sandbox bash
+
+# Inside the container:
+.claude/ralph.sh --force
+```
+
+#### Pattern C: Everything inside Docker
+
+Use when you want the full Ralph workflow inside the container. Host plugins (including `/ralph`) are available inside Docker via the plugin mount.
+
+```bash
+cd .ai-dev
+docker compose up -d
+docker compose exec sandbox bash
+
+# Inside the container — start Claude Code and use /ralph normally:
+claude
+# Then: /ralph path/to/SPEC.md
+```
+
+Note: Interactive spec work is less convenient inside Docker (no browser tools, no macOS computer use). Pattern A is preferred for most workflows.
+
+## What the sandbox can and cannot access
+
+### Network (controlled by squid.conf)
+
+| Domain | Access | Purpose |
+|--------|--------|---------|
+| `*.anthropic.com` | Full | Claude API calls |
+| `*.claude.com` | Full | Claude Code authentication |
+| `registry.npmjs.org` | Full | pnpm install |
+| `*.inkeep.com` | Full | Organization services |
+| `api.github.com` | Full | GitHub API (PR, reviews, CI) |
+| `github.com/inkeep/*` | Path-restricted | Git push/pull (org repos only) |
+| `*.githubusercontent.com/inkeep/*` | Path-restricted | GitHub raw content |
+| Everything else | **Blocked** | |
+
+### Filesystem
+
+| Path | Container access | Notes |
+|------|-----------------|-------|
+| `/workspace/` | Read-write | Bind mount of repo root — same files, same `.git` |
+| `/home/agent/.claude/` | Read-write | Docker volume — persists Claude auth across restarts |
+| `/host-plugins/` | Read-only | Host's `~/.claude/plugins/` — copied to container on startup by entrypoint |
+| Everything else | Container-only | Lost when container is removed |
+
+### What the container CANNOT do
+
+- Access host home directory (`~/.ssh/`, `~/.gitconfig/`, etc.)
+- Access other repos or projects on the host
+- Run processes on the host
+- Reach arbitrary internet domains (network jail)
 
 ## Configuration
 
-### Adding Allowed Domains
+### Adding domains to the allowlist
 
-Edit `squid.conf` and add new ACL rules:
+Edit `squid.conf`:
 
 ```conf
 # Add a new domain
@@ -125,26 +207,20 @@ acl my_domain dstdomain .example.com
 http_access allow my_domain
 ```
 
-Then restart the proxy:
+Then restart the proxy: `docker compose restart proxy`
 
-```bash
-docker compose restart proxy
-```
+### Removing npm registry access
 
-### Adding Path-Restricted Domains
-
-For URL path filtering (requires SSL inspection):
+If you want the old strict model (no package installation inside container), comment out the npm ACL in `squid.conf`:
 
 ```conf
-# Domain ACL
-acl example_domain dstdomain example.com
-# Path ACL
-acl example_path urlpath_regex ^/allowed-path(/|$)
-# Combined rule
-http_access allow example_domain example_path
+# acl npm_registry dstdomain registry.npmjs.org
+# http_access allow npm_registry
 ```
 
-### Adjusting Memory
+The container will use `node_modules/` from the host's bind mount. Run `pnpm install` on the host before starting Docker.
+
+### Adjusting memory
 
 Edit `docker-compose.yml`:
 
@@ -152,187 +228,131 @@ Edit `docker-compose.yml`:
 deploy:
   resources:
     limits:
-      memory: 16G  # Increase as needed
+      memory: 16G  # Default: 14G
 ```
 
-### Mounting Additional Directories
+### Pushing from inside the container
 
-Edit the `volumes` section in `docker-compose.yml`:
+To enable git push and PR creation from inside the container:
 
-```yaml
-volumes:
-  - ..:/workspace
-  - ~/other-repo:/other-repo:ro  # Read-only mount
-```
+1. Set `GITHUB_TOKEN` in `.env`
+2. The `gh` CLI and git are pre-installed in the container
+3. The GitHub API is already in the allowlist
+
+**Note:** `gh` CLI reads `GITHUB_TOKEN` from the environment and works out of the box. For `git push` to authenticate, you would also need a git credential helper configured — this is not set up by default. A future enhancement could add `git config --global credential.helper '!f() { echo "password=$GITHUB_TOKEN"; }; f'` to `entrypoint.sh`.
+
+This changes the trust model — the container can now push code and create PRs on your behalf.
+
+## ralph.sh
+
+The Ralph skill places `ralph.sh` at `.claude/ralph.sh` during Phase 2 (alongside `.claude/ralph-prompt.md`). The container accesses it via the bind mount at `/workspace/.claude/ralph.sh`.
+
+The canonical source is in the Ralph skill (`scripts/ralph.sh`). Each Phase 2 run copies a fresh version — no manual sync needed.
+
+Run `.claude/ralph.sh --help` for CLI options.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Host Machine                          │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              Docker Internal Network                 │    │
-│  │                                                      │    │
-│  │   ┌──────────────┐         ┌──────────────────┐    │    │
-│  │   │    Squid     │ ◄────── │  Claude Sandbox  │    │    │
-│  │   │    Proxy     │         │                  │    │    │
-│  │   │  (SSL bump)  │         │  /workspace ─────┼────┼────┼──► ../
-│  │   └──────┬───────┘         └──────────────────┘    │    │
-│  │          │                                          │    │
-│  └──────────┼──────────────────────────────────────────┘    │
-│             │                                                │
-│             ▼                                                │
-│   ┌─────────────────┐                                       │
-│   │ External Network │ ──► Only allowed domains             │
-│   └─────────────────┘                                       │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                      Host Machine                        │
+│                                                          │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │            Docker Internal Network                 │  │
+│  │                                                    │  │
+│  │  ┌────────────┐         ┌──────────────────┐      │  │
+│  │  │   Squid    │ ◄────── │  Claude Sandbox  │      │  │
+│  │  │   Proxy    │         │                  │      │  │
+│  │  │ (SSL bump) │         │  /workspace ─────┼──────┼──┼──► ../repo
+│  │  └─────┬──────┘         └──────────────────┘      │  │
+│  │        │                                           │  │
+│  └────────┼───────────────────────────────────────────┘  │
+│           │                                              │
+│           ▼                                              │
+│  ┌────────────────┐                                      │
+│  │ External Net   │ ──► Only allowed domains             │
+│  └────────────────┘                                      │
+└──────────────────────────────────────────────────────────┘
 ```
+
+## Entrypoint
+
+The container runs `entrypoint.sh` on startup, which:
+
+1. **Copies host plugins** — If `~/.claude/plugins/` is mounted at `/host-plugins/`, copies them into the container's `~/.claude/plugins/` so skills and hooks are available inside Docker.
+2. **Configures sandbox** — Sets `enableWeakerNestedSandbox: true` in Claude Code's settings. Claude Code's bubblewrap sandbox cannot run in unprivileged Docker; this flag tells it to use a weaker sandbox and rely on the Docker container + Squid proxy as the security boundary.
+
+## Container image
+
+The sandbox uses a custom Dockerfile (`Dockerfile`) instead of the official `docker/sandbox-templates:claude-code` image. This gives us:
+
+| Tool | Version | Why custom |
+|------|---------|-----------|
+| Node.js | 22 | Repo requires >=22 (official image has 20) |
+| pnpm | 10.10.0 | Repo package manager (not in official image) |
+| gh | Latest | GitHub CLI for optional PR workflow |
+| jq | Latest | JSON processing for ralph.sh |
+| Claude Code | Latest | Installed via official installer |
+
+To update the image after changes: `docker compose build --no-cache`
 
 ## Troubleshooting
 
-### "ECONNREFUSED" to Anthropic API
-
-The proxy isn't running or Claude can't reach it:
+### "ECONNREFUSED" or SSL errors
 
 ```bash
-docker compose ps          # Check if proxy is running
-docker compose logs proxy  # Check for errors
-docker compose restart     # Restart everything
+docker compose ps            # Check if proxy is running
+docker compose logs proxy    # Check for errors
+docker compose restart       # Restart everything
 ```
 
-### SSL Certificate Errors
-
-The CA certificate isn't being trusted:
-
-```bash
-# Check if cert exists in shared volume
-docker compose exec claude-sandbox ls -la /certs/
-
-# Rebuild to regenerate certs
-docker compose down
-docker volume rm ai-dev_squid-certs
-docker compose build --no-cache
-docker compose up -d
-```
-
-### Domain Being Blocked
-
-Check the proxy logs to see what's being denied:
+### Domain being blocked
 
 ```bash
 docker compose exec proxy tail -f /var/log/squid/access.log
 ```
 
-Look for `TCP_DENIED` entries to see blocked requests.
+Look for `TCP_DENIED` entries.
 
-### Container Exits Immediately
+### Claude Code auth issues
 
-Make sure you're using the correct attach command:
-
-```bash
-docker compose up -d       # Start detached
-docker attach claude-sandbox  # Then attach
-```
-
-## Ralph Loop (Autonomous Agent)
-
-Ralph is an autonomous loop that runs Claude iteratively until a PRD is complete.
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Ralph Loop                            │
-│                                                          │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐          │
-│  │ Read PRD │───►│  Select  │───►│Implement │          │
-│  │   .json  │    │  Story   │    │  Story   │          │
-│  └──────────┘    └──────────┘    └────┬─────┘          │
-│                                       │                 │
-│  ┌──────────┐    ┌──────────┐    ┌────▼─────┐          │
-│  │  Signal  │◄───│  Update  │◄───│   Test   │          │
-│  │ Complete │    │   PRD    │    │ & Commit │          │
-│  └──────────┘    └──────────┘    └──────────┘          │
-│        │                              │                 │
-│        │         All done?            │ More stories   │
-│        ▼              ▼               ▼                 │
-│      EXIT         Fresh Claude    NEXT ITERATION       │
-└─────────────────────────────────────────────────────────┘
-```
-
-Each iteration:
-1. Fresh Claude instance (clean context)
-2. Reads PRD and progress log (memory)
-3. Implements one user story
-4. Runs tests, commits, updates PRD
-5. Logs learnings for future iterations
-
-### Quick Start
+The Claude data volume persists auth. If auth breaks:
 
 ```bash
-# Inside the container
-cd /workspace
-
-# Create your PRD (copy and edit the template)
-cp .ai-dev/prd-template.json prd.json
-# Edit prd.json with your stories
-
-# Run Ralph (default 10 iterations)
-.ai-dev/ralph.sh
-
-# Or specify max iterations
-.ai-dev/ralph.sh 20
-
-# Or use custom prompt
-.ai-dev/ralph.sh 10 /path/to/custom-prompt.md
+docker compose down
+docker volume rm ai-dev_claude-data
+docker compose up -d
+# Re-authenticate inside the container
 ```
 
-### Files
+### ralph.sh says "Prompt file not found"
 
-| File | Purpose |
-|------|---------|
-| `ralph.sh` | Main loop script |
-| `ralph-prompt.md` | Instructions sent to Claude each iteration |
-| `prd-template.json` | Template for your PRD |
-| `prd.json` | Your project's PRD (in repo root) |
-| `progress.txt` | Learnings log (created automatically) |
+Run `/ralph` Phase 1-2 on the host first. The prompt must exist at `.claude/ralph-prompt.md` before starting Docker execution.
 
-### PRD Format
+### Tests fail with missing dependencies
 
-```json
-{
-  "name": "Feature Name",
-  "branch": "feature/my-feature",
-  "stories": [
-    {
-      "id": "STORY-1",
-      "title": "User story title",
-      "description": "As a user, I want to...",
-      "priority": 1,
-      "passes": false,
-      "acceptance_criteria": ["..."]
-    }
-  ]
-}
-```
+Run `pnpm install` on the host before starting Docker. The container accesses `node_modules/` via the bind mount.
 
-### Customizing the Prompt
+If a story requires a NEW dependency, the container can install it (npm registry is in the allowlist). But run `pnpm install` on the host afterward to ensure the lockfile is consistent.
 
-Edit `.ai-dev/ralph-prompt.md` to change Claude's behavior. Key sections:
-- Task workflow
-- Progress log format
-- Completion criteria
+## Future work
 
-### Tips
+The current sandbox is **execution-only** — ralph.sh iterates inside Docker, host handles everything else (spec, push, PR, review). A future upgrade could enable full autonomous operation inside the container:
 
-- **Small stories**: Each story should be implementable in one context window
-- **Good tests**: Ralph relies on tests to verify completion
-- **Check progress.txt**: See what Claude learned across iterations
-- **Archive on branch switch**: Progress is auto-archived when you change branches
+| Item | What it enables | Trigger to revisit |
+|------|----------------|-------------------|
+| Git credential helper in entrypoint | `git push` from inside the container | Want to push/PR from Docker instead of host |
+| `CLAUDE_SPECS_DIR=/workspace/.claude/specs` | `/spec` output persists via bind mount | Want to run `/spec` inside the container |
+| `gh` auth config (`GH_TOKEN` export) | `gh pr create`, `gh api` from inside | Want full `/ship` review loop inside Docker |
+| Git URL HTTPS rewrite (`insteadOf ssh`) | Prevents SSH attempts through the proxy | If tools default to SSH and silently fail |
+| Health checks in docker-compose | Proxy readiness before sandbox starts | Intermittent startup failures |
+| Convenience start script | Pre-flight checks (token set, plugins exist) | Team onboarding friction |
 
-## Security Notes
+See `~/.claude/specs/docker-sandbox-upgrade/SPEC.md` for the full analysis that drove these decisions.
 
-- **SSL Inspection**: The proxy performs MITM on HTTPS traffic to inspect URLs. This is required for path-based filtering but means all traffic is decrypted by the proxy.
-- **Network Isolation**: The Claude container has no direct internet access - all traffic must go through the proxy.
-- **Volume Mounts**: The container has read/write access to your mounted directories. Be mindful of what you mount.
+## Security notes
+
+- **SSL inspection**: The proxy performs MITM on HTTPS traffic for URL path filtering. All traffic is decrypted by the proxy.
+- **Network isolation**: The sandbox has no direct internet access — all traffic goes through the proxy.
+- **Bind mount**: The container has read-write access to the entire repo directory, including `.git/` and `.env` files.
+- **npm registry**: Enabled by default. `pnpm install` inside the container triggers postinstall scripts from downloaded packages. These scripts run with the same filesystem access as Ralph (the repo directory). See squid.conf to disable if this is a concern.

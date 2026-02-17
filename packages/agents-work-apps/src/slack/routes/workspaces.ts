@@ -171,7 +171,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:teamId',
+    path: '/{teamId}',
     summary: 'Get Workspace',
     description: 'Get details of a specific Slack workspace',
     operationId: 'slack-get-workspace',
@@ -234,7 +234,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:teamId/settings',
+    path: '/{teamId}/settings',
     summary: 'Get Workspace Settings',
     description: 'Get settings for a Slack workspace including default agent',
     operationId: 'slack-get-workspace-settings',
@@ -287,7 +287,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:teamId/settings',
+    path: '/{teamId}/settings',
     summary: 'Update Workspace Settings',
     description: 'Update workspace settings including default agent',
     operationId: 'slack-update-workspace-settings',
@@ -354,7 +354,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:teamId',
+    path: '/{teamId}',
     summary: 'Uninstall Workspace',
     description: 'Uninstall Slack app from workspace. Accepts either teamId or connectionId.',
     operationId: 'slack-delete-workspace',
@@ -469,7 +469,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:teamId/channels',
+    path: '/{teamId}/channels',
     summary: 'List Channels',
     description: 'List Slack channels in the workspace that the bot can see',
     operationId: 'slack-list-channels',
@@ -575,7 +575,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:teamId/channels/:channelId/settings',
+    path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Get Channel Settings',
     description: 'Get default agent configuration for a specific channel',
     operationId: 'slack-get-channel-settings',
@@ -632,7 +632,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:teamId/channels/:channelId/settings',
+    path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Set Channel Default Agent',
     description: 'Set or update the default agent for a specific channel',
     operationId: 'slack-set-channel-settings',
@@ -710,7 +710,7 @@ app.use('/:teamId/channels/bulk', async (c, next) => {
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:teamId/channels/bulk',
+    path: '/{teamId}/channels/bulk',
     summary: 'Bulk Set Channel Agents',
     description: 'Apply the same agent configuration to multiple channels at once',
     operationId: 'slack-bulk-set-channel-agents',
@@ -764,7 +764,13 @@ app.openapi(
     const tenantId = workspace.tenantId;
     const slackClient = getSlackClient(workspace.botToken);
 
-    const channels = await getSlackChannels(slackClient, 500);
+    let channels: Awaited<ReturnType<typeof getSlackChannels>> = [];
+    try {
+      channels = await getSlackChannels(slackClient, 500);
+    } catch (error) {
+      logger.error({ error, teamId }, 'Failed to fetch channels for bulk operation');
+      return c.json({ error: 'Failed to fetch channels' }, 500);
+    }
     const channelMap = new Map(channels.map((ch) => [ch.id, ch]));
 
     let updated = 0;
@@ -815,7 +821,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:teamId/channels/bulk',
+    path: '/{teamId}/channels/bulk',
     summary: 'Bulk Remove Channel Configs',
     description: 'Remove agent configuration from multiple channels at once',
     operationId: 'slack-bulk-delete-channel-agents',
@@ -880,7 +886,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:teamId/channels/:channelId/settings',
+    path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Remove Channel Config',
     description: 'Remove the default agent configuration for a channel',
     operationId: 'slack-delete-channel-settings',
@@ -927,7 +933,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:teamId/users',
+    path: '/{teamId}/users',
     summary: 'List Linked Users',
     description: 'List all users linked to Inkeep in this workspace',
     operationId: 'slack-list-linked-users',
@@ -993,7 +999,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:teamId/health',
+    path: '/{teamId}/health',
     summary: 'Check Workspace Health',
     description:
       'Verify the bot token is valid and check permissions. Returns bot info and permission status.',
@@ -1110,7 +1116,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/:teamId/test-message',
+    path: '/{teamId}/test-message',
     summary: 'Send Test Message',
     description: 'Send a test message to verify the bot is working correctly.',
     operationId: 'slack-test-message',

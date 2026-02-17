@@ -27,6 +27,15 @@ export default defineConfig({
   test: {
     name: pkgJson.name,
     globals: true,
+    onUnhandledError(error) {
+      // Suppress known Vitest worker RPC shutdown race condition.
+      // Next.js triggers background dynamic imports that can outlive test execution;
+      // when the worker shuts down, these pending imports cause an unhandled rejection.
+      // See: https://github.com/vitest-dev/vitest/issues/9458
+      if (error instanceof Error && error.message?.includes('Closing rpc while')) {
+        return false;
+      }
+    },
     projects: [
       {
         extends: true,

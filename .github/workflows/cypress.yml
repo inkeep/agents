@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16gb
+    timeout-minutes: 30
 
     services:
       doltgres:
@@ -28,11 +29,11 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-          --health-start-period 20s
+          --health-retries 10
+          --health-start-period 30s
       postgres:
         image: postgres:18
         env:
@@ -40,7 +41,7 @@ jobs:
           POSTGRES_USER: appuser
           POSTGRES_PASSWORD: password
         options: >-
-          --health-cmd "pg_isready -U appuser"
+          --health-cmd "pg_isready -U appuser -d inkeep_agents"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -86,11 +87,17 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
+      - name: Setup Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: agents-manage-ui/.next/cache
+          key: ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-manage-ui/src/**', 'packages/agents-core/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-build-
+
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          # Ensure agents-manage-ui dependencies are properly installed
-          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
@@ -127,6 +134,7 @@ jobs:
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+          ENVIRONMENT: test
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: test-bypass-secret-for-ci
@@ -134,3 +142,4 @@ jobs:
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
           BETTER_AUTH_SECRET: test-secret-key-for-ci
           SPICEDB_PRESHARED_KEY: dev-secret-key
+          CYPRESS_NO_COMMAND_LOG: 1

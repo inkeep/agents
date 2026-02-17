@@ -1,5 +1,110 @@
 # @inkeep/agents-cli
 
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-manage-ui@0.48.4
+  - @inkeep/agents-sdk@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- baa7e46: Fix CLI port mismatch by centralizing local dev URLs via --local flag
+- Updated dependencies [6b561f6]
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-manage-ui@0.48.3
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-sdk@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- Updated dependencies [5287615]
+  - @inkeep/agents-manage-ui@0.48.2
+  - @inkeep/agents-core@0.48.2
+  - @inkeep/agents-sdk@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.48.1
+- @inkeep/agents-core@0.48.1
+- @inkeep/agents-sdk@0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 9ed110c: Add `--ui` flag to CLI `add` command for downloading UI components from the dashboard
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [26b3b88]
+- Updated dependencies [615713f]
+- Updated dependencies [e551124]
+- Updated dependencies [5d3f136]
+- Updated dependencies [5b0b1f1]
+- Updated dependencies [228d4e2]
+- Updated dependencies [c0c922b]
+- Updated dependencies [627df66]
+- Updated dependencies [9ed110c]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [4476af0]
+- Updated dependencies [73d79bd]
+- Updated dependencies [0bf078c]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+- Updated dependencies [32bff8f]
+  - @inkeep/agents-core@0.48.0
+  - @inkeep/agents-manage-ui@0.48.0
+  - @inkeep/agents-sdk@0.48.0
+
 ## 0.47.5
 
 ### Patch Changes

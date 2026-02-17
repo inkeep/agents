@@ -2,6 +2,8 @@ import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingBySlackUser,
+  flushTraces,
+  getWaitUntil,
   signSlackLinkToken,
   signSlackUserToken,
 } from '@inkeep/agents-core';
@@ -460,11 +462,19 @@ export async function handleQuestionCommand(
     projectId: resolvedAgent.projectId,
   };
 
-  executeAgentInBackground(payload, existingLink, targetAgent, question, userTenantId).catch(
-    (error) => {
+  const questionWork = executeAgentInBackground(
+    payload,
+    existingLink,
+    targetAgent,
+    question,
+    userTenantId
+  )
+    .catch((error) => {
       logger.error({ error }, 'Background execution promise rejected');
-    }
-  );
+    })
+    .finally(() => flushTraces());
+  const waitUntil = await getWaitUntil();
+  if (waitUntil) waitUntil(questionWork);
 
   // Return empty object - Slack will just acknowledge the command without showing a message
   // The background task will send the actual response via response_url
@@ -623,11 +633,19 @@ export async function handleRunCommand(
       return { response_type: 'ephemeral', ...message };
     }
 
-    executeAgentInBackground(payload, existingLink, targetAgent, question, userTenantId).catch(
-      (error) => {
+    const runWork = executeAgentInBackground(
+      payload,
+      existingLink,
+      targetAgent,
+      question,
+      userTenantId
+    )
+      .catch((error) => {
         logger.error({ error }, 'Background execution promise rejected');
-      }
-    );
+      })
+      .finally(() => flushTraces());
+    const waitUntil = await getWaitUntil();
+    if (waitUntil) waitUntil(runWork);
 
     // Return empty object - Slack will just acknowledge the command without showing a message
     // The background task will send the actual response via response_url
