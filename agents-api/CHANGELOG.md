@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.48.5
+
+### Patch Changes
+
+- ded8362: improve performance time for traces on vercel
+- Updated dependencies [f39f8b0]
+  - @inkeep/agents-work-apps@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-manage-mcp@0.48.5
+  - @inkeep/agents-mcp@0.48.5
+
 ## 0.48.4
 
 ### Patch Changes
