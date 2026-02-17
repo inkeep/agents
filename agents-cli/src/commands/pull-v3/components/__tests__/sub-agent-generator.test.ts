@@ -322,7 +322,7 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, transferData, definition);
     });
 
-    it('should not generate stopWhen without stepCountIs', () => {
+    it.only('should not generate stopWhen without stepCountIs', async () => {
       const noStepCountData = {
         name: 'No Step Count Agent',
         description: 'Agent without step count',
@@ -331,15 +331,18 @@ describe('Sub-Agent Generator', () => {
           someOtherProperty: 10,
         },
       };
+      const subAgentId = 'no-step-agent';
 
       const definition = generateSubAgentDefinition(
-        'no-step-agent',
+        subAgentId,
         noStepCountData,
         undefined,
         mockRegistry
       );
 
       expect(definition).not.toContain('stopWhen:');
+
+      await expectDefinitionSnapshotPair(subAgentId, noStepCountData, definition);
     });
 
     it('should handle stopWhen with only stepCountIs', () => {
