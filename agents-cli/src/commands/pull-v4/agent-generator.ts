@@ -79,6 +79,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
   }
   const triggerIds = parsed.triggers ? extractIds(parsed.triggers) : [];
   addTriggerImports(sourceFile, triggerIds);
+  addStatusComponentImports(sourceFile, extractStatusComponentIds(parsed.statusUpdates));
 
   const agentVarName = toCamelCase(parsed.agentId);
   const variableStatement = sourceFile.addVariableStatement({
@@ -150,7 +151,7 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
     });
   }
 
-  if (data.credentials && data.credentials.length > 0) {
+  if (data.credentials?.length) {
     const credentialIds = data.credentials
       .map((credential) => {
         if (typeof credential === 'string') {
@@ -216,20 +217,9 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
     }
 
     if (data.statusUpdates.statusComponents && data.statusUpdates.statusComponents.length > 0) {
-      const statusComponentRefs = data.statusUpdates.statusComponents
-        .map((statusComponent) => {
-          if (typeof statusComponent === 'string') {
-            return toCamelCase(statusComponent);
-          }
-
-          const id = statusComponent.id || statusComponent.type || statusComponent.name;
-          if (!id) {
-            return undefined;
-          }
-
-          return `${toCamelCase(id)}.config`;
-        })
-        .filter((value): value is string => Boolean(value));
+      const statusComponentRefs = data.statusUpdates.statusComponents.map(
+        (statusComponent) => `${toCamelCase(resolveStatusComponentId(statusComponent))}.config`
+      );
 
       if (statusComponentRefs.length > 0) {
         const statusComponentsProperty = statusUpdatesObject.addPropertyAssignment({
@@ -301,6 +291,43 @@ function addTriggerImports(sourceFile: SourceFile, triggerIds: string[]): void {
     sourceFile.addImportDeclaration({
       namedImports: [toCamelCase(triggerId)],
       moduleSpecifier: `./triggers/${triggerId}`,
+    });
+  }
+}
+
+function extractStatusComponentIds(
+  statusUpdates?: ParsedAgentDefinitionData['statusUpdates']
+): string[] {
+  if (!statusUpdates?.statusComponents?.length) {
+    return [];
+  }
+
+  const statusComponentIds = statusUpdates.statusComponents
+    .map(resolveStatusComponentId)
+  return [...new Set(statusComponentIds)];
+}
+
+function resolveStatusComponentId(
+  statusComponent: string | { id?: string; type?: string; name?: string }
+): string {
+  const id =
+    typeof statusComponent === 'string'
+      ? statusComponent
+      : statusComponent.id || statusComponent.type;
+  if (!id) {
+    throw new Error(
+      `Unable to resolve status component with id ${JSON.stringify(statusComponent)}`
+    );
+  }
+  return id;
+}
+
+function addStatusComponentImports(sourceFile: SourceFile, statusComponentIds: string[]): void {
+  const uniqueStatusComponentIds = new Set(statusComponentIds);
+  for (const statusComponentId of uniqueStatusComponentIds) {
+    sourceFile.addImportDeclaration({
+      namedImports: [toCamelCase(statusComponentId)],
+      moduleSpecifier: `../status-components/${statusComponentId}`,
     });
   }
 }

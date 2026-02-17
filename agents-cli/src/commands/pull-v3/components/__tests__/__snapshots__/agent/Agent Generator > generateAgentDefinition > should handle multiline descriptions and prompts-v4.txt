@@ -2,6 +2,7 @@ import { agent } from '@inkeep/agents-sdk';
 import { subAgent1 } from './sub-agents/subAgent1';
 import { subAgent2 } from './sub-agents/subAgent2';
 import { defaultSubAgent } from './sub-agents/defaultSubAgent';
+import { statusConfig } from '../status-components/status.config';
 
 export const multilineAgent = agent({
   id: 'multiline-agent',
@@ -12,7 +13,7 @@ export const multilineAgent = agent({
   statusUpdates: {
     numEvents: 2,
     timeInSeconds: 10,
-    statusComponents: [statusconfig],
+    statusComponents: [statusConfig.config],
     prompt: `This is a very long prompt that should be handled as a multiline string
 It even contains newlines which should trigger multiline formatting`
   }
