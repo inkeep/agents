@@ -587,7 +587,7 @@ export async function getThreadContext(
           return `@${userNameCache.get(userId) || userId}`;
         }) || '';
 
-      return `${prefix}${role}: ${messageText}`;
+      return `${prefix}${role}: """${messageText}"""`;
     });
 
     return formattedMessages.join('\n\n');
