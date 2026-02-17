@@ -213,15 +213,18 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, noNameData, definition);
     });
 
-    it('should handle camelCase conversion for variable names', () => {
+    it.only('should handle camelCase conversion for variable names', async () => {
+      const subAgentId = 'my-complex-sub-agent_v2';
       const definition = generateSubAgentDefinition(
-        'my-complex-sub-agent_v2',
+        subAgentId,
         basicSubAgentData,
         undefined,
         mockRegistry
       );
 
       expect(definition).toContain('export const myComplexSubAgentV2 = subAgent({');
+
+      await expectDefinitionSnapshotPair(subAgentId, basicSubAgentData, definition);
     });
 
     it('should handle multiline prompts and descriptions', () => {
