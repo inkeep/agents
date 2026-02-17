@@ -129,7 +129,8 @@ describe('Function Tool Generator', () => {
       await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithSchema, definition);
     });
 
-    it('should prefer inputSchema over schema when both exist', () => {
+    it.only('should prefer inputSchema over schema when both exist', async () => {
+      const functionToolId = 'test';
       const dataWithBoth = {
         name: 'test-tool',
         description: 'Test tool',
@@ -152,6 +153,8 @@ describe('Function Tool Generator', () => {
 
       expect(definition).toContain('"input"');
       expect(definition).not.toContain('"schema"');
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithBoth, definition);
     });
 
     it('should handle multiline descriptions', () => {

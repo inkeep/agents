@@ -1,11 +1,6 @@
 import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import {
-  addStringProperty,
-  addValueToObject,
-  createInMemoryProject,
-  toCamelCase,
-} from './utils';
+import { addStringProperty, addValueToObject, createInMemoryProject, toCamelCase } from './utils';
 
 interface FunctionToolDefinitionData {
   functionToolId: string;
@@ -105,10 +100,11 @@ function writeFunctionToolConfig(
 
   const inputSchema = data.inputSchema ?? data.schema;
   if (inputSchema !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'inputSchema',
-      initializer: formatInlineLiteral(inputSchema),
-    });
+    const p = configObject.addPropertyAssignment({ name: 'inputSchema', initializer: '{}' });
+    const schemaObj = p.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    for (const [k, v] of Object.entries(inputSchema)) {
+      addValueToObject(schemaObj, k, v);
+    }
   }
 
   const executeCode = data.executeCode ?? data.execute;
@@ -126,11 +122,7 @@ function formatExecuteFunction(executeCode: string): string {
     return 'async ({}) => {\n  return {};\n}';
   }
 
-  if (
-    trimmed.startsWith('async') ||
-    trimmed.startsWith('function') ||
-    trimmed.startsWith('(')
-  ) {
+  if (trimmed.startsWith('async') || trimmed.startsWith('function') || trimmed.startsWith('(')) {
     return trimmed;
   }
 
