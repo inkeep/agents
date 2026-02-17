@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { connection } from 'next/server';
 import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { DevAutoLoginProvider } from '@/components/providers/dev-auto-login-provider';
@@ -106,7 +107,8 @@ const runtimeConfig: RuntimeConfig = {
     process.env.PUBLIC_POSTHOG_SITE_TAG || process.env.NEXT_PUBLIC_POSTHOG_SITE_TAG,
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  await connection();
   return (
     <html lang="en" suppressHydrationWarning>
       <body
