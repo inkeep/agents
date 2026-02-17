@@ -118,14 +118,18 @@ describe('Status Component Generator', () => {
       );
     });
 
-    it('should handle component ID to camelCase conversion', () => {
-      const definition = generateStatusComponentDefinition('progress-update', {
+    it.only('should handle component ID to camelCase conversion', async () => {
+      const statusComponentId = 'progress-update';
+      const componentData = {
         type: 'progress_update',
         description: 'Progress information',
-      });
+      };
+      const definition = generateStatusComponentDefinition(statusComponentId, componentData);
 
       expect(definition).toContain('export const progressUpdate = statusComponent({');
       expect(definition).toContain("type: 'progress_update',");
+
+      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, componentData);
     });
 
     it('should throw error for missing type', () => {

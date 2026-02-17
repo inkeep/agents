@@ -1,0 +1,6 @@
+import { statusComponent } from '@inkeep/agents-sdk';
+
+export const progressUpdate = statusComponent({
+  type: 'progress_update',
+  description: 'Progress information'
+});

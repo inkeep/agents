@@ -1,0 +1,4 @@
+export const progressUpdate = statusComponent({
+  type: 'progress_update',
+  description: 'Progress information'
+});
