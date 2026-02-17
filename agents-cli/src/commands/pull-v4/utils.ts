@@ -1,4 +1,23 @@
-import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+import {
+  IndentationText,
+  NewLineKind,
+  type ObjectLiteralExpression,
+  Project,
+  QuoteKind,
+  SyntaxKind,
+} from 'ts-morph';
+
+export function createInMemoryProject(): Project {
+  return new Project({
+    useInMemoryFileSystem: true,
+    manipulationSettings: {
+      indentationText: IndentationText.TwoSpaces,
+      quoteKind: QuoteKind.Single,
+      newLineKind: NewLineKind.LineFeed,
+      useTrailingCommas: false,
+    },
+  });
+}
 
 export function toCamelCase(input: string): string {
   const result = input
@@ -31,7 +50,7 @@ export function formatPropertyName(key: string): string {
   return formatStringLiteral(key);
 }
 
-function formatInlineLiteral(value: unknown): string {
+export function formatInlineLiteral(value: unknown): string {
   if (typeof value === 'string') {
     return formatStringLiteral(value);
   }
