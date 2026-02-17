@@ -182,8 +182,8 @@ export class ModelFactory {
 
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
-    // Azure always needs custom configuration
-    if (provider === 'azure' || Object.keys(providerConfig).length > 0) {
+    // Azure always needs custom configuration; echo never does
+    if (provider !== 'echo' && (provider === 'azure' || Object.keys(providerConfig).length > 0)) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
       return customProvider.languageModel(modelName);

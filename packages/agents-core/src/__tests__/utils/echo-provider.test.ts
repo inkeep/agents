@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createEchoModel, EchoLanguageModel } from '../../utils/echo-provider';
 import { ModelFactory } from '../../utils/model-factory';
 
@@ -306,6 +306,14 @@ describe('Echo AI Provider', () => {
       expect(model).toBeDefined();
     });
 
+    it('should create echo model even when providerOptions are present', () => {
+      const model = ModelFactory.createModel({
+        model: 'echo/default',
+        providerOptions: { baseURL: 'https://example.com' },
+      });
+      expect(model).toBeDefined();
+    });
+
     it('should reject unsupported providers', () => {
       expect(() => ModelFactory.parseModelString('unsupported/model')).toThrow(
         /Unsupported provider/
@@ -320,6 +328,8 @@ describe('Echo AI Provider', () => {
 
   describe('Production warning', () => {
     it('should log warning when ENVIRONMENT is production', async () => {
+      const logSpy = vi.spyOn(EchoLanguageModel.prototype as any, 'logProductionWarning');
+
       const originalEnv = process.env.ENVIRONMENT;
       process.env.ENVIRONMENT = 'production';
 
@@ -333,8 +343,10 @@ describe('Echo AI Provider', () => {
             },
           ],
         });
+        expect(logSpy).toHaveBeenCalled();
       } finally {
         process.env.ENVIRONMENT = originalEnv;
+        logSpy.mockRestore();
       }
     });
 
