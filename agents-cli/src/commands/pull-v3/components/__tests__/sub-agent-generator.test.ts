@@ -196,11 +196,12 @@ describe('Sub-Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it('should generate name from ID when name is missing', () => {
+    it.only('should generate name from ID when name is missing', async () => {
       const noNameData = {};
+      const subAgentId = 'fallback-agent';
 
       const definition = generateSubAgentDefinition(
-        'fallback-agent',
+        subAgentId,
         noNameData,
         undefined,
         mockRegistry
@@ -208,6 +209,8 @@ describe('Sub-Agent Generator', () => {
 
       // Should generate a human-readable name from the ID
       expect(definition).toContain("name: 'Fallback Agent',");
+
+      await expectDefinitionSnapshotPair(subAgentId, noNameData, definition);
     });
 
     it('should handle camelCase conversion for variable names', () => {

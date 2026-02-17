@@ -1,0 +1,6 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const fallbackAgent = subAgent({
+  id: 'fallback-agent',
+  name: 'Fallback Agent'
+});
