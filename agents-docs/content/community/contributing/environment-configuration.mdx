@@ -54,6 +54,22 @@ pnpm dev
 
 ## Troubleshooting
 
+### Auto-login not working
+
+The Manage UI auto-logs you in during local development. If you're redirected to the login page instead, your `.env` is likely missing the auth variables. Ensure these are set:
+
+```bash
+INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+BETTER_AUTH_SECRET=your-secret-key-change-in-production
+```
+
+Then run `pnpm db:auth:init` to create the admin user, and restart `pnpm dev`. Check the browser console for `[DevAutoLogin]` messages if the issue persists.
+
+<Note>
+If you used `pnpm setup-dev`, these variables are already set from `.env.example` and the admin user is created automatically.
+</Note>
+
 ### Environment variables not loading
 
 1. Check loading order - later sources override earlier ones
