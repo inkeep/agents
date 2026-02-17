@@ -5,11 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { generateCredentialDefinition as generateCredentialDefinitionV4 } from '../../../pull-v4/credential-generator';
-import {
-  generateCredentialDefinition,
-  generateCredentialFile,
-  generateCredentialImports,
-} from '../credential-generator';
+import { generateCredentialDefinition } from '../credential-generator';
 
 describe('Credential Generator', () => {
   const testCredentialData = {
@@ -56,24 +52,6 @@ describe('Credential Generator', () => {
     await expect(definition).toMatchFileSnapshot(`__snapshots__/credential/${testName}.txt`);
     await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/credential/${testName}-v4.txt`);
   };
-
-  describe('generateCredentialImports', () => {
-    // it('should generate correct imports', () => {
-    //   const imports = generateCredentialImports();
-    //
-    //   expect(imports).toHaveLength(1);
-    //   expect(imports[0]).toBe("import { credential } from '@inkeep/agents-sdk';");
-    // });
-    // it('should handle different code styles', () => {
-    //   const imports = generateCredentialImports({
-    //     quotes: 'double',
-    //     semicolons: false,
-    //     indentation: '    ',
-    //   });
-    //
-    //   expect(imports[0]).toBe('import { credential } from "@inkeep/agents-sdk"');
-    // });
-  });
 
   describe('generateCredentialDefinition', () => {
     it.only('should generate correct definition with all properties', async () => {
@@ -307,7 +285,10 @@ describe('Credential Generator', () => {
       expect(definition).toContain('export const apiKeyV2 = credential({');
       expect(definition).toContain("id: 'api-key_v2',");
 
-      await expectCredentialDefinitionSnapshots({credentialId, ...specialCharactersData}, definition);
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...specialCharactersData },
+        definition
+      );
     });
 
     it('should handle credential ID starting with number', () => {
