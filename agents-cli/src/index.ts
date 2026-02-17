@@ -140,7 +140,9 @@ program
     'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
   )
   .option('--quiet', 'Suppress profile/config logging')
-  .action(pullV3Command);
+  .action(async (options) => {
+    await pullV3Command(options);
+  });
 
 program
   .command('list-agent')
