@@ -301,13 +301,19 @@ describe('create-agents quickstart e2e', () => {
         await page.click('button[type="submit"]');
 
         console.log('Waiting for redirect to projects page');
-        await page.waitForURL('**/default/projects**', { timeout: 15000, waitUntil: 'domcontentloaded' });
+        await page.waitForURL('**/default/projects**', {
+          timeout: 15000,
+          waitUntil: 'domcontentloaded',
+        });
         console.log('Redirected to projects page');
 
         console.log('Clicking activities-planner project');
         // Use force:true because card uses a linkoverlay pattern that intercepts pointer events
         await page.click(`a[href*="${projectId}"]`, { timeout: 15000, force: true });
-        await page.waitForURL(`**/default/projects/${projectId}/**`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+        await page.waitForURL(`**/default/projects/${projectId}/**`, {
+          timeout: 15000,
+          waitUntil: 'domcontentloaded',
+        });
         console.log('Navigated to project page');
 
         console.log('Clicking agent card');
