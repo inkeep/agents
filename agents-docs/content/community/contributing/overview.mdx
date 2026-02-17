@@ -37,11 +37,11 @@ pnpm setup-dev
 This will:
 
 - Create `.env` from `.env.example` if missing
-- Create `~/.inkeep/config` for user-global settings if missing
-- Add `.env` to `.gitignore` if needed
-- Install dependencies
-- Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml` and run migrations
-- Create the admin user for auto-login (`pnpm db:auth:init`)
+- Generate JWT keys if not already configured
+- Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml`
+- Run database migrations (manage + runtime)
+- Initialize the default organization and admin user
+- Push a sample project (weather-project) so the UI is pre-seeded
 
 <Tip>
 `pnpm setup-dev` is idempotent — safe to re-run after pulling changes, resetting your database, or switching branches.
