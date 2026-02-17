@@ -3,7 +3,7 @@
  * Unit tests for MCP tool generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateMcpToolDefinition as generateMcpToolDefinitionV4 } from '../../../pull-v4/mcp-tool-generator';
 import {
   generateMcpToolDefinition,
   generateMcpToolFile,
@@ -49,6 +49,17 @@ describe('MCP Tool Generator', () => {
     credential: envSettings.getEnvironmentCredential('stripe_api_key'),
   };
 
+  const expectMcpToolDefinitionSnapshots = async (
+    mcpToolId: string,
+    mcpToolData: Omit<Parameters<typeof generateMcpToolDefinitionV4>[0], 'mcpToolId'>,
+    definition: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/mcp-tool/${testName}.txt`);
+    const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...mcpToolData });
+    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/mcp-tool/${testName}-v4.txt`);
+  };
+
   describe('generateMcpToolImports', () => {
     it('should generate basic imports', () => {
       const imports = generateMcpToolImports(testToolData);
@@ -76,8 +87,9 @@ describe('MCP Tool Generator', () => {
   });
 
   describe('generateMcpToolDefinition', () => {
-    it('should generate correct definition with all properties', () => {
-      const definition = generateMcpToolDefinition('weather-mcp', testToolData);
+    it.only('should generate correct definition with all properties', async () => {
+      const mcpToolId = 'weather-mcp';
+      const definition = generateMcpToolDefinition(mcpToolId, testToolData);
 
       expect(definition).toContain('export const weatherMcp = mcpTool({');
       expect(definition).toContain("id: 'weather-mcp',");
@@ -88,6 +100,8 @@ describe('MCP Tool Generator', () => {
         "imageUrl: 'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp'"
       );
       expect(definition).toContain('});');
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolData, definition);
     });
 
     it('should handle tool ID to camelCase conversion', () => {
