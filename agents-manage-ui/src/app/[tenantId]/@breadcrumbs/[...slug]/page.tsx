@@ -11,11 +11,13 @@ import { fetchDataset } from '@/lib/api/datasets';
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
+import { fetchWorkAppGitHubInstallationDetail } from '@/lib/api/github';
 import { fetchProject } from '@/lib/api/projects';
 import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
+import { sentry } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 
@@ -102,7 +104,6 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
     async runs(_id) {
       return 'Run';
     },
-
     async webhooks(agentId: string) {
       const result = await getFullAgentAction(tenantId, projectId, agentId);
       if (result.success) {
@@ -120,6 +121,10 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
     async 'scheduled-triggers'(id) {
       const trigger = await getScheduledTrigger(tenantId, projectId, slug[3], id);
       return trigger.name;
+    },
+    async github(id) {
+      const result = await fetchWorkAppGitHubInstallationDetail(tenantId, id);
+      return result.installation.accountLogin;
     },
   };
 
@@ -157,7 +162,9 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
           : undefined;
         label = fetcher ? await fetcher(segment) : getStaticLabel(segment);
         if (!label) {
-          throw new Error(`Unknown breadcrumb segment "${segment}"`);
+          const error = new Error(`Unknown breadcrumb segment "${segment}"`);
+          sentry.captureException(error);
+          throw error;
         }
       }
     } catch (error) {
