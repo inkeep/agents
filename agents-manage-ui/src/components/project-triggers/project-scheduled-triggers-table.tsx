@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import {
   deleteScheduledTriggerAction,
@@ -29,6 +30,7 @@ import {
   updateScheduledTriggerEnabledAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
+import { getCronDescription } from '@/lib/utils/cron';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 
@@ -36,16 +38,6 @@ interface ProjectScheduledTriggersTableProps {
   triggers: ScheduledTriggerWithAgent[];
   tenantId: string;
   projectId: string;
-}
-
-function formatSchedule(trigger: ScheduledTriggerWithAgent): string {
-  if (trigger.cronExpression) {
-    return trigger.cronExpression;
-  }
-  if (trigger.runAt) {
-    return new Date(trigger.runAt).toLocaleString();
-  }
-  return '—';
 }
 
 function getScheduleType(trigger: ScheduledTriggerWithAgent): 'cron' | 'one-time' {
@@ -237,9 +229,24 @@ export function ProjectScheduledTriggersTable({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono">
-                      {formatSchedule(trigger)}
-                    </code>
+                    {trigger.cronExpression ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
+                              {getCronDescription(trigger.cronExpression)}
+                            </code>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono">{trigger.cronExpression}</code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
+                        {trigger.runAt ? new Date(trigger.runAt).toLocaleString() : '—'}
+                      </code>
+                    )}
                   </TableCell>
                   <TableCell>
                     {trigger.lastRunConversationIds.length > 0 ? (
