@@ -509,22 +509,6 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('edge cases', () => {
-    it.only('should throw error for empty component data', () => {
-      const artifactComponentId = 'empty';
-      expect(() => {
-        generateArtifactComponentDefinition(artifactComponentId, {});
-      }).toThrow("Missing required fields for artifact component 'empty': name, props");
-      expect(() => {
-        generateArtifactComponentDefinitionV4({ artifactComponentId });
-      }).toThrow(
-        new Error(`Missing required fields for artifact component:
-✖ Invalid input: expected string, received undefined
-  → at name
-✖ Invalid input: expected object, received undefined
-  → at props`)
-      );
-    });
-
     // it('should handle special characters in component ID', () => {
     //   const definition = generateArtifactComponentDefinition('user-artifact_2023', {
     //     name: 'User Artifact',

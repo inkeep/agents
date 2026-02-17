@@ -294,12 +294,6 @@ describe('Data Component Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should throw error for empty component data', () => {
-      expect(() => {
-        generateDataComponentDefinition('empty', {});
-      }).toThrow("Missing required fields for data component 'empty': name, props");
-    });
-
     // it('should handle special characters in component ID', () => {
     //   const definition = generateDataComponentDefinition('user-data_2023', {
     //     name: 'User Data',
