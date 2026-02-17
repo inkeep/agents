@@ -140,13 +140,17 @@ describe('Status Component Generator', () => {
       }).toThrow("Missing required fields for status component 'my-status': type");
     });
 
-    it('should handle components with only type', () => {
-      const definition = generateStatusComponentDefinition('minimal', { type: 'minimal_status' });
+    it.only('should handle components with only type', async () => {
+      const statusComponentId = 'minimal';
+      const componentData = { type: 'minimal_status' };
+      const definition = generateStatusComponentDefinition(statusComponentId, componentData);
 
       expect(definition).toContain('export const minimal = statusComponent({');
       expect(definition).toContain("type: 'minimal_status'");
       expect(definition).not.toContain('description:');
       expect(definition).not.toContain('detailsSchema:');
+
+      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, componentData);
     });
 
     it('should handle schema field (alternative to detailsSchema)', () => {

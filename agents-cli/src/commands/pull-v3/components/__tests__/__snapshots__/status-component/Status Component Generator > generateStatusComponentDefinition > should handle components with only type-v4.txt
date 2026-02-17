@@ -1,0 +1,5 @@
+import { statusComponent } from '@inkeep/agents-sdk';
+
+export const minimal = statusComponent({
+  type: 'minimal_status'
+});
