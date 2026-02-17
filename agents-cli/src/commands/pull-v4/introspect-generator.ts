@@ -7,6 +7,7 @@ import { generateContextConfigDefinition } from './context-config-generator';
 import { generateCredentialDefinition } from './credential-generator';
 import { mergeGeneratedModule } from './module-merge';
 import { generateProjectDefinition } from './project-generator';
+import { generateStatusComponentDefinition } from './status-component-generator';
 import { generateSubAgentDefinition } from './sub-agent-generator';
 import { generateTriggerDefinition } from './trigger-generator';
 
@@ -59,7 +60,6 @@ interface UnsupportedComponentCounts {
   functions: number;
   dataComponents: number;
   externalAgents: number;
-  statusComponents: number;
 }
 
 export async function introspectGenerate(
@@ -143,6 +143,11 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       type: 'sub-agent',
       collect: collectSubAgentRecords,
       generate: generateSubAgentDefinition,
+    },
+    {
+      type: 'status-component',
+      collect: collectStatusComponentRecords,
+      generate: generateStatusComponentDefinition,
     },
     {
       type: 'agent',
@@ -323,6 +328,50 @@ function collectSubAgentRecords(
   return records;
 }
 
+function collectStatusComponentRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateStatusComponentDefinition>[0]>> {
+  if (!context.project.agents) {
+    return [];
+  }
+
+  const statusComponentRecordsById = new Map<
+    string,
+    GenerationRecord<Parameters<typeof generateStatusComponentDefinition>[0]>
+  >();
+
+  for (const agentId of context.completeAgentIds) {
+    const agentData = context.project.agents[agentId];
+    const statusUpdates = asRecord(agentData?.statusUpdates);
+    const statusComponents = Array.isArray(statusUpdates?.statusComponents)
+      ? statusUpdates.statusComponents
+      : [];
+
+    for (const statusComponentData of statusComponents) {
+      const payload = asRecord(statusComponentData);
+      if (!payload) {
+        continue;
+      }
+
+      const statusComponentId = resolveStatusComponentId(payload);
+      if (!statusComponentId || statusComponentRecordsById.has(statusComponentId)) {
+        continue;
+      }
+
+      statusComponentRecordsById.set(statusComponentId, {
+        id: statusComponentId,
+        filePath: join(context.paths.statusComponentsDir, `${statusComponentId}.ts`),
+        payload: {
+          statusComponentId,
+          ...payload,
+        } as Parameters<typeof generateStatusComponentDefinition>[0],
+      });
+    }
+  }
+
+  return [...statusComponentRecordsById.values()];
+}
+
 function collectProjectRecord(
   context: GenerationContext
 ): Array<GenerationRecord<Parameters<typeof generateProjectDefinition>[0]>> {
@@ -403,23 +452,7 @@ function collectUnsupportedComponentCounts(
     functions: getObjectKeys(project.functions).length,
     dataComponents: getObjectKeys(project.dataComponents).length,
     externalAgents: getObjectKeys(project.externalAgents).length,
-    statusComponents: countStatusComponents(project),
   };
-}
-
-function countStatusComponents(project: FullProjectDefinition): number {
-  let total = 0;
-  for (const agentData of Object.values(project.agents ?? {})) {
-    const statusComponents = asRecord(agentData)?.statusUpdates;
-    if (!asRecord(statusComponents)) {
-      continue;
-    }
-    const entries = statusComponents.statusComponents;
-    if (Array.isArray(entries)) {
-      total += entries.length;
-    }
-  }
-  return total;
 }
 
 function hasUnsupportedComponents(counts: UnsupportedComponentCounts): boolean {
@@ -447,6 +480,19 @@ function getObjectKeys(value: unknown): string[] {
     return [];
   }
   return Object.keys(record);
+}
+
+function resolveStatusComponentId(statusComponentData: Record<string, unknown>): string | undefined {
+  if (typeof statusComponentData.id === 'string') {
+    return statusComponentData.id;
+  }
+  if (typeof statusComponentData.type === 'string') {
+    return statusComponentData.type;
+  }
+  if (typeof statusComponentData.name === 'string') {
+    return statusComponentData.name;
+  }
+  return undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
