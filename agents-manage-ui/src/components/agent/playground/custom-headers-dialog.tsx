@@ -1,9 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod';
+import type { StringRecordSchema } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import type { FC } from 'react';
+import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { Badge } from '@/components/ui/badge';
@@ -17,99 +17,68 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import { customHeadersTemplate } from '@/lib/templates';
 
-const customHeadersSchema = z.object({
-  headers: z
-    .string()
-    .refine((val) => {
-      try {
-        const parsed = JSON.parse(val);
-        return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
-      } catch {
-        return false;
-      }
-    }, 'Must be valid JSON object')
-    .refine((val) => {
-      try {
-        const parsed = JSON.parse(val);
-        return Object.values(parsed).every((v) => typeof v === 'string');
-      } catch {
-        return false;
-      }
-    }, 'All header values must be strings'),
-});
-
-type CustomHeadersFormData = z.infer<typeof customHeadersSchema>;
+type DefaultHeaders = z.infer<typeof StringRecordSchema>;
 
 interface CustomHeadersDialogProps {
-  customHeaders: Record<string, string>;
-  setCustomHeaders: (headers: Record<string, string>) => void;
+  customHeaders?: DefaultHeaders;
+  setCustomHeaders: (headers?: DefaultHeaders) => void;
+  form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersDialogProps) {
-  const numHeaders = Object.keys(customHeaders).length || 0;
-  const [isOpen, setIsOpen] = useState(false);
-  const form = useForm<CustomHeadersFormData>({
-    defaultValues: {
-      headers: JSON.stringify(customHeaders, null, 2),
-    },
-    resolver: zodResolver(customHeadersSchema),
-  });
-  const { isSubmitting } = form.formState;
+export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
+  customHeaders,
+  setCustomHeaders,
+  form,
+  isOpen,
+  setIsOpen,
+}) => {
+  'use memo';
+  const numHeaders = Object.keys(customHeaders ?? {}).length;
 
-  const onSubmit = async ({ headers }: CustomHeadersFormData) => {
-    let parsedHeaders: Record<string, string> | undefined;
-    if (headers) {
-      try {
-        parsedHeaders = JSON.parse(headers);
-      } catch (error) {
-        console.error('Error parsing JSON:', error);
-        form.setError('headers', {
-          message: error instanceof Error ? error.message : 'Invalid JSON',
-        });
-        return;
-      }
-    }
-    setCustomHeaders(parsedHeaders || {});
+  const onSubmit = form.handleSubmit(({ headers }) => {
+    setCustomHeaders(headers);
     toast.success('Custom headers applied, you can now use them in the chat.');
     setIsOpen(false);
-  };
+  });
 
-  const onRemoveHeaders = () => {
-    form.reset({ headers: '{}' });
-    setCustomHeaders({});
+  function onRemoveHeaders() {
+    form.reset();
+    setCustomHeaders();
     setIsOpen(false);
     toast.success('Custom headers removed.');
-  };
+  }
+  const hasHeadersError = !!form.formState.errors.headers?.message;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-6">
+        <Button
+          variant={hasHeadersError ? 'destructive-outline' : 'ghost'}
+          size="sm"
+          className="h-6"
+        >
           {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           Custom Headers
           {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}
         </Button>
       </DialogTrigger>
-      <DialogContent className="!max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Custom Headers</DialogTitle>
           <DialogDescription>Add custom headers to the chat API requests.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={onSubmit} className="space-y-8">
             <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
                 <StandaloneJsonEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder={`{
-  "tz": "US/Pacific"
-}`}
+                  placeholder={customHeadersTemplate}
+                  customTemplate={customHeadersTemplate}
                   {...field}
-                  customTemplate={`{
-  "tz": "US/Pacific"
-}`}
                 />
               )}
             </FormFieldWrapper>
@@ -119,7 +88,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
                   Remove headers
                 </Button>
               )}
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
                 Apply
               </Button>
             </div>
@@ -128,6 +97,4 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
       </DialogContent>
     </Dialog>
   );
-}
-
-export default CustomHeadersDialog;
+};

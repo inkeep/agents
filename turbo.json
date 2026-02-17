@@ -2,15 +2,12 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "concurrency": "15",
-  "globalDependencies": [".env"],
   "globalEnv": [
     "NODE_ENV",
     "CI",
     "TURBO_TOKEN",
     "TURBO_TEAM",
     "TURBO_TELEMETRY_DISABLED",
-    "ANTHROPIC_API_KEY",
-    "OPENAI_API_KEY",
     "ENVIRONMENT",
     "INKEEP_AGENTS_MANAGE_DATABASE_URL",
     "INKEEP_AGENTS_RUN_DATABASE_URL",
@@ -33,7 +30,13 @@
     },
     "build": {
       "dependsOn": ["^build", "sync:licenses"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/__tests__/**",
+        ".env.example"
+      ],
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
@@ -52,16 +55,29 @@
     "test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
       "outputs": ["coverage/**"]
     },
     "@inkeep/agents-manage-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/__tests__/**",
+        ".env.example"
+      ],
       "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
     },
     "@inkeep/agents-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/__tests__/**",
+        ".env.example"
+      ],
       "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
     },
     "test:watch": {
@@ -74,7 +90,6 @@
       "outputs": ["coverage/**"]
     },
     "lint": {
-      "dependsOn": ["transit"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
     },

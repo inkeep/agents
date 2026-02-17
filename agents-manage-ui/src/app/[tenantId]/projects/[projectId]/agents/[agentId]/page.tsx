@@ -6,6 +6,7 @@ import { getCapabilitiesAction } from '@/lib/actions/capabilities';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
+import { fetchSkillsAction } from '@/lib/actions/skills';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 import { Agent } from './page.client';
@@ -29,13 +30,14 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     );
   }
 
-  const [dataComponents, artifactComponents, credentials, tools, externalAgents] =
+  const [dataComponents, artifactComponents, credentials, tools, externalAgents, skills] =
     await Promise.all([
       fetchDataComponentsAction(tenantId, projectId),
       fetchArtifactComponentsAction(tenantId, projectId),
       fetchCredentialsAction(tenantId, projectId),
       fetchToolsAction(tenantId, projectId, { skipDiscovery: true }),
       fetchExternalAgentsAction(tenantId, projectId),
+      fetchSkillsAction(tenantId, projectId),
     ]);
 
   if (
@@ -43,7 +45,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     !artifactComponents.success ||
     !credentials.success ||
     !tools.success ||
-    !externalAgents.success
+    !externalAgents.success ||
+    !skills.success
   ) {
     console.error(
       'Failed to fetch components:',
@@ -51,7 +54,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       artifactComponents.error,
       credentials.error,
       tools.error,
-      externalAgents.error
+      externalAgents.error,
+      skills.error
     );
   }
 
@@ -71,6 +75,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     ? Boolean(capabilities.data?.sandbox?.configured)
     : false;
 
+  const skillsList = (skills.success && skills.data) || [];
   return (
     <Agent
       agent={agent.data}
@@ -79,6 +84,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       toolLookup={toolLookup}
       credentialLookup={credentialLookup}
       sandboxEnabled={sandboxEnabled}
+      skills={skillsList}
     />
   );
 };

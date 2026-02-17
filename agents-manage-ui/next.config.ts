@@ -16,6 +16,9 @@ if (process.env.NODE_ENV !== 'production') {
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbopackFileSystemCacheForBuild: true,
+  },
   env: {
     NEXT_PUBLIC_CI: process.env.CI,
   },
@@ -58,7 +61,6 @@ const nextConfig: NextConfig = {
       { protocol: 'http', hostname: '**' },
     ],
   },
-  productionBrowserSourceMaps: isSentryEnabled,
 };
 
 const config = isSentryEnabled
@@ -69,6 +71,7 @@ const config = isSentryEnabled
       {
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
         // Only print logs for uploading source maps in CI
         silent: !process.env.CI,
 
@@ -82,6 +85,12 @@ const config = isSentryEnabled
         // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of
         // client-side errors will fail.
         tunnelRoute: '/monitoring',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+        reactComponentAnnotation: {
+          enabled: true,
+        },
       }
     )
   : nextConfig;

@@ -22,11 +22,27 @@ import {
 } from '@inkeep/agents-core';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 import { queueEvaluationJobConversations } from '../../../evals/services/evaluationJob';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigs');
+
+// Require edit permission for write operations
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:configId', async (c, next) => {
+  if (c.req.method === 'DELETE') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
 
 /**
  * Extract plain filter criteria from a potential Filter wrapper.

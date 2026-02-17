@@ -95,7 +95,7 @@ export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
   }, [conversation]);
 
   return (
-    <Card className="shadow-none bg-background flex flex-col">
+    <Card className="shadow-none bg-background flex flex-col max-h-[280px]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
         <CardTitle className="text-sm font-medium text-foreground"> MCP Tool Calls</CardTitle>
         <Wrench className="h-4 w-4 text-muted-foreground" />
@@ -105,7 +105,7 @@ export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
           {mcpStats.totalCalls === 0 ? (
             <div className="text-sm text-muted-foreground px-3 py-2">0 MCP tool calls</div>
           ) : (
-            <div className="space-y-3 max-h-[120px] overflow-y-auto pr-1">
+            <div className="space-y-3 h-full overflow-y-auto pr-1">
               {mcpStats.servers.map((server) => (
                 <div key={server.serverName} className="space-y-1">
                   {/* Server Name Header */}

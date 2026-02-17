@@ -1,148 +1,729 @@
-name: Claude Code Review
+name: Claude PR Review
 
 on:
   pull_request:
-    types: [opened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
 
 jobs:
-  claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+  pr-review:
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.event.sender.type != 'Bot') ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        github.event.issue.state == 'open' &&
+        contains(github.event.comment.body, '@claude') &&
+        (contains(github.event.comment.body, '--review') || contains(github.event.comment.body, '--full-review')) &&
+        !contains(github.actor, '[bot]') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR'
+        )
+      )
+    # Job-level concurrency so the group is only entered AFTER the if: check.
+    # Workflow-level concurrency would let bot comments (which skip via if:)
+    # cancel in-progress human-triggered runs before they're filtered out.
+    concurrency:
+      group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
-    
+
     steps:
-      - name: Checkout repository
+      - name: Get PR Details
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER='${{ github.event.pull_request.number || github.event.issue.number }}'
+          PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}")
+
+          TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          BODY=$(echo "$PR_JSON" | jq -r '.body // ""')
+          AUTHOR_LOGIN=$(echo "$PR_JSON" | jq -r '.user.login')
+          BASE_REF=$(echo "$PR_JSON" | jq -r '.base.ref')
+          HEAD_SHA=$(echo "$PR_JSON" | jq -r '.head.sha')
+          ADDITIONS=$(echo "$PR_JSON" | jq -r '.additions')
+          DELETIONS=$(echo "$PR_JSON" | jq -r '.deletions')
+          CHANGED_FILES_COUNT=$(echo "$PR_JSON" | jq -r '.changed_files')
+          LABELS=$(echo "$PR_JSON" | jq -r '[.labels[].name] | join(", ")')
+          DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
+
+          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          {
+            echo "title<<EOF"
+            echo "$TITLE"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          echo "author_login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
+          echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "additions=$ADDITIONS" >> $GITHUB_OUTPUT
+          echo "deletions=$DELETIONS" >> $GITHUB_OUTPUT
+          echo "changed_files_count=$CHANGED_FILES_COUNT" >> $GITHUB_OUTPUT
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "draft=$DRAFT" >> $GITHUB_OUTPUT
+
+          # Determine trigger command (issue_comment only; pull_request defaults to auto)
+          # IMPORTANT: read comment body from event payload via jq — do NOT inline
+          # github.event.comment.body into bash source (it can contain quotes/newlines).
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            COMMENT_BODY="$(jq -r '.comment.body // ""' "$GITHUB_EVENT_PATH")"
+            # Check --full-review BEFORE --review (substring overlap).
+            # We use -- prefix (not /) because claude-code-action reserves /xxx for skill invocations.
+            if printf '%s' "$COMMENT_BODY" | grep -Eq '(^|[[:space:]])--full-review([[:space:]]|$)'; then
+              echo "trigger_command=full-review" >> $GITHUB_OUTPUT
+            else
+              echo "trigger_command=review" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "trigger_command=auto" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Need full history to detect changes
+          fetch-depth: 0  # Full history for merge-base
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
 
-      - name: Check for documentation changes
-        uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            docs:
-              - 'agents-docs/**'
-              - '**/*.md'
-              - '**/*.mdx'
-              - '.cursor/skills/write-docs/**'
-
-      - name: Read docs writing skill
-        if: steps.changes.outputs.docs == 'true'
-        id: read-docs-skill
+      - name: Fetch base branch
         run: |
-          content=$(cat .cursor/skills/write-docs/SKILL.md)
-          content="${content//'/'\'}"  # Escape single quotes
-          content="${content//$'\n'/'%0A'}"  # Escape newlines
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$content" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        shell: bash
+          git fetch origin "${{ steps.pr.outputs.base_ref }}" --force --prune --no-tags
 
-      - name: Run Claude Code Review
-        id: claude-review
-        uses: anthropics/claude-code-action@beta
+      - name: Get PR Diff
+        id: diff
+        run: |
+          # Exclude noisy auto-generated files from diff
+          EXCLUDE_PATTERNS=(
+            ':!pnpm-lock.yaml'
+            ':!package-lock.json'
+            ':!yarn.lock'
+            ':!agents-api/__snapshots__/openapi.json'
+            ':!**/drizzle/*/meta/*_snapshot.json'
+            ':!**/drizzle/*/meta/_journal.json'
+            ':!**/CHANGELOG.md'
+          )
+
+          BASE="origin/${{ steps.pr.outputs.base_ref }}"
+
+          # Get the diff for the PR (excluding noisy files)
+          DIFF=$(git diff "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          DIFF_SIZE=${#DIFF}
+
+          # Get changed files list (excluding noisy files)
+          FILES=$(git diff --name-only "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Compute filtered size metrics from numstat (respects EXCLUDE_PATTERNS,
+          # unlike the raw GitHub API additions/deletions which include lockfiles etc.)
+          NUMSTAT=$(git diff --numstat "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          FILTERED_ADDITIONS=$(printf '%s\n' "$NUMSTAT" | awk '$1 != "-" {s+=$1} END{print s+0}')
+          FILTERED_DELETIONS=$(printf '%s\n' "$NUMSTAT" | awk '$2 != "-" {s+=$2} END{print s+0}')
+          if [ -n "$FILES" ]; then
+            FILTERED_FILE_COUNT=$(printf '%s\n' "$FILES" | wc -l | tr -d ' ')
+          else
+            FILTERED_FILE_COUNT=0
+          fi
+          echo "filtered_additions=$FILTERED_ADDITIONS" >> $GITHUB_OUTPUT
+          echo "filtered_deletions=$FILTERED_DELETIONS" >> $GITHUB_OUTPUT
+          echo "filtered_file_count=$FILTERED_FILE_COUNT" >> $GITHUB_OUTPUT
+
+          # Per-file diff stats (compact size overview)
+          DIFF_STATS=$(git diff --stat "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          {
+            echo "diff_stats<<EOF"
+            echo "$DIFF_STATS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          # Commit log (chronological — oldest first)
+          COMMIT_LOG=$(git log --oneline --reverse "$BASE"...HEAD)
+          COMMIT_COUNT=$(git rev-list --count "$BASE"...HEAD)
+          {
+            echo "commit_log<<EOF"
+            echo "$COMMIT_LOG"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+
+          # ── Adaptive diff strategy ──────────────────────────────────────────
+          # Diffs within INLINE_THRESHOLD are embedded directly in the pr-context
+          # skill so reviewers see them immediately (zero tool calls needed).
+          #
+          # Larger diffs switch to "summary mode": pr-context gets metadata +
+          # file list + diff stats only, and the full diff is written to a file.
+          # Reviewers read specific file diffs on-demand via `git diff`.
+          #
+          # Why: each subagent reviewer loads pr-context as a skill (~system
+          # prompt). A 500KB diff ≈ 128K tokens leaves < 40K for reasoning in a
+          # 200K context window, causing most reviewers to hit context limits.
+          # ───────────────────────────────────────────────────────────────────
+          INLINE_THRESHOLD=100000  # ~100KB ≈ 25K tokens — safe for all reviewer budgets
+          DIFF_DELIM="DIFF_DELIM_${RANDOM}_${RANDOM}_$(date +%s%N)"
+
+          if [ $DIFF_SIZE -le $INLINE_THRESHOLD ]; then
+            # ── Inline mode: embed full diff in pr-context skill ──
+            echo "diff_mode=inline" >> $GITHUB_OUTPUT
+            {
+              echo "diff_content<<$DIFF_DELIM"
+              echo '```diff'
+              printf '%s\n' "$DIFF"
+              echo '```'
+              echo "$DIFF_DELIM"
+            } >> $GITHUB_OUTPUT
+            echo "truncated=false" >> $GITHUB_OUTPUT
+          else
+            # ── Summary mode: diff too large to inline ──
+            echo "diff_mode=summary" >> $GITHUB_OUTPUT
+            echo "diff_size_bytes=$DIFF_SIZE" >> $GITHUB_OUTPUT
+            echo "truncated=true" >> $GITHUB_OUTPUT
+
+            # Write full diff to a known file for on-demand reading
+            mkdir -p .claude/pr-diff
+            printf '%s' "$DIFF" > .claude/pr-diff/full.diff
+            echo "Full diff written to .claude/pr-diff/full.diff (${DIFF_SIZE} bytes) — summary mode enabled"
+
+            # Build the summary-mode placeholder for pr-context
+            FILE_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
+            {
+              echo "diff_content<<$DIFF_DELIM"
+              echo "> **⚠️ LARGE PR (summary mode)** — The diff (~${DIFF_SIZE} bytes across ~${FILE_COUNT} files) exceeds the inline threshold (~$((INLINE_THRESHOLD / 1000))KB)."
+              echo "> The diff is NOT included in this context to preserve reviewer context budgets."
+              echo ">"
+              echo "> **How to read diffs on-demand:**"
+              echo "> - Specific file: \`git diff origin/${{ steps.pr.outputs.base_ref }}...HEAD -- path/to/file.ts\`"
+              echo "> - Full PR diff: \`gh pr diff ${{ steps.pr.outputs.number }}\`"
+              echo "> - Pre-written full diff: read \`.claude/pr-diff/full.diff\`"
+              echo ">"
+              echo "> **Prioritize** using the Changed Files diff stats above. Focus on files most relevant to your review domain."
+              echo "$DIFF_DELIM"
+            } >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get Review Context
+        id: review_context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RESULT=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviewDecision
+                  closingIssuesReferences(first: 10) {
+                    nodes {
+                      number
+                      title
+                      body
+                      url
+                      state
+                      labels(first: 10) { nodes { name } }
+                    }
+                  }
+                  reviewThreads(last: 100) {
+                    totalCount
+                    nodes {
+                      isResolved
+                      isOutdated
+                      path
+                      line
+                      startLine
+                      diffSide
+                      subjectType
+                      comments(first: 50) {
+                        nodes {
+                          author { __typename login }
+                          body
+                          diffHunk
+                          url
+                          createdAt
+                        }
+                        totalCount
+                      }
+                    }
+                  }
+                  reviews(last: 20) {
+                    totalCount
+                    nodes {
+                      author { login }
+                      body
+                      state
+                      submittedAt
+                      url
+                      commit { oid }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr=${{ steps.pr.outputs.number }})
+
+          THREADS=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviewThreads.nodes // []')
+          REVIEWS=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviews.nodes // []')
+          THREADS_TOTAL=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviewThreads.totalCount // 0')
+          REVIEWS_TOTAL=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviews.totalCount // 0')
+
+          # ── Review decision ──
+          REVIEW_DECISION=$(echo "$RESULT" | jq -r '.data.repository.pullRequest.reviewDecision // "NONE"')
+          echo "review_decision=$REVIEW_DECISION" >> $GITHUB_OUTPUT
+
+          # ── Linked issues ──
+          LINKED_ISSUES=$(echo "$RESULT" | jq -r '
+            .data.repository.pullRequest.closingIssuesReferences.nodes // [] |
+            if length == 0 then
+              "_None._"
+            else
+              map(
+                "#### [#" + (.number | tostring) + "](" + .url + ") — " + .title +
+                " (" + .state + ")" +
+                (if (.labels.nodes | length) > 0 then " `" + ([.labels.nodes[].name] | join("` `") ) + "`" else "" end) +
+                "\n\n" +
+                ((.body // "") | if (. | length) > 1000 then .[0:1000] + "\n\n_[truncated — see issue for full details]_" else . end)
+              ) | join("\n\n---\n\n")
+            end
+          ')
+          {
+            echo "linked_issues<<ENDCTX"
+            echo "$LINKED_ISSUES"
+            echo "ENDCTX"
+          } >> $GITHUB_OUTPUT
+
+          # ── Automated review comments (claude[bot]) — full threads, latest-first ──
+          CLAUDE_COMMENTS=$(echo "$THREADS" | jq -r '
+            [.[]
+              | select((.comments.nodes | length) > 0)
+              | select((.comments.nodes[0].author.__typename // "") == "Bot")
+            ] |
+            sort_by(.comments.nodes[-1].createdAt) | reverse |
+            if length == 0 then
+              "_None — this is the first review run._"
+            else
+              (map(
+                "**`" + .path + ":" + (if .startLine and .line and (.startLine != .line) then ((.startLine | tostring) + "-" + (.line | tostring)) elif .line then (.line | tostring) else "—" end) + "`** | " +
+                (if .isResolved then "Resolved" elif .isOutdated then "Outdated" else "**ACTIVE**" end) +
+                (if .comments.totalCount > (.comments.nodes | length) then " | ⚠️ showing " + ((.comments.nodes | length) | tostring) + " of " + (.comments.totalCount | tostring) + " messages" else "" end) +
+                " | [view](" + (.comments.nodes[0].url // "") + ")" +
+                "\n\n" +
+                (.comments.nodes | map(
+                  "> **" + (.author.login // "unknown") + "** (" + .createdAt + "):\n> " +
+                  ((.body // "") | gsub("\n"; "\n> "))
+                ) | join("\n\n"))
+              ) | join("\n\n---\n\n"))
+            end
+          ')
+
+          if [ "$THREADS_TOTAL" -gt 100 ] 2>/dev/null; then
+            CLAUDE_COMMENTS="⚠️ _PR has $THREADS_TOTAL review threads; only the latest 100 are shown._"$'\n\n'"$CLAUDE_COMMENTS"
+          fi
+
+          {
+            echo "claude_prior_comments<<ENDCTX"
+            echo "$CLAUDE_COMMENTS"
+            echo "ENDCTX"
+          } >> $GITHUB_OUTPUT
+
+          # ── Human review comments — full threads, all statuses, latest-first ──
+          HUMAN_THREADS=$(echo "$THREADS" | jq -r '
+            [.[]
+              | select((.comments.nodes | length) > 0)
+              | select((.comments.nodes[0].author.__typename // "") != "Bot")
+            ] |
+            sort_by(.comments.nodes[-1].createdAt) | reverse |
+            if length == 0 then
+              "_No human review comments._"
+            else
+              (map(
+                "**`" + .path + ":" + (if .startLine and .line and (.startLine != .line) then ((.startLine | tostring) + "-" + (.line | tostring)) elif .line then (.line | tostring) else "—" end) + "`** | " +
+                (if .isResolved then "Resolved" elif .isOutdated then "Outdated" else "**ACTIVE**" end) +
+                (if .comments.totalCount > (.comments.nodes | length) then " | ⚠️ showing " + ((.comments.nodes | length) | tostring) + " of " + (.comments.totalCount | tostring) + " messages" else "" end) +
+                " | [view](" + (.comments.nodes[0].url // "") + ")" +
+                "\n\n" +
+                (.comments.nodes | map(
+                  "> **" + (.author.login // "unknown") + "** (" + .createdAt + "):\n> " +
+                  ((.body // "") | gsub("\n"; "\n> "))
+                ) | join("\n\n"))
+              ) | join("\n\n---\n\n"))
+            end
+          ')
+
+          {
+            echo "human_threads<<ENDCTX"
+            echo "$HUMAN_THREADS"
+            echo "ENDCTX"
+          } >> $GITHUB_OUTPUT
+
+          # ── Previous review submissions — latest-first ──
+          PREV_REVIEWS=$(echo "$REVIEWS" | jq -r '
+            if length == 0 then
+              "_No previous reviews._"
+            else
+              (sort_by(.submittedAt) | reverse | map(
+                "---\n**" + (.author.login // "unknown") + "** — " +
+                .state + " (" + .submittedAt + ") — [view](" + (.url // "") + ")\n\n" +
+                ((.body // "") | .[0:2000]) +
+                (if ((.body // "") | length) > 2000 then "\n\n_[body truncated]_" else "" end)
+              ) | join("\n\n"))
+            end
+          ')
+
+          if [ "$REVIEWS_TOTAL" -gt 20 ] 2>/dev/null; then
+            PREV_REVIEWS="⚠️ _PR has $REVIEWS_TOTAL review submissions; only the latest 20 are shown._"$'\n\n'"$PREV_REVIEWS"
+          fi
+
+          {
+            echo "previous_reviews<<ENDCTX"
+            echo "$PREV_REVIEWS"
+            echo "ENDCTX"
+          } >> $GITHUB_OUTPUT
+
+          # ── Changes since last Claude review ──
+          # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
+          # the last automated review was made against, then computes the delta.
+          PR_HEAD="${{ steps.pr.outputs.head_sha }}"
+          # COUPLED: The regex below must match the heading in .claude/agents/pr-review.md Phase 6.2.
+          # The pr-review agent is constrained to always start its review body with "## PR Review Summary".
+          LAST_REVIEW_SHA=$(echo "$REVIEWS" | jq -r '
+            [.[] | select(
+              (.author.login == "claude" or .author.login == "claude[bot]") and
+              ((.body // "") | test("^## PR Review Summary"))
+            )] |
+            sort_by(.submittedAt) | last | .commit.oid // ""
+          ')
+
+          SINCE_REVIEW_COUNT=0  # default; overwritten below if a prior review SHA exists
+          if [ -n "$LAST_REVIEW_SHA" ] && [ "$LAST_REVIEW_SHA" != "null" ] && git cat-file -e "$LAST_REVIEW_SHA" 2>/dev/null; then
+            SINCE_REVIEW_COUNT=$(git rev-list --count "$LAST_REVIEW_SHA".."$PR_HEAD")
+            if [ "$SINCE_REVIEW_COUNT" = "0" ]; then
+              echo "is_re_review=false" >> $GITHUB_OUTPUT
+              echo "since_review_files=" >> $GITHUB_OUTPUT
+              SINCE_REVIEW_SECTION="_Re-review — no new commits since last automated review (commit \`${LAST_REVIEW_SHA:0:12}\`)._"
+            else
+              echo "is_re_review=true" >> $GITHUB_OUTPUT
+              DIFF_EXCLUDE=(
+                ':!pnpm-lock.yaml'
+                ':!package-lock.json'
+                ':!yarn.lock'
+                ':!agents-api/__snapshots__/openapi.json'
+                ':!**/drizzle/*/meta/*_snapshot.json'
+                ':!**/drizzle/*/meta/_journal.json'
+                ':!**/CHANGELOG.md'
+              )
+              SINCE_REVIEW_LOG=$(git log --oneline "$LAST_REVIEW_SHA".."$PR_HEAD")
+              SINCE_REVIEW_STATS=$(git diff --stat "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              SINCE_REVIEW_FILES=$(git diff --name-only "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              {
+                echo "since_review_files<<ENDFILES"
+                echo "$SINCE_REVIEW_FILES"
+                echo "ENDFILES"
+              } >> $GITHUB_OUTPUT
+
+              # Include the actual delta diff if it's small enough to be useful
+              # without blowing context budgets (loaded by all reviewers via pr-context)
+              SINCE_REVIEW_DIFF=$(git diff "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              SINCE_REVIEW_DIFF_SIZE=${#SINCE_REVIEW_DIFF}
+              SINCE_REVIEW_INLINE_THRESHOLD=30000  # ~30KB ≈ 7.5K tokens
+
+              if [ $SINCE_REVIEW_DIFF_SIZE -le $SINCE_REVIEW_INLINE_THRESHOLD ]; then
+                SINCE_REVIEW_DIFF_SECTION="### Diff since last review
+          \`\`\`diff
+          $SINCE_REVIEW_DIFF
+          \`\`\`"
+              else
+                SINCE_REVIEW_DIFF_SECTION="### Diff since last review
+          > Delta diff too large (~${SINCE_REVIEW_DIFF_SIZE} bytes) to inline. Use \`git diff ${LAST_REVIEW_SHA:0:12}..HEAD\` to read on-demand."
+              fi
+
+              SINCE_REVIEW_FILE_COUNT=$(echo "$SINCE_REVIEW_FILES" | wc -l | tr -d ' ')
+
+              SINCE_REVIEW_SECTION="| Field | Value |
+          |---|---|
+          | **Last review commit** | \`${LAST_REVIEW_SHA:0:12}\` |
+          | **Commits since** | $SINCE_REVIEW_COUNT |
+          | **Files changed** | $SINCE_REVIEW_FILE_COUNT |
+
+          ### Files changed since last review
+          \`\`\`
+          $SINCE_REVIEW_FILES
+          \`\`\`
+
+          ### Commits since last review
+          \`\`\`
+          $SINCE_REVIEW_LOG
+          \`\`\`
+
+          ### Diff stats since last review
+          \`\`\`
+          $SINCE_REVIEW_STATS
+          \`\`\`
+
+          $SINCE_REVIEW_DIFF_SECTION"
+            fi
+          else
+            echo "is_re_review=false" >> $GITHUB_OUTPUT
+            echo "since_review_files=" >> $GITHUB_OUTPUT
+            SINCE_REVIEW_SECTION="_First automated review — no prior review to compare against._"
+          fi
+
+          {
+            echo "since_review_section<<ENDREVIEW"
+            echo "$SINCE_REVIEW_SECTION"
+            echo "ENDREVIEW"
+          } >> $GITHUB_OUTPUT
+
+          # ── Compute review_scope ──────────────────────────────────────────
+          # review_scope is the single source of truth for delta vs full scoping.
+          #   full  = review entire PR (first review, no new commits, or --full-review override)
+          #   delta = scope to changes since last automated review
+          TRIGGER='${{ steps.pr.outputs.trigger_command }}'
+          if [ "$TRIGGER" = "full-review" ]; then
+            echo "review_scope=full" >> $GITHUB_OUTPUT
+          elif [ "$SINCE_REVIEW_COUNT" -gt 0 ]; then
+            echo "review_scope=delta" >> $GITHUB_OUTPUT
+          else
+            echo "review_scope=full" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get PR Comments
+        id: pr_comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Fetch PR comments, include humans + our bot, exclude other bots
+          RAW_COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  comments(last: 50) {
+                    nodes {
+                      author {
+                        __typename
+                        login
+                      }
+                      body
+                      createdAt
+                      url
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" \
+            -f repo="${{ github.event.repository.name }}" \
+            -F pr=${{ steps.pr.outputs.number }} \
+            --jq '[.data.repository.pullRequest.comments.nodes[] | select(.author.__typename == "User" or (.author.login | test("github-actions|claude"; "i")))]')
+
+          # Format as markdown, latest-first
+          PR_DISCUSSION=$(echo "$RAW_COMMENTS" | jq -r '
+            if length == 0 then
+              "_No PR discussion._"
+            else
+              (sort_by(.createdAt) | reverse | map(
+                "**" + (.author.login // "unknown") + "** (" + .createdAt + ") — [view](" + (.url // "") + ")\n\n" +
+                "> " + ((.body // "") | gsub("\n"; "\n> "))
+              ) | join("\n\n---\n\n"))
+            end
+          ')
+
+          {
+            echo "pr_comments<<ENDCTX"
+            echo "$PR_DISCUSSION"
+            echo "ENDCTX"
+          } >> $GITHUB_OUTPUT
+
+      - name: Clean up stale Claude comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete progress/error/output comments from cancelled/errored previous runs.
+          # "Claude finished" covers completed runs where the review submission failed.
+          # claude-code-action posts as "claude[bot]"; older versions or custom setups may use "github-actions[bot]".
+          gh api repos/${{ github.repository }}/issues/${{ steps.pr.outputs.number }}/comments \
+            --jq '.[] | select(.user.login == "claude[bot]" and (.body | test("Claude encountered an error|Claude finished|Starting PR review|🔄|PR Review in Progress"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
+
+      - name: Generate PR Context Skill
+        run: |
+          mkdir -p .claude/skills/pr-context
+          
+          cat > .claude/skills/pr-context/SKILL.md << 'SKILL_EOF'
+          ---
+          name: pr-context
+          description: PR metadata, diff, changed files, and discussion context. Auto-generated at CI time.
+          ---
+
+          # PR Review Context
+
+          (!IMPORTANT)
+
+          Use this context to:
+          1. Get an initial sense of the purpose and scope of the changes
+          2. Note what's already been flagged or discussed
+          3. Identify if previous feedback was addressed or ignored
+
+          ---
+
+          ## PR Metadata
+
+          | Field | Value |
+          |---|---|
+          | **PR** | #${{ steps.pr.outputs.number }} — ${{ steps.pr.outputs.title }} |
+          | **Author** | ${{ steps.pr.outputs.author_login }} |
+          | **Base** | `${{ steps.pr.outputs.base_ref }}` |
+          | **Repo** | ${{ github.repository }} |
+          | **Head SHA** | `${{ steps.pr.outputs.head_sha }}` |
+          | **Size** | ${{ steps.diff.outputs.commit_count }} commits · +${{ steps.diff.outputs.filtered_additions }}/-${{ steps.diff.outputs.filtered_deletions }} · ${{ steps.diff.outputs.filtered_file_count }} files |
+          | **Labels** | ${{ steps.pr.outputs.labels || '_None_' }} |
+          | **Review state** | ${{ steps.review_context.outputs.review_decision }} |
+          | **Diff mode** | `${{ steps.diff.outputs.diff_mode }}` — ${{ steps.diff.outputs.diff_mode == 'summary' && 'reviewers must read file diffs on-demand via `git diff`' || 'full diff included below' }} |
+          | **Event** | `${{ github.event_name }}:${{ github.event.action }}` |
+          | **Trigger command** | `${{ steps.pr.outputs.trigger_command }}` — ${{ steps.pr.outputs.trigger_command == 'full-review' && 'manual full-scope override' || steps.pr.outputs.trigger_command == 'review' && 'manual review request' || 'automatic CI trigger' }} |
+          | **Review scope** | `${{ steps.review_context.outputs.review_scope }}` — ${{ steps.review_context.outputs.review_scope == 'delta' && 'scoped to changes since last automated review' || 'full PR scope' }} |
+
+          ## Description
+          Author-provided description (may not fully reflect actual scope):
+
+          ${{ steps.pr.outputs.body }}
+
+          ## Linked Issues
+          Issues this PR closes. These provide the "why" — the problem being solved, acceptance criteria, and prior discussion.
+
+          ${{ steps.review_context.outputs.linked_issues }}
+
+          ## Commit History
+          Commits in this PR (oldest → newest). Use to understand the development narrative and whether previous feedback was addressed in follow-up commits.
+
+          ```
+          ${{ steps.diff.outputs.commit_log }}
+          ```
+
+          ## Changed Files
+          Per-file diff stats (for prioritizing review effort):
+
+          ```
+          ${{ steps.diff.outputs.diff_stats }}
+          ```
+
+          Full file list (untruncated paths):
+
+          ```
+          ${{ steps.diff.outputs.changed_files }}
+          ```
+
+          ## Diff
+
+          ${{ steps.diff.outputs.diff_content }}
+
+          ## Changes Since Last Review
+
+          ${{ steps.review_context.outputs.since_review_section }}
+
+          ${{ steps.review_context.outputs.review_scope == 'delta' && '## Review Focus
+
+          > **RE-REVIEW — scope to the delta.** A prior automated review already covered this PR. Your review scope is the code that changed since that review (see "Changes Since Last Review" above). Apply your normal review process — same quality bar, same severity criteria — but scoped to the delta. Do not re-analyze unchanged files or re-raise issues on code that was already reviewed. If prior feedback appears unaddressed in the delta, note it; otherwise, focus your effort on what is new or modified.' || steps.review_context.outputs.review_scope == 'full' && steps.review_context.outputs.is_re_review == 'true' && '## Review Focus
+
+          > **FULL-SCOPE REVIEW (manual override).** A prior automated review exists, but a full-scope review was explicitly requested via `--full-review`. Review the entire PR — do not limit scope to the delta. The "Changes Since Last Review" section above is provided for context only.' || '' }}
+
+          ## Prior Feedback
+
+          > **IMPORTANT:** Everything in this section has already been raised on this PR. Do NOT re-raise, re-enumerate, or repeat any issue that appears below — even if you independently arrive at the same conclusion. Treat these as already-handled. If an issue below is still relevant and unresolved, reference it (link back) rather than restating it.
+
+          ### Automated Review Comments
+
+          Comments previously posted by bot reviewers (e.g. claude) on specific lines of this PR.
+          - **ACTIVE** entries are on code that has not changed since the comment was posted.
+          - **Outdated** entries are on code that has since been modified (the issue may or may not still apply).
+          - **Resolved** entries have been explicitly resolved.
+
+          ${{ steps.review_context.outputs.claude_prior_comments }}
+
+          ### Human Review Comments
+
+          Comments from human reviewers on specific lines of this PR. Each thread shows the full conversation including all replies.
+
+          ${{ steps.review_context.outputs.human_threads }}
+
+          ### Previous Review Summaries
+
+          Full review submissions previously posted on this PR. Each includes the reviewer, verdict, and the review body.
+
+          ${{ steps.review_context.outputs.previous_reviews }}
+
+          ### PR Discussion
+
+          General comments on the PR (not attached to specific lines).
+
+          ${{ steps.pr_comments.outputs.pr_comments }}
+
+          ## GitHub URL Base (for hyperlinks)
+
+          Use these to construct clickable links in your findings:
+          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ steps.pr.outputs.head_sha }}/{path}#L{line}` or `#L{start}-L{end}`
+          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ steps.pr.outputs.number }}`
+
+          SKILL_EOF
+          
+          echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
+
+      - name: Fetch Web Design Guidelines
+        run: |
+          # Fetch latest guidelines and inject into the skill's references/ folder
+          # so pr-review-frontend can read them locally (no WebFetch needed at review time)
+          mkdir -p .agents/skills/web-design-guidelines/references
+          curl -sf https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md \
+            -o .agents/skills/web-design-guidelines/references/guidelines.md
+          echo "Web design guidelines fetched ($(wc -l < .agents/skills/web-design-guidelines/references/guidelines.md) lines)"
+
+      - name: Run PR Review
+        id: claude
+        # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
+        # Tracking: https://github.com/anthropics/claude-code-action/issues/892
+        # Remove pin when issue is resolved and @v1 is stable again
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        env:
+          CLAUDE_CODE_DEBUG_LOGS_DIR: ${{ runner.temp }}/claude-debug
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_bots: "claude[bot]"
+          track_progress: true
+          claude_args: |
+            --agent pr-review
+            --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'
+            --allowedTools "Task,Read,Write,Grep,Glob,mcp__exa__web_search_exa,mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(mkdir:*)"
+          prompt: |
+            Review PR #${{ steps.pr.outputs.number }}. Begin Phase 1.
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
-          
-          # Direct prompt for automated review (no @claude mention needed)
-          direct_prompt: |
-            You are a TypeScript Staff Engineer and System Architect responsible for reviewing and providing thoughtful, constructive feedback on Pull Requests.
+      - name: Clean up progress comment
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete the progress/output comment posted by claude-code-action for THIS run.
+          # Scoped by run ID embedded in the "View job" link so other Claude automations are untouched.
+          gh api repos/${{ github.repository }}/issues/${{ steps.pr.outputs.number }}/comments \
+            --jq '.[] | select(.user.login == "claude[bot]" and (.body | contains("actions/runs/${{ github.run_id }}"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
-            CONTEXT GATHERING AND INITIAL UNDERSTANDING:
-            1. Aim to understand the intended purpose and outcome of the PR (from an engineering and/or customer perspective)
-            2. Do research to find relevant existing code, concepts, files, types, etc. that may be relevant to the PR. Goal is to build up full understand of the existing system and "prior art" and ALL the different parts this PR may affect or that this PR should account for/consider.
-            3. Carefully evaluate each change in the PR and provide feedback at both a granular level but also at a system design, high level. Focus on areas areas for consideration, rather than recapping what's done well in a detailed way.
-            4. If linter checks pass, etc., don't worry about syntax type stuff. Focus on other aspects of code quality and engineering design.
-
-            BASELINE ENGINEERING REVIEW:
-            Consider in your review what seems sensible, like:
-            - high-quality, clean, well documented or intuitive code
-            - bugs, error boundaries and handling, logging
-            - security, authn/authz, data access layer and permissions
-            - performance and scalability
-            - evolvability and extensibility
-            - testing and test coverage
-            - race conditions, circular loops or dependencies, concurrency, state management, etc.
-            - transaction boundaries and atomicity
-            - following best practices of modern TypeScript and architectural design (imagine you're representing Matt Pocock // Dan Abramov // Kent C. Dodds // Tanner Linsley // Jared Palmer // colinhacks (zod) // etc.)
-
-            CHECK FOR GOTCHAS AND COMMON MISTAKES:
-            You may end up reviewing the work of an AI agent or a junior engineer, so make sure to check for common pitfalls or shortcomings, like:
-            1. Modifying files or creating code that is not actually needed for the intended use case or that has probably out-of-scope side effects or redundancies.
-            2. Creating duplicate or boilerplate code, superfluous variable names or types, or multiple sources of truth for the same concept that could be consolidated.
-            3. Not following existing patterns/norms or keeping parallelism and consistency with how similar patterns are accomplished.
-            4. Not creating good abstractions where appropriate (but also not over-engineering or complicating code for no reason)
-            5. Not providing good documentation for more complex parts of the codebase or not creating the right level of abstraction to simplify things.
-            6. Using "hard coded" or seemingly brute forced/repetitive code instead of thinking through how to have clean, composable, reusable, extensible, DRY, intuitive code.
-            7. Not considering polymorphism, unions, generics, or other abstraction types if they could help simplify code or normalize certain patterns.
-
-            ARCHITECT-LEVEL CONSIDERATIONS:
-            As the system architect, aim to go one level DEEPER. For example, check that:
-            8. Are there existing patterns, abstractions, or "ways of doing things" that this pattern should potentially leverage or stay consistent with? We want to avoid creating duplicate, repetitive code, or contradictory patterns for similar concepts // tasks // patterns
-            9. Is naming intuitive and semantic, especially in external-facing APIs, interfaces, configurations, or types? Is the naming consistent with existing concepts, and would the naming be unambiguous and clear to someone with little context?
-            10. Are design decisions evolvable to future potential scenarios, and are we following good patterns for avoiding breaking changes or 1-door decisions that don't account for future extensibility or use cases?
-            11. Have we addressed any side effects or potential issues that may arise from this change?
-            12. Are there any other system design considerations that the engineer should think through that were not accounted for?
-
-            CUSTOMER CONSIDERATIONS:
-            15. Carefully considering the impact of the changes on how customers use it, i.e. any breaking changes to data contracts, APIs, etc.? If there are, do we have a good strategy for addressing these?
-            16. Comprehensively evaluating all potential valid and relevant use cases or edge cases of how someone may expect to use the features or platform.
-            17. When creating configuration or "knobs", are we unnecessarily complicating the surface area of configuration or could there be a more elegant solution that keeps constructs and configuration simpler?
-            18. Thinking through future scenarios that could be appropriate to address now or that we should account for so we don't block future use cases. I.e., are things evolvable? We want to keep things simple but also not be short-sighted/myopic.
-            19. Accounting for all dimensions of how a customer/user/client may use the data contracts, APIs, UI, SDK, documentation, or any other interface of how they may consume or interact with the features or platform?
-            20. Ensuring that there is equal representation across any modality that this repo encompasses (e.g. both UI and API, if applicable to the repo or use case)?
-
-            ${{ steps.changes.outputs.docs == 'true' && steps.read-docs-skill.outputs.content || '' }}
-
-            Your final review should be thoughtful and cover what's actually most applicable to this PR -- don't leave superfluous comments that seem unrelated to the intent or proposed changes of the PR.  
-            The dimensions mentioned in these instructions are suggestions, they won't all always apply to every PR, and there may be additional considerations that you think are important to cover.
-            As you leave feedback, make sure to classify the severity or importance of feedback, and be nuanced with why you think something is important and potential ways to address it or things to consider. Feel free to leave explicit code suggestions where relevant.
-            Focus your review on constructive areas for consideration or improvement, you don't need to re-enumerate things that are done well.
-
-            To summarize, think of yourself as both a sanity and quality checker of the code, but also a system-level architect that cares deeply about ensuring PRs and changes are well thought-out and consider all dimensions of impacts on the full system, patterns that set precedent, maintainability of the code and featureset, as well as how it impacts end-user experiences and interfaces.
-
-            Since this is an open source repo, it's especially important to ensure we are thorough and thoughtful end-to-end across all relevant dimensions and focus the final report on what's potentially actionable.
-
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
-          
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-          
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' && 
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-          
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-          
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+      - name: Upload Debug Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-debug-pr-${{ steps.pr.outputs.number }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/claude-debug/
+            ${{ steps.claude.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: ignore

@@ -39,6 +39,8 @@ yarn-error.log*
 .env.local
 .env.*.local
 .env.docker
+.env.production
+.env.staging
 
 # Keep providers.yaml for Nango integrations
 !providers.yaml
@@ -50,6 +52,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 local.db
+
+# Optional local dev services (cloned by pnpm setup-dev:optional)
+.optional-services/
 
 .ipc-hosted-tools/
 .hosted-tools/
@@ -69,6 +74,13 @@ vite.config.d.ts
 
 # Generated skill collections
 agents-docs/skills-collections/.generated/
+
+# CI-generated PR context skill (not committed)
+.claude/skills/pr-context/
+
+# Ship spec files (local working artifacts)
+.claude/specs/
+.claude/ship-state.json
 
 # Turborepo
 .turbo
@@ -98,4 +110,10 @@ progress.txt
 # Ideas/drafts folder
 .ideas/
 
+# Vitest image snapshots test folder
+.vitest-attachments/
+# Vitest actual snapshots
+*-actual-chromium.png
 
+.pnpm-store/
+.vercel

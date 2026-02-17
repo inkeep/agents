@@ -17,18 +17,31 @@ export interface VersionConfig<TConfig> {
   getBreakdownSchema(): BreakdownComponentDef[];
 }
 
+export interface SkillData {
+  id: string;
+  subAgentSkillId: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  alwaysLoaded: boolean;
+}
+
 export interface SystemPromptV1 {
   corePrompt: string; // Just the agent's prompt string
   prompt?: string; // Agent-level context and instructions
+  skills?: SkillData[];
   artifacts: Artifact[];
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
   hasAgentArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
-  isThinkingPreparation?: boolean; // Flag for thinking/preparation mode (first pass of 2-phase generation)
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities
+  includeDataComponents?: boolean; // Include data components in system prompt
   clientCurrentTime?: string; // Client's current time in their timezone
+  includeSinglePhaseDataComponents?: boolean; // Include data components in single-phase mode
 }
 
 export interface ToolData {

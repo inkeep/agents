@@ -16,6 +16,7 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
+  AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -70,6 +71,7 @@ export const SPAN_KEYS = {
   TOOL_PURPOSE: 'tool.purpose',
   TOOL_NAME: 'tool.name',
   TOOL_CALL_ID: 'tool.callId',
+  TOOL_APPROVAL_REASON: 'tool.approval.reason',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -91,6 +93,7 @@ export const SPAN_KEYS = {
   DELEGATION_FROM_SUB_AGENT_ID,
   DELEGATION_TO_SUB_AGENT_ID,
   DELEGATION_ID,
+  DELEGATION_TYPE: 'delegation.type',
   TRANSFER_FROM_SUB_AGENT_ID,
   TRANSFER_TO_SUB_AGENT_ID,
 
@@ -130,6 +133,9 @@ export const SPAN_KEYS = {
   CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
   CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
   CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
+  AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
+  AGENT_STEPS_COMPLETED: 'agent.steps_completed',
+  AGENT_MAX_STEPS: 'agent.max_steps',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -148,6 +154,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
   COMPRESSION: 'compression',
+  MAX_STEPS_REACHED: 'max_steps_reached',
 } as const;
 
 /** Activity Status Values */

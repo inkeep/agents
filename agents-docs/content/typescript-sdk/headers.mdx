@@ -38,6 +38,8 @@ curl -N \
   }'
 ```
 
+
+
 <Note>
   Header keys are normalized to lowercase. Define them as lowercase in your schema and reference them as lowercase in templates.
 </Note>
@@ -289,6 +291,39 @@ Forward headers from your API gateway for consistent authentication:
 "x-api-key: your-api-key"
 "x-request-id: req_abc123"
 "x-client-version: 2.0.0"
+```
+
+## Widget-provided headers
+
+When using the [Inkeep chat components](/talk-to-your-agents), the following headers are automatically sent with each request:
+
+| Header | Description | Example Value |
+|--------|-------------|---------------|
+| `x-inkeep-client-timestamp` | The client's current timestamp in ISO 8601 format | `2025-01-30T18:15:00.000Z` |
+| `x-inkeep-client-timezone` | The client's timezone identifier | `America/New_York` |
+
+These headers are useful for providing time-aware responses:
+
+```typescript
+const timeAwareHeaders = headers({
+  schema: z.object({
+    'x-inkeep-client-timestamp': z.string().optional(),
+    'x-inkeep-client-timezone': z.string().optional(),
+  }),
+});
+
+const timeAwareContext = contextConfig({
+  headers: timeAwareHeaders,
+});
+
+const assistantAgent = subAgent({
+  prompt: `You are a helpful assistant.
+
+  The user's current time is: ${timeAwareHeaders.toTemplate('x-inkeep-client-timestamp')}
+  The user's timezone is: ${timeAwareHeaders.toTemplate('x-inkeep-client-timezone')}
+
+  Use this information to provide time-relevant responses when appropriate.`
+});
 ```
 
 ## Troubleshooting

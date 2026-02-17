@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   projects,
   subAgentFunctionToolRelations,
+  subAgentSkills,
   subAgents,
   subAgentToolRelations,
 } from '../../db/manage/manage-schema';
@@ -37,6 +38,12 @@ import {
   upsertSubAgentFunctionToolRelation,
 } from './functionTools';
 import {
+  deleteScheduledTrigger,
+  listScheduledTriggers,
+  upsertScheduledTrigger,
+} from './scheduledTriggers';
+import { upsertSubAgentSkill } from './skills';
+import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
   upsertSubAgentExternalAgentRelation,
@@ -65,6 +72,48 @@ const defaultLogger: AgentLogger = {
   info: () => {},
   error: () => {},
 };
+
+async function syncSubAgentSkills(
+  db: AgentsManageDatabaseClient,
+  scopes: ProjectScopeConfig & { agentId: string },
+  subAgentsMap: FullAgentDefinition['subAgents'],
+  logger: AgentLogger
+) {
+  await db
+    .delete(subAgentSkills)
+    .where(
+      and(
+        eq(subAgentSkills.tenantId, scopes.tenantId),
+        eq(subAgentSkills.projectId, scopes.projectId),
+        eq(subAgentSkills.agentId, scopes.agentId)
+      )
+    );
+
+  const skillPromises: Array<Promise<any>> = [];
+  for (const [subAgentId, subAgentData] of Object.entries(subAgentsMap)) {
+    if (!subAgentData.skills || subAgentData.skills.length === 0) continue;
+
+    subAgentData.skills.forEach((skill) => {
+      if (!skill.id) return;
+      skillPromises.push(
+        upsertSubAgentSkill(db)({
+          scopes: {
+            tenantId: scopes.tenantId,
+            projectId: scopes.projectId,
+            agentId: scopes.agentId,
+            subAgentId,
+          },
+          skillId: skill.id,
+          index: skill.index,
+          alwaysLoaded: skill.alwaysLoaded,
+        })
+      );
+    });
+  }
+
+  await Promise.all(skillPromises);
+  logger.info({ agentId: scopes.agentId, count: skillPromises.length }, 'Synced sub-agent skills');
+}
 
 /**
  * Apply execution limits inheritance from project to Agents and Sub Agents
@@ -421,6 +470,57 @@ export const createFullAgentServerSide =
         );
       }
 
+      // Create scheduled triggers (agent-scoped)
+      if (typed.scheduledTriggers && Object.keys(typed.scheduledTriggers).length > 0) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typed.scheduledTriggers).length,
+          },
+          'Creating scheduled triggers for agent'
+        );
+
+        const scheduledTriggerPromises = Object.entries(typed.scheduledTriggers).map(
+          async ([scheduledTriggerId, scheduledTriggerData]) => {
+            try {
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Creating scheduled trigger in agent'
+              );
+              await upsertScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...scheduledTriggerData,
+                  id: scheduledTriggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Scheduled trigger created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, scheduledTriggerId, error },
+                'Failed to create scheduled trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(scheduledTriggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typed.scheduledTriggers).length,
+          },
+          'All scheduled triggers created successfully'
+        );
+      }
+
       const subAgentPromises = Object.entries(typed.subAgents).map(
         async ([subAgentId, agentData]) => {
           const subAgent = agentData;
@@ -748,6 +848,12 @@ export const createFullAgentServerSide =
       await Promise.all(subAgentRelationPromises);
       await Promise.all(subAgentExternalAgentRelationPromises);
       await Promise.all(subAgentTeamAgentRelationPromises);
+      await syncSubAgentSkills(
+        db,
+        { tenantId, projectId, agentId: finalAgentId },
+        typed.subAgents,
+        logger
+      );
       logger.info(
         { subAgentRelationCount: subAgentRelationPromises.length },
         'All sub-agent relations created'
@@ -1138,6 +1244,100 @@ export const updateFullAgentServerSide =
         }
       }
 
+      // Update scheduled triggers (agent-scoped)
+      if (
+        typedAgentDefinition.scheduledTriggers &&
+        Object.keys(typedAgentDefinition.scheduledTriggers).length > 0
+      ) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typedAgentDefinition.scheduledTriggers).length,
+          },
+          'Updating scheduled triggers for agent'
+        );
+
+        const scheduledTriggerPromises = Object.entries(typedAgentDefinition.scheduledTriggers).map(
+          async ([scheduledTriggerId, scheduledTriggerData]) => {
+            try {
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Updating scheduled trigger in agent'
+              );
+              await upsertScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...scheduledTriggerData,
+                  id: scheduledTriggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Scheduled trigger updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, scheduledTriggerId, error },
+                'Failed to update scheduled trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(scheduledTriggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typedAgentDefinition.scheduledTriggers).length,
+          },
+          'All scheduled triggers updated successfully'
+        );
+      }
+
+      // Delete orphaned scheduled triggers - only if scheduledTriggers field was explicitly provided
+      if (typedAgentDefinition.scheduledTriggers !== undefined) {
+        const incomingScheduledTriggerIds = new Set(
+          Object.keys(typedAgentDefinition.scheduledTriggers)
+        );
+
+        const existingScheduledTriggers = await listScheduledTriggers(db)({
+          scopes: { tenantId, projectId, agentId: finalAgentId },
+        });
+
+        let deletedScheduledTriggerCount = 0;
+        for (const scheduledTrigger of existingScheduledTriggers) {
+          if (!incomingScheduledTriggerIds.has(scheduledTrigger.id)) {
+            try {
+              await deleteScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                scheduledTriggerId: scheduledTrigger.id,
+              });
+              deletedScheduledTriggerCount++;
+              logger.info(
+                { scheduledTriggerId: scheduledTrigger.id },
+                'Deleted orphaned scheduled trigger'
+              );
+            } catch (error) {
+              logger.error(
+                { scheduledTriggerId: scheduledTrigger.id, error },
+                'Failed to delete orphaned scheduled trigger'
+              );
+            }
+          }
+        }
+
+        if (deletedScheduledTriggerCount > 0) {
+          logger.info(
+            { deletedScheduledTriggerCount },
+            'Deleted orphaned scheduled triggers from agent'
+          );
+        }
+      }
+
       const subAgentPromises = Object.entries(typedAgentDefinition.subAgents).map(
         async ([subAgentId, agentData]) => {
           const subAgent = agentData;
@@ -1219,6 +1419,65 @@ export const updateFullAgentServerSide =
       await Promise.all(subAgentPromises);
       const subAgentCount = Object.entries(typedAgentDefinition.subAgents).length;
       logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
+
+      const relinkToolRelationPromises: Promise<void>[] = [];
+
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
+          for (const canUseItem of agentData.canUse) {
+            if (!canUseItem.agentToolRelationId) {
+              continue;
+            }
+
+            relinkToolRelationPromises.push(
+              (async () => {
+                try {
+                  const { toolId, toolSelection, headers, toolPolicies, agentToolRelationId } =
+                    canUseItem;
+
+                  const isFunctionTool =
+                    typedAgentDefinition.functionTools &&
+                    toolId in typedAgentDefinition.functionTools;
+
+                  if (isFunctionTool) {
+                    await upsertSubAgentFunctionToolRelation(db)({
+                      scopes: { tenantId, projectId, agentId: finalAgentId },
+                      subAgentId,
+                      functionToolId: toolId,
+                      toolPolicies,
+                      relationId: agentToolRelationId,
+                    });
+                  } else {
+                    await upsertSubAgentToolRelation(db)({
+                      scopes: { tenantId, projectId, agentId: finalAgentId },
+                      subAgentId,
+                      toolId,
+                      selectedTools: toolSelection,
+                      headers,
+                      toolPolicies,
+                      relationId: agentToolRelationId,
+                    });
+                  }
+                } catch (error) {
+                  logger.error(
+                    {
+                      subAgentId,
+                      relationId: canUseItem.agentToolRelationId,
+                      toolId: canUseItem.toolId,
+                      error,
+                    },
+                    'Failed to relink tool relation during sub-agent update'
+                  );
+                }
+              })()
+            );
+          }
+        }
+      }
+
+      if (relinkToolRelationPromises.length > 0) {
+        await Promise.all(relinkToolRelationPromises);
+      }
 
       // External agents are project-scoped and managed at the project level.
       logger.info({}, 'External agents are project-scoped and managed at the project level.');
@@ -1798,6 +2057,13 @@ export const updateFullAgentServerSide =
           subAgentTeamAgentRelationPromisesCount: subAgentTeamAgentRelationPromises.length,
         },
         'All sub-agent team agent relations updated'
+      );
+
+      await syncSubAgentSkills(
+        db,
+        { tenantId, projectId, agentId: typedAgentDefinition.id },
+        typedAgentDefinition.subAgents,
+        logger
       );
 
       // Retrieve and return the updated agent

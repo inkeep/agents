@@ -1,5 +1,274 @@
 # @inkeep/agents-cli
 
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-manage-ui@0.48.4
+  - @inkeep/agents-sdk@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- baa7e46: Fix CLI port mismatch by centralizing local dev URLs via --local flag
+- Updated dependencies [6b561f6]
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-manage-ui@0.48.3
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-sdk@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- Updated dependencies [5287615]
+  - @inkeep/agents-manage-ui@0.48.2
+  - @inkeep/agents-core@0.48.2
+  - @inkeep/agents-sdk@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.48.1
+- @inkeep/agents-core@0.48.1
+- @inkeep/agents-sdk@0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 9ed110c: Add `--ui` flag to CLI `add` command for downloading UI components from the dashboard
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [26b3b88]
+- Updated dependencies [615713f]
+- Updated dependencies [e551124]
+- Updated dependencies [5d3f136]
+- Updated dependencies [5b0b1f1]
+- Updated dependencies [228d4e2]
+- Updated dependencies [c0c922b]
+- Updated dependencies [627df66]
+- Updated dependencies [9ed110c]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [4476af0]
+- Updated dependencies [73d79bd]
+- Updated dependencies [0bf078c]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+- Updated dependencies [32bff8f]
+  - @inkeep/agents-core@0.48.0
+  - @inkeep/agents-manage-ui@0.48.0
+  - @inkeep/agents-sdk@0.48.0
+
+## 0.47.5
+
+### Patch Changes
+
+- Updated dependencies [1ae697c]
+  - @inkeep/agents-manage-ui@0.47.5
+  - @inkeep/agents-core@0.47.5
+  - @inkeep/agents-sdk@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [6fb0715]
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-manage-ui@0.47.4
+  - @inkeep/agents-core@0.47.4
+  - @inkeep/agents-sdk@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+  - @inkeep/agents-manage-ui@0.47.3
+  - @inkeep/agents-sdk@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-manage-ui@0.47.2
+  - @inkeep/agents-sdk@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-manage-ui@0.47.1
+  - @inkeep/agents-sdk@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-manage-ui@0.47.0
+  - @inkeep/agents-sdk@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- Updated dependencies [2307d76]
+- Updated dependencies [f6010a1]
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-manage-ui@0.46.1
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-sdk@0.46.1
+
+## 0.46.0
+
+### Minor Changes
+
+- 96de898: Update api and manage ui urls
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [99388e9]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-ui@0.46.0
+  - @inkeep/agents-sdk@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [14a2e6f]
+- Updated dependencies [4d291f1]
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [fd323b4]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-manage-ui@0.45.3
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-sdk@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+  - @inkeep/agents-sdk@0.45.2
+  - @inkeep/agents-manage-ui@0.45.2
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [cd28e97]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-manage-ui@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-sdk@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+- Updated dependencies [8f067f4]
+- Updated dependencies [bab4641]
+- Updated dependencies [48b5400]
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-ui@0.45.0
+  - @inkeep/agents-sdk@0.45.0
+
+## 0.44.0
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [f23d445]
+- Updated dependencies [4f2b927]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [9ea2de8]
+- Updated dependencies [707d1c8]
+- Updated dependencies [7a57040]
+- Updated dependencies [046f799]
+- Updated dependencies [0ff87cf]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+- Updated dependencies [da3f64f]
+- Updated dependencies [0d18b7e]
+- Updated dependencies [5704c38]
+- Updated dependencies [0f3c2e5]
+- Updated dependencies [5e7cede]
+- Updated dependencies [afd01d5]
+  - @inkeep/agents-core@0.44.0
+  - @inkeep/agents-manage-ui@0.44.0
+  - @inkeep/agents-sdk@0.44.0
+
 ## 0.43.0
 
 ### Minor Changes

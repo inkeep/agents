@@ -1,0 +1,56 @@
+---
+title: Overview
+description: Pre-built chat components to integrate Inkeep agents into your application
+icon: LuBlocks
+---
+
+The Inkeep chat components provide pre-built UI elements to quickly integrate conversational AI into your application. These components handle the chat interface, message streaming, and user interactions out of the box.
+
+## Available Components
+
+| Component | Description |
+|-----------|-------------|
+| [Chat Button](/talk-to-your-agents/react/chat-button) | A floating button that opens a chat modal |
+| [Custom Trigger](/talk-to-your-agents/react/custom-trigger) | Use your own button or element to trigger the chat |
+| [Side Bar Chat](/talk-to-your-agents/react/side-bar-chat) | A chat panel that slides in from the side |
+| [Embedded Chat](/talk-to-your-agents/react/embedded-chat) | A chat component embedded directly in your page |
+
+## Installation
+
+<CodeGroup>
+```bash title="npm"
+npm install @inkeep/agents-ui
+```
+
+```bash title="yarn"
+yarn add @inkeep/agents-ui
+```
+
+```bash title="pnpm"
+pnpm add @inkeep/agents-ui
+```
+
+</CodeGroup>
+
+## Framework Support
+
+The chat components are available for:
+
+- **[React](/talk-to-your-agents/react/chat-button)** - Native React components with full TypeScript support
+- **[Next.js](/talk-to-your-agents/nextjs)** - Same React components with App Router–friendly setup (dynamic import, `"use client"`)
+- **[JavaScript](/talk-to-your-agents/javascript/chat-button)** - Vanilla JavaScript for any framework or plain HTML
+
+## Automatic Headers
+
+The chat components automatically send the following headers with each request to provide client context:
+
+| Header | Description | Example Value |
+|--------|-------------|---------------|
+| `x-inkeep-client-timestamp` | The client's current timestamp in ISO 8601 format | `2025-01-30T18:15:00.000Z` |
+| `x-inkeep-client-timezone` | The client's timezone identifier | `America/New_York` |
+
+These headers enable your agents to provide time-aware responses. See [Headers](/typescript-sdk/headers#widget-provided-headers) to learn how to use these values in your agent configuration.
+
+## Customization
+
+Learn how to customize the appearance and behavior of chat components in the [Styling guide](/talk-to-your-agents/customization/styling).

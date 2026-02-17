@@ -43,8 +43,6 @@ interface IkpMessageProps {
   refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
   cookieHeader?: string;
   copilotToken?: string;
-  /** Whether auth is disabled - pass this for Shadow DOM compatibility */
-  isAuthDisabled?: boolean;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -180,7 +178,6 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
   refreshAgentGraph,
   cookieHeader,
   copilotToken,
-  isAuthDisabled,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
   // Just use operations in chronological order
@@ -366,7 +363,6 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
                             targetProjectId={targetProjectId}
                             onConnect={handleConnect}
                             refreshAgentGraph={refreshAgentGraph}
-                            isAuthDisabled={isAuthDisabled}
                           />
                         </div>
                       );
@@ -412,7 +408,6 @@ export const IkpMessage = (props: any) => {
         refreshAgentGraph={otherProps.refreshAgentGraph}
         cookieHeader={otherProps.cookieHeader}
         copilotToken={otherProps.copilotToken}
-        isAuthDisabled={otherProps.isAuthDisabled}
       />
     </div>
   );

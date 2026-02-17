@@ -3,21 +3,21 @@ import type { LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Cloud } from 'lucide-react';
 import { Inter } from 'next/font/google';
+import { Suspense, ViewTransition } from 'react';
 import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import type { Organization, WebSite, WithContext } from 'schema-dts';
+import PostHogPageview from '@/app/posthog-pageview';
 import { GithubStars } from '@/components/github-stars';
 import { Logo } from '@/components/logo';
 import { SearchDialog } from '@/components/search-dialog';
 import { JsonLd } from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
+import { PostHogProvider } from '@/lib/analytics/posthog-provider';
 import { SLACK_URL } from '@/lib/constants';
 import { createMetadata } from '@/lib/metadata';
 import { source } from '@/lib/source';
 import { cn } from '@/lib/utils';
 import '@/app/global.css';
-import { Suspense } from 'react';
-import PostHogPageview from '@/app/posthog-pageview';
-import { PostHogProvider } from '@/lib/analytics/posthog-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -47,10 +47,10 @@ const orgLd = {
   ],
   sameAs: [
     'https://x.com/inkeep',
-    'https://www.linkedin.com/company/inkeep',
+    'https://linkedin.com/company/inkeep',
     'https://github.com/inkeep',
-    'https://www.crunchbase.com/organization/inkeep',
-    'https://www.youtube.com/@inkeep-ai',
+    'https://crunchbase.com/organization/inkeep',
+    'https://youtube.com/@inkeep-ai',
   ],
 } satisfies WithContext<Organization>;
 
@@ -147,7 +147,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
               }}
               links={linkItems}
             >
-              {children}
+              <ViewTransition>{children}</ViewTransition>
             </DocsLayout>
           </RootProvider>
         </PostHogProvider>

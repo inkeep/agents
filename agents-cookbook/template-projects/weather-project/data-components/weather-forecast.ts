@@ -8,11 +8,13 @@ export const weatherForecast = dataComponent({
   props: z.object({
     forecast: z
       .array(
-        z.object({
-          time: z.string().describe(`The time of current item E.g. 12PM, 1PM`),
-          temperature: z.number().describe(`The temperature at given time in Farenheit`),
-          code: z.number().describe(`Weather code at given time`),
-        })
+        z
+          .object({
+            time: z.string().describe(`The time of current item E.g. 12PM, 1PM`),
+            temperature: z.number().describe(`The temperature at given time in Farenheit`),
+            code: z.number().describe(`Weather code at given time`),
+          })
+          .describe('A single hourly forecast entry')
       )
       .describe(`The hourly forecast for the weather at a given location`),
   }),

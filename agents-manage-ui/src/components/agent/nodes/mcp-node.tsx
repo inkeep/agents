@@ -10,6 +10,7 @@ import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { cn } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
+  findOrphanedTools,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
@@ -59,12 +60,13 @@ const TruncateToolBadge: FC<{
 };
 
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
+  'use memo';
+
   const { data, selected } = props;
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { toolLookup, agentToolConfigLookup, edges } = useAgentStore((state) => ({
+  const { toolLookup, agentToolConfigLookup } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
     agentToolConfigLookup: state.agentToolConfigLookup,
-    edges: state.edges,
   }));
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
@@ -84,15 +86,16 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const name = data.name || `Tool: ${data.toolId}`;
   const imageUrl = data.imageUrl ?? toolData?.imageUrl;
 
-  const availableTools = toolData?.availableTools;
-
   const activeTools = getActiveTools({
-    availableTools: availableTools,
+    availableTools: toolData?.availableTools,
     activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup, edges);
-  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup, edges);
+  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
+  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
+
+  const orphanedTools = findOrphanedTools(selectedTools, activeTools);
+  const hasOrphanedTools = orphanedTools.length > 0;
 
   // Format the tool display
   const getToolDisplay = () => {
@@ -112,7 +115,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     const totalCount = activeTools?.length ?? 0;
 
     if (selectedCount === 0) {
-      return ['0'];
+      return [];
     }
 
     // If all tools are selected, show total count
@@ -138,8 +141,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   };
 
   const toolBadges = getToolDisplay().map((label) => {
-    const isSynthetic =
-      label === '0' || label.startsWith('+') || label.endsWith('(ALL)') || label.includes('(ALL)');
+    const isSynthetic = label.startsWith('+') || label.includes('(ALL)');
 
     return {
       label,
@@ -160,7 +162,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         isConnecting && 'animate-pulse opacity-80',
         hasErrors && 'ring-2 ring-red-300 border-red-300',
-        needsAuth && 'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
+        (needsAuth || hasOrphanedTools) &&
+          'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
         isInvertedDelegating && 'node-delegating-inverted'
       )}

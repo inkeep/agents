@@ -13,7 +13,7 @@
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build --filter='!agents-cookbook-templates'",
     "knip": "turbo knip",
-    "dev": "turbo dev --filter='!@inkeep/create-agents'",
+    "dev": "turbo dev --filter='!@inkeep/create-agents' --filter='!@inkeep/agents-work-apps'",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
@@ -37,6 +37,7 @@
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
+    "validate:ai-artifacts": "pnpx tsx scripts/validate-ai-artifacts.ts",
     "clean": "pnpm -r --parallel exec rm -rf node_modules/ dist/ build/ .next/ .turbo/",
     "clean:turbo": "rm -rf .turbo/",
     "turbo:login": "turbo login && turbo link",
@@ -71,35 +72,56 @@
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "profile:prepush": "node scripts/profile-prepush.mjs",
     "setup-dev": "sh scripts/setup.sh",
+    "setup-dev:optional": "sh scripts/setup-optional.sh",
+    "optional:stop": "sh scripts/setup-optional.sh --stop",
+    "optional:status": "sh scripts/setup-optional.sh --status",
+    "optional:reset": "sh scripts/setup-optional.sh --reset",
+    "setup-skills": "claude plugin marketplace add inkeep/team-skills && claude plugin install eng@inkeep-team-skills && claude plugin install ralph-loop@claude-plugins-official",
     "spicedb:schema:read": "zed schema read --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:orgs": "zed relationship read organization --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
-    "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply"
+    "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
+    "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
+    "check:env-descriptions": "node scripts/check-env-descriptions.mjs"
   },
   "version": "0.1.0",
   "dependencies": {
-    "tsdown": "^0.19.0",
-    "zod": "^4.1.12",
-    "@hono/zod-openapi": "^1.1.5"
+    "tsdown": "^0.19.0"
   },
   "devDependencies": {
-    "knip": "5.82.0",
     "@biomejs/biome": "2.3.11",
     "@changesets/cli": "2.29.7",
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
+    "knip": "5.82.0",
     "lint-staged": "^16.1.5",
     "turbo": "^2.7.0",
     "unique-names-generator": "^4.7.1",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "yaml": "^2.8.2"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": [
       "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
+    "agents-api/src/{domains/**/routes/**,openapi,createApp}.{ts,tsx}": [
+      "bash -c 'cd agents-api && pnpm openapi:update-snapshot && git add __snapshots__/openapi.json'"
+    ],
     "agents-api/**/*.{ts,tsx}": [
       "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
+    ],
+    ".claude/agents/*.md": [
+      "bash -c 'pnpm validate:ai-artifacts'"
+    ],
+    ".agents/skills/**/SKILL.md": [
+      "bash -c 'pnpm validate:ai-artifacts'"
+    ],
+    "scripts/setup-optional.sh": [
+      "bash -c 'cp scripts/setup-optional.sh create-agents-template/scripts/setup-optional.sh && git add create-agents-template/scripts/setup-optional.sh'"
+    ],
+    "scripts/generate-jwt-keys.sh": [
+      "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
     ]
   },
   "packageManager": "pnpm@10.10.0"

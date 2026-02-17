@@ -11,11 +11,10 @@ import {
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
-import { env } from './env';
 import { createAgentsAuth } from './factory';
-import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
+import { recoverOrphanedWorkflows, world } from './workflow/world';
 
 export type { AppConfig, AppVariables } from './types';
 
@@ -35,7 +34,6 @@ export {
   createAgentsHono,
   createAuth0Provider,
   createOIDCProvider,
-  initializeDefaultUser,
 } from './factory';
 
 // Create default configuration
@@ -105,9 +103,30 @@ const app = createAgentsHono({
   sandboxConfig,
 });
 
-// Initialize default user for development environment only
-if (env.ENVIRONMENT === 'development') {
-  void initializeDefaultUser(auth);
+// Start the workflow world worker and recover orphaned workflows.
+const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
+if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
+  const STARTUP_DELAY_MS = 3000; // Wait for Vite/server to start
+  console.log(
+    `Scheduling workflow world worker start in ${STARTUP_DELAY_MS}ms (${workflowWorld} mode)...`
+  );
+
+  setTimeout(async () => {
+    try {
+      if (workflowWorld === '@workflow/world-postgres') {
+        await world.start();
+        console.log('Workflow world worker started successfully');
+      } else {
+        console.log(`Workflow world (${workflowWorld}) does not require explicit start`);
+      }
+      const recoveredCount = await recoverOrphanedWorkflows();
+      if (recoveredCount > 0) {
+        console.log(`Recovered ${recoveredCount} orphaned workflow(s)`);
+      }
+    } catch (err) {
+      console.error('Failed to start workflow world:', err);
+    }
+  }, STARTUP_DELAY_MS);
 }
 
 export default app;

@@ -16,12 +16,10 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
     ```html
     <script
-        type="module"
-        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
-        defer
-
-> </script>
-
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+      defer
+    ></script>
     ```
 
   </Step>
@@ -63,27 +61,17 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 ## Config
 
 <AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="InkeepModalChatProps"
+  name="default"
+  type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'"
 />
 
-### Base Settings
+<Snippet file="chat-components/base-settings.mdx" />
+
+<Snippet file="chat-components/ai-chat-settings.mdx" />
+
+### OpenSettingsModal
 
 <AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="InkeepBaseSettings"
-/>
-
-### AI Chat Settings
-
-<AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="InkeepAIChatSettings"
-/>
-
-### Open Settings
-
-<AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="OpenSettingsModal"
+  name="default"
+  type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'"
 />

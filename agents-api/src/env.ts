@@ -5,63 +5,177 @@ import { loadEnvironmentFiles } from '@inkeep/agents-core';
 loadEnvironmentFiles();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).default('development'),
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+  // Core Environment
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development')
+    .describe('Node.js environment mode'),
+  ENVIRONMENT: z
+    .enum(['development', 'production', 'pentest', 'test'])
+    .default('development')
+    .describe('Application environment mode'),
+  LOG_LEVEL: z
+    .enum(['trace', 'debug', 'info', 'warn', 'error'])
+    .default('info')
+    .describe('Logging verbosity level'),
 
-  INKEEP_AGENTS_MANAGE_DATABASE_URL: z.string(),
-  INKEEP_AGENTS_RUN_DATABASE_URL: z.string(),
-  INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
-  INKEEP_AGENTS_API_URL: z.string().optional().default('http://localhost:3002'),
+  // Database
+  INKEEP_AGENTS_MANAGE_DATABASE_URL: z
+    .string()
+    .describe(
+      'PostgreSQL connection URL for the management database (Doltgres with Git version control)'
+    ),
+  INKEEP_AGENTS_RUN_DATABASE_URL: z
+    .string()
+    .describe(
+      'PostgreSQL connection URL for the runtime database (Doltgres with Git version control)'
+    ),
+  INKEEP_AGENTS_MANAGE_UI_URL: z
+    .string()
+    .optional()
+    .describe('URL where the management UI is hosted'),
+  INKEEP_AGENTS_API_URL: z
+    .string()
+    .optional()
+    .default('http://localhost:3002')
+    .describe('URL where the agents management API is running'),
+  AUTH_COOKIE_DOMAIN: z
+    .string()
+    .optional()
+    .describe(
+      'Explicit cookie domain for cross-subdomain auth (e.g., .inkeep.com). Required when the API and UI do not share a common 3-part parent domain.'
+    ),
 
-  BETTER_AUTH_SECRET: z.string().optional(),
+  // Authentication
+  BETTER_AUTH_SECRET: z
+    .string()
+    .optional()
+    .describe('Secret key for Better Auth session encryption (change in production)'),
   INKEEP_AGENTS_MANAGE_UI_USERNAME: z
     .string()
     .optional()
     .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
       message: 'Invalid email address',
-    }),
+    })
+    .describe('Admin email address for management UI login'),
   INKEEP_AGENTS_MANAGE_UI_PASSWORD: z
     .string()
     .optional()
     .refine((val) => !val || val.length >= 8, {
       message: 'Password must be at least 8 characters',
-    }),
+    })
+    .describe('Admin password for management UI login (min 8 characters)'),
 
-  INKEEP_AGENTS_API_BYPASS_SECRET: z.string().optional(),
-  INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
-  INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
-  INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),
-
-  INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z.string().optional(),
-  INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY: z.string().optional(),
-
-  NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
-  NANGO_SECRET_KEY: z.string().optional(),
-
-  OTEL_BSP_SCHEDULE_DELAY: z.coerce.number().optional().default(500),
-  OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
-
-  DISABLE_AUTH: z
+  // API Bypass Secrets (for local development and testing, skips auth)
+  INKEEP_AGENTS_API_BYPASS_SECRET: z
     .string()
     .optional()
-    .default('false')
-    .transform((val) => val === 'true'),
+    .describe('API bypass secret for local development and testing (skips auth)'),
+  INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z
+    .string()
+    .optional()
+    .describe('Management API bypass secret for local development and testing (skips auth)'),
+  INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z
+    .string()
+    .optional()
+    .describe('Run API bypass secret for local development and testing (skips auth)'),
+  INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z
+    .string()
+    .optional()
+    .describe('Eval API bypass secret for local development and testing (skips auth)'),
 
-  TENANT_ID: z.string().optional().default('default'),
+  // JWT Keys (for Playground)
+  INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z
+    .string()
+    .optional()
+    .describe(
+      'Temporary JWT public key for Playground (generate with scripts/generate-jwt-keys.sh)'
+    ),
+  INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY: z
+    .string()
+    .optional()
+    .describe(
+      'Temporary JWT private key for Playground (generate with scripts/generate-jwt-keys.sh)'
+    ),
 
-  SIGNOZ_URL: z.string().optional(),
-  SIGNOZ_API_KEY: z.string().optional(),
-  PUBLIC_SIGNOZ_URL: z.string().optional(),
+  // Nango (OAuth integrations)
+  NANGO_SERVER_URL: z
+    .string()
+    .optional()
+    .default('https://api.nango.dev')
+    .describe('Nango server URL for OAuth integrations'),
+  NANGO_SECRET_KEY: z.string().optional().describe('Nango secret key for OAuth integrations'),
 
-  ANTHROPIC_API_KEY: z.string(),
-  OPENAI_API_KEY: z.string().optional(),
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  // OpenTelemetry Configuration
+  OTEL_BSP_SCHEDULE_DELAY: z.coerce
+    .number()
+    .optional()
+    .default(500)
+    .describe('OpenTelemetry batch span processor schedule delay in milliseconds'),
+  OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce
+    .number()
+    .optional()
+    .default(64)
+    .describe('OpenTelemetry batch span processor max export batch size'),
 
-  WORKFLOW_TARGET_WORLD: z.string().optional(),
-  WORKFLOW_POSTGRES_URL: z.string().optional(),
-  WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
-  WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
+  // Tenant Configuration
+  TENANT_ID: z.string().optional().default('default').describe('Default tenant ID for development'),
+
+  // SigNoz (Observability)
+  SIGNOZ_URL: z.string().optional().describe('SigNoz server URL for observability'),
+  SIGNOZ_API_KEY: z.string().optional().describe('SigNoz API key for authentication'),
+  PUBLIC_SIGNOZ_URL: z
+    .string()
+    .optional()
+    .describe('Public SigNoz URL accessible from the browser'),
+
+  // AI Providers
+  ANTHROPIC_API_KEY: z
+    .string()
+    .describe(
+      'Anthropic API key for Claude models (required for agent execution). Get from https://console.anthropic.com/'
+    ),
+  OPENAI_API_KEY: z
+    .string()
+    .optional()
+    .describe('OpenAI API key for GPT models. Get from https://platform.openai.com/'),
+  GOOGLE_GENERATIVE_AI_API_KEY: z
+    .string()
+    .optional()
+    .describe('Google Generative AI API key for Gemini models'),
+
+  // GitHub App Configuration
+  GITHUB_APP_ID: z.string().optional().describe('GitHub App ID for GitHub integration'),
+  GITHUB_APP_PRIVATE_KEY: z
+    .string()
+    .optional()
+    .describe('GitHub App private key for authentication'),
+  GITHUB_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .describe('Secret for validating GitHub webhook payloads'),
+  GITHUB_STATE_SIGNING_SECRET: z
+    .string()
+    .min(32, 'GITHUB_STATE_SIGNING_SECRET must be at least 32 characters')
+    .optional()
+    .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
+  GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
+  GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+
+  // Workflow Configuration
+  WORKFLOW_TARGET_WORLD: z.string().optional().describe('Target world for workflow execution'),
+  WORKFLOW_POSTGRES_URL: z
+    .string()
+    .optional()
+    .describe('PostgreSQL connection URL for workflow job queue'),
+  WORKFLOW_POSTGRES_JOB_PREFIX: z
+    .string()
+    .optional()
+    .describe('Prefix for workflow job names in the queue'),
+  WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z
+    .string()
+    .optional()
+    .describe('Number of concurrent workflow workers'),
 });
 
 const parseEnv = () => {

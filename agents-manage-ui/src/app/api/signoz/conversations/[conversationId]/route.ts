@@ -27,7 +27,7 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
+
 import { getLogger } from '@/lib/logger';
 
 // Configure axios retry
@@ -45,7 +45,7 @@ type SigNozResp = {
   data?: { result?: Array<{ queryName?: string; list?: SigNozListItem[] }> };
 };
 
-const START_2020_MS = new Date('2020-01-01T00:00:00Z').getTime();
+const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
@@ -167,7 +167,7 @@ function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
 
 function buildConversationListPayload(
   conversationId: string,
-  start = START_2020_MS,
+  start = Date.now() - DEFAULT_LOOKBACK_MS,
   end = Date.now()
 ) {
   const baseFilters = [
@@ -265,6 +265,10 @@ function buildConversationListPayload(
             },
             {
               key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.DELEGATION_TYPE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -451,6 +455,12 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            // Context breakdown attributes (avoids needing the heavy allSpanAttributes SQL query)
+            { key: CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, ...QUERY_FIELD_CONFIGS.INT64_TAG },
+            ...V1_BREAKDOWN_SCHEMA.map((def) => ({
+              key: def.spanAttribute,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            })),
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
@@ -806,6 +816,10 @@ function buildConversationListPayload(
           [],
           [
             {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
               key: SPAN_KEYS.TRACE_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
@@ -1122,6 +1136,67 @@ function buildConversationListPayload(
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
+
+        maxStepsReached: listQuery(
+          QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.AGENT_MAX_STEPS_REACHED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_MAX_STEPS_REACHED,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_STEPS_COMPLETED,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_MAX_STEPS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -1147,17 +1222,23 @@ export async function GET(
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
 
+  // Optional time range params to narrow the ClickHouse scan window
+  const startParam = url.searchParams.get('start');
+  const endParam = url.searchParams.get('end');
+
   // Forward cookies for authentication
   const cookieHeader = req.headers.get('cookie');
 
   try {
-    const start = START_2020_MS;
-    const end = Date.now();
+    const now = Date.now();
+    const start = startParam ? Number(startParam) : now - DEFAULT_LOOKBACK_MS;
+    const end = endParam ? Number(endParam) : now;
 
     // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
 
-    // Call secure agents-api
+    // Single SigNoz builder query — allSpanAttributes SQL removed from initial load
+    // (span details are now fetched lazily via /api/signoz/spans/[spanId])
     const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
@@ -1176,6 +1257,7 @@ export async function GET(
     const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
+    const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -1185,7 +1267,6 @@ export async function GET(
     for (const s of userMessageSpans) {
       agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
-      // Extract trigger info if present
       const spanInvocationType = getString(s, SPAN_KEYS.INVOCATION_TYPE, '');
       if (spanInvocationType && !invocationType) {
         invocationType = spanInvocationType;
@@ -1195,38 +1276,33 @@ export async function GET(
       if (agentId || agentName) break;
     }
 
-    let allSpanAttributes: Array<{
-      spanId: string;
-      traceId: string;
-      timestamp: string;
-      data: Record<string, any>;
-    }> = [];
-    try {
-      // Call secure manage-api via the SQL helper function
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
-    } catch (e) {
-      const logger = getLogger('span-attributes');
-      logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
-    }
-
+    // Build parent-span map from durationSpans (already fetched in builder query)
     const spanIdToParentSpanId = new Map<string, string | null>();
-    for (const spanAttr of allSpanAttributes) {
-      const parentSpanId = spanAttr.data[SPAN_KEYS.PARENT_SPAN_ID] || null;
-      spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
+    for (const span of durationSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const parentSpanId = getString(span, SPAN_KEYS.PARENT_SPAN_ID, '') || null;
+      if (spanId) {
+        spanIdToParentSpanId.set(spanId, parentSpanId);
+      }
     }
 
-    // Build map from spanId to context breakdown (from agent.generate spans)
-    // Uses V1_BREAKDOWN_SCHEMA to dynamically parse breakdown from span attributes
+    // Build context breakdown map from agentGenerationSpans (breakdown attrs now in builder query)
     type ContextBreakdownData = {
       components: Record<string, number>;
       total: number;
     };
     const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
-    for (const spanAttr of allSpanAttributes) {
-      const data = spanAttr.data;
-      if (data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] !== undefined) {
+    for (const span of agentGenerationSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const totalValue = getField(span, CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE);
+      if (spanId && totalValue !== undefined && totalValue !== '' && totalValue !== null) {
+        const data: Record<string, unknown> = {};
+        data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] = totalValue;
+        for (const def of V1_BREAKDOWN_SCHEMA) {
+          data[def.spanAttribute] = getField(span, def.spanAttribute);
+        }
         spanIdToContextBreakdown.set(
-          spanAttr.spanId,
+          spanId,
           parseContextBreakdownFromSpan(data, V1_BREAKDOWN_SCHEMA)
         );
       }
@@ -1248,7 +1324,8 @@ export async function GET(
         | 'tool_approval_requested'
         | 'tool_approval_approved'
         | 'tool_approval_denied'
-        | 'compression';
+        | 'compression'
+        | 'max_steps_reached';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1294,6 +1371,7 @@ export async function GET(
       // delegation/transfer
       delegationFromSubAgentId?: string;
       delegationToSubAgentId?: string;
+      delegationType?: 'internal' | 'external' | 'team';
       transferFromSubAgentId?: string;
       transferToSubAgentId?: string;
       // streaming text
@@ -1331,6 +1409,9 @@ export async function GET(
       compressionSafetyBuffer?: number;
       compressionError?: string;
       compressionSummary?: string;
+      maxStepsReached?: boolean;
+      stepsCompleted?: number;
+      maxSteps?: number;
     };
 
     const activities: Activity[] = [];
@@ -1353,6 +1434,7 @@ export async function GET(
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromSubAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
       const delegationToSubAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
+      const delegationType = getString(span, SPAN_KEYS.DELEGATION_TYPE, '');
       const transferFromSubAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
       const transferToSubAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
@@ -1384,6 +1466,7 @@ export async function GET(
         aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromSubAgentId: delegationFromSubAgentId || undefined,
         delegationToSubAgentId: delegationToSubAgentId || undefined,
+        delegationType: (delegationType as 'internal' | 'external' | 'team') || undefined,
         transferFromSubAgentId: transferFromSubAgentId || undefined,
         transferToSubAgentId: transferToSubAgentId || undefined,
         toolCallArgs: toolCallArgs || undefined,
@@ -1792,6 +1875,30 @@ export async function GET(
       });
     }
 
+    // max steps reached spans
+    for (const span of maxStepsReachedSpans) {
+      const maxStepsSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const stepsCompleted = getNumber(span, SPAN_KEYS.AGENT_STEPS_COMPLETED, 0);
+      const maxSteps = getNumber(span, SPAN_KEYS.AGENT_MAX_STEPS, 0);
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, '');
+      const subAgentName = getString(span, SPAN_KEYS.SUB_AGENT_NAME, '');
+
+      activities.push({
+        id: maxStepsSpanId,
+        type: ACTIVITY_TYPES.MAX_STEPS_REACHED,
+        description: `Max generation steps reached (${stepsCompleted}/${maxSteps})`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(maxStepsSpanId) || undefined,
+        status: ACTIVITY_STATUS.WARNING,
+        subAgentId: subAgentId || ACTIVITY_NAMES.UNKNOWN_AGENT,
+        subAgentName: subAgentName || ACTIVITY_NAMES.UNKNOWN_AGENT,
+        result: `Sub-agent stopped after ${stepsCompleted} generation steps (limit: ${maxSteps})`,
+        maxStepsReached: true,
+        stepsCompleted,
+        maxSteps,
+      });
+    }
+
     // Pre-parse all timestamps once for better performance
     const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
@@ -1937,7 +2044,6 @@ export async function GET(
       mcpToolErrors: [],
       agentId,
       agentName,
-      allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,

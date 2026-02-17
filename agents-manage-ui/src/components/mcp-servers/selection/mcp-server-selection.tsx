@@ -19,6 +19,8 @@ import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
+import { WorkAppGitHubCard } from './work-app-github-card';
+import { WorkAppGitHubRepositoryConfigDialog } from './work-app-github-repository-config-dialog';
 
 /**
  * Remove user_id from Composio URLs before storing in DB.
@@ -42,12 +44,13 @@ interface MCPServerSelectionProps {
   projectId: string;
 }
 
-type SelectionMode = 'popular' | 'custom';
+type SelectionMode = 'popular' | 'workapps' | 'custom';
 
 export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServerSelectionProps) {
   const [loadingServerId, setLoadingServerId] = useState<string>();
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
+  const [gitHubDialogOpen, setGitHubDialogOpen] = useState(false);
   const router = useRouter();
 
   const { handleOAuthLogin } = useOAuthLogin({
@@ -146,16 +149,34 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     }
   };
 
+  const getPageTitle = () => {
+    switch (selectedMode) {
+      case 'popular':
+        return 'Popular MCP Servers';
+      case 'workapps':
+        return 'Work Apps';
+      case 'custom':
+        return 'Custom MCP Server';
+    }
+  };
+
+  const getPageDescription = () => {
+    switch (selectedMode) {
+      case 'popular':
+        return 'Connect to popular services with pre-configured servers. Click any server to set up with OAuth authentication.';
+      case 'workapps':
+        return 'First-party integrations with secure authentication. Configure access to specific repositories and resources.';
+      case 'custom':
+        return 'Configure a custom MCP server by providing the server URL and transport details.';
+    }
+  };
+
   return (
     <>
       <PageHeader
         className="gap-2 items-start"
-        title={selectedMode === 'popular' ? 'Popular MCP Servers' : 'Custom MCP Server'}
-        description={
-          selectedMode === 'popular'
-            ? 'Connect to popular services with pre-configured servers. Click any server to set up with OAuth authentication.'
-            : 'Configure a custom MCP server by providing the server URL and transport details.'
-        }
+        title={getPageTitle()}
+        description={getPageDescription()}
         action={
           <div className="flex bg-muted p-1 rounded-lg">
             <Button
@@ -164,6 +185,13 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
               onClick={() => setSelectedMode('popular')}
             >
               Popular Servers
+            </Button>
+            <Button
+              variant={selectedMode === 'workapps' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedMode('workapps')}
+            >
+              Work Apps
             </Button>
             <Button
               variant={selectedMode === 'custom' ? 'default' : 'ghost'}
@@ -177,7 +205,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       />
 
       {/* Content */}
-      {selectedMode === 'popular' ? (
+      {selectedMode === 'popular' && (
         <div className="space-y-6">
           <div className="max-w-sm">
             <Input
@@ -194,7 +222,15 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
             searchQuery={searchQuery}
           />
         </div>
-      ) : (
+      )}
+
+      {selectedMode === 'workapps' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <WorkAppGitHubCard onClick={() => setGitHubDialogOpen(true)} />
+        </div>
+      )}
+
+      {selectedMode === 'custom' && (
         <div className="max-w-2xl mx-auto">
           <MCPServerForm credentials={credentials} tenantId={tenantId} projectId={projectId} />
         </div>
@@ -202,6 +238,17 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
 
       {/* Scope selection dialog for prebuilt servers */}
       {ScopeDialog}
+
+      {/* GitHub configuration dialog for Work Apps */}
+      <WorkAppGitHubRepositoryConfigDialog
+        tenantId={tenantId}
+        projectId={projectId}
+        open={gitHubDialogOpen}
+        onOpenChange={setGitHubDialogOpen}
+        onSuccess={(toolId: string) => {
+          router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+        }}
+      />
     </>
   );
 }

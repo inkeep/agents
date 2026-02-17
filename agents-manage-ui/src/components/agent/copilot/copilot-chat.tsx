@@ -1,16 +1,17 @@
 'use client';
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
-import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { sentry } from '@/lib/sentry';
+import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpMessage } from './message-parts/message';
 
@@ -21,7 +22,7 @@ interface CopilotChatProps {
   refreshAgentGraph: (options?: { fetchTools?: boolean }) => Promise<void>;
 }
 
-const styleOverrides = `
+const styleOverrides = css`
 .ikp-markdown-code {
   background-color: var(--ikp-color-gray-100);
   color: var(--ikp-color-gray-900);
@@ -81,10 +82,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
-    PUBLIC_DISABLE_AUTH,
   } = useRuntimeConfig();
-
-  const isAuthDisabled = PUBLIC_DISABLE_AUTH === 'true';
 
   const {
     apiKey: copilotToken,
@@ -150,7 +148,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           }}
           position="left"
           baseSettings={{
-            onEvent: async (event: InkeepCallbackEvent) => {
+            async onEvent(event) {
               if (event.eventName === 'user_message_submitted') {
                 setIsStreaming(true);
               }
@@ -168,13 +166,12 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                 });
               }
             },
-            primaryBrandColor: '#3784ff',
+            primaryBrandColor: INKEEP_BRAND_COLOR,
             colorMode: {
               sync: {
                 target: document.documentElement,
                 attributes: ['class'],
-                isDarkMode: (attributes: Record<string, string | null>) =>
-                  !!attributes?.class?.includes('dark'),
+                isDarkMode: (attributes) => !!attributes?.class?.includes('dark'),
               },
             },
             theme: {
@@ -225,7 +222,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         refreshAgentGraph: refreshAgentGraph,
                         cookieHeader: cookieHeader,
                         copilotToken: copilotToken,
-                        isAuthDisabled: isAuthDisabled,
                       }),
                   }
                 : {}),

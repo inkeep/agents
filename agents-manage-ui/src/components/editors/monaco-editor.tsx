@@ -104,7 +104,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
-      contextmenu: false, // Disable the right-click context menu
       padding: {
         top: 12,
         bottom: 12,
@@ -118,9 +117,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       tabSize: 2,
       readOnly,
       // Monaco doesn't render whitespace at the beginning of the lines
-      placeholder: placeholder.replaceAll(/^\s+/gm, (substring) =>
-        '\u00A0'.repeat(substring.length)
-      ),
+      placeholder: placeholder.replaceAll(' ', '\u00A0'),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
       editContext: false,

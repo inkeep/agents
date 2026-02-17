@@ -20,8 +20,8 @@ export default defineProject({
     isolate: true, // Ensure test isolation to prevent state leakage
     poolOptions: {
       threads: {
-        maxThreads: 10, // Increase for GitHub Actions runners (have more cores)
-        minThreads: 4,
+        maxThreads: 8,
+        minThreads: 2,
       },
     },
     env: {
@@ -30,6 +30,7 @@ export default defineProject({
       OPENAI_API_KEY: 'test-openai-key',
       LOG_LEVEL: 'error',
       AGENTS_COMPRESSION_ENABLED: 'false',
+      INKEEP_AGENTS_RUN_API_BYPASS_SECRET: 'test-bypass-secret',
     },
   },
 });

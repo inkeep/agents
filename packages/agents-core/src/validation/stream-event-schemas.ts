@@ -143,7 +143,6 @@ export const ToolOutputErrorEventSchema = z.object({
   type: z.literal('tool-output-error'),
   toolCallId: z.string(),
   errorText: z.string(),
-  output: z.any().nullable(),
 });
 
 /**

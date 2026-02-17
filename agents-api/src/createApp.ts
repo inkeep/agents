@@ -1,14 +1,16 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { getWaitUntil, OrgRoles } from '@inkeep/agents-core';
+import { githubRoutes } from '@inkeep/agents-work-apps/github';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
-import { githubRoutes } from './domains/github';
 import { manageRoutes } from './domains/manage';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
+import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
@@ -23,6 +25,8 @@ import {
   runApiKeyAuthExcept,
   runCorsConfig,
   signozCorsConfig,
+  workAppsAuth,
+  workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { evalApiKeyAuth } from './middleware/evalsAuth';
@@ -38,6 +42,7 @@ import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
 import type { AppConfig, AppVariables } from './types';
+import { getInProcessFetch, registerAppFetch } from './utils/in-process-fetch';
 
 const logger = getLogger('agents-api');
 
@@ -84,6 +89,52 @@ function createAgentsHono(config: AppConfig) {
   if (auth) {
     app.use('/api/auth/*', cors(authCorsConfig));
 
+    // Dev-only: auto-login endpoint — no credentials leave the server.
+    // MUST be registered BEFORE the catch-all /api/auth/* handler below (Hono uses first-match-wins).
+    if (env.ENVIRONMENT === 'development') {
+      app.post('/api/auth/dev-session', async (c) => {
+        const email = env.INKEEP_AGENTS_MANAGE_UI_USERNAME;
+
+        if (!email) {
+          return c.json(
+            { error: 'Dev credentials not configured. Run pnpm db:auth:init first.' },
+            400
+          );
+        }
+
+        const ctx = await auth.$context;
+        const found = await ctx.internalAdapter.findUserByEmail(email);
+
+        if (!found) {
+          return c.json({ error: 'Dev user not found. Run pnpm db:auth:init first.' }, 400);
+        }
+
+        const session = await ctx.internalAdapter.createSession(found.user.id);
+
+        // Sign the session token with HMAC-SHA-256 (matches Better Auth's internal cookie signing)
+        const key = await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(ctx.secret),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(session.token));
+        const base64Sig = btoa(String.fromCharCode(...new Uint8Array(sig)));
+        const encodedValue = encodeURIComponent(`${session.token}.${base64Sig}`);
+
+        const { name: cookieName, options } = ctx.authCookies.sessionToken;
+        const { path, httpOnly, secure, sameSite = 'lax' } = options;
+        const maxAge = ctx.sessionConfig.expiresIn;
+        const sameSiteValue = sameSite.charAt(0).toUpperCase() + sameSite.slice(1);
+
+        const cookieString = `${cookieName}=${encodedValue}; Path=${path}; Max-Age=${maxAge}${httpOnly ? '; HttpOnly' : ''}${secure ? '; Secure' : ''}; SameSite=${sameSiteValue}`;
+
+        c.header('set-cookie', cookieString);
+        return c.json({ ok: true });
+      });
+    }
+
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
@@ -97,6 +148,9 @@ function createAgentsHono(config: AppConfig) {
 
   app.use('/manage/tenants/*/signoz/*', cors(signozCorsConfig));
 
+  // Work Apps routes - specific CORS config for dashboard integration
+  app.use('/work-apps/*', cors(workAppsCorsConfig));
+
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS for routes with their own CORS config
@@ -104,6 +158,9 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.startsWith('/run/')) {
+      return next();
+    }
+    if (c.req.path.startsWith('/work-apps/')) {
       return next();
     }
     if (c.req.path.includes('/playground/token')) {
@@ -114,7 +171,7 @@ function createAgentsHono(config: AppConfig) {
     }
 
     // GitHub OIDC token exchange - server-to-server API called from GitHub Actions.
-    if (c.req.path.includes('/api/github/')) {
+    if (c.req.path.includes('/work-apps/github/')) {
       return next();
     }
 
@@ -128,6 +185,12 @@ function createAgentsHono(config: AppConfig) {
   });
 
   app.use('/manage/*', async (c, next) => {
+    c.set('auth', auth);
+    await next();
+  });
+
+  // Work Apps routes - set auth context for session-based operations (before sessionContext)
+  app.use('/work-apps/*', async (c, next) => {
     c.set('auth', auth);
     await next();
   });
@@ -158,6 +221,10 @@ function createAgentsHono(config: AppConfig) {
       pino: getLogger('agents-api').getPinoInstance(),
       http: {
         onResLevel(c) {
+          // Workflow sleep responses use 503 - this is expected behavior, not an error
+          if (c.res.status === 503 && c.req.path.startsWith('/.well-known/workflow/')) {
+            return 'info';
+          }
           if (c.res.status >= 500) {
             return 'error';
           }
@@ -205,8 +272,8 @@ function createAgentsHono(config: AppConfig) {
 
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', async (c, next) => {
-    // Skip auth if DISABLE_AUTH is true or in test environment
-    if (env.DISABLE_AUTH || isTestEnvironment()) {
+    // Skip auth if in test environment
+    if (isTestEnvironment()) {
       await next();
       return;
     }
@@ -223,7 +290,7 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/capabilities', async (c, next) => {
     // Capabilities should be gated the same way as other manage routes, but still work
     // when auth is disabled or not configured.
-    if (!auth || env.DISABLE_AUTH || isTestEnvironment()) {
+    if (!auth || isTestEnvironment()) {
       await next();
       return;
     }
@@ -268,20 +335,31 @@ function createAgentsHono(config: AppConfig) {
     }
   );
 
-  // Tenant access check (skip in DISABLE_AUTH and test environments)
-  if (env.DISABLE_AUTH || isTestEnvironment()) {
+  // Tenant access check (skip in test environments)
+  if (isTestEnvironment()) {
     // When auth is disabled, just extract tenantId from URL param
     app.use('/manage/tenants/:tenantId/*', async (c, next) => {
       const tenantId = c.req.param('tenantId');
       if (tenantId) {
         c.set('tenantId', tenantId);
         c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+        c.set('tenantRole', OrgRoles.OWNER); // Grant owner role in test mode to bypass SpiceDB checks
       }
       await next();
     });
   } else {
     app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
   }
+
+  app.use('*', async (_c, next) => {
+    await next();
+    const waitUntil = await getWaitUntil();
+    if (waitUntil) {
+      waitUntil(flushBatchProcessor());
+    } else {
+      await flushBatchProcessor();
+    }
+  });
 
   // Apply API key authentication to all protected run routes
   app.use('/run/tenants/*', runApiKeyAuthExcept(isWebhookRoute));
@@ -343,13 +421,20 @@ function createAgentsHono(config: AppConfig) {
       body: bodyBuffer,
     });
 
-    return fetch(forwardedRequest);
+    return getInProcessFetch()(forwardedRequest);
   });
 
   app.route('/evals', evalRoutes);
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
-  app.route('/api/github', githubRoutes);
+  app.route('/work-apps/github', githubRoutes);
+
+  // Work Apps auth - session/API key auth for protected routes (workspace management, user endpoints)
+  app.use('/work-apps/slack/workspaces/*', workAppsAuth);
+  app.use('/work-apps/slack/users/*', workAppsAuth);
+
+  // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
+  app.route('/work-apps', workAppsRoutes);
 
   // Mount MCP routes at top level (eclipses both manage and run services)
   // Also available at /manage/mcp for backward compatibility
@@ -358,14 +443,11 @@ function createAgentsHono(config: AppConfig) {
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
-  app.use('/run/*', async (_c, next) => {
-    await next();
-    await flushBatchProcessor();
-  });
-
   // Wrap in base Hono for framework detection
   const base = new Hono();
   base.route('/', app);
+
+  registerAppFetch(base.request.bind(base) as typeof fetch);
 
   return base;
 }

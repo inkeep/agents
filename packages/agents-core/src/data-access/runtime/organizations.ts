@@ -1,5 +1,5 @@
-import { and, desc, eq } from 'drizzle-orm';
-import { invitation, member, organization } from '../../auth/auth-schema';
+import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { account, invitation, member, organization } from '../../auth/auth-schema';
 import type { UserOrganization } from '../../auth/auth-validation-schemas';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 
@@ -118,7 +118,7 @@ export const upsertOrganization =
     const existingOrg = await db
       .select()
       .from(organization)
-      .where(eq(organization.id, data.organizationId))
+      .where(or(eq(organization.id, data.organizationId), eq(organization.slug, data.slug)))
       .limit(1);
 
     if (existingOrg.length > 0) {
@@ -135,4 +135,45 @@ export const upsertOrganization =
     });
 
     return { created: true };
+  };
+
+export interface UserProviderInfo {
+  userId: string;
+  providers: string[];
+}
+
+/**
+ * Get authentication providers for a list of users.
+ * Returns which providers each user has linked (e.g., 'credential', 'google', 'auth0').
+ */
+export const getUserProvidersFromDb =
+  (db: AgentsRunDatabaseClient) =>
+  async (userIds: string[]): Promise<UserProviderInfo[]> => {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const accounts = await db
+      .select({
+        userId: account.userId,
+        providerId: account.providerId,
+      })
+      .from(account)
+      .where(inArray(account.userId, userIds));
+
+    // Group providers by userId
+    const providerMap = new Map<string, string[]>();
+    for (const acc of accounts) {
+      const existing = providerMap.get(acc.userId) || [];
+      if (!existing.includes(acc.providerId)) {
+        existing.push(acc.providerId);
+      }
+      providerMap.set(acc.userId, existing);
+    }
+
+    // Return results for all requested userIds (empty array if no accounts)
+    return userIds.map((userId) => ({
+      userId,
+      providers: providerMap.get(userId) || [],
+    }));
   };

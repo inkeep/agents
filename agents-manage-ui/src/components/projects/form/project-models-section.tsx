@@ -7,6 +7,7 @@ import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { AzureConfigurationSection } from '@/components/shared/azure-configuration-section';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -90,6 +91,7 @@ function StructuredOutputModelSection({
   });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
+  const structuredOutputModel = useWatch({ control, name: 'models.structuredOutput.model' });
 
   return (
     <div className="space-y-4">
@@ -111,6 +113,29 @@ function StructuredOutputModelSection({
           />
         )}
       </FormFieldWrapper>
+
+      {/* Azure Configuration (appears above provider options) */}
+      {structuredOutputModel?.startsWith('azure/') && (
+        <AzureConfigurationSection
+          providerOptions={providerOptionsField.value ?? undefined}
+          onProviderOptionsChange={(value) => {
+            if (!value?.trim()) {
+              providerOptionsField.onChange(undefined);
+              return;
+            }
+            try {
+              const parsed = JSON.parse(value);
+              providerOptionsField.onChange(parsed);
+            } catch {
+              // Invalid JSON - don't update the field value
+            }
+          }}
+          editorNamePrefix="project-structured"
+          disabled={disabled}
+        />
+      )}
+
+      {/* Provider Options */}
       <div className="space-y-2">
         <FieldLabel id="models.structuredOutput.providerOptions" label="Provider options" />
         <StandaloneJsonEditor
@@ -152,6 +177,7 @@ function SummarizerModelSection({
   });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
+  const summarizerModel = useWatch({ control, name: 'models.summarizer.model' });
 
   return (
     <div className="space-y-4">
@@ -173,6 +199,29 @@ function SummarizerModelSection({
           />
         )}
       </FormFieldWrapper>
+
+      {/* Azure Configuration (appears above provider options) */}
+      {summarizerModel?.startsWith('azure/') && (
+        <AzureConfigurationSection
+          providerOptions={providerOptionsField.value ?? undefined}
+          onProviderOptionsChange={(value) => {
+            if (!value?.trim()) {
+              providerOptionsField.onChange(undefined);
+              return;
+            }
+            try {
+              const parsed = JSON.parse(value);
+              providerOptionsField.onChange(parsed);
+            } catch {
+              // Invalid JSON - don't update the field value
+            }
+          }}
+          editorNamePrefix="project-summarizer"
+          disabled={disabled}
+        />
+      )}
+
+      {/* Provider Options */}
       <div className="space-y-2">
         <FieldLabel id="models.summarizer.providerOptions" label="Provider options" />
         <StandaloneJsonEditor
@@ -240,7 +289,7 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
             type="button"
             variant="ghost"
             size="sm"
-            className="flex items-center justify-start gap-2 w-full group p-0 h-auto  hover:!bg-transparent transition-colors py-2 px-4"
+            className="flex items-center justify-start gap-2 w-full group p-0 h-auto hover:!bg-transparent transition-colors py-2 px-4"
           >
             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
             Configure default models

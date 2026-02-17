@@ -5,7 +5,6 @@ import { createAuth } from '@inkeep/agents-core/auth';
 import { createAgentsHono } from './createApp';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
-import { initializeDefaultUser } from './initialization';
 import type { SandboxConfig } from './types';
 
 export { createAuth0Provider, createOIDCProvider } from './ssoHelpers';
@@ -22,14 +21,11 @@ const defaultConfig: ServerConfig = {
 };
 
 export function createAgentsAuth(userAuthConfig?: UserAuthConfig) {
-  if (env.DISABLE_AUTH) {
-    return null;
-  }
-
   return createAuth({
     baseURL: env.INKEEP_AGENTS_API_URL || `http://localhost:3002`,
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
     dbClient: runDbClient,
+    ...(env.AUTH_COOKIE_DOMAIN && { cookieDomain: env.AUTH_COOKIE_DOMAIN }),
     ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
   });
@@ -40,17 +36,11 @@ export function createAgentsApp(config?: {
   credentialStores?: CredentialStore[];
   auth?: UserAuthConfig;
   sandboxConfig?: SandboxConfig;
-  skipInitialization?: boolean;
 }) {
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? createDefaultCredentialStores();
   const registry = new CredentialStoreRegistry(stores);
   const auth = createAgentsAuth(config?.auth);
-
-  // Initialize default user unless explicitly skipped or in test environment
-  if (!config?.skipInitialization && env.ENVIRONMENT !== 'test') {
-    void initializeDefaultUser(auth);
-  }
 
   return createAgentsHono({
     serverConfig,
@@ -60,4 +50,4 @@ export function createAgentsApp(config?: {
   });
 }
 
-export { createAgentsHono, initializeDefaultUser };
+export { createAgentsHono };

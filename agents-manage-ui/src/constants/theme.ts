@@ -2,6 +2,7 @@ export const MONACO_THEME_NAME = Object.freeze({
   light: 'inkeep-light',
   dark: 'inkeep-dark',
 });
+export const INKEEP_BRAND_COLOR = '#3784ff';
 export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';
@@ -37,6 +38,13 @@ export const STATIC_LABELS = Object.freeze({
   datasets: 'Test Suites',
   runs: 'Runs',
   triggers: 'Triggers',
+  webhooks: 'Webhooks',
+  scheduled: 'Scheduled',
+  'scheduled-triggers': 'Scheduled Triggers',
   invocations: 'Invocations',
+  'work-apps': 'Work Apps',
+  slack: 'Slack',
+  github: 'GitHub',
   'no-organization-found': 'No organization found',
+  skills: 'Skills',
 });

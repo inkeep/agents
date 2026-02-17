@@ -154,6 +154,12 @@ import type {
   ProjectMetadataSelectSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  SkillApiInsertSchema,
+  SkillApiSelectSchema,
+  SkillApiUpdateSchema,
+  SkillInsertSchema,
+  SkillSelectSchema,
+  SkillUpdateSchema,
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
@@ -184,6 +190,13 @@ import type {
   SubAgentRelationSelectSchema,
   SubAgentRelationUpdateSchema,
   SubAgentSelectSchema,
+  SubAgentSkillApiInsertSchema,
+  SubAgentSkillApiSelectSchema,
+  SubAgentSkillApiUpdateSchema,
+  SubAgentSkillInsertSchema,
+  SubAgentSkillSelectSchema,
+  SubAgentSkillUpdateSchema,
+  SubAgentSkillWithIndexSchema,
   SubAgentTeamAgentRelationApiInsertSchema,
   SubAgentTeamAgentRelationApiSelectSchema,
   SubAgentTeamAgentRelationApiUpdateSchema,
@@ -231,6 +244,12 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
+  WorkAppGitHubInstallationInsertSchema,
+  WorkAppGitHubInstallationSelectSchema,
+  WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
+  WorkAppGitHubProjectRepositoryAccessSelectSchema,
+  WorkAppGitHubRepositoryInsertSchema,
+  WorkAppGitHubRepositorySelectSchema,
 } from '../validation/schemas';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
@@ -399,6 +418,22 @@ export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
 export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
 export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
 
+export type WorkAppGitHubInstallationSelect = z.infer<typeof WorkAppGitHubInstallationSelectSchema>;
+export type WorkAppGitHubInstallationInsert = z.infer<typeof WorkAppGitHubInstallationInsertSchema>;
+export type WorkAppGitHubRepositorySelect = z.infer<typeof WorkAppGitHubRepositorySelectSchema>;
+export type WorkAppGitHubRepositoryInsert = z.infer<typeof WorkAppGitHubRepositoryInsertSchema>;
+export type WorkAppGitHubProjectRepositoryAccessSelect = z.infer<
+  typeof WorkAppGitHubProjectRepositoryAccessSelectSchema
+>;
+export type WorkAppGitHubMcpToolRepositoryAccessSelect = z.infer<
+  typeof WorkAppGitHubMcpToolRepositoryAccessSelectSchema
+>;
+
+export type WorkAppGitHubRepositoryInput = Omit<
+  WorkAppGitHubRepositoryInsert,
+  'id' | 'installationDbId'
+>;
+
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
 export type ConversationInsert = z.infer<typeof ConversationInsertSchema>;
 export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;
@@ -428,6 +463,13 @@ export type ContextCacheUpdate = z.infer<typeof ContextCacheUpdateSchema>;
 export type ContextCacheApiSelect = z.infer<typeof ContextCacheApiSelectSchema>;
 export type ContextCacheApiInsert = z.infer<typeof ContextCacheApiInsertSchema>;
 export type ContextCacheApiUpdate = z.infer<typeof ContextCacheApiUpdateSchema>;
+
+export type SkillSelect = z.infer<typeof SkillSelectSchema>;
+export type SkillInsert = z.infer<typeof SkillInsertSchema>;
+export type SkillUpdate = z.infer<typeof SkillUpdateSchema>;
+export type SkillApiSelect = z.infer<typeof SkillApiSelectSchema>;
+export type SkillApiInsert = z.infer<typeof SkillApiInsertSchema>;
+export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
 
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;
@@ -462,6 +504,14 @@ export type SubAgentArtifactComponentApiInsert = z.infer<
 export type SubAgentArtifactComponentApiUpdate = z.infer<
   typeof SubAgentArtifactComponentApiUpdateSchema
 >;
+
+export type SubAgentSkillSelect = z.infer<typeof SubAgentSkillSelectSchema>;
+export type SubAgentSkillInsert = z.infer<typeof SubAgentSkillInsertSchema>;
+export type SubAgentSkillUpdate = z.infer<typeof SubAgentSkillUpdateSchema>;
+export type SubAgentSkillApiSelect = z.infer<typeof SubAgentSkillApiSelectSchema>;
+export type SubAgentSkillApiInsert = z.infer<typeof SubAgentSkillApiInsertSchema>;
+export type SubAgentSkillApiUpdate = z.infer<typeof SubAgentSkillApiUpdateSchema>;
+export type SubAgentSkillWithIndex = z.infer<typeof SubAgentSkillWithIndexSchema>;
 
 export type ExternalAgentSelect = z.infer<typeof ExternalAgentSelectSchema>;
 export type ExternalAgentInsert = z.infer<typeof ExternalAgentInsertSchema>;

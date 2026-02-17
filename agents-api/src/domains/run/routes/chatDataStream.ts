@@ -10,18 +10,23 @@ import {
   getConversation,
   getConversationId,
   loggerFactory,
+  type Part,
+  PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
+import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
@@ -54,8 +59,16 @@ const chatDataStreamRoute = createRoute({
                   .array(
                     z.union([
                       z.object({
+                        type: z.literal('text'),
+                        text: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('image'),
+                        text: ImageUrlSchema,
+                      }),
+                      z.object({
                         type: z.union([
-                          z.enum(['text', 'image', 'audio', 'video', 'file']),
+                          z.enum(['audio', 'video', 'file']),
                           z.string().regex(/^data-/, 'Type must start with "data-"'),
                         ]),
                         text: z.string().optional(),
@@ -122,8 +135,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       .getLogger('chatDataStream')
       .debug({ tenantId, projectId, agentId }, 'Extracted chatDataStream parameters');
 
-    // Get parsed body from middleware (shared across all handlers)
-    const body = c.get('requestBody') || {};
+    const body = c.req.valid('json');
 
     const approvalPart = (body.messages || [])
       .flatMap((m: any) => m?.parts || [])
@@ -131,14 +143,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
     const isApprovalResponse = !!approvalPart;
 
-    // For approval responses, require an explicit conversationId (do not auto-generate).
-    const conversationId = isApprovalResponse
-      ? body.conversationId
-      : body.conversationId || getConversationId();
-
     // Fast-path: allow client to respond to tool approvals via the same /chat endpoint.
     // This should NOT start a new agent execution. The original stream continues separately.
     if (isApprovalResponse) {
+      const conversationId = body.conversationId;
       if (!conversationId) {
         return c.json(
           {
@@ -238,6 +246,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     }
 
     // Add conversation ID to parent span
+    const conversationId = body.conversationId ?? getConversationId();
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
       activeSpan.setAttributes({
@@ -319,11 +328,16 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
 
       // Store last user message
-      const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
-      const userText =
-        typeof lastUserMessage?.content === 'string'
-          ? lastUserMessage.content
-          : lastUserMessage?.parts?.map((p: any) => p.text).join('') || '';
+      const lastUserMessage = body.messages.filter((m) => m.role === 'user').slice(-1)[0];
+
+      // Build Part[] for execution (text + image parts), validated against core PartSchema
+      const messageParts: Part[] = z
+        .array(PartSchema)
+        .parse(getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts));
+
+      // Extract text content from parts
+      const userText = extractTextFromParts(messageParts) || '';
+
       logger.info({ userText, lastUserMessage }, 'userText');
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
@@ -357,7 +371,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
       }
 
       const shouldStream = body.stream !== false;
-
       if (!shouldStream) {
         // Non-streaming response - collect full response and return as JSON
         const emitOperationsHeader = c.req.header('x-emit-operations');
@@ -370,6 +383,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           executionContext,
           conversationId,
           userMessage: userText,
+          messageParts: messageParts.length > 0 ? messageParts : undefined,
           initialAgentId: subAgentId,
           requestId: `chat-${Date.now()}`,
           sseHelper: bufferingHelper,
@@ -476,6 +490,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               executionContext,
               conversationId,
               userMessage: userText,
+              messageParts: messageParts.length > 0 ? messageParts : undefined,
               initialAgentId: subAgentId,
               requestId,
               sseHelper: streamHelper,
@@ -498,6 +513,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();
             }
+            await flushBatchProcessor();
           }
         },
       });

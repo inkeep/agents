@@ -1,0 +1,162 @@
+---
+title: Configure Authentication
+sidebarTitle: Authentication
+description: Set up authentication and authorization for user sign-in and team management
+icon: LuLock
+---
+
+Configure user authentication, admin credentials, and optional OAuth providers.
+
+<Note>
+  For a feature overview of authentication and authorization, see [Access Control](/visual-builder/access-control).
+</Note>
+
+## Architecture
+
+The framework uses two components for access control:
+
+| Component | Purpose |
+|-----------|---------|
+| [Better Auth](https://www.better-auth.com/) | User authentication, sessions, and OAuth providers |
+| [SpiceDB](https://authzed.com/spicedb) | Fine-grained authorization and permission checks |
+
+Better Auth handles user sign-in and supports many authentication plugins including GitHub, Microsoft, SAML, passkeys, and more. See the [Better Auth documentation](https://www.better-auth.com/docs/authentication/email-password) to add additional sign-in methods.
+
+SpiceDB manages organization and project-level permissions using a relationship-based access control model.
+
+## Prerequisites
+
+- Docker Compose environment running (see [Local Development](/deployment/docker-local))
+- At least one AI provider API key configured
+
+## Environment Variables Reference
+
+### Authentication
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `BETTER_AUTH_SECRET` | Yes | Secret for session encryption (32+ chars) |
+| `INKEEP_AGENTS_MANAGE_UI_USERNAME` | Yes | Initial admin email address |
+| `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Yes | Initial admin password (8+ chars) |
+
+### Authorization
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SPICEDB_ENDPOINT` | Yes | SpiceDB gRPC endpoint (default: `localhost:50051`) |
+| `SPICEDB_PRESHARED_KEY` | Yes | SpiceDB preshared key for authentication |
+
+### OAuth Providers (Optional)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PUBLIC_GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
+
+## Configuring Authentication
+
+Authentication is enabled by default. Configure the required environment variables to set up your admin credentials and session security.
+
+<Steps>
+  <Step>
+    ### Generate a secret
+
+    Create a secure secret for session encryption:
+
+    ```bash
+    openssl rand -base64 32
+    ```
+  </Step>
+  <Step>
+    ### Configure environment variables
+
+    Add these to your `.env` file:
+
+    ```dotenv title=".env"
+    # Authentication secret (paste your generated secret)
+    BETTER_AUTH_SECRET=<your-generated-secret>
+
+    # Initial admin credentials
+    INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+    INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-8-chars-min>
+
+    # Authorization (SpiceDB)
+    SPICEDB_ENDPOINT=localhost:50051
+    SPICEDB_PRESHARED_KEY=dev-secret-key
+    ```
+  </Step>
+  <Step>
+    ### Restart services
+
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+  <Step>
+    ### Sign in
+
+    Open http://localhost:3000. When using `pnpm dev`, you'll be signed in automatically using the credentials configured above. For Docker deployments, sign in manually with your admin credentials.
+  </Step>
+</Steps>
+
+## Adding OAuth Providers
+
+### Google OAuth
+
+<Steps>
+  <Step>
+    ### Create OAuth application
+
+    1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+    2. Navigate to **APIs & Services** → **Credentials**
+    3. Click **Create Credentials** → **OAuth client ID**
+    4. Select **Web application**
+  </Step>
+  <Step>
+    ### Configure redirect URI
+
+    Add this authorized redirect URI:
+
+    ```
+    {your-app-url}/api/auth/callback/google
+    ```
+
+    For local development: `http://localhost:3000/api/auth/callback/google`
+  </Step>
+  <Step>
+    ### Add credentials to environment
+
+    ```dotenv title=".env"
+    PUBLIC_GOOGLE_CLIENT_ID=<your-client-id>
+    GOOGLE_CLIENT_SECRET=<your-client-secret>
+    ```
+  </Step>
+  <Step>
+    ### Restart services
+
+    ```bash
+    docker compose up -d
+    ```
+
+    The Google sign-in option will now appear on the login page.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### "Invalid credentials" on first login
+
+Verify these environment variables are set correctly:
+- `INKEEP_AGENTS_MANAGE_UI_USERNAME` — must be a valid email format
+- `INKEEP_AGENTS_MANAGE_UI_PASSWORD` — must be at least 8 characters
+
+### Google sign-in not appearing or not working
+
+- Ensure both `PUBLIC_GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set
+- Verify the redirect URI in Google Cloud Console matches your app URL exactly
+
+### Users can't see projects
+
+Organization Members need explicit project-level roles to access projects. Either:
+- Assign them a project role via **Project Settings** → **Members**
+- Promote them to organization Admin (gives access to all projects)

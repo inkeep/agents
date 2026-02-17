@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Archive,
   ArrowRight,
   Check,
@@ -128,7 +129,8 @@ function statusIcon(
     | 'tool_approval_requested'
     | 'tool_approval_approved'
     | 'tool_approval_denied'
-    | 'trigger_invocation',
+    | 'trigger_invocation'
+    | 'max_steps_reached',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string }> = {
@@ -150,6 +152,7 @@ function statusIcon(
     tool_approval_approved: { Icon: Check, cls: 'text-blue-500' },
     tool_approval_denied: { Icon: X, cls: 'text-red-500' },
     compression: { Icon: Archive, cls: 'text-orange-500' },
+    max_steps_reached: { Icon: AlertTriangle, cls: 'text-yellow-500' },
   };
 
   const map = base[type] || base.tool_call;
@@ -211,7 +214,7 @@ export function TimelineItem({
                     : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
-  const formattedDateTime = formatDateTime(activity.timestamp);
+  const formattedDateTime = formatDateTime(activity.timestamp, { local: true });
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
   // Determine text color based on status
@@ -503,6 +506,18 @@ export function TimelineItem({
                     ? `${activity.subAgentName} (${activity.subAgentId})`
                     : activity.subAgentId}
                 </Badge>
+              </div>
+            )}
+
+          {/* Max steps reached display */}
+          {activity.type === ACTIVITY_TYPES.MAX_STEPS_REACHED &&
+            activity.stepsCompleted !== undefined &&
+            activity.maxSteps !== undefined && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 rounded-lg max-w-4xl">
+                <div className="text-sm text-yellow-900 dark:text-yellow-300">
+                  <span className="font-medium">Steps:</span> {activity.stepsCompleted} /{' '}
+                  {activity.maxSteps}
+                </div>
               </div>
             )}
 

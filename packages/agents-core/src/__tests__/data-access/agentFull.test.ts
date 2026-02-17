@@ -9,6 +9,30 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent-1';
 
+  const createWhereResult = <T>(result: T) => ({
+    limit: vi.fn().mockReturnValue({
+      offset: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockResolvedValue(result),
+      }),
+    }),
+    offset: vi.fn().mockReturnValue({
+      orderBy: vi.fn().mockResolvedValue(result),
+    }),
+    orderBy: vi.fn().mockResolvedValue(result),
+    // biome-ignore lint/suspicious/noThenProperty: ignore in test
+    then: (onFulfilled: (value: T) => unknown, onRejected?: (reason: unknown) => unknown) =>
+      Promise.resolve(result).then(onFulfilled, onRejected),
+  });
+
+  const createSelectMock = <T>(result: T) => ({
+    from: vi.fn().mockReturnValue({
+      innerJoin: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue(createWhereResult(result)),
+      }),
+      where: vi.fn().mockReturnValue(createWhereResult([])),
+    }),
+  });
+
   beforeEach(async () => {
     db = testManageDbClient;
     vi.clearAllMocks();
@@ -108,20 +132,8 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+        select: vi.fn().mockReturnValue(createSelectMock([])),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -139,6 +151,8 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         description: 'Default agent description',
         prompt: 'Default prompt',
         models: null,
+        skills: [],
+        stopWhen: undefined,
         canTransferTo: [],
         canDelegateTo: [],
         dataComponents: [],
@@ -241,20 +255,8 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+        select: vi.fn().mockReturnValue(createSelectMock([])),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -345,20 +347,8 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+        select: vi.fn().mockReturnValue(createSelectMock([])),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -457,32 +447,13 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
         select: vi.fn().mockImplementation(() => {
-          queryCallCount++;
+          const selectResults = [[], mockTools, [], [], []];
+          const result = selectResults[Math.min(queryCallCount, selectResults.length - 1)];
           // First call returns MCP tools, second call returns empty function tools
-          if (queryCallCount === 1) {
-            return {
-              from: vi.fn().mockReturnValue({
-                innerJoin: vi.fn().mockReturnValue({
-                  where: vi.fn().mockResolvedValue(mockTools),
-                }),
-              }),
-            };
-          }
-          return {
-            from: vi.fn().mockReturnValue({
-              innerJoin: vi.fn().mockReturnValue({
-                where: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          };
+          queryCallCount += 1;
+          return createSelectMock(result);
         }),
       } as any;
 
@@ -570,20 +541,8 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+        select: vi.fn().mockReturnValue(createSelectMock([])),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -680,20 +639,8 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+        select: vi.fn().mockReturnValue(createSelectMock([])),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({

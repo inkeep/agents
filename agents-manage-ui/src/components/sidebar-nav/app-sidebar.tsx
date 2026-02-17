@@ -3,6 +3,7 @@
 import {
   Activity,
   BarChart3,
+  Blocks,
   BookOpen,
   Component,
   Globe,
@@ -11,9 +12,11 @@ import {
   Library,
   LifeBuoy,
   Lock,
+  LucideHexagon,
   Settings,
   Users,
   Workflow,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -58,6 +61,8 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const { user } = useAuthSession();
 
+  const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
+
   const topNavItems: NavItemProps[] = projectId
     ? []
     : [
@@ -71,6 +76,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
+        ...(isWorkAppsEnabled
+          ? [
+              {
+                title: STATIC_LABELS['work-apps'],
+                url: `/${tenantId}/work-apps`,
+                icon: Blocks,
+              },
+            ]
+          : []),
       ];
 
   const orgNavItems: NavItemProps[] = [
@@ -89,6 +103,16 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Workflow,
         },
         {
+          title: STATIC_LABELS.skills,
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
+        },
+        {
+          title: STATIC_LABELS.triggers,
+          url: `/${tenantId}/projects/${projectId}/triggers`,
+          icon: Zap,
+        },
+        {
           title: STATIC_LABELS['api-keys'],
           url: `/${tenantId}/projects/${projectId}/api-keys`,
           icon: Key,
@@ -98,15 +122,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
-        ...(tenantId === 'default'
-          ? [
-              {
-                title: 'Members',
-                url: `/${tenantId}/projects/${projectId}/members`,
-                icon: Users,
-              },
-            ]
-          : []),
+        {
+          title: 'Members',
+          url: `/${tenantId}/projects/${projectId}/members`,
+          icon: Users,
+        },
       ]
     : [];
 

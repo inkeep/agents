@@ -19,6 +19,7 @@ import {
   getFullAgent,
   getProjectScopedRef,
   ModelFactory,
+  parseSSEResponse,
   resolveRef,
   updateEvaluationResult,
   withRef,
@@ -30,75 +31,9 @@ import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { getInProcessFetch } from '../../../utils/in-process-fetch';
 
 const logger = getLogger('EvaluationService');
-
-/**
- * Converts JSON Schema objects to Zod schema types
- */
-function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
-  if (!jsonSchema || typeof jsonSchema !== 'object') {
-    logger.warn({ jsonSchema }, 'Invalid JSON schema provided, using string fallback');
-    return z.string();
-  }
-
-  switch (jsonSchema.type) {
-    case 'object':
-      if (jsonSchema.properties) {
-        const shape: Record<string, z.ZodType<any>> = {};
-        const required = jsonSchema.required || [];
-
-        for (const [key, prop] of Object.entries(jsonSchema.properties)) {
-          const propSchema = prop as Record<string, unknown>;
-          let zodType = jsonSchemaToZod(propSchema);
-
-          // Add description if present
-          if (propSchema.description) {
-            zodType = zodType.describe(String(propSchema.description));
-          }
-
-          // Mark as optional if not in required array
-          if (!required.includes(key)) {
-            zodType = zodType.optional();
-          }
-
-          shape[key] = zodType;
-        }
-        return z.object(shape);
-      }
-      return z.record(z.string(), z.unknown());
-
-    case 'array': {
-      const itemSchema = jsonSchema.items ? jsonSchemaToZod(jsonSchema.items) : z.unknown();
-      return z.array(itemSchema);
-    }
-
-    case 'string':
-      return z.string();
-
-    case 'number':
-      return z.number();
-
-    case 'integer':
-      return z.number().int();
-
-    case 'boolean':
-      return z.boolean();
-
-    case 'null':
-      return z.null();
-
-    default:
-      logger.warn(
-        {
-          unsupportedType: jsonSchema.type,
-          schema: jsonSchema,
-        },
-        'Unsupported JSON schema type, using unknown validation'
-      );
-      return z.unknown();
-  }
-}
 
 export interface RunDatasetItemOptions {
   tenantId: string;
@@ -254,7 +189,7 @@ export class EvaluationService {
       'Running dataset item through chat API'
     );
 
-    const response = await fetch(chatUrl, {
+    const response = await getInProcessFetch()(chatUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(chatPayload),
@@ -279,7 +214,7 @@ export class EvaluationService {
     }
 
     const responseText = await response.text();
-    const parseResult = this.parseSSEResponse(responseText);
+    const parseResult = parseSSEResponse(responseText);
 
     // Check if the response indicates an error
     if (parseResult.error) {
@@ -604,100 +539,6 @@ Generate the next user message:`;
     }
 
     return null;
-  }
-
-  /**
-   * Parse SSE (Server-Sent Events) response from chat API
-   * Handles text deltas, error operations, and other data operations
-   */
-  private parseSSEResponse(sseText: string): { text: string; error?: string } {
-    let textContent = '';
-    let hasError = false;
-    let errorMessage = '';
-
-    const lines = sseText.split('\n').filter((line) => line.startsWith('data: '));
-
-    for (const line of lines) {
-      try {
-        const data = JSON.parse(line.slice(6)); // Remove 'data: ' prefix
-
-        // Handle OpenAI-compatible chat completion chunk format
-        if (data.object === 'chat.completion.chunk' && data.choices?.[0]?.delta) {
-          const delta = data.choices[0].delta;
-
-          // Extract text content
-          if (delta.content) {
-            textContent += delta.content;
-          }
-
-          // Check for embedded JSON in content (for operations)
-          if (delta.content && typeof delta.content === 'string') {
-            try {
-              const parsedContent = JSON.parse(delta.content);
-              if (parsedContent.type === 'data-operation' && parsedContent.data?.type === 'error') {
-                hasError = true;
-                errorMessage = parsedContent.data.message || 'Unknown error occurred';
-                logger.warn(
-                  {
-                    errorMessage,
-                    errorData: parsedContent.data,
-                  },
-                  'Received error operation from chat API'
-                );
-              }
-            } catch {
-              // Not JSON, treat as regular text content
-            }
-          }
-        }
-        // Handle Vercel AI SDK data stream format
-        else if (data.type === 'text-delta' && data.delta) {
-          textContent += data.delta;
-        }
-        // Handle error operations (like the UI does)
-        else if (data.type === 'data-operation' && data.data?.type === 'error') {
-          hasError = true;
-          errorMessage = data.data.message || 'Unknown error occurred';
-          logger.warn(
-            {
-              errorMessage,
-              errorData: data.data,
-            },
-            'Received error operation from chat API'
-          );
-        }
-        // Handle error type directly
-        else if (data.type === 'error') {
-          hasError = true;
-          errorMessage = data.message || 'Unknown error occurred';
-          logger.warn(
-            {
-              errorMessage,
-              errorData: data,
-            },
-            'Received error event from chat API'
-          );
-        }
-        // Handle other response formats
-        else if (data.content) {
-          textContent +=
-            typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
-        }
-      } catch {
-        // Skip invalid JSON lines (like '[DONE]' or empty lines)
-      }
-    }
-
-    if (hasError) {
-      return {
-        text: textContent.trim(),
-        error: errorMessage,
-      };
-    }
-
-    return {
-      text: textContent.trim(),
-    };
   }
 
   /**
@@ -1137,7 +978,7 @@ Return your evaluation as a JSON object matching the schema above.`;
     // Convert JSON schema to Zod schema
     let resultSchema: z.ZodType<any>;
     try {
-      resultSchema = jsonSchemaToZod(schema);
+      resultSchema = z.fromJSONSchema(schema);
       logger.info(
         {
           schemaType: typeof schema,

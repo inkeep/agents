@@ -20,6 +20,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   Agents: 'LuUser',
   'Artifact Components': 'TbInputSpark',
   Branches: 'LuGitBranch',
+  Channels: 'LuHash',
   CLI: 'LuTerminal',
   Chat: 'LuMessagesSquare',
   'Context Configs': 'LuCirclePlus',
@@ -31,7 +32,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'External Agents': 'LuGlobe',
   'Function Tools': 'LuCode',
   Functions: 'LuCode2',
-  Invitations: 'LuUserPlus',
+  GitHub: 'LuGithub',
   MCP: 'LuServer',
   'MCP Catalog': 'LuLibrary',
   OAuth: 'LuShieldCheck',
@@ -39,14 +40,19 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Project Permissions': 'LuShield',
   Projects: 'LuFolderOpen',
   Refs: 'LuLink',
+  Skills: 'LuHexagon',
+  Slack: 'LuMessageCircle',
   SubAgents: 'LuSpline',
+  'Scheduled Triggers': 'LuClock',
   'Third-Party MCP Servers': 'LuServerCog',
   Tools: 'LuHammer',
   Triggers: 'LuWebhook',
-  'User Organizations': 'LuBuilding',
   'User Project Memberships': 'LuUserCheck',
+  Users: 'LuUsers',
   Webhooks: 'LuWebhook',
+  'Work Apps': 'LuPlug',
   Workflows: 'LuWorkflow',
+  Workspaces: 'LuBuilding2',
 };
 
 async function main(): Promise<void> {
@@ -104,6 +110,7 @@ ${prettyError}`);
         .replace('A2 A', 'A2A')
         .replace('A P I', 'API')
         .replace('C L I', 'CLI')
+        .replace('Git Hub', 'GitHub')
         .replace('O Auth', 'OAuth')
         .replace('Sub Agents', 'SubAgents')
         .replace('Third Party', 'Third-Party')

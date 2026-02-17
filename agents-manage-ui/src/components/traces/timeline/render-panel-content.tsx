@@ -122,11 +122,13 @@ function AssistantMessageContent({ content }: { content: string }) {
 export function renderPanelContent({
   selected,
   findSpanById,
+  spanLoading = false,
 }: {
   selected: SelectedPanel;
   findSpanById: (
     id?: string
   ) => NonNullable<ConversationDetail['allSpanAttributes']>[number] | undefined;
+  spanLoading?: boolean;
 }) {
   if (selected.type === 'mcp_tool_error') {
     const e = selected.item;
@@ -144,7 +146,7 @@ export function renderPanelContent({
           </Bubble>
         </LabeledBlock>
         <Info label="Span ID" value={<Badge variant="code">{e.spanId}</Badge>} />
-        <Info label="Timestamp" value={formatDateTime(e.timestamp)} />
+        <Info label="Timestamp" value={formatDateTime(e.timestamp, { local: true })} />
       </Section>
     );
   }
@@ -160,7 +162,11 @@ export function renderPanelContent({
     </div>
   ) : null;
 
-  const AdvancedBlock = span ? (
+  const AdvancedBlock = spanLoading ? (
+    <div className="text-center py-4 text-xs text-muted-foreground animate-pulse">
+      Loading span attributes…
+    </div>
+  ) : span ? (
     <SpanAttributes span={span.data} />
   ) : (
     <div className="text-center py-4 text-xs text-muted-foreground">Span not found.</div>
@@ -208,7 +214,7 @@ export function renderPanelContent({
               <Info label="Status code" value={a.otelStatusCode} />
             )}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -236,7 +242,7 @@ export function renderPanelContent({
             )}
             {a.contextBreakdown && <ContextBreakdownPanel breakdown={a.contextBreakdown} />}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -270,7 +276,7 @@ export function renderPanelContent({
               <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
             )}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -296,7 +302,7 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
-            <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Activity timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -318,7 +324,7 @@ export function renderPanelContent({
               </Bubble>
             </LabeledBlock>
           )}
-          <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
         </Section>
       );
 
@@ -340,7 +346,7 @@ export function renderPanelContent({
                 <CodeBubble className="break-all">{a.contextUrl}</CodeBubble>
               </LabeledBlock>
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -348,12 +354,28 @@ export function renderPanelContent({
         </>
       );
 
-    case 'delegation':
+    case 'delegation': {
+      const getDelegationTypeLabel = (type?: string) => {
+        switch (type) {
+          case 'internal':
+            return 'Sub Agent';
+          case 'external':
+            return 'External Agent';
+          case 'team':
+            return 'Team Agent';
+          default:
+            return 'Unknown';
+        }
+      };
       return (
         <>
           <Section>
             <Info label="From sub agent" value={a.delegationFromSubAgentId || 'Unknown Agent'} />
             <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
+            <Info
+              label="Delegation to"
+              value={<Badge variant="secondary">{getDelegationTypeLabel(a.delegationType)}</Badge>}
+            />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -380,13 +402,14 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'transfer':
       return (
@@ -424,7 +447,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -481,7 +504,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -536,7 +559,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -579,7 +602,7 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -622,7 +645,7 @@ export function renderPanelContent({
                 value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -643,7 +666,7 @@ export function renderPanelContent({
                 Waiting for approval
               </Badge>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -664,7 +687,7 @@ export function renderPanelContent({
                 Approved by user
               </Badge>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -685,7 +708,7 @@ export function renderPanelContent({
                 Denied by user
               </Badge>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -725,7 +748,32 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'max_steps_reached':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Steps completed"
+              value={
+                <Badge variant="code" className="font-mono">
+                  {a.stepsCompleted} / {a.maxSteps}
+                </Badge>
+              }
+            />
+            <LabeledBlock label="Description">
+              <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
+                The sub-agent reached the maximum number of generation steps and stopped.
+              </Bubble>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}

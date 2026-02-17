@@ -1,5 +1,168 @@
 # @inkeep/agents-core
 
+## 0.48.4
+
+### Patch Changes
+
+- 11f4e14: Add mock AI provider for testing run routes without API keys
+
+## 0.48.3
+
+### Patch Changes
+
+- 24e75fb: Fix peer dependency conflict for @openrouter/ai-sdk-provider with AI SDK v6
+- 79dffed: Add shared getWaitUntil utility for Vercel serverless function lifetime extension
+
+## 0.48.2
+
+## 0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 228d4e2: Fix nested error message display in form validation
+
+  - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
+  - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
+  - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
+  - Rename `HeadersSchema` to `StringRecordSchema` for broader applicability
+
+- 7ad7e21: Refactor artifact and data component validation to use centralized Zod schemas from agents-core. This eliminates duplicate validation logic and improves consistency across the codebase.
+- 95a3abc: Add scheduled/cron trigger support across the full stack — database schema, API routes, Manage UI
+
+## 0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 5f3f5ea: Add keepAlive config to db connections
+
+## 0.47.3
+
+### Patch Changes
+
+- 756a560: Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size
+- 045c405: add TOOL_APPROVAL_REASON to span keys
+
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+### Patch Changes
+
+- 6fbe785: Fixes spicedb for docker
+
+## 0.47.0
+
+### Minor Changes
+
+- 77a45c9: Implements SPICEDB_TLS_ENABLED
+- cfee934: fixes the spicedb type exports
+
+## 0.46.1
+
+### Patch Changes
+
+- f6010a1: Add `HeadersSchema` export for HTTP header validation and remove unused client exports.
+- 07a027d: Add Claude Opus 4.6 to available model constants
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+
+## 0.45.3
+
+### Patch Changes
+
+- 4a83260: Add custom headers validation in playground chat. Users are now notified when custom headers are invalid or required based on the agent's headers schema configuration.
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+
+## 0.45.0
+
+### Patch Changes
+
+- 938ffb8: Revert refine method in resource id schema
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 6f5bd15: Add CI check for env.ts descriptions
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+- ba853ef: disallow resource id schema for value `new`
+
+### Patch Changes
+
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 8a283ea: Fix tool relations when renaming sub-agent IDs
+- bcc26b4: Add descriptions to environment variable schemas for better developer experience
+
 ## 0.43.0
 
 ### Minor Changes

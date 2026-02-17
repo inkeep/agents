@@ -7,6 +7,9 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ### Build & Development
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
+- **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 - **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
 - **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
 - **Typecheck**: `pnpm typecheck`
@@ -22,6 +25,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
 - **Check schema**: `pnpm db:check`
+- **Initialize auth**: `pnpm db:auth:init` - Create default organization and admin user for local development
 
 ### Creating Changelog Entries (Changesets)
 
@@ -206,16 +210,16 @@ Your responsibility is to think through the work that is being done from all dim
 - **Resources, endpoints, or actions** (create/update/delete, new capabilities)
 - **Auth / permissions / tenancy** (view/use/edit boundaries, RBAC, fine-grained authz, multi-tenant scoping)
 
-### Surfaces to consider (examples)
-- **Templates & onboarding**: `@inkeep/create-agents`, cookbook template projects
-- **Inkeep CLI workflows**: onboarding (`init`), sync (`push`/`pull`), template import (`add`)
-- **TypeScript SDK**: builder APIs/types/examples
-- **APIs**: configuration layer (manage), runtime layer (run), evaluation layer (evals)
-- **Manage UI dashboard**: forms/builders/serialization, permissions gating, traces views
-- **Widgets UX** (`agents-ui`): runtime chat + stream parsing compatibility
-- **Observability**: traces UX expectations, OTEL attribute stability, SigNoz queries
-- **Protocols / data formats**: OpenAI-compatible SSE, Vercel AI SDK data streams, A2A JSON-RPC
-- **Documentation**: docs pages + embedded snippets
+### Surface area analysis (load before planning or implementing)
+
+This product has **50+ customer-facing** and **100+ internal tooling/devops** surfaces with complex dependency chains. When planning or implementing any feature or change, load the relevant surface area skill to map the blast radius and plan "to-dos" of all areas that need to be addressed before writing a line of code:
+
+| Skill | Scope | Load when |
+|---|---|---|
+| `product-surface-areas` | APIs, SDKs, CLI, UIs, Widgets, Event Streams, docs, protocols, templates, etc. | Change affects anything a customer (developer or no-code admin) uses or depends on |
+| `internal-surface-areas` | Build, CI/CD, DB, auth, runtime engine, test infra, internal AI tooling, etc. | Change affects infrastructure, tooling, or shared internals |
+
+**Tip**: Both skills include dependency graphs, breaking change impact matrices, and transitive chain tracing for systematically identifying relevant surfaces and code paths that may be affected by changes.
 
 ## Development Guidelines
 
@@ -278,6 +282,10 @@ Your responsibility is to think through the work that is being done from all dim
    This is the standard development procedure to ensure code review and CI/CD processes.
    
    **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
+
+### PR Review Agents
+
+The `.claude/agents/pr-review*.md` agents are for **on-demand invocation only** (user requests a review, or CI triggers one). Do NOT invoke them during autonomous implementation workflows like `/ship` — those workflows delegate review to external reviewers via `/review`.
 
 ### 📁 Git Worktrees for Parallel Feature Development
 
@@ -349,6 +357,22 @@ git worktree prune
 - **Parallelize database operations** using `Promise.all()` instead of sequential `await` calls
 - **Optimize array processing** with `flatMap()` and `filter()` instead of nested loops
 - **Implement cleanup mechanisms** for debug files and logs to prevent memory leaks
+
+### Internal Self-Calls: `getInProcessFetch()` vs `fetch`
+Any code in `agents-api` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `agents-api/src/utils/in-process-fetch.ts` instead of the global `fetch`.
+
+- `getInProcessFetch()` routes the request through the Hono app's middleware stack **in-process**, guaranteeing it stays on the same instance.
+- Global `fetch` sends the request over the network, where a load balancer may route it to a **different** instance — breaking features that depend on process-local state (e.g. the stream helper registry for SSE streaming).
+- This bug only manifests under load in multi-instance deployments and is extremely difficult to diagnose.
+
+**When to use:**
+| Scenario | Use |
+|---|---|
+| Internal A2A delegation/transfer (same service) | `getInProcessFetch()` |
+| Eval service calling the chat API on itself | `getInProcessFetch()` |
+| Forwarding requests to internal workflow routes | `getInProcessFetch()` |
+| Calling an **external** service or third-party API | Global `fetch` |
+| Test environments (falls back automatically) | Either (auto-fallback) |
 
 ### Common Gotchas
 - **Empty Task Messages**: Ensure task messages contain actual text content

@@ -3,6 +3,7 @@ import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import {
+  INKEEP_BRAND_COLOR,
   MONACO_THEME_NAME,
   TEMPLATE_LANGUAGE,
   TEMPLATE_VARIABLE_REGEX,
@@ -19,6 +20,7 @@ interface MonacoActions {
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
   importMonaco: () => Promise<void>;
+  getEditorByUri: (uri: string) => Monaco.editor.ICodeEditor | undefined;
 }
 
 interface MonacoState extends MonacoStateData {
@@ -27,9 +29,17 @@ interface MonacoState extends MonacoStateData {
 
 let wasInitialized = false;
 
-const monacoState: StateCreator<MonacoState> = (set) => ({
+const monacoState: StateCreator<MonacoState> = (set, get) => ({
   monaco: null,
   actions: {
+    getEditorByUri(uri) {
+      const { monaco } = get();
+      if (!monaco) {
+        return;
+      }
+      const model = monaco.editor.getModel(monaco.Uri.file(uri));
+      return monaco.editor.getEditors().find((editor) => editor.getModel() === model);
+    },
     async importMonaco() {
       if (wasInitialized) {
         return;
@@ -47,11 +57,7 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
         import('monaco-editor'),
         import('shiki'),
         import('@shikijs/monaco'),
-        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json', {
-          with: {
-            type: 'json',
-          },
-        }),
+        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json'),
         import('shiki/themes/github-light-default.mjs'),
         import('shiki/themes/github-dark-default.mjs'),
         import('shiki/langs/markdown.mjs'),
@@ -78,6 +84,10 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
          * @see https://github.com/shikijs/shiki/issues/865
          */
         tokens: false,
+        /** Enable formatting of the entire document */
+        documentFormattingEdits: true,
+        /** Enable formatting of only a selected range */
+        documentRangeFormattingEdits: true,
       });
 
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
@@ -154,8 +164,8 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
             colors: {
               ...githubLightTheme.colors,
               'editor.background': 'transparent',
-              'diffEditor.insertedLineBackground': '#3784ff0d',
-              'diffEditor.insertedTextBackground': '#3784ff19',
+              'diffEditor.insertedLineBackground': `${INKEEP_BRAND_COLOR}0d`,
+              'diffEditor.insertedTextBackground': `${INKEEP_BRAND_COLOR}19`,
               'editorHoverWidget.background': '#fff',
             },
             tokenColors: [
@@ -190,6 +200,7 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
           'typescript',
           'json',
           'html-derivative',
+          'markdown',
           {
             ...markdownShikiGrammar,
             aliases: [],

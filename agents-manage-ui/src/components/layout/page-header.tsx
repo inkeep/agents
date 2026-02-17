@@ -48,7 +48,7 @@ function PageHeaderDescription({ className, children, ...props }: ComponentProps
 
 // Backwards compatibility wrapper
 interface PageHeaderProps {
-  title: string;
+  title: string | ReactNode;
   description?: string | ReactNode;
   action?: ReactNode;
   className?: string;

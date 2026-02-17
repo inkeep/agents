@@ -11,13 +11,7 @@ import {
   readRelationships,
   writeRelationship,
 } from './client';
-import {
-  isAuthzEnabled,
-  type OrgRole,
-  type ProjectRole,
-  SpiceDbRelations,
-  SpiceDbResourceTypes,
-} from './config';
+import { type OrgRole, type ProjectRole, SpiceDbRelations, SpiceDbResourceTypes } from './types';
 
 /**
  * Sync a user's org membership to SpiceDB.
@@ -29,8 +23,6 @@ export async function syncOrgMemberToSpiceDb(params: {
   role: OrgRole;
   action: 'add' | 'remove';
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
-
   if (params.action === 'add') {
     await writeRelationship({
       resourceType: SpiceDbResourceTypes.ORGANIZATION,
@@ -61,8 +53,6 @@ export async function changeOrgRole(params: {
   oldRole: OrgRole;
   newRole: OrgRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
-
   // Skip if roles are the same
   if (params.oldRole === params.newRole) {
     return;
@@ -127,8 +117,6 @@ export async function syncProjectToSpiceDb(params: {
   projectId: string;
   creatorUserId: string;
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
-
   const spice = getSpiceClient();
 
   // Check if user is org admin/owner (they already have full access via inheritance)
@@ -203,10 +191,6 @@ export async function grantProjectAccess(params: {
   userId: string;
   role: ProjectRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
-    throw new Error('Authorization is not enabled');
-  }
-
   await writeRelationship({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,
@@ -225,10 +209,6 @@ export async function revokeProjectAccess(params: {
   userId: string;
   role: ProjectRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
-    throw new Error('Authorization is not enabled');
-  }
-
   await deleteRelationship({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,
@@ -249,10 +229,6 @@ export async function changeProjectRole(params: {
   oldRole: ProjectRole;
   newRole: ProjectRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
-    throw new Error('Authorization is not enabled');
-  }
-
   // Skip if roles are the same
   if (params.oldRole === params.newRole) {
     return;
@@ -315,8 +291,6 @@ export async function removeProjectFromSpiceDb(params: {
   tenantId: string;
   projectId: string;
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
-
   const spice = getSpiceClient();
 
   // Delete all relationships for this project
@@ -342,10 +316,6 @@ export async function listProjectMembers(params: {
   tenantId: string;
   projectId: string;
 }): Promise<Array<{ userId: string; role: ProjectRole }>> {
-  if (!isAuthzEnabled()) {
-    return [];
-  }
-
   const relationships = await readRelationships({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,
@@ -374,10 +344,6 @@ export async function listUserProjectMembershipsInSpiceDb(params: {
   tenantId: string;
   userId: string;
 }): Promise<Array<{ projectId: string; role: ProjectRole }>> {
-  if (!isAuthzEnabled()) {
-    return [];
-  }
-
   // Read all project relationships where this user is the subject
   const relationships = await readRelationships({
     resourceType: SpiceDbResourceTypes.PROJECT,
@@ -409,10 +375,6 @@ export async function revokeAllProjectMemberships(params: {
   tenantId: string;
   userId: string;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
-    return;
-  }
-
   const spice = getSpiceClient();
 
   // Efficiently delete ALL project memberships for this user in parallel

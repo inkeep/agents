@@ -1,0 +1,108 @@
+---
+title: Access Control
+description: Multi-tenant authentication with organizations, team management, and fine-grained project permissions
+icon: LuShieldCheck
+---
+
+The Inkeep Agent Framework provides two layers of access control:
+
+| Layer | What it does |
+|-------|--------------|
+| **Authentication** | Users sign in, belong to organizations, manage teams |
+| **Authorization** | Fine-grained project-level roles and permissions |
+
+Authentication handles user sign-in and organization membership. Authorization adds granular control over who can do what within each project.
+
+<Note>
+  For deployment configuration including OAuth providers, see [Authentication Setup](/deployment/authentication).
+</Note>
+
+## Sign-In Methods
+
+| Method | Description |
+|--------|-------------|
+| **Email & Password** | Default sign-in with email and password credentials |
+| **Google** | OAuth sign-in (requires configuration) |
+
+To add Google sign-in, see [Adding OAuth Providers](/deployment/authentication#google-oauth).
+
+## Organizations & Team Management
+
+Each organization operates as an isolated tenant:
+
+- **Separate workspaces**: Each organization has its own projects, agents, MCP servers, and credentials
+- **Team collaboration**: Multiple users can belong to the same organization
+- **Role-based access**: Team members have different permission levels
+
+### Organization Roles
+
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full access to all projects and settings, can add members |
+| **Member** | Access determined by project-level roles |
+
+### Managing Team Members
+
+1. Go to **Settings** in the left sidebar
+2. View current members and their roles
+3. Click **Add** to add new team members
+4. Select a role (Admin or Member) for the new team member
+
+## Project Roles & Permissions
+
+Assign granular roles at the project level to give organization Members specific access to individual projects.
+
+### Role Hierarchy
+
+| Role | View | Use | Edit |
+|------|:----:|:---:|:----:|
+| **Project Admin** | ✓ | ✓ | ✓ |
+| **Project Member** | ✓ | ✓ | ✗ |
+| **Project Viewer** | ✓ | ✗ | ✗ |
+
+### Permission Breakdown
+
+| Permission | What it allows |
+|------------|----------------|
+| **View** | See project configuration, agents, and settings (read-only) |
+| **Use** | Invoke agents, create API keys, view traces |
+| **Edit** | Modify agents, tools, credentials, project settings, and evaluations (datasets, evaluators, configs) |
+
+### Managing Project Members
+
+1. Navigate to your project
+2. Go to **Members**
+3. Search for members by email and select one or more to add
+4. Choose a role for the selected members and click **Add**
+
+<Tip>
+  Organization Admins always have full access to all projects, regardless of project-level roles.
+</Tip>
+
+## User-Scoped vs Project-Scoped Resources
+
+Certain resources can be configured with different scopes:
+
+| Scope | Description |
+|-------|-------------|
+| **Project-scoped** | Shared across all users in the project |
+| **User-scoped** | Configured separately for each user |
+
+### Example: MCP Servers
+
+MCP servers can be configured as either project-scoped or user-scoped:
+
+| Use Case | Recommended Scope |
+|----------|-------------------|
+| Shared company tools (internal APIs, databases) | Project-scoped |
+| Personal integrations (user's Slack, GitHub, email) | User-scoped |
+| Services requiring per-user authorization | User-scoped |
+| Tools where data should be separated by user | User-scoped |
+
+<Tip>
+  You only configure a user-scoped MCP server once. Each user sees the same server but connects with their own credentials. The framework automatically manages the per-user authentication.
+</Tip>
+
+To select the scope, go to **MCP Servers** → create a server → select the scope.
+
+See [MCP Servers](/visual-builder/tools/mcp-servers) for more details.

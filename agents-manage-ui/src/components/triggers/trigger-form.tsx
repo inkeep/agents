@@ -262,6 +262,7 @@ interface TriggerFormProps {
 }
 
 export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: TriggerFormProps) {
+  const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`;
   const router = useRouter();
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState(true);
@@ -401,8 +402,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
   const defaultValues = getDefaultValues();
 
-  const form = useForm<TriggerFormData>({
-    resolver: zodResolver(triggerFormSchema) as any,
+  const form = useForm({
+    resolver: zodResolver(triggerFormSchema),
     defaultValues,
   });
 
@@ -696,7 +697,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
       if (result.success) {
         toast.success(`Trigger ${mode === 'create' ? 'created' : 'updated'} successfully`);
-        router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`);
+        router.push(redirectPath);
       } else {
         toast.error(result.error || `Failed to ${mode} trigger`);
       }
@@ -791,6 +792,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                     onChange={field.onChange}
                     placeholder={`{\n  "type": "object",\n  "properties": {\n    "event": { "type": "string" }\n  }\n}`}
                     error={fieldState.error?.message}
+                    className="min-w-0"
                   />
                   <FormMessage />
                 </FormItem>
@@ -816,6 +818,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               label="Transform Type"
               options={transformTypeOptions}
               placeholder="Select transform type"
+              selectTriggerClassName="w-full"
             />
 
             {transformType === 'object_transformation' && (
@@ -926,7 +929,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                         variant="ghost"
                         size="icon"
                         onClick={() => remove(index)}
-                        className={index === 0 ? 'mt-8' : ''}
+                        className={index === 0 ? 'mt-[22px]' : ''}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -955,7 +958,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               size="sm"
               onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4" />
               Add Required Header
             </Button>
           </CardContent>
@@ -976,7 +979,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               control={form.control}
               name="signatureVerificationEnabled"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                // relative is needed b/c of the absolute positioning of the switch
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 relative">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Enable Signature Verification</FormLabel>
                     <FormDescription>
@@ -1440,7 +1444,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                       })
                     }
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4" />
                     Add Signed Component
                   </Button>
 
@@ -1589,13 +1593,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`)
-            }
-          >
+          <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>

@@ -1,0 +1,155 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "**",
+      "!packages/agents-manage-mcp",
+      "!packages/agents-mcp",
+      "!**/__snapshots__/*.json"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/dist/**",
+      "!**/drizzle/**",
+      "!**/drizzle.config.*",
+      "!**/.next/**",
+      "!**/build/**",
+      "!**/out/**",
+      "!**/*.css",
+      "!**/.source/**",
+      "!**/.vercel/**",
+      "!**/tsconfig.json"
+    ],
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off",
+        "noConfusingLabels": "off",
+        "useIterableCallbackReturn": "error",
+        "noDocumentCookie": "off",
+        "noAssignInExpressions": "off"
+      },
+      "complexity": {
+        "noStaticOnlyClass": "off",
+        "noBannedTypes": "off",
+        "noUselessFragments": "off",
+        "noUselessLoneBlockStatements": "off"
+      },
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": { "importNames": ["useContext"], "message": "Use the `use()` hook instead." }
+            }
+          }
+        },
+        "noUnusedTemplateLiteral": "off",
+        "noNonNullAssertion": "warn",
+        "noUselessElse": "error",
+        "useSelfClosingElements": "error",
+        "useImportType": "error"
+      },
+      "performance": {
+        "noImgElement": "warn",
+        "noDynamicNamespaceImportAccess": "off"
+      },
+      "a11y": {
+        "useSemanticElements": "off",
+        "useValidAriaRole": "error",
+        "useButtonType": "error"
+      },
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "error",
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "hooks": [
+              {
+                "name": "useReactFlow",
+                "stableResult": [
+                  // Based on https://github.com/xyflow/xyflow/blob/3f93f828ec931b6fba639d5a38ffd69eaca29f3a/packages/react/src/hooks/useReactFlow.ts#L67
+                  "getNodes",
+                  "getNode",
+                  "getInternalNode",
+                  "getEdges",
+                  "getEdge",
+                  "setNodes",
+                  "setEdges",
+                  "addNodes",
+                  "addEdges",
+                  "toObject",
+                  "deleteElements",
+                  "getIntersectingNodes",
+                  "isNodeIntersecting",
+                  "updateNode",
+                  "updateNodeData",
+                  "updateEdge",
+                  "updateEdgeData",
+                  "getNodesBounds",
+                  "getHandleConnections",
+                  "getNodeConnections",
+                  "fitView"
+                ]
+              },
+              { "name": "useAgentActions", "stableResult": true },
+              { "name": "useMonacoActions", "stableResult": true },
+              { "name": "useProjectActions", "stableResult": true },
+              { "name": "useTheme", "stableResult": ["setTheme"] }
+            ]
+          }
+        },
+        "useJsxKeyInIterable": "warn",
+        "useUniqueElementIds": "off",
+        "noNestedComponentDefinitions": "off",
+        "noUnusedFunctionParameters": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "nursery": {
+        "noReactForwardRef": "error"
+      }
+    }
+  },
+  "formatter": {
+    "includes": ["**", "!**/drizzle/**", "!**/__snapshots__/*.json"],
+    "enabled": true,
+    "lineWidth": 100,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  }
+}

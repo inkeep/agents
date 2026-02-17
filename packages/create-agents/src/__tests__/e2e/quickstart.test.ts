@@ -15,6 +15,10 @@ import {
 // Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
 const manageApiUrl = 'http://127.0.0.1:3002';
 
+// Use a test bypass secret for authentication in CI
+// This bypasses the need for a real login/API key
+const TEST_BYPASS_SECRET = 'e2e-test-bypass-secret-for-ci-testing-only';
+
 describe('create-agents quickstart e2e', () => {
   let testDir: string;
   let projectDir: string;
@@ -101,7 +105,20 @@ describe('create-agents quickstart e2e', () => {
     console.log('Local monorepo packages linked and dependencies installed');
 
     console.log('Setting up project in database');
-    await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
+    // Pass bypass secret so setup-dev:cloud's internal push can authenticate
+    await runCommand({
+      command: 'pnpm',
+      args: ['setup-dev:cloud'],
+      cwd: projectDir,
+      timeout: 600000, // 10 minutes for CI (includes migrations, server startup, push)
+      env: {
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
+        INKEEP_API_KEY: TEST_BYPASS_SECRET,
+        INKEEP_CI: 'true',
+        SKIP_UPGRADE: 'true', // Packages are already linked locally, skip pnpm update --latest
+      },
+      stream: true,
+    });
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -112,6 +129,8 @@ describe('create-agents quickstart e2e', () => {
         ...process.env,
         FORCE_COLOR: '0',
         NODE_ENV: 'test',
+        // Set bypass secret for authentication in CI
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
       },
       cleanup: true,
       detached: false,
@@ -146,9 +165,9 @@ describe('create-agents quickstart e2e', () => {
       console.log('Manage API is ready');
 
       console.log('Pushing project');
-      const pushResult = await runCommand(
-        'pnpm',
-        [
+      const pushResult = await runCommand({
+        command: 'pnpm',
+        args: [
           'inkeep',
           'push',
           '--project',
@@ -156,9 +175,10 @@ describe('create-agents quickstart e2e', () => {
           '--config',
           'src/inkeep.config.ts',
         ],
-        projectDir,
-        30000
-      );
+        cwd: projectDir,
+        timeout: 30000,
+        env: { INKEEP_API_KEY: TEST_BYPASS_SECRET, INKEEP_CI: 'true' },
+      });
 
       expect(
         pushResult.exitCode,
@@ -166,8 +186,12 @@ describe('create-agents quickstart e2e', () => {
       ).toBe(0);
 
       console.log('Testing API requests');
-      // Test API requests
-      const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`);
+      // Test API requests with bypass secret authentication
+      const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${TEST_BYPASS_SECRET}`,
+        },
+      });
 
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');

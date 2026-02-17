@@ -1,10 +1,10 @@
 ---
 name: web-design-guidelines
 description: Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX", or "check my site against best practices".
-argument-hint: <file-or-pattern>
 metadata:
   author: vercel
   version: "1.0.0"
+  argument-hint: <file-or-pattern>
 ---
 
 # Web Interface Guidelines
@@ -13,27 +13,27 @@ Review files for compliance with Web Interface Guidelines.
 
 ## How It Works
 
-1. Fetch the latest guidelines from the source URL below
+1. Load the guidelines (see Guidelines Source below)
 2. Read the specified files (or prompt user for files/pattern)
-3. Check against all rules in the fetched guidelines
+3. Check against all rules in the guidelines
 4. Output findings in the terse `file:line` format
 
 ## Guidelines Source
 
-Fetch fresh guidelines before each review:
+**In CI:** The workflow fetches the latest guidelines into `references/guidelines.md` before review. Read that file.
 
+**Locally:** If `references/guidelines.md` doesn't exist, fetch from the upstream URL:
 ```
 https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md
 ```
 
-Use WebFetch to retrieve the latest rules. The fetched content contains all the rules and output format instructions.
-
 ## Usage
 
 When a user provides a file or pattern argument:
-1. Fetch guidelines from the source URL above
-2. Read the specified files
-3. Apply all rules from the fetched guidelines
-4. Output findings using the format specified in the guidelines
+1. Try reading `references/guidelines.md` first (populated by CI)
+2. If not found, use WebFetch or Bash (`curl`) to fetch from the upstream URL
+3. Read the specified files
+4. Apply all rules from the guidelines
+5. Output findings using the format specified in the guidelines
 
 If no files specified, ask the user which files to review.

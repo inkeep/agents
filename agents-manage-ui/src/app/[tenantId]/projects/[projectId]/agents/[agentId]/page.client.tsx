@@ -27,6 +27,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
+import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
@@ -41,7 +42,6 @@ import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
-  applyDagreLayout,
   deserializeAgentData,
   type ExtendedFullAgentDefinition,
   extractAgentMetadata,
@@ -71,11 +71,11 @@ import type {
   SubAgentTeamAgentConfig,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
-import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
@@ -101,14 +101,15 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  dataComponentLookup?: Record<string, DataComponent>;
-  artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
-  credentialLookup?: Record<string, Credential>;
+  dataComponentLookup: Record<string, DataComponent>;
+  artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  credentialLookup: Record<string, Credential>;
+  skills: Skill[];
   sandboxEnabled: boolean;
 }
 
-type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
+type ReactFlowProps = ComponentProps<typeof ReactFlow>;
 
 const SHOW_CHAT_TO_CREATE = false;
 
@@ -123,11 +124,12 @@ const nonValidationErrors = new Set([
 
 export const Agent: FC<AgentProps> = ({
   agent,
-  dataComponentLookup = {},
-  artifactComponentLookup = {},
-  toolLookup = {},
-  credentialLookup = {},
+  dataComponentLookup,
+  artifactComponentLookup,
+  toolLookup,
+  credentialLookup,
   sandboxEnabled,
+  skills,
 }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
@@ -265,7 +267,7 @@ export const Agent: FC<AgentProps> = ({
     if (!agent.subAgents) return {};
     const lookup: SubAgentTeamAgentConfigLookup = {};
     Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+      if (agentData && 'canDelegateTo' in agentData && agentData.canDelegateTo) {
         const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
         agentData.canDelegateTo
           .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
@@ -284,8 +286,7 @@ export const Agent: FC<AgentProps> = ({
     return lookup;
   })();
 
-  const { screenToFlowPosition, updateNodeData, fitView, getEdges, getIntersectingNodes } =
-    useReactFlow();
+  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
   const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
@@ -294,7 +295,7 @@ export const Agent: FC<AgentProps> = ({
   const {
     setNodes,
     setEdges,
-    onNodesChange: storeOnNodesChange,
+    onNodesChange,
     onEdgesChange,
     setMetadata,
     setInitial,
@@ -310,38 +311,6 @@ export const Agent: FC<AgentProps> = ({
   const nodes = enrichNodes(storeNodes);
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
-  /**
-   * Custom `onNodesChange` handler that relayouts the agent using Dagre
-   * when a `replace` change causes node intersections.
-   **/
-  const onNodesChange: typeof storeOnNodesChange = (changes) => {
-    storeOnNodesChange(changes);
-
-    const replaceChanges = changes.filter((change) => change.type === 'replace');
-    if (!replaceChanges.length) {
-      return;
-    }
-    // Using `setTimeout` instead of `requestAnimationFrame` ensures updated node positions are available,
-    // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
-    setTimeout(() => {
-      setNodes((prev) => {
-        for (const change of replaceChanges) {
-          const node = prev.find((n) => n.id === change.id);
-          if (!node) {
-            continue;
-          }
-          // Use React Flow's intersection detection
-          const intersectingNodes = getIntersectingNodes(node);
-          if (intersectingNodes.length > 0) {
-            // Apply Dagre layout to resolve intersections
-            return applyDagreLayout(prev, getEdges());
-          }
-        }
-        return prev;
-      });
-    }, 0);
-  };
-
   const onAddInitialNode = () => {
     const newNode = {
       ...initialNode,
@@ -349,7 +318,7 @@ export const Agent: FC<AgentProps> = ({
     };
     clearSelection();
     markUnsaved();
-    commandManager.execute(new AddNodeCommand(newNode as Node));
+    commandManager.execute(new AddNodeCommand(newNode));
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
       fitView({
@@ -366,6 +335,7 @@ export const Agent: FC<AgentProps> = ({
       agentNodes,
       agentEdges,
       extractAgentMetadata(agent),
+      skills,
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
@@ -416,7 +386,7 @@ export const Agent: FC<AgentProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [isOpen, fitView]);
+  }, [isOpen]);
 
   // Auto-center agent when playground opens/closes
   // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on showPlayground changes
@@ -495,6 +465,7 @@ export const Agent: FC<AgentProps> = ({
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
+        skills,
         updatedDataComponentLookup as Record<string, DataComponent>,
         updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
         updatedToolLookup as unknown as Record<string, MCPTool>,
@@ -598,11 +569,13 @@ export const Agent: FC<AgentProps> = ({
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
-        const subAgentId = params.source;
+        if (edges.some((edge) => edge.target === targetNode.id)) {
+          toast.error('This MCP tool is already connected. Connect to a new MCP server node.');
+          return;
+        }
         updateNodeData(targetNode.id, {
           ...targetNode.data,
-          subAgentId,
-          relationshipId: null, // Will be set after saving to database
+          subAgentId: params.source,
         });
       }
     }
@@ -612,22 +585,6 @@ export const Agent: FC<AgentProps> = ({
         new AddPreparedEdgeCommand(newEdge, { deselectOtherEdgesIfA2A: true })
       );
     });
-  };
-
-  const isValidConnection: ReactFlowProps['isValidConnection'] = ({
-    sourceHandle,
-    targetHandle,
-  }) => {
-    // we don't want to allow connections between MCP nodes
-    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-      return false;
-    }
-    return true;
-  };
-
-  const onDragOver: ReactFlowProps['onDragOver'] = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
   };
 
   const onDrop: ReactFlowProps['onDrop'] = (event) => {
@@ -753,20 +710,6 @@ export const Agent: FC<AgentProps> = ({
   };
 
   const onSubmit = async (): Promise<boolean> => {
-    // Check for orphaned tools before saving
-    const warningMessage = detectOrphanedToolsAndGetWarning(
-      nodes,
-      agentToolConfigLookup,
-      toolLookup
-    );
-
-    if (warningMessage) {
-      toast.warning(warningMessage, {
-        closeButton: true,
-        duration: 6000,
-      });
-    }
-
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
       serializedData = serializeAgentData(
@@ -857,8 +800,9 @@ export const Agent: FC<AgentProps> = ({
                 const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if (res.data.subAgents[subAgentId]?.canUse) {
-                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
+                const savedSubAgent = res.data.subAgents[subAgentId];
+                if (savedSubAgent?.canUse) {
+                  const matchingRelationship = savedSubAgent.canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&
                       tool.agentToolRelationId &&
@@ -997,7 +941,10 @@ export const Agent: FC<AgentProps> = ({
           onEdgesChange={onEdgesChange}
           onConnect={onConnectWrapped}
           onDrop={onDrop}
-          onDragOver={onDragOver}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+          }}
           fitView
           snapToGrid
           snapGrid={[20, 20]}
@@ -1006,10 +953,19 @@ export const Agent: FC<AgentProps> = ({
           }}
           minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
-          isValidConnection={isValidConnection}
+          isValidConnection={({ sourceHandle, targetHandle }) => {
+            // we don't want to allow connections between MCP nodes
+            if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+              return false;
+            }
+            return true;
+          }}
           nodesConnectable={canEdit}
           nodesDraggable={canEdit}
           onNodeClick={onNodeClick}
+          onNodeDragStop={() => {
+            setNodes(resolveCollisions);
+          }}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
@@ -1027,8 +983,8 @@ export const Agent: FC<AgentProps> = ({
           {!showEmptyState && (
             <Panel
               position="top-right"
-              // width of NodeLibrary
-              className="left-40"
+              // width of NodeLibrary; pointer-events-none so handles below are reachable
+              className="left-40 pointer-events-none"
             >
               <Toolbar
                 onSubmit={onSubmit}
@@ -1037,6 +993,11 @@ export const Agent: FC<AgentProps> = ({
                   closeSidePane();
                   setShowPlayground(true);
                 }}
+                tracesHref={
+                  agent.id
+                    ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
+                    : undefined
+                }
               />
             </Panel>
           )}

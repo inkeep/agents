@@ -16,31 +16,16 @@ export {
   writeRelationship,
 } from './client';
 // Configuration
-export {
-  getSpiceDbConfig,
-  isAuthzEnabled,
-  type OrgRole,
-  OrgRoles,
-  type ProjectPermissionLevel,
-  type ProjectPermissions,
-  type ProjectRole,
-  ProjectRoles,
-  type SpiceDbOrgPermission,
-  SpiceDbOrgPermissions,
-  type SpiceDbProjectPermission,
-  SpiceDbProjectPermissions,
-  SpiceDbRelations,
-  SpiceDbResourceTypes,
-} from './config';
-
+export { getSpiceDbConfig } from './config';
 // Permission checks
 export {
   canEditProject,
   canUseProject,
+  canUseProjectStrict,
   canViewProject,
   listAccessibleProjectIds,
+  listUsableProjectIds,
 } from './permissions';
-
 // Sync utilities
 export {
   changeOrgRole,
@@ -54,3 +39,17 @@ export {
   syncOrgMemberToSpiceDb,
   syncProjectToSpiceDb,
 } from './sync';
+export {
+  type OrgRole,
+  OrgRoles,
+  type ProjectPermissionLevel,
+  type ProjectPermissions,
+  type ProjectRole,
+  ProjectRoles,
+  type SpiceDbOrgPermission,
+  SpiceDbOrgPermissions,
+  type SpiceDbProjectPermission,
+  SpiceDbProjectPermissions,
+  SpiceDbRelations,
+  SpiceDbResourceTypes,
+} from './types';

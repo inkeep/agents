@@ -994,7 +994,7 @@ export class AgentSession {
                   type: z.literal('no_relevant_updates'),
                   data: z
                     .object({
-                      no_updates: z.boolean().default(true),
+                      no_updates: z.boolean(),
                     })
                     .describe(
                       'Use when nothing substantially new to report. Should only use on its own.'
@@ -1921,7 +1921,10 @@ export class AgentSessionManager {
   ): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      logger.warn({ sessionId }, 'Attempted to record event in non-existent session');
+      logger.warn(
+        { sessionId, eventType, subAgentId },
+        'Attempted to record event in non-existent session (likely session already ended)'
+      );
       return;
     }
 

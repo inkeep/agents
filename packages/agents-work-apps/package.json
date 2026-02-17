@@ -1,0 +1,74 @@
+{
+  "name": "@inkeep/agents-work-apps",
+  "version": "0.48.4",
+  "description": "First party integrations for Inkeep Agents",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./github": {
+      "types": "./dist/github/index.d.ts",
+      "import": "./dist/github/index.js"
+    },
+    "./slack": {
+      "types": "./dist/slack/index.d.ts",
+      "import": "./dist/slack/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "pnpm build --watch",
+    "test": "vitest --run",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome check --write src",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inkeep/agents-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@nangohq/node": "^0.69.20",
+    "@octokit/auth-app": "^8.1.2",
+    "@octokit/rest": "^22.0.1",
+    "@opentelemetry/api": "^1.9.0",
+    "@slack/types": "^2.18.0",
+    "@slack/web-api": "^7.9.1",
+    "drizzle-orm": "^0.44.7",
+    "fetch-to-node": "^2.1.0",
+    "hono": "^4.11.7",
+    "jose": "^6.1.0",
+    "minimatch": "^10.1.1",
+    "slack-block-builder": "^2.8.0"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "packages/agents-workapps"
+  }
+}

@@ -43,19 +43,30 @@ export async function runCreateAgentsCLI(
 /**
  * Run a command in the created project directory
  */
-export async function runCommand(
-  command: string,
-  args: string[],
-  cwd: string,
-  timeout = 120000 // 2 minutes default
-): Promise<{ stdout: string; stderr: string; exitCode: number | undefined }> {
+export async function runCommand(opts: {
+  command: string;
+  args: string[];
+  cwd: string;
+  timeout?: number;
+  env?: Record<string, string>;
+  stream?: boolean;
+}): Promise<{ stdout: string; stderr: string; exitCode: number | undefined }> {
+  const { command, args, cwd, timeout = 120000, env: envOverrides, stream } = opts;
+
   try {
-    const result = await execa(command, args, {
+    const child = execa(command, args, {
       cwd,
       timeout,
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: { ...process.env, FORCE_COLOR: '0', ...envOverrides },
       shell: true,
     });
+
+    if (stream) {
+      child.stdout?.pipe(process.stdout);
+      child.stderr?.pipe(process.stderr);
+    }
+
+    const result = await child;
 
     return {
       stdout: result.stdout,

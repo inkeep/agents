@@ -8,6 +8,7 @@ export const TagToDescription = {
   Agents: 'Operations for managing agents',
   'Artifact Components': 'Operations for managing artifact components',
   Branches: 'Operations for managing branches',
+  Channels: 'Operations for managing Slack channels',
   CLI: 'CLI authentication endpoints',
   Chat: 'Chat completions endpoints',
   'Context Configs': 'Operations for managing context configurations',
@@ -19,7 +20,7 @@ export const TagToDescription = {
   'External Agents': 'Operations for managing external agents',
   'Function Tools': 'Operations for managing function tools',
   Functions: 'Operations for managing functions',
-  Invitations: 'Operations for managing invitations',
+  GitHub: 'GitHub App integration endpoints',
   MCP: 'MCP (Model Context Protocol) endpoints',
   'MCP Catalog': 'Operations for MCP catalog',
   OAuth: 'OAuth authentication endpoints',
@@ -27,14 +28,20 @@ export const TagToDescription = {
   'Project Permissions': 'Operations for managing project permissions',
   Projects: 'Operations for managing projects',
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
+  Skills:
+    'Reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority',
+  Slack: 'Slack App integration endpoints',
   SubAgents: 'Operations for managing sub agents',
+  'Scheduled Triggers': 'Operations for managing scheduled triggers',
   'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',
-  'User Organizations': 'Operations for managing user organizations',
   'User Project Memberships': 'Operations for managing user project memberships',
+  Users: 'Operations for managing users',
   Webhooks: 'Webhook endpoints',
+  'Work Apps': 'Work app integrations (Slack, Teams, etc.)',
   Workflows: 'Workflow trigger endpoints',
+  Workspaces: 'Operations for managing Slack workspaces',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {

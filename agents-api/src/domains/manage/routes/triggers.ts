@@ -3,7 +3,9 @@ import {
   commonGetErrorResponses,
   createApiError,
   createTrigger,
+  DateTimeFilterQueryParamsSchema,
   deleteTrigger,
+  errorSchemaFactory,
   generateId,
   getCredentialReference,
   getTriggerById,
@@ -12,6 +14,7 @@ import {
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
   PaginationQueryParamsSchema,
+  PartSchema,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   TriggerApiInsertSchema,
@@ -29,6 +32,7 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
+import { dispatchExecution } from '../../run/services/TriggerService';
 
 const logger = getLogger('triggers');
 
@@ -535,17 +539,13 @@ app.openapi(
  */
 
 // Query params for invocation filtering (extends base pagination with status/date filters)
-const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: TriggerInvocationStatusEnum.optional().openapi({
-    description: 'Filter by invocation status',
-  }),
-  from: z.string().datetime().optional().openapi({
-    description: 'Start date for filtering (ISO8601)',
-  }),
-  to: z.string().datetime().optional().openapi({
-    description: 'End date for filtering (ISO8601)',
-  }),
-}).openapi('TriggerInvocationQueryParams');
+const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.merge(
+  DateTimeFilterQueryParamsSchema
+)
+  .extend({
+    status: TriggerInvocationStatusEnum.optional().describe('Filter by invocation status'),
+  })
+  .openapi('TriggerInvocationQueryParams');
 
 /**
  * List Trigger Invocations
@@ -575,7 +575,6 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
@@ -595,7 +594,6 @@ app.openapi(
       },
     });
 
-    // Remove sensitive scope fields from invocations
     const dataWithoutScopes = result.data.map((invocation) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
@@ -637,7 +635,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
     logger.debug(
@@ -669,6 +666,122 @@ app.openapi(
     return c.json({
       data: invocationWithoutScopes,
     });
+  }
+);
+
+/**
+ * Rerun Trigger
+ * Re-executes a trigger with the provided user message (from a previous trace).
+ */
+app.use('/:id/rerun', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('use')(c, next);
+  }
+  return next();
+});
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/rerun',
+    summary: 'Rerun Trigger',
+    operationId: 'rerun-trigger',
+    tags: ['Triggers'],
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              userMessage: z.string().describe('The user message to send to the agent'),
+              messageParts: z
+                .array(PartSchema)
+                .optional()
+                .describe('Optional structured message parts (from original trace)'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: 'Trigger rerun accepted and dispatched',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              invocationId: z.string(),
+              conversationId: z.string(),
+            }),
+          },
+        },
+      },
+      409: errorSchemaFactory('conflict', 'Trigger is disabled'),
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
+    const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
+    const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
+
+    logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
+
+    const trigger = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger not found',
+      });
+    }
+
+    if (!trigger.enabled) {
+      throw createApiError({
+        code: 'conflict',
+        message: 'Trigger is disabled',
+      });
+    }
+
+    const messageParts = rawMessageParts ?? [{ kind: 'text' as const, text: userMessage }];
+
+    let invocationId: string;
+    let conversationId: string;
+    try {
+      ({ invocationId, conversationId } = await dispatchExecution({
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        resolvedRef,
+        payload: { _rerun: true },
+        transformedPayload: undefined,
+        messageParts,
+        userMessageText: userMessage,
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error(
+        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId },
+        'Failed to dispatch trigger rerun execution'
+      );
+      throw createApiError({
+        code: 'internal_server_error',
+        message: `Something went wrong. Please contact support.`,
+      });
+    }
+
+    logger.info(
+      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+      'Trigger rerun dispatched'
+    );
+
+    return c.json({ success: true, invocationId, conversationId }, 202);
   }
 );
 

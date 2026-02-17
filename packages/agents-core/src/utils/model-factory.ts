@@ -9,6 +9,7 @@ import type { LanguageModel } from 'ai';
 
 import type { ModelSettings } from '../validation/schemas.js';
 import { getLogger } from './logger';
+import { createMockModel } from './mock-provider.js';
 
 const logger = getLogger('ModelFactory');
 
@@ -181,8 +182,8 @@ export class ModelFactory {
 
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
-    // Azure always needs custom configuration
-    if (provider === 'azure' || Object.keys(providerConfig).length > 0) {
+    // Azure always needs custom configuration; mock never does
+    if (provider !== 'mock' && (provider === 'azure' || Object.keys(providerConfig).length > 0)) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
       return customProvider.languageModel(modelName);
@@ -201,6 +202,8 @@ export class ModelFactory {
         return gateway(modelName);
       case 'nim':
         return nimDefault(modelName);
+      case 'mock':
+        return createMockModel(modelName) as unknown as LanguageModel;
       case 'custom':
         throw new Error(
           'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
@@ -226,6 +229,7 @@ export class ModelFactory {
     'gateway',
     'nim',
     'custom',
+    'mock',
   ] as const;
 
   /**

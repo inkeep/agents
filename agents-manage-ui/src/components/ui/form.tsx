@@ -2,7 +2,7 @@
 
 import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
-import * as React from 'react';
+import { type ComponentProps, createContext, use, useId } from 'react';
 import {
   Controller,
   type ControllerProps,
@@ -24,14 +24,15 @@ type FormFieldContextValue<
   name: TName;
 };
 
-const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
+const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
+  TV = FieldValues,
+>(
+  props: ControllerProps<TFieldValues, TName, TV>
+) => {
   return (
     <FormFieldContext value={{ name: props.name }}>
       <Controller {...props} />
@@ -40,8 +41,8 @@ const FormField = <
 };
 
 const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext);
-  const itemContext = React.useContext(FormItemContext);
+  const fieldContext = use(FormFieldContext);
+  const itemContext = use(FormItemContext);
   const { getFieldState } = useFormContext();
   const formState = useFormState({ name: fieldContext.name });
   const fieldState = getFieldState(fieldContext.name, formState);
@@ -66,10 +67,10 @@ type FormItemContextValue = {
   id: string;
 };
 
-const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
+const FormItemContext = createContext<FormItemContextValue>({} as FormItemContextValue);
 
-function FormItem({ className, ...props }: React.ComponentProps<'div'>) {
-  const id = React.useId();
+function FormItem({ className, ...props }: ComponentProps<'div'>) {
+  const id = useId();
 
   return (
     <FormItemContext value={{ id }}>
@@ -83,7 +84,7 @@ function FormLabel({
   isRequired,
   children,
   ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root> & {
+}: ComponentProps<typeof LabelPrimitive.Root> & {
   isRequired?: boolean;
 }) {
   const { error, formItemId } = useFormField();
@@ -101,7 +102,7 @@ function FormLabel({
   );
 }
 
-function FormControl(props: React.ComponentProps<typeof Slot>) {
+function FormControl(props: ComponentProps<typeof Slot>) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 
   return (
@@ -115,7 +116,7 @@ function FormControl(props: React.ComponentProps<typeof Slot>) {
   );
 }
 
-function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
+function FormDescription({ className, ...props }: ComponentProps<'p'>) {
   const { formDescriptionId } = useFormField();
 
   return (
@@ -128,19 +129,47 @@ function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
   );
 }
 
-function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
+function firstNestedMessage(node: unknown, path: string[] = []): string | undefined {
+  if (!node || typeof node !== 'object') return;
+
+  if ('message' in node && typeof node.message === 'string') {
+    if (!path.length) {
+      return node.message;
+    }
+    const fieldPath = path.map((p) => JSON.stringify(p)).join(', ');
+    const pathLike = path.length > 1 ? `[${fieldPath}]` : fieldPath;
+
+    return `${node.message}
+  → at ${/* z.prettifyError like format  */ pathLike}`;
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    const msg = firstNestedMessage(value, [...path, key]);
+    if (msg) {
+      return msg;
+    }
+  }
+}
+
+function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? '') : props.children;
+
+  const body = firstNestedMessage(error) || children;
 
   if (!body) {
-    return null;
+    return;
   }
 
   return (
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn('text-destructive text-sm', className)}
+      className={cn(
+        'text-destructive text-sm',
+        // respect \n in message
+        'whitespace-pre-wrap break-all',
+        className
+      )}
       {...props}
     >
       {body}

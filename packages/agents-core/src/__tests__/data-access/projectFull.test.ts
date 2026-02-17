@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import {
   createFullProjectServerSide,
   deleteFullProject,
@@ -11,6 +13,23 @@ import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { testManageDbClient, testRunDbClient } from '../setup';
+
+// Mock runtime database and cascade delete functions used by deleteTool
+vi.mock('../../db/runtime/runtime-client', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../db/runtime/runtime-client')>();
+  return {
+    ...original,
+    createAgentsRunDatabaseClient: vi.fn(() => ({})),
+  };
+});
+
+vi.mock('../../data-access/runtime/cascade-delete', () => ({
+  cascadeDeleteByTool: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
+}));
+
+vi.mock('../../dolt/schema-sync', () => ({
+  getActiveBranch: vi.fn(() => vi.fn().mockResolvedValue('some_other_branch')),
+}));
 
 describe('projectFull data access', () => {
   let db: AgentsManageDatabaseClient;
@@ -562,7 +581,18 @@ describe('projectFull data access', () => {
       const projectId = `project-${generateId()}`;
       const data1Id = `data-${generateId()}`;
       const data2Id = `data-${generateId()}`;
-
+      const propsData1: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          content: { type: 'string' },
+        },
+      };
+      const propsData2: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          content: { type: 'string' },
+        },
+      };
       const projectWithDataComponents: FullProjectDefinition = {
         ...createTestProjectDefinition(projectId),
         dataComponents: {
@@ -570,23 +600,13 @@ describe('projectFull data access', () => {
             id: data1Id,
             name: 'Data Component 1',
             description: 'Test data component 1',
-            props: {
-              type: 'object',
-              properties: {
-                content: { type: 'string' },
-              },
-            },
+            props: propsData1 as JsonSchemaForLlmSchemaType,
           },
           [data2Id]: {
             id: data2Id,
             name: 'Data Component 2',
             description: 'Test data component 2',
-            props: {
-              type: 'object',
-              properties: {
-                content: { type: 'string' },
-              },
-            },
+            props: propsData2 as JsonSchemaForLlmSchemaType,
           },
         },
       };
@@ -636,11 +656,13 @@ describe('projectFull data access', () => {
             id: artifact1Id,
             name: 'Artifact Component 1',
             description: 'Test artifact component 1',
+            props: null,
           },
           [artifact2Id]: {
             id: artifact2Id,
             name: 'Artifact Component 2',
             description: 'Test artifact component 2',
+            props: null,
           },
         },
       };

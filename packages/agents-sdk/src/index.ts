@@ -15,6 +15,7 @@ export {
   mcpServer,
   mcpTool,
   project,
+  scheduledTrigger,
   statusComponent,
   subAgent,
   trigger,
@@ -62,6 +63,12 @@ export {
   updateFullProjectViaAPI,
 } from './projectFullClient';
 export { Runner, raceAgents, run, stream } from './runner';
+export {
+  ScheduledTrigger,
+  type ScheduledTriggerConfig,
+  type ScheduledTriggerInterface,
+} from './scheduled-trigger';
+export { loadSkills } from './skill-loader';
 export { StatusComponent, type StatusComponentInterface } from './status-component';
 export { SubAgent } from './subAgent';
 export {

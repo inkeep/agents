@@ -4,7 +4,7 @@ import {
   MessageInsertSchema,
   PaginationQueryParamsSchema,
   PaginationSchema,
-  resourceIdSchema,
+  ResourceIdSchema,
   SubAgentApiInsertSchema,
   SubAgentApiUpdateSchema,
   SubAgentInsertSchema,
@@ -13,7 +13,7 @@ import {
 } from '../../validation/schemas';
 
 describe('Validation Schemas', () => {
-  describe('resourceIdSchema', () => {
+  describe('ResourceIdSchema', () => {
     it('should accept valid resource IDs', () => {
       const validIds = [
         'test-id',
@@ -26,7 +26,7 @@ describe('Validation Schemas', () => {
       ];
 
       for (const id of validIds) {
-        expect(() => resourceIdSchema.parse(id)).not.toThrow();
+        expect(() => ResourceIdSchema.parse(id)).not.toThrow();
       }
     });
 
@@ -38,10 +38,11 @@ describe('Validation Schemas', () => {
         'test/id', // slash
         'test\\id', // backslash
         'a'.repeat(256), // too long
+        'new', // reserved
       ];
 
       for (const id of invalidIds) {
-        expect(() => resourceIdSchema.parse(id)).toThrow();
+        expect(() => ResourceIdSchema.parse(id)).toThrow();
       }
     });
   });

@@ -19,6 +19,7 @@ import { tool } from 'ai';
 import manageDbPool from 'src/data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { getInProcessFetch } from '../../../utils/in-process-fetch';
 import { A2AClient } from '../a2a/client';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
@@ -289,6 +290,7 @@ export function createDelegateToAgentTool({
           [SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID]: callingAgentId,
           [SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID]: delegateConfig.config.id ?? 'unknown',
           [SPAN_KEYS.DELEGATION_ID]: delegationId,
+          [SPAN_KEYS.DELEGATION_TYPE]: delegateConfig.type,
         });
       }
 
@@ -360,8 +362,21 @@ export function createDelegateToAgentTool({
           targetAgentId: delegateConfig.config.id,
         })}`;
       } else {
+        // For internal sub-agent calls, check if we're in a team delegation context.
+        // If so, the inherited metadata.apiKey has the wrong audience (targets the parent agent),
+        // so we need to generate a fresh JWT targeting this specific sub-agent.
+        let authToken = metadata.apiKey;
+        if (executionContext.metadata?.teamDelegation && authToken) {
+          authToken = await generateServiceToken({
+            tenantId,
+            projectId,
+            originAgentId: agentId,
+            targetAgentId: delegateConfig.config.id,
+          });
+        }
+
         resolvedHeaders = {
-          Authorization: `Bearer ${metadata.apiKey}`,
+          Authorization: `Bearer ${authToken}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
@@ -382,6 +397,7 @@ export function createDelegateToAgentTool({
             maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
+        ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
       });
 
       const messageToSend = {

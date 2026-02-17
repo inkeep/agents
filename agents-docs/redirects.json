@@ -110,32 +110,97 @@
   },
   {
     "source": "/tutorials/how-to-create-mcp-servers/overview",
-    "destination": "/tutorials/mcp-servers/overview",
+    "destination": "/guides/mcp-servers/overview",
     "permanent": true
   },
   {
     "source": "/tutorials/how-to-create-mcp-servers/prebuilt-provider-hosted-mcps",
-    "destination": "/tutorials/mcp-servers/native-mcp-servers",
+    "destination": "/guides/mcp-servers/native-mcp-servers",
     "permanent": true
   },
   {
     "source": "/tutorials/how-to-create-mcp-servers/prebuilt-composio-mcps",
-    "destination": "/tutorials/mcp-servers/composio-mcp-servers",
+    "destination": "/guides/mcp-servers/composio-mcp-servers",
     "permanent": true
   },
   {
     "source": "/tutorials/how-to-create-mcp-servers/inkeep",
-    "destination": "/tutorials/mcp-servers/custom-mcp-servers",
+    "destination": "/guides/mcp-servers/custom-mcp-servers",
     "permanent": true
   },
   {
     "source": "/get-started/upgrading",
-    "destination": "/tutorials/upgrading",
+    "destination": "/guides/upgrading",
     "permanent": true
   },
   {
     "source": "/get-started/inkeep-mcp",
     "destination": "/get-started/ai-coding-setup-for-ide",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/user-authentication",
+    "destination": "/visual-builder/access-control",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/agents/meeting-prep-assistant",
+    "destination": "/guides/agents/meeting-prep-assistant",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/agents/fact-finder",
+    "destination": "/guides/agents/fact-finder",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/mcp-servers/overview",
+    "destination": "/guides/mcp-servers/overview",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/mcp-servers/native-mcp-servers",
+    "destination": "/guides/mcp-servers/native-mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/mcp-servers/composio-mcp-servers",
+    "destination": "/guides/mcp-servers/composio-mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/mcp-servers/custom-mcp-servers",
+    "destination": "/guides/mcp-servers/custom-mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/mcp-servers/gram",
+    "destination": "/guides/mcp-servers/gram",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/cli/overview",
+    "destination": "/guides/cli/overview",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/cli/setup-profile",
+    "destination": "/guides/cli/setup-profile",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/cli/push-to-cloud",
+    "destination": "/guides/cli/push-to-cloud",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/cli/pull-from-cloud",
+    "destination": "/guides/cli/pull-from-cloud",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/upgrading",
+    "destination": "/guides/upgrading",
     "permanent": true
   }
 ]

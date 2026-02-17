@@ -25,6 +25,8 @@ import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/sta
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import {
+  azureModelProviderOptionsTemplate,
+  azureModelSummarizerProviderOptionsTemplate,
   statusUpdatesComponentsTemplate,
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
@@ -34,7 +36,6 @@ import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
 import { TextareaField } from '../form-components/text-area';
-import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
 
@@ -61,7 +62,7 @@ const ExecutionLimitInheritanceInfo = () => {
   );
 };
 
-function MetadataEditor() {
+export function MetadataEditor() {
   const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
@@ -189,6 +190,7 @@ function MetadataEditor() {
           value={models?.base?.model}
           providerOptions={models?.base?.providerOptions}
           inheritedValue={project?.models?.base?.model}
+          inheritedProviderOptions={project?.models?.base?.providerOptions}
           label={
             <div className="flex items-center gap-2">
               Base model
@@ -204,15 +206,17 @@ function MetadataEditor() {
           }
           description="Primary model for general agent responses"
           onModelChange={(value) => {
-            const currentModels = getCurrentModels();
             const newModels = {
-              ...(currentModels || {}),
-              base: value
-                ? {
-                    ...(currentModels?.base || {}),
-                    model: value,
-                  }
+              base:
+                value && value.trim() !== ''
+                  ? {
+                      model: value,
+                    }
+                  : undefined,
+              structuredOutput: models?.structuredOutput
+                ? { ...models.structuredOutput }
                 : undefined,
+              summarizer: models?.summarizer ? { ...models.summarizer } : undefined,
             };
             updateMetadata('models', newModels);
           }}
@@ -241,134 +245,144 @@ function MetadataEditor() {
           defaultOpen={!!models?.structuredOutput || !!models?.summarizer}
           title="Advanced model options"
         >
-          <div className="relative space-y-2">
-            <ModelSelector
-              value={models?.structuredOutput?.model || ''}
-              inheritedValue={
-                project?.models?.structuredOutput?.model ||
-                models?.base?.model ||
-                project?.models?.base?.model
-              }
-              onValueChange={(value) => {
-                const currentModels = getCurrentModels();
-                const newModels = {
-                  ...(currentModels || {}),
-                  structuredOutput: value
+          <ModelConfiguration
+            value={models?.structuredOutput?.model}
+            providerOptions={models?.structuredOutput?.providerOptions}
+            inheritedValue={
+              project?.models?.structuredOutput?.model ||
+              models?.base?.model ||
+              project?.models?.base?.model
+            }
+            inheritedProviderOptions={
+              project?.models?.structuredOutput?.model
+                ? project?.models?.structuredOutput?.providerOptions
+                : models?.base?.model
+                  ? models?.base?.providerOptions
+                  : project?.models?.base?.providerOptions
+            }
+            label={
+              <div className="flex items-center gap-2">
+                Structured output model
+                <InheritanceIndicator
+                  {...getModelInheritanceStatus(
+                    'agent',
+                    models?.structuredOutput?.model,
+                    project?.models?.structuredOutput?.model
+                  )}
+                  size="sm"
+                />
+              </div>
+            }
+            description="Model for structured outputs and components (defaults to base model)"
+            canClear={true}
+            onModelChange={(value) => {
+              const newModels = {
+                base: models?.base ? { ...models.base } : undefined,
+                structuredOutput:
+                  value && value.trim() !== ''
                     ? {
-                        ...(currentModels?.structuredOutput || {}),
                         model: value,
+                        providerOptions: undefined,
                       }
                     : undefined,
-                };
-                updateMetadata('models', newModels);
-              }}
-              label={
-                <div className="flex items-center gap-2">
-                  Structured output model
-                  <InheritanceIndicator
-                    {...getModelInheritanceStatus(
-                      'agent',
-                      models?.structuredOutput?.model,
-                      project?.models?.structuredOutput?.model
-                    )}
-                    size="sm"
-                  />
-                </div>
+                summarizer: models?.summarizer ? { ...models.summarizer } : undefined,
+              };
+              updateMetadata('models', newModels);
+            }}
+            onProviderOptionsChange={(value) => {
+              const currentModels = getCurrentModels();
+              const structuredOutputModel =
+                currentModels?.structuredOutput?.model || models?.structuredOutput?.model;
+              if (!structuredOutputModel) {
+                return;
               }
-            />
-            <p className="text-xs text-muted-foreground">
-              Model for structured outputs and components (defaults to base model)
-            </p>
-          </div>
-          {/* Structured Output Model Provider Options */}
-          {models?.structuredOutput?.model && (
-            <div className="space-y-2">
-              <FieldLabel
-                id="structured-provider-options"
-                label="Structured output model provider options"
-              />
-              <StandaloneJsonEditor
-                name="structured-provider-options"
-                onChange={(value) => {
-                  const currentModels = getCurrentModels();
-                  updateMetadata('models', {
-                    ...(currentModels || {}),
-                    structuredOutput: {
-                      model: currentModels?.structuredOutput?.model || '',
-                      providerOptions: value,
-                    },
-                  });
-                }}
-                value={models.structuredOutput.providerOptions || ''}
-                placeholder={structuredOutputModelProviderOptionsTemplate}
-                customTemplate={structuredOutputModelProviderOptionsTemplate}
-              />
-            </div>
-          )}
-          <div className="relative space-y-2">
-            <ModelSelector
-              value={models?.summarizer?.model || ''}
-              inheritedValue={
-                project?.models?.summarizer?.model ||
-                models?.base?.model ||
-                project?.models?.base?.model
+              const newModels = {
+                ...(currentModels || {}),
+                structuredOutput: {
+                  model: structuredOutputModel,
+                  providerOptions: value,
+                },
+              };
+              updateMetadata('models', newModels);
+            }}
+            editorNamePrefix="agent-structured"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelProviderOptionsTemplate;
               }
-              onValueChange={(value) => {
-                const currentModels = getCurrentModels();
-                const newModels = {
-                  ...(currentModels || {}),
-                  summarizer: value
+              return structuredOutputModelProviderOptionsTemplate;
+            }}
+          />
+
+          <ModelConfiguration
+            value={models?.summarizer?.model}
+            providerOptions={models?.summarizer?.providerOptions}
+            inheritedValue={
+              project?.models?.summarizer?.model ||
+              models?.base?.model ||
+              project?.models?.base?.model
+            }
+            inheritedProviderOptions={
+              project?.models?.summarizer?.model
+                ? project?.models?.summarizer?.providerOptions
+                : models?.base?.model
+                  ? models?.base?.providerOptions
+                  : project?.models?.base?.providerOptions
+            }
+            label={
+              <div className="flex items-center gap-2">
+                Summarizer model
+                <InheritanceIndicator
+                  {...getModelInheritanceStatus(
+                    'agent',
+                    models?.summarizer?.model,
+                    project?.models?.summarizer?.model
+                  )}
+                  size="sm"
+                />
+              </div>
+            }
+            description="Model for summarization tasks (defaults to base model)"
+            canClear={true}
+            onModelChange={(value) => {
+              const newModels = {
+                base: models?.base ? { ...models.base } : undefined,
+                structuredOutput: models?.structuredOutput
+                  ? { ...models.structuredOutput }
+                  : undefined,
+                summarizer:
+                  value && value.trim() !== ''
                     ? {
-                        ...(currentModels?.summarizer || {}),
                         model: value,
+                        providerOptions: undefined,
                       }
                     : undefined,
-                };
-                updateMetadata('models', newModels);
-              }}
-              label={
-                <div className="flex items-center gap-2">
-                  Summarizer model
-                  <InheritanceIndicator
-                    {...getModelInheritanceStatus(
-                      'agent',
-                      models?.summarizer?.model,
-                      project?.models?.summarizer?.model
-                    )}
-                    size="sm"
-                  />
-                </div>
+              };
+              updateMetadata('models', newModels);
+            }}
+            onProviderOptionsChange={(value) => {
+              const currentModels = getCurrentModels();
+              const summarizerModel = currentModels?.summarizer?.model || models?.summarizer?.model;
+              if (!summarizerModel) {
+                return;
               }
-            />
-            <p className="text-xs text-muted-foreground">
-              Model for summarization tasks (defaults to base model)
-            </p>
-          </div>
-          {/* Summarizer Model Provider Options */}
-          {models?.summarizer?.model && (
-            <div className="space-y-2">
-              <FieldLabel
-                id="summarizer-provider-options"
-                label="Summarizer model provider options"
-              />
-              <StandaloneJsonEditor
-                name="summarizer-provider-options"
-                onChange={(value) => {
-                  const currentModels = getCurrentModels();
-                  updateMetadata('models', {
-                    ...(currentModels || {}),
-                    summarizer: {
-                      model: currentModels?.summarizer?.model || '',
-                      providerOptions: value,
-                    },
-                  });
-                }}
-                value={models.summarizer.providerOptions || ''}
-                placeholder={summarizerModelProviderOptionsTemplate}
-                customTemplate={summarizerModelProviderOptionsTemplate}
-              />
-            </div>
-          )}
+              const newModels = {
+                ...(currentModels || {}),
+                summarizer: {
+                  model: summarizerModel,
+                  providerOptions: value,
+                },
+              };
+              updateMetadata('models', newModels);
+            }}
+            editorNamePrefix="agent-summarizer"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelSummarizerProviderOptionsTemplate;
+              }
+              return summarizerModelProviderOptionsTemplate;
+            }}
+          />
         </CollapsibleSettings>
       </div>
 
@@ -599,5 +613,3 @@ function MetadataEditor() {
     </div>
   );
 }
-
-export default MetadataEditor;

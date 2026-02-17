@@ -9,10 +9,20 @@
  *
  * The --cloud flag is used when you have a cloud-deployed database instance
  * and want to configure the CLI for cloud APIs instead of local development.
+ *
+ * CI Environment:
+ *   When running in CI (detected via CI, GITHUB_ACTIONS, GITLAB_CI, JENKINS_URL, or CIRCLECI
+ *   environment variables), the interactive browser login step is skipped. Use INKEEP_API_KEY
+ *   environment variable for authentication in CI pipelines.
  */
 
+import { generateKeyPairSync } from 'node:crypto';
+import { existsSync, writeFileSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
+
+const SETUP_COMPLETE_FILE = '.setup-complete';
 
 // ANSI color codes for better terminal output
 const colors = {
@@ -55,6 +65,20 @@ console.log(`\n${colors.bright}=== Project Setup Script ===${colors.reset}\n`);
 const args = process.argv.slice(2);
 const isCloud = args.includes('--cloud');
 
+// Detect CI environment (same detection as agents-cli)
+const isCI =
+  process.env.INKEEP_CI === 'true' ||
+  process.env.CI === 'true' ||
+  process.env.CI === '1' ||
+  !!process.env.GITHUB_ACTIONS ||
+  process.env.GITLAB_CI === 'true' ||
+  !!process.env.JENKINS_URL ||
+  process.env.CIRCLECI === 'true';
+
+if (isCI) {
+  logInfo('CI environment detected - will skip interactive login step');
+}
+
 loadEnvironmentFiles();
 
 // Load environment variables
@@ -83,11 +107,12 @@ async function setupProjectInDatabase(isCloud) {
   ) {
     logStep(0, 'Generating JWT keys for playground authentication');
     try {
-      // Generate RSA key pair using openssl
-      const { stdout: privateKey } = await execAsync('openssl genrsa 2048 2>/dev/null');
-      const { stdout: publicKey } = await execAsync(
-        `echo '${privateKey.replace(/'/g, "'\\''")}' | openssl rsa -pubout 2>/dev/null`
-      );
+      // Generate RSA key pair using Node's crypto module (no openssl dependency needed)
+      const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+      });
 
       // Base64 encode the keys
       const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
@@ -133,15 +158,32 @@ async function setupProjectInDatabase(isCloud) {
 
       await writeFile('.env', lines.join('\n'));
       logSuccess('JWT keys generated and added to .env');
-    } catch (error) {
+    } catch {
       logWarning('Failed to generate JWT keys - playground may not work');
       logInfo('You can manually run: pnpm run generate-jwt-keys');
     }
   } else {
     logInfo('JWT keys already configured, skipping generation');
   }
-  // Check if authz is enabled
-  const enableAuthz = process.env.ENABLE_AUTHZ === 'true';
+
+  // Validate required database URLs before starting Docker (fail-fast for misconfigured .env)
+  if (!isCloud) {
+    const missingVars = [];
+    if (!process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL) {
+      missingVars.push('INKEEP_AGENTS_MANAGE_DATABASE_URL (DoltgreSQL connection string)');
+    }
+    if (!process.env.INKEEP_AGENTS_RUN_DATABASE_URL) {
+      missingVars.push('INKEEP_AGENTS_RUN_DATABASE_URL (PostgreSQL connection string)');
+    }
+    if (missingVars.length > 0) {
+      logError('Missing required database environment variables:');
+      for (const v of missingVars) {
+        logInfo(`  - ${v}`);
+      }
+      logInfo('Check your .env file and ensure these variables are set.');
+      process.exit(1);
+    }
+  }
 
   // Step 1: Start database (skip if --cloud flag is set)
   if (isCloud) {
@@ -150,20 +192,65 @@ async function setupProjectInDatabase(isCloud) {
       'Cloud setup: Skipping Docker database startup. Please ensure that your DATABASE_URL environment variable is configured for cloud database'
     );
   } else {
-    logStep(1, 'Starting databases with Docker (DoltgreSQL + PostgreSQL)');
+    logStep(1, 'Starting databases with Docker (DoltgreSQL + PostgreSQL + SpiceDB)');
     logInfo('DoltgreSQL (port 5432) - Management database');
     logInfo('PostgreSQL (port 5433) - Runtime database');
-    if (enableAuthz) {
-      logInfo('SpiceDB (port 5434) - Authorization');
-    }
+    logInfo('SpiceDB (port 5434) - Authorization');
 
     try {
-      const profileFlag = enableAuthz ? '--profile authz ' : '';
-      await execAsync(`docker-compose -f docker-compose.db.yml ${profileFlag}up -d`);
+      await execAsync('docker-compose -f docker-compose.db.yml up -d');
       logSuccess('Database containers started successfully');
-      logInfo('Waiting for databases to be ready (10 seconds)...');
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      logSuccess('Databases should be ready');
+
+      logInfo('Polling Docker health status for databases...');
+      async function waitForDockerHealth(serviceName, timeout = 30000) {
+        const start = Date.now();
+        let lastError = null;
+        while (Date.now() - start < timeout) {
+          try {
+            const { stdout } = await execAsync(
+              `docker inspect --format='{{.State.Health.Status}}' $(docker-compose -f docker-compose.db.yml ps -q ${serviceName})`
+            );
+            const status = stdout.trim();
+            if (status === 'healthy') return;
+          } catch (error) {
+            lastError = error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        throw new Error(
+          `${serviceName} not healthy after ${timeout}ms${lastError ? ` (last error: ${lastError.message || lastError})` : ''}`
+        );
+      }
+
+      // DoltgreSQL has start_period: 20s in its healthcheck, so give it 60s.
+      // PostgreSQL is typically ready in <5s, 30s is plenty.
+      const [doltgresResult, postgresResult] = await Promise.allSettled([
+        waitForDockerHealth('doltgres-db', 60000),
+        waitForDockerHealth('postgres-db', 30000),
+      ]);
+
+      if (doltgresResult.status === 'fulfilled') {
+        logSuccess('DoltgreSQL is healthy');
+      } else {
+        logWarning(`DoltgreSQL health check timed out: ${doltgresResult.reason.message}`);
+      }
+
+      if (postgresResult.status === 'fulfilled') {
+        logSuccess('PostgreSQL is healthy');
+      } else {
+        logWarning(`PostgreSQL health check timed out: ${postgresResult.reason.message}`);
+      }
+
+      if (doltgresResult.status === 'rejected' && postgresResult.status === 'rejected') {
+        logError('Both databases failed health checks - cannot proceed with migrations');
+        logInfo('Check that Docker is running and containers started successfully');
+        process.exit(1);
+      } else if (doltgresResult.status === 'rejected' || postgresResult.status === 'rejected') {
+        const failedDb = doltgresResult.status === 'rejected' ? 'DoltgreSQL' : 'PostgreSQL';
+        logWarning(`${failedDb} is not healthy — its migration will likely fail`);
+      }
+
+      logSuccess('Database health checks complete');
     } catch (error) {
       const errorMessage = error.message || error.toString();
       const stderr = error.stderr || '';
@@ -191,80 +278,98 @@ async function setupProjectInDatabase(isCloud) {
     }
   }
 
-  // Step 2: Run database migrations
-  logStep(2, 'Running database migrations and upgrading packages');
-  try {
-    const { stdout, stderr } = await execAsync('pnpm upgrade-agents');
-    if (stdout) {
-      console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
-    }
-    logSuccess('Upgrades completed successfully');
-  } catch (error) {
-    logError('Failed to run database migrations', error);
-    logWarning('This may cause issues with the setup. Consider checking your database schema.');
-  }
+  // Step 2: Run database migrations (and optionally upgrade packages)
+  const isFirstRun = !existsSync(SETUP_COMPLETE_FILE);
 
-  // Step 2.5: Setup SpiceDB schema (if ENABLE_AUTHZ=true)
-  if (enableAuthz && !isCloud) {
-    logStep('2.5', 'Setting up SpiceDB schema (ENABLE_AUTHZ=true)');
+  if (process.env.SKIP_UPGRADE === 'true' || isFirstRun) {
+    logStep(
+      2,
+      isFirstRun
+        ? 'Fresh install detected - skipping package upgrade, running migrations only'
+        : 'Skipping package upgrade (SKIP_UPGRADE=true), running migrations only'
+    );
+    logInfo('Running DoltgreSQL and PostgreSQL migrations in parallel...');
+    const [manageResult, runResult] = await Promise.allSettled([
+      execAsync('pnpm db:manage:migrate'),
+      execAsync('pnpm db:run:migrate'),
+    ]);
 
-    // Check if zed CLI is installed
-    try {
-      await execAsync('which zed');
-
-      // Wait for SpiceDB to be ready
-      logInfo('Waiting for SpiceDB to be ready...');
-      let spicedbReady = false;
-      for (let i = 0; i < 30; i++) {
-        try {
-          await execAsync(
-            'zed schema read --insecure --endpoint localhost:50051 --token dev-secret-key'
-          );
-          spicedbReady = true;
-          break;
-        } catch {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (spicedbReady) {
-        // Write schema from bundled file in @inkeep/agents-core
-        const schemaPath = 'node_modules/@inkeep/agents-core/spicedb/schema.zed';
-        logInfo(`Writing SpiceDB schema from ${schemaPath}...`);
-        try {
-          await execAsync(
-            `zed schema write ${schemaPath} --insecure --endpoint localhost:50051 --token dev-secret-key`
-          );
-          logSuccess('SpiceDB schema applied');
-        } catch {
-          logWarning('Could not write SpiceDB schema (SpiceDB may still be starting)');
-          logInfo(
-            'Run manually: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
-          );
-        }
-      } else {
-        logWarning('SpiceDB did not become ready in time');
-        logInfo(
-          'Run manually after SpiceDB is ready: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
-        );
-      }
-    } catch {
-      logWarning('zed CLI not installed - skipping SpiceDB schema setup');
-      logInfo('Install with: brew install authzed/tap/zed');
-      logInfo(
-        'Then run: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+    if (manageResult.status === 'fulfilled') {
+      logSuccess('DoltgreSQL migrations completed');
+    } else {
+      logWarning(
+        `DoltgreSQL migrations failed: ${manageResult.reason.message || manageResult.reason}`
       );
     }
-  } else if (enableAuthz && isCloud) {
-    logInfo('Skipping SpiceDB schema setup (cloud mode - configure SpiceDB separately)');
+
+    if (runResult.status === 'fulfilled') {
+      logSuccess('PostgreSQL migrations completed');
+    } else {
+      logWarning(`PostgreSQL migrations failed: ${runResult.reason.message || runResult.reason}`);
+    }
+
+    if (manageResult.status === 'rejected' && runResult.status === 'rejected') {
+      logError('Both database migrations failed');
+      process.exit(1);
+    }
+
+    if (manageResult.status === 'fulfilled' && runResult.status === 'fulfilled') {
+      writeFileSync(SETUP_COMPLETE_FILE, new Date().toISOString());
+    } else {
+      logWarning(
+        `Partial migration success — ${SETUP_COMPLETE_FILE} not written so next run retries fresh`
+      );
+    }
+  } else {
+    logStep(2, 'Running database migrations and upgrading packages');
+    try {
+      const { stdout } = await execAsync('pnpm upgrade-agents');
+      if (stdout) {
+        console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
+      }
+      logSuccess('Upgrades completed successfully');
+    } catch (error) {
+      logError('Failed to run database migrations', error);
+      logWarning('This may cause issues with the setup. Consider checking your database schema.');
+    }
   }
 
-  // Step 3: Start development servers
-  logStep(3, 'Starting development servers');
+  // Step 3: Initialize default organization and admin user (if credentials are set)
+  // Note: SpiceDB schema is now applied automatically by db:auth:init
+  logStep(3, 'Checking for auth initialization');
+
+  const hasAuthCredentials =
+    process.env.INKEEP_AGENTS_MANAGE_UI_USERNAME &&
+    process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD &&
+    process.env.BETTER_AUTH_SECRET;
+
+  const authInitCommand = 'node node_modules/@inkeep/agents-core/dist/auth/init.js';
+
+  if (hasAuthCredentials) {
+    logInfo('Initializing default organization and admin user...');
+    try {
+      await execAsync(authInitCommand);
+      logSuccess('Auth initialization complete');
+    } catch (error) {
+      logWarning(`Auth initialization failed - you may need to run manually: ${authInitCommand}`);
+      logInfo(`Error: ${error.message || error}`);
+    }
+  } else {
+    logWarning('Skipping auth initialization - credentials not configured');
+    logInfo('To create a default admin user, set in .env:');
+    logInfo('  INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com');
+    logInfo('  INKEEP_AGENTS_MANAGE_UI_PASSWORD=your-password');
+    logInfo('  BETTER_AUTH_SECRET=your-secret-key');
+    logInfo(`Then run: ${authInitCommand}`);
+  }
+
+  // Step 5: Start development servers
+  logStep(5, 'Starting development servers');
   const { spawn } = await import('node:child_process');
 
   try {
-    const devProcess = spawn('pnpm', ['dev:api'], {
+    // Start API server
+    const devApiProcess = spawn('pnpm', ['dev:api'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: true,
       cwd: process.cwd(),
@@ -272,21 +377,37 @@ async function setupProjectInDatabase(isCloud) {
       windowsHide: true,
     });
 
-    if (!devProcess.pid) {
-      throw new Error('Failed to spawn development server process');
+    if (!devApiProcess.pid) {
+      throw new Error('Failed to spawn API server process');
     }
 
-    logSuccess(`Development servers process started (PID: ${devProcess.pid})`);
+    logSuccess(`API server process started (PID: ${devApiProcess.pid})`);
+
+    // Start Dashboard/UI server (on port 3000)
+    const dashboardProcess = spawn('pnpm', ['dev:ui'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: true,
+      cwd: process.cwd(),
+      shell: true,
+      windowsHide: true,
+    });
+
+    if (!dashboardProcess.pid) {
+      throw new Error('Failed to spawn Dashboard server process');
+    }
+
+    logSuccess(`Dashboard server process started (PID: ${dashboardProcess.pid})`);
 
     // Track if port errors occur during startup (as a safety fallback)
-    const portErrors = { agentsApi: false };
+    const portErrors = { agentsApi: false, dashboard: false };
 
     // Regex patterns for detecting port errors in output
     const portErrorPatterns = {
       agentsApi: new RegExp(
-        `(EADDRINUSE.*:${agentsApiPort}|port ${agentsApiPort}.*already|Port ${agentsApiPort}.*already|agents-api.*Error.*Port)`,
+        `(EADDRINUSE.*:${agentsApiPort}|port ${agentsApiPort}.*already|Port ${agentsApiPort}.*already)`,
         'i'
       ),
+      dashboard: /(EADDRINUSE.*:3000|port 3000.*already|Port 3000.*already)/i,
     };
 
     /**
@@ -297,13 +418,17 @@ async function setupProjectInDatabase(isCloud) {
       let lastError = null;
       while (Date.now() - start < timeout) {
         try {
-          const response = await fetch(url);
+          const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
           if (response.ok) {
             return;
           }
           lastError = `HTTP ${response.status}`;
         } catch (error) {
-          lastError = error.message || error;
+          if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+            lastError = 'fetch timeout (>5s per attempt)';
+          } else {
+            lastError = error.message || error;
+          }
           // Server not ready yet, continue polling
         }
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
@@ -311,119 +436,170 @@ async function setupProjectInDatabase(isCloud) {
       throw new Error(`Server not ready at ${url} after ${timeout}ms. Last error: ${lastError}`);
     }
 
-    /**
-     * Display port conflict error and exit
-     */
-    function displayPortConflictError(unavailablePorts) {
-      let errorMessage = '';
-      if (unavailablePorts.runApi) {
-        errorMessage += `  Agents API port ${agentsApiPort} is already in use\n`;
-      }
-
-      logError('Port conflicts detected');
-      console.error(errorMessage);
-      logWarning('Please free up the ports and try again.');
-      process.exit(1);
-    }
-
     // Monitor output for port errors (fallback in case ports become unavailable between check and start)
-    const checkForPortErrors = (data) => {
+    const checkForApiPortErrors = (data) => {
       const output = data.toString();
       if (portErrorPatterns.agentsApi.test(output)) {
         portErrors.agentsApi = true;
       }
     };
 
-    devProcess.stdout.on('data', checkForPortErrors);
+    const checkForDashboardPortErrors = (data) => {
+      const output = data.toString();
+      if (portErrorPatterns.dashboard.test(output)) {
+        portErrors.dashboard = true;
+      }
+    };
 
-    // Step 4: Wait for servers to be ready
-    logStep(4, 'Waiting for servers to be ready');
-    logInfo('Checking Agents API health endpoint (http://localhost:3002/health)...');
+    devApiProcess.stdout.on('data', checkForApiPortErrors);
+    dashboardProcess.stdout.on('data', checkForDashboardPortErrors);
 
-    try {
-      await waitForServerReady(`http://localhost:3002/health`, 60000);
+    // Step 6: Wait for servers to be ready (poll in parallel)
+    logStep(6, 'Waiting for servers to be ready');
+
+    logInfo(
+      'Checking Agents API (http://localhost:3002/health) and Dashboard (http://localhost:3000) in parallel...'
+    );
+    const [apiResult, dashboardResult] = await Promise.allSettled([
+      waitForServerReady(`http://localhost:3002/health`, 60000),
+      waitForServerReady(`http://localhost:3000`, 60000),
+    ]);
+
+    if (apiResult.status === 'fulfilled') {
       logSuccess('Agents API is ready');
-    } catch (error) {
-      logError('Agents API failed to start within timeout', error);
+    } else {
+      logError('Agents API failed to start within timeout', apiResult.reason);
       logWarning('Continuing anyway, but subsequent steps may fail');
     }
 
-    // Check if any port errors occurred during startup
-    if (portErrors.agentsApi) {
-      displayPortConflictError(portErrors);
+    if (dashboardResult.status === 'fulfilled') {
+      logSuccess('Dashboard is ready');
+    } else {
+      logError('Dashboard failed to start within timeout', dashboardResult.reason);
+      logWarning('Continuing anyway, but subsequent steps may fail');
     }
 
-    // Step 5: Set up CLI profile
-    logStep(5, 'Setting up CLI profile');
-    try {
-      if (isCloud) {
-        // Cloud setup - don't use --local flag
-        await execAsync('pnpm inkeep init --no-interactive');
-        logSuccess('Cloud CLI profile configured');
-      } else {
-        // Local setup - use --local flag to point to local APIs
-        await execAsync('pnpm inkeep init --local --no-interactive');
-        logSuccess('Local CLI profile configured');
+    // Helper to stop a spawned process
+    const stopProcess = async (proc, name) => {
+      if (!proc.pid) {
+        logWarning(`${name} process PID not found, may still be running`);
+        return;
       }
-    } catch (error) {
-      const initCommand = isCloud ? 'inkeep init' : 'inkeep init --local';
-      logWarning(`Could not set up CLI profile - you may need to run: ${initCommand}`);
-    }
 
-    // Step 6: Run inkeep push
-    logStep(6, 'Running inkeep push command');
-    logInfo(`Pushing project: src/projects/${projectId}`);
+      try {
+        if (process.platform === 'win32') {
+          // Windows: Use taskkill to kill process tree
+          await execAsync(`taskkill /pid ${proc.pid} /T /F`);
+        } else {
+          // Unix: Use negative PID to kill process group
+          process.kill(-proc.pid, 'SIGTERM');
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          try {
+            process.kill(-proc.pid, 'SIGKILL');
+          } catch {
+            // Process already killed, this is fine
+          }
+        }
+        logSuccess(`${name} stopped`);
+      } catch {
+        logWarning(`Could not cleanly stop ${name} - may still be running in background`);
+      }
+    };
 
     let pushSuccess = false;
+
     try {
-      const { stdout, stderr } = await execAsync(
-        `pnpm inkeep push --project src/projects/${projectId} --config src/inkeep.config.ts`
-      );
-
-      if (stdout) {
-        console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
-      }
-
-      logSuccess('Inkeep push completed successfully');
-      pushSuccess = true;
-    } catch (error) {
-      logError('Inkeep push command failed', error);
-      logWarning('The project may not have been pushed to the remote');
-      pushSuccess = false;
-    } finally {
-      // Step 7: Cleanup - Stop development servers
-      logStep(7, 'Cleaning up - stopping development servers');
-
-      if (devProcess.pid) {
-        try {
-          if (process.platform === 'win32') {
-            // Windows: Use taskkill to kill process tree
-            logInfo('Stopping processes (Windows)...');
-            await execAsync(`taskkill /pid ${devProcess.pid} /T /F`);
-            logSuccess('Development servers stopped');
-          } else {
-            // Unix: Use negative PID to kill process group
-            logInfo('Sending SIGTERM to process group...');
-            process.kill(-devProcess.pid, 'SIGTERM');
-
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            try {
-              process.kill(-devProcess.pid, 'SIGKILL');
-            } catch {
-              // Process already killed, this is fine
-            }
-            logSuccess('Development servers stopped');
-          }
-        } catch (error) {
-          logWarning(
-            'Could not cleanly stop dev servers - they may still be running in background'
-          );
-          logInfo('You may need to manually stop them using: pkill -f "pnpm dev:api"');
+      // Check if any port errors occurred during startup
+      if (portErrors.agentsApi || portErrors.dashboard) {
+        let errorMessage = '';
+        if (portErrors.agentsApi) {
+          errorMessage += `  Agents API port ${agentsApiPort} is already in use\n`;
         }
-      } else {
-        logWarning('Dev process PID not found, servers may still be running');
+        if (portErrors.dashboard) {
+          errorMessage += `  Dashboard port 3000 is already in use\n`;
+        }
+        logError('Port conflicts detected');
+        console.error(errorMessage);
+        logWarning('Please free up the ports and try again.');
+        throw new Error('Port conflicts detected');
       }
+
+      // Step 7: Set up CLI profile (skip in CI - uses INKEEP_API_KEY env var instead)
+      if (isCI) {
+        logStep(7, 'Skipping CLI profile setup (CI environment detected)');
+        logInfo('In CI, use INKEEP_API_KEY environment variable for authentication');
+      } else {
+        logStep(7, 'Setting up CLI profile');
+        try {
+          if (isCloud) {
+            // Cloud setup - don't use --local flag
+            await execAsync('pnpm inkeep init --no-interactive');
+            logSuccess('Cloud CLI profile configured');
+          } else {
+            // Local setup - use --local flag to point to local APIs
+            await execAsync('pnpm inkeep init --local --no-interactive');
+            logSuccess('Local CLI profile configured');
+          }
+        } catch {
+          const initCommand = isCloud ? 'inkeep init' : 'inkeep init --local';
+          logWarning(`Could not set up CLI profile - you may need to run: ${initCommand}`);
+        }
+      }
+
+      // Step 8: Log in to CLI (interactive - opens browser)
+      // Skip in CI environments since interactive browser login isn't possible
+      if (isCI) {
+        logStep(8, 'Skipping CLI login (CI environment detected)');
+        logInfo('In CI, use INKEEP_API_KEY environment variable for authentication');
+      } else {
+        logStep(8, 'Logging in to CLI');
+        logInfo('This will open a browser window for authentication...');
+        try {
+          await new Promise((resolve, reject) => {
+            const loginProcess = spawn('pnpm', ['inkeep', 'login'], {
+              stdio: 'inherit',
+              shell: true,
+            });
+            loginProcess.on('close', (code) => {
+              if (code === 0) resolve();
+              else reject(new Error(`Login exited with code ${code}`));
+            });
+            loginProcess.on('error', reject);
+          });
+          logSuccess('CLI login completed');
+        } catch {
+          logWarning('Could not log in to CLI - you may need to run: inkeep login');
+        }
+      }
+
+      // Step 9: Run inkeep push
+      logStep(9, 'Running inkeep push command');
+      logInfo(`Pushing project: src/projects/${projectId}`);
+
+      try {
+        const { stdout } = await execAsync(
+          `pnpm inkeep push --project src/projects/${projectId} --config src/inkeep.config.ts`
+        );
+
+        if (stdout) {
+          console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
+        }
+
+        logSuccess('Inkeep push completed successfully');
+        pushSuccess = true;
+      } catch (error) {
+        logError('Inkeep push command failed', error);
+        logWarning('The project may not have been pushed to the remote');
+      }
+    } finally {
+      // Step 10: Cleanup - Always stop development servers
+      logStep(10, 'Cleaning up - stopping development servers');
+
+      logInfo('Stopping API server...');
+      await stopProcess(devApiProcess, 'API server');
+
+      logInfo('Stopping Dashboard...');
+      await stopProcess(dashboardProcess, 'Dashboard');
     }
 
     // Final summary

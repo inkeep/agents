@@ -1,20 +1,6 @@
+import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
-import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-
-// Destructure defaults for use in schemas
-const {
-  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
-  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
-  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
-  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
-  STATUS_UPDATE_MAX_NUM_EVENTS,
-  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
-  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
-  VALIDATION_AGENT_PROMPT_MAX_CHARS,
-  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} = schemaValidationDefaults;
-
 // Config DB imports (Doltgres - versioned)
 import {
   agents,
@@ -37,18 +23,21 @@ import {
   functions,
   functionTools,
   projects,
+  scheduledTriggers,
+  scheduledWorkflows,
+  skills,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
   subAgentFunctionToolRelations,
   subAgentRelations,
+  subAgentSkills,
   subAgents,
   subAgentTeamAgentRelations,
   subAgentToolRelations,
   tools,
   triggers,
 } from '../db/manage/manage-schema';
-
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
@@ -61,9 +50,14 @@ import {
   ledgerArtifacts,
   messages,
   projectMetadata,
+  scheduledTriggerInvocations,
   taskRelations,
   tasks,
   triggerInvocations,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -72,19 +66,87 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
-  createResourceIdSchema,
   createSelectSchema,
-  MAX_ID_LENGTH,
-  MIN_ID_LENGTH,
   registerFieldSchemas,
-  resourceIdSchema,
-  URL_SAFE_ID_PATTERN,
 } from './drizzle-schema-helpers';
+import {
+  ArtifactComponentExtendSchema,
+  DataComponentExtendSchema,
+  DescriptionSchema,
+  NameSchema,
+} from './extend-schemas';
 
-export { MAX_ID_LENGTH, MIN_ID_LENGTH, resourceIdSchema, URL_SAFE_ID_PATTERN };
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
+export const StringRecordSchema = z
+  .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
+  .openapi('StringRecord');
+
+// A2A Part Schemas
+// These Zod schemas mirror the Part types defined in types/a2a.ts
+
+const PartMetadataSchema = z.record(z.string(), z.any()).optional();
+
+export const TextPartSchema = z
+  .object({
+    kind: z.literal('text'),
+    text: z.string(),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('TextPart');
+
+const FileWithBytesSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    bytes: z.string(),
+  })
+  .strict();
+
+const FileWithUriSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    uri: z.string(),
+  })
+  .strict();
+
+export const FilePartSchema = z
+  .object({
+    kind: z.literal('file'),
+    file: z.union([FileWithBytesSchema, FileWithUriSchema]),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('FilePart');
+
+export const DataPartSchema = z
+  .object({
+    kind: z.literal('data'),
+    data: z.record(z.string(), z.any()),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('DataPart');
+
+export const PartSchema = z
+  .discriminatedUnion('kind', [TextPartSchema, FilePartSchema, DataPartSchema])
+  .openapi('Part');
+
+export type PartSchemaType = z.infer<typeof PartSchema>;
 
 export const StopWhenSchema = z
   .object({
@@ -114,6 +176,23 @@ export const SubAgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true })
 export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
+
+export const MIN_ID_LENGTH = 1;
+export const MAX_ID_LENGTH = 255;
+export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+
+export const ResourceIdSchema = z
+  .string()
+  .min(MIN_ID_LENGTH)
+  .max(MAX_ID_LENGTH)
+  .regex(URL_SAFE_ID_PATTERN, {
+    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
+  })
+  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
+  .openapi('ResourceId', {
+    description: 'Resource identifier',
+    example: 'resource_789',
+  });
 
 const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
 const limitNumber = z.coerce
@@ -178,6 +257,36 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 // We use type assertions with explicit return types to maintain type safety at call sites.
 type OmitProjectScope<T> = Omit<T, 'tenantId' | 'projectId'>;
 type OmitAgentScope<T> = Omit<T, 'tenantId' | 'projectId' | 'agentId'>;
+type OmitTenantScope<T> = Omit<T, 'tenantId'>;
+type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt'>;
+type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Generic helper for tenant-scoped entities (omits only tenantId, not projectId)
+const omitTenantScope = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTenantScope<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<
+    OmitTenantScope<T>
+  >;
+
+// Generic helper for omitting timestamp fields
+const omitTimestamps = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTimestamps<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitTimestamps<T>>;
+
+// Generic helper for omitting auto-generated fields (common for API insert schemas)
+const omitGeneratedFields = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitGeneratedFields<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitGeneratedFields<T>>;
 
 const createApiSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
@@ -230,7 +339,7 @@ const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.Zod
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
 export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
   models: ModelSchema.optional(),
 });
 
@@ -245,12 +354,12 @@ export const SubAgentApiUpdateSchema =
 
 export const SubAgentRelationSelectSchema = createSelectSchema(subAgentRelations);
 export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
-  id: resourceIdSchema,
-  agentId: resourceIdSchema,
-  sourceSubAgentId: resourceIdSchema,
-  targetSubAgentId: resourceIdSchema.optional(),
-  externalSubAgentId: resourceIdSchema.optional(),
-  teamSubAgentId: resourceIdSchema.optional(),
+  id: ResourceIdSchema,
+  agentId: ResourceIdSchema,
+  sourceSubAgentId: ResourceIdSchema,
+  targetSubAgentId: ResourceIdSchema.optional(),
+  externalSubAgentId: ResourceIdSchema.optional(),
+  teamSubAgentId: ResourceIdSchema.optional(),
 });
 export const SubAgentRelationUpdateSchema = SubAgentRelationInsertSchema.partial();
 
@@ -314,10 +423,10 @@ export const SubAgentRelationQuerySchema = z.object({
 });
 
 export const ExternalSubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
-  id: resourceIdSchema,
-  agentId: resourceIdSchema,
-  sourceSubAgentId: resourceIdSchema,
-  externalSubAgentId: resourceIdSchema,
+  id: ResourceIdSchema,
+  agentId: ResourceIdSchema,
+  sourceSubAgentId: ResourceIdSchema,
+  externalSubAgentId: ResourceIdSchema,
 });
 
 export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
@@ -332,20 +441,21 @@ const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
   'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.';
 
 export const AgentInsertSchema = createInsertSchema(agents, {
-  id: () => resourceIdSchema,
-  name: () =>
-    z.string().trim().nonempty().describe('Agent name').openapi({ description: 'Agent name' }),
+  id: () => ResourceIdSchema,
+  name: () => NameSchema,
+  description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    createResourceIdSchema(DEFAULT_SUB_AGENT_ID_DESCRIPTION, { example: 'my-default-subagent' })
-      .nullable()
-      .optional(),
+    ResourceIdSchema.clone().nullable().optional().openapi({
+      description: DEFAULT_SUB_AGENT_ID_DESCRIPTION,
+      example: 'my-default-subagent',
+    }),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
 export const AgentApiSelectSchema = createApiSchema(AgentSelectSchema).openapi('Agent');
 export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .extend({
-    id: resourceIdSchema,
+    id: ResourceIdSchema,
   })
   .openapi('AgentCreate');
 export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
@@ -659,8 +769,8 @@ export const TriggerSelectSchema = registerFieldSchemas(
   })
 );
 
-const TriggerInsertSchemaBase = createInsertSchema(triggers, {
-  id: () => resourceIdSchema,
+export const TriggerInsertSchema = createInsertSchema(triggers, {
+  id: () => ResourceIdSchema,
   name: () => z.string().trim().nonempty().describe('Trigger name'),
   description: () => z.string().optional().describe('Trigger description'),
   enabled: () => z.boolean().default(true).describe('Whether the trigger is enabled'),
@@ -678,87 +788,83 @@ const TriggerInsertSchemaBase = createInsertSchema(triggers, {
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
   signatureVerification: () =>
-    SignatureVerificationConfigSchema.nullable()
-      .optional()
-      .describe('Configuration for webhook signature verification'),
-});
-
-export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ctx) => {
-  const config = data.signatureVerification as SignatureVerificationConfig | null | undefined;
-  if (!config) return;
-
-  // Validate signature.regex if present
-  if (config.signature.regex) {
-    const regexResult = validateRegex(config.signature.regex);
-    if (!regexResult.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
-        path: ['signatureVerification', 'signature', 'regex'],
-      });
-    }
-  }
-
-  // Validate signature.key as JMESPath if source is 'body'
-  if (config.signature.source === 'body' && config.signature.key) {
-    const jmespathResult = validateJMESPathSecure(config.signature.key);
-    if (!jmespathResult.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
-        path: ['signatureVerification', 'signature', 'key'],
-      });
-    }
-  }
-
-  // Validate each signed component
-  config.signedComponents.forEach((component, index) => {
-    // Validate component.regex if present
-    if (component.regex) {
-      const regexResult = validateRegex(component.regex);
-      if (!regexResult.valid) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
-          path: ['signatureVerification', 'signedComponents', index, 'regex'],
-        });
-      }
-    }
-
-    // Validate component.key as JMESPath if source is 'body'
-    if (component.source === 'body' && component.key) {
-      const jmespathResult = validateJMESPathSecure(component.key);
-      if (!jmespathResult.valid) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
-          path: ['signatureVerification', 'signedComponents', index, 'key'],
-        });
-      }
-    }
-
-    // Validate component.value as JMESPath if provided (for header/body extraction)
-    if (component.value && component.source !== 'literal') {
-      // For non-literal sources, value might be a JMESPath expression
-      // Only validate if it looks like a JMESPath expression
-      if (component.value.includes('.') || component.value.includes('[')) {
-        const jmespathResult = validateJMESPathSecure(component.value);
-        if (!jmespathResult.valid) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
-            path: ['signatureVerification', 'signedComponents', index, 'value'],
-          });
+    SignatureVerificationConfigSchema.nullish()
+      .superRefine((config, ctx) => {
+        if (!config) return;
+        // Validate signature.regex if present
+        if (config.signature.regex) {
+          const regexResult = validateRegex(config.signature.regex);
+          if (!regexResult.valid) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
+              path: ['signatureVerification', 'signature', 'regex'],
+            });
+          }
         }
-      }
-    }
-  });
+
+        // Validate signature.key as JMESPath if source is 'body'
+        if (config.signature.source === 'body' && config.signature.key) {
+          const jmespathResult = validateJMESPathSecure(config.signature.key);
+          if (!jmespathResult.valid) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
+              path: ['signatureVerification', 'signature', 'key'],
+            });
+          }
+        }
+
+        // Validate each signed component
+        config.signedComponents.forEach((component, index) => {
+          // Validate component.regex if present
+          if (component.regex) {
+            const regexResult = validateRegex(component.regex);
+            if (!regexResult.valid) {
+              ctx.addIssue({
+                code: 'custom',
+                message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
+                path: ['signatureVerification', 'signedComponents', index, 'regex'],
+              });
+            }
+          }
+
+          // Validate component.key as JMESPath if source is 'body'
+          if (component.source === 'body' && component.key) {
+            const jmespathResult = validateJMESPathSecure(component.key);
+            if (!jmespathResult.valid) {
+              ctx.addIssue({
+                code: 'custom',
+                message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
+                path: ['signatureVerification', 'signedComponents', index, 'key'],
+              });
+            }
+          }
+
+          // Validate component.value as JMESPath if provided (for header/body extraction)
+          if (component.value && component.source !== 'literal') {
+            // For non-literal sources, value might be a JMESPath expression
+            // Only validate if it looks like a JMESPath expression
+            if (component.value.includes('.') || component.value.includes('[')) {
+              const jmespathResult = validateJMESPathSecure(component.value);
+              if (!jmespathResult.valid) {
+                ctx.addIssue({
+                  code: 'custom',
+                  message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
+                  path: ['signatureVerification', 'signedComponents', index, 'value'],
+                });
+              }
+            }
+          }
+        });
+      })
+      .describe('Configuration for webhook signature verification'),
 });
 
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
 // We use .removeDefault() to strip the default from enabled field
-export const TriggerUpdateSchema = TriggerInsertSchemaBase.extend({
+export const TriggerUpdateSchema = TriggerInsertSchema.extend({
   // Override enabled to remove the default so {} doesn't become {enabled: true}
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
 }).partial();
@@ -767,7 +873,7 @@ export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
 export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
   .extend({
-    id: resourceIdSchema.optional(),
+    id: ResourceIdSchema.optional(),
   })
   .openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
@@ -782,9 +888,9 @@ export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
 export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
 
 export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
-  id: () => resourceIdSchema,
-  triggerId: () => resourceIdSchema,
-  conversationId: () => resourceIdSchema.optional(),
+  id: () => ResourceIdSchema,
+  triggerId: () => ResourceIdSchema,
+  conversationId: () => ResourceIdSchema.optional(),
   status: () => TriggerInvocationStatusEnum.default('pending'),
   requestPayload: () => z.record(z.string(), z.unknown()).describe('Original webhook payload'),
   transformedPayload: () =>
@@ -801,17 +907,198 @@ export const TriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema
   TriggerInvocationInsertSchema
 )
   .extend({
-    id: resourceIdSchema,
+    id: ResourceIdSchema,
   })
   .openapi('TriggerInvocationCreate');
 export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(
   TriggerInvocationUpdateSchema
 ).openapi('TriggerInvocationUpdate');
 
+// Scheduled Trigger Schemas
+
+export const CronExpressionSchema = z
+  .string()
+  .regex(
+    /^(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-A-Za-z]+(?:\/\d+)?)$/,
+    'Invalid cron expression. Expected 5 fields: minute hour day month weekday'
+  )
+  .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
+  .openapi('CronExpression');
+
+export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
+  payload: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+
+const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
+  id: () => ResourceIdSchema,
+  name: () => z.string().trim().min(1).describe('Scheduled trigger name'),
+  description: () => z.string().optional().describe('Scheduled trigger description'),
+  enabled: () => z.boolean().default(true).describe('Whether the trigger is enabled'),
+  cronExpression: () => CronExpressionSchema.nullable().optional(),
+  cronTimezone: () =>
+    z
+      .string()
+      .max(64)
+      .default('UTC')
+      .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
+  runAt: () => z.iso.datetime().nullable().optional().describe('One-time execution timestamp'),
+  payload: () =>
+    z
+      .record(z.string(), z.unknown())
+      .nullable()
+      .optional()
+      .describe('Static payload for agent execution'),
+  messageTemplate: () =>
+    z.string().trim().min(1).describe('Message template with {{placeholder}} syntax').optional(),
+  maxRetries: () => z.number().int().min(0).max(10).default(1),
+  retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
+  timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
+});
+
+export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
+  (data) => data.cronExpression || data.runAt,
+  { message: 'Either cronExpression or runAt must be provided' }
+).refine((data) => !(data.cronExpression && data.runAt), {
+  message: 'Cannot specify both cronExpression and runAt',
+});
+
+export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.extend({
+  enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+}).partial();
+
+export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
+  ScheduledTriggerSelectSchema
+).openapi('ScheduledTrigger');
+
+export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSchema(
+  ScheduledTriggerInsertSchemaBase
+)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('ScheduledTriggerInsertBase');
+
+export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSchema.refine(
+  (data) => data.cronExpression || data.runAt,
+  {
+    message: 'Either cronExpression or runAt must be provided',
+  }
+)
+  .refine((data) => !(data.cronExpression && data.runAt), {
+    message: 'Cannot specify both cronExpression and runAt',
+  })
+  .openapi('ScheduledTriggerCreate');
+
+export const ScheduledTriggerApiUpdateSchema =
+  ScheduledTriggerUpdateSchema.openapi('ScheduledTriggerUpdate');
+
+export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
+export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
+export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+
+//scheduled workflows
+export const ScheduledWorkflowSelectSchema = createSelectSchema(scheduledWorkflows);
+
+const ScheduledWorkflowInsertSchemaBase = createInsertSchema(scheduledWorkflows, {
+  id: () => ResourceIdSchema,
+  name: () => z.string().trim().min(1).describe('Scheduled workflow name'),
+  description: () => z.string().optional().describe('Scheduled workflow description'),
+  workflowRunId: () =>
+    z.string().nullable().optional().describe('Active workflow run ID for lifecycle management'),
+  scheduledTriggerId: () => z.string().describe('The scheduled trigger this workflow belongs to'),
+});
+
+export const ScheduledWorkflowInsertSchema = ScheduledWorkflowInsertSchemaBase;
+
+export const ScheduledWorkflowUpdateSchema = ScheduledWorkflowInsertSchemaBase.extend({
+  scheduledTriggerId: z.string().optional(),
+}).partial();
+
+export const ScheduledWorkflowApiSelectSchema = createAgentScopedApiSchema(
+  ScheduledWorkflowSelectSchema
+).openapi('ScheduledWorkflow');
+
+export const ScheduledWorkflowApiInsertSchema = createAgentScopedApiInsertSchema(
+  ScheduledWorkflowInsertSchemaBase
+)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('ScheduledWorkflowCreate');
+
+export const ScheduledWorkflowApiUpdateSchema =
+  ScheduledWorkflowUpdateSchema.openapi('ScheduledWorkflowUpdate');
+
+export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
+export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;
+export type ScheduledWorkflowUpdate = z.infer<typeof ScheduledWorkflowUpdateSchema>;
+
+export const ScheduledTriggerInvocationStatusEnum = z.enum([
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+
+export const ScheduledTriggerInvocationSelectSchema = createSelectSchema(
+  scheduledTriggerInvocations
+).extend({
+  resolvedPayload: z.record(z.string(), z.unknown()).nullable().optional(),
+  status: ScheduledTriggerInvocationStatusEnum,
+});
+
+export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
+  scheduledTriggerInvocations,
+  {
+    id: () => ResourceIdSchema,
+    scheduledTriggerId: () => ResourceIdSchema,
+    status: () => ScheduledTriggerInvocationStatusEnum,
+    scheduledFor: () => z.iso.datetime().describe('Scheduled execution time'),
+    startedAt: () => z.iso.datetime().optional().describe('Actual start time'),
+    completedAt: () => z.iso.datetime().optional().describe('Completion time'),
+    resolvedPayload: () =>
+      z
+        .record(z.string(), z.unknown())
+        .nullable()
+        .optional()
+        .describe('Resolved payload with variables'),
+    conversationIds: () =>
+      z.array(ResourceIdSchema).default([]).describe('Conversation IDs created during execution'),
+    attemptNumber: () => z.number().int().min(1).default(1),
+    idempotencyKey: () => z.string().describe('Idempotency key for deduplication'),
+  }
+);
+
+export const ScheduledTriggerInvocationUpdateSchema =
+  ScheduledTriggerInvocationInsertSchema.partial();
+
+export const ScheduledTriggerInvocationApiSelectSchema = createAgentScopedApiSchema(
+  ScheduledTriggerInvocationSelectSchema
+).openapi('ScheduledTriggerInvocation');
+
+export const ScheduledTriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(
+  ScheduledTriggerInvocationInsertSchema
+)
+  .extend({ id: ResourceIdSchema })
+  .openapi('ScheduledTriggerInvocationCreate');
+
+export const ScheduledTriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  ScheduledTriggerInvocationUpdateSchema
+).openapi('ScheduledTriggerInvocationUpdate');
+
+export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
+export type ScheduledTriggerInvocationInsert = z.infer<
+  typeof ScheduledTriggerInvocationInsertSchema
+>;
+export type ScheduledTriggerInvocationUpdate = z.infer<
+  typeof ScheduledTriggerInvocationUpdateSchema
+>;
+export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
+
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
-  id: resourceIdSchema,
-  conversationId: resourceIdSchema.optional(),
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema.optional(),
   ref: ResolvedRefSchema,
 });
 export const TaskUpdateSchema = TaskInsertSchema.partial();
@@ -822,9 +1109,9 @@ export const TaskApiUpdateSchema = createApiUpdateSchema(TaskUpdateSchema);
 
 export const TaskRelationSelectSchema = createSelectSchema(taskRelations);
 export const TaskRelationInsertSchema = createInsertSchema(taskRelations).extend({
-  id: resourceIdSchema,
-  parentTaskId: resourceIdSchema,
-  childTaskId: resourceIdSchema,
+  id: ResourceIdSchema,
+  parentTaskId: ResourceIdSchema,
+  childTaskId: ResourceIdSchema,
 });
 export const TaskRelationUpdateSchema = TaskRelationInsertSchema.partial();
 
@@ -879,7 +1166,7 @@ export const McpToolDefinitionSchema = z.object({
 export const ToolSelectSchema = createSelectSchema(tools);
 
 export const ToolInsertSchema = createInsertSchema(tools).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
   imageUrl: imageUrlSchema,
   config: z.object({
     type: z.literal('mcp'),
@@ -923,8 +1210,8 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
 
 export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
-  id: resourceIdSchema,
-  contextConfigId: resourceIdSchema.optional(),
+  id: ResourceIdSchema,
+  contextConfigId: ResourceIdSchema.optional(),
   ref: ResolvedRefSchema,
 });
 export const ConversationUpdateSchema = ConversationInsertSchema.partial();
@@ -938,9 +1225,9 @@ export const ConversationApiUpdateSchema =
 
 export const MessageSelectSchema = createSelectSchema(messages);
 export const MessageInsertSchema = createInsertSchema(messages).extend({
-  id: resourceIdSchema,
-  conversationId: resourceIdSchema,
-  taskId: resourceIdSchema.optional(),
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema,
+  taskId: ResourceIdSchema.optional(),
 });
 export const MessageUpdateSchema = MessageInsertSchema.partial();
 
@@ -962,7 +1249,7 @@ export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpd
 
 export const DatasetRunSelectSchema = createSelectSchema(datasetRun);
 export const DatasetRunInsertSchema = createInsertSchema(datasetRun).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const DatasetRunUpdateSchema = DatasetRunInsertSchema.partial();
 
@@ -981,7 +1268,7 @@ export const DatasetRunConversationRelationSelectSchema = createSelectSchema(
 export const DatasetRunConversationRelationInsertSchema = createInsertSchema(
   datasetRunConversationRelations
 ).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const DatasetRunConversationRelationUpdateSchema =
   DatasetRunConversationRelationInsertSchema.partial();
@@ -1002,7 +1289,7 @@ export const DatasetRunConversationRelationApiUpdateSchema = createApiUpdateSche
 
 export const EvaluationResultSelectSchema = createSelectSchema(evaluationResult);
 export const EvaluationResultInsertSchema = createInsertSchema(evaluationResult).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationResultUpdateSchema = EvaluationResultInsertSchema.partial();
 
@@ -1018,7 +1305,7 @@ export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(EvaluationR
 
 export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun);
 export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationRunUpdateSchema = EvaluationRunInsertSchema.partial();
 
@@ -1033,7 +1320,7 @@ export const EvaluationRunApiUpdateSchema = createApiUpdateSchema(EvaluationRunU
 
 export const EvaluationRunConfigSelectSchema = createSelectSchema(evaluationRunConfig);
 export const EvaluationRunConfigInsertSchema = createInsertSchema(evaluationRunConfig).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationRunConfigUpdateSchema = EvaluationRunConfigInsertSchema.partial();
 
@@ -1063,7 +1350,7 @@ export const EvaluationRunConfigWithSuiteConfigsApiSelectSchema =
 
 export const EvaluationJobConfigSelectSchema = createSelectSchema(evaluationJobConfig);
 export const EvaluationJobConfigInsertSchema = createInsertSchema(evaluationJobConfig).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationJobConfigUpdateSchema = EvaluationJobConfigInsertSchema.partial();
 
@@ -1086,7 +1373,7 @@ export const EvaluationJobConfigApiUpdateSchema = createApiUpdateSchema(
 
 export const EvaluationSuiteConfigSelectSchema = createSelectSchema(evaluationSuiteConfig);
 export const EvaluationSuiteConfigInsertSchema = createInsertSchema(evaluationSuiteConfig).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationSuiteConfigUpdateSchema = EvaluationSuiteConfigInsertSchema.partial();
 
@@ -1116,7 +1403,7 @@ export const EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema = crea
 export const EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema = createInsertSchema(
   evaluationRunConfigEvaluationSuiteConfigRelations
 ).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema =
   EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema.partial();
@@ -1139,7 +1426,7 @@ export const EvaluationJobConfigEvaluatorRelationSelectSchema = createSelectSche
 export const EvaluationJobConfigEvaluatorRelationInsertSchema = createInsertSchema(
   evaluationJobConfigEvaluatorRelations
 ).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationJobConfigEvaluatorRelationUpdateSchema =
   EvaluationJobConfigEvaluatorRelationInsertSchema.partial();
@@ -1164,7 +1451,7 @@ export const EvaluationSuiteConfigEvaluatorRelationSelectSchema = createSelectSc
 export const EvaluationSuiteConfigEvaluatorRelationInsertSchema = createInsertSchema(
   evaluationSuiteConfigEvaluatorRelations
 ).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluationSuiteConfigEvaluatorRelationUpdateSchema =
   EvaluationSuiteConfigEvaluatorRelationInsertSchema.partial();
@@ -1185,7 +1472,7 @@ export const EvaluationSuiteConfigEvaluatorRelationApiUpdateSchema = createApiUp
 
 export const EvaluatorSelectSchema = createSelectSchema(evaluator);
 export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const EvaluatorUpdateSchema = EvaluatorInsertSchema.partial();
 
@@ -1199,7 +1486,7 @@ export const EvaluatorApiUpdateSchema = createApiUpdateSchema(EvaluatorUpdateSch
 
 export const DatasetSelectSchema = createSelectSchema(dataset);
 export const DatasetInsertSchema = createInsertSchema(dataset).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const DatasetUpdateSchema = DatasetInsertSchema.partial();
 
@@ -1213,7 +1500,7 @@ export const DatasetApiUpdateSchema = createApiUpdateSchema(DatasetUpdateSchema)
 
 export const DatasetItemSelectSchema = createSelectSchema(datasetItem);
 export const DatasetItemInsertSchema = createInsertSchema(datasetItem).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const DatasetItemUpdateSchema = DatasetItemInsertSchema.partial();
 
@@ -1286,7 +1573,7 @@ export const TriggerEvaluationJobSchema = z
 
 export const DatasetRunConfigSelectSchema = createSelectSchema(datasetRunConfig);
 export const DatasetRunConfigInsertSchema = createInsertSchema(datasetRunConfig).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const DatasetRunConfigUpdateSchema = DatasetRunConfigInsertSchema.partial();
 
@@ -1306,42 +1593,70 @@ export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(
 export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(
   datasetRunConfigAgentRelations
 ).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const DatasetRunConfigAgentRelationUpdateSchema =
   DatasetRunConfigAgentRelationInsertSchema.partial();
 
-export const DatasetRunConfigAgentRelationApiSelectSchema = createApiSchema(
-  DatasetRunConfigAgentRelationSelectSchema
-).openapi('DatasetRunConfigAgentRelation');
-export const DatasetRunConfigAgentRelationApiInsertSchema = createApiInsertSchema(
-  DatasetRunConfigAgentRelationInsertSchema
-)
-  .omit({ id: true })
-  .openapi('DatasetRunConfigAgentRelationCreate');
-export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchema(
-  DatasetRunConfigAgentRelationUpdateSchema
-)
-  .omit({ id: true })
-  .openapi('DatasetRunConfigAgentRelationUpdate');
+const SkillIndexSchema = z.int().min(0);
+
+export const SkillFrontmatterSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .nonempty()
+    .max(64)
+    .regex(
+      /^[a-z0-9-]+$/,
+      'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
+    )
+    .refine(
+      (v) => !(v.startsWith('-') || v.endsWith('-')),
+      'Must not start or end with a hyphen (-)'
+    )
+    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
+    .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
+  description: z.string().trim().nonempty().max(1024),
+  metadata: StringRecordSchema.nullish().default(null),
+});
+export const SkillSelectSchema = createSelectSchema(skills).extend({
+  metadata: StringRecordSchema.nullable(),
+});
+export const SkillInsertSchema = createInsertSchema(skills)
+  .extend({
+    ...SkillFrontmatterSchema.shape,
+    content: z.string().trim().nonempty(),
+  })
+  .omit({
+    // We set id under the hood as skill.name
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  });
+export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
+  // Name is persistent
+  name: true,
+});
+
+export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
+export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
+export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
-  id: resourceIdSchema,
-});
-export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
-  createdAt: true,
-  updatedAt: true,
+  id: ResourceIdSchema,
 });
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
 export const DataComponentApiSelectSchema =
   createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
-export const DataComponentApiInsertSchema =
-  createApiInsertSchema(DataComponentInsertSchema).openapi('DataComponentCreate');
-export const DataComponentApiUpdateSchema =
-  createApiUpdateSchema(DataComponentUpdateSchema).openapi('DataComponentUpdate');
+export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
+  .extend(DataComponentExtendSchema)
+  .openapi('DataComponentCreate');
+export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentUpdateSchema)
+  .extend(DataComponentExtendSchema)
+  .openapi('DataComponentUpdate');
 
 export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
 export const SubAgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
@@ -1362,7 +1677,7 @@ export const SubAgentDataComponentApiUpdateSchema = createAgentScopedApiUpdateSc
 
 export const ArtifactComponentSelectSchema = createSelectSchema(artifactComponents);
 export const ArtifactComponentInsertSchema = createInsertSchema(artifactComponents).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const ArtifactComponentUpdateSchema = ArtifactComponentInsertSchema.partial();
 
@@ -1374,7 +1689,9 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
   projectId: true,
   createdAt: true,
   updatedAt: true,
-}).openapi('ArtifactComponentCreate');
+})
+  .extend(ArtifactComponentExtendSchema)
+  .openapi('ArtifactComponentCreate');
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 ).openapi('ArtifactComponentUpdate');
@@ -1383,9 +1700,9 @@ export const SubAgentArtifactComponentSelectSchema = createSelectSchema(subAgent
 export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
 ).extend({
-  id: resourceIdSchema,
-  subAgentId: resourceIdSchema,
-  artifactComponentId: resourceIdSchema,
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  artifactComponentId: ResourceIdSchema,
 });
 export const SubAgentArtifactComponentUpdateSchema =
   SubAgentArtifactComponentInsertSchema.partial();
@@ -1403,11 +1720,42 @@ export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpda
   SubAgentArtifactComponentUpdateSchema
 );
 
+export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
+  index: SkillIndexSchema,
+});
+export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  skillId: ResourceIdSchema,
+  index: SkillIndexSchema,
+  alwaysLoaded: z.boolean().optional().default(false),
+});
+export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
+
+export const SubAgentSkillApiSelectSchema =
+  createAgentScopedApiSchema(SubAgentSkillSelectSchema).openapi('SubAgentSkill');
+export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
+  tenantId: true,
+  projectId: true,
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).openapi('SubAgentSkillCreate');
+export const SubAgentSkillApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
+
+export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
+  subAgentSkillId: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  index: SkillIndexSchema,
+  alwaysLoaded: z.boolean(),
+}).openapi('SubAgentSkillWithIndex');
+
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
 });
 export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
@@ -1426,8 +1774,8 @@ export const AllAgentSchema = z.discriminatedUnion('type', [
 export const ApiKeySelectSchema = createSelectSchema(apiKeys);
 
 export const ApiKeyInsertSchema = createInsertSchema(apiKeys).extend({
-  id: resourceIdSchema,
-  agentId: resourceIdSchema,
+  id: ResourceIdSchema,
+  agentId: ResourceIdSchema,
 });
 
 export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({
@@ -1468,9 +1816,9 @@ export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
   type: z.string(),
-  credentialStoreId: resourceIdSchema,
+  credentialStoreId: ResourceIdSchema,
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
 });
 
@@ -1622,7 +1970,7 @@ export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema).opena
 export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 
 export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
@@ -1643,9 +1991,9 @@ export const SubAgentFunctionToolRelationSelectSchema = createSelectSchema(
 export const SubAgentFunctionToolRelationInsertSchema = createInsertSchema(
   subAgentFunctionToolRelations
 ).extend({
-  id: resourceIdSchema,
-  subAgentId: resourceIdSchema,
-  functionToolId: resourceIdSchema,
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  functionToolId: ResourceIdSchema,
 });
 
 export const SubAgentFunctionToolRelationApiSelectSchema = createAgentScopedApiSchema(
@@ -1663,13 +2011,79 @@ export const SubAgentFunctionToolRelationApiInsertSchema =
 
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
-export const FunctionApiInsertSchema =
-  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate');
+
+const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
+  try {
+    // Workaround for anonymous function because it’s not valid JavaScript grammar.
+    // Babel (and every JS parser) rejects it.
+    const isAnonymousFunction = /^(async\s+)?function(\s+)?\(/.test(val);
+    if (isAnonymousFunction) {
+      val = `(${val})`;
+    }
+    const ast = parse(val, { sourceType: 'module' });
+    const { body } = ast.program;
+    for (const node of body) {
+      if (node.type === 'ExportDefaultDeclaration') {
+        throw SyntaxError(
+          'Export default declarations are not supported. Provide a single function instead.'
+        );
+      }
+      if (node.type === 'ExportNamedDeclaration') {
+        throw SyntaxError(
+          'Export declarations are not supported. Provide a single function instead.'
+        );
+      }
+    }
+    const functionsCount = body.filter((node) => {
+      if (node.type === 'FunctionDeclaration') {
+        return true;
+      }
+      if (node.type === 'ExpressionStatement') {
+        return (
+          node.expression.type ===
+          (isAnonymousFunction ? 'FunctionExpression' : 'ArrowFunctionExpression')
+        );
+      }
+      return false;
+    }).length;
+
+    if (!functionsCount) {
+      throw new SyntaxError('Must contain exactly one function.');
+    }
+    if (functionsCount > 1) {
+      throw new SyntaxError(`Must contain exactly one function (found ${functionsCount}).`);
+    }
+  } catch (error) {
+    let message = error instanceof Error ? error.message : JSON.stringify(error);
+    if (message.startsWith("'return' outside of function. (")) {
+      message = 'Top-level return is not allowed.';
+    } else if (message.startsWith('Unexpected token, expected "')) {
+      message = 'TypeScript syntax is not supported. Use plain JavaScript.';
+    } else if (
+      message.startsWith(
+        'This experimental syntax requires enabling one of the following parser plugin(s): "jsx", "flow", "typescript". ('
+      )
+    ) {
+      message = 'JSX syntax is not supported. Use plain JavaScript.';
+    }
+    ctx.addIssue({
+      code: 'custom',
+      message,
+      input: val,
+    });
+  }
+};
+
+export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
+  .openapi('FunctionCreate')
+  .extend({
+    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
+  });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
@@ -1721,7 +2135,7 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
-    id: resourceIdSchema.optional(),
+    id: ResourceIdSchema.optional(),
     headersSchema: z.any().nullable().optional().openapi({
       type: 'object',
       description: 'JSON Schema for validating request headers',
@@ -1755,9 +2169,9 @@ export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigU
 
 export const SubAgentToolRelationSelectSchema = createSelectSchema(subAgentToolRelations);
 export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolRelations).extend({
-  id: resourceIdSchema,
-  subAgentId: resourceIdSchema,
-  toolId: resourceIdSchema,
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  toolId: ResourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
   toolPolicies: z.record(z.string(), z.object({ needsApproval: z.boolean().optional() })).nullish(),
@@ -1782,9 +2196,9 @@ export const SubAgentExternalAgentRelationSelectSchema = createSelectSchema(
 export const SubAgentExternalAgentRelationInsertSchema = createInsertSchema(
   subAgentExternalAgentRelations
 ).extend({
-  id: resourceIdSchema,
-  subAgentId: resourceIdSchema,
-  externalAgentId: resourceIdSchema,
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  externalAgentId: ResourceIdSchema,
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
@@ -1808,9 +2222,9 @@ export const SubAgentTeamAgentRelationSelectSchema = createSelectSchema(subAgent
 export const SubAgentTeamAgentRelationInsertSchema = createInsertSchema(
   subAgentTeamAgentRelations
 ).extend({
-  id: resourceIdSchema,
-  subAgentId: resourceIdSchema,
-  targetAgentId: resourceIdSchema,
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  targetAgentId: ResourceIdSchema,
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
@@ -1933,6 +2347,15 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
+  skills: z
+    .array(
+      z.strictObject({
+        id: ResourceIdSchema,
+        index: SkillIndexSchema,
+        alwaysLoaded: z.boolean().optional(),
+      })
+    )
+    .optional(),
   canTransferTo: z.array(z.string()).optional(),
   prompt: z.string().trim().optional(),
   canDelegateTo: z
@@ -1954,6 +2377,7 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -2045,6 +2469,7 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   tools: z.record(z.string(), ToolApiInsertSchema),
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
+  skills: z.record(z.string(), SkillApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(),
@@ -2099,6 +2524,7 @@ export const AgentWithinContextOfProjectSelectSchema = AgentApiSelectSchema.exte
   teamAgents: z.record(z.string(), TeamAgentSchema).nullable(),
   functionTools: z.record(z.string(), FunctionToolApiSelectSchema).nullable(),
   functions: z.record(z.string(), FunctionApiSelectSchema).nullable(),
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiSelectSchema).nullable(),
   contextConfig: ContextConfigApiSelectSchema.nullable(),
   statusUpdates: StatusUpdateSchema.nullable(),
   models: ModelSchema.nullable(),
@@ -2135,7 +2561,6 @@ export const SubAgentResponse = z
   .object({ data: SubAgentApiSelectSchema })
   .openapi('SubAgentResponse');
 export const AgentResponse = z.object({ data: AgentApiSelectSchema }).openapi('AgentResponse');
-export const ToolResponse = z.object({ data: ToolApiSelectSchema }).openapi('ToolResponse');
 export const ExternalAgentResponse = z
   .object({ data: ExternalAgentApiSelectSchema })
   .openapi('ExternalAgentResponse');
@@ -2167,12 +2592,6 @@ export const SubAgentRelationResponse = z
 export const SubAgentToolRelationResponse = z
   .object({ data: SubAgentToolRelationApiSelectSchema })
   .openapi('SubAgentToolRelationResponse');
-export const ConversationResponse = z
-  .object({ data: ConversationApiSelectSchema })
-  .openapi('ConversationResponse');
-export const MessageResponse = z
-  .object({ data: MessageApiSelectSchema })
-  .openapi('MessageResponse');
 export const TriggerResponse = z
   .object({ data: TriggerApiSelectSchema })
   .openapi('TriggerResponse');
@@ -2198,12 +2617,6 @@ export const AgentListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('AgentListResponse');
-export const ToolListResponse = z
-  .object({
-    data: z.array(ToolApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('ToolListResponse');
 export const ExternalAgentListResponse = z
   .object({
     data: z.array(ExternalAgentApiSelectSchema),
@@ -2246,6 +2659,13 @@ export const SubAgentFunctionToolRelationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
+export const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
+export const SkillListResponse = z
+  .object({
+    data: z.array(SkillApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SkillListResponse');
 export const DataComponentListResponse = z
   .object({
     data: z.array(DataComponentApiSelectSchema),
@@ -2270,18 +2690,6 @@ export const SubAgentToolRelationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentToolRelationListResponse');
-export const ConversationListResponse = z
-  .object({
-    data: z.array(ConversationApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('ConversationListResponse');
-export const MessageListResponse = z
-  .object({
-    data: z.array(MessageApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('MessageListResponse');
 export const TriggerListResponse = z
   .object({
     data: z.array(TriggerApiSelectSchema),
@@ -2305,24 +2713,62 @@ export const TriggerWithWebhookUrlListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerWithWebhookUrlListResponse');
+
+export const ScheduledTriggerWithRunInfoSchema = ScheduledTriggerApiSelectSchema.extend({
+  lastRunAt: z.iso.datetime().nullable().describe('Timestamp of the last completed or failed run'),
+  lastRunStatus: z.enum(['completed', 'failed']).nullable().describe('Status of the last run'),
+  lastRunConversationIds: z.array(z.string()).describe('Conversation IDs from the last run'),
+  nextRunAt: z.iso.datetime().nullable().describe('Timestamp of the next pending run'),
+}).openapi('ScheduledTriggerWithRunInfo');
+
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
+
+export const ScheduledTriggerResponse = z
+  .object({ data: ScheduledTriggerApiSelectSchema })
+  .openapi('ScheduledTriggerResponse');
+export const ScheduledTriggerListResponse = z
+  .object({
+    data: z.array(ScheduledTriggerApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledTriggerListResponse');
+export const ScheduledTriggerWithRunInfoListResponse = z
+  .object({
+    data: z.array(ScheduledTriggerWithRunInfoSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledTriggerWithRunInfoListResponse');
+export const ScheduledTriggerInvocationResponse = z
+  .object({ data: ScheduledTriggerInvocationApiSelectSchema })
+  .openapi('ScheduledTriggerInvocationResponse');
+export const ScheduledTriggerInvocationListResponse = z
+  .object({
+    data: z.array(ScheduledTriggerInvocationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledTriggerInvocationListResponse');
+export const ScheduledWorkflowResponse = z
+  .object({ data: ScheduledWorkflowApiSelectSchema })
+  .openapi('ScheduledWorkflowResponse');
+export const ScheduledWorkflowListResponse = z
+  .object({
+    data: z.array(ScheduledWorkflowApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledWorkflowListResponse');
+
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');
 export const SubAgentArtifactComponentResponse = z
   .object({ data: SubAgentArtifactComponentApiSelectSchema })
   .openapi('SubAgentArtifactComponentResponse');
-export const SubAgentDataComponentListResponse = z
-  .object({
-    data: z.array(SubAgentDataComponentApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('SubAgentDataComponentListResponse');
-export const SubAgentArtifactComponentListResponse = z
-  .object({
-    data: z.array(SubAgentArtifactComponentApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('SubAgentArtifactComponentListResponse');
+export const SubAgentSkillResponse = z
+  .object({ data: SubAgentSkillApiSelectSchema })
+  .openapi('SubAgentSkillResponse');
+export const SubAgentSkillWithIndexArrayResponse = z
+  .object({ data: z.array(SubAgentSkillWithIndexSchema) })
+  .openapi('SubAgentSkillWithIndexArrayResponse');
 
 // Missing response schemas for factory function replacement
 export const FullProjectDefinitionResponse = z
@@ -2452,7 +2898,7 @@ export const TenantParamsSchema = z.object({
 });
 
 export const TenantIdParamsSchema = TenantParamsSchema.extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 
 export const TenantProjectParamsSchema = TenantParamsSchema.extend({
@@ -2460,7 +2906,7 @@ export const TenantProjectParamsSchema = TenantParamsSchema.extend({
 });
 
 export const TenantProjectIdParamsSchema = TenantProjectParamsSchema.extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 
 export const TenantProjectAgentParamsSchema = TenantProjectParamsSchema.extend({
@@ -2468,7 +2914,7 @@ export const TenantProjectAgentParamsSchema = TenantProjectParamsSchema.extend({
 });
 
 export const TenantProjectAgentIdParamsSchema = TenantProjectAgentParamsSchema.extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
 });
 
 export const TenantProjectAgentSubAgentParamsSchema = TenantProjectAgentParamsSchema.extend({
@@ -2477,7 +2923,7 @@ export const TenantProjectAgentSubAgentParamsSchema = TenantProjectAgentParamsSc
 
 export const TenantProjectAgentSubAgentIdParamsSchema =
   TenantProjectAgentSubAgentParamsSchema.extend({
-    id: resourceIdSchema,
+    id: ResourceIdSchema,
   });
 
 export const RefQueryParamSchema = z.object({
@@ -2490,6 +2936,11 @@ export const PaginationQueryParamsSchema = z
     limit: limitNumber,
   })
   .openapi('PaginationQueryParams');
+
+export const DateTimeFilterQueryParamsSchema = z.object({
+  from: z.iso.datetime().optional().describe('Start date for filtering (ISO8601)'),
+  to: z.iso.datetime().optional().describe('End date for filtering (ISO8601)'),
+});
 
 export const PrebuiltMCPServerSchema = z.object({
   id: z.string().describe('Unique identifier for the MCP server'),
@@ -2530,4 +2981,69 @@ export const PaginationWithRefQueryParamsSchema =
 export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
 export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
   createdAt: true,
+});
+
+export const WorkAppGitHubInstallationStatusSchema = z.enum([
+  'pending',
+  'active',
+  'suspended',
+  'disconnected',
+]);
+export const WorkAppGitHubAccountTypeSchema = z.enum(['Organization', 'User']);
+
+export const WorkAppGitHubInstallationSelectSchema = createSelectSchema(workAppGitHubInstallations);
+export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppGitHubInstallations)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+  })
+  .extend({
+    accountType: WorkAppGitHubAccountTypeSchema,
+    status: WorkAppGitHubInstallationStatusSchema.optional().default('active'),
+  });
+
+export const WorkAppGithubInstallationApiSelectSchema = omitTenantScope(
+  WorkAppGitHubInstallationSelectSchema
+);
+export const WorkAppGitHubInstallationApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubInstallationInsertSchema
+);
+
+export const WorkAppGitHubRepositorySelectSchema = createSelectSchema(workAppGitHubRepositories);
+export const WorkAppGitHubRepositoryInsertSchema = omitTimestamps(
+  createInsertSchema(workAppGitHubRepositories)
+);
+
+export const WorkAppGitHubRepositoryApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubRepositoryInsertSchema
+);
+
+export const WorkAppGitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubProjectRepositoryAccess
+);
+
+export const WorkAppGitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubMcpToolRepositoryAccess
+);
+
+// Shared GitHub Access API Schemas
+export const WorkAppGitHubAccessModeSchema = z.enum(['all', 'selected']);
+
+export const WorkAppGitHubAccessSetRequestSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryIds: z
+    .array(z.string())
+    .optional()
+    .describe('Internal repository IDs (required when mode="selected")'),
+});
+
+export const WorkAppGitHubAccessSetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryCount: z.number(),
+});
+
+export const WorkAppGitHubAccessGetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });

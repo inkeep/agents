@@ -11,8 +11,7 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function TeamAgentNode(props: NodeProps & { data: TeamAgentNodeData }) {
-  const { data, selected, id } = props;
+export function TeamAgentNode({ data, selected, id }: NodeProps & { data: TeamAgentNodeData }) {
   const { name, description } = data;
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 

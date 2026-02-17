@@ -3,7 +3,6 @@
 # SpiceDB Migration Script
 #
 # One-time migration to sync existing organizations and projects to SpiceDB.
-# Run this when first enabling ENABLE_AUTHZ=true in production.
 #
 # Prerequisites:
 #   - zed CLI installed (brew install authzed/tap/zed)
@@ -263,7 +262,7 @@ fi
 
 echo ""
 echo -e "${BLUE}📋 Next Steps:${NC}"
-echo "   1. Verify relationships: pnpm spicedb:read"
+echo "   1. Verify relationships: `pnpm spicedb:read:orgs` and `pnpm spicedb:read:projects`"
 echo "   2. Org admins should assign users to projects via the UI"
 echo "   3. Test access: zed permission check $ZED_ARGS project:<id> view user:<id>"
 echo ""

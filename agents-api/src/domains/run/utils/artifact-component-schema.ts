@@ -3,64 +3,10 @@ import type {
   ArtifactComponentApiInsert,
   ArtifactComponentApiSelect,
   DataComponentInsert,
+  JsonSchemaForLlmSchemaType,
 } from '@inkeep/agents-core';
-import { getLogger } from '../../../logger';
-import { jsonSchemaToZod } from './data-component-schema';
+import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from './SchemaProcessor';
-import type { ExtendedJsonSchema } from './schema-validation';
-
-const _logger = getLogger('ArtifactComponentSchema');
-
-/**
- * Converts artifact component configurations to Zod schema for structured generation
- */
-export function createArtifactComponentsSchema(artifactComponents?: ArtifactComponentApiSelect[]) {
-  // Convert artifact component configs to a union schema
-  const componentSchemas =
-    artifactComponents?.map((component) => {
-      // Use the unified props schema directly - remove inPreview flags for LLM
-      const cleanSchema = component.props
-        ? removePreviewFlags(component.props as ExtendedJsonSchema)
-        : {};
-      const propsSchema = jsonSchemaToZod(cleanSchema);
-
-      return z
-        .object({
-          id: z.string().describe(component.id),
-          name: z.literal(component.name).describe(component.name),
-          props: propsSchema,
-        })
-        .describe(`${component.name}: ${component.description}`);
-    }) || [];
-
-  // Return union of all component schemas - z.union requires at least 2 schemas
-  if (componentSchemas.length === 0) {
-    return z.object({}); // Empty object for no components
-  }
-  if (componentSchemas.length === 1) {
-    return componentSchemas[0]; // Single schema doesn't need union
-  }
-  return z.union(componentSchemas as any); // Safe union with 2+ schemas
-}
-
-/**
- * Remove inPreview flags from schema properties (for LLM consumption)
- */
-function removePreviewFlags(schema: ExtendedJsonSchema): Record<string, any> {
-  const cleanSchema = { ...schema };
-
-  if (cleanSchema.properties) {
-    const cleanProperties: Record<string, any> = {};
-    for (const [key, prop] of Object.entries(cleanSchema.properties)) {
-      const cleanProp = { ...prop };
-      delete cleanProp.inPreview;
-      cleanProperties[key] = cleanProp;
-    }
-    cleanSchema.properties = cleanProperties;
-  }
-
-  return cleanSchema;
-}
 
 /**
  * Standard artifact reference component schema for tool responses
@@ -81,7 +27,7 @@ export class ArtifactReferenceSchema {
       },
     },
     required: ['artifact_id', 'tool_call_id'],
-  };
+  } satisfies JSONSchema.BaseSchema;
 
   /**
    * Get the standard Zod schema for artifact reference components
@@ -90,14 +36,14 @@ export class ArtifactReferenceSchema {
     return z.object({
       id: z.string(),
       name: z.literal('Artifact'),
-      props: jsonSchemaToZod(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
+      props: z.fromJSONSchema(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
     });
   }
 
   /**
    * Get complete DataComponent by adding missing fields to base definition
    */
-  static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
+  static getDataComponent(tenantId: string, projectId = ''): DataComponentInsert {
     return {
       id: 'The artifact_id from your artifact:create tag. Must match exactly.',
       tenantId: tenantId,
@@ -124,7 +70,7 @@ export class ArtifactCreateSchema {
   ): z.ZodType<any>[] {
     return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
@@ -153,12 +99,15 @@ export class ArtifactCreateSchema {
           details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
-      };
+      } satisfies JSONSchema.BaseSchema;
+
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
 
       return z.object({
         id: z.string(),
         name: z.literal(`ArtifactCreate_${component.name}`),
-        props: jsonSchemaToZod(propsSchema),
+        props: z.fromJSONSchema(normalizedPropsSchema),
       });
     });
   }
@@ -170,16 +119,16 @@ export class ArtifactCreateSchema {
    */
   static getDataComponents(
     tenantId: string,
-    projectId: string = '',
+    projectId = '',
     artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
   ): DataComponentInsert[] {
     return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
-      const propsSchema = {
+      const propsSchema: JSONSchema.BaseSchema = {
         type: 'object',
         properties: {
           id: {
@@ -206,13 +155,16 @@ export class ArtifactCreateSchema {
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };
 
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
         tenantId: tenantId,
         projectId: projectId,
         name: `ArtifactCreate_${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
-        props: propsSchema,
+        props: normalizedPropsSchema as JsonSchemaForLlmSchemaType,
       };
     });
   }

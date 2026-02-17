@@ -1,0 +1,445 @@
+---
+title: Overview
+description: Create webhook endpoints that allow external services to invoke your agents
+icon: LuSparkles
+---
+
+Triggers create webhook endpoints that allow external services (like GitHub, Slack, Stripe, or custom applications) to invoke your agents. When a webhook is received, the payload is validated, transformed, and used to start a new conversation with the agent.
+
+## Message Format
+
+When a trigger invokes an agent, it sends a **multi-part message** containing:
+
+- **Text part** (optional): Generated from the `messageTemplate` using the payload data
+- **Data part** (when payload exists): The transformed webhook payload as structured data
+
+This allows agents to access both a human-readable summary via the text part and the full structured payload for detailed processing.
+
+```json
+{
+  "parts": [
+    { "kind": "text", "text": "New order received: #12345" },
+    { "kind": "data", "data": { "orderId": "12345", "total": 99.99 }, "metadata": { "source": "trigger" } }
+  ]
+}
+```
+
+<Note>
+The data part is included whenever the webhook payload is not null/undefined. Even an empty object `{}` is included as a data part.
+</Note>
+
+<SkillRule
+  id="triggers-overview"
+  skills="typescript-sdk"
+  title="Triggers Overview"
+  description="Creating webhook endpoints to invoke agents from external services"
+>
+
+## Overview
+
+Triggers are useful for:
+
+- **Event-driven workflows** - Respond to events from external services (GitHub issues, Stripe payments, etc.)
+- **Third-party integrations** - Connect services that can send webhooks to your agents
+- **Automated tasks** - Trigger agent actions based on external events
+- **Custom applications** - Allow your own services to invoke agents via HTTP
+
+## Creating Triggers
+
+### Basic Trigger
+
+```typescript
+import { agent, trigger, subAgent } from "@inkeep/agents-sdk";
+
+const slackTrigger = trigger({
+  name: "Slack Messages",
+  description: "Handle incoming Slack messages",
+  messageTemplate: "New message from {{user.name}}: {{text}}",
+});
+
+export default agent({
+  id: "support-agent",
+  name: "Support Agent",
+  defaultSubAgent: subAgent({
+    id: "support",
+    name: "Support Assistant",
+    prompt: "You help answer support questions.",
+  }),
+  triggers: () => [slackTrigger],
+});
+```
+
+### Trigger with Structured Data Only
+
+If you don't need a human-readable text message, you can omit `messageTemplate` and the agent will receive only the structured payload data:
+
+```typescript
+const dataTrigger = trigger({
+  name: "Data Webhook",
+  description: "Receives structured data for processing",
+  // No messageTemplate - agent receives only the data part
+  inputSchema: z.object({
+    eventType: z.string(),
+    payload: z.record(z.unknown()),
+  }),
+});
+```
+
+The agent will receive:
+
+```json
+{
+  "parts": [
+    { "kind": "data", "data": { "eventType": "order.created", "payload": { ... } }, "metadata": { "source": "trigger" } }
+  ]
+}
+```
+
+### Trigger with Input Validation
+
+Use JSON Schema or Zod to validate incoming webhook payloads:
+
+```typescript
+import { z } from "zod";
+
+const githubWebhookTrigger = trigger({
+  name: "GitHub Events",
+  description: "Handle GitHub webhook events",
+  inputSchema: z.object({
+    action: z.string(),
+    repository: z.object({
+      full_name: z.string(),
+    }),
+    sender: z.object({
+      login: z.string(),
+    }),
+  }),
+  messageTemplate:
+    "GitHub event: {{action}} on {{repository.full_name}} by {{sender.login}}",
+  signingSecret: process.env.GITHUB_WEBHOOK_SECRET,
+});
+```
+
+### Trigger with Authentication
+
+Triggers support flexible header-based authentication. You can require any headers with expected values:
+
+<Tabs>
+  <Tab title="Single Header">
+```typescript
+const apiKeyTrigger = trigger({
+  name: "Authenticated Webhook",
+  messageTemplate: "Webhook received: {{message}}",
+  authentication: {
+    headers: [
+      { name: "X-API-Key", value: process.env.WEBHOOK_API_KEY! },
+    ],
+  },
+});
+```
+  </Tab>
+  <Tab title="Multiple Headers">
+```typescript
+const multiAuthTrigger = trigger({
+  name: "Multi-Header Auth Webhook",
+  messageTemplate: "Webhook received: {{message}}",
+  authentication: {
+    headers: [
+      { name: "X-API-Key", value: process.env.WEBHOOK_API_KEY! },
+      { name: "X-Client-ID", value: process.env.WEBHOOK_CLIENT_ID! },
+    ],
+  },
+});
+```
+  </Tab>
+  <Tab title="Authorization Header">
+```typescript
+// For Bearer token or Basic auth, use the Authorization header
+const bearerTrigger = trigger({
+  name: "Bearer Auth Webhook",
+  messageTemplate: "Webhook received: {{message}}",
+  authentication: {
+    headers: [
+      { 
+        name: "Authorization", 
+        value: `Bearer ${process.env.WEBHOOK_BEARER_TOKEN!}` 
+      },
+    ],
+  },
+});
+```
+  </Tab>
+</Tabs>
+
+<Note>
+Header values are securely hashed before storage. The original values are never stored in the database.
+</Note>
+
+</SkillRule>
+
+<SkillRule
+  id="triggers-config-options"
+  skills="typescript-sdk"
+  title="Trigger Configuration Options"
+  description="Configuration options for triggers including authentication, schemas, and transforms"
+>
+
+## Configuration Options
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | Yes | Human-readable name for the trigger |
+| `description` | `string` | No | Description of what the trigger does |
+| `enabled` | `boolean` | No | Whether the trigger is active (default: `true`) |
+| `inputSchema` | `object \| ZodObject` | No | JSON Schema or Zod schema for payload validation |
+| `messageTemplate` | `string` | No | Optional template for the text part of the message sent to the agent |
+| `authentication` | `object` | No | Header-based authentication configuration |
+| `signingSecret` | `string` | No | HMAC-SHA256 secret for signature verification |
+| `outputTransform` | `object` | No | Payload transformation configuration |
+
+### Authentication Configuration
+
+```typescript
+authentication: {
+  headers: [
+    { name: "Header-Name", value: "expected-value" },
+    // Add more headers as needed
+  ],
+}
+```
+
+Each incoming request must include all configured headers with matching values. If any header is missing or has an incorrect value, the request is rejected with a `401` or `403` status.
+
+### Message Templates
+
+Message templates are **optional** and use `{{placeholder}}` syntax to interpolate values from the webhook payload. When provided, the interpolated text is included as a text part in the message alongside the structured data part:
+
+```typescript
+const trigger = trigger({
+  name: "Order Webhook",
+  messageTemplate: `
+New order received:
+- Order ID: {{order.id}}
+- Customer: {{customer.name}} ({{customer.email}})
+- Total: ${{order.total}}
+- Items: {{order.items.length}} items
+
+Please process this order and send a confirmation.
+  `.trim(),
+});
+```
+
+Nested properties are accessed with dot notation (`{{customer.email}}`). Array length can be accessed with `.length`.
+
+### Payload Transformation
+
+Transform incoming payloads before they reach the message template using `outputTransform`. You can choose between two approaches:
+
+| Approach | Best For | Complexity |
+| --- | --- | --- |
+| **Object Transformation** | Simple field remapping | Low |
+| **JMESPath** | Complex filtering, restructuring, array operations | High |
+
+<Note>
+These options are **mutually exclusive**. Use either `jmespath` OR `objectTransformation`, not both. If both are provided, `jmespath` takes priority.
+</Note>
+
+#### Object Transformation (Recommended for Simple Cases)
+
+Use `objectTransformation` when you just need to remap fields from the payload. Each key becomes a field in the transformed output, and each value is a JMESPath path to extract from the input:
+
+```typescript
+const transformingTrigger = trigger({
+  name: "Transformed Webhook",
+  messageTemplate: "Event: {{eventType}} - {{summary}}",
+  outputTransform: {
+    // JMESPath expression for complex transformations
+    jmespath: "{ eventType: type, summary: data.description }",
+  },
+});
+
+// Or use simple object mapping
+const mappingTrigger = trigger({
+  name: "Mapped Webhook",
+  messageTemplate: "User {{userName}} performed {{actionName}}",
+  outputTransform: {
+    objectTransformation: {
+      userName: "payload.user.display_name",
+      actionName: "payload.action.type",
+    },
+  },
+});
+
+// Input: { payload: { user: { display_name: "Alice" }, action: { type: "click" } } }
+// Transformed: { userName: "Alice", actionName: "click" }
+// Message: "User Alice performed click"
+```
+
+#### JMESPath (For Complex Transformations)
+
+Use `jmespath` when you need more powerful transformations like filtering arrays, conditional logic, or complex restructuring. [JMESPath](https://jmespath.org/) is a query language for JSON:
+
+```typescript
+const transformingTrigger = trigger({
+  name: "Transformed Webhook",
+  messageTemplate: "Event: {{eventType}} - {{summary}}",
+  outputTransform: {
+    jmespath: "{ eventType: type, summary: data.description }",
+  },
+  authentication: { type: "none" },
+});
+
+// Input: { type: "alert", data: { description: "Server down" } }
+// Transformed: { eventType: "alert", summary: "Server down" }
+// Message: "Event: alert - Server down"
+```
+
+**Advanced JMESPath example** - filtering and projecting arrays:
+
+```typescript
+const advancedTrigger = trigger({
+  name: "Active Users Alert",
+  messageTemplate: "Active users: {{activeUserNames}}",
+  outputTransform: {
+    jmespath: "{ activeUserNames: join(', ', users[?active==`true`].name) }",
+  },
+  authentication: { type: "none" },
+});
+
+// Input: { users: [{ name: "Alice", active: true }, { name: "Bob", active: false }] }
+// Transformed: { activeUserNames: "Alice" }
+// Message: "Active users: Alice"
+```
+
+<Tip>
+Object Transformation is converted to JMESPath under the hood. For example, `{ userName: "user.name" }` becomes the JMESPath expression `{ userName: user.name }`.
+</Tip>
+
+### Signature Verification
+
+<Warning>
+**Beta Feature**: Signature verification is currently in beta. The API may change in future releases.
+</Warning>
+
+For services that sign webhooks (like GitHub, Stripe, Slack), use `signingSecret`:
+
+```typescript
+const githubTrigger = trigger({
+  name: "GitHub Webhook",
+  messageTemplate: "GitHub: {{action}} on {{repository.full_name}}",
+  signingSecret: process.env.GITHUB_WEBHOOK_SECRET,
+});
+```
+
+The framework automatically verifies HMAC-SHA256 signatures in the `X-Signature-256` header.
+
+<Tip>
+For services like GitHub that sign webhooks, you often don't need header authentication—the signature verification provides security. Use `signingSecret` alone for these cases.
+</Tip>
+
+## Webhook URL
+
+After pushing your agent configuration, each trigger gets a unique webhook URL:
+
+```
+POST /tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}
+```
+
+You can find the full webhook URL in the Inkeep dashboard or via the API response when creating/listing triggers.
+
+## Invocation Tracking
+
+Every webhook invocation is tracked with:
+
+- **Invocation ID** - Unique identifier for the invocation
+- **Status** - `pending`, `success`, or `failed`
+- **Request Payload** - Original webhook payload
+- **Transformed Payload** - Payload after transformation
+- **Conversation ID** - ID of the conversation created
+- **Error Message** - Error details if the invocation failed
+
+Query invocation history via the API:
+
+```bash
+# List invocations for a trigger
+curl "https://api.inkeep.com/v1/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}/invocations"
+
+# Filter by status or date range
+curl "https://api.inkeep.com/v1/.../invocations?status=failed&from=2024-01-01T00:00:00Z"
+```
+
+## Complete Example
+
+Here's a complete example with a GitHub webhook trigger that handles issue events:
+
+```typescript
+import { z } from "zod";
+import { agent, trigger, subAgent } from "@inkeep/agents-sdk";
+
+// Define the expected GitHub webhook payload
+const githubIssueSchema = z.object({
+  action: z.enum(["opened", "closed", "reopened", "edited"]),
+  issue: z.object({
+    number: z.number(),
+    title: z.string(),
+    body: z.string().nullable(),
+    user: z.object({
+      login: z.string(),
+    }),
+    labels: z.array(
+      z.object({
+        name: z.string(),
+      })
+    ),
+  }),
+  repository: z.object({
+    full_name: z.string(),
+  }),
+});
+
+const githubIssueTrigger = trigger({
+  name: "GitHub Issues",
+  description: "Responds to GitHub issue events",
+  enabled: true,
+  inputSchema: githubIssueSchema,
+  messageTemplate: `
+GitHub Issue {{action}}:
+- Repository: {{repository.full_name}}
+- Issue #{{issue.number}}: {{issue.title}}
+- Author: {{issue.user.login}}
+- Body: {{issue.body}}
+
+Please analyze this issue and provide a helpful response.
+  `.trim(),
+  signingSecret: process.env.GITHUB_WEBHOOK_SECRET,
+});
+
+const issueResponder = subAgent({
+  id: "issue-responder",
+  name: "Issue Responder",
+  prompt: `You are a helpful assistant that responds to GitHub issues.
+When an issue is opened, analyze the content and provide:
+1. A summary of the issue
+2. Suggested labels if appropriate
+3. Initial guidance or questions for the issue author`,
+});
+
+export default agent({
+  id: "github-bot",
+  name: "GitHub Bot",
+  defaultSubAgent: issueResponder,
+  triggers: () => [githubIssueTrigger],
+});
+```
+
+</SkillRule>
+
+## Best Practices
+
+1. **Always validate input** - Use `inputSchema` to ensure payloads match expected format
+2. **Use signing secrets** - Verify webhook authenticity when the source supports it
+3. **Use header auth for custom webhooks** - When the source doesn't sign webhooks, use header-based authentication
+4. **Write clear templates** - Make message templates readable and include relevant context
+5. **Handle errors gracefully** - Check invocation status and logs for failed webhooks
+6. **Use descriptive names** - Name triggers clearly to identify their purpose in dashboards
+7. **Store secrets in environment variables** - Never hardcode authentication values

@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import type { AgentNodeData, MCPNodeData } from '@/components/agent/configuration/node-types';
+import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { isContextConfigParseError, serializeAgentData } from '../serialize';
 
@@ -21,6 +21,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -28,7 +29,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toBeUndefined();
+      expect(result.subAgents.agent1.models).toBeUndefined();
     });
 
     it('should set models to undefined when models object has only whitespace values', () => {
@@ -46,6 +47,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -53,7 +55,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toBeUndefined();
+      expect(result.subAgents.agent1.models).toBeUndefined();
     });
 
     it('should include models object when model field has a value', () => {
@@ -71,6 +73,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -78,7 +81,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toEqual({
+      expect(result.subAgents.agent1.models).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: undefined,
         summarizer: undefined,
@@ -100,6 +103,7 @@ describe('serializeAgentData', () => {
               structuredOutput: { model: 'gpt-4o-2024-08-06' },
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -107,7 +111,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toEqual({
+      expect(result.subAgents.agent1.models).toEqual({
         base: undefined,
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: undefined,
@@ -129,6 +133,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: { model: 'gpt-3.5-turbo' },
             },
+            skills: [],
           },
         },
       ];
@@ -136,7 +141,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toEqual({
+      expect(result.subAgents.agent1.models).toEqual({
         base: undefined,
         structuredOutput: undefined,
         summarizer: { model: 'gpt-3.5-turbo' },
@@ -158,6 +163,7 @@ describe('serializeAgentData', () => {
               structuredOutput: { model: 'gpt-4o-2024-08-06' },
               summarizer: { model: 'gpt-3.5-turbo' },
             },
+            skills: [],
           },
         },
       ];
@@ -165,7 +171,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toEqual({
+      expect(result.subAgents.agent1.models).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: { model: 'gpt-3.5-turbo' },
@@ -182,6 +188,7 @@ describe('serializeAgentData', () => {
             id: 'agent1',
             name: 'Test Agent',
             prompt: 'Test instructions',
+            skills: [],
             // no models property
           },
         },
@@ -190,7 +197,7 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).models).toBeUndefined();
+      expect(result.subAgents.agent1.models).toBeUndefined();
     });
   });
 
@@ -215,7 +222,7 @@ describe('serializeAgentData', () => {
             toolId: 'mcp1',
             name: 'Test MCP Server',
             tempSelectedTools: ['tool1', 'tool2'],
-          } as MCPNodeData,
+          },
         },
       ];
 
@@ -230,9 +237,9 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
-      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
+      expect(result.subAgents.agent1.canUse).toBeDefined();
+      expect(result.subAgents.agent1.canUse).toHaveLength(1);
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: ['tool1', 'tool2'],
         headers: null,
@@ -261,7 +268,7 @@ describe('serializeAgentData', () => {
             toolId: 'mcp1',
             name: 'Test MCP Server',
             tempSelectedTools: null, // null means all tools selected
-          } as MCPNodeData,
+          },
         },
       ];
 
@@ -277,9 +284,9 @@ describe('serializeAgentData', () => {
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
       // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
-      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
-      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
+      expect(result.subAgents.agent1.canUse).toBeDefined();
+      expect(result.subAgents.agent1.canUse).toHaveLength(1);
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: null,
         headers: null,
@@ -307,7 +314,7 @@ describe('serializeAgentData', () => {
             toolId: 'mcp1',
             name: 'Test MCP Server',
             tempSelectedTools: [], // empty array means no tools selected
-          } as MCPNodeData,
+          },
         },
       ];
 
@@ -322,9 +329,9 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
-      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
+      expect(result.subAgents.agent1.canUse).toBeDefined();
+      expect(result.subAgents.agent1.canUse).toHaveLength(1);
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: [],
         headers: null,
@@ -352,7 +359,7 @@ describe('serializeAgentData', () => {
             toolId: 'mcp1',
             name: 'Test MCP Server',
             // no tempSelectedTools property
-          } as MCPNodeData,
+          },
         },
       ];
 
@@ -393,7 +400,7 @@ describe('serializeAgentData', () => {
             toolId: 'mcp1',
             name: 'Test MCP Server',
             // tempSelectedTools is undefined (user didn't interact with UI)
-          } as MCPNodeData,
+          },
         },
       ];
 
@@ -410,9 +417,9 @@ describe('serializeAgentData', () => {
 
       // When tempSelectedTools is undefined and there's an edge to MCP tool,
       // the toolSelection will be null (all tools selected by default)
-      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
-      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
+      expect(result.subAgents.agent1.canUse).toBeDefined();
+      expect(result.subAgents.agent1.canUse).toHaveLength(1);
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: null, // null means all tools are selected
         headers: null,
@@ -444,7 +451,7 @@ describe('serializeAgentData', () => {
               tool1: { needsApproval: true },
               tool2: { needsApproval: false },
             },
-          } as MCPNodeData,
+          },
         },
       ];
 
@@ -459,9 +466,9 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
-      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
+      expect(result.subAgents.agent1.canUse).toBeDefined();
+      expect(result.subAgents.agent1.canUse).toHaveLength(1);
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: ['tool1', 'tool2'],
         headers: null,
@@ -560,7 +567,7 @@ describe('serializeAgentData', () => {
       // When there's an existing contextConfigId but fields are cleared,
       // contextConfig should still be included with null values so backend can clear it
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect((result as any).contextConfig).toEqual({
+      expect(result.contextConfig).toEqual({
         id: existingContextConfigId,
         headersSchema: null,
         contextVariables: null,
@@ -586,7 +593,7 @@ describe('serializeAgentData', () => {
       // When there's no existing contextConfigId and fields are empty,
       // contextConfig should not be included
       expect((result as any).contextConfigId).toBeUndefined();
-      expect((result as any).contextConfig).toBeUndefined();
+      expect(result.contextConfig).toBeUndefined();
     });
 
     it('preserves existing contextConfigId when only headersSchema is cleared', () => {
@@ -608,7 +615,7 @@ describe('serializeAgentData', () => {
       );
 
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect((result as any).contextConfig).toEqual({
+      expect(result.contextConfig).toEqual({
         id: existingContextConfigId,
         headersSchema: null,
         contextVariables: { foo: 'bar' },
@@ -634,7 +641,7 @@ describe('serializeAgentData', () => {
       );
 
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect((result as any).contextConfig).toEqual({
+      expect(result.contextConfig).toEqual({
         id: existingContextConfigId,
         headersSchema: { type: 'object' },
         contextVariables: null,
