@@ -12,6 +12,10 @@ catalog:
   better-auth: ~1.4.10
   "@better-auth/sso": ~1.4.10
 
+publicHoistPattern:
+  - "@types/react"
+  - "@types/react-dom"
+
 ignorePatchFailures: false
 
 patchedDependencies:
