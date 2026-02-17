@@ -113,15 +113,22 @@ describe('Credential Generator', () => {
       await expectCredentialDefinitionSnapshots({ credentialId, ...conversionData }, definition);
     });
 
-    it('should handle credential with all required fields', () => {
-      const definition = generateCredentialDefinition('my-credential', {
+    it.only('should handle credential with all required fields', async () => {
+      const credentialId = 'my-credential';
+      const requiredFieldsData = {
         name: 'My Credential',
         type: 'memory',
         credentialStoreId: 'memory-default',
-      });
+      };
+      const definition = generateCredentialDefinition(credentialId, requiredFieldsData);
 
       expect(definition).toContain('export const myCredential = credential({');
       expect(definition).toContain("type: 'memory',");
+
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...requiredFieldsData },
+        definition
+      );
     });
 
     it('should handle different credential store types', () => {
