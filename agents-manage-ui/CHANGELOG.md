@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.48.5
+
+### Patch Changes
+
+- 1c85bf0: Fix breadcrumb error on GitHub work-app detail page
+- ded8362: improve performance time for traces on vercel
+  - @inkeep/agents-core@0.48.5
+
 ## 0.48.4
 
 ### Patch Changes
