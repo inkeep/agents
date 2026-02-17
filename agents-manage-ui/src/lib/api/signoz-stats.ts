@@ -347,10 +347,7 @@ class SigNozStatsAPI {
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
     const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
 
-    const makePaginationResult = (
-      conversationIds: string[],
-      total: number
-    ) => ({
+    const makePaginationResult = (conversationIds: string[], total: number) => ({
       page: pagination.page,
       limit: pagination.limit,
       total,

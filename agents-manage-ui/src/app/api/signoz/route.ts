@@ -78,7 +78,10 @@ function handleProxyError(error: unknown, logger: ReturnType<typeof getLogger>) 
   }
 
   return NextResponse.json(
-    { error: 'Failed to query SigNoz', details: error instanceof Error ? error.message : 'Unknown error' },
+    {
+      error: 'Failed to query SigNoz',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    },
     { status: 500 }
   );
 }
