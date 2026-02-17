@@ -105,7 +105,7 @@ function writeSubAgentConfig(
     addStringProperty(configObject, 'prompt', data.prompt);
   }
 
-  if (data.models && Object.keys(data.models).length > 0) {
+  if (data.models && Object.keys(data.models).length) {
     const modelsProperty = configObject.addPropertyAssignment({
       name: 'models',
       initializer: '{}',
@@ -117,12 +117,12 @@ function writeSubAgentConfig(
   }
 
   const canUseReferences = collectCanUseReferences(data.canUse);
-  if (canUseReferences.length > 0) {
+  if (canUseReferences.length) {
     addReferenceGetterProperty(configObject, 'canUse', canUseReferences);
   }
 
   const canDelegateToReferences = collectCanDelegateToReferences(data.canDelegateTo);
-  if (canDelegateToReferences.length > 0) {
+  if (canDelegateToReferences.length) {
     addReferenceGetterProperty(configObject, 'canDelegateTo', canDelegateToReferences);
   }
 
@@ -213,7 +213,7 @@ function collectCanUseReferences(canUse?: unknown[]): string[] {
     const toolReference = toCamelCase(toolId);
     const withConfig: Record<string, unknown> = {};
     const selectedTools =
-      Array.isArray(item.toolSelection) && item.toolSelection.length > 0
+      Array.isArray(item.toolSelection) && item.toolSelection.length
         ? item.toolSelection
         : Array.isArray(item.selectedTools) && item.selectedTools.length > 0
           ? item.selectedTools
@@ -223,11 +223,11 @@ function collectCanUseReferences(canUse?: unknown[]): string[] {
       withConfig.selectedTools = selectedTools;
     }
 
-    if (isPlainObject(item.headers) && Object.keys(item.headers).length > 0) {
+    if (isPlainObject(item.headers) && Object.keys(item.headers).length) {
       withConfig.headers = item.headers;
     }
 
-    if (isPlainObject(item.toolPolicies) && Object.keys(item.toolPolicies).length > 0) {
+    if (isPlainObject(item.toolPolicies) && Object.keys(item.toolPolicies).length) {
       withConfig.toolPolicies = item.toolPolicies;
     }
 
