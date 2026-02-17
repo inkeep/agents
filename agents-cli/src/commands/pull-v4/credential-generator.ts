@@ -10,14 +10,14 @@ import {
 import { z } from 'zod';
 import { addObjectEntries, addStringProperty, isPlainObject, toCamelCase } from './utils';
 
-type CredentialDefinitionData = {
+interface CredentialDefinitionData {
   credentialId: string;
   name: string;
   type: string;
   credentialStoreId: string;
   description?: string | null;
   retrievalParams?: unknown;
-};
+}
 
 const CredentialSchema = z.looseObject({
   credentialId: z.string().nonempty(),

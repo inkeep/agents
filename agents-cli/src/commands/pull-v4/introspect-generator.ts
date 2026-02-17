@@ -27,37 +27,37 @@ export interface IntrospectOptions {
   failOnUnsupportedComponents?: boolean;
 }
 
-type GenerationContext = {
+interface GenerationContext {
   project: FullProjectDefinition;
   paths: ProjectPaths;
   completeAgentIds: Set<string>;
-};
+}
 
-type GenerationRecord<TPayload> = {
+interface GenerationRecord<TPayload> {
   id: string;
   filePath: string;
   payload: TPayload;
-};
+}
 
-type GenerationTask<TPayload> = {
+interface GenerationTask<TPayload> {
   type: string;
   collect: (context: GenerationContext) => GenerationRecord<TPayload>[];
   generate: (payload: TPayload) => string;
-};
+}
 
-type SkippedAgent = {
+interface SkippedAgent {
   id: string;
   reason: string;
-};
+}
 
-type UnsupportedComponentCounts = {
+interface UnsupportedComponentCounts {
   tools: number;
   functionTools: number;
   functions: number;
   dataComponents: number;
   externalAgents: number;
   statusComponents: number;
-};
+}
 
 export async function introspectGenerate(
   project: FullProjectDefinition,
@@ -120,38 +120,32 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
     {
       type: 'credential',
       collect: collectCredentialRecords,
-      generate: (payload: Parameters<typeof generateCredentialDefinition>[0]) =>
-        generateCredentialDefinition(payload),
+      generate: generateCredentialDefinition,
     },
     {
       type: 'artifact-component',
       collect: collectArtifactComponentRecords,
-      generate: (payload: Parameters<typeof generateArtifactComponentDefinition>[0]) =>
-        generateArtifactComponentDefinition(payload),
+      generate: generateArtifactComponentDefinition,
     },
     {
       type: 'context-config',
       collect: collectContextConfigRecords,
-      generate: (payload: Parameters<typeof generateContextConfigDefinition>[0]) =>
-        generateContextConfigDefinition(payload),
+      generate: generateContextConfigDefinition,
     },
     {
       type: 'trigger',
       collect: collectTriggerRecords,
-      generate: (payload: Parameters<typeof generateTriggerDefinition>[0]) =>
-        generateTriggerDefinition(payload),
+      generate: generateTriggerDefinition,
     },
     {
       type: 'agent',
       collect: collectAgentRecords,
-      generate: (payload: Parameters<typeof generateAgentDefinition>[0]) =>
-        generateAgentDefinition(payload),
+      generate: generateAgentDefinition,
     },
     {
       type: 'project',
       collect: collectProjectRecord,
-      generate: (payload: Parameters<typeof generateProjectDefinition>[0]) =>
-        generateProjectDefinition(payload),
+      generate: generateProjectDefinition,
     },
   ];
 }

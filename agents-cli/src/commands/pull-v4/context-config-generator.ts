@@ -13,14 +13,14 @@ import { z } from 'zod';
 
 import { addObjectEntries, addStringProperty, isPlainObject, toCamelCase } from './utils';
 
-type ContextConfigDefinitionData = {
+interface ContextConfigDefinitionData {
   contextConfigId: string;
   id?: string;
   schema?: Record<string, unknown>;
   headers?: string | { id?: string; name?: string };
   headersSchema?: Record<string, unknown>;
   contextVariables?: Record<string, unknown>;
-};
+}
 
 const ContextConfigSchema = z.looseObject({
   contextConfigId: z.string().nonempty(),

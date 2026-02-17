@@ -19,7 +19,7 @@ import {
   toCamelCase,
 } from './utils';
 
-type ArtifactComponentDefinitionData = {
+interface ArtifactComponentDefinitionData {
   artifactComponentId: string;
   name: string;
   description?: string;
@@ -31,7 +31,7 @@ type ArtifactComponentDefinitionData = {
     component?: string;
     mockData?: Record<string, unknown>;
   };
-};
+}
 
 const ArtifactComponentSchema = z.looseObject({
   artifactComponentId: z.string().nonempty(),
