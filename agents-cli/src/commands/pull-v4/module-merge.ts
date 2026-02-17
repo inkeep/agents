@@ -1,24 +1,8 @@
-import {
-  IndentationText,
-  NewLineKind,
-  Node,
-  Project,
-  QuoteKind,
-  type SourceFile,
-  type Statement,
-  SyntaxKind,
-} from 'ts-morph';
+import { Node, type SourceFile, type Statement, SyntaxKind } from 'ts-morph';
+import { createInMemoryProject } from './utils';
 
 export function mergeGeneratedModule(existingContent: string, generatedContent: string): string {
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
+  const project = createInMemoryProject();
 
   const existingSourceFile = project.createSourceFile('existing.ts', existingContent, {
     overwrite: true,
