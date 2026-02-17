@@ -27,6 +27,6 @@ await runSetup({
   },
   devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
   apiHealthUrl: 'http://localhost:3002/health',
-  isCloud,
+  isCloud: false,
   skipPush,
 });
