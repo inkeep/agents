@@ -5,6 +5,7 @@ import {
   type ObjectLiteralExpression,
   Project,
   QuoteKind,
+  type SourceFile,
   SyntaxKind,
   VariableDeclarationKind,
 } from 'ts-morph';
@@ -52,6 +53,10 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   const sourceFile = project.createSourceFile('context-config-definition.ts', '', {
     overwrite: true,
   });
+
+  if (isFetchDefinitionData(parsed)) {
+    return generateStandaloneFetchDefinition(sourceFile, parsed);
+  }
 
   const headersReference = resolveHeadersReference(parsed);
   const fetchDefinitions = collectFetchDefinitionEntries(parsed.contextVariables);
@@ -292,7 +297,7 @@ function writeFetchDefinition(
     });
   }
 
-  if (value.defaultValue !== undefined) {
+  if (value.defaultValue !== undefined && value.defaultValue !== null) {
     if (typeof value.defaultValue === 'string') {
       addStringProperty(configObject, 'defaultValue', value.defaultValue);
     } else {
@@ -309,6 +314,48 @@ function writeFetchDefinition(
       initializer: toReferenceIdentifier(value.credentialReferenceId),
     });
   }
+}
+
+function generateStandaloneFetchDefinition(
+  sourceFile: SourceFile,
+  data: ParsedContextConfigDefinitionData
+): string {
+  sourceFile.addImportDeclaration({
+    namedImports: ['fetchDefinition'],
+    moduleSpecifier: '@inkeep/agents-core',
+  });
+
+  if (isPlainObject(data.responseSchema)) {
+    sourceFile.addImportDeclaration({
+      namedImports: ['z'],
+      moduleSpecifier: 'zod',
+    });
+  }
+
+  const fetchVarName = toContextConfigVariableName(data.contextConfigId);
+  const variableStatement = sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    declarations: [
+      {
+        name: fetchVarName,
+        initializer: 'fetchDefinition({})',
+      },
+    ],
+  });
+
+  const [declaration] = variableStatement.getDeclarations();
+  if (!declaration) {
+    throw new Error(`Failed to create fetch definition declaration '${fetchVarName}'`);
+  }
+
+  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
+  const configObject = callExpression
+    .getArguments()[0]
+    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  writeFetchDefinition(configObject, data.contextConfigId, data);
+
+  return sourceFile.getFullText().trimEnd();
 }
 
 function convertJsonSchemaToZod(schema: Record<string, unknown>): string {

@@ -1,0 +1,9 @@
+import { fetchDefinition } from '@inkeep/agents-core';
+
+const test = fetchDefinition({
+  id: 'test',
+  fetchConfig: {
+    url: 'test',
+    method: 'GET'
+  }
+});

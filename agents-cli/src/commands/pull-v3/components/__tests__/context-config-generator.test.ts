@@ -516,7 +516,7 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('schema: z.any()');
     });
 
-    it('should handle fetch definition with null/undefined values', () => {
+    it.only('should handle fetch definition with null and undefined values', async () => {
       const dataWithNulls = {
         id: 'test',
         name: null,
@@ -527,7 +527,7 @@ describe('Context Config Generator', () => {
         },
         defaultValue: null,
       };
-
+      const contextConfigId = 'test';
       const definition = generateFetchDefinitionDefinition('test', dataWithNulls);
 
       expect(definition).toContain("id: 'test',");
@@ -535,6 +535,14 @@ describe('Context Config Generator', () => {
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('trigger:');
       expect(definition).not.toContain('defaultValue:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...dataWithNulls });
+      expect(definitionV4).toContain('fetchConfig: {');
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
   });
 });
