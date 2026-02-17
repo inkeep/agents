@@ -1,4 +1,9 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import {
+  type ObjectLiteralExpression,
+  type SourceFile,
+  SyntaxKind,
+  VariableDeclarationKind,
+} from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
@@ -64,6 +69,10 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
     namedImports: ['agent'],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
+
+  const subAgentIds = new Set(extractIds(parsed.subAgents));
+  subAgentIds.add(parsed.defaultSubAgentId);
+  addSubAgentImports(sourceFile, subAgentIds);
 
   const agentVarName = toCamelCase(parsed.agentId);
   const variableStatement = sourceFile.addVariableStatement({
@@ -262,4 +271,13 @@ function extractContextConfigId(contextConfig?: string | { id?: string }): strin
     return contextConfig;
   }
   return contextConfig.id;
+}
+
+function addSubAgentImports(sourceFile: SourceFile, subAgentIds: Set<string>): void {
+  for (const subAgentId of subAgentIds) {
+    sourceFile.addImportDeclaration({
+      namedImports: [toCamelCase(subAgentId)],
+      moduleSpecifier: `./sub-agents/${subAgentId}`,
+    });
+  }
 }
