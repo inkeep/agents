@@ -1,5 +1,5 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey } from 'lucide-react';
+import { ChevronDown, Copy, MoreVertical, Plus, RotateCcwKey } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/settings/change-password-dialog';
@@ -20,7 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
@@ -374,51 +373,33 @@ export function MembersTable({
                     </TableCell>
                     <TableCell />
                     <TableCell className="text-right">
-                      {isOrgAdmin &&
-                        (invitation.authMethod === 'email-password' ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                aria-label="Open actions menu"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const link = `${window.location.origin}/accept-invitation/${invitation.id}?email=${encodeURIComponent(invitation.email)}`;
-                                  navigator.clipboard.writeText(link);
-                                  toast.success('Invite link copied');
-                                }}
-                              >
-                                <Copy className="h-4 w-4" />
-                                Copy invite link
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                              >
-                                <Info className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              User can sign in with{' '}
-                              {invitation.authMethod === 'google' ? 'Google' : 'Inkeep SSO'}
-                            </TooltipContent>
-                          </Tooltip>
-                        ))}
+                      {isOrgAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              aria-label="Open actions menu"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                const link = `${window.location.origin}/accept-invitation/${invitation.id}?email=${encodeURIComponent(invitation.email)}`;
+                                navigator.clipboard.writeText(link);
+                                toast.success('Invite link copied');
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                              Copy invite link
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

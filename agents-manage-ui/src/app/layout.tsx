@@ -104,6 +104,12 @@ const runtimeConfig: RuntimeConfig = {
   PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
   PUBLIC_POSTHOG_SITE_TAG:
     process.env.PUBLIC_POSTHOG_SITE_TAG || process.env.NEXT_PUBLIC_POSTHOG_SITE_TAG,
+  PUBLIC_IS_SMTP_CONFIGURED:
+    process.env.PUBLIC_IS_SMTP_CONFIGURED ||
+    process.env.NEXT_PUBLIC_IS_SMTP_CONFIGURED ||
+    ((process.env.RESEND_API_KEY || process.env.SMTP_HOST) && process.env.SMTP_FROM_ADDRESS
+      ? 'true'
+      : undefined),
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

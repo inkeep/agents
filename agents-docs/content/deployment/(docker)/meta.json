@@ -3,6 +3,7 @@
   "pages": [
     "docker-local",
     "authentication",
+    "email",
     "azure-vm",
     "gcp-compute-engine",
     "gcp-cloud-run",
