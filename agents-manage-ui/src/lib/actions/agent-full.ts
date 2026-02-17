@@ -9,7 +9,6 @@
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
-import { cache } from 'react';
 import {
   ApiError,
   createAgent as apiCreateAgent,
