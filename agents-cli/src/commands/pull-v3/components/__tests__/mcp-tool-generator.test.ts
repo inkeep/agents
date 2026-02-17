@@ -357,7 +357,8 @@ describe('MCP Tool Generator', () => {
     //   expect(definition).toContain('export const _2023McpTool = mcpTool({');
     // });
 
-    it('should handle invalid URLs gracefully', () => {
+    it.only('should handle invalid URLs gracefully', async () => {
+      const mcpToolId = 'invalid';
       const toolData = {
         name: 'Invalid URL Tool',
         config: {
@@ -371,10 +372,12 @@ describe('MCP Tool Generator', () => {
         imageUrl: 'also-not-valid',
       };
 
-      const definition = generateMcpToolDefinition('invalid', toolData);
+      const definition = generateMcpToolDefinition(mcpToolId, toolData);
 
       expect(definition).toContain("serverUrl: 'not-a-valid-url',");
       expect(definition).toContain("imageUrl: 'also-not-valid'");
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
     });
 
     it('should handle null and undefined values gracefully', () => {
