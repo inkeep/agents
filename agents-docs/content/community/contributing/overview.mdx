@@ -44,7 +44,7 @@ This will:
 - Create the admin user for auto-login (`pnpm db:auth:init`)
 
 <Tip>
-`pnpm setup-dev` is idempotent — safe to re-run after pulling new changes, resetting your database, or switching branches. It will apply any new migrations without breaking existing state.
+`pnpm setup-dev` is idempotent — safe to re-run after pulling changes, resetting your database, or switching branches.
 </Tip>
 
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
@@ -100,16 +100,16 @@ inkeep push
 
 # Set up optional services (traces + credentials)
 
-A single command sets up all optional local services — Nango (credential store), SigNoz (trace viewer), OTEL Collector, and Jaeger:
+Set up all optional local services — Nango (credential store), SigNoz (traces), OTEL Collector, and Jaeger — with one command:
 
 ```bash
 pnpm setup-dev:optional
 ```
 
-This automatically clones the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) companion repo, starts all services via Docker Compose, and wires the required env vars to your `.env`. Restart `pnpm dev` to pick up the new variables.
+This clones [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) into `.optional-services/`, starts services via Docker Compose, and writes the required env vars to your `.env`. Restart `pnpm dev` to pick up the new variables.
 
-- **Traces**: Open `http://localhost:3080` to view traces in SigNoz. See [Traces](/get-started/traces) for full instructions.
-- **Credentials**: Create a credential in the Visual Builder (Credentials tab) using Nango Store. See [Use Nango as a credential store](/typescript-sdk/credentials/nango) for full instructions.
+- **Traces**: Open `http://localhost:3080` for SigNoz. See [Traces](/get-started/traces) for details.
+- **Credentials**: Create a credential in the Visual Builder using Nango Store. See [Nango](/typescript-sdk/credentials/nango) for details.
 
 <Snippet file="setup-dev-optional-lifecycle.mdx" />
 

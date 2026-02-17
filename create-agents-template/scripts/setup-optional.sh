@@ -12,7 +12,7 @@
 #   sh scripts/setup-optional.sh --no-update  Skip pulling latest companion changes
 #
 # Environment:
-#   OPTIONAL_SERVICES_DIR  Override companion repo location (default: ../agents-optional-local-dev)
+#   OPTIONAL_SERVICES_DIR  Override companion repo location (default: .optional-services/)
 
 set -e
 
@@ -20,7 +20,7 @@ GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-COMPANION_DIR="${OPTIONAL_SERVICES_DIR:-$REPO_ROOT/../agents-optional-local-dev}"
+COMPANION_DIR="${OPTIONAL_SERVICES_DIR:-$REPO_ROOT/.optional-services}"
 COMPANION_SCRIPT="$COMPANION_DIR/scripts/setup.sh"
 
 # Check if --no-update was passed (consumed here, passed through as no-op)
