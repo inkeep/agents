@@ -1,3 +1,4 @@
+import { jsonSchemaToZod } from 'json-schema-to-zod';
 import {
   IndentationText,
   NewLineKind,
@@ -26,6 +27,23 @@ export function toCamelCase(input: string): string {
     .replace(/^[0-9]/, '_$&');
 
   return result.charAt(0).toLowerCase() + result.slice(1);
+}
+
+export function convertJsonSchemaToZodSafe(
+  schema: unknown,
+  options: {
+    conversionOptions?: Parameters<typeof jsonSchemaToZod>[1];
+  }
+): string {
+  if (!isPlainObject(schema)) {
+    return 'z.any()';
+  }
+
+  try {
+    return jsonSchemaToZod(schema, options?.conversionOptions);
+  } catch {
+    return 'z.any()';
+  }
 }
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {

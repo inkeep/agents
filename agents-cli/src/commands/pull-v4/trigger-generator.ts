@@ -1,14 +1,12 @@
-import {
-  IndentationText,
-  NewLineKind,
-  type ObjectLiteralExpression,
-  Project,
-  QuoteKind,
-  SyntaxKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import { addStringProperty, formatStringLiteral, isPlainObject, toCamelCase } from './utils';
+import {
+  addStringProperty,
+  createInMemoryProject,
+  formatInlineLiteral,
+  isPlainObject,
+  toCamelCase,
+} from './utils';
 
 type TriggerDefinitionData = {
   triggerId: string;
@@ -101,15 +99,7 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
     throw new Error(`Missing required fields for trigger:\n${z.prettifyError(result.error)}`);
   }
 
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
+  const project = createInMemoryProject();
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('trigger-definition.ts', '', { overwrite: true });
@@ -124,12 +114,12 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
   );
   if (credentialReferenceId) {
     sourceFile.addImportDeclaration({
-      namedImports: [toTriggerVariableName(credentialReferenceId)],
+      namedImports: [toCamelCase(credentialReferenceId)],
       moduleSpecifier: `../../credentials/${credentialReferenceId}`,
     });
   }
 
-  const triggerVarName = toTriggerVariableName(parsed.triggerId);
+  const triggerVarName = toCamelCase(parsed.triggerId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
@@ -202,7 +192,7 @@ function writeTriggerConfig(
   if (credentialReferenceId) {
     configObject.addPropertyAssignment({
       name: 'signingSecretCredentialReference',
-      initializer: toTriggerVariableName(credentialReferenceId),
+      initializer: toCamelCase(credentialReferenceId),
     });
   }
 }
@@ -426,50 +416,4 @@ function toAuthenticationEnvVar(headerName: string): string {
     return 'TRIGGER_AUTH_HEADER';
   }
   return `TRIGGER_AUTH_${normalized}`;
-}
-
-function toTriggerVariableName(value: string): string {
-  const variableName = toCamelCase(value);
-  if (!variableName) {
-    return 'triggerDefinition';
-  }
-  return variableName;
-}
-
-function formatPropertyName(key: string): string {
-  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
-    return key;
-  }
-  return formatStringLiteral(key);
-}
-
-function formatInlineLiteral(value: unknown): string {
-  if (typeof value === 'string') {
-    return formatStringLiteral(value);
-  }
-  if (typeof value === 'number' || typeof value === 'bigint') {
-    return String(value);
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  if (value === null) {
-    return 'null';
-  }
-  if (value === undefined) {
-    return 'undefined';
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => formatInlineLiteral(item)).join(', ')}]`;
-  }
-  if (isPlainObject(value)) {
-    const entries = Object.entries(value).filter(([, entryValue]) => entryValue !== undefined);
-    if (entries.length === 0) {
-      return '{}';
-    }
-    return `{ ${entries
-      .map(([key, entryValue]) => `${formatPropertyName(key)}: ${formatInlineLiteral(entryValue)}`)
-      .join(', ')} }`;
-  }
-  return 'undefined';
 }

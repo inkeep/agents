@@ -1,14 +1,12 @@
-import {
-  IndentationText,
-  NewLineKind,
-  type ObjectLiteralExpression,
-  Project,
-  QuoteKind,
-  SyntaxKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import { addObjectEntries, addStringProperty, isPlainObject, toCamelCase } from './utils';
+import {
+  addObjectEntries,
+  addStringProperty,
+  createInMemoryProject,
+  isPlainObject,
+  toCamelCase,
+} from './utils';
 
 interface CredentialDefinitionData {
   credentialId: string;
@@ -36,15 +34,7 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
     throw new Error(`Missing required fields for credential:\n${z.prettifyError(result.error)}`);
   }
 
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
+  const project = createInMemoryProject();
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('credential-definition.ts', '', { overwrite: true });
@@ -53,7 +43,7 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
-  const credentialVarName = toCredentialVariableName(parsed.credentialId);
+  const credentialVarName = toCamelCase(parsed.credentialId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
@@ -105,12 +95,4 @@ function writeCredentialConfig(
     );
     addObjectEntries(retrievalParamsObject, data.retrievalParams);
   }
-}
-
-function toCredentialVariableName(value: string): string {
-  const variableName = toCamelCase(value);
-  if (!variableName) {
-    return 'credentialDefinition';
-  }
-  return variableName;
 }

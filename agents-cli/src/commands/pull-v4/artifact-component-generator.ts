@@ -1,22 +1,16 @@
-import { jsonSchemaToZod } from 'json-schema-to-zod';
-import {
-  IndentationText,
-  NewLineKind,
-  type ObjectLiteralExpression,
-  Project,
-  QuoteKind,
-  SyntaxKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 
 import {
   addObjectEntries,
   addStringProperty,
+  convertJsonSchemaToZodSafe,
+  createInMemoryProject,
   formatPropertyName,
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
+  toCamelCaseOrFallback,
 } from './utils';
 
 interface ArtifactComponentDefinitionData {
@@ -61,15 +55,7 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
 
   const parsed = result.data;
   const schema = parsed.props ?? parsed.schema;
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
+  const project = createInMemoryProject();
 
   const sourceFile = project.createSourceFile('artifact-component-definition.ts', '', {
     overwrite: true,
@@ -94,7 +80,7 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
     });
   }
 
-  const artifactComponentVarName = toCamelCase(parsed.artifactComponentId) || 'artifactComponent';
+  const artifactComponentVarName = toCamelCase(parsed.artifactComponentId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
@@ -213,7 +199,7 @@ function formatArtifactSchema(schema: unknown): string {
         delete propertyWithoutPreview.inPreview;
       }
 
-      const zodType = convertJsonSchemaToZod(propertyWithoutPreview);
+      const zodType = convertJsonSchemaToZodSafe(propertyWithoutPreview);
       const propertyValue =
         isPlainObject(propertySchema) && propertySchema.inPreview === true
           ? `preview(${zodType})`
@@ -231,17 +217,5 @@ function formatArtifactSchema(schema: unknown): string {
     return lines.join('\n');
   }
 
-  return convertJsonSchemaToZod(schema);
-}
-
-function convertJsonSchemaToZod(schema: unknown): string {
-  if (!isPlainObject(schema)) {
-    return 'z.any()';
-  }
-
-  try {
-    return jsonSchemaToZod(schema);
-  } catch {
-    return 'z.any()';
-  }
+  return convertJsonSchemaToZodSafe(schema);
 }

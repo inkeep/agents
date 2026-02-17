@@ -1,17 +1,19 @@
-import { jsonSchemaToZod } from 'json-schema-to-zod';
 import {
-  IndentationText,
-  NewLineKind,
   type ObjectLiteralExpression,
-  Project,
-  QuoteKind,
   type SourceFile,
   SyntaxKind,
   VariableDeclarationKind,
 } from 'ts-morph';
 import { z } from 'zod';
-
-import { addObjectEntries, addStringProperty, isPlainObject, toCamelCase } from './utils';
+import {
+  addObjectEntries,
+  addStringProperty,
+  convertJsonSchemaToZodSafe,
+  createInMemoryProject,
+  formatPropertyName,
+  isPlainObject,
+  toCamelCase,
+} from './utils';
 
 interface ContextConfigDefinitionData {
   contextConfigId: string;
@@ -41,15 +43,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     );
   }
 
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
+  const project = createInMemoryProject();
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('context-config-definition.ts', '', {
@@ -413,15 +407,10 @@ function generateStandaloneFetchDefinition(
 }
 
 function convertJsonSchemaToZod(schema: Record<string, unknown>): string {
-  if (Object.keys(schema).length === 0) {
-    return 'z.any()';
-  }
-
-  try {
-    return jsonSchemaToZod(schema, { module: 'none' });
-  } catch {
-    return 'z.any()';
-  }
+  return convertJsonSchemaToZodSafe(schema, {
+    conversionOptions: { module: 'none' },
+    emptyObjectAsAny: true,
+  });
 }
 
 function formatUnknownLiteral(value: unknown): string {
@@ -473,25 +462,6 @@ function extractContextVariableReference(key: string, value: unknown): string | 
   return toReferenceIdentifier(key);
 }
 
-function toContextConfigVariableName(value: string): string {
-  const variableName = toCamelCase(value);
-  if (!variableName) {
-    return 'contextConfigDefinition';
-  }
-  return variableName;
-}
+const toContextConfigVariableName = toCamelCase;
 
-function toReferenceIdentifier(value: string): string {
-  const identifier = toCamelCase(value);
-  if (!identifier) {
-    return 'contextValue';
-  }
-  return identifier;
-}
-
-function formatPropertyName(key: string): string {
-  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
-    return key;
-  }
-  return `'${key.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
-}
+const toReferenceIdentifier = toCamelCase;
