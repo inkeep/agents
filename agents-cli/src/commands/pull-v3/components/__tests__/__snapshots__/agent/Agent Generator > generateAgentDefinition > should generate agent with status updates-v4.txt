@@ -3,6 +3,8 @@ import { mainAssistant } from './sub-agents/mainAssistant';
 import { helperAgent } from './sub-agents/helperAgent';
 import { coordinatorAgent } from './sub-agents/coordinatorAgent';
 import { complexAgentContext } from '../context-configs/complexAgentContext';
+import { toolSummary } from '../status-components/toolSummary';
+import { progressUpdate } from '../status-components/progressUpdate';
 
 export const complexAgent = agent({
   id: 'complex-agent',
