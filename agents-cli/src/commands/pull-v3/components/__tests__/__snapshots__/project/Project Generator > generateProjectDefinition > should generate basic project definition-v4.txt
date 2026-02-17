@@ -1,4 +1,6 @@
 import { project } from '@inkeep/agents-sdk';
+import { supportAgent } from './agents/supportAgent';
+import { escalationAgent } from './agents/escalationAgent';
 
 export const customerSupportProject = project({
   id: 'customer-support-project',
