@@ -196,17 +196,20 @@ describe('Function Tool Generator', () => {
       await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
     });
 
-    it('should handle execute as simple code block', () => {
+    it.only('should handle execute as simple code block', async () => {
+      const functionToolId = 'simple';
       const toolData = {
         name: 'simple-tool',
         inputSchema: { type: 'object', properties: {} },
         executeCode: 'return { message: "Hello World" };',
       };
 
-      const definition = generateFunctionToolDefinition('simple', toolData);
+      const definition = generateFunctionToolDefinition(functionToolId, toolData);
 
       expect(definition).toContain('execute: async ({}) => {');
       expect(definition).toContain('return { message: "Hello World" };');
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
     });
 
     it('should throw error when no executeCode is provided', () => {
