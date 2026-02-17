@@ -105,18 +105,13 @@ jobs:
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
-      # Build all packages first so heavy compilation doesn't compete with
-      # browser tests (Playwright + Monaco) for CPU on cache-miss runs.
-      - name: Build packages
-        run: pnpm turbo run build --filter='!agents-cookbook-templates'
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
-          CI: true
-
-      # Run lint, typecheck, and test with builds already cached.
+      # Run all CI checks in parallel with Turborepo
       - name: Run CI checks
         id: ci-check
-        run: pnpm check
+        run: |
+          # Run all checks in parallel using Turborepo's dependency graph
+          # This will build once and cache, then run lint, typecheck, and test in parallel
+          pnpm check
         env:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
