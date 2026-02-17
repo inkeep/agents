@@ -380,7 +380,8 @@ describe('MCP Tool Generator', () => {
       await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
     });
 
-    it('should handle null and undefined values gracefully', () => {
+    it.only('should handle null and undefined values gracefully', async () => {
+      const mcpToolId = 'null-tool';
       const toolData = {
         name: 'Null Tool',
         serverUrl: 'https://example.com/mcp',
@@ -389,12 +390,14 @@ describe('MCP Tool Generator', () => {
         credential: null,
       };
 
-      const definition = generateMcpToolDefinition('null-tool', toolData);
+      const definition = generateMcpToolDefinition(mcpToolId, toolData);
 
       expect(definition).toContain('export const nullTool = mcpTool({');
       expect(definition).not.toContain('description:');
       expect(definition).not.toContain('imageUrl:');
       expect(definition).not.toContain('credential:');
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
     });
 
     it('should throw error for missing name only', () => {

@@ -1,0 +1,4 @@
+export const nullTool = mcpTool({
+  id: 'null-tool',
+  name: 'Null Tool'
+});

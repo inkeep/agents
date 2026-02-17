@@ -1,0 +1,7 @@
+import { mcpTool } from '@inkeep/agents-sdk';
+
+export const nullTool = mcpTool({
+  id: 'null-tool',
+  name: 'Null Tool',
+  serverUrl: 'https://example.com/mcp'
+});
