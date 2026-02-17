@@ -242,7 +242,7 @@ describe('create-agents quickstart e2e', () => {
 
         console.log('Waiting for playground to open');
         await page.waitForSelector(
-          '[data-testid="playground-panel"], iframe, [class*="chat"], [class*="playground"]',
+          '[data-testid="playground-panel"], [role="dialog"], [class*="playground"]',
           { timeout: 15000 }
         );
         console.log('Playground panel is visible');
@@ -251,13 +251,13 @@ describe('create-agents quickstart e2e', () => {
       } catch (dashboardError) {
         console.error('Dashboard lap failed:', dashboardError);
         try {
-          const page = browser.contexts()[0]?.pages()[0];
-          if (page) {
+          const activePage = browser.contexts()[0]?.pages()[0];
+          if (activePage) {
             const screenshotPath = path.join(testDir, 'dashboard-failure.png');
-            await page.screenshot({ path: screenshotPath, fullPage: true });
+            await activePage.screenshot({ path: screenshotPath, fullPage: true });
             console.log(`Screenshot saved to: ${screenshotPath}`);
-            console.log(`Current URL: ${page.url()}`);
-            console.log(`Page content: ${await page.content()}`);
+            console.log(`Current URL: ${activePage.url()}`);
+            console.log(`Page content: ${await activePage.content()}`);
           }
         } catch {
           console.error('Failed to capture screenshot');
@@ -267,15 +267,11 @@ describe('create-agents quickstart e2e', () => {
         await browser.close();
         try {
           dashboardProcess.kill('SIGTERM');
-        } catch {
-          // already dead
-        }
+        } catch {}
         await new Promise((resolve) => setTimeout(resolve, 1000));
         try {
           dashboardProcess.kill('SIGKILL');
-        } catch {
-          // already dead
-        }
+        } catch {}
       }
     } catch (error) {
       console.error('Test failed with error:', error);
