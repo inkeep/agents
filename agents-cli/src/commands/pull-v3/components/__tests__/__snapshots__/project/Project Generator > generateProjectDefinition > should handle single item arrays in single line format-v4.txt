@@ -1,4 +1,5 @@
 import { project } from '@inkeep/agents-sdk';
+import { onlyAgent } from './agents/onlyAgent';
 
 export const singleAgentProject = project({
   id: 'single-agent-project',
