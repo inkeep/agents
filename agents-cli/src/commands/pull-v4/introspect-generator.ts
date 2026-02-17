@@ -7,6 +7,7 @@ import { generateContextConfigDefinition } from './context-config-generator';
 import { generateCredentialDefinition } from './credential-generator';
 import { mergeGeneratedModule } from './module-merge';
 import { generateProjectDefinition } from './project-generator';
+import { generateSubAgentDefinition } from './sub-agent-generator';
 import { generateTriggerDefinition } from './trigger-generator';
 
 export interface ProjectPaths {
@@ -137,6 +138,11 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       type: 'trigger',
       collect: collectTriggerRecords,
       generate: generateTriggerDefinition,
+    },
+    {
+      type: 'sub-agent',
+      collect: collectSubAgentRecords,
+      generate: generateSubAgentDefinition,
     },
     {
       type: 'agent',
@@ -279,6 +285,41 @@ function collectAgentRecords(
       } as Parameters<typeof generateAgentDefinition>[0],
     });
   }
+  return records;
+}
+
+function collectSubAgentRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateSubAgentDefinition>[0]>> {
+  if (!context.project.agents) {
+    return [];
+  }
+
+  const records: Array<GenerationRecord<Parameters<typeof generateSubAgentDefinition>[0]>> = [];
+  for (const agentId of context.completeAgentIds) {
+    const agentData = context.project.agents[agentId];
+    const subAgents = asRecord(agentData?.subAgents);
+    if (!subAgents) {
+      continue;
+    }
+
+    for (const [subAgentId, subAgentData] of Object.entries(subAgents)) {
+      const payload = asRecord(subAgentData);
+      if (!payload) {
+        continue;
+      }
+
+      records.push({
+        id: subAgentId,
+        filePath: join(context.paths.agentsDir, 'sub-agents', `${subAgentId}.ts`),
+        payload: {
+          subAgentId,
+          ...payload,
+        } as Parameters<typeof generateSubAgentDefinition>[0],
+      });
+    }
+  }
+
   return records;
 }
 
