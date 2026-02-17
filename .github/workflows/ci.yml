@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16gb
 
     steps:
       - name: Checkout code
