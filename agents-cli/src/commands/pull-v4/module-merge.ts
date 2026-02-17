@@ -103,10 +103,8 @@ function findBestImportTarget(
 ) {
   if (generatedImport.getNamespaceImport()) {
     const namespaceText = generatedImport.getNamespaceImport()?.getText();
-    return (
-      matchingImports.find(
-        (importDeclaration) => importDeclaration.getNamespaceImport()?.getText() === namespaceText
-      ) ?? undefined
+    return matchingImports.find(
+      (importDeclaration) => importDeclaration.getNamespaceImport()?.getText() === namespaceText
     );
   }
 
@@ -198,7 +196,7 @@ function upsertVariableStatement(existingFile: SourceFile, generatedStatement: S
     }
   }
 
-  if (existingStatements.size === 0) {
+  if (!existingStatements.size) {
     appendUniqueStatement(existingFile, generatedStatement.getText());
     return;
   }
