@@ -82,6 +82,9 @@ ${z.prettifyError(result.error)}`);
   if (hasReferences(parsed.artifactComponents)) {
     addReferenceImports(sourceFile, parsed.artifactComponents, './artifact-components');
   }
+  if (hasReferences(parsed.credentialReferences)) {
+    addReferenceImports(sourceFile, parsed.credentialReferences, './credentials');
+  }
 
   const projectVarName = toCamelCase(parsed.projectId);
   const variableStatement = sourceFile.addVariableStatement({
@@ -152,7 +155,11 @@ function writeProjectConfig(
   }
 
   if (hasReferences(data.credentialReferences)) {
-    addReferenceGetterProperty(configObject, 'credentialReferences', data.credentialReferences);
+    addReferenceGetterProperty(
+      configObject,
+      'credentialReferences',
+      toReferenceNames(data.credentialReferences)
+    );
   }
 }
 
