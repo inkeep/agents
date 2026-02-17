@@ -127,8 +127,8 @@ async function generateJwtKeys() {
 
     await writeFile('.env', lines.join('\n'));
     logSuccess('JWT keys generated and added to .env');
-  } catch {
-    logWarning('Failed to generate JWT keys - playground may not work');
+  } catch (error) {
+    logError('Failed to generate JWT keys - playground may not work', error);
     logInfo('You can manually run: pnpm run generate-jwt-keys');
   }
 }
