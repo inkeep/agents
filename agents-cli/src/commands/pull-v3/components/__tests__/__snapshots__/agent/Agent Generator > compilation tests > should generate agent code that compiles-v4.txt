@@ -1,4 +1,6 @@
 import { agent } from '@inkeep/agents-sdk';
+import { personalAssistant } from './sub-agents/personalAssistant';
+import { coordinatesAgent } from './sub-agents/coordinatesAgent';
 
 export const testAgent = agent({
   id: 'test-agent',
