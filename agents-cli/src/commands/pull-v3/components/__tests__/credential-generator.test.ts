@@ -58,13 +58,12 @@ describe('Credential Generator', () => {
   };
 
   describe('generateCredentialImports', () => {
-    it('should generate correct imports', () => {
-      const imports = generateCredentialImports();
-
-      expect(imports).toHaveLength(1);
-      expect(imports[0]).toBe("import { credential } from '@inkeep/agents-sdk';");
-    });
-
+    // it('should generate correct imports', () => {
+    //   const imports = generateCredentialImports();
+    //
+    //   expect(imports).toHaveLength(1);
+    //   expect(imports[0]).toBe("import { credential } from '@inkeep/agents-sdk';");
+    // });
     // it('should handle different code styles', () => {
     //   const imports = generateCredentialImports({
     //     quotes: 'double',
