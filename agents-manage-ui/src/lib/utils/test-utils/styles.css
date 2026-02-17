@@ -11,3 +11,7 @@ body {
   font-family: "TestFont";
   @apply w-fit antialiased;
 }
+
+* {
+  caret-color: transparent !important;
+}

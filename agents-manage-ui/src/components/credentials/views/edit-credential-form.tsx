@@ -5,7 +5,6 @@ import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { CredentialResourcesList } from '@/components/credentials/credential-resources-list';
 import { GenericInput } from '@/components/form/generic-input';
@@ -22,6 +21,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { keyValuePairsToRecord, metadataSchema } from './credential-form-validation';
 

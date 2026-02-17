@@ -3,7 +3,6 @@ import { generateIdFromName } from '@inkeep/agents-core/client-exports';
 import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useRouter } from 'next/navigation';
 import { use, useEffect } from 'react';
-import { toast } from 'sonner';
 import { CredentialForm } from '@/components/credentials/views/credential-form';
 import { CredentialFormInkeepCloud } from '@/components/credentials/views/credential-form-inkeep-cloud';
 import type { CredentialFormOutput } from '@/components/credentials/views/credential-form-validation';
@@ -13,6 +12,7 @@ import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
+import { toast } from '@/lib/toast';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 

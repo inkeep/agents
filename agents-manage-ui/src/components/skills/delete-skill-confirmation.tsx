@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import type { FC } from 'react';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { deleteSkillAction } from '@/lib/actions/skills';
+import { toast } from '@/lib/toast';
 
 interface DeleteSkillConfirmationProps {
   tenantId: string;

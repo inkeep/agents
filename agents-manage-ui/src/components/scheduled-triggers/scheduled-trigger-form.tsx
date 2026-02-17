@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
@@ -28,6 +27,7 @@ import {
   updateScheduledTriggerAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTrigger } from '@/lib/api/scheduled-triggers';
+import { toast } from '@/lib/toast';
 import { DateTimePicker } from './date-time-picker';
 import { FriendlyScheduleBuilder } from './friendly-schedule-builder';
 

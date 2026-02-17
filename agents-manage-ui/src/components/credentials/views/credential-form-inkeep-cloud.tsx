@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { GenericSelect } from '@/components/form/generic-select';
@@ -14,6 +13,7 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { toast } from '@/lib/toast';
 import {
   type CredentialFormData,
   type CredentialFormOutput,

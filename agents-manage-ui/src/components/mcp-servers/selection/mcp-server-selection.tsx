@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
 import {
@@ -17,6 +16,7 @@ import type { Credential } from '@/lib/api/credentials';
 import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
+import { toast } from '@/lib/toast';
 import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
 import { WorkAppGitHubCard } from './work-app-github-card';

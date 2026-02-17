@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';

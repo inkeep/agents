@@ -4,7 +4,6 @@ import { ArrowLeft, ArrowUpRight, Building2, RefreshCw, User } from 'lucide-reac
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { DisconnectInstallationDialog } from '@/components/settings/work-app-github-disconnect-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ import {
   fetchWorkAppGitHubInstallationDetail,
   syncWorkAppGitHubRepositories,
 } from '@/lib/api/github';
+import { toast } from '@/lib/toast';
 import { formatDate, formatDateTimeTable } from '@/lib/utils/format-date';
 import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import GitHubInstallationDetailLoading from './loading';

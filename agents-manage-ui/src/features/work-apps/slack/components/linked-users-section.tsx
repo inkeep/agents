@@ -11,7 +11,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { toast } from '@/lib/toast';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { useSlackLinkedUsersQuery, useSlackUnlinkUserMutation } from '../api/queries';
 import { slackApi } from '../api/slack-api';

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
+import { toast } from '@/lib/toast';
 
 interface ChangePasswordDialogProps {
   open: boolean;

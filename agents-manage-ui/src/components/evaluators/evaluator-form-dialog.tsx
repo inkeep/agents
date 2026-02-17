@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
@@ -25,6 +24,7 @@ import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/eval
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { evaluatorSchemaTemplate, providerOptionsTemplate } from '@/lib/templates';
+import { toast } from '@/lib/toast';
 import { PassCriteriaBuilder } from './pass-criteria-builder';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
 

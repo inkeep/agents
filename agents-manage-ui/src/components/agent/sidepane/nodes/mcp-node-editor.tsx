@@ -3,7 +3,6 @@ import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'l
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,6 +19,7 @@ import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
+import { toast } from '@/lib/toast';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {

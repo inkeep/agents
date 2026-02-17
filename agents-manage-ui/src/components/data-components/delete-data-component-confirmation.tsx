@@ -2,9 +2,9 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { deleteDataComponentAction } from '@/lib/actions/data-components';
+import { toast } from '@/lib/toast';
 
 interface DeleteDataComponentConfirmationProps {
   dataComponentId: string;

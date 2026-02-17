@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo } from 'react';
 import { useController, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -25,6 +24,7 @@ import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
+import { toast } from '@/lib/toast';
 import type { Agent } from '@/lib/types/agent-full';
 import {
   type DatasetRunConfigFormData,

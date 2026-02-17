@@ -2,7 +2,6 @@
 
 import { Info, Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/editors/code-editor';
 import { JsonEditor } from '@/components/editors/json-editor';
@@ -20,6 +19,7 @@ import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useProject } from '@/contexts/project';
 import { updateDataComponent } from '@/lib/api/data-components';
+import { toast } from '@/lib/toast';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {

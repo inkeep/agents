@@ -1,7 +1,6 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
 import { Spline, Trash2 } from 'lucide-react';
 import { useCallback } from 'react';
-import { toast } from 'sonner';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { toast } from '@/lib/toast';
 import { getCycleErrorMessage, wouldCreateCycle } from '@/lib/utils/cycle-detection';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 

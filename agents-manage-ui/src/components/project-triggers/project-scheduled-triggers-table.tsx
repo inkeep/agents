@@ -4,7 +4,6 @@ import { Clock, History, MoreHorizontal, Pencil, Play, Trash2 } from 'lucide-rea
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +28,7 @@ import {
   updateScheduledTriggerEnabledAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
+import { toast } from '@/lib/toast';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 

@@ -3,11 +3,11 @@
 import { Layers2, Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
+import { toast } from '@/lib/toast';
 import { getAllAgentsForSlack } from '../../actions/agents';
 import { slackApi } from '../../api/slack-api';
 import { useSlack } from '../../context/slack-provider';

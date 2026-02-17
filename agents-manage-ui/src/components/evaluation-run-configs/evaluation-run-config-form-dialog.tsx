@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
@@ -37,6 +36,7 @@ import {
   useEvaluationSuiteConfigQuery,
 } from '@/lib/query/evaluation-suite-configs';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
+import { toast } from '@/lib/toast';
 import type { Agent } from '@/lib/types/agent-full';
 
 const evaluationRunConfigSchema = z.object({

@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, type ReactNode, use, useCallback } from 'react';
-import { toast } from 'sonner';
 import { useAuthSession } from '@/hooks/use-auth';
+import { toast } from '@/lib/toast';
 import { useSlackUninstallWorkspaceMutation, useSlackWorkspacesQuery } from '../api/queries';
 import { slackApi } from '../api/slack-api';
 

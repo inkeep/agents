@@ -15,7 +15,6 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -39,6 +38,7 @@ import {
   rerunScheduledTriggerInvocationAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocationWithContext } from '@/lib/api/project-triggers';
+import { toast } from '@/lib/toast';
 
 const POLLING_INTERVAL_MS = 3000;
 

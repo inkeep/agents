@@ -3,7 +3,6 @@
 import { Building2, ExternalLink, Github, Loader2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,6 +30,7 @@ import {
   type WorkAppGitHubRepository,
 } from '@/lib/api/github';
 import { createMCPTool } from '@/lib/api/tools';
+import { toast } from '@/lib/toast';
 import { generateId } from '@/lib/utils/id-utils';
 
 interface WorkAppGitHubRepositoryConfigDialogProps {

@@ -11,7 +11,6 @@ import {
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
@@ -27,6 +26,7 @@ import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
+import { toast } from '@/lib/toast';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
