@@ -12,14 +12,14 @@ importers:
   .:
     dependencies:
       '@inkeep/agents-core':
-        specifier: ^0.48.3
-        version: 0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+        specifier: ^0.48.4
+        version: 0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@inkeep/agents-manage-ui':
-        specifier: ^0.48.3
-        version: 0.48.3(53c15c9715b808d4f29f3f67e7d5118f)
+        specifier: ^0.48.4
+        version: 0.48.4(53c15c9715b808d4f29f3f67e7d5118f)
       '@inkeep/agents-sdk':
-        specifier: ^0.48.3
-        version: 0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)
+        specifier: ^0.48.4
+        version: 0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)
       '@tailwindcss/vite':
         specifier: ^4.1.14
         version: 4.1.18(vite@7.3.1(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
@@ -34,8 +34,8 @@ importers:
         version: 4.3.6
     devDependencies:
       '@inkeep/agents-cli':
-        specifier: ^0.48.3
-        version: 0.48.3(85f8fc9933c6195003241530e8c6c79d)
+        specifier: ^0.48.4
+        version: 0.48.4(1033c8e79d816447cb491e884584a3bd)
       '@types/node':
         specifier: ^22.13.14
         version: 22.19.11
@@ -67,8 +67,8 @@ importers:
         specifier: ^1.1.5
         version: 1.2.2(hono@4.11.9)(zod@4.3.6)
       '@inkeep/agents-api':
-        specifier: ^0.48.3
-        version: 0.48.3(78a5488bf5fb7a0b8d50f7d5e0b16266)
+        specifier: ^0.48.4
+        version: 0.48.4(78a5488bf5fb7a0b8d50f7d5e0b16266)
       hono:
         specifier: ^4.11.7
         version: 4.11.9
@@ -612,20 +612,20 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@chevrotain/cst-dts-gen@11.0.3':
-    resolution: {integrity: sha512-BvIKpRLeS/8UbfxXxgC33xOumsacaeCKAjAeLyOn7Pcp95HiRbrpl14S+9vaZLolnbssPIUuiUd8IvgkRyt6NQ==}
+  '@chevrotain/cst-dts-gen@11.1.1':
+    resolution: {integrity: sha512-fRHyv6/f542qQqiRGalrfJl/evD39mAvbJLCekPazhiextEatq1Jx1K/i9gSd5NNO0ds03ek0Cbo/4uVKmOBcw==}
 
-  '@chevrotain/gast@11.0.3':
-    resolution: {integrity: sha512-+qNfcoNk70PyS/uxmj3li5NiECO+2YKZZQMbmjTqRI3Qchu8Hig/Q9vgkHpI3alNjr7M+a2St5pw5w5F6NL5/Q==}
+  '@chevrotain/gast@11.1.1':
+    resolution: {integrity: sha512-Ko/5vPEYy1vn5CbCjjvnSO4U7GgxyGm+dfUZZJIWTlQFkXkyym0jFYrWEU10hyCjrA7rQtiHtBr0EaZqvHFZvg==}
 
-  '@chevrotain/regexp-to-ast@11.0.3':
-    resolution: {integrity: sha512-1fMHaBZxLFvWI067AVbGJav1eRY7N8DDvYCTwGBiE/ytKBgP8azTdgyrKyWZ9Mfh09eHWb5PgTSO8wi7U824RA==}
+  '@chevrotain/regexp-to-ast@11.1.1':
+    resolution: {integrity: sha512-ctRw1OKSXkOrR8VTvOxrQ5USEc4sNrfwXHa1NuTcR7wre4YbjPcKw+82C2uylg/TEwFRgwLmbhlln4qkmDyteg==}
 
-  '@chevrotain/types@11.0.3':
-    resolution: {integrity: sha512-gsiM3G8b58kZC2HaWR50gu6Y1440cHiJ+i3JUvcp/35JchYejb2+5MVeJK0iKThYpAa/P2PYFV4hoi44HD+aHQ==}
+  '@chevrotain/types@11.1.1':
+    resolution: {integrity: sha512-wb2ToxG8LkgPYnKe9FH8oGn3TMCBdnwiuNC5l5y+CtlaVRbCytU0kbVsk6CGrqTL4ZN4ksJa0TXOYbxpbthtqw==}
 
-  '@chevrotain/utils@11.0.3':
-    resolution: {integrity: sha512-YslZMgtJUyuMbZ+aKvfF3x1f5liK4mWNxghFRv7jqRR9C3R3fAOGTTKvxXDa2Y1s9zSbcpuO0cAxDYsc9SrXoQ==}
+  '@chevrotain/utils@11.1.1':
+    resolution: {integrity: sha512-71eTYMzYXYSFPrbg/ZwftSaSDld7UYlS8OQa3lNnn9jzNtpFbaReRRyghzqS7rI3CDaorqpPJJcXGHK+FE1TVQ==}
 
   '@clack/core@0.5.0':
     resolution: {integrity: sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow==}
@@ -1583,47 +1583,47 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@inkeep/agents-api@0.48.3':
-    resolution: {integrity: sha512-A/VkdP9x3KvcN0DGxPJ4mC0S56XicV8l1JViyagC4DWeQt9+JDrz8Ue55zEMIqrBfezahVyUZ2u8CZQp9ecMEQ==}
+  '@inkeep/agents-api@0.48.4':
+    resolution: {integrity: sha512-+2H7thBs7HSD6Sm1ZNQYdPDZijp9HWNKufSsJw2dp+/5b/NTGOwCoZcTacu+lZCw6pM1zL0jD9GxIvV2TYGJsw==}
     peerDependencies:
       '@hono/zod-openapi': ^1.1.5
       zod: ^4.3.6
 
-  '@inkeep/agents-cli@0.48.3':
-    resolution: {integrity: sha512-9z2jqb3wP6wYxMe7Ix7fMMCAuSlp4fIX5PRFPCmzI/BmrPgineaYgOLIE+eosvh2gdSNU30eM1qtocs5D4yeMQ==}
+  '@inkeep/agents-cli@0.48.4':
+    resolution: {integrity: sha512-18L1aJFMZ7FPGI26EDf0DV7c3gQt+gxAFB7zRa0SxrotpIVEAo6p2i2Z0uxSB2EtoV7Om3kiBwgnxiR5Ha7aGg==}
     hasBin: true
     peerDependencies:
       '@inkeep/agents-manage-ui': '*'
 
-  '@inkeep/agents-core@0.48.3':
-    resolution: {integrity: sha512-/aB/jm/dmNdoPtjrzXwSwwQ1BrBZ0xn2j1WKODLsx/km9T3ChLn+ucdvPMT350YXgEcJDqCg+/V6GmfwuZJfww==}
+  '@inkeep/agents-core@0.48.4':
+    resolution: {integrity: sha512-maBuKCphIQtnc88hFjVpPiCkfO+2ZlegS7UI3FPHrM1J8EantL/sPCwJXkUCF7zoVUDioDKG/mcuNZSitJYnIg==}
     engines: {node: '>=22.18.0'}
     peerDependencies:
       '@hono/zod-openapi': ^1.1.5
       zod: ^4.3.6
 
-  '@inkeep/agents-manage-mcp@0.48.3':
-    resolution: {integrity: sha512-8HqfWMB1YOapBJaChXDkN3HKI3OwA7+OAHCYapHRSzgo6JikNoqHZ0mPE91sr3zIKEBXH8h3LhRIEvRXxJBTmg==}
+  '@inkeep/agents-manage-mcp@0.48.4':
+    resolution: {integrity: sha512-YG5dzxU8fzRF0+E4jc1woWL1l/n6hA9Hkq/Qlw3ElZkthet6pqBj+ERwR12QxBycUPghathTCPnzrG8RZdpkUA==}
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': 1.24.3
 
-  '@inkeep/agents-manage-ui@0.48.3':
-    resolution: {integrity: sha512-eXYpJO+uLm8UUjPoJbnM+i0cDHzKfuAcmnxbsMVJiSWHEKLuTKkeKJduPK5EiEA/xyAjn9qeAjGW9lTkw6V7kQ==}
+  '@inkeep/agents-manage-ui@0.48.4':
+    resolution: {integrity: sha512-xHTUGWP5YVx+5hEXvYGPvlbqtDDtwCMTpHRRodIn3QtD47wXICwc+5hYNFj7Ynw78DpPvlRALAAyl5aCWVIksA==}
 
-  '@inkeep/agents-mcp@0.48.3':
-    resolution: {integrity: sha512-Nfo3CrI5O0uVGR9VCKC8eWMq67D5HOGq5F7J6/TuxMxlPXP24wln0Vcz/sJSOwEY6zi76EXI+mUSQBhZXgnfZQ==}
+  '@inkeep/agents-mcp@0.48.4':
+    resolution: {integrity: sha512-UtfBDYzDzr6Gt3H3ukwPhfZ0PuCSCGFn56EgNk0HiHgoxrdCD0eb0keTKuMGrY7nSvqOSlNBdtQkMcXdJEbDkA==}
     hasBin: true
 
-  '@inkeep/agents-sdk@0.48.3':
-    resolution: {integrity: sha512-AO6fP4G8KOlczX3XnP/hJP/U6MkydjRfiNxgW3vBW8w0u/bAhbFeSmDtZIj8X0MXoON3VQJGkeLdOJV6YqHurg==}
+  '@inkeep/agents-sdk@0.48.4':
+    resolution: {integrity: sha512-ocoB2bWLGFVkXQjy5soaPmfc7EB9Mnl5s1fIVmY/xs8sk+MQCsngpxoNoR+vz/UiZaa/jD/qdiIyApebs08v0A==}
     engines: {node: '>=22.18.0'}
 
   '@inkeep/agents-ui@0.15.12':
     resolution: {integrity: sha512-EKyuIh4qDONqtUACEUXPzkJqbXBxLQEvzKMn4ozCepidF08qtYhgrKIdF9nR3C9Qannx7oYSpcH0DUNdXgilUg==}
 
-  '@inkeep/agents-work-apps@0.48.3':
-    resolution: {integrity: sha512-/2NrXSiv7jMDsxLnmbBzPdDgR4uhGHLumhbYEQ7O7GQhtTI0CJwzEQnQqHx957pzR+7XPUdVFDiRIKkKnSijeA==}
+  '@inkeep/agents-work-apps@0.48.4':
+    resolution: {integrity: sha512-VXaRXxhk6D1Z2TxC4ug9zK3KGySd+XZ3AxIEixJyXubaP1t2rmaka3R+KfFJKGZ64MFMaXBrO3QcRyYxF57STw==}
     engines: {node: '>=22.18.0'}
     peerDependencies:
       '@hono/zod-openapi': ^1.1.5
@@ -1724,8 +1724,8 @@ packages:
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
 
-  '@mermaid-js/parser@0.6.3':
-    resolution: {integrity: sha512-lnjOhe7zyHjc+If7yT4zoedx2vo4sHaTmtkl1+or8BRTnCtDmcTpAjpzDSfCZrshM5bCoz0GyidzadJAH1xobA==}
+  '@mermaid-js/parser@1.0.0':
+    resolution: {integrity: sha512-vvK0Hi/VWndxoh03Mmz6wa1KDriSPjS2XMZL/1l19HFwygiObEEoEwSDxOqyLzzAI6J2PU3261JjTMTO7x+BPw==}
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
@@ -3145,8 +3145,8 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
 
-  '@opentelemetry/resource-detector-aws@2.11.0':
-    resolution: {integrity: sha512-Wphbm9fGyinMLC8BiLU/5aK6yG191ws2q2SN4biCcQZQCTo6yEij4ka+fXQXAiLMGSzb5w8wa/FxOn/7KWPiSQ==}
+  '@opentelemetry/resource-detector-aws@2.12.0':
+    resolution: {integrity: sha512-VelueKblsnQEiBVqEYcvM9VEb+B8zN6nftltdO9HAD7qi/OlicP4z/UGJ9EeW2m++WabdMoj0G3QVL8YV0P9tw==}
     engines: {node: ^18.19.0 || >=20.6.0}
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
@@ -6188,8 +6188,8 @@ packages:
   axios@1.13.5:
     resolution: {integrity: sha512-cz4ur7Vb0xS4/KUN0tPWe44eqxrIu31me+fbang3ijiNscE129POzipJJA6zniq2C/Z6sJCjMimjS8Lc/GAs8Q==}
 
-  b4a@1.7.4:
-    resolution: {integrity: sha512-u20zJLDaSWpxaZ+zaAkEIB2dZZ1o+DF4T/MRbmsvGp9nletHOyiai19OzX1fF8xUBYsO1bPXxODvcd0978pnug==}
+  b4a@1.7.5:
+    resolution: {integrity: sha512-iEsKNwDh1wiWTps1/hdkNdmBgDlDVZP5U57ZVOlt+dNFqpc/lpPouCIxZw+DYBgc4P9NDfIZMPNR4CHNhzwLIA==}
     peerDependencies:
       react-native-b4a: '*'
     peerDependenciesMeta:
@@ -6475,8 +6475,8 @@ packages:
     peerDependencies:
       chevrotain: ^11.0.0
 
-  chevrotain@11.0.3:
-    resolution: {integrity: sha512-ci2iJH6LeIkvP9eJW6gpueU8cnZhv85ELY8w8WiFtNjMHA5ad6pQLaJo9mEly/9qUyCpvqX8/POVUTf18/HFdw==}
+  chevrotain@11.1.1:
+    resolution: {integrity: sha512-f0yv5CPKaFxfsPTBzX7vGuim4oIC1/gcS7LUGdBSwl2dU6+FON6LVUksdOo1qJjoUvXNn45urgh8C+0a24pACQ==}
 
   chokidar@3.6.0:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
@@ -8299,9 +8299,9 @@ packages:
     resolution: {integrity: sha512-mtwfsNGIYvObRh+NYNGlJQJDiBN+Wr3Hnr++wN25mxuOpSTdXX+JQqVCyAqGL5GD2TAXRZ7COsN42Vmp9krYmg==}
     engines: {node: '>=18'}
 
-  langium@3.3.1:
-    resolution: {integrity: sha512-QJv/h939gDpvT+9SiLVlY7tZC3xB2qK57v0J04Sh9wpMb6MP1q8gB21L3WIo8T5P1MSMg3Ep14L7KkDCFG3y4w==}
-    engines: {node: '>=16.0.0'}
+  langium@4.2.1:
+    resolution: {integrity: sha512-zu9QWmjpzJcomzdJQAHgDVhLGq5bLosVak1KVa40NzQHXfqr4eAHupvnPOVXEoLkg6Ocefvf/93d//SB7du4YQ==}
+    engines: {node: '>=20.10.0', npm: '>=10.2.3'}
 
   layout-base@1.0.2:
     resolution: {integrity: sha512-8h2oVEZNktL4BH2JCOI90iD1yXwL6iNW7KcCKT2QZgQJR2vbqDsldCTPRU9NifTCqHZci57XvQQ15YTu+sTYPg==}
@@ -8409,9 +8409,6 @@ packages:
   locate-path@7.2.0:
     resolution: {integrity: sha512-gvVijfZvn7R+2qyPX8mAuKcFGDf6Nc61GdvGafQsHL0sBIxfKzA+usWn4GFC/bk+QdwPUD4kWFJLhElipq+0VA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
-  lodash-es@4.17.21:
-    resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
 
   lodash-es@4.17.23:
     resolution: {integrity: sha512-kVI48u3PZr38HdYz98UmfPnXl2DXrpdctLrFLCd3kOx1xUkOmpFPx7gCWWM5MPkL/fD8zb+Ph0QzjGFs4+hHWg==}
@@ -8591,8 +8588,8 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
-  mermaid@11.12.2:
-    resolution: {integrity: sha512-n34QPDPEKmaeCG4WDMGy0OT6PSyxKCfy2pJgShP+Qow2KLrvWjclwbc3yXfSIf4BanqWEhQEpngWwNp/XhZt6w==}
+  mermaid@11.12.3:
+    resolution: {integrity: sha512-wN5ZSgJQIC+CHJut9xaKWsknLxaFBwCPwPkGTSUYrTiHORWvpT8RxGk849HPnpUAQ+/9BPRqYb80jTpearrHzQ==}
 
   methods@1.1.2:
     resolution: {integrity: sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==}
@@ -8755,8 +8752,8 @@ packages:
     resolution: {integrity: sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  minimatch@10.2.0:
-    resolution: {integrity: sha512-ugkC31VaVg9cF0DFVoADH12k6061zNZkZON+aX8AWsR9GhPcErkcMBceb6znR8wLERM2AkkOxy2nWRLpT9Jq5w==}
+  minimatch@10.2.1:
+    resolution: {integrity: sha512-MClCe8IL5nRRmawL6ib/eT4oLyeKMGCghibcDWK+J0hh0Q8kqSdia6BvbRMVk6mPa6WqUa5uR2oxt6C5jd533A==}
     engines: {node: 20 || >=22}
 
   minimatch@3.1.2:
@@ -10760,8 +10757,8 @@ packages:
     resolution: {integrity: sha512-woByF3PDpkHFUreUa7Hos7+pUWdeWMXRd26+ZX2A8cFx6v/JPTtd4/uN0/jB6XQHYaOlHbio03NTHCqrgG5n7g==}
     hasBin: true
 
-  vscode-uri@3.0.8:
-    resolution: {integrity: sha512-AyFQ0EVmsOZOlAnxoFOGOq1SQDWAB7C6aqMGS23svWAllfOaxbuFvcT8D1i8z3Gyn8fraVeZNNmN6e9bxxXkKw==}
+  vscode-uri@3.1.0:
+    resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
 
   w3c-xmlserializer@5.0.0:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
@@ -11845,22 +11842,22 @@ snapshots:
   '@cbor-extract/cbor-extract-win32-x64@2.2.0':
     optional: true
 
-  '@chevrotain/cst-dts-gen@11.0.3':
+  '@chevrotain/cst-dts-gen@11.1.1':
     dependencies:
-      '@chevrotain/gast': 11.0.3
-      '@chevrotain/types': 11.0.3
-      lodash-es: 4.17.21
+      '@chevrotain/gast': 11.1.1
+      '@chevrotain/types': 11.1.1
+      lodash-es: 4.17.23
 
-  '@chevrotain/gast@11.0.3':
+  '@chevrotain/gast@11.1.1':
     dependencies:
-      '@chevrotain/types': 11.0.3
-      lodash-es: 4.17.21
+      '@chevrotain/types': 11.1.1
+      lodash-es: 4.17.23
 
-  '@chevrotain/regexp-to-ast@11.0.3': {}
+  '@chevrotain/regexp-to-ast@11.1.1': {}
 
-  '@chevrotain/types@11.0.3': {}
+  '@chevrotain/types@11.1.1': {}
 
-  '@chevrotain/utils@11.0.3': {}
+  '@chevrotain/utils@11.1.1': {}
 
   '@clack/core@0.5.0':
     dependencies:
@@ -12495,16 +12492,16 @@ snapshots:
   '@img/sharp-win32-x64@0.34.5':
     optional: true
 
-  '@inkeep/agents-api@0.48.3(78a5488bf5fb7a0b8d50f7d5e0b16266)':
+  '@inkeep/agents-api@0.48.4(78a5488bf5fb7a0b8d50f7d5e0b16266)':
     dependencies:
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
       '@hono/mcp': 0.1.5(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(hono@4.11.9)
       '@hono/swagger-ui': 0.5.3(hono@4.11.9)
       '@hono/zod-openapi': 1.2.2(hono@4.11.9)(zod@4.3.6)
-      '@inkeep/agents-core': 0.48.3(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
-      '@inkeep/agents-manage-mcp': 0.48.3(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))
-      '@inkeep/agents-mcp': 0.48.3
-      '@inkeep/agents-work-apps': 0.48.3(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.15)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@inkeep/agents-core': 0.48.4(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@inkeep/agents-manage-mcp': 0.48.4(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))
+      '@inkeep/agents-mcp': 0.48.4
+      '@inkeep/agents-work-apps': 0.48.4(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.15)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/auto-instrumentations-node': 0.64.6(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))
@@ -12599,15 +12596,15 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-cli@0.48.3(85f8fc9933c6195003241530e8c6c79d)':
+  '@inkeep/agents-cli@0.48.4(1033c8e79d816447cb491e884584a3bd)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@clack/prompts': 0.11.0
-      '@inkeep/agents-core': 0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
-      '@inkeep/agents-manage-ui': 0.48.3(53c15c9715b808d4f29f3f67e7d5118f)
-      '@inkeep/agents-sdk': 0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)
+      '@inkeep/agents-core': 0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@inkeep/agents-manage-ui': 0.48.4(53c15c9715b808d4f29f3f67e7d5118f)
+      '@inkeep/agents-sdk': 0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)
       '@vercel/otel': 2.1.1(@opentelemetry/api-logs@0.211.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.211.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))
       ai: 6.0.14(zod@4.3.6)
       chalk: 5.6.2
@@ -12681,7 +12678,7 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-core@0.48.3(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
+  '@inkeep/agents-core@0.48.4(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/azure': 3.0.30(zod@4.3.6)
@@ -12689,6 +12686,7 @@ snapshots:
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@ai-sdk/openai-compatible': 2.0.4(zod@4.3.6)
+      '@ai-sdk/provider': 3.0.2
       '@authzed/authzed-node': 1.6.1
       '@babel/parser': 7.29.0
       '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.9)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.11)(pg@8.18.0)(postgres@3.4.8))(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)))
@@ -12782,7 +12780,7 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-core@0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
+  '@inkeep/agents-core@0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/azure': 3.0.30(zod@4.3.6)
@@ -12790,6 +12788,7 @@ snapshots:
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@ai-sdk/openai-compatible': 2.0.4(zod@4.3.6)
+      '@ai-sdk/provider': 3.0.2
       '@authzed/authzed-node': 1.6.1
       '@babel/parser': 7.29.0
       '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.9)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.11)(pg@8.18.0)(postgres@3.4.8))(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)))
@@ -12883,7 +12882,7 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-manage-mcp@0.48.3(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))':
+  '@inkeep/agents-manage-mcp@0.48.4(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))':
     dependencies:
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@stricli/core': 1.2.5
@@ -12893,11 +12892,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@inkeep/agents-manage-ui@0.48.3(53c15c9715b808d4f29f3f67e7d5118f)':
+  '@inkeep/agents-manage-ui@0.48.4(53c15c9715b808d4f29f3f67e7d5118f)':
     dependencies:
       '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.9)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.11)(pg@8.18.0)(postgres@3.4.8))(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)))
       '@hookform/resolvers': 5.2.2(react-hook-form@7.71.1(react@19.3.0-canary-87ae75b3-20260128))
-      '@inkeep/agents-core': 0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@inkeep/agents-core': 0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@inkeep/agents-ui': 0.15.12(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
       '@nangohq/frontend': 0.69.35
       '@nangohq/node': 0.69.35
@@ -13036,7 +13035,7 @@ snapshots:
       - webpack
       - ws
 
-  '@inkeep/agents-mcp@0.48.3':
+  '@inkeep/agents-mcp@0.48.4':
     dependencies:
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@stricli/core': 1.2.5
@@ -13047,9 +13046,9 @@ snapshots:
       - '@cfworker/json-schema'
       - supports-color
 
-  '@inkeep/agents-sdk@0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)':
+  '@inkeep/agents-sdk@0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)':
     dependencies:
-      '@inkeep/agents-core': 0.48.3(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@inkeep/agents-core': 0.48.4(@aws-sdk/credential-provider-web-identity@3.972.8)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@yarnpkg/lockfile': 1.1.0
       js-yaml: 4.1.1
       simplematter: 1.0.1
@@ -13239,10 +13238,10 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-work-apps@0.48.3(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.15)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
+  '@inkeep/agents-work-apps@0.48.4(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.15)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(pg@8.18.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@hono/zod-openapi': 1.2.2(hono@4.11.9)(zod@4.3.6)
-      '@inkeep/agents-core': 0.48.3(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@inkeep/agents-core': 0.48.4(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.982.0))(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.2(hono@4.11.9)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.9)(kysely@0.28.11)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.2.0(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@nangohq/node': 0.69.35
       '@octokit/auth-app': 8.2.0
@@ -13254,7 +13253,7 @@ snapshots:
       fetch-to-node: 2.1.0
       hono: 4.11.9
       jose: 6.1.3
-      minimatch: 10.2.0
+      minimatch: 10.2.1
       slack-block-builder: 2.8.0
       zod: 4.3.6
     transitivePeerDependencies:
@@ -13417,9 +13416,9 @@ snapshots:
 
   '@lukeed/csprng@1.1.0': {}
 
-  '@mermaid-js/parser@0.6.3':
+  '@mermaid-js/parser@1.0.0':
     dependencies:
-      langium: 3.3.1
+      langium: 4.2.1
 
   '@mjackson/node-fetch-server@0.2.0': {}
 
@@ -13925,7 +13924,7 @@ snapshots:
       '@opentelemetry/instrumentation-undici': 0.14.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/instrumentation-winston': 0.48.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-alibaba-cloud': 0.31.11(@opentelemetry/api@1.9.0)
-      '@opentelemetry/resource-detector-aws': 2.11.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resource-detector-aws': 2.12.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-azure': 0.10.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-container': 0.7.11(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-gcp': 0.37.0(@opentelemetry/api@1.9.0)
@@ -13982,7 +13981,7 @@ snapshots:
       '@opentelemetry/instrumentation-undici': 0.16.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/instrumentation-winston': 0.50.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-alibaba-cloud': 0.31.11(@opentelemetry/api@1.9.0)
-      '@opentelemetry/resource-detector-aws': 2.11.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resource-detector-aws': 2.12.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-azure': 0.13.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-container': 0.7.11(@opentelemetry/api@1.9.0)
       '@opentelemetry/resource-detector-gcp': 0.40.3(@opentelemetry/api@1.9.0)
@@ -15340,7 +15339,7 @@ snapshots:
       '@opentelemetry/core': 2.5.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 2.5.1(@opentelemetry/api@1.9.0)
 
-  '@opentelemetry/resource-detector-aws@2.11.0(@opentelemetry/api@1.9.0)':
+  '@opentelemetry/resource-detector-aws@2.12.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 2.5.1(@opentelemetry/api@1.9.0)
@@ -18219,7 +18218,7 @@ snapshots:
   '@ts-morph/common@0.27.0':
     dependencies:
       fast-glob: 3.3.3
-      minimatch: 10.2.0
+      minimatch: 10.2.1
       path-browserify: 1.0.1
 
   '@tybys/wasm-util@0.10.1':
@@ -19485,7 +19484,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  b4a@1.7.4: {}
+  b4a@1.7.5: {}
 
   babel-plugin-react-compiler@1.0.0:
     dependencies:
@@ -19799,19 +19798,19 @@ snapshots:
   check-error@2.1.3:
     optional: true
 
-  chevrotain-allstar@0.3.1(chevrotain@11.0.3):
+  chevrotain-allstar@0.3.1(chevrotain@11.1.1):
     dependencies:
-      chevrotain: 11.0.3
+      chevrotain: 11.1.1
       lodash-es: 4.17.23
 
-  chevrotain@11.0.3:
+  chevrotain@11.1.1:
     dependencies:
-      '@chevrotain/cst-dts-gen': 11.0.3
-      '@chevrotain/gast': 11.0.3
-      '@chevrotain/regexp-to-ast': 11.0.3
-      '@chevrotain/types': 11.0.3
-      '@chevrotain/utils': 11.0.3
-      lodash-es: 4.17.21
+      '@chevrotain/cst-dts-gen': 11.1.1
+      '@chevrotain/gast': 11.1.1
+      '@chevrotain/regexp-to-ast': 11.1.1
+      '@chevrotain/types': 11.1.1
+      '@chevrotain/utils': 11.1.1
+      lodash-es: 4.17.23
 
   chokidar@3.6.0:
     dependencies:
@@ -21873,13 +21872,13 @@ snapshots:
     dependencies:
       langfuse-core: 3.38.6
 
-  langium@3.3.1:
+  langium@4.2.1:
     dependencies:
-      chevrotain: 11.0.3
-      chevrotain-allstar: 0.3.1(chevrotain@11.0.3)
+      chevrotain: 11.1.1
+      chevrotain-allstar: 0.3.1(chevrotain@11.1.1)
       vscode-languageserver: 9.0.1
       vscode-languageserver-textdocument: 1.0.12
-      vscode-uri: 3.0.8
+      vscode-uri: 3.1.0
 
   layout-base@1.0.2: {}
 
@@ -21971,8 +21970,6 @@ snapshots:
   locate-path@7.2.0:
     dependencies:
       p-locate: 6.0.0
-
-  lodash-es@4.17.21: {}
 
   lodash-es@4.17.23: {}
 
@@ -22244,11 +22241,11 @@ snapshots:
 
   merge2@1.4.1: {}
 
-  mermaid@11.12.2:
+  mermaid@11.12.3:
     dependencies:
       '@braintree/sanitize-url': 7.1.2
       '@iconify/utils': 3.1.0
-      '@mermaid-js/parser': 0.6.3
+      '@mermaid-js/parser': 1.0.0
       '@types/d3': 7.4.3
       cytoscape: 3.33.1
       cytoscape-cose-bilkent: 4.1.0(cytoscape@3.33.1)
@@ -22529,7 +22526,7 @@ snapshots:
 
   mimic-response@4.0.0: {}
 
-  minimatch@10.2.0:
+  minimatch@10.2.1:
     dependencies:
       brace-expansion: 5.0.2
 
@@ -24181,7 +24178,7 @@ snapshots:
       katex: 0.16.28
       lucide-react: 0.542.0(react@19.3.0-canary-87ae75b3-20260128)
       marked: 16.4.2
-      mermaid: 11.12.2
+      mermaid: 11.12.3
       react: 19.3.0-canary-87ae75b3-20260128
       rehype-harden: 1.1.7
       rehype-katex: 7.0.1
@@ -24360,7 +24357,7 @@ snapshots:
 
   tar-stream@3.1.7:
     dependencies:
-      b4a: 1.7.4
+      b4a: 1.7.5
       fast-fifo: 1.3.2
       streamx: 2.23.0
     transitivePeerDependencies:
@@ -24394,7 +24391,7 @@ snapshots:
 
   text-decoder@1.2.7:
     dependencies:
-      b4a: 1.7.4
+      b4a: 1.7.5
     transitivePeerDependencies:
       - react-native-b4a
 
@@ -25032,7 +25029,7 @@ snapshots:
     dependencies:
       vscode-languageserver-protocol: 3.17.5
 
-  vscode-uri@3.0.8: {}
+  vscode-uri@3.1.0: {}
 
   w3c-xmlserializer@5.0.0:
     dependencies:

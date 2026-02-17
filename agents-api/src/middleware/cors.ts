@@ -39,7 +39,10 @@ export function isOriginAllowed(origin: string | undefined): origin is string {
     const apiUrl = new URL(env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
     const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
-    if (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') {
+    if (
+      (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') &&
+      (env.ENVIRONMENT === 'development' || env.ENVIRONMENT === 'test')
+    ) {
       return true;
     }
 
