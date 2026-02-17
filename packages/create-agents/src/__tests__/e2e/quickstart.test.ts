@@ -317,8 +317,13 @@ describe('create-agents quickstart e2e', () => {
         console.log('Navigated to project page');
 
         console.log('Clicking agent card');
-        await page.click('text=Activities planner', { timeout: 15000, force: true });
-        await page.waitForURL(`**/agents/**`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+        // Use href locator to avoid matching project heading text
+        const agentId = 'activities-planner';
+        await page.click(`a[href*="/agents/${agentId}"]`, { timeout: 15000, force: true });
+        await page.waitForURL(`**/agents/${agentId}**`, {
+          timeout: 15000,
+          waitUntil: 'domcontentloaded',
+        });
         console.log('Navigated to agent page');
 
         console.log('Clicking Try it button');
