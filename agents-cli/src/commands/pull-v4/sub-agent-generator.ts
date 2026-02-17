@@ -1,0 +1,332 @@
+import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { z } from 'zod';
+import {
+  addObjectEntries,
+  addReferenceGetterProperty,
+  addStringProperty,
+  createInMemoryProject,
+  formatInlineLiteral,
+  isPlainObject,
+  toCamelCase,
+} from './utils';
+
+type SubAgentDefinitionData = {
+  subAgentId: string;
+  name?: string;
+  description?: string;
+  prompt?: string;
+  models?: Record<string, unknown>;
+  skills?: unknown[];
+  canUse?: unknown[];
+  canDelegateTo?: unknown[];
+  canTransferTo?: string[];
+  dataComponents?: string[];
+  artifactComponents?: string[];
+  stopWhen?: {
+    stepCountIs?: number;
+  };
+};
+
+const SubAgentSchema = z.looseObject({
+  subAgentId: z.string().nonempty(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  prompt: z.string().optional(),
+  models: z.looseObject({}).optional(),
+  skills: z.array(z.unknown()).optional(),
+  canUse: z.array(z.unknown()).optional(),
+  canDelegateTo: z.array(z.unknown()).optional(),
+  canTransferTo: z.array(z.string()).optional(),
+  dataComponents: z.array(z.string()).optional(),
+  artifactComponents: z.array(z.string()).optional(),
+  stopWhen: z
+    .looseObject({
+      stepCountIs: z.number().int().optional(),
+    })
+    .optional(),
+});
+
+type ParsedSubAgentDefinitionData = z.infer<typeof SubAgentSchema>;
+
+export function generateSubAgentDefinition(data: SubAgentDefinitionData): string {
+  const result = SubAgentSchema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`Missing required fields for sub-agent:\n${z.prettifyError(result.error)}`);
+  }
+
+  const project = createInMemoryProject();
+  const parsed = result.data;
+  const sourceFile = project.createSourceFile('sub-agent-definition.ts', '', { overwrite: true });
+
+  sourceFile.addImportDeclaration({
+    namedImports: ['subAgent'],
+    moduleSpecifier: '@inkeep/agents-sdk',
+  });
+
+  const subAgentVarName = toCamelCase(parsed.subAgentId);
+  const variableStatement = sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    isExported: true,
+    declarations: [
+      {
+        name: subAgentVarName,
+        initializer: 'subAgent({})',
+      },
+    ],
+  });
+
+  const [declaration] = variableStatement.getDeclarations();
+  if (!declaration) {
+    throw new Error(`Failed to create variable declaration for sub-agent '${parsed.subAgentId}'`);
+  }
+
+  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
+  const configObject = callExpression
+    .getArguments()[0]
+    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  writeSubAgentConfig(configObject, parsed);
+
+  return sourceFile.getFullText().trimEnd();
+}
+
+function writeSubAgentConfig(
+  configObject: ObjectLiteralExpression,
+  data: ParsedSubAgentDefinitionData
+) {
+  addStringProperty(configObject, 'id', data.subAgentId);
+  addStringProperty(configObject, 'name', resolveSubAgentName(data.subAgentId, data.name));
+
+  if (data.description !== undefined) {
+    addStringProperty(configObject, 'description', data.description);
+  }
+
+  if (data.prompt !== undefined) {
+    addStringProperty(configObject, 'prompt', data.prompt);
+  }
+
+  if (data.models && Object.keys(data.models).length > 0) {
+    const modelsProperty = configObject.addPropertyAssignment({
+      name: 'models',
+      initializer: '{}',
+    });
+    const modelsObject = modelsProperty.getInitializerIfKindOrThrow(
+      SyntaxKind.ObjectLiteralExpression
+    );
+    addObjectEntries(modelsObject, data.models);
+  }
+
+  const canUseReferences = collectCanUseReferences(data.canUse);
+  if (canUseReferences.length > 0) {
+    addReferenceGetterProperty(configObject, 'canUse', canUseReferences);
+  }
+
+  const canDelegateToReferences = collectCanDelegateToReferences(data.canDelegateTo);
+  if (canDelegateToReferences.length > 0) {
+    addReferenceGetterProperty(configObject, 'canDelegateTo', canDelegateToReferences);
+  }
+
+  if (hasReferences(data.canTransferTo)) {
+    addReferenceGetterProperty(
+      configObject,
+      'canTransferTo',
+      data.canTransferTo.map((id) => toCamelCase(id))
+    );
+  }
+
+  if (hasReferences(data.dataComponents)) {
+    addReferenceGetterProperty(
+      configObject,
+      'dataComponents',
+      data.dataComponents.map((id) => toCamelCase(id))
+    );
+  }
+
+  if (hasReferences(data.artifactComponents)) {
+    addReferenceGetterProperty(
+      configObject,
+      'artifactComponents',
+      data.artifactComponents.map((id) => toCamelCase(id))
+    );
+  }
+
+  const skills = collectSkills(data.skills);
+  if (skills.length > 0) {
+    const skillsProperty = configObject.addPropertyAssignment({
+      name: 'skills',
+      initializer: '() => []',
+    });
+    const skillsGetter = skillsProperty.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
+    const skillsArray = skillsGetter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+    for (const skill of skills) {
+      skillsArray.addElement(skill);
+    }
+  }
+
+  if (data.stopWhen?.stepCountIs !== undefined) {
+    const stopWhenProperty = configObject.addPropertyAssignment({
+      name: 'stopWhen',
+      initializer: '{}',
+    });
+    const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(
+      SyntaxKind.ObjectLiteralExpression
+    );
+    stopWhenObject.addPropertyAssignment({
+      name: 'stepCountIs',
+      initializer: String(data.stopWhen.stepCountIs),
+    });
+  }
+}
+
+function resolveSubAgentName(subAgentId: string, name?: string): string {
+  if (name !== undefined) {
+    return name;
+  }
+
+  return subAgentId
+    .replace(/[-_]/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function collectCanUseReferences(canUse?: unknown[]): string[] {
+  if (!Array.isArray(canUse)) {
+    return [];
+  }
+
+  const references: string[] = [];
+  for (const item of canUse) {
+    if (typeof item === 'string') {
+      references.push(toCamelCase(item));
+      continue;
+    }
+
+    if (!isPlainObject(item)) {
+      continue;
+    }
+
+    const toolId = typeof item.toolId === 'string' ? item.toolId : undefined;
+    if (!toolId) {
+      continue;
+    }
+
+    const toolReference = toCamelCase(toolId);
+    const withConfig: Record<string, unknown> = {};
+    const selectedTools =
+      Array.isArray(item.toolSelection) && item.toolSelection.length > 0
+        ? item.toolSelection
+        : Array.isArray(item.selectedTools) && item.selectedTools.length > 0
+          ? item.selectedTools
+          : undefined;
+
+    if (selectedTools) {
+      withConfig.selectedTools = selectedTools;
+    }
+
+    if (isPlainObject(item.headers) && Object.keys(item.headers).length > 0) {
+      withConfig.headers = item.headers;
+    }
+
+    if (isPlainObject(item.toolPolicies) && Object.keys(item.toolPolicies).length > 0) {
+      withConfig.toolPolicies = item.toolPolicies;
+    }
+
+    if (Object.keys(withConfig).length > 0) {
+      references.push(`${toolReference}.with(${formatInlineLiteral(withConfig)})`);
+      continue;
+    }
+
+    references.push(toolReference);
+  }
+
+  return references;
+}
+
+function collectCanDelegateToReferences(canDelegateTo?: unknown[]): string[] {
+  if (!Array.isArray(canDelegateTo)) {
+    return [];
+  }
+
+  const references: string[] = [];
+  for (const item of canDelegateTo) {
+    if (typeof item === 'string') {
+      references.push(toCamelCase(item));
+      continue;
+    }
+
+    if (!isPlainObject(item)) {
+      continue;
+    }
+
+    const targetId =
+      typeof item.subAgentId === 'string'
+        ? item.subAgentId
+        : typeof item.agentId === 'string'
+          ? item.agentId
+          : typeof item.externalAgentId === 'string'
+            ? item.externalAgentId
+            : undefined;
+
+    if (!targetId) {
+      continue;
+    }
+
+    const targetReference = toCamelCase(targetId);
+    if (isPlainObject(item.headers) && Object.keys(item.headers).length > 0) {
+      references.push(
+        `${targetReference}.with(${formatInlineLiteral({
+          headers: item.headers,
+        })})`
+      );
+      continue;
+    }
+
+    references.push(targetReference);
+  }
+
+  return references;
+}
+
+function collectSkills(skills?: unknown[]): string[] {
+  if (!Array.isArray(skills)) {
+    return [];
+  }
+
+  const formattedSkills: string[] = [];
+  for (const skill of skills) {
+    if (typeof skill === 'string') {
+      formattedSkills.push(formatInlineLiteral(skill));
+      continue;
+    }
+
+    if (!isPlainObject(skill)) {
+      continue;
+    }
+
+    const skillId =
+      typeof skill.id === 'string'
+        ? skill.id
+        : typeof skill.skillId === 'string'
+          ? skill.skillId
+          : undefined;
+    if (!skillId) {
+      continue;
+    }
+
+    const formattedSkill: Record<string, unknown> = { id: skillId };
+    if (typeof skill.index === 'number' && Number.isInteger(skill.index)) {
+      formattedSkill.index = skill.index;
+    }
+    if (typeof skill.alwaysLoaded === 'boolean') {
+      formattedSkill.alwaysLoaded = skill.alwaysLoaded;
+    }
+
+    formattedSkills.push(formatInlineLiteral(formattedSkill));
+  }
+
+  return formattedSkills;
+}
+
+function hasReferences(references?: string[]): references is string[] {
+  return Array.isArray(references) && references.length > 0;
+}
