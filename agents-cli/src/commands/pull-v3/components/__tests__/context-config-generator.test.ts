@@ -329,7 +329,7 @@ describe('Context Config Generator', () => {
   // });
 
   describe('generateContextConfigFile', () => {
-    it('should generate complete context config file', () => {
+    it.only('should generate complete context config file', async () => {
       const fullContextData = {
         headers: 'personalAgentHeaders',
         headersSchema: headersData.schema,
@@ -338,8 +338,9 @@ describe('Context Config Generator', () => {
         },
       };
 
+      const contextConfigId = 'personalAgentContext';
       const file = generateContextConfigFile(
-        'personalAgentContext',
+        contextConfigId,
         fullContextData,
         undefined,
         mockRegistry
@@ -357,6 +358,16 @@ describe('Context Config Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*const/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({
+        contextConfigId,
+        ...fullContextData,
+      });
+      await expect(file).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
 
     it.only('should generate simple context config file', async () => {
