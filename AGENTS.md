@@ -7,6 +7,9 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ### Build & Development
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
+- **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 - **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
 - **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
 - **Typecheck**: `pnpm typecheck`

@@ -86,16 +86,46 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 ## Option 2: Local SigNoz Setup
 
+### Automated Setup (Recommended)
+
+<Snippet file="setup-dev-optional-prereq.mdx" />
+
+Run the following from your project root:
+
+```bash
+pnpm setup-dev:optional
+```
+
+This automatically:
+- Clones the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) companion repo (if not already present)
+- Starts SigNoz, OTEL Collector, Jaeger, and [Nango](/typescript-sdk/credentials/nango) via Docker Compose
+- Registers a SigNoz admin account and creates an API key
+- Writes all required env vars to your `.env`
+
+After setup completes, restart your dev server:
+
+```bash
+pnpm dev
+```
+
+Open SigNoz at `http://localhost:3080` to view traces. Jaeger is also available at `http://localhost:16686`.
+
+<Snippet file="setup-dev-optional-lifecycle.mdx" />
+
+### Manual Setup
+
 <Video
   src="https://www.youtube.com/watch?v=DWuL4AeRzAA&t=3s"
   title="Local SigNoz Setup steps"
 />
 
-### Prerequisites
+If you prefer manual setup:
+
+#### Prerequisites
 
 - Docker installed on your machine
 
-### Step 1: Clone the Optional Services Repository
+#### Step 1: Clone the Optional Services Repository
 
 Clone the Inkeep optional local development services repository:
 
@@ -104,12 +134,12 @@ git clone https://github.com/inkeep/agents-optional-local-dev
 cd agents-optional-local-dev
 ```
 
-### Step 2: Start SigNoz Services
+#### Step 2: Start SigNoz Services
 
 Run the following command to start SigNoz and related services:
 
 ```bash
-docker-compose --profile signoz up -d
+docker compose --profile signoz up -d
 ```
 
 This will start:
@@ -121,7 +151,7 @@ This will start:
 
 When you visit `http://localhost:3080`, you can sign up with your desired credentials.
 
-### Step 3: Configure Environment Variables
+#### Step 3: Configure Environment Variables
 
 In your **root project directory** (e.g., `my-agents`), update your `.env` file:
 
@@ -130,9 +160,9 @@ In your **root project directory** (e.g., `my-agents`), update your `.env` file:
 SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key
 
-# IMPORTANT: Comment out the OTEL Configuration
-# OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
-# OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
+# Local SigNoz OTEL endpoint (port 4318 — the SigNoz collector)
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+OTEL_SERVICE_NAME=inkeep-agents
 ```
 
 To get your SigNoz API key:
@@ -143,7 +173,7 @@ To get your SigNoz API key:
    - Choose any role (Admin, Editor, or Viewer) - Viewer is sufficient for observability
    - Set the expiration field to "No Expiry" to prevent the key from expiring
 
-### Step 4: Verify Setup
+#### Step 4: Verify Setup
 
 1. Restart your Inkeep agents:
 
