@@ -149,7 +149,7 @@ describe('Function Tool Generator', () => {
         executeCode: 'return { success: true };',
       };
 
-      const definition = generateFunctionToolDefinition('test', dataWithBoth);
+      const definition = generateFunctionToolDefinition(functionToolId, dataWithBoth);
 
       expect(definition).toContain('"input"');
       expect(definition).not.toContain('"schema"');
