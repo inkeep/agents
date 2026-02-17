@@ -127,14 +127,15 @@ describe('External Agent Generator', () => {
       );
     });
 
-    it('should generate external agent with credential reference variable', () => {
+    it.only('should generate external agent with credential reference variable', async () => {
       const dataWithCredRef = {
         ...basicExternalAgentData,
         credentialReference: 'myCredentials',
       };
+      const externalAgentId = 'cred-ref-agent';
 
       const definition = generateExternalAgentDefinition(
-        'cred-ref-agent',
+        externalAgentId,
         dataWithCredRef,
         undefined,
         mockRegistry
@@ -143,6 +144,8 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('export const credRefAgent = externalAgent({');
       expect(definition).toContain('credentialReference: myCredentials');
       expect(definition).not.toContain('credentialReference: {');
+
+      await expectExternalAgentDefinitionSnapshots(externalAgentId, dataWithCredRef, definition);
     });
 
     it('should throw error for missing required fields', () => {
