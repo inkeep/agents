@@ -558,6 +558,7 @@ export class ArtifactService {
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
       data,
+      metadata: artifact.metadata,
     };
   }
 
