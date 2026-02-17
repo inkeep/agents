@@ -153,7 +153,8 @@ describe('Status Component Generator', () => {
       await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, componentData);
     });
 
-    it('should handle schema field (alternative to detailsSchema)', () => {
+    it.only('should handle schema field (alternative to detailsSchema)', async () => {
+      const statusComponentId = 'test';
       const dataWithSchema = {
         type: 'test_status',
         description: 'Test status',
@@ -165,10 +166,12 @@ describe('Status Component Generator', () => {
         },
       };
 
-      const definition = generateStatusComponentDefinition('test', dataWithSchema);
+      const definition = generateStatusComponentDefinition(statusComponentId, dataWithSchema);
 
       expect(definition).toContain('detailsSchema: z.object({');
       expect(definition).toContain('value');
+
+      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithSchema);
     });
 
     it('should prefer detailsSchema over schema when both exist', () => {

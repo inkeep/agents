@@ -1,0 +1,8 @@
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const test = statusComponent({
+  type: 'test_status',
+  description: 'Test status',
+  detailsSchema: z.object({ "value": z.string().describe("Status value").optional() })
+});
