@@ -81,9 +81,6 @@ export function formatInlineLiteral(value: unknown): string {
   if (value === null) {
     return 'null';
   }
-  if (value === undefined) {
-    return 'undefined';
-  }
   if (Array.isArray(value)) {
     return `[${value.map((item) => formatInlineLiteral(item)).join(', ')}]`;
   }
