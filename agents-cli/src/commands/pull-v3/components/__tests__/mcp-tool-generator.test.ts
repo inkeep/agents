@@ -149,7 +149,8 @@ describe('MCP Tool Generator', () => {
       await expectMcpToolDefinitionSnapshots(mcpToolId, testToolWithCredential, definition);
     });
 
-    it('should handle credential as object', () => {
+    it.only('should handle credential as object', async () => {
+      const mcpToolId = 'api-tool';
       const toolWithObjectCredential = {
         name: 'API Tool',
         config: {
@@ -166,9 +167,11 @@ describe('MCP Tool Generator', () => {
         },
       };
 
-      const definition = generateMcpToolDefinition('api-tool', toolWithObjectCredential);
+      const definition = generateMcpToolDefinition(mcpToolId, toolWithObjectCredential);
 
       expect(definition).toContain('credential: {"type":"api_key","value":"my-api-key"}');
+
+      await expectMcpToolDefinitionSnapshots(mcpToolId, toolWithObjectCredential, definition);
     });
 
     it('should throw error for missing required fields', () => {
