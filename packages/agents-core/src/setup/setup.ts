@@ -191,9 +191,21 @@ async function startDockerDatabases(composeFile: string) {
       combined.includes('Bind for 0.0.0.0:5432 failed') ||
       combined.includes('Bind for 0.0.0.0:5433 failed');
 
+    const isDockerMissing =
+      combined.includes('not found') ||
+      combined.includes('ENOENT') ||
+      combined.includes('is not recognized');
+
     if (isPortConflict) {
       logWarning('Database port already in use (databases might already be running)');
       logInfo('Continuing with setup...');
+    } else if (
+      isDockerMissing &&
+      process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
+      process.env.INKEEP_AGENTS_RUN_DATABASE_URL
+    ) {
+      logWarning('Docker Compose not available, but database URLs are configured');
+      logInfo('Assuming databases are managed externally. Continuing with setup...');
     } else {
       logError('Failed to start database containers', error);
       console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);

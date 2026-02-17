@@ -50,7 +50,7 @@ runs:
       shell: bash
       env:
         ENVIRONMENT: development
-      run: pnpm setup-dev --skip-push --cloud
+      run: pnpm setup-dev --skip-push
 
     - name: Start backend API server
       shell: bash
