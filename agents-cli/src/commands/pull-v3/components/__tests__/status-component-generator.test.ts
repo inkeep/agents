@@ -3,7 +3,7 @@
  * Unit tests for status component generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateStatusComponentDefinition as generateStatusComponentDefinitionV4 } from '../../../pull-v4/status-component-generator';
 import {
   generateStatusComponentDefinition,
   generateStatusComponentFile,
@@ -36,6 +36,25 @@ describe('Status Component Generator', () => {
       },
       required: ['tool_name', 'purpose', 'outcome'],
     },
+  };
+
+  const expectStatusComponentDefinitionSnapshots = async (
+    statusComponentId: string,
+    definition: string,
+    componentData: Omit<
+      Parameters<typeof generateStatusComponentDefinitionV4>[0],
+      'statusComponentId'
+    >
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/status-component/${testName}.txt`);
+    const definitionV4 = generateStatusComponentDefinitionV4({
+      statusComponentId,
+      ...componentData,
+    });
+    await expect(definitionV4).toMatchFileSnapshot(
+      `__snapshots__/status-component/${testName}-v4.txt`
+    );
   };
 
   describe('generateStatusComponentImports', () => {
@@ -82,14 +101,21 @@ describe('Status Component Generator', () => {
   });
 
   describe('generateStatusComponentDefinition', () => {
-    it('should generate correct definition with all properties', () => {
-      const definition = generateStatusComponentDefinition('tool-summary', testComponentData);
+    it.only('should generate correct definition with all properties', async () => {
+      const statusComponentId = 'tool-summary';
+      const definition = generateStatusComponentDefinition(statusComponentId, testComponentData);
 
       expect(definition).toContain('export const toolSummary = statusComponent({');
       expect(definition).toContain("type: 'tool_summary',");
       expect(definition).toContain("description: 'Summary of tool calls and their purpose',");
       expect(definition).toContain('detailsSchema: z.object({');
       expect(definition).toContain('});');
+
+      await expectStatusComponentDefinitionSnapshots(
+        statusComponentId,
+        definition,
+        testComponentData
+      );
     });
 
     it('should handle component ID to camelCase conversion', () => {
