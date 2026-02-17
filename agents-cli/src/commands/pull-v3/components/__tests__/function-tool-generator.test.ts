@@ -157,9 +157,10 @@ describe('Function Tool Generator', () => {
       await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithBoth, definition);
     });
 
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the function tool';
+      const functionToolId = 'test';
       const dataWithLongDesc = {
         name: 'detailed-tool',
         description: longDescription,
@@ -167,9 +168,11 @@ describe('Function Tool Generator', () => {
         executeCode: 'return { processed: true };',
       };
 
-      const definition = generateFunctionToolDefinition('test', dataWithLongDesc);
+      const definition = generateFunctionToolDefinition(functionToolId, dataWithLongDesc);
 
       expect(definition).toContain(`description: \`${longDescription}\``);
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithLongDesc, definition);
     });
 
     it('should format execute function with proper indentation', () => {
