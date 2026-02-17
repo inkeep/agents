@@ -330,10 +330,7 @@ describe('create-agents quickstart e2e', () => {
         await page.click('button:has-text("Try it")', { timeout: 15000, force: true });
 
         console.log('Waiting for playground to open');
-        await page.waitForSelector(
-          '[data-testid="playground-panel"], [role="dialog"], [class*="playground"]',
-          { timeout: 15000 }
-        );
+        await page.waitForSelector('#playground-pane', { timeout: 15000 });
         console.log('Playground panel is visible');
 
         console.log('Dashboard lap complete');
