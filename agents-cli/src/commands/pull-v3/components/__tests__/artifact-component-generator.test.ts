@@ -132,6 +132,15 @@ describe('Artifact Component Generator', () => {
       );
       expect(definition).toContain('props: z.object({');
       expect(definition).toContain('});');
+      expect(definition).toContain(
+        'title: preview(z.string().describe("Title of the source document")),'
+      );
+      expect(definition).toContain(
+        'url: preview(z.string().describe("URL of the source document")),'
+      );
+      expect(definition).toContain(
+        'record_type: preview(z.string().describe("Type of record (documentation, blog, guide, etc.)")),'
+      );
 
       const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
@@ -162,36 +171,6 @@ describe('Artifact Component Generator', () => {
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...conversionData,
-      });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
-    });
-
-    it.only('should wrap preview fields with preview() function', async () => {
-      const artifactComponentId = 'citation';
-      const definition = generateArtifactComponentDefinition(
-        artifactComponentId,
-        testComponentData
-      );
-
-      expect(definition).toContain(
-        'title: preview(z.string().describe("Title of the source document")),'
-      );
-      expect(definition).toContain(
-        'url: preview(z.string().describe("URL of the source document")),'
-      );
-      expect(definition).toContain(
-        'record_type: preview(z.string().describe("Type of record (documentation, blog, guide, etc.)")),'
-      );
-
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateArtifactComponentDefinitionV4({
-        artifactComponentId,
-        ...testComponentData,
       });
       await expect(definition).toMatchFileSnapshot(
         `__snapshots__/artifact-component/${testName}.txt`
