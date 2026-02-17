@@ -138,6 +138,163 @@ app.post('/query', async (c) => {
   }
 });
 
+// POST /query-batch - Execute two dependent SigNoz queries in one round-trip to improve performance
+// Step 1 (paginationPayload) Step 2 (detailPayloadTemplate) Both responses are returned.
+app.post('/query-batch', async (c) => {
+  const body = await c.req.json();
+  const { paginationPayload, detailPayloadTemplate } = body;
+
+  if (!paginationPayload || !detailPayloadTemplate) {
+    return c.json(
+      { error: 'Bad Request', message: 'paginationPayload and detailPayloadTemplate are required' },
+      400
+    );
+  }
+
+  const requestedProjectId = paginationPayload.projectId;
+  const tenantId = c.get('tenantId');
+  const userId = c.get('userId');
+  const tenantRole = c.get('tenantRole') as OrgRole;
+
+  if (!userId || !tenantId) {
+    throw createApiError({
+      code: 'unauthorized',
+      message: 'User or organization context not found',
+      instance: c.req.path,
+    });
+  }
+
+  if (requestedProjectId) {
+    const bypassCheck = userId === 'system' || userId?.startsWith('apikey:');
+    if (!bypassCheck) {
+      const hasAccess = await canViewProject({
+        userId,
+        projectId: requestedProjectId,
+        orgRole: tenantRole,
+      });
+      if (!hasAccess) {
+        logger.warn(
+          { tenantId, projectId: requestedProjectId, userId },
+          'Project not found or access denied'
+        );
+        return c.json(
+          { error: 'Forbidden', message: 'You do not have access to this project' },
+          403
+        );
+      }
+    }
+  }
+
+  const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
+  const signozApiKey = env.SIGNOZ_API_KEY;
+
+  if (!signozUrl || !signozApiKey) {
+    logger.error({}, 'SigNoz not configured');
+    return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
+  }
+
+  const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+  const signozHeaders = {
+    'Content-Type': 'application/json',
+    'SIGNOZ-API-KEY': signozApiKey,
+  };
+
+  try {
+    // Step 1: Execute pagination query
+    const securedPagination = enforceSecurityFilters(
+      paginationPayload,
+      tenantId,
+      requestedProjectId
+    );
+    const step1 = await axios.post(signozEndpoint, securedPagination, {
+      headers: signozHeaders,
+      timeout: 30000,
+    });
+
+    // Extract conversation IDs from the pageConversations result
+    const pageResult = step1.data?.data?.result?.find(
+      (r: any) => r?.queryName === 'pageConversations'
+    );
+    const conversationIds: string[] = (pageResult?.series ?? [])
+      .map((s: any) => s.labels?.['conversation.id'])
+      .filter(Boolean);
+
+    if (conversationIds.length === 0) {
+      return c.json({ paginationResponse: step1.data, detailResponse: null });
+    }
+
+    // Step 2: Inject conversation IDs into the detail template and execute
+    const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
+    const securedDetail = enforceSecurityFilters(detailWithIds, tenantId, requestedProjectId);
+    const step2 = await axios.post(signozEndpoint, securedDetail, {
+      headers: signozHeaders,
+      timeout: 30000,
+    });
+
+    return c.json({ paginationResponse: step1.data, detailResponse: step2.data });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        logger.error({ error: error.message }, 'SigNoz service unavailable');
+        return c.json(
+          { error: 'Service Unavailable', message: 'SigNoz service is unavailable' },
+          503
+        );
+      }
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logger.error({ status: error.response.status }, 'SigNoz authentication failed');
+        return c.json(
+          { error: 'Internal Server Error', message: 'SigNoz authentication failed' },
+          500
+        );
+      }
+      if (error.response?.status === 400) {
+        logger.warn({ status: error.response.status }, 'Invalid SigNoz query');
+        return c.json({ error: 'Bad Request', message: 'Invalid query parameters' }, 400);
+      }
+    }
+    logger.error({ error }, 'SigNoz query-batch failed');
+    return c.json({ error: 'Internal Server Error', message: 'Failed to query SigNoz' }, 500);
+  }
+});
+
+/**
+ * Inject a `conversation.id IN [...]` filter into every builder query
+ * of a SigNoz composite query payload.
+ */
+function injectConversationIdFilter(payload: any, conversationIds: string[]): any {
+  const modified = JSON.parse(JSON.stringify(payload));
+  const builderQueries = modified.compositeQuery?.builderQueries;
+  if (!builderQueries) return modified;
+
+  const inFilter = {
+    key: {
+      key: 'conversation.id',
+      dataType: 'string',
+      type: 'tag',
+      isColumn: false,
+      isJSON: false,
+      id: 'false',
+    },
+    op: 'in',
+    value: conversationIds,
+  };
+
+  for (const queryKey in builderQueries) {
+    const query = builderQueries[queryKey];
+    if (!query.filters) {
+      query.filters = { op: 'AND', items: [] };
+    }
+    // Remove any existing conversation.id IN filter to avoid duplication
+    query.filters.items = query.filters.items.filter(
+      (item: any) => !(item.key?.key === 'conversation.id' && item.op === 'in')
+    );
+    query.filters.items.push(inFilter);
+  }
+
+  return modified;
+}
+
 // GET /health - Check SigNoz configuration
 app.get('/health', async (c) => {
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
