@@ -87,6 +87,33 @@ const ApprovalWrapper = ({
   );
 };
 
+const ApprovalButtons = ({
+  state,
+  approve,
+  approveLabel = 'Approve',
+  approveVariant = 'default' as 'default' | 'destructive',
+  rejectLabel = 'Reject',
+  approveIcon = <CheckIcon className="size-3" />,
+}: {
+  state: string;
+  approve: (approved?: boolean) => Promise<void>;
+  approveLabel?: string;
+  approveVariant?: 'default' | 'destructive' | 'destructive-outline';
+  rejectLabel?: string;
+  approveIcon?: React.ReactNode;
+}) =>
+  state === 'approval-requested' && (
+    <div className="flex gap-2 justify-end">
+      <Button variant="outline" size="xs" type="button" onClick={() => approve(false)}>
+        {rejectLabel}
+      </Button>
+      <Button variant={approveVariant} size="xs" type="button" onClick={() => approve(true)}>
+        {approveIcon}
+        {approveLabel}
+      </Button>
+    </div>
+  );
+
 export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [entityData, setEntityData] = useState<EntityData | null>(null);
@@ -147,34 +174,13 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
     return <div className="text-sm text-destructive">Error: {error}</div>;
   }
 
-  const ApprovalButtons = ({
-    approveLabel = 'Approve',
-    approveVariant = 'default' as 'default' | 'destructive',
-    rejectLabel = 'Reject',
-    approveIcon = <CheckIcon className="size-3" />,
-  }: {
-    approveLabel?: string;
-    approveVariant?: 'default' | 'destructive' | 'destructive-outline';
-    rejectLabel?: string;
-    approveIcon?: React.ReactNode;
-  }) =>
-    tool.state === 'approval-requested' && (
-      <div className="flex gap-2 justify-end">
-        <Button variant="outline" size="xs" type="button" onClick={() => approve(false)}>
-          {rejectLabel}
-        </Button>
-        <Button variant={approveVariant} size="xs" type="button" onClick={() => approve(true)}>
-          {approveIcon}
-          {approveLabel}
-        </Button>
-      </div>
-    );
-
   if (isDeleteOperation && entityData) {
     return (
       <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
         <DeleteEntityApproval entityData={entityData} />
         <ApprovalButtons
+          state={tool.state}
+          approve={approve}
           approveLabel="Delete"
           approveVariant="destructive"
           rejectLabel="Cancel"
@@ -188,7 +194,7 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
     return (
       <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
         <DiffApproval diffs={diffs} />
-        <ApprovalButtons />
+        <ApprovalButtons state={tool.state} approve={approve} />
       </ApprovalWrapper>
     );
   }
@@ -196,7 +202,7 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   return (
     <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
       <FallbackApproval toolName={toolName} />
-      <ApprovalButtons />
+      <ApprovalButtons state={tool.state} approve={approve} />
     </ApprovalWrapper>
   );
 };

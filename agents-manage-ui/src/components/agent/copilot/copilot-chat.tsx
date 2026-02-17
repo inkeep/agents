@@ -206,14 +206,17 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           aiChatSettings={{
             aiAssistantName: 'Agent Editor',
             components: {
-              IkpTool: (props: any) =>
-                IkpTool({
-                  ...props,
-                  targetTenantId: tenantId,
-                  targetProjectId: projectId,
-                  onOAuthLogin: handleOAuthLogin,
-                  refreshAgentGraph: refreshAgentGraph,
-                }),
+              IkpTool(props) {
+                return (
+                  <IkpTool
+                    {...props}
+                    targetTenantId={tenantId}
+                    targetProjectId={projectId}
+                    onOAuthLogin={handleOAuthLogin}
+                    refreshAgentGraph={refreshAgentGraph}
+                  />
+                );
+              },
             },
             conversationId,
             chatFunctionsRef,
