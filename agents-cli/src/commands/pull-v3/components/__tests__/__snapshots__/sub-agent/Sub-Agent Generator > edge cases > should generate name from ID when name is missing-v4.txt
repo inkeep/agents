@@ -1,0 +1,8 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const missingName = subAgent({
+  id: 'missing-name',
+  name: 'Missing Name',
+  description: 'Test description',
+  prompt: 'Test prompt'
+});

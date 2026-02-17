@@ -589,15 +589,19 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, mixedData, definition);
     });
 
-    it('should generate name from ID when name is missing', () => {
-      const definition = generateSubAgentDefinition('missing-name', {
+    it.only('should generate name from ID when name is missing', async () => {
+      const subAgentId = 'missing-name';
+      const data = {
         description: 'Test description',
         prompt: 'Test prompt',
-      });
+      };
+      const definition = generateSubAgentDefinition(subAgentId, data);
 
       // Should generate name from ID
       expect(definition).toContain("name: 'Missing Name',");
       expect(definition).toContain("description: 'Test description',");
+
+      await expectDefinitionSnapshotPair(subAgentId, data, definition);
     });
 
     it('should not throw error for missing description (now optional)', () => {
