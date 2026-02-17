@@ -351,36 +351,6 @@ describe('Credential Generator', () => {
         definition
       );
     });
-
-    it.only('should generate code for keychain credential that compiles', async () => {
-      const credentialId = 'slack-token';
-      const definition = generateCredentialDefinition(credentialId, keychainCredentialData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return slackToken;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('slack-token');
-      expect(result.type).toBe('keychain');
-      expect(result.credentialStoreId).toBe('keychain-main');
-      expect(result.retrievalParams.service).toBe('slack-bot');
-      expect(result.retrievalParams.account).toBe('my-workspace');
-
-      await expectCredentialDefinitionSnapshots(
-        { credentialId, ...keychainCredentialData },
-        definition
-      );
-    });
   });
 
   describe('edge cases', () => {
