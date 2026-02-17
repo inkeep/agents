@@ -7,35 +7,23 @@ icon: LuBrain
 
 Agent engineering is the discipline of designing AI agents that reliably accomplish their goals without over-constraining them. The key principle: **treat tokens and attention as a shared budget**. Prefer small, high-signal prompts plus strong output formats over long prose.
 
-This section covers the full lifecycle of agent design — from choosing the right pattern, to writing effective prompts, to testing and iterating on deployed agents.
+This section covers the full lifecycle of agent design — from writing effective prompts, to coordinating specialists, to testing and iterating on deployed agents.
 
 ## Who this is for
 
-These best practices apply to anyone designing AI agents with Inkeep — whether you're building a single-purpose Sub Agent, a multi-agent system with transfers and delegation, or deciding how to structure your agent topology.
+These best practices apply to anyone designing AI agents with Inkeep — whether you're building a single-purpose Sub Agent or a multi-agent system with transfers and delegation.
 
 ## Section overview
 
 <Cards>
-  <Card title="Operating Principles" icon="LuCompass" href="/guides/agent-engineering/operating-principles">
-    Core principles that guide every agent design decision — treating attention as scarce, optimizing for reliability, and writing for execution.
-  </Card>
-  <Card title="Choosing the Right Pattern" icon="LuGitBranch" href="/guides/agent-engineering/choosing-patterns">
-    Decide between a single Sub Agent, transfers, and delegation. Pick the right pattern based on your task requirements.
-  </Card>
   <Card title="Prompt Structure" icon="LuFileText" href="/guides/agent-engineering/prompt-structure">
-    Structure Sub Agent prompts for correct execution — role and mission, scope, workflow checklists, tool policies, and output formats.
-  </Card>
-  <Card title="Personality and Identity" icon="LuUser" href="/guides/agent-engineering/personality-and-identity">
-    Write effective role and mission statements that guide agent judgment without creating risky escape hatches.
+    Write high-quality Sub Agent prompts — structure, operating principles, and role/personality guidance in one place.
   </Card>
   <Card title="LLM Failure Modes" icon="LuShieldAlert" href="/guides/agent-engineering/failure-modes">
     A catalog of systematic LLM failure modes and concrete techniques to guard against them in agent prompts.
   </Card>
-  <Card title="Multi-Agent Workflows" icon="LuWorkflow" href="/guides/agent-engineering/workflow-orchestrators">
-    Design coordinator Sub Agents that delegate to specialists, aggregate results, and iterate with quality gates.
-  </Card>
-  <Card title="Handoff Protocol" icon="LuArrowLeftRight" href="/guides/agent-engineering/handoff-protocol">
-    Structure context passing between Sub Agents with handoff prompts, return formats, and procedural patterns.
+  <Card title="Multiagent Workflows" icon="LuWorkflow" href="/guides/agent-engineering/workflow-orchestrators">
+    Design coordinator Sub Agents that delegate to specialists, structure handoffs, aggregate results, and iterate with quality gates.
   </Card>
   <Card title="Testing and Iteration" icon="LuRefreshCw" href="/guides/agent-engineering/testing-and-iteration">
     Debug underperformance, tune agent behavior, and update existing agents without drift.

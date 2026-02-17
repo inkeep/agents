@@ -1,10 +1,28 @@
 ---
-title: Designing Multi-Agent Workflows
-sidebarTitle: Multi-Agent Workflows
-description: Design coordinator Sub Agents that delegate to specialists, aggregate results, implement quality gates, and iterate with bounded loops.
+title: Designing Multiagent Workflows
+sidebarTitle: Multiagent Workflows
+description: Design multiagent workflows with coordinator Sub Agents that delegate to specialists, aggregate results, implement quality gates, and iterate with bounded loops.
 ---
 
 A multi-agent workflow uses a **coordinator Sub Agent** that delegates subtasks to specialized Sub Agents, aggregates their results, and drives the overall process forward. This is the most complex agent pattern — use it only when simpler patterns won't work.
+
+## Single vs multi-agent
+
+The first design decision is whether your Agent needs one Sub Agent or several.
+
+A **single Sub Agent** is usually enough when:
+
+- The task is well-scoped and stays in one domain
+- Required tools are closely related
+- The conversation does not need to switch between specialist domains
+
+A **multi-agent workflow** is worth it when:
+
+- Different phases require different expertise, prompts, or tools
+- A coordinator must combine outputs from several specialists
+- You need parallel specialist work and explicit quality gates
+
+**Rule of thumb:** Keep each Sub Agent focused on 5-7 related tools. If one prompt starts looking like a grab-bag of unrelated capabilities, split it into specialists coordinated by a workflow.
 
 ## When to use a multi-agent workflow
 
@@ -17,9 +35,60 @@ A coordinator pattern fits when your task has:
 
 If the task is a single job with one output, a single Sub Agent with the right tools is simpler and easier to debug.
 
+## Transfers vs delegation
+
+Multi-agent systems can coordinate in two ways, and many workflows use both.
+
+### Transfers
+
+A **transfer** permanently moves conversation control from one Sub Agent to another.
+
+Use transfers when:
+
+- The user is entering a different domain and should talk directly to a specialist
+- Follow-up questions are expected for the specialist
+- You are routing intent rather than collecting a one-off subtask result
+
+### Delegation
+
+A **delegation** sends a subtask to a specialist while the source agent keeps control.
+
+Use delegation when:
+
+- The task is self-contained and the specialist only needs to return a result
+- A coordinator will synthesize multiple specialist outputs
+- Parallel specialist work can reduce overall latency
+
+### Quick comparison
+
+| | Transfer | Delegation |
+|---|---|---|
+| **Control** | Permanently moves to target | Stays with source |
+| **Who replies to user** | Target specialist | Source/coordinator |
+| **Best for** | Domain routing and handoffs | Subtasks and aggregation |
+
 ## Designing the coordinator
 
 The coordinator Sub Agent is the entry point. Its prompt should encode the workflow logic: what phases to run, when to delegate, and how to aggregate results.
+
+## Delegation context and handoff structure
+
+For reliable delegation, make the context packet explicit. The coordinator should pass:
+
+```markdown
+- **Objective:** What to accomplish
+- **Why this is needed:** One sentence of context
+- **Scope:** What to focus on
+- **Non-goals:** What to avoid
+- **Target files / areas:** Specific files or directories
+- **Constraints:** Hard rules (must / must-not)
+- **Required checks:** Tests, linters, commands
+- **Output format:** Structure expected in the return
+- **Done criteria:** What completion means
+- **If blocked:** Fallback behavior
+```
+
+Not every subtask needs every field, but complex work should include most of them.
 
 ### Phase sequencing
 
@@ -99,6 +168,30 @@ When combining results from multiple delegates, your coordinator's prompt should
 Give each specialist Sub Agent the same output format instructions in their prompts. Consistent return formats make aggregation reliable.
 </Tip>
 
+### Specialist return format
+
+Use a consistent structure for specialist outputs so aggregation is deterministic:
+
+```markdown
+### TL;DR (2-5 bullets)
+
+### Findings (prioritized)
+- **Critical:** blocking issues
+- **Warnings:** should-fix issues
+- **Suggestions:** nice-to-have improvements
+
+### Evidence
+- Files + line ranges (or short excerpts)
+- Commands run + key outputs (truncated)
+
+### Recommended next actions
+1. Highest priority
+2. Second priority
+
+### Open questions
+- Only questions that materially affect next steps
+```
+
 ### Iteration and retry
 
 Define bounded iteration in the coordinator's prompt:
@@ -141,6 +234,37 @@ Each phase should have an explicit gate:
 | **Implement** | Changes compile and tests run |
 | **Review** | 0 critical, 0 high findings |
 | **Verify** | Tests pass |
+
+## Procedural patterns for bounded workflows
+
+Use these patterns in coordinator or specialist prompts when workflows need stronger reliability.
+
+### Validation loops
+
+```markdown
+1. Complete the task
+2. Run checks and capture output
+3. If checks fail, fix and re-run (max 2 attempts)
+4. If still failing, return status: BLOCKED with errors and attempted fixes
+5. If checks pass, return status: COMPLETE
+```
+
+### Iteration policy
+
+```markdown
+- **Max iterations:** 2-3
+- **Loop-back when:** quality gate fails with actionable fixes
+- **Terminate when:** gate passes, max iterations reached, or blocked on external dependency
+```
+
+### Error handling
+
+```markdown
+- If file read fails: continue where possible and report skipped scope
+- If checks cannot run: return status: BLOCKED with diagnostic output
+- If API calls fail: retry once, then report failure
+- Never silently swallow errors
+```
 
 ## Structuring specialist prompts
 

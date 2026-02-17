@@ -3,13 +3,9 @@
   "icon": "LuBrain",
   "pages": [
     "index",
-    "operating-principles",
-    "choosing-patterns",
     "prompt-structure",
-    "personality-and-identity",
-    "failure-modes",
     "workflow-orchestrators",
-    "handoff-protocol",
+    "failure-modes",
     "testing-and-iteration"
   ]
 }

@@ -1,12 +1,10 @@
 ---
-title: Structuring Agent Prompts
-sidebarTitle: Prompt Structure
-description: How to structure Sub Agent prompts for correct execution — role and mission, scope, workflow checklists, tool policies, output formats, and escalation rules.
+title: Writing High-Quality Sub Agent Prompts
+sidebarTitle: Prompt Guide
+description: "A complete guide to writing Sub Agent prompts: structure, operating principles, role and personality statements, output formats, and escalation rules."
 ---
 
 A well-structured prompt is the foundation of reliable agent behavior. This page covers the recommended sections for a Sub Agent prompt and how to write each one effectively.
-
-## Recommended sections
 
 Structure your agent prompt in this order:
 
@@ -17,6 +15,7 @@ Structure your agent prompt in this order:
 5. **Tool-use policy** — what tools to use and when
 6. **Output format** — headings, verbosity limits, evidence expectations
 7. **Uncertainty and escalation** — when to ask, when to proceed, when to defer
+8. **Few-shot examples (optional)** — examples that demonstrate the expected behavior and output quality
 
 ## 1. Role and mission
 
@@ -28,6 +27,24 @@ The role and mission sets the Sub Agent's identity and judgment frame in 2-4 sen
 
 Write in second person ("You are...", "Do..."). Avoid first-person commitments ("I will...") unless the agent is expected to do so.
 
+Personality belongs in role and mission. Treat it as a decision tiebreaker when instructions are ambiguous.
+
+Good personality guidance:
+
+- Defines what excellence looks like for the role
+- Describes concrete behaviors, not abstract virtues
+- Avoids vague escape-hatch language like "be pragmatic"
+
+Template:
+
+```markdown
+You are [role identity] who [what excellence looks like in practice].
+
+You [concrete positive behavior].
+You [concrete positive behavior].
+You [concrete positive behavior].
+```
+
 ```markdown
 You are a security-focused reviewer who identifies vulnerabilities
 before they reach production.
@@ -38,10 +55,6 @@ and exploitable vulnerabilities, prioritizing findings by real-world
 impact. You provide specific, actionable remediation guidance — not
 vague warnings.
 ```
-
-<Tip>
-See the [Personality and Identity](/guides/agent-engineering/personality-and-identity) page for detailed guidance on writing effective role statements and avoiding risky tradeoff language.
-</Tip>
 
 ## 2. Scope and non-goals
 
@@ -84,6 +97,24 @@ Guidance:
 - Prefer "Do X" over "It's good to X"
 - Provide a default path and an escape hatch
 - Avoid long background explanations unless they change behavior
+
+### Prompt strictness: the "Goldilocks zone"
+
+Prompt instructions should be specific enough to guide behavior but general enough to handle unexpected inputs.
+
+| Problem | Symptom | Example |
+|---|---|---|
+| **Too rigid** | Brittle enumeration that breaks on novel cases | "If .ts do X. If .tsx do Y. If .js do Z..." |
+| **Too vague** | Abstract principles without actionable signals | "Be helpful and thorough." |
+| **Just right** | Generalizable heuristics with clear escalation | "Prioritize correctness over style. When uncertain, ask." |
+
+Match strictness to task risk:
+
+| Strictness level | Task characteristics | Prompt approach |
+|---|---|---|
+| **High freedom** | Open-ended research, brainstorming, reviews | Heuristics + output guidelines |
+| **Medium** | Structured workflows, data transformations | Step sequence + required checks |
+| **Low (strict)** | Sensitive or high-impact operations | Explicit commands + validation loops |
 
 ## 4. Workflow checklist
 
@@ -142,10 +173,6 @@ For each finding:
 - [only list what materially affects next steps]
 ```
 
-<Note>
-If a coordinator Sub Agent depends on this specialist's output, changing the output format requires updating the coordinator's aggregation logic too.
-</Note>
-
 ## 7. Uncertainty and escalation
 
 Define when the agent should ask for help vs proceed with assumptions:
@@ -160,49 +187,8 @@ Define when the agent should ask for help vs proceed with assumptions:
   missing information; include what you have and what's needed
 ```
 
-### Certainty calibration (optional)
-
-Help the agent match expressed confidence to actual certainty:
-
-| Marker | Meaning |
-|--------|---------|
-| **CONFIRMED** | Direct evidence; verified |
-| **INFERRED** | Logical conclusion from patterns; high confidence |
-| **UNCERTAIN** | Partial evidence; needs validation before acting |
-| **NOT FOUND** | Explicitly searched; not present |
-
-## Prompting techniques
-
-### Few-shot examples
+## 8. Few-shot examples (optional)
 
 - 2-3 well-chosen examples outperform more
 - Order matters: place the most representative example last (recency effect)
 - One weak example degrades all examples — curate carefully
-
-### The interpretation test
-
-Before finalizing the prompt, verify each instruction passes these checks:
-
-1. **Could this be read two ways?** — if yes, add a clarifying example or "do X, not Y" constraint
-2. **Does this assume context the reader won't have?** — make implicit assumptions explicit
-3. **Would a different model interpret this the same way?** — if not, make the interpretation explicit
-4. **Is the directive strength clear?** — distinguish "must" from "should" from "consider"
-
-Don't draft loosely and fix later — tighten language as you write.
-
-## Sub Agent brief template
-
-Before writing a prompt, fill out a quick brief to clarify your goals:
-
-| Field | Description |
-|-------|-------------|
-| **Role** | Single specialist, coordinator, or router |
-| **Job-to-be-done** | What should it reliably accomplish? |
-| **When it's used** | What triggers this Sub Agent (transfer, delegation, or default entry point)? |
-| **Inputs** | What context, tools, and data will it need? |
-| **Outputs** | What format, audience, and verbosity? |
-| **Quality bar** | What makes an output "done" vs "needs revision"? |
-| **Constraints** | Hard rules (must/never) vs soft guidance (should/could) |
-| **Tools** | Least-privilege tool access |
-| **Model** | Cost/speed vs reasoning needs |
-| **Failure strategy** | When to ask vs proceed with assumptions |
