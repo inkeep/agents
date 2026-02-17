@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createEchoModel, EchoLanguageModel } from '../../utils/echo-provider';
 import { ModelFactory } from '../../utils/model-factory';
 
@@ -323,46 +323,6 @@ describe('Echo AI Provider', () => {
     it('should validate model config via validateConfig', () => {
       const errors = ModelFactory.validateConfig({ model: 'echo/default' });
       expect(errors).toEqual([]);
-    });
-  });
-
-  describe('Production warning', () => {
-    it('should log warning when ENVIRONMENT is production', async () => {
-      const logSpy = vi.spyOn(EchoLanguageModel.prototype as any, 'logProductionWarning');
-
-      const originalEnv = process.env.ENVIRONMENT;
-      process.env.ENVIRONMENT = 'production';
-
-      try {
-        const model = createEchoModel('default');
-        await model.doGenerate({
-          prompt: [
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'prod test' }],
-            },
-          ],
-        });
-        expect(logSpy).toHaveBeenCalled();
-      } finally {
-        process.env.ENVIRONMENT = originalEnv;
-        logSpy.mockRestore();
-      }
-    });
-
-    it('should not throw in non-production environments', async () => {
-      const model = createEchoModel('default');
-
-      const result = await model.doGenerate({
-        prompt: [
-          {
-            role: 'user',
-            content: [{ type: 'text', text: 'test' }],
-          },
-        ],
-      });
-
-      expect(result.content).toHaveLength(1);
     });
   });
 });

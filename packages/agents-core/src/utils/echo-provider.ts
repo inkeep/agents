@@ -4,10 +4,6 @@ import type {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 
-import { getLogger } from './logger.js';
-
-const logger = getLogger('EchoProvider');
-
 function extractLastUserMessage(prompt: LanguageModelV2CallOptions['prompt']): string {
   for (let i = prompt.length - 1; i >= 0; i--) {
     const msg = prompt[i];
@@ -69,8 +65,6 @@ export class EchoLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(options: LanguageModelV2CallOptions) {
-    this.logProductionWarning();
-
     const responseText = buildEchoResponse(this.modelId, options.prompt);
     const inputTokens = Math.ceil(countInputChars(options.prompt) / 4);
     const outputTokens = Math.ceil(responseText.length / 4);
@@ -92,8 +86,6 @@ export class EchoLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(options: LanguageModelV2CallOptions) {
-    this.logProductionWarning();
-
     const responseText = buildEchoResponse(this.modelId, options.prompt);
     const lines = responseText.split('\n');
     const inputTokens = Math.ceil(countInputChars(options.prompt) / 4);
@@ -139,15 +131,6 @@ export class EchoLanguageModel implements LanguageModelV2 {
       },
       warnings: [],
     };
-  }
-
-  private logProductionWarning() {
-    if (process.env.ENVIRONMENT === 'production') {
-      logger.warn(
-        { model: `echo/${this.modelId}` },
-        'Echo provider invoked in production environment'
-      );
-    }
   }
 }
 
