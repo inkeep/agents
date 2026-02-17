@@ -1,9 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import pkgJson from '../../package.json' with { type: 'json' };
 
 /**
  * The default package name for version checks and updates
@@ -20,16 +15,7 @@ export interface VersionInfo {
  * Get the current installed version from package.json
  */
 export function getCurrentVersion(): string {
-  // Try going up one level first (for bundled dist/index.js)
-  let packageJsonPath = join(__dirname, '..', 'package.json');
-
-  // If not found, try going up two levels (for source files in src/utils/)
-  if (!existsSync(packageJsonPath)) {
-    packageJsonPath = join(__dirname, '..', '..', 'package.json');
-  }
-
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  return packageJson.version;
+  return pkgJson.version;
 }
 
 /**
