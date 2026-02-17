@@ -123,7 +123,8 @@ export class ExecutionHandler {
             agentSessionManager.initializeStatusUpdates(
               requestId,
               agent.statusUpdates,
-              agent.models?.summarizer
+              agent.models?.summarizer,
+              agent.models?.base
             );
           }
         } catch (modelError) {
@@ -138,7 +139,8 @@ export class ExecutionHandler {
           agentSessionManager.initializeStatusUpdates(
             requestId,
             agent.statusUpdates,
-            agent.models?.summarizer
+            agent.models?.summarizer,
+            agent.models?.base
           );
         }
       }

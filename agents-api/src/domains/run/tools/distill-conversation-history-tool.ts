@@ -82,11 +82,19 @@ export type ConversationHistorySummary = z.infer<typeof ConversationHistorySumma
 /**
  * Distill entire conversation history into a comprehensive summary that can replace the full message history
  */
+export interface ArtifactInfo {
+  artifactId: string;
+  isOversized: boolean;
+  toolArgs?: any;
+  structureInfo?: string;
+  oversizedWarning?: string;
+}
+
 export async function distillConversationHistory(params: {
   messages: any[];
   conversationId: string;
   summarizerModel: ModelSettings;
-  toolCallToArtifactMap?: Record<string, string>;
+  toolCallToArtifactMap?: Record<string, ArtifactInfo>;
 }): Promise<ConversationHistorySummary> {
   const { messages, conversationId, summarizerModel, toolCallToArtifactMap } = params;
 

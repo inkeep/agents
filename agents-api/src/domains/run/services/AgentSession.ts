@@ -1388,6 +1388,11 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'schema_validation.full.missing_required': JSON.stringify(
             artifactData.schemaValidation?.full?.missingRequired || []
           ),
+          // Oversized artifact detection attributes
+          'artifact.is_oversized': artifactData.metadata?.isOversized || false,
+          'artifact.retrieval_blocked': artifactData.metadata?.retrievalBlocked || false,
+          'artifact.original_token_size': artifactData.metadata?.originalTokenSize || 0,
+          'artifact.context_window_size': artifactData.metadata?.contextWindowSize || 0,
         },
       },
       async (span) => {

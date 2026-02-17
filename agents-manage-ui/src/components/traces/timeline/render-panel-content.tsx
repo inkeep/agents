@@ -633,6 +633,27 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
+            {a.artifactIsOversized && (
+              <LabeledBlock label="Oversized artifact">
+                <Bubble className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300">
+                  <div className="space-y-1">
+                    <div className="font-semibold">⚠️ Artifact exceeds safe context size</div>
+                    {a.artifactOriginalTokenSize && (
+                      <div className="text-sm">
+                        Size: ~{Math.floor(a.artifactOriginalTokenSize / 1000)}K tokens
+                        {a.artifactContextWindowSize &&
+                          ` (${Math.round((a.artifactOriginalTokenSize / a.artifactContextWindowSize) * 100)}% of context window)`}
+                      </div>
+                    )}
+                    {a.artifactRetrievalBlocked && (
+                      <div className="text-sm">
+                        Full data saved but cannot be retrieved due to size constraints.
+                      </div>
+                    )}
+                  </div>
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.artifactSubAgentId && (
               <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}

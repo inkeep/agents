@@ -51,6 +51,14 @@ export const ConversationSummarySchema = z.object({
 
 export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
 
+export interface ArtifactInfo {
+  artifactId: string;
+  isOversized: boolean;
+  toolArgs?: any;
+  structureInfo?: string;
+  oversizedWarning?: string;
+}
+
 /**
  * Core conversation distillation - takes messages and creates structured summary
  */
@@ -59,7 +67,7 @@ export async function distillConversation(params: {
   conversationId: string;
   currentSummary?: ConversationSummary | null;
   summarizerModel?: ModelSettings;
-  toolCallToArtifactMap?: Record<string, string>;
+  toolCallToArtifactMap?: Record<string, ArtifactInfo>;
 }): Promise<ConversationSummary> {
   const { messages, conversationId, currentSummary, summarizerModel, toolCallToArtifactMap } =
     params;
@@ -95,12 +103,24 @@ export async function distillConversation(params: {
                 `[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`
               );
             } else if (block.type === 'tool-result') {
-              const artifactId = toolCallToArtifactMap?.[block.toolCallId];
-              const artifactInfo = artifactId ? `\n[ARTIFACT CREATED: ${artifactId}]` : '';
+              const artifactInfo = toolCallToArtifactMap?.[block.toolCallId];
 
-              parts.push(
-                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.output)}`
-              );
+              if (artifactInfo?.isOversized) {
+                // Oversized artifact - use metadata instead of full output
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\n${artifactInfo.oversizedWarning}\nStructure: ${artifactInfo.structureInfo}`
+                );
+              } else if (artifactInfo) {
+                // Normal artifact created - include tool args and result
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\nResult: ${JSON.stringify(block.output)}`
+                );
+              } else {
+                // No artifact - include full output
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nResult: ${JSON.stringify(block.output)}`
+                );
+              }
             }
           }
         } else if (msg.content?.text) {

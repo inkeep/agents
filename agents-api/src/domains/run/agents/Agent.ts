@@ -70,7 +70,7 @@ import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
-import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
@@ -2034,6 +2034,39 @@ export class Agent {
           throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
         }
 
+        // Check if artifact is oversized and block retrieval
+        const metadata = (artifactData as any).metadata;
+        if (metadata?.isOversized || metadata?.retrievalBlocked) {
+          logger.warn(
+            {
+              artifactId,
+              toolCallId,
+              tokenSize: metadata?.originalTokenSize,
+              contextWindowSize: metadata?.contextWindowSize,
+            },
+            'Blocked retrieval of oversized artifact'
+          );
+
+          return {
+            artifactId: artifactData.artifactId,
+            name: artifactData.name,
+            description: artifactData.description,
+            type: artifactData.type,
+            status: 'retrieval_blocked',
+            warning:
+              '⚠️ This artifact contains an oversized tool result that cannot be retrieved to prevent context overflow.',
+            reason: `Tool result is ~${Math.floor((metadata?.originalTokenSize || 0) / 1000)}K tokens, which exceeds safe context limits (max safe: ${Math.floor(((metadata?.contextWindowSize || 0) * 0.3) / 1000)}K tokens).`,
+            toolInfo: {
+              toolName: metadata?.toolName,
+              toolArgs: metadata?.toolArgs,
+              structureInfo: (artifactData.data as any)?._structureInfo,
+            },
+            recommendation:
+              'The tool arguments that caused this large result are included above. Consider: 1) Using more specific filters/queries with the original tool, 2) Asking the user to break down the request, 3) Processing the data differently.',
+          };
+        }
+
+        // Normal retrieval for non-oversized artifacts
         return {
           artifactId: artifactData.artifactId,
           name: artifactData.name,
@@ -3492,6 +3525,10 @@ ${output}`;
       throw new Error('Stream helper is unexpectedly undefined in streaming context');
     }
     const session = toolSessionManager.getSession(sessionId);
+
+    // Get context window size for oversized artifact detection
+    const modelContextInfo = getModelContextWindow(this.getPrimaryModel());
+
     const artifactParserOptions = {
       sessionId,
       taskId: session?.taskId,
@@ -3499,6 +3536,7 @@ ${output}`;
       artifactComponents: this.artifactComponents,
       streamRequestId: this.getStreamRequestId(),
       subAgentId: this.config.id,
+      contextWindowSize: modelContextInfo.contextWindow ?? undefined,
     };
     const parser = new IncrementalStreamParser(
       streamHelper,
@@ -3601,6 +3639,10 @@ ${output}`;
 
     if (!formattedContent) {
       const session = toolSessionManager.getSession(sessionId);
+
+      // Get context window size for oversized artifact detection
+      const modelContextInfo = getModelContextWindow(this.getPrimaryModel());
+
       const responseFormatter = new ResponseFormatter(this.executionContext, {
         sessionId,
         taskId: session?.taskId,
@@ -3609,6 +3651,7 @@ ${output}`;
         artifactComponents: this.artifactComponents,
         streamRequestId: this.getStreamRequestId(),
         subAgentId: this.config.id,
+        contextWindowSize: modelContextInfo.contextWindow ?? undefined,
       });
 
       if (response.object) {

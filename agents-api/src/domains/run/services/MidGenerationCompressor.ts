@@ -139,13 +139,13 @@ export class MidGenerationCompressor extends BaseCompressor {
         contextSizeBefore,
         contextSizeAfter,
         compressionRatio: contextSizeAfter / contextSizeBefore,
-        artifactIds: Object.values(toolCallToArtifactMap),
+        artifactIds: Object.values(toolCallToArtifactMap).map((info) => info.artifactId),
       },
       'MID-GENERATION COMPRESSION: Compression completed successfully'
     );
 
     return {
-      artifactIds: Object.values(toolCallToArtifactMap),
+      artifactIds: Object.values(toolCallToArtifactMap).map((info) => info.artifactId),
       summary,
     };
   }

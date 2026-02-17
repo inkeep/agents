@@ -6,3 +6,29 @@ When an agent uses a tool (whether that's another agent or a utility tool), the 
 - The source of the information (tool/agent used)
 - The relevant content from the response
 - Metadata about the interaction
+
+## Oversized Artifacts
+
+When tool results exceed **30% of the model's context window**, they're marked as **oversized** to prevent context overflow.
+
+**What happens:**
+- ✅ Full data is saved to the database
+- ❌ Retrieval is blocked to preserve context space
+- ⚠️ Visual warnings appear in the UI traces panel
+
+**UI Indicators:**
+- Amber warning badge in timeline: `⚠️ Oversized artifact (~247K tokens)`
+- Detailed warning in expanded view with size and percentage of context
+
+**Tracing Attributes:**
+- `artifact.is_oversized` - Boolean flag
+- `artifact.retrieval_blocked` - Whether retrieval is blocked
+- `artifact.original_token_size` - Estimated token count
+- `artifact.context_window_size` - Model's context limit
+
+**Troubleshooting:**
+If seeing many oversized artifacts, consider:
+- Filter tool outputs to return only necessary fields
+- Paginate large result sets
+- Pre-summarize responses in tools
+- Use models with larger context windows

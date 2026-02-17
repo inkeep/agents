@@ -896,6 +896,22 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.ARTIFACT_IS_OVERSIZED,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
@@ -1395,6 +1411,10 @@ export async function GET(
       artifactData?: string;
       artifactSubAgentId?: string;
       artifactToolCallId?: string;
+      artifactIsOversized?: boolean;
+      artifactRetrievalBlocked?: boolean;
+      artifactOriginalTokenSize?: number;
+      artifactContextWindowSize?: number;
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
@@ -1733,6 +1753,10 @@ export async function GET(
       const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
       const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
+      const isOversized = getField(span, SPAN_KEYS.ARTIFACT_IS_OVERSIZED) === true;
+      const retrievalBlocked = getField(span, SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED) === true;
+      const originalTokenSize = getNumber(span, SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, 0);
+      const contextWindowSize = getNumber(span, SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, 0);
 
       const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
@@ -1751,6 +1775,10 @@ export async function GET(
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
+        artifactIsOversized: isOversized || undefined,
+        artifactRetrievalBlocked: retrievalBlocked || undefined,
+        artifactOriginalTokenSize: originalTokenSize > 0 ? originalTokenSize : undefined,
+        artifactContextWindowSize: contextWindowSize > 0 ? contextWindowSize : undefined,
         otelStatusDescription: statusMessage || undefined,
       });
     }

@@ -300,6 +300,43 @@ models: {
 Custom OpenAI-compatible providers **require** a base URL to be specified in `providerOptions.baseURL` or `providerOptions.baseUrl`. The `CUSTOM_LLM_API_KEY` environment variable will be automatically used for authentication if present.
 </Note>
 
+### Context Window Override
+
+For custom or unlisted models, you can explicitly specify the context window size:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "custom/my-model",
+    providerOptions: {
+      contextWindowSize: 100000,  // Context window in tokens
+      baseURL: "https://api.example.com/v1"
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "contextWindowSize": 100000,
+  "baseUrl": "https://api.example.com/v1"
+}
+```
+</Tab>
+</Tabs>
+
+<Note>
+The `contextWindowSize` option is useful when:
+- Using a custom model not in the built-in registry
+- The framework incorrectly detects the context window size
+- You want to artificially limit the context window for testing
+
+This affects compression triggers and oversized artifact detection (artifacts exceeding 30% of the context window).
+</Note>
+
 </SkillRule>
 
 ## CLI Defaults
