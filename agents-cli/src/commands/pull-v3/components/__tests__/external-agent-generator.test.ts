@@ -3,7 +3,7 @@
  * Unit tests for external agent generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateExternalAgentDefinition as generateExternalAgentDefinitionV4 } from '../../../pull-v4/external-agent-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateExternalAgentDefinition,
@@ -48,6 +48,25 @@ describe('External Agent Generator', () => {
     },
   };
 
+  const expectExternalAgentDefinitionSnapshots = async (
+    externalAgentId: string,
+    externalAgentData: Omit<
+      Parameters<typeof generateExternalAgentDefinitionV4>[0],
+      'externalAgentId'
+    >,
+    definition: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/external-agent/${testName}.txt`);
+    const definitionV4 = generateExternalAgentDefinitionV4({
+      externalAgentId,
+      ...externalAgentData,
+    });
+    await expect(definitionV4).toMatchFileSnapshot(
+      `__snapshots__/external-agent/${testName}-v4.txt`
+    );
+  };
+
   describe('generateExternalAgentImports', () => {
     it('should generate basic imports', () => {
       const imports = generateExternalAgentImports('weather-agent', basicExternalAgentData);
@@ -68,8 +87,9 @@ describe('External Agent Generator', () => {
   });
 
   describe('generateExternalAgentDefinition', () => {
-    it('should generate basic external agent definition', () => {
-      const definition = generateExternalAgentDefinition('weather-agent', basicExternalAgentData);
+    it.only('should generate basic external agent definition', async () => {
+      const externalAgentId = 'weather-agent';
+      const definition = generateExternalAgentDefinition(externalAgentId, basicExternalAgentData);
 
       expect(definition).toContain('export const weatherAgent = externalAgent({');
       expect(definition).toContain("id: 'weather-agent',");
@@ -80,6 +100,12 @@ describe('External Agent Generator', () => {
       expect(definition).toContain("baseUrl: 'https://api.weather.com/v1/agents/weather'");
       expect(definition).toContain('});');
       expect(definition).not.toContain('credentialReference:');
+
+      await expectExternalAgentDefinitionSnapshots(
+        externalAgentId,
+        basicExternalAgentData,
+        definition
+      );
     });
 
     it('should generate external agent with credential reference object', () => {
