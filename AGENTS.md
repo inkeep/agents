@@ -266,7 +266,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 2. **Run verification commands** to ensure everything passes:
    ```bash
-   pnpm check      # runs the full CI gate: lint + typecheck + test + format + env-descriptions + knip
+   pnpm check      # runs the full CI gate: lint + typecheck + test + format:check + env-descriptions + knip
    pnpm format     # IMPORTANT: Always run formatter before committing
    ```
 
