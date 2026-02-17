@@ -5,8 +5,10 @@ const mockExecImpl = vi.fn();
 const mockSpawn = vi.fn();
 const execCalls: Array<{ cmd: string; options?: Record<string, unknown> }> = [];
 
-vi.mock('node:child_process', () => ({
-  exec: vi.fn((...args: unknown[]) => {
+vi.mock('node:child_process', () => {
+  const { promisify } = require('node:util');
+
+  const mockExec = vi.fn((...args: unknown[]) => {
     const cmd = args[0] as string;
     const options = args.length === 3 ? (args[1] as Record<string, unknown>) : undefined;
     const callback = args[args.length - 1] as (
@@ -24,9 +26,23 @@ vi.mock('node:child_process', () => ({
     } else {
       callback(null, result?.stdout || '', result?.stderr || '');
     }
-  }),
-  spawn: (...args: unknown[]) => mockSpawn(...args),
-}));
+  });
+
+  // Attach custom promisify so util.promisify(exec) returns { stdout, stderr }
+  (mockExec as any)[promisify.custom] = (cmd: string, options?: Record<string, unknown>) => {
+    execCalls.push({ cmd, options });
+    const result = mockExecImpl(cmd);
+    if (result instanceof Promise) {
+      return result;
+    }
+    return Promise.resolve(result || { stdout: '', stderr: '' });
+  };
+
+  return {
+    exec: mockExec,
+    spawn: (...args: unknown[]) => mockSpawn(...args),
+  };
+});
 
 vi.mock('dotenv', () => ({
   default: { config: vi.fn() },
@@ -58,6 +74,13 @@ describe('runSetup', () => {
     mockExecImpl.mockImplementation((cmd: string) => {
       if (cmd.includes('docker inspect')) {
         return Promise.resolve({ stdout: 'healthy', stderr: '' });
+      }
+      if (cmd.includes('docker-compose') && cmd.includes('config --format json')) {
+        return Promise.resolve({ stdout: JSON.stringify({ name: 'test-project' }), stderr: '' });
+      }
+      // lsof fails when no process is listening (ports are free by default)
+      if (cmd.includes('lsof -i :')) {
+        return Promise.reject(new Error('no process found'));
       }
       return Promise.resolve({ stdout: '', stderr: '' });
     });
@@ -266,6 +289,83 @@ describe('runSetup', () => {
     const env = (pushCall?.options as { env: Record<string, string> })?.env;
     expect(env?.INKEEP_CI).toBe('true');
     expect(env?.INKEEP_API_KEY).toBe('my-bypass-secret');
+  });
+
+  it('should skip docker startup when preflight detects port conflicts', async () => {
+    const { runSetup } = await import('../setup.js');
+
+    mockExecImpl.mockImplementation((cmd: string) => {
+      // lsof succeeds = port is in use
+      if (cmd.includes('lsof -i :')) {
+        return Promise.resolve({ stdout: '12345', stderr: '' });
+      }
+      // docker ps returns a foreign container name
+      if (cmd.includes('docker ps') && cmd.includes('--filter')) {
+        return Promise.resolve({ stdout: 'other-project-doltgres-db-1', stderr: '' });
+      }
+      if (cmd.includes('docker-compose') && cmd.includes('config --format json')) {
+        return Promise.resolve({ stdout: JSON.stringify({ name: 'test-project' }), stderr: '' });
+      }
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    await runSetup(baseConfig({ isCloud: false }));
+
+    // Should NOT have tried docker-compose up -d
+    const upCalls = mockExecImpl.mock.calls.filter(
+      (c: unknown[]) =>
+        (c[0] as string).includes('docker-compose') && (c[0] as string).includes('up -d')
+    );
+    expect(upCalls).toHaveLength(0);
+
+    // Should still run migrations
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:run:migrate');
+  });
+
+  it('should proceed with docker startup when ports are free', async () => {
+    const { runSetup } = await import('../setup.js');
+
+    await runSetup(baseConfig({ isCloud: false }));
+
+    const upCalls = mockExecImpl.mock.calls.filter(
+      (c: unknown[]) =>
+        (c[0] as string).includes('docker-compose') && (c[0] as string).includes('up -d')
+    );
+    expect(upCalls).toHaveLength(1);
+  });
+
+  it('should continue when docker compose times out during startup', async () => {
+    const { runSetup } = await import('../setup.js');
+    const origImpl = mockExecImpl.getMockImplementation();
+    mockExecImpl.mockImplementation((cmd: string) => {
+      if (cmd.includes('docker-compose') && cmd.includes('up -d')) {
+        const err = new Error('Command timed out');
+        (err as any).killed = true;
+        (err as any).signal = 'SIGTERM';
+        return Promise.reject(err);
+      }
+      return origImpl?.(cmd) ?? Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    await runSetup(baseConfig({ isCloud: false }));
+
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:run:migrate');
+  });
+
+  it('should skip docker when not available but database URLs are set', async () => {
+    const { runSetup } = await import('../setup.js');
+    mockExecImpl.mockImplementation((cmd: string) => {
+      if (cmd === 'docker info') {
+        return Promise.reject(new Error('docker not found'));
+      }
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    await runSetup(baseConfig({ isCloud: false }));
+
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
   });
 
   it('should exit if database URLs are missing (non-cloud)', async () => {

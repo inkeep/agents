@@ -43,6 +43,154 @@ function logInfo(message: string) {
 
 const execAsync = promisify(exec);
 
+// --- Pre-flight checks ---
+
+interface PortCheck {
+  port: number;
+  service: string;
+}
+
+const REQUIRED_PORTS: PortCheck[] = [
+  { port: 5432, service: 'DoltgreSQL' },
+  { port: 5433, service: 'PostgreSQL' },
+  { port: 5434, service: 'SpiceDB PostgreSQL' },
+];
+
+async function checkPort(port: number): Promise<boolean> {
+  try {
+    await execAsync(`lsof -i :${port} -sTCP:LISTEN -t`, { timeout: 5000 });
+    return true; // port is in use
+  } catch {
+    return false; // port is free
+  }
+}
+
+async function getContainerOnPort(port: number): Promise<string | null> {
+  try {
+    const { stdout } = await execAsync(
+      `docker ps --format '{{.Names}}' --filter "publish=${port}"`,
+      { timeout: 5000 }
+    );
+    const name = stdout.trim();
+    return name || null;
+  } catch {
+    return null;
+  }
+}
+
+interface PreflightResult {
+  passed: boolean;
+  dockerAvailable: boolean;
+  portsAvailable: boolean;
+}
+
+async function runPreflightChecks(composeFile: string): Promise<PreflightResult> {
+  const issues: string[] = [];
+  const fixes: string[] = [];
+
+  // Check 1: Docker daemon is running
+  try {
+    await execAsync('docker info', { timeout: 10000 });
+  } catch {
+    if (
+      process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
+      process.env.INKEEP_AGENTS_RUN_DATABASE_URL
+    ) {
+      logWarning('Docker is not available, but database URLs are configured');
+      logInfo('Assuming databases are managed externally.');
+      return { passed: true, dockerAvailable: false, portsAvailable: false };
+    }
+    logError('Docker is not running or not installed.');
+    logInfo('  Start Docker Desktop, or install Docker: https://docs.docker.com/get-docker/');
+    process.exit(1);
+  }
+
+  // Check 2: docker-compose / docker compose is available
+  try {
+    await execAsync('docker-compose version', { timeout: 5000 });
+  } catch {
+    try {
+      await execAsync('docker compose version', { timeout: 5000 });
+    } catch {
+      if (
+        process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
+        process.env.INKEEP_AGENTS_RUN_DATABASE_URL
+      ) {
+        logWarning('Docker Compose not available, but database URLs are configured');
+        logInfo('Assuming databases are managed externally.');
+        return { passed: true, dockerAvailable: true, portsAvailable: false };
+      }
+      logError('Docker Compose is not installed.');
+      logInfo('  Install it: https://docs.docker.com/compose/install/');
+      process.exit(1);
+    }
+  }
+
+  // Check 3: Required ports — determine our compose project name
+  let ownProjectPrefix: string;
+  try {
+    const { stdout } = await execAsync(`docker-compose -f ${composeFile} config --format json`, {
+      timeout: 10000,
+    });
+    const config = JSON.parse(stdout);
+    ownProjectPrefix = (config.name || '').replace(/[^a-z0-9]/g, '');
+  } catch {
+    // Fallback: derive from directory name (Docker Compose default behavior)
+    const dirName = process.cwd().split('/').pop() || '';
+    ownProjectPrefix = dirName.replace(/[^a-z0-9]/g, '').toLowerCase();
+  }
+
+  const occupiedPorts: Array<{ port: number; service: string; container: string }> = [];
+
+  await Promise.all(
+    REQUIRED_PORTS.map(async ({ port, service }) => {
+      const inUse = await checkPort(port);
+      if (!inUse) return;
+
+      const container = await getContainerOnPort(port);
+      if (!container) return; // port used by non-Docker process — still try docker compose
+
+      // Check if the container belongs to our compose project
+      const normalized = container.replace(/[^a-z0-9]/g, '').toLowerCase();
+      if (normalized.startsWith(ownProjectPrefix)) return; // our own container, fine
+
+      occupiedPorts.push({ port, service, container });
+    })
+  );
+
+  if (occupiedPorts.length > 0) {
+    issues.push(`Port${occupiedPorts.length > 1 ? 's' : ''} occupied by another Docker project:`);
+    for (const { port, service, container } of occupiedPorts) {
+      issues.push(`  :${port} (${service}) → ${container}`);
+    }
+
+    // Determine unique project names from container names (format: projectname-service-1)
+    const projectNames = new Set(
+      occupiedPorts.map(({ container }) => {
+        const parts = container.split('-');
+        // Remove the trailing replica number and service name
+        return parts.length >= 3 ? parts.slice(0, -2).join('-') : container;
+      })
+    );
+
+    for (const project of projectNames) {
+      fixes.push(`  docker compose -p ${project} down`);
+    }
+  }
+
+  if (issues.length > 0) {
+    logWarning('Pre-flight check: port conflicts detected');
+    for (const issue of issues) console.log(`${colors.yellow}  ${issue}${colors.reset}`);
+    console.log(`${colors.cyan}  Fix:${colors.reset}`);
+    for (const fix of fixes) console.log(`${colors.cyan}  ${fix}${colors.reset}`);
+    console.log();
+    logInfo('Databases on those ports will be used as-is. Continuing with setup...');
+    return { passed: true, dockerAvailable: true, portsAvailable: false };
+  }
+
+  return { passed: true, dockerAvailable: true, portsAvailable: true };
+}
+
 export interface SetupPushConfig {
   projectPath: string;
   configPath: string;
@@ -156,7 +304,7 @@ async function waitForDockerHealth(composeFile: string, serviceName: string, tim
 async function startDockerDatabases(composeFile: string) {
   logInfo('Starting database containers...');
   try {
-    await execAsync(`docker-compose -f ${composeFile} up -d`);
+    await execAsync(`docker-compose -f ${composeFile} up -d`, { timeout: 60000 });
     logSuccess('Database containers started');
 
     logInfo('Polling Docker health status...');
@@ -184,34 +332,19 @@ async function startDockerDatabases(composeFile: string) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const stderr = (error as any)?.stderr || '';
     const combined = `${errorMessage}\n${stderr}`;
+    const isTimeout = (error as any)?.killed === true;
 
     const isPortConflict =
+      isTimeout ||
       combined.includes('port is already allocated') ||
       combined.includes('address already in use') ||
-      combined.includes('Bind for 0.0.0.0:5432 failed') ||
-      combined.includes('Bind for 0.0.0.0:5433 failed');
-
-    const isDockerMissing =
-      combined.includes('not found') ||
-      combined.includes('ENOENT') ||
-      combined.includes('is not recognized');
+      combined.includes('Bind for 0.0.0.0');
 
     if (isPortConflict) {
-      logWarning('Database port already in use (databases might already be running)');
+      logWarning('Database port conflict during startup (databases might already be running)');
       logInfo('Continuing with setup...');
-    } else if (
-      isDockerMissing &&
-      process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
-      process.env.INKEEP_AGENTS_RUN_DATABASE_URL
-    ) {
-      logWarning('Docker Compose not available, but database URLs are configured');
-      logInfo('Assuming databases are managed externally. Continuing with setup...');
     } else {
       logError('Failed to start database containers', error);
-      console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
-      console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
-      console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);
-      console.error(`${colors.yellow}  • Docker Compose is not installed${colors.reset}`);
       process.exit(1);
     }
   }
@@ -487,7 +620,16 @@ export async function runSetup(config: SetupConfig) {
     logStep(3, 'Cloud setup: Skipping Docker database startup');
   } else {
     logStep(3, 'Starting databases with Docker');
-    await startDockerDatabases(config.dockerComposeFile);
+
+    // Pre-flight: verify Docker and ports before attempting startup
+    const preflight = await runPreflightChecks(config.dockerComposeFile);
+
+    if (preflight.dockerAvailable && preflight.portsAvailable) {
+      await startDockerDatabases(config.dockerComposeFile);
+    } else if (preflight.dockerAvailable && !preflight.portsAvailable) {
+      logInfo('Skipping Docker startup — using databases on existing ports.');
+    }
+    // !dockerAvailable case is handled inside runPreflightChecks (exits or continues)
   }
 
   // Step 4: Run migrations
