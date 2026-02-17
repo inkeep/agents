@@ -814,6 +814,9 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: 2.0.4
         version: 2.0.4(zod@4.3.6)
+      '@ai-sdk/provider':
+        specifier: 3.0.2
+        version: 3.0.2
       '@authzed/authzed-node':
         specifier: ^1.6.1
         version: 1.6.1
