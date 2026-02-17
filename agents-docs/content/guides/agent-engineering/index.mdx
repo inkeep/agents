@@ -41,32 +41,3 @@ These best practices apply to anyone designing AI agents with Inkeep — whether
     Debug underperformance, tune agent behavior, and update existing agents without drift.
   </Card>
 </Cards>
-
-## Key concepts
-
-### Single vs multi-agent
-
-Choose the simplest design that reliably achieves the goal:
-
-| Design | Use when | Why |
-|--------|----------|-----|
-| **Single Sub Agent** | One domain, related tools, straightforward task | Simple to build, test, and debug |
-| **Transfers** | Conversation routes between specialists; user interacts with each | Permanent handoff of conversation control |
-| **Delegation** | Coordinator breaks work into subtasks for specialists | Subtask results flow back to the coordinator |
-| **Combined** | Some tasks route, others delegate | Flexible multi-agent topology |
-
-### The "Goldilocks zone" of prompt strictness
-
-Agent prompts should be specific enough to guide behavior but general enough to handle unexpected inputs:
-
-| Problem | Symptom | Example |
-|---------|---------|---------|
-| **Too rigid** | Brittle enumeration; breaks on unexpected inputs | "If .ts do X. If .tsx do Y. If .js do Z..." |
-| **Too vague** | Abstract principles without concrete signals | "Be helpful and thorough." |
-| **Just right** | Heuristics that generalize + clear escalation | "Prioritize correctness over style. When uncertain, ask." |
-
-### Strictness by task type
-
-- **High freedom:** heuristics + output format (reviews, research, brainstorming)
-- **Medium:** step sequence + required checks (data processing, migrations)
-- **Low (strict):** explicit commands + validation loops (sensitive operations)
