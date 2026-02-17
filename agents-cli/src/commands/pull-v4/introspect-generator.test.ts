@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { createTwoFilesPatch } from 'diff';
 import { introspectGenerate, type ProjectPaths } from './introspect-generator';
 
 describe('pull-v4 introspect generator', () => {
@@ -206,4 +206,8 @@ function createProjectFixture(): FullProjectDefinition {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+}
+
+async function createUnifiedDiff(filePath: string, before: string, after: string): Promise<string> {
+  return createTwoFilesPatch(filePath, filePath, before, after, 'before', 'after', { context: 3 });
 }

@@ -60,6 +60,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "diff": "^8.0.3",
     "@types/degit": "^2.8.6",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22",
