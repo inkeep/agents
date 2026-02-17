@@ -4,14 +4,14 @@
 
 Optional local dev services (Nango, SigNoz, OTEL Collector, Jaeger) currently live in a separate companion repo (`inkeep/agents-optional-local-dev`). A bootstrap shim (`scripts/setup-optional.sh`) in the monorepo clones this companion repo into `.optional-services/` on demand and delegates to its `scripts/setup.sh` (352 lines of credential automation and Docker lifecycle management). The same shim is auto-synced to `create-agents-template/scripts/setup-optional.sh` via lint-staged.
 
-This two-repo architecture (established in recently-merged PRs #2052 and #8) creates coordination overhead (paired PRs, sync issues, merge conflicts across repos) without meaningful benefit — licensing research confirmed there's no legal barrier to inlining, and the companion repo's configs are small (~3.3MB).
+This two-repo architecture creates coordination overhead (paired PRs, sync across repos) without meaningful benefit — there's no legal barrier to inlining, and the companion repo's configs are small (~3.3MB).
 
 **Goal:** Fully eliminate the companion repo by moving all optional service configs, Docker Compose definitions, and setup automation directly into the monorepo (and by extension, the `create-agents-template`). Every surface — scripts, docs, deployment guides, gitignore, AI tooling configs — must be updated. The companion repo is archived. No references to `agents-optional-local-dev` or `.optional-services/` remain anywhere in the monorepo. User-facing commands remain identical.
 
-**Starting point:** The current merged state on `main` has:
-- Monorepo: `scripts/setup-optional.sh` (57-line shim), `.gitignore` entry for `.optional-services/`, docs referencing the companion repo, lint-staged syncing the shim to the template
-- Companion repo: `scripts/setup.sh` (352 lines), `docker-compose.yml`, config dirs (`nango/`, `signoz/`, `otel-collector/`), `.env.docker.example`, LICENSE, README, `nango-instructions.md`
-- Template: `create-agents-template/scripts/setup-optional.sh` (identical shim), `.gitignore` entry for `.optional-services/`
+**Current state:**
+- Monorepo: `scripts/setup-optional.sh` (57-line shim that clones companion repo), `.gitignore` entry for `.optional-services/`, docs referencing the companion repo
+- Companion repo: `scripts/setup.sh` (352 lines), `docker-compose.yml`, config dirs (`nango/`, `signoz/`, `otel-collector/`), `.env.docker.example`
+- Template: `create-agents-template/scripts/setup-optional.sh` (identical shim via lint-staged)
 
 ## 2. Consumers
 
@@ -109,18 +109,7 @@ ENV_FILE="$REPO_ROOT/.env"
 - `--no-update` flag (no repo to update)
 - `COMPANION_DIR` / `CALLER_ENV_FILE` export interface
 
-**What's preserved (copied from companion setup.sh):**
-- Docker Compose invocation with all 4 profiles
-- `set_env_var()` function (atomic env var writing)
-- `wait_for_http()` function (health check polling)
-- `get_env_var()` function (dotenv reading)
-- Nango credential flow (encryption key + UUID v4 secret key generation)
-- SigNoz credential flow (admin registration + PAT creation)
-- 9 env vars written to `.env`
-- 3 env vars written to `optional-services/.env`
-- `--stop`, `--status`, `--reset` subcommands
-- Pre-flight checks (Docker running, .env exists)
-- Error handling and timeout logic
+**What's preserved:** All logic from companion `setup.sh` — Docker Compose invocation with all 4 profiles, utility functions (`set_env_var`, `wait_for_http`, `get_env_var`), Nango credential flow, SigNoz credential flow, all 9+3 env vars, `--stop`/`--status`/`--reset` subcommands, pre-flight checks, and error handling.
 
 **Docker Compose path change:**
 ```bash
@@ -149,19 +138,7 @@ docker compose -f "$SERVICES_DIR/docker-compose.yml" ...
 }
 ```
 
-**How it works:**
-1. Developer edits a file in `optional-services/`
-2. Developer stages the change
-3. Pre-commit hook triggers lint-staged
-4. lint-staged matches the `optional-services/**/*` glob
-5. rsync copies the entire directory to `create-agents-template/optional-services/`
-6. `git add` stages the synced copy
-7. Commit includes both source and template copy
-
-**Edge cases:**
-- File deletion: `rsync --delete` handles this (removes files from template that don't exist in source)
-- New files: rsync copies them automatically
-- Binary files: rsync handles these (e.g., `signoz/clickhouse/user_scripts/histogramQuantile`)
+rsync fires per-file (lint-staged limitation) but is idempotent. `--delete` handles file removals and binary files are handled transparently.
 
 ### 6.4 .gitignore Changes
 
@@ -196,15 +173,7 @@ The `optional-services/` directory is now committed (it contains configs). Only 
 
 ### 6.6 Package.json Scripts
 
-**No changes needed.** All four scripts already point to `scripts/setup-optional.sh`:
-```json
-"setup-dev:optional": "sh scripts/setup-optional.sh",
-"optional:stop": "sh scripts/setup-optional.sh --stop",
-"optional:status": "sh scripts/setup-optional.sh --status",
-"optional:reset": "sh scripts/setup-optional.sh --reset"
-```
-
-Same in `create-agents-template/package.json`.
+No changes needed — all four scripts already point to `scripts/setup-optional.sh`.
 
 ## 7. Surface Area Inventory — Complete Change List
 
@@ -238,11 +207,11 @@ Every file that references the companion repo, `.optional-services/`, or the clo
 | 12 | `agents-docs/_snippets/setup-dev-optional-prereq.mdx` | all | References `pnpm setup-dev` | **No change** — no companion ref |
 | 13 | `agents-docs/_snippets/setup-dev-optional-lifecycle.mdx` | all | References lifecycle commands | **No change** — no companion ref |
 
-### 7.4 Contributing / Environment Docs (CHECK)
+### 7.4 Contributing / Environment Docs
 
 | # | File | Lines | Current | Change |
 |---|------|-------|---------|--------|
-| 14 | `agents-docs/content/community/contributing/environment-configuration.mdx` | — | May reference optional services setup | **Check and update** if references companion repo |
+| 14 | `agents-docs/content/community/contributing/environment-configuration.mdx` | — | May reference optional services setup | **Update** if references companion repo or `.optional-services/` |
 
 ### 7.5 Deployment Documentation (UPDATE)
 
@@ -256,7 +225,7 @@ These 5 files tell self-hosted deployers to `git clone agents-optional-local-dev
 | 18 | `agents-docs/content/deployment/(docker)/aws-ec2.mdx` | 39 | Same clone command | **Replace** — same approach |
 | 19 | `agents-docs/content/deployment/(docker)/azure-vm.mdx` | 65 | Same clone command | **Replace** — same approach |
 
-**Deployment docs update approach:** Replace companion repo clone with instructions to copy `optional-services/` from the monorepo. For self-hosted users who already have the monorepo cloned, this is `cp -r optional-services/ /path/to/deploy/inkeep-external-services`. For users deploying from scratch, they clone the monorepo and use the `optional-services/` directory.
+Replace companion repo clone with instructions to copy `optional-services/` from the monorepo.
 
 ### 7.6 AI Tooling / Internal Configs (CHECK)
 
@@ -267,14 +236,7 @@ These 5 files tell self-hosted deployers to `git clone agents-optional-local-dev
 
 ### 7.7 Surfaces Confirmed Clean (no changes needed)
 
-- Runtime code: `agents-api/`, `packages/agents-core/`, `packages/agents-sdk/`, all other packages
-- CLI: `agents-cli/`
-- UI: `agents-manage-ui/`
-- Cookbook: `agents-cookbook/`
-- `packages/create-agents/src/utils.ts` — template URL unchanged, content changes transitively
-- CI workflows: `.github/workflows/ci.yml`, `cypress.yml`, `release.yml` — no companion references
-- `turbo.json`, `pnpm-workspace.yaml` — no companion references
-- Core Docker Compose files: `docker-compose.yml`, `docker-compose.dbs.yml` — no companion references
+All runtime code (`agents-api/`, `packages/`), CLI, UI, cookbook, CI workflows, `turbo.json`, `pnpm-workspace.yaml`, and core Docker Compose files have no companion repo references.
 
 ## 8. Migration Path
 
@@ -311,8 +273,7 @@ These 5 files tell self-hosted deployers to `git clone agents-optional-local-dev
 | D4 | Drop `OPTIONAL_SERVICES_DIR` env var override | PENDING | No longer needed (no clone), but may be useful for custom locations |
 | D5 | Drop `--no-update` flag | CONFIRMED | No external repo to update |
 | D6 | Archive (not delete) companion repo | CONFIRMED | Preserves history |
-| D7 | Update ALL docs including deployment guides | CONFIRMED | User requirement — total archive, no lingering references |
-| D8 | This is new work on a fresh branch | CONFIRMED | PRs #2052 and #8 are merged; consolidation builds on current main |
+| D7 | Update ALL docs including deployment guides | CONFIRMED | Total archive — no lingering references anywhere |
 
 ## 11. Open Questions
 
@@ -336,15 +297,9 @@ These 5 files tell self-hosted deployers to `git clone agents-optional-local-dev
    - Mitigation: Test on both; the usage here is simple (`rsync -a --delete`) which is identical across versions
    - Alternative if rsync is problematic: use `cp -R` + manual deletion of stale files
 
-4. **[RESOLVED — PRs merged] Impact on active PRs?**
-   - PR #2052 and PR #8 are now merged to `main`. The consolidation is new work on a fresh branch.
-
-5. **[Cross-cutting, P1] Deployment docs approach for self-hosted users**
-   - After archiving the companion repo, self-hosted deployers need a new way to get the optional services configs
-   - The configs will live in the monorepo under `optional-services/`
-   - Deployers who clone the monorepo already have them
-   - Deployers who only want the Docker configs can copy the directory or clone with sparse checkout
-   - Recommendation: Update deployment docs to reference `optional-services/` in the monorepo, with copy instructions for standalone deployment
+4. **[Cross-cutting, P1] Deployment docs approach for self-hosted users**
+   - After archiving the companion repo, deployment docs need to reference `optional-services/` in the monorepo
+   - Deployers who clone the monorepo already have the configs; standalone deployers can copy the directory
 
 ## 12. Assumptions
 
@@ -365,11 +320,9 @@ These 5 files tell self-hosted deployers to `git clone agents-optional-local-dev
 
 ## 14. Phases
 
-### Phase 1 (This PR — new branch from main)
+### Phase 1
 
-**Scope:** Full consolidation — move configs, rewrite script, sync template, update ALL docs and surfaces, archive companion repo.
-
-**Starting point:** Current `main` with merged PRs #2052 and #8.
+**Scope:** Full consolidation — move configs, rewrite script, sync template, update all docs and surfaces, archive companion repo.
 
 **Acceptance Criteria:**
 
