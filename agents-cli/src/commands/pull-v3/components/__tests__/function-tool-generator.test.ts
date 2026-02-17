@@ -398,18 +398,21 @@ describe('Function Tool Generator', () => {
     //   expect(definition).toContain('export const _2023Calculator = functionTool({');
     // });
 
-    it('should handle malformed execute function gracefully', () => {
+    it.only('should handle malformed execute function gracefully', async () => {
+      const functionToolId = 'bad-execute';
       const toolData = {
         name: 'bad-execute-tool',
         inputSchema: { type: 'object', properties: {} },
         executeCode: 'not a valid function',
       };
 
-      const definition = generateFunctionToolDefinition('bad-execute', toolData);
+      const definition = generateFunctionToolDefinition(functionToolId, toolData);
 
       // Should wrap the bad code in a function
       expect(definition).toContain('execute: async ({}) => {');
       expect(definition).toContain('not a valid function');
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
     });
 
     it('should throw error for missing executeCode only', () => {
