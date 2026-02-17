@@ -154,8 +154,9 @@ describe('Credential Generator', () => {
       expect(memoryDef).toContain("credentialStoreId: 'memory-default'");
     });
 
-    it('should handle env credential with complex retrieval params', () => {
-      const definition = generateCredentialDefinition('database-url', envCredentialData);
+    it.only('should handle env credential with complex retrieval params', async () => {
+      const credentialId = 'database-url';
+      const definition = generateCredentialDefinition(credentialId, envCredentialData);
 
       expect(definition).toContain('export const databaseUrl = credential({');
       expect(definition).toContain("type: 'env',");
@@ -163,6 +164,8 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'DATABASE_URL',");
       expect(definition).toContain("fallback: 'postgresql://localhost:5432/app'");
+
+      await expectCredentialDefinitionSnapshots({ credentialId, ...envCredentialData }, definition);
     });
 
     it('should handle keychain credential with service and account', () => {
