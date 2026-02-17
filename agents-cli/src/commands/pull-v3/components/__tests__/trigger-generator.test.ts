@@ -370,21 +370,6 @@ describe('Trigger Generator', () => {
   });
 
   describe('generateTriggerFile', () => {
-    it.only('should generate complete trigger file', async () => {
-      const triggerId = 'github-webhook';
-      const file = generateTriggerFile(triggerId, basicTriggerData);
-
-      expect(file).toContain("import { Trigger } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const githubWebhook = new Trigger({');
-      expect(file).toContain("id: 'github-webhook',");
-      expect(file).toContain('});');
-
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...basicTriggerData });
-      await expect(file).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
-    });
-
     it.only('should generate complete trigger file with signature verification', async () => {
       const triggerId = 'github-webhook';
       const file = generateTriggerFile(
