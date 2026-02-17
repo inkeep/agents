@@ -296,8 +296,9 @@ describe('Credential Generator', () => {
   });
 
   describe('generateCredentialFile', () => {
-    it('should generate complete file with imports and definition', () => {
-      const file = generateCredentialFile('inkeep-api-key', testCredentialData);
+    it.only('should generate complete file with imports and definition', async () => {
+      const credentialId = 'inkeep-api-key';
+      const file = generateCredentialFile(credentialId, testCredentialData);
 
       expect(file).toContain("import { credential } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const inkeepApiKey = credential({');
@@ -306,15 +307,18 @@ describe('Credential Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectCredentialDefinitionSnapshots({ credentialId, ...testCredentialData }, file);
     });
   });
 
   describe('compilation tests', () => {
-    it('should generate code that compiles and creates a working credential', async () => {
-      generateCredentialFile('inkeep-api-key', testCredentialData);
+    it.only('should generate code that compiles and creates a working credential', async () => {
+      const credentialId = 'inkeep-api-key';
+      generateCredentialFile(credentialId, testCredentialData);
 
       // Extract just the credential definition (remove imports and export)
-      const definition = generateCredentialDefinition('inkeep-api-key', testCredentialData);
+      const definition = generateCredentialDefinition(credentialId, testCredentialData);
       const definitionWithoutExport = definition.replace('export const ', 'const ');
 
       // Mock the dependencies and test compilation
@@ -341,6 +345,11 @@ describe('Credential Generator', () => {
       expect(result.description).toBe('API key for Inkeep search and context services');
       expect(result.retrievalParams).toBeDefined();
       expect(result.retrievalParams.key).toBe('INKEEP_API_KEY');
+
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...testCredentialData },
+        definition
+      );
     });
 
     it('should generate code for env credential that compiles', () => {
