@@ -108,8 +108,9 @@ describe('External Agent Generator', () => {
       );
     });
 
-    it('should generate external agent with credential reference object', () => {
-      const definition = generateExternalAgentDefinition('complex-agent', complexExternalAgentData);
+    it.only('should generate external agent with credential reference object', async () => {
+      const externalAgentId = 'complex-agent';
+      const definition = generateExternalAgentDefinition(externalAgentId, complexExternalAgentData);
 
       expect(definition).toContain('export const complexAgent = externalAgent({');
       expect(definition).toContain('credentialReference: {');
@@ -118,6 +119,12 @@ describe('External Agent Generator', () => {
       expect(definition).toContain("description: 'API credentials for weather service'");
       expect(definition).toContain('}');
       expect(definition).not.toContain("description: 'API credentials for weather service',"); // No trailing comma
+
+      await expectExternalAgentDefinitionSnapshots(
+        externalAgentId,
+        complexExternalAgentData,
+        definition
+      );
     });
 
     it('should generate external agent with credential reference variable', () => {
