@@ -6,6 +6,7 @@
  * Usage:
  *   pnpm setup-dev              - Run full setup with local Docker databases
  *   pnpm setup-dev --skip-push  - Run setup without pushing a project
+ *   pnpm setup-dev --cloud      - Skip Docker startup (databases managed externally)
  *
  * This replaces the old scripts/setup.sh and uses the same shared setup module
  * as the quickstart template (create-agents-template/scripts/setup.js).
@@ -14,6 +15,7 @@
 import { runSetup } from '../packages/agents-core/dist/setup/index.js';
 
 const skipPush = process.argv.includes('--skip-push');
+const isCloud = process.argv.includes('--cloud');
 
 await runSetup({
   dockerComposeFile: 'docker-compose.dbs.yml',
@@ -27,6 +29,6 @@ await runSetup({
   },
   devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
   apiHealthUrl: 'http://localhost:3002/health',
-  isCloud: false,
+  isCloud,
   skipPush,
 });
