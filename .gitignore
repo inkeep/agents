@@ -78,6 +78,10 @@ agents-docs/skills-collections/.generated/
 # CI-generated PR context skill (not committed)
 .claude/skills/pr-context/
 
+# Ship spec files (local working artifacts)
+.claude/specs/
+.claude/ship-state.json
+
 # Turborepo
 .turbo
 
