@@ -1,92 +1,88 @@
 ---
-title: Handoff Protocol and Procedural Patterns
+title: Structuring Context Between Agents
 sidebarTitle: Handoff Protocol
-description: Structure context passing between agents with handoff packets and return packets. Use procedural patterns for validation loops, iteration policies, and error handling.
+description: How to structure context passing in multi-agent systems — what coordinators should include when delegating, what specialists should return, and procedural patterns for validation and iteration.
 ---
 
-Subagents start with fresh context, so reliable outcomes depend on structured handoffs. This page covers how to pass context between agents and the procedural patterns that make agent behavior predictable and bounded.
+In a multi-agent system, reliable outcomes depend on how well context flows between Sub Agents. A coordinator that delegates with vague instructions gets vague results. A specialist that returns unstructured output makes aggregation fragile.
 
-## Parent → subagent: handoff packet
+This page covers how to structure context passing and the procedural patterns that make agent behavior predictable.
 
-When spawning a subagent, provide a structured handoff packet. Copy and customize this template:
+## Coordinator to specialist: delegation context
+
+When a coordinator delegates a subtask, its prompt should instruct it to provide structured context. The more specific the handoff, the better the specialist's output.
+
+Include these elements when delegating:
 
 ```markdown
-## Task Handoff
-
-- **Objective:** [What to accomplish]
-- **Why this is needed:** [1 sentence]
-- **Scope (in-scope):** [What to focus on]
-- **Non-goals (out-of-scope):** [What to avoid]
-- **Target files / areas:** [Specific files or directories]
-- **Constraints (must / must-not):** [Hard rules]
-- **Preferred approach:** [If any]
-- **Required checks:** [Tests, linters, commands to run]
-- **Output format required:** [Link to output contract]
-- **Verbosity limit:** [e.g., "max 1-2 screens"]
-- **"Done" means:** [Clear definition of completion]
-- **If blocked, do:** [Fallback behavior]
+- **Objective:** What to accomplish
+- **Why this is needed:** 1 sentence of context
+- **Scope:** What to focus on
+- **Non-goals:** What to avoid
+- **Target files / areas:** Specific files or directories
+- **Constraints:** Hard rules (must / must-not)
+- **Required checks:** Tests, linters, commands to run
+- **Output format:** What structure to return
+- **"Done" means:** Clear definition of completion
+- **If blocked:** Fallback behavior
 ```
 
 <Tip>
-If you already know the target files, include them. If the agent must avoid edits, say so explicitly and restrict tools in frontmatter.
+If you already know the target files, include them. If the specialist should avoid modifying anything, say so explicitly and limit its tool access.
 </Tip>
 
-## Subagent → parent: return packet
+Not every delegation needs all of these — a quick data lookup might only need an objective and output format. But for complex subtasks, specificity prevents wasted effort.
 
-Require the subagent to respond in a structured format:
+## Specialist to coordinator: return format
+
+Specialists should return structured results that the coordinator can parse and aggregate. Define this format in the specialist's prompt:
 
 ```markdown
-## Return Packet
-
 ### TL;DR (2-5 bullets)
 
 ### Findings (prioritized)
-- **Critical:** [blocking issues]
-- **Warnings:** [should-fix issues]
-- **Suggestions:** [nice-to-have improvements]
+- **Critical:** blocking issues
+- **Warnings:** should-fix issues
+- **Suggestions:** nice-to-have improvements
 
 ### Evidence
 - Files + line ranges (or code excerpts kept short)
 - Commands run + key outputs (truncated)
 
 ### Recommended next actions
-1. [highest priority]
-2. [second priority]
-3. [third priority]
+1. Highest priority
+2. Second priority
 
-### Open questions / assumptions
-- [Only list what materially affects next steps]
+### Open questions
+- Only list what materially affects next steps
 ```
 
-## Iteration patterns
+Consistent return formats across all specialists make the coordinator's aggregation job straightforward.
 
-### Pattern 1: One-shot summary
+## Patterns for multi-step workflows
 
-Best when:
+### Pattern 1: One-shot delegation
+
+The coordinator delegates a self-contained task and gets back a single comprehensive result.
+
+**Best when:**
 - The task is self-contained
-- The parent will do the implementation
+- The coordinator will handle any follow-up steps
 
-The subagent does its job and returns one comprehensive report.
+### Pattern 2: Sequential delegation
 
-### Pattern 2: Resume loop
+The coordinator delegates to specialists in sequence, passing relevant context from one phase to the next.
 
-Best when:
-- The task is iterative or large
-- You want the same subagent instance to keep its own context and history
-
-Instruction for the parent: "Continue the previous subagent work and now do X. Keep the same output contract."
-
-### Pattern 3: Chain subagents via the parent
-
-Best when:
-- You need different expertise phases (review → implement → validate)
+**Best when:**
+- The task has distinct phases (research, then plan, then implement)
+- Each phase builds on the previous one's output
 
 <Steps>
   <Step>
-    Parent delegates to subagent A and gets the return packet
+    Coordinator delegates to specialist A and gets results
   </Step>
   <Step>
-    Parent extracts the minimal relevant pieces and passes them into subagent B's handoff
+    Coordinator extracts the relevant pieces and delegates to specialist B with that context
   </Step>
   <Step>
     Repeat for additional phases
@@ -94,27 +90,20 @@ Best when:
 </Steps>
 
 <Warning>
-Avoid copying entire transcripts between subagents — this wastes tokens. Extract only the minimal context needed for the next phase.
+Avoid copying entire conversation histories between specialists. Extract only the minimal context needed for the next phase — this keeps prompts focused and avoids token bloat.
 </Warning>
 
-## Artifact passing rules of thumb
+### Pattern 3: Parallel delegation
 
-| Artifact size | Strategy |
-|---|---|
-| **Small** (< ~2-3 KB) | Pass directly in the next handoff packet |
-| **Large** (plans, research notes, many findings) | Write to a file and pass the **path** forward |
+The coordinator delegates independent subtasks to multiple specialists simultaneously, then aggregates the results.
 
-This prevents token bloat and enables resume/fork workflows.
-
-### Error retention
-
-When a subagent action fails, keep the failed action and error in the handoff context. This enables implicit belief updating — the agent learns what doesn't work without explicit "don't do X" instructions. Summarize patterns if errors accumulate, but don't strip them entirely.
-
----
+**Best when:**
+- Multiple analyses are independent (security review + docs review)
+- You want faster results through parallelism
 
 ## Procedural patterns
 
-When agent tasks involve iteration, validation, or error handling, use these patterns to make behavior predictable and bounded.
+When agent tasks involve iteration, validation, or error handling, encode these patterns in the Sub Agent's prompt to make behavior predictable and bounded.
 
 ### Validation loops
 
@@ -126,14 +115,14 @@ Use when an agent needs to verify its work before returning.
 ## Validation loop
 
 1. Complete the implementation
-2. Run `npm test` and capture output
+2. Run tests and capture output
 3. If tests fail:
    - Fix the failing tests (max 2 fix attempts)
    - Re-run tests after each fix
 4. If tests still fail after 2 attempts:
-   - Return findings with `status: BLOCKED`
+   - Return findings with status: BLOCKED
    - Include error output and what you tried
-5. If tests pass: return findings with `status: COMPLETE`
+5. If tests pass: return findings with status: COMPLETE
 ```
 
 **Key elements:**
@@ -143,7 +132,7 @@ Use when an agent needs to verify its work before returning.
 
 ### Iteration policies
 
-Use when an agent may need multiple passes to complete a task:
+Use when a task may need multiple passes:
 
 ```markdown
 ## Iteration policy
@@ -160,7 +149,7 @@ Use when an agent may need multiple passes to complete a task:
   and remaining work
 ```
 
-### Error handling (graceful degradation)
+### Error handling
 
 Use when an agent might encounter errors that shouldn't crash the entire task:
 
@@ -170,7 +159,7 @@ Use when an agent might encounter errors that shouldn't crash the entire task:
 - If file read fails: skip that file, note it in findings,
   continue with others
 - If tests won't run: return what you have with
-  `status: BLOCKED` and the error
+  status: BLOCKED and the error
 - If API calls fail: retry once, then report the failure
 - Never: silently swallow errors or proceed as if nothing happened
 ```
@@ -196,7 +185,7 @@ Otherwise:
 
 ### Severity levels
 
-Use when an agent needs to prioritize or categorize findings:
+Define consistent severity levels so all agents in your system categorize findings the same way:
 
 | Level | Meaning | Examples |
 |-------|---------|---------|
@@ -204,24 +193,6 @@ Use when an agent needs to prioritize or categorize findings:
 | **HIGH** | Should fix; significant impact | Bugs affecting users, performance regressions, missing error handling |
 | **MEDIUM** | Worth fixing; moderate impact | Code quality issues, missing tests, inconsistent patterns |
 | **LOW** | Nice to have; minor improvement | Style preferences, minor refactoring, documentation gaps |
-
-```markdown
-## Severity classification
-
-Prioritize CRITICAL and HIGH findings. Include MEDIUM if time
-permits. Skip LOW unless specifically asked.
-```
-
-### Emphasis markers
-
-Use these markers consistently to signal importance:
-
-| Marker | Meaning | When to use |
-|---|---|---|
-| **CRITICAL:** | Non-negotiable | Safety constraints, security rules, data integrity |
-| **MUST** / **NEVER** | Hard requirement / prohibition | Core correctness rules |
-| **SHOULD** | Strong default with exceptions | Best practices with escape hatches |
-| **CONSIDER** / **MAY** | Suggestion; use judgment | Optional improvements |
 
 ### Combining patterns
 
@@ -235,7 +206,7 @@ For complex agents, combine these patterns into a cohesive workflow:
 3. **Validation loop:**
    - Run automated checks
    - If checks fail: fix and re-run (max 2 attempts)
-   - If still failing: return with `status: BLOCKED`
+   - If still failing: return with status: BLOCKED
 4. Return findings with severity classification
 
 ## Iteration policy

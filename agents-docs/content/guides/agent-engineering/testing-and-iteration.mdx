@@ -1,49 +1,19 @@
 ---
 title: Testing, Debugging, and Updating Agents
 sidebarTitle: Testing & Iteration
-description: Tune delegation behavior, debug agent underperformance, distinguish designer failures from runtime failures, and update existing agents without drift.
+description: Debug agent underperformance, distinguish designer failures from runtime failures, tune agent behavior, and update existing agents without drift.
 ---
 
-Agent engineering doesn't stop at writing the first prompt. This page covers how to tune delegation, debug underperformance, and update agents while preserving their original intent.
-
-## Tuning delegation behavior
-
-### If delegation is too frequent
-
-- Narrow the description triggers
-- Add explicit exclusions ("Do not use for X")
-- Add or strengthen a near-miss `<example>` block with clear commentary explaining why it should *not* delegate
-
-### If delegation never happens
-
-- Add concrete keywords and file patterns to the description
-- Add or strengthen `<example>` blocks (aim for 2-4 total)
-- Use "use proactively..." phrasing if you want aggressive delegation
-
-### If output is too verbose
-
-- Strengthen the output contract with explicit verbosity limits
-- Add a "verbosity limit" rule (e.g., "max 1-2 screens unless asked")
-
-### If it misses key checks
-
-- Add a required checklist item ("Always run X", "Always verify Y")
-- Make the check explicit in the workflow section
-
-### If it overreaches or changes too much
-
-- Tighten scope and non-goals
-- Reduce tool access
-- Consider using plan mode or reviewer pattern instead
+Agent engineering doesn't stop at writing the first prompt. This page covers how to debug underperformance, tune behavior, and update agents while preserving their original intent.
 
 ## Diagnosing underperformance
 
-When an agent fails, first identify whether it's a **designer problem** or a **runtime problem**:
+When an agent fails, the first step is identifying whether the problem is in **your prompt** or in **the model's execution**:
 
 | Category | What it means | Examples | Fix |
 |---|---|---|---|
-| **Designer failure** | The prompt has issues | Ambiguous instructions; missing escalation rules; no output contract | Edit the agent prompt |
-| **Runtime failure** | The prompt is sound but the model misapplies it | Model ignores clear instruction; hallucinates despite guardrails | Strengthen emphasis, add examples, or accept limitation |
+| **Designer failure** | The prompt has issues | Ambiguous instructions, missing escalation rules, no output format | Edit the prompt |
+| **Runtime failure** | The prompt is sound but the model misapplies it | Model ignores clear instruction, hallucinates despite guardrails | Strengthen emphasis, add examples, or accept limitation |
 
 **Rule of thumb:** If you can imagine a careful human reader misinterpreting the prompt the same way the model did, it's a designer failure.
 
@@ -52,7 +22,7 @@ When an agent fails, first identify whether it's a **designer problem** or a **r
 1. If you gave this prompt to a different model, would it interpret it the same way?
 2. Are there instructions that could be read two ways?
 3. Does the agent have enough context to judge edge cases?
-4. Is the output contract specific enough to know when output is "good"?
+4. Is the output format specific enough to evaluate whether output is "good"?
 
 If any answer is "no," it's likely a designer failure. Fix the prompt before blaming the model.
 
@@ -60,7 +30,7 @@ If any answer is "no," it's likely a designer failure. Fix the prompt before bla
 
 ### 1. Ambiguous instructions
 
-Instructions that could be read two ways — the model picks one interpretation; the user expected the other.
+Instructions that could be read two ways — the model picks one interpretation; you expected the other.
 
 | Ambiguous | Clear |
 |---|---|
@@ -70,15 +40,17 @@ Instructions that could be read two ways — the model picks one interpretation;
 
 **Fix:** Add clarifying examples, "do X, not Y" constraints, or explicit scope.
 
-### 2. Missing context assumptions
+### 2. Missing context
 
 The prompt assumes context that won't be available at runtime.
 
 | Problem | Fix |
 |---|---|
-| "Continue from where we left off" | Subagents start fresh — include all needed context in the handoff |
+| "Continue from where we left off" | Include all needed context in the prompt or handoff |
 | "Apply the pattern we discussed" | Specify the pattern explicitly |
 | "Fix the issue" | Describe the issue in detail |
+
+This is especially important for **delegate Sub Agents**, which receive only what the coordinator passes them — they don't share conversation history.
 
 ### 3. Vague directive strength
 
@@ -96,7 +68,7 @@ The prompt tells the agent what to do, but not what to watch out for.
 
 **Fix:** Include 3-5 contextually relevant failure modes from the [failure mode catalog](/guides/agent-engineering/failure-modes).
 
-### 5. Underspecified output contract
+### 5. Underspecified output format
 
 The prompt doesn't define what "good output" looks like.
 
@@ -113,9 +85,9 @@ No guidance on when to ask for help vs proceed with assumptions.
 
 ### 7. Overloaded scope
 
-Too many instructions competing for attention.
+Too many instructions competing for attention. The model's attention degrades with context length, so a prompt stuffed with low-priority instructions can cause it to miss the important ones.
 
-**Fix:** Prioritize ruthlessly. Move reference material to files loaded on demand. Use "must" for critical items and "should" for nice-to-haves.
+**Fix:** Prioritize ruthlessly. Use "must" for critical items and "should" for nice-to-haves. Move reference material to tools or data sources the agent can query on demand.
 
 ### 8. False dichotomies
 
@@ -128,23 +100,54 @@ Presenting two options when more exist.
 
 ## The designer self-check
 
-Before delivering an agent prompt, verify:
+Before deploying a prompt, verify:
 
 - [ ] No instruction could be read two ways in a different context
 - [ ] No assumed context the agent won't have
-- [ ] Directive strength is clear throughout ("must"/"should"/"consider" match actual requirements)
+- [ ] Directive strength is clear throughout ("must" / "should" / "consider")
 - [ ] 3-5 relevant failure modes are addressed
-- [ ] Output contract is specific enough to validate against
-- [ ] Escalation rules are clear (when to ask, when to proceed, when to return partial results)
-- [ ] Scope is manageable (agent can hold all critical instructions in effective attention)
+- [ ] Output format is specific enough to validate against
+- [ ] Escalation rules are clear
+- [ ] Scope is manageable (the agent can hold all critical instructions in effective attention)
+
+## Tuning agent behavior
+
+### If the agent's output is too verbose
+
+- Strengthen the output format with explicit verbosity limits
+- Add a conciseness rule (e.g., "max 1-2 screens unless asked for more")
+- Tell the agent to lead with findings, not preamble
+
+### If it misses key checks
+
+- Add a required checklist item ("Always run X", "Always verify Y")
+- Make the check explicit in the workflow section of the prompt
+
+### If it overreaches or changes too much
+
+- Tighten scope and non-goals in the prompt
+- Reduce tool access (don't give write tools to a reviewer)
+- Make the boundary explicit: "Do not modify files outside the target scope"
+
+### If transfers or delegation aren't happening correctly
+
+- Verify the Sub Agent descriptions are clear about what each specialist handles
+- Add concrete examples of when to transfer vs delegate in the coordinator's prompt
+- Check that the coordinator prompt explicitly names the routing logic
+
+### If delegate Sub Agents return unhelpful results
+
+- Ensure the coordinator passes enough context when delegating
+- Add an explicit output format to the specialist's prompt
+- Check that the specialist's prompt is self-contained (doesn't assume prior conversation)
 
 ## Updating existing agents
 
-When updating an existing agent, the goal is to improve clarity and structure **without changing the agent's meaning** unless explicitly requested.
+When updating an existing agent, the goal is to improve clarity and structure **without changing the agent's meaning** unless explicitly intended.
 
-### What you can change safely
+### Safe changes
 
-These changes don't affect meaning, routing, or capability:
+These don't affect meaning or capability:
 
 - Reformatting (headings, lists, checklists) without changing requirements
 - Reducing redundancy and merging duplicated text
@@ -152,63 +155,38 @@ These changes don't affect meaning, routing, or capability:
 - Tightening language where intent is already clear
 - Fixing typos, grammar, or formatting inconsistencies
 
-### What requires explicit approval
+### Changes that need careful review
 
-These changes can affect when the agent fires or how it judges:
+These can affect when the agent acts or how it judges:
 
-- Expanding or narrowing description triggers
-- Adding, removing, or modifying `<example>` blocks
+- Expanding or narrowing Sub Agent descriptions
+- Adding or removing examples from the prompt
 - Changing MUST/SHOULD wording or severity levels
 - Modifying personality statements or escalation thresholds
-- Adding or removing failure modes
+- Adding or removing failure mode awareness
 
-### What requires impact analysis
+### Changes that can break downstream consumers
 
-These changes can break downstream consumers:
+These can break coordinators, integrations, or callers that depend on the agent's behavior:
 
-- Renaming the agent (breaks Task tool references)
-- Changing return packet format (breaks orchestrator aggregation)
+- Renaming a Sub Agent (breaks transfer/delegate references)
+- Changing output format (breaks coordinator aggregation)
 - Changing severity levels or dedup keys
-- Changing from subagent to orchestrator pattern (or vice versa)
-
-### The update workflow
-
-<Steps>
-  <Step>
-    **Inventory the current agent** — read the full file, note frontmatter fields, body sections, and dependencies
-  </Step>
-  <Step>
-    **Capture an intent snapshot** — document purpose, routing posture, behavioral calibration, capability surface, and output contract
-  </Step>
-  <Step>
-    **Identify update opportunities** — find redundancy, unclear structure, ambiguous instructions, or missing output contracts
-  </Step>
-  <Step>
-    **Classify each change** — safe (implement by default), routing/calibration risk (require approval), capability/contract change (require explicit approval), downstream-breaking (require impact analysis)
-  </Step>
-  <Step>
-    **Apply safe changes** — implement formatting and clarity improvements
-  </Step>
-  <Step>
-    **Drift check** — compare before/after intent snapshots and flag any unintended changes
-  </Step>
-</Steps>
+- Switching a Sub Agent's role from specialist to coordinator (or vice versa)
 
 ### Common anti-patterns when updating
 
 | Anti-pattern | Description |
 |---|---|
-| **Oversampling** | Adding rules, failure modes, or edge cases "because it seems good" — only add what the author clearly implied |
-| **Tone normalization** | Rewriting personality into your own style, which can shift strictness or escalation thresholds |
-| **Calibration creep** | Subtly shifting MUST → SHOULD or SHOULD → CONSIDER without realizing the behavioral impact |
-| **Silent routing changes** | Expanding description triggers so the agent fires in new contexts without consent |
-| **Tool accumulation** | Adding tools "for convenience" without considering the risk surface |
-| **Schema drift** | Changing return packet structure when an orchestrator depends on it |
-| **Diff noise** | Massive reflow that makes review hard and increases risk of accidental semantic changes |
+| **Oversampling** | Adding rules or failure modes "because it seems good" — only add what's actually needed |
+| **Tone normalization** | Rewriting personality into your own style, shifting strictness thresholds |
+| **Calibration creep** | Subtly shifting MUST to SHOULD without realizing the behavioral impact |
+| **Tool accumulation** | Adding tools "for convenience" without considering the expanded risk surface |
+| **Format drift** | Changing output format when a coordinator depends on it |
 
 ## Maintenance best practices
 
 - Prefer small, targeted edits based on observed failures
-- Keep a changelog in git history rather than inside the agent file
-- Test delegation behavior after changes to description or `<example>` blocks
+- Test agent behavior after changes to descriptions or prompt examples
 - When multiple failures occur, make targeted fixes rather than shotgun edits across the prompt
+- Keep a changelog in version control rather than inside the prompt itself

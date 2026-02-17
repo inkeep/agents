@@ -1,47 +1,29 @@
 ---
-title: Designing Workflow Orchestrators
-sidebarTitle: Workflow Orchestrators
-description: Design multi-phase orchestrator agents that spawn subagents, aggregate results, implement quality gates, and iterate with bounded loops.
+title: Designing Multi-Agent Workflows
+sidebarTitle: Multi-Agent Workflows
+description: Design coordinator Sub Agents that delegate to specialists, aggregate results, implement quality gates, and iterate with bounded loops.
 ---
 
-Workflow orchestrators are multi-phase coordinators that spawn subagents, aggregate results, and iterate with quality gates. They're the most complex agent pattern — use them only when simpler patterns won't work.
+A multi-agent workflow uses a **coordinator Sub Agent** that delegates subtasks to specialized Sub Agents, aggregates their results, and drives the overall process forward. This is the most complex agent pattern — use it only when simpler patterns won't work.
 
-## When to use an orchestrator
+## When to use a multi-agent workflow
 
-Use a workflow orchestrator when your task has:
+A coordinator pattern fits when your task has:
 
-- **Distinct phases** with explicit inputs and outputs (research → plan → implement → review)
-- **Multiple subagents** that need coordination
+- **Distinct phases** with different expertise requirements (research, then implement, then review)
+- **Multiple specialists** whose results need to be combined
 - **Quality gates** that determine whether to iterate or proceed
-- **Aggregation** of results from parallel subagents
+- **Parallel work** where independent subtasks can run simultaneously
 
-If the task is a single job with one output, use a [subagent](/guides/agent-engineering/choosing-patterns) instead.
+If the task is a single job with one output, a single Sub Agent with the right tools is simpler and easier to debug.
 
-## Non-negotiable constraints
+## Designing the coordinator
 
-Design around these constraints — they're fundamental to the architecture:
-
-### 1. No nesting
-
-Subagents cannot spawn other subagents. Therefore, orchestrators must run as the **top-level session agent**, not as a Task-spawned subagent.
-
-### 2. Fresh context for each spawned agent
-
-Each subagent starts with a blank slate. Provide a structured [handoff packet](/guides/agent-engineering/handoff-protocol) — don't assume they know "what just happened."
-
-### 3. Skills are not inherited
-
-If a reviewer needs a specific skill, it must declare it in its own frontmatter (or you must inline the relevant standards into the handoff).
-
-### 4. Read-only exploration phases
-
-If you want durable artifacts from exploration or planning phases, the orchestrator must write them (if it has Write access) based on the return packets.
-
-## Orchestrator design checklist
+The coordinator Sub Agent is the entry point. Its prompt should encode the workflow logic: what phases to run, when to delegate, and how to aggregate results.
 
 ### Phase sequencing
 
-For each phase, define:
+For each phase of your workflow, define:
 
 | Field | Description |
 |-------|-------------|
@@ -49,15 +31,15 @@ For each phase, define:
 | **Inputs** | What the phase needs to start |
 | **Outputs** | What the phase must produce |
 | **Quality gate** | What "pass" means |
-| **Next phase trigger** | What condition advances to the next phase |
+| **Next phase** | What condition advances to the next phase |
 
 Common phase patterns:
 
 ```mermaid
 graph LR
-    A[Analyze] --> B[Dispatch Reviewers]
-    B --> C[Aggregate]
-    C --> D[Return Status]
+    A[Analyze] --> B[Dispatch specialists]
+    B --> C[Aggregate results]
+    C --> D[Return]
 ```
 
 ```mermaid
@@ -70,86 +52,83 @@ graph LR
     E -->|No| C
 ```
 
-### Subagent dispatch rules
+### Delegation rules
 
-Make dispatch deterministic:
+Make delegation deterministic in the coordinator's prompt:
 
-- **Which subagents** to run based on changed file patterns or feature type
-- **What runs in parallel** — usually independent reviews
-- **What must be sequential** — plan must exist before implement
+- **Which specialists** to delegate to based on the task characteristics
+- **What runs in parallel** — usually independent analyses or lookups
+- **What must be sequential** — a plan must exist before implementation
 - **Skip conditions** — when a phase can be omitted
 
-**Practical rule:** If two tasks don't depend on each other's outputs, run them in parallel.
+**Practical rule:** If two subtasks don't depend on each other's outputs, delegate them in parallel.
 
-### Aggregation rules
+```typescript
+const reviewCoordinator = subAgent({
+  id: 'review-coordinator',
+  name: 'Review Coordinator',
+  description: 'Coordinates multi-reviewer code reviews',
+  prompt: `When given code to review:
+    1. Delegate to security-reviewer for security analysis
+    2. Delegate to docs-reviewer for documentation check
+    3. Aggregate findings by severity
+    4. Return a unified report
 
-Aggregation is fragile without an output contract. Require each subagent to return findings in a structured format:
+    Run security and docs reviews in parallel.
+    Deduplicate findings that appear in both reviews.
+    Sort by severity: CRITICAL > HIGH > MEDIUM > LOW.`,
+  canDelegateTo: () => [securityReviewer, docsReviewer],
+});
+```
+
+### Aggregation
+
+When combining results from multiple delegates, your coordinator's prompt should specify:
 
 **Dedup strategy:**
-- Key by `(file, line/range, message)` or `(file, rule_id, location)` for structured IDs
+- Key by `(file, line/range, message)` or `(file, rule_id, location)` for structured findings
 
 **Sort strategy:**
 - Severity first: CRITICAL > HIGH > MEDIUM > LOW
-- Then file path
-- Then line number
+- Then file path, then line number
 
 **Counts:**
 - Always compute counts per severity level
 
 <Tip>
-Use a shared "output contract" skill that every reviewer subagent preloads to prevent drift in return formats.
+Give each specialist Sub Agent the same output format instructions in their prompts. Consistent return formats make aggregation reliable.
 </Tip>
 
-### Iteration and retry policy
+### Iteration and retry
 
-Define bounded iteration:
+Define bounded iteration in the coordinator's prompt:
 
 | Field | Description |
 |-------|-------------|
 | **Max iterations** | Commonly 2-3 |
-| **Loop-back triggers** | What triggers another pass (e.g., CRITICAL/HIGH findings, failing tests) |
-| **Fix list** | What gets passed back into the implement phase |
-| **Termination** | What to return when max iterations exceeded |
+| **Loop-back triggers** | What triggers another pass (e.g., CRITICAL findings, failing tests) |
+| **Fix list** | What gets passed back into the implementation phase |
+| **Termination** | What to return when max iterations are exceeded |
 
 **Iteration flow:**
 
 <Steps>
   <Step>
-    Run implement phase
+    Run the implementation phase (delegate to implementer)
   </Step>
   <Step>
-    Run review phase (parallel reviewers)
+    Run the review phase (delegate to reviewers in parallel)
   </Step>
   <Step>
-    If quality gate passes → return PASS
+    If quality gate passes, return the result
   </Step>
   <Step>
-    If gate fails and iterations remain → extract actionable fix list, loop back to implement
+    If gate fails and iterations remain, extract actionable fix list and loop back
   </Step>
   <Step>
-    If gate fails and max iterations reached → return FAIL with remaining blockers and evidence
+    If gate fails and max iterations reached, return with remaining blockers
   </Step>
 </Steps>
-
-### Artifact passing strategy
-
-Use a mixed approach based on size:
-
-| Artifact size | Strategy |
-|---|---|
-| **Small** (< ~2-3 KB) | Pass in handoff packet text |
-| **Large** (plans, research notes, many findings) | Write to disk and pass the file path forward |
-
-Recommended artifact layout:
-
-```
-.workflow/feature-development/
-├── research.md
-├── plan.md
-└── review.json
-```
-
-Keep artifacts scannable, with stable paths, and referenced explicitly in later phase handoffs.
 
 ### Quality gates
 
@@ -157,76 +136,69 @@ Each phase should have an explicit gate:
 
 | Phase | Gate criteria |
 |-------|-------------|
-| **Research** | Returns key files + risks |
-| **Plan** | Includes file list + step sequence + validations |
-| **Implement** | Changes compiled / tests run (or explicit reason why not) |
+| **Research** | Returns key files and risks |
+| **Plan** | Includes file list, step sequence, and validations |
+| **Implement** | Changes compile and tests run |
 | **Review** | 0 critical, 0 high findings |
 | **Verify** | Tests pass |
 
-## Built-in vs custom subagents
+## Structuring specialist prompts
 
-Orchestrators can spawn two kinds of subagents:
+Each specialist Sub Agent should have a focused prompt with:
 
-### Built-in agents
+1. **A clear role** — what it's responsible for and what it's not
+2. **Scoped tools** — only the tools relevant to its specialty
+3. **An output format** — consistent structure that the coordinator can parse
 
-Provided by the runtime, no file needed. Examples: Explore, Plan, general-purpose. Typically optimized for common patterns.
+Specialists don't need to know about the coordinator or the overall workflow. Write each specialist's prompt as if it's the only agent that exists — the coordinator handles orchestration.
 
-**Use when:** Generic phases (research, planning) where you don't need domain skills or custom tool restrictions.
+| Specialist prompt (avoid) | Specialist prompt (prefer) |
+|---|---|
+| "The coordinator will pass your findings to the implementer" | "Return findings in the format below" |
+| "Unlike the security-reviewer, you focus on docs" | "Focus on documentation quality and completeness" |
+| "You are part of a review pipeline" | "Review code for security vulnerabilities" |
 
-### Custom role agents
+## Output format
 
-Defined in your agent directory with custom prompts, tool restrictions, and domain skills.
-
-**Use when:**
-- Domain skills need to be preloaded
-- Specific tool restrictions are required (e.g., reviewers with no Write/Edit)
-- Consistent output format is essential (e.g., all reviewers return the same finding schema)
-
-## Orchestrator output contract
-
-Even if subagents return structured JSON, the orchestrator should return:
+Even when specialist Sub Agents return structured results, the coordinator should produce:
 
 - Human-readable summary
 - Aggregated findings (sorted by severity)
 - Evidence for high-severity items
-- A final machine-readable JSON block
 
-Minimum JSON fields:
+If the coordinator's output will be consumed programmatically, include a structured block:
 
 ```json
 {
   "status": "PASS | FAIL | BLOCKED",
   "phases_completed": ["research", "plan", "implement", "review"],
   "iterations": 2,
-  "subagents_run": ["security-reviewer", "docs-reviewer", "implementer"],
   "counts": {
     "critical": 0,
     "high": 1,
     "medium": 3,
     "low": 5
-  },
-  "artifact_paths": [".workflow/feature-development/review.json"]
+  }
 }
 ```
 
 ## Common failure modes
 
-| Failure mode | Guardrail |
+| Failure mode | How to prevent it |
 |---|---|
-| **Orchestrator used as subagent** | Include explicit constraint: "must run as top-level session agent." Add fallback: if Task tool unavailable, return instructions to invoke correctly |
-| **Inconsistent reviewer outputs** | Shared output contract skill preloaded in every reviewer subagent |
-| **Token bloat from big artifacts** | Write artifacts to disk and pass paths forward |
-| **Infinite loops** | Max iterations + clear FAIL output with remaining blockers |
-| **Over-triggering orchestration** | Near-miss `<example>` blocks in description that direct single-step requests to subagents |
+| **Inconsistent specialist outputs** | Use the same output format instructions in every specialist's prompt |
+| **Infinite loops** | Set max iterations in the coordinator prompt with a clear FAIL output |
+| **Coordinator doesn't aggregate** | Include explicit aggregation instructions (dedup, sort, count) |
+| **Over-delegating simple tasks** | If a single Sub Agent with the right tools can do it, skip the coordinator pattern |
 
-## Orchestrator-specific agent brief
+## Planning checklist
 
-When planning an orchestrator, add these fields to the [agent brief](/guides/agent-engineering/prompt-structure#agent-brief-template):
+When designing a multi-agent workflow, define these upfront:
 
 | Field | Description |
 |-------|-------------|
 | **Phases** | Ordered list (and which can run in parallel) |
-| **Subagent roster** | Which subagents to spawn, and when |
-| **Artifact strategy** | What gets written to disk vs passed via handoff packets |
+| **Specialist roster** | Which Sub Agents to delegate to, and when |
 | **Quality gates** | What must be true to advance or stop |
-| **Iteration policy** | Max iterations; termination conditions; what to do on repeated failure |
+| **Iteration policy** | Max iterations; termination conditions |
+| **Output format** | What the coordinator returns and in what structure |

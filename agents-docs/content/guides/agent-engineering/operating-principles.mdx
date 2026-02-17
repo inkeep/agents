@@ -4,7 +4,7 @@ sidebarTitle: Operating Principles
 description: Core principles that guide every decision when designing AI agent prompts — from attention management to writing for execution.
 ---
 
-These principles guide you as you write agent prompts. They apply regardless of whether you're building a reviewer, implementer, orchestrator, or any other agent type.
+These principles apply to any Sub Agent prompt you write — whether the agent is a router, specialist, coordinator, or standalone worker.
 
 ## 1. Treat attention as scarce
 
@@ -57,20 +57,20 @@ Use precise language to signal how binding an instruction is. The agent parses t
 Mixing up directive strengths is a common source of agent misbehavior. Using "should" where you mean "must" gives the agent permission to skip critical steps. Using "must" for preferences makes the agent overly rigid.
 </Warning>
 
-## 6. Make agent prompts standalone
+## 6. Make prompts standalone
 
-Assume a first-time reader with zero context. Don't rely on the agent inferring from prior conversation or parent state.
+Assume a first-time reader with zero context. Don't rely on the agent inferring from prior conversation or shared state.
 
-For **subagents** specifically:
-- Don't reference other agents by name — write each as if it's the only agent that exists
-- If a subagent needs orchestration context, the parent passes it via handoff, not in the permanent prompt
+For **specialist Sub Agents**:
+- Don't reference other Sub Agents by name — write each as if it's the only agent that exists
+- If a specialist needs workflow context, the coordinator passes it when delegating, not in the permanent prompt
 
-For **orchestrators** (the exception):
-- Orchestrators coordinate subagents by design, so they can reference subagent names and dispatch rules
+For **coordinator Sub Agents** (the exception):
+- Coordinators manage other Sub Agents by design, so they can reference Sub Agent names and routing rules
 
-| Subagent prompt (avoid) | Subagent prompt (prefer) |
+| Specialist prompt (avoid) | Specialist prompt (prefer) |
 |---|---|
-| "The orchestrator will pass your findings to the implementer" | "Return findings in the output contract format" |
+| "The coordinator will pass your findings to the implementer" | "Return findings in the output format below" |
 | "Unlike the security-reviewer, you focus on docs" | "Focus on documentation quality" |
 | "Coordinate with the test-runner agent" | "Your output will be used for downstream processing" |
 

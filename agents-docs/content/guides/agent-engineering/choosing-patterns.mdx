@@ -1,118 +1,143 @@
 ---
 title: Choosing the Right Agent Pattern
 sidebarTitle: Choosing Patterns
-description: Decide between agents, skills, and always-on rules. Pick the right agent pattern — subagent vs workflow orchestrator — based on your task requirements.
+description: Decide when a single Sub Agent is enough and when to break work into multiple Sub Agents using transfers or delegation.
 ---
 
-Not every task needs an agent. And not every agent needs to be an orchestrator. Start by choosing the lightest mechanism that reliably achieves the goal, then pick the right agent pattern if an agent is the answer.
+Not every task needs multiple agents. Start by choosing the simplest design that reliably achieves the goal, then add complexity only when you have a clear reason.
 
-## Agent vs skill vs always-on rules
+## Single Sub Agent vs multi-agent
 
-Choose the lightest mechanism that reliably achieves the goal:
+The most fundamental design decision is whether your Agent needs one Sub Agent or several.
 
-| If you need... | Prefer | Why |
+A **single Sub Agent** is the right starting point when:
+
+- The task is well-scoped (answering questions, performing a set of related actions)
+- All the tools the agent needs are thematically related
+- The conversation doesn't need to shift between fundamentally different domains
+
+A **multi-agent system** (multiple Sub Agents within one Agent) becomes valuable when:
+
+- Different parts of the workflow require different expertise, tools, or prompts
+- You want specialized agents that each do one thing well rather than a generalist that does many things adequately
+- The conversation naturally routes between distinct domains (e.g., billing questions vs technical support)
+- Some tasks are better handled as temporary subtasks that return results to a coordinator
+
+### Rule of thumb
+
+Keep each Sub Agent focused on 5-7 related tools. If you find yourself cramming unrelated capabilities into a single Sub Agent's prompt, that's a signal to split into multiple Sub Agents.
+
+## Transfers vs delegation
+
+Once you've decided on a multi-agent design, the next question is how your Sub Agents should interact. Inkeep supports two relationship types, each suited to different scenarios.
+
+### Transfers
+
+A **transfer** permanently hands conversation control from one Sub Agent to another. The source Sub Agent stops processing, and the target takes over the thread.
+
+**Use transfers when:**
+
+- The user will likely have follow-up questions for the specialist (customer support, troubleshooting)
+- The conversation is moving into a different domain entirely
+- The target Sub Agent needs to interact directly with the user
+
+**Common pattern:** A router Sub Agent that analyzes the user's intent and transfers to the appropriate specialist.
+
+```typescript
+const routerSubAgent = subAgent({
+  id: 'router',
+  name: 'Router',
+  description: 'Routes customer inquiries to specialized agents',
+  prompt: `Analyze the customer's inquiry and route them:
+    - Product questions → Transfer to QA agent
+    - Order issues → Transfer to Order agent
+    - Complex issues → Handle directly or escalate`,
+  canTransferTo: () => [qaSubAgent, orderSubAgent],
+});
+```
+
+### Delegation
+
+A **delegation** passes a subtask to another Sub Agent while the source retains control. The delegate executes the task and returns its results to the source, which continues processing.
+
+**Use delegation when:**
+
+- You need a quick result from a specialist (data retrieval, calculation, lookup)
+- The task is self-contained and doesn't require user interaction
+- A coordinator needs to combine results from multiple specialists
+
+**Common pattern:** A coordinator Sub Agent that breaks a complex task into subtasks and delegates each to a specialist.
+
+```typescript
+const coordinatorSubAgent = subAgent({
+  id: 'coordinator',
+  name: 'Research Coordinator',
+  description: 'Coordinates multi-step research tasks',
+  prompt: `When given a research task:
+    1. Delegate to the data agent for raw information
+    2. Delegate to the analysis agent for interpretation
+    3. Synthesize the results into a final answer`,
+  canDelegateTo: () => [dataSubAgent, analysisSubAgent],
+});
+```
+
+### Quick comparison
+
+| | Transfer | Delegation |
 |---|---|---|
-| Always-on repo constraints (commands, conventions, non-negotiables) | **Always-on rules** | Applied everywhere; no routing needed |
-| Reusable instructions that run in the **main** conversation context | **Skill** | Reuse without context isolation; easy to invoke interactively |
-| A single specialized worker/reviewer with tool restrictions | **Subagent** | Isolated context + least-privilege tools |
-| A multi-phase pipeline that coordinates other agents | **Workflow orchestrator** | Encodes phase order, dispatch, aggregation, iteration |
+| **Control** | Permanently moves to the target | Stays with the source |
+| **User interaction** | Target responds directly to the user | Only the source responds to the user |
+| **Best for** | Domain routing, conversation handoffs | Subtasks, data retrieval, parallel work |
+| **Think of it as** | "You take it from here" | "Do this for me and report back" |
 
-<Note>
-Subagents cannot spawn other subagents. If you need multi-step specialization, orchestration must live in the top-level agent/session.
-</Note>
+### Combining both
 
-### When to use always-on rules
+Sub Agents can use both transfers and delegation simultaneously. A common pattern is a coordinator that delegates subtasks to specialists but can also transfer to a different agent when the conversation moves to a different domain.
 
-Always-on rules are the simplest mechanism. Use them for constraints that apply to every interaction:
-
-- Commit message formats
-- Code style conventions
-- Security non-negotiables
-- Required commands before merging
-
-These go in `AGENTS.md` (or equivalent) and are loaded into every session automatically.
-
-### When to use skills
-
-Skills are reusable instruction sets that run in the main conversation context. Use them when:
-
-- The instructions need to be available on-demand across different agents
-- You want reuse without the overhead of context isolation
-- The workflow benefits from interactive back-and-forth with the user
-
-### When to use a subagent
-
-Subagents are isolated, single-purpose executors. Use them when:
-
-- The task needs tool restrictions (e.g., read-only reviewer)
-- You want to isolate high-volume output from the main conversation
-- The task is self-contained with clear inputs and outputs
-- You need parallel execution of independent tasks
-
-### When to use a workflow orchestrator
-
-Orchestrators coordinate multi-phase pipelines. Use them when:
-
-- The task has distinct phases (research, plan, implement, review)
-- Multiple subagents need to work together
-- Results from one phase feed into the next
-- Quality gates determine whether to iterate or proceed
-
-## Subagent vs workflow orchestrator
-
-Once you've decided an agent is the right mechanism, pick the lightest agent pattern that fits:
-
-| Need | Choose | Practical effect |
-|---|---|---|
-| One job, one output (review, implement, diagnose, summarize) | **Subagent** | Simple scope, easier to validate; no Task tool needed |
-| Multi-phase workflow (research → plan → implement → judge → iterate) | **Workflow orchestrator** | Needs Task tool; coordinates phases, dispatches subagents, aggregates results |
-| Isolation for a single task, but no multi-phase orchestration | **Subagent** | Avoid writing orchestration logic unless needed |
-
-### Subagent characteristics
-
-- Does one job (review OR implement OR diagnose)
-- Returns one report
-- Does NOT use the Task tool
-- Cannot spawn other subagents
-- Preloads domain skills via `skills:` field
-- Should have a strong output contract
-
-### Orchestrator characteristics
-
-- Runs a pipeline with explicit inputs/outputs per phase
-- Spawns multiple subagents via the Task tool
-- Aggregates outputs from parallel subagents
-- Implements iteration loops with termination conditions
-- Must run as the top-level session agent (not as a Task-spawned subagent)
+```typescript
+const supportSubAgent = subAgent({
+  id: 'support',
+  name: 'Technical Support',
+  description: 'Handles technical support with research capabilities',
+  prompt: `Help users with technical issues.
+    - Delegate to the diagnostics agent for system checks
+    - Transfer to billing if the issue is billing-related`,
+  canDelegateTo: () => [diagnosticsSubAgent],
+  canTransferTo: () => [billingSubAgent],
+});
+```
 
 ## Mapping task characteristics to strictness
 
-Different tasks need different levels of control:
+Different tasks need different levels of control in the Sub Agent's prompt:
 
-| Strictness level | Task characteristics | Approach |
+| Strictness level | Task characteristics | Prompt approach |
 |---|---|---|
-| **High freedom** | Reviews, audits, brainstorming | Heuristics + output contract |
-| **Medium** | Refactors, migrations | Step sequence + required checks |
-| **Low (strict)** | Fragile operations, deployments | Scripts/commands + strict validation loops |
+| **High freedom** | Open-ended questions, brainstorming, research | Heuristics + output guidelines |
+| **Medium** | Structured workflows, data processing | Step sequence + required checks |
+| **Low (strict)** | Sensitive operations, financial transactions | Explicit commands + validation loops |
+
+A Sub Agent that answers product questions can be given broad latitude. A Sub Agent that modifies customer orders needs precise guardrails.
 
 ## Decision flowchart
 
 ```mermaid
 graph TD
-    A[New task] --> B{Applies to every session?}
-    B -->|Yes| C[Always-on rules]
-    B -->|No| D{Needs context isolation?}
-    D -->|No| E[Skill]
-    D -->|Yes| F{Multiple phases?}
-    F -->|No| G[Subagent]
-    F -->|Yes| H[Workflow orchestrator]
+    A[New task] --> B{One domain, related tools?}
+    B -->|Yes| C[Single Sub Agent]
+    B -->|No| D{User interacts with specialist?}
+    D -->|Yes| E[Transfers]
+    D -->|No| F{Need results back to coordinator?}
+    F -->|Yes| G[Delegation]
+    F -->|No| E
 ```
 
 ## Quick checklist
 
-Before creating a new agent, verify:
+Before finalizing your agent design:
 
-- [ ] An always-on rule or skill isn't sufficient
-- [ ] The task genuinely benefits from context isolation
-- [ ] You've chosen the lightest pattern that fits (subagent if possible, orchestrator only when needed)
-- [ ] You understand the [constraints](/guides/agent-engineering/workflow-orchestrators) (no nested spawning, fresh context per subagent)
+- [ ] Start with the simplest pattern that works (single Sub Agent if possible)
+- [ ] Each Sub Agent has a clear, focused responsibility
+- [ ] Transfers are used for domain routing where the user interacts with the target
+- [ ] Delegation is used for subtasks where results flow back to a coordinator
+- [ ] Each Sub Agent has 5-7 related tools (not an overloaded grab-bag)
