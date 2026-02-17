@@ -143,7 +143,7 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, complexSubAgentData, definition);
     });
 
-    it('should handle single item arrays in single line format', () => {
+    it.only('should handle single item arrays in single line format', async () => {
       const singleItemData = {
         name: 'Single Item Agent',
         description: 'Agent with single items',
@@ -151,9 +151,10 @@ describe('Sub-Agent Generator', () => {
         canUse: [{ toolId: 'onlyTool' }],
         dataComponents: ['onlyComponent'],
       };
+      const subAgentId = 'single-item-agent';
 
       const definition = generateSubAgentDefinition(
-        'single-item-agent',
+        subAgentId,
         singleItemData,
         undefined,
         mockRegistry
@@ -162,6 +163,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('canUse: () => [onlyTool]');
       expect(definition).toContain('dataComponents: () => [onlyComponent]');
       expect(definition).not.toContain('canUse: () => [\n'); // Single line format
+
+      await expectDefinitionSnapshotPair(subAgentId, singleItemData, definition);
     });
 
     it('should handle multiple items in multi-line format', () => {
