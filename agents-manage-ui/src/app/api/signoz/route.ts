@@ -105,18 +105,30 @@ export async function POST(request: NextRequest) {
 
       const { paginationPayload, detailPayloadTemplate } = validationResult.data;
 
-      const paginationTimeValidation = validateTimeRange(paginationPayload.start, paginationPayload.end);
+      const paginationTimeValidation = validateTimeRange(
+        paginationPayload.start,
+        paginationPayload.end
+      );
       if (!paginationTimeValidation.valid) {
         return NextResponse.json(
-          { error: 'Invalid time range in paginationPayload', details: paginationTimeValidation.error },
+          {
+            error: 'Invalid time range in paginationPayload',
+            details: paginationTimeValidation.error,
+          },
           { status: 400 }
         );
       }
 
-      const detailTimeValidation = validateTimeRange(detailPayloadTemplate.start, detailPayloadTemplate.end);
+      const detailTimeValidation = validateTimeRange(
+        detailPayloadTemplate.start,
+        detailPayloadTemplate.end
+      );
       if (!detailTimeValidation.valid) {
         return NextResponse.json(
-          { error: 'Invalid time range in detailPayloadTemplate', details: detailTimeValidation.error },
+          {
+            error: 'Invalid time range in detailPayloadTemplate',
+            details: detailTimeValidation.error,
+          },
           { status: 400 }
         );
       }

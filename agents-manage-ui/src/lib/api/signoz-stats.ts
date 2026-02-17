@@ -347,7 +347,7 @@ class SigNozStatsAPI {
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
     const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
 
-    const makePaginationResult = (conversationIds: string[], total: number) => ({
+    const makePaginationResult = (total: number) => ({
       page: pagination.page,
       limit: pagination.limit,
       total,
@@ -418,7 +418,7 @@ class SigNozStatsAPI {
       if (conversationIds.length === 0 || !detailResponse) {
         return {
           data: [],
-          pagination: makePaginationResult(conversationIds, total),
+          pagination: makePaginationResult(total),
           aggregateStats,
         };
       }
@@ -427,7 +427,7 @@ class SigNozStatsAPI {
 
       return {
         data: orderedStats,
-        pagination: makePaginationResult(conversationIds, total),
+        pagination: makePaginationResult(total),
         aggregateStats,
       };
     }
@@ -446,7 +446,7 @@ class SigNozStatsAPI {
     if (conversationIds.length === 0) {
       return {
         data: [],
-        pagination: makePaginationResult(conversationIds, total),
+        pagination: makePaginationResult(total),
         aggregateStats,
       };
     }
@@ -464,7 +464,7 @@ class SigNozStatsAPI {
 
     return {
       data: orderedStats,
-      pagination: makePaginationResult(conversationIds, total),
+      pagination: makePaginationResult(total),
       aggregateStats,
     };
   }
