@@ -4,6 +4,8 @@ import { analyticsAgent } from './agents/analyticsAgent';
 import { reportingAgent } from './agents/reportingAgent';
 import { dashboardComponent } from './artifact-components/dashboardComponent';
 import { reportComponent } from './artifact-components/reportComponent';
+import { databaseCredentials } from './credentials/databaseCredentials';
+import { apiKeyCredentials } from './credentials/apiKeyCredentials';
 
 export const complexTestProject = project({
   id: 'complex-test-project',
