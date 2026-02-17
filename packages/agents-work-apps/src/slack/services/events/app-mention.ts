@@ -307,12 +307,11 @@ Respond naturally as if you're joining the conversation to help.`;
       // Include thread context if in a thread
       if (isInThread && threadTs) {
         const {
-          result: [contextMessages, channelInfo, userInfo],
+          result: [contextMessages, channelInfo],
         } = await timedOp(
           Promise.all([
             getThreadContext(slackClient, channel, threadTs),
             getSlackChannelInfo(slackClient, channel),
-            getSlackUserInfo(slackClient, slackUserId),
           ]),
           {
             label: 'thread context fetch',
@@ -321,8 +320,7 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         if (contextMessages) {
           const channelContext = formatChannelContext(channelInfo);
-          const userName = userInfo?.displayName || 'User';
-          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${userName}: ${text}`;
+          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${text}`;
         }
       } else {
         const {
