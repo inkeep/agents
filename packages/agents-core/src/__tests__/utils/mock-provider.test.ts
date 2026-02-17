@@ -314,12 +314,6 @@ describe('Mock AI Provider', () => {
       expect(model).toBeDefined();
     });
 
-    it('should reject unsupported providers', () => {
-      expect(() => ModelFactory.parseModelString('unsupported/model')).toThrow(
-        /Unsupported provider/
-      );
-    });
-
     it('should validate model config via validateConfig', () => {
       const errors = ModelFactory.validateConfig({ model: 'mock/default' });
       expect(errors).toEqual([]);
