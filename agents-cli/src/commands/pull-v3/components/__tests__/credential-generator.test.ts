@@ -48,12 +48,11 @@ describe('Credential Generator', () => {
   };
 
   const expectCredentialDefinitionSnapshots = async (
-    credentialId: string,
-    credentialData: Record<string, unknown>,
+    defentionData: Parameters<typeof generateCredentialDefinitionV4>[0],
     definition: string
   ) => {
     const testName = expect.getState().currentTestName;
-    const definitionV4 = generateCredentialDefinitionV4({ credentialId, ...credentialData });
+    const definitionV4 = generateCredentialDefinitionV4(defentionData);
     await expect(definition).toMatchFileSnapshot(`__snapshots__/credential/${testName}.txt`);
     await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/credential/${testName}-v4.txt`);
   };
@@ -93,18 +92,25 @@ describe('Credential Generator', () => {
       expect(definition).toContain("key: 'INKEEP_API_KEY'");
       expect(definition).toContain('});');
 
-      await expectCredentialDefinitionSnapshots(credentialId, testCredentialData, definition);
+      await expectCredentialDefinitionSnapshots(
+        { credentialId, ...testCredentialData },
+        definition
+      );
     });
 
-    it('should handle credential ID to camelCase conversion', () => {
-      const definition = generateCredentialDefinition('database-connection-url', {
+    it.only('should handle credential ID to camelCase conversion', async () => {
+      const credentialId = 'database-connection-url';
+      const conversionData = {
         name: 'Database Connection URL',
         type: 'env',
         credentialStoreId: 'env-default',
-      });
+      };
+      const definition = generateCredentialDefinition(credentialId, conversionData);
 
       expect(definition).toContain('export const databaseConnectionUrl = credential({');
       expect(definition).toContain("id: 'database-connection-url',");
+
+      await expectCredentialDefinitionSnapshots({ credentialId, ...conversionData }, definition);
     });
 
     it('should handle credential with all required fields', () => {
