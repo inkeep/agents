@@ -24,6 +24,13 @@ Run the quickstart script on a target folder:
 npx @inkeep/create-agents my-agents
 ```
 
+<Tip>
+Want to explore without an API key? Use `--skip-provider` to scaffold with a mock provider:
+```bash
+npx @inkeep/create-agents my-agents --skip-provider
+```
+</Tip>
+
 Navigate to the folder
 
 ```bash
