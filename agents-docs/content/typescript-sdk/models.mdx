@@ -74,12 +74,12 @@ const mySubAgent = subAgent({
 | **Gateway** | `gateway/openai/gpt-4.1-mini` | `AI_GATEWAY_API_KEY` |
 | **NVIDIA NIM** | `nim/nvidia/llama-3.3-nemotron-super-49b-v1.5`<br/>`nim/nvidia/nemotron-4-340b-instruct` | `NIM_API_KEY` |
 | **Custom OpenAI-compatible** | `custom/my-custom-model`<br/>`custom/llama-3-custom` | `CUSTOM_LLM_API_KEY` |
-| **Echo** (testing) | `echo/default`<br/>`echo/any-name` | None required |
+| **Mock** (testing) | `mock/default`<br/>`mock/any-name` | None required |
 
 <Note>*`openai/gpt-5`, `openai/gpt-5-mini`, and `openai/gpt-5-nano` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
 
 <Tip>
-The `echo/` provider (`echo/default`, `echo/any-name`) returns deterministic responses without API calls or keys. Use it for testing and CI/CD. It supports both streaming and non-streaming and returns synthetic token usage.
+The `mock/` provider (`mock/default`, `mock/any-name`) returns deterministic responses without API calls or keys. Use it for testing and CI/CD. It supports both streaming and non-streaming and returns synthetic token usage.
 </Tip>
 
 ### Pinned vs Unpinned Models

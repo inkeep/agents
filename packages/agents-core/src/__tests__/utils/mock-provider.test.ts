@@ -1,41 +1,41 @@
 import { describe, expect, it } from 'vitest';
-import { createEchoModel, EchoLanguageModel } from '../../utils/echo-provider';
+import { createMockModel, MockLanguageModel } from '../../utils/mock-provider';
 import { ModelFactory } from '../../utils/model-factory';
 
-describe('Echo AI Provider', () => {
-  describe('EchoLanguageModel', () => {
+describe('Mock AI Provider', () => {
+  describe('MockLanguageModel', () => {
     it('should implement LanguageModelV2 interface correctly', () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
-      expect(model).toBeInstanceOf(EchoLanguageModel);
+      expect(model).toBeInstanceOf(MockLanguageModel);
       expect(model.specificationVersion).toBe('v2');
-      expect(model.provider).toBe('echo');
+      expect(model.provider).toBe('mock');
       expect(model.modelId).toBe('default');
       expect(model.supportsImageUrls).toBe(false);
       expect(model.defaultObjectGenerationMode).toBeUndefined();
     });
 
-    it('should accept any model name under echo/ prefix (T8)', () => {
+    it('should accept any model name under mock/ prefix (T8)', () => {
       const models = ['default', 'fast', 'verbose', 'anything', 'test-model-123'];
 
       for (const name of models) {
-        const model = createEchoModel(name);
+        const model = createMockModel(name);
         expect(model.modelId).toBe(name);
-        expect(model.provider).toBe('echo');
+        expect(model.provider).toBe('mock');
       }
     });
   });
 
   describe('doGenerate (non-streaming) (T4)', () => {
-    it('should return structured echo response', async () => {
-      const model = createEchoModel('default');
+    it('should return structured mock response', async () => {
+      const model = createMockModel('default');
 
       const result = await model.doGenerate({
         prompt: [
           { role: 'system', content: 'You are a helpful assistant.' },
           {
             role: 'user',
-            content: [{ type: 'text', text: 'Hello, echo!' }],
+            content: [{ type: 'text', text: 'Hello, mock!' }],
           },
         ],
       });
@@ -45,15 +45,15 @@ describe('Echo AI Provider', () => {
       expect(result.content[0].type).toBe('text');
 
       const text = result.content[0].type === 'text' ? result.content[0].text : '';
-      expect(text).toContain('Echo response.');
-      expect(text).toContain('Model: echo/default');
+      expect(text).toContain('Mock response.');
+      expect(text).toContain('Model: mock/default');
       expect(text).toContain('Input messages: 2');
-      expect(text).toContain('Last user message: "Hello, echo!"');
+      expect(text).toContain('Last user message: "Hello, mock!"');
       expect(text).toContain('Timestamp:');
     });
 
     it('should include message count in response (T1)', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
       const result = await model.doGenerate({
         prompt: [
@@ -79,7 +79,7 @@ describe('Echo AI Provider', () => {
     });
 
     it('should return synthetic token usage', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
       const result = await model.doGenerate({
         prompt: [
@@ -97,7 +97,7 @@ describe('Echo AI Provider', () => {
     });
 
     it('should truncate long user messages to 200 chars', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
       const longMessage = 'A'.repeat(300);
 
       const result = await model.doGenerate({
@@ -115,7 +115,7 @@ describe('Echo AI Provider', () => {
     });
 
     it('should handle no user message gracefully', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
       const result = await model.doGenerate({
         prompt: [{ role: 'system', content: 'System only.' }],
@@ -125,8 +125,8 @@ describe('Echo AI Provider', () => {
       expect(text).toContain('(no user message)');
     });
 
-    it('should include model name in response for custom echo models', async () => {
-      const model = createEchoModel('fast-test');
+    it('should include model name in response for custom mock models', async () => {
+      const model = createMockModel('fast-test');
 
       const result = await model.doGenerate({
         prompt: [
@@ -138,19 +138,19 @@ describe('Echo AI Provider', () => {
       });
 
       const text = result.content[0].type === 'text' ? result.content[0].text : '';
-      expect(text).toContain('Model: echo/fast-test');
+      expect(text).toContain('Model: mock/fast-test');
     });
   });
 
   describe('doStream (streaming) (T1)', () => {
     it('should stream response in multiple chunks', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
       const { stream, warnings } = await model.doStream({
         prompt: [
           {
             role: 'user',
-            content: [{ type: 'text', text: 'Hello, echo!' }],
+            content: [{ type: 'text', text: 'Hello, mock!' }],
           },
         ],
       });
@@ -170,19 +170,19 @@ describe('Echo AI Provider', () => {
 
       expect(parts[0].type).toBe('stream-start');
       expect(parts[1].type).toBe('text-start');
-      expect(parts[1].id).toBe('echo-text-0');
+      expect(parts[1].id).toBe('mock-text-0');
 
       const textDeltas = parts.filter((p) => p.type === 'text-delta');
       expect(textDeltas.length).toBeGreaterThan(0);
 
       const fullText = textDeltas.map((p: any) => p.delta).join('');
-      expect(fullText).toContain('Echo response.');
-      expect(fullText).toContain('Model: echo/default');
-      expect(fullText).toContain('Hello, echo!');
+      expect(fullText).toContain('Mock response.');
+      expect(fullText).toContain('Model: mock/default');
+      expect(fullText).toContain('Hello, mock!');
 
       const textEnd = parts.find((p) => p.type === 'text-end');
       expect(textEnd).toBeDefined();
-      expect(textEnd.id).toBe('echo-text-0');
+      expect(textEnd.id).toBe('mock-text-0');
 
       const finish = parts.find((p) => p.type === 'finish');
       expect(finish).toBeDefined();
@@ -192,7 +192,7 @@ describe('Echo AI Provider', () => {
     });
 
     it('should stream line by line with delays', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
       const { stream } = await model.doStream({
         prompt: [
@@ -213,7 +213,7 @@ describe('Echo AI Provider', () => {
 
       const textDeltas = parts.filter((p) => p.type === 'text-delta');
 
-      // Echo response has 5 lines, so should have 5 text deltas
+      // Mock response has 5 lines, so should have 5 text deltas
       expect(textDeltas.length).toBe(5);
 
       // First 4 deltas should end with \n (line separator)
@@ -226,7 +226,7 @@ describe('Echo AI Provider', () => {
     });
 
     it('should report higher message count for follow-up messages (T2)', async () => {
-      const model = createEchoModel('default');
+      const model = createMockModel('default');
 
       const result1 = await model.doGenerate({
         prompt: [
@@ -266,24 +266,24 @@ describe('Echo AI Provider', () => {
   });
 
   describe('ModelFactory integration (T8)', () => {
-    it('should parse echo/default model string', () => {
-      const { provider, modelName } = ModelFactory.parseModelString('echo/default');
-      expect(provider).toBe('echo');
+    it('should parse mock/default model string', () => {
+      const { provider, modelName } = ModelFactory.parseModelString('mock/default');
+      expect(provider).toBe('mock');
       expect(modelName).toBe('default');
     });
 
-    it('should parse echo/anything model string', () => {
-      const { provider, modelName } = ModelFactory.parseModelString('echo/my-custom-model');
-      expect(provider).toBe('echo');
+    it('should parse mock/anything model string', () => {
+      const { provider, modelName } = ModelFactory.parseModelString('mock/my-custom-model');
+      expect(provider).toBe('mock');
       expect(modelName).toBe('my-custom-model');
     });
 
-    it('should include echo in BUILT_IN_PROVIDERS', () => {
-      expect(() => ModelFactory.parseModelString('echo/test')).not.toThrow();
+    it('should include mock in BUILT_IN_PROVIDERS', () => {
+      expect(() => ModelFactory.parseModelString('mock/test')).not.toThrow();
     });
 
-    it('should create a working echo model via createModel', async () => {
-      const model = ModelFactory.createModel({ model: 'echo/default' });
+    it('should create a working mock model via createModel', async () => {
+      const model = ModelFactory.createModel({ model: 'mock/default' });
 
       expect(model).toBeDefined();
 
@@ -297,18 +297,18 @@ describe('Echo AI Provider', () => {
       });
 
       const text = result.content[0].type === 'text' ? result.content[0].text : '';
-      expect(text).toContain('Echo response.');
-      expect(text).toContain('Model: echo/default');
+      expect(text).toContain('Mock response.');
+      expect(text).toContain('Model: mock/default');
     });
 
-    it('should create echo model without requiring any API keys', () => {
-      const model = ModelFactory.createModel({ model: 'echo/default' });
+    it('should create mock model without requiring any API keys', () => {
+      const model = ModelFactory.createModel({ model: 'mock/default' });
       expect(model).toBeDefined();
     });
 
-    it('should create echo model even when providerOptions are present', () => {
+    it('should create mock model even when providerOptions are present', () => {
       const model = ModelFactory.createModel({
-        model: 'echo/default',
+        model: 'mock/default',
         providerOptions: { baseURL: 'https://example.com' },
       });
       expect(model).toBeDefined();
@@ -321,7 +321,7 @@ describe('Echo AI Provider', () => {
     });
 
     it('should validate model config via validateConfig', () => {
-      const errors = ModelFactory.validateConfig({ model: 'echo/default' });
+      const errors = ModelFactory.validateConfig({ model: 'mock/default' });
       expect(errors).toEqual([]);
     });
   });

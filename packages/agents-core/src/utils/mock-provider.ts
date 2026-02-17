@@ -36,7 +36,7 @@ function countInputChars(prompt: LanguageModelV2CallOptions['prompt']): number {
   return chars;
 }
 
-function buildEchoResponse(
+function buildMockResponse(
   modelName: string,
   prompt: LanguageModelV2CallOptions['prompt']
 ): string {
@@ -44,20 +44,20 @@ function buildEchoResponse(
   const timestamp = new Date().toISOString();
 
   return [
-    'Echo response.',
-    `Model: echo/${modelName}`,
+    'Mock response.',
+    `Model: mock/${modelName}`,
     `Input messages: ${prompt.length}`,
     `Last user message: "${lastUserMessage}"`,
     `Timestamp: ${timestamp}`,
   ].join('\n');
 }
 
-export class EchoLanguageModel implements LanguageModelV2 {
+export class MockLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2' as const;
   readonly defaultObjectGenerationMode = undefined;
   readonly supportsImageUrls = false;
   readonly supportedUrls = {};
-  readonly provider = 'echo';
+  readonly provider = 'mock';
   readonly modelId: string;
 
   constructor(modelId: string) {
@@ -65,7 +65,7 @@ export class EchoLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(options: LanguageModelV2CallOptions) {
-    const responseText = buildEchoResponse(this.modelId, options.prompt);
+    const responseText = buildMockResponse(this.modelId, options.prompt);
     const inputTokens = Math.ceil(countInputChars(options.prompt) / 4);
     const outputTokens = Math.ceil(responseText.length / 4);
 
@@ -86,7 +86,7 @@ export class EchoLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(options: LanguageModelV2CallOptions) {
-    const responseText = buildEchoResponse(this.modelId, options.prompt);
+    const responseText = buildMockResponse(this.modelId, options.prompt);
     const lines = responseText.split('\n');
     const inputTokens = Math.ceil(countInputChars(options.prompt) / 4);
     const outputTokens = Math.ceil(responseText.length / 4);
@@ -95,7 +95,7 @@ export class EchoLanguageModel implements LanguageModelV2 {
       async start(controller) {
         controller.enqueue({ type: 'stream-start', warnings: [] });
 
-        const textId = 'echo-text-0';
+        const textId = 'mock-text-0';
         controller.enqueue({ type: 'text-start', id: textId });
 
         for (let i = 0; i < lines.length; i++) {
@@ -134,6 +134,6 @@ export class EchoLanguageModel implements LanguageModelV2 {
   }
 }
 
-export function createEchoModel(modelId: string): EchoLanguageModel {
-  return new EchoLanguageModel(modelId);
+export function createMockModel(modelId: string): MockLanguageModel {
+  return new MockLanguageModel(modelId);
 }
