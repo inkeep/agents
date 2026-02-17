@@ -1,11 +1,11 @@
 ---
-title: Writing High-Quality Sub Agent Prompts
+title: Writing High-Quality Prompts
 sidebarTitle: Prompt Structure
-description: "A complete guide to writing Sub Agent prompts: structure, operating principles, role and personality statements, output formats, and escalation rules."
+description: "A complete guide to writing sub agent prompts: structure, operating principles, role and personality statements, output formats, and escalation rules."
 icon: LuFileText
 ---
 
-A well-structured prompt is the foundation of reliable agent behavior. This page covers the recommended sections for a Sub Agent prompt and how to write each one effectively.
+A well-structured prompt is the foundation of reliable agent behavior. This page covers the recommended sections for a sub agent prompt and how to write each one effectively.
 
 Structure your agent prompt in this order:
 
@@ -20,21 +20,12 @@ Structure your agent prompt in this order:
 
 ## 1. Role and mission
 
-The role and mission sets the Sub Agent's identity and judgment frame in 2-4 sentences. It should:
+The role and mission sets the sub agent's identity and paradigm in 2-4 sentences. It should:
 
-- Declare what **excellence looks like** for this role (not just what it does)
-- Describe behaviors the **best humans** in this role would exhibit
-- Avoid escape hatches that could license poor judgment
+- Declare what **excellence looks like** for this role
+- Describe concrete behaviors the **best humans** in this role would exhibit
 
 Write in second person ("You are...", "Do..."). Avoid first-person commitments ("I will...") unless the agent is expected to do so.
-
-Personality belongs in role and mission. Treat it as a decision tiebreaker when instructions are ambiguous.
-
-Good personality guidance:
-
-- Defines what excellence looks like for the role
-- Describes concrete behaviors, not abstract virtues
-- Avoids vague escape-hatch language like "be pragmatic"
 
 Template:
 
@@ -45,6 +36,8 @@ You [concrete positive behavior].
 You [concrete positive behavior].
 You [concrete positive behavior].
 ```
+
+Example:
 
 ```markdown
 You are a security-focused reviewer who identifies vulnerabilities
@@ -59,21 +52,21 @@ vague warnings.
 
 ## 2. Scope and non-goals
 
-Prevents the agent from accidentally overreaching. Useful when tool permissions are broad or the task description could be interpreted widely.
+Use scope and non-goals to prevent the agent from accidentally overreaching. Useful when tool permissions are broad or the task description could be interpreted widely.
+
+Example:
 
 ```markdown
 ## Scope
-- Review code changes in the current PR for security vulnerabilities
-- Check for common OWASP top-10 issues
-- Verify authentication and authorization patterns
+- Triage incoming customer support tickets about billing and subscriptions
+- Ask clarifying questions to gather missing account or invoice details
+- Classify issue severity and route tickets to the correct support queue
 
 ## Non-goals
-- Code style or formatting issues (handled by linter)
-- Performance optimization suggestions
-- Refactoring recommendations
+- Handling legal disputes, chargebacks, or fraud investigations
+- Answering product roadmap or engineering implementation questions
+- Creating new policies that are not documented in the support playbook
 ```
-
-**Keep specialist prompts self-contained:** Specialist Sub Agent prompts should not reference other Sub Agents by name. This keeps them reusable and decoupled. If a specialist needs workflow context, the coordinator should provide it when delegating, not in the permanent prompt.
 
 ## 3. Operating principles
 
@@ -99,35 +92,18 @@ Guidance:
 - Provide a default path and an escape hatch
 - Avoid long background explanations unless they change behavior
 
-### Prompt strictness: the "Goldilocks zone"
-
-Prompt instructions should be specific enough to guide behavior but general enough to handle unexpected inputs.
-
-| Problem | Symptom | Example |
-|---|---|---|
-| **Too rigid** | Brittle enumeration that breaks on novel cases | "If .ts do X. If .tsx do Y. If .js do Z..." |
-| **Too vague** | Abstract principles without actionable signals | "Be helpful and thorough." |
-| **Just right** | Generalizable heuristics with clear escalation | "Prioritize correctness over style. When uncertain, ask." |
-
-Match strictness to task risk:
-
-| Strictness level | Task characteristics | Prompt approach |
-|---|---|---|
-| **High freedom** | Open-ended research, brainstorming, reviews | Heuristics + output guidelines |
-| **Medium** | Structured workflows, data transformations | Step sequence + required checks |
-| **Low (strict)** | Sensitive or high-impact operations | Explicit commands + validation loops |
-
 ## 4. Workflow checklist
 
-Checklists are more reliable than prose instructions. Write steps the agent can follow:
+Use a checklist to guide the agent's behavior. This is useful whether the agent is a single sub agent with multiple tools or a coordinator that delegates to specialists.
+
+Example:
 
 ```markdown
 ## Workflow
-- [ ] Gather context (relevant files, requirements, constraints)
-- [ ] Identify issues and opportunities
-- [ ] Propose actions (or implement, depending on scope)
-- [ ] Validate (tests, checks, sanity verification)
-- [ ] Return findings in the output format
+- [ ] Use the `ticket-intake` tool first to capture the customer issue, urgency, and required fields
+- [ ] Use the `account-lookup` tool next to verify subscription status, invoice history, and payment state
+- [ ] If specialist handling is needed, delegate to the `billing-escalation-agent` with a structured handoff (goal, evidence, constraints)
+- [ ] Synthesize tool outputs and the specialist result into a policy-approved customer response
 ```
 
 ## 5. Tool-use policy
