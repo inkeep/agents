@@ -436,9 +436,10 @@ describe('Context Config Generator', () => {
       expect(result.fetchConfig.url).toBeDefined();
     });
 
-    it('should generate context config code that compiles', () => {
+    it.only('should generate context config code that compiles', async () => {
+      const contextConfigId = 'testContext';
       const definition = generateContextConfigDefinition(
-        'testContext',
+        contextConfigId,
         contextData,
         undefined,
         mockRegistry
@@ -464,6 +465,13 @@ describe('Context Config Generator', () => {
       expect(result.headers).toBeDefined();
       expect(result.contextVariables).toBeDefined();
       expect(result.contextVariables.user).toBeDefined();
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...contextData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/context-config/${testName}-v4.txt`
+      );
     });
   });
 

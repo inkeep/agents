@@ -1,0 +1,6 @@
+const testContext = contextConfig({
+  headers: personalAgentHeaders,
+  contextVariables: {
+    user: userFetcher
+  }
+});
