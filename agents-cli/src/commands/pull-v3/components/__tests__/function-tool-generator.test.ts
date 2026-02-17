@@ -4,7 +4,7 @@
  * Unit tests for function tool generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateFunctionToolDefinition as generateFunctionToolDefinitionV4 } from '../../../pull-v4/function-tool-generator';
 import {
   generateFunctionToolDefinition,
   generateFunctionToolFile,
@@ -33,6 +33,19 @@ describe('Function Tool Generator', () => {
 }`,
   };
 
+  const expectFunctionToolDefinitionSnapshots = async (
+    functionToolId: string,
+    toolData: Omit<Parameters<typeof generateFunctionToolDefinitionV4>[0], 'functionToolId'>,
+    definition: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/function-tool/${testName}.txt`);
+    const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...toolData });
+    await expect(definitionV4).toMatchFileSnapshot(
+      `__snapshots__/function-tool/${testName}-v4.txt`
+    );
+  };
+
   describe('generateFunctionToolImports', () => {
     it('should generate correct imports', () => {
       const imports = generateFunctionToolImports();
@@ -53,8 +66,9 @@ describe('Function Tool Generator', () => {
   });
 
   describe('generateFunctionToolDefinition', () => {
-    it('should generate correct definition with all properties', () => {
-      const definition = generateFunctionToolDefinition('calculate-bmi', testToolData);
+    it.only('should generate correct definition with all properties', async () => {
+      const functionToolId = 'calculate-bmi';
+      const definition = generateFunctionToolDefinition(functionToolId, testToolData);
 
       expect(definition).toContain('export const calculateBmi = functionTool({');
       expect(definition).toContain("name: 'calculate-bmi',");
@@ -62,6 +76,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('inputSchema: {');
       expect(definition).toContain('execute: async ({ weight, height }) => {');
       expect(definition).toContain('});');
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, testToolData, definition);
     });
 
     it('should handle tool ID to camelCase conversion', () => {
