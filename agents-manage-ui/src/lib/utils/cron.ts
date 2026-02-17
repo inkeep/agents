@@ -16,7 +16,7 @@ export function getOrdinalSuffix(n: number): string {
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
-export function formatTime(hour: number, minute: number): string {
+function formatTime(hour: number, minute: number): string {
   const period = hour < 12 ? 'AM' : 'PM';
   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const displayMinute = minute.toString().padStart(2, '0');
