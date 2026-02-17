@@ -306,7 +306,7 @@ function collectProjectRecord(
   ];
 }
 
-function validateProject(project: FullProjectDefinition) {
+function validateProject(project: FullProjectDefinition): void {
   if (!project || typeof project !== 'object') {
     throw new Error('Project data is required');
   }
@@ -318,7 +318,10 @@ function validateProject(project: FullProjectDefinition) {
   }
 }
 
-function collectCompleteAgentIds(project: FullProjectDefinition, skippedAgents: SkippedAgent[]) {
+function collectCompleteAgentIds(
+  project: FullProjectDefinition,
+  skippedAgents: SkippedAgent[]
+): Set<string> {
   const completeAgentIds = new Set<string>();
   for (const [agentId, agentData] of Object.entries(project.agents ?? {})) {
     const completeness = isAgentComplete(agentData);
@@ -363,7 +366,7 @@ function collectUnsupportedComponentCounts(
   };
 }
 
-function countStatusComponents(project: FullProjectDefinition) {
+function countStatusComponents(project: FullProjectDefinition): number {
   let total = 0;
   for (const agentData of Object.values(project.agents ?? {})) {
     const statusComponents = asRecord(agentData)?.statusUpdates;
@@ -378,19 +381,19 @@ function countStatusComponents(project: FullProjectDefinition) {
   return total;
 }
 
-function hasUnsupportedComponents(counts: UnsupportedComponentCounts) {
+function hasUnsupportedComponents(counts: UnsupportedComponentCounts): boolean {
   return Object.values(counts).some((value) => value > 0);
 }
 
-function formatUnsupportedComponentsError(counts: UnsupportedComponentCounts) {
+function formatUnsupportedComponentsError(counts: UnsupportedComponentCounts): string {
   return `Unsupported components for v4 introspect: ${formatUnsupportedCounts(counts)}`;
 }
 
-function formatUnsupportedComponentsWarning(counts: UnsupportedComponentCounts) {
+function formatUnsupportedComponentsWarning(counts: UnsupportedComponentCounts): string {
   return `Skipped unsupported components for v4 introspect: ${formatUnsupportedCounts(counts)}`;
 }
 
-function formatUnsupportedCounts(counts: UnsupportedComponentCounts) {
+function formatUnsupportedCounts(counts: UnsupportedComponentCounts): string {
   return Object.entries(counts)
     .filter(([, value]) => value > 0)
     .map(([name, value]) => `${name}=${value}`)
@@ -412,20 +415,24 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown>;
 }
 
-function writeTypeScriptFile(filePath: string, content: string, writeMode: 'merge' | 'overwrite') {
+function writeTypeScriptFile(
+  filePath: string,
+  content: string,
+  writeMode: 'merge' | 'overwrite'
+): void {
   mkdirSync(dirname(filePath), { recursive: true });
 
   if (writeMode === 'merge' && existsSync(filePath)) {
-    const existingContent = readFileSync(filePath, 'utf-8');
+    const existingContent = readFileSync(filePath, 'utf8');
     const mergedContent = mergeSafely(existingContent, content);
-    writeFileSync(filePath, `${mergedContent}\n`, 'utf-8');
+    writeFileSync(filePath, `${mergedContent}\n`);
     return;
   }
 
-  writeFileSync(filePath, `${content}\n`, 'utf-8');
+  writeFileSync(filePath, `${content}\n`);
 }
 
-function mergeSafely(existingContent: string, generatedContent: string) {
+function mergeSafely(existingContent: string, generatedContent: string): string {
   try {
     return mergeGeneratedModule(existingContent, generatedContent);
   } catch {
