@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { parseCronExpression } from '@/lib/utils/cron';
 
 type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -54,66 +55,6 @@ function getOrdinalSuffix(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
-}
-
-// Parse a cron expression to determine its type and values
-function parseCronExpression(cron: string): {
-  frequency: FrequencyType;
-  minuteInterval?: string;
-  minute?: string;
-  hour?: string;
-  daysOfWeek?: string[];
-  dayOfMonth?: string;
-} {
-  if (!cron || cron.trim() === '') {
-    return { frequency: 'daily', minute: '0', hour: '9' };
-  }
-
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length !== 5) {
-    return { frequency: 'custom' };
-  }
-
-  const [minute, hour, dayOfMonth, , dayOfWeek] = parts;
-
-  // Check for minute intervals: */N * * * *
-  if (minute.startsWith('*/') && hour === '*' && dayOfMonth === '*' && dayOfWeek === '*') {
-    const interval = minute.slice(2);
-    if (/^\d+$/.test(interval) && Number(interval) >= 1 && Number(interval) <= 59) {
-      return { frequency: 'minutes', minuteInterval: interval };
-    }
-  }
-
-  // Check for hourly: N * * * *
-  if (hour === '*' && dayOfMonth === '*' && dayOfWeek === '*' && !minute.includes('/')) {
-    return { frequency: 'hourly', minute };
-  }
-
-  // Check for daily: N N * * *
-  if (dayOfMonth === '*' && dayOfWeek === '*' && !minute.includes('/') && !hour.includes('/')) {
-    return { frequency: 'daily', minute, hour };
-  }
-
-  // Check for weekly: N N * * N or N N * * N,N,N
-  if (dayOfMonth === '*' && dayOfWeek !== '*' && !minute.includes('/') && !hour.includes('/')) {
-    const days = dayOfWeek.split(',').filter((d) => /^\d$/.test(d));
-    if (days.length > 0) {
-      return { frequency: 'weekly', minute, hour, daysOfWeek: days };
-    }
-  }
-
-  // Check for monthly: N N N * *
-  if (dayOfMonth !== '*' && dayOfWeek === '*' && !minute.includes('/') && !hour.includes('/')) {
-    if (
-      /^\d+$/.test(dayOfMonth) &&
-      Number.parseInt(dayOfMonth, 10) >= 1 &&
-      Number.parseInt(dayOfMonth, 10) <= 31
-    ) {
-      return { frequency: 'monthly', minute, hour, dayOfMonth };
-    }
-  }
-
-  return { frequency: 'custom' };
 }
 
 // Generate cron expression from friendly values
