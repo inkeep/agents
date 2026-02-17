@@ -1,5 +1,10 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import {
+  type ObjectLiteralExpression,
+  type SourceFile,
+  SyntaxKind,
+  VariableDeclarationKind,
+} from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
@@ -71,6 +76,10 @@ ${z.prettifyError(result.error)}`);
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
+  if (hasReferences(parsed.agents)) {
+    addReferenceImports(sourceFile, parsed.agents, './agents');
+  }
+
   const projectVarName = toCamelCase(parsed.projectId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
@@ -114,8 +123,9 @@ function writeProjectConfig(
     addStopWhenProperty(configObject, data.stopWhen);
   }
 
-  if (hasReferences(data.agents)) {
-    addReferenceGetterProperty(configObject, 'agents', data.agents);
+  const agentReferences = toReferenceNames(data.agents);
+  if (agentReferences.length) {
+    addReferenceGetterProperty(configObject, 'agents', agentReferences);
   }
 
   if (hasReferences(data.tools)) {
@@ -211,4 +221,21 @@ function hasStopWhen(
 
 function hasReferences(references?: string[]): references is string[] {
   return Array.isArray(references) && references.length > 0;
+}
+
+function addReferenceImports(sourceFile: SourceFile, references: string[], basePath: string): void {
+  for (const reference of references) {
+    sourceFile.addImportDeclaration({
+      namedImports: [toCamelCase(reference)],
+      moduleSpecifier: `${basePath}/${reference}`,
+    });
+  }
+}
+
+function toReferenceNames(references?: string[]): string[] {
+  if (!hasReferences(references)) {
+    return [];
+  }
+
+  return references.map((reference) => toCamelCase(reference));
 }
