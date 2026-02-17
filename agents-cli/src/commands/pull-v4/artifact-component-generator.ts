@@ -1,6 +1,5 @@
 import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-
 import {
   addObjectEntries,
   addStringProperty,
@@ -10,7 +9,6 @@ import {
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
-  toCamelCaseOrFallback,
 } from './utils';
 
 interface ArtifactComponentDefinitionData {
