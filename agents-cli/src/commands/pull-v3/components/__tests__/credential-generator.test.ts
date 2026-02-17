@@ -305,10 +305,11 @@ describe('Credential Generator', () => {
       expect(definition).toContain("key: 'API_KEY'");
       expect(definition).not.toContain('fallback');
 
-      await expectCredentialDefinitionSnapshots({credentialId, ...credentialData}, definition);
+      await expectCredentialDefinitionSnapshots({ credentialId, ...credentialData }, definition);
     });
 
-    it('should handle empty retrieval params object', () => {
+    it.only('should handle empty retrieval params object', async () => {
+      const credentialId = 'empty-params';
       const credentialData = {
         name: 'Empty Params Credential',
         type: 'memory',
@@ -316,10 +317,12 @@ describe('Credential Generator', () => {
         retrievalParams: {},
       };
 
-      const definition = generateCredentialDefinition('empty-params', credentialData);
+      const definition = generateCredentialDefinition(credentialId, credentialData);
 
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain('  }');
+
+      await expectCredentialDefinitionSnapshots({ credentialId, ...credentialData }, definition);
     });
   });
 });
