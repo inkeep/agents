@@ -177,6 +177,7 @@ export async function streamAgentResponse(params: {
           Authorization: `Bearer ${jwtToken}`,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
+          'x-inkeep-invocation-type': 'slack',
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],

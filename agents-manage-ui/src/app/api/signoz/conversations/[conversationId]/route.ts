@@ -1568,9 +1568,12 @@ export async function GET(
 
       // Determine description based on invocation type
       const isTriggerInvocation = invocationType === 'trigger';
+      const isSlackMessage = invocationType === 'slack';
       const description = isTriggerInvocation
         ? 'Trigger invocation received'
-        : 'User sent a message';
+        : isSlackMessage
+          ? 'Slack message received'
+          : 'User sent a message';
 
       activities.push({
         id: userMessageSpanId,
@@ -1580,7 +1583,11 @@ export async function GET(
         parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
-        subAgentName: isTriggerInvocation ? 'Trigger' : ACTIVITY_NAMES.USER,
+        subAgentName: isTriggerInvocation
+          ? 'Trigger'
+          : isSlackMessage
+            ? 'Slack'
+            : ACTIVITY_NAMES.USER,
         result: hasError
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,

@@ -1,6 +1,14 @@
 'use client';
 
-import { AlertTriangle, Layers, MessageSquare, SparklesIcon, Wrench, Zap } from 'lucide-react';
+import {
+  AlertTriangle,
+  Hash,
+  Layers,
+  MessageSquare,
+  SparklesIcon,
+  Wrench,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
@@ -285,6 +293,15 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
               statDescription="Webhook trigger executions"
               isLoading={overviewLoading}
               Icon={Zap}
+            />
+
+            {/* Slack Conversations */}
+            <StatCard
+              title="Slack Conversations"
+              stat={overviewStats.totalSlackConversations}
+              statDescription="Conversations from Slack"
+              isLoading={overviewLoading}
+              Icon={Hash}
             />
 
             {/* Total AI Calls */}

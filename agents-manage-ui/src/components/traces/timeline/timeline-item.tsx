@@ -9,6 +9,7 @@ import {
   Cpu,
   Database,
   Hammer,
+  Hash,
   Library,
   Settings,
   Sparkles,
@@ -130,11 +131,13 @@ function statusIcon(
     | 'tool_approval_approved'
     | 'tool_approval_denied'
     | 'trigger_invocation'
+    | 'slack_message'
     | 'max_steps_reached',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string }> = {
     trigger_invocation: { Icon: Zap, cls: 'text-amber-500' },
+    slack_message: { Icon: Hash, cls: 'text-[#4A154B]' },
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
@@ -197,21 +200,24 @@ export function TimelineItem({
     // Trigger invocations get their own icon (Zap)
     activity.type === ACTIVITY_TYPES.USER_MESSAGE && activity.invocationType === 'trigger'
       ? 'trigger_invocation'
-      : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
-        ? 'transfer'
-        : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolName?.includes('delegate')
-          ? 'delegation'
-          : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolPurpose
-            ? 'tool_purpose'
-            : activity.type === ACTIVITY_TYPES.TOOL_CALL
-              ? 'generic_tool'
-              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
-                ? 'tool_approval_requested'
-                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
-                  ? 'tool_approval_approved'
-                  : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
-                    ? 'tool_approval_denied'
-                    : activity.type;
+      : // Slack messages get their own icon (Hash)
+        activity.type === ACTIVITY_TYPES.USER_MESSAGE && activity.invocationType === 'slack'
+        ? 'slack_message'
+        : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
+          ? 'transfer'
+          : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolName?.includes('delegate')
+            ? 'delegation'
+            : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolPurpose
+              ? 'tool_purpose'
+              : activity.type === ACTIVITY_TYPES.TOOL_CALL
+                ? 'generic_tool'
+                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
+                  ? 'tool_approval_requested'
+                  : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
+                    ? 'tool_approval_approved'
+                    : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
+                      ? 'tool_approval_denied'
+                      : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
   const formattedDateTime = formatDateTime(activity.timestamp, { local: true });
