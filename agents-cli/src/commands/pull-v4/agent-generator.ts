@@ -37,7 +37,7 @@ const AgentSchema = z.looseObject({
         .array(
           z.union([
             z.string(),
-            z.strictObject({
+            z.looseObject({
               id: z.string().optional(),
               type: z.string(),
               name: z.string().optional(),
@@ -302,8 +302,7 @@ function extractStatusComponentIds(
     return [];
   }
 
-  const statusComponentIds = statusUpdates.statusComponents
-    .map(resolveStatusComponentId)
+  const statusComponentIds = statusUpdates.statusComponents.map(resolveStatusComponentId);
   return [...new Set(statusComponentIds)];
 }
 
