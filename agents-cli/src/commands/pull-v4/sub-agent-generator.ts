@@ -215,7 +215,7 @@ function collectCanUseReferences(canUse?: unknown[]): string[] {
     const selectedTools =
       Array.isArray(item.toolSelection) && item.toolSelection.length
         ? item.toolSelection
-        : Array.isArray(item.selectedTools) && item.selectedTools.length > 0
+        : Array.isArray(item.selectedTools) && item.selectedTools.length
           ? item.selectedTools
           : undefined;
 
