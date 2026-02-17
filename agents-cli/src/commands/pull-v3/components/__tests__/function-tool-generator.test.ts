@@ -175,22 +175,25 @@ describe('Function Tool Generator', () => {
       await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithLongDesc, definition);
     });
 
-    it('should format execute function with proper indentation', () => {
+    it.only('should format execute function with proper indentation', async () => {
       const simpleExecute = `async ({ value }) => {
   return { result: value * 2 };
 }`;
 
+      const functionToolId = 'multiply';
       const toolData = {
         name: 'multiply-tool',
         inputSchema: { type: 'object', properties: { value: { type: 'number' } } },
         executeCode: simpleExecute,
       };
 
-      const definition = generateFunctionToolDefinition('multiply', toolData);
+      const definition = generateFunctionToolDefinition(functionToolId, toolData);
 
       expect(definition).toContain('execute: async ({ value }) => {');
       expect(definition).toContain('  return { result: value * 2 };');
       expect(definition).toContain('  }');
+
+      await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
     });
 
     it('should handle execute as simple code block', () => {
