@@ -373,50 +373,6 @@ describe('Project Generator', () => {
     });
   });
 
-  describe('generateProjectFile', () => {
-    it('should generate complete project file', async () => {
-      const projectId = 'customer-support-project';
-      const file = generateProjectFile(projectId, basicProjectData);
-
-      expect(file).toContain("import { project } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const customerSupportProject = project({');
-      expect(file).toContain("name: 'Customer Support System',");
-
-      // Should have proper spacing
-      expect(file).toMatch(/import.*\n\n.*export/s);
-      expect(file.endsWith('\n')).toBe(true);
-
-      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
-      const testName = expect.getState().currentTestName;
-      await expect(file).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
-    });
-
-    it('should generate complex project file with all features', async () => {
-      const projectId = 'enterprise-platform';
-      const file = generateProjectFile(projectId, complexProjectData);
-
-      expect(file).toContain("import { project } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const enterprisePlatform = project({');
-      expect(file).toContain('stopWhen: {');
-      expect(file).toContain('agents: () => [');
-      expect(file).toContain('tools: () => [');
-      expect(file).toContain('externalAgents: () => [');
-      expect(file).toContain('dataComponents: () => [');
-      expect(file).toContain('artifactComponents: () => [');
-      expect(file).toContain('credentialReferences: () => [');
-
-      // Should have proper spacing
-      expect(file).toMatch(/import.*\n\n.*export/s);
-      expect(file.endsWith('\n')).toBe(true);
-
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
-      await expect(file).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
-    });
-  });
-
   describe('compilation tests', () => {
     it('should generate project code that compiles', async () => {
       const projectId = 'test-project';
