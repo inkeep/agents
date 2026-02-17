@@ -101,6 +101,8 @@ describe('Credential Generator', () => {
 
       expect(definition).toContain('export const myCredential = credential({');
       expect(definition).toContain("type: 'memory',");
+      expect(definition).not.toContain('retrievalParams: {');
+      expect(definition).not.toContain("key: 'OPENAI_API_KEY'"); // Should not auto-generate
 
       await expectCredentialDefinitionSnapshots(
         { credentialId, ...requiredFieldsData },
@@ -158,24 +160,6 @@ describe('Credential Generator', () => {
 
       await expectCredentialDefinitionSnapshots(
         { credentialId, ...keychainCredentialData },
-        definition
-      );
-    });
-
-    it.only('should not generate retrieval params when not specified', async () => {
-      const credentialId = 'openai-api-key';
-      const dataWithoutRetrievalParams = {
-        name: 'OpenAI API Key',
-        type: 'memory',
-        credentialStoreId: 'memory-default',
-      };
-      const definition = generateCredentialDefinition(credentialId, dataWithoutRetrievalParams);
-
-      expect(definition).not.toContain('retrievalParams: {');
-      expect(definition).not.toContain("key: 'OPENAI_API_KEY'"); // Should not auto-generate
-
-      await expectCredentialDefinitionSnapshots(
-        { credentialId, ...dataWithoutRetrievalParams },
         definition
       );
     });
