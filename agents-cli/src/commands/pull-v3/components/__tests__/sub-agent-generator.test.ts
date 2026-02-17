@@ -167,9 +167,10 @@ describe('Sub-Agent Generator', () => {
       await expectDefinitionSnapshotPair(subAgentId, singleItemData, definition);
     });
 
-    it('should handle multiple items in multi-line format', () => {
+    it.only('should handle multiple items in multi-line format', async () => {
+      const subAgentId = 'multi-item-agent';
       const definition = generateSubAgentDefinition(
-        'multi-item-agent',
+        subAgentId,
         complexSubAgentData,
         undefined,
         mockRegistry
@@ -181,6 +182,8 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('  tool3'); // Last one without comma
       expect(definition).toContain(']');
       expect(definition).not.toContain('tool3,');
+
+      await expectDefinitionSnapshotPair(subAgentId, complexSubAgentData, definition);
     });
 
     it('should not throw error for minimal agent with just name (description and prompt are optional)', () => {
