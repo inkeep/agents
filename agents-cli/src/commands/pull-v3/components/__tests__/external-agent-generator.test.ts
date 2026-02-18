@@ -249,8 +249,9 @@ describe('External Agent Generator', () => {
   });
 
   describe('generateExternalAgentFile', () => {
-    it('should generate complete external agent file', () => {
-      const file = generateExternalAgentFile('weather-agent', basicExternalAgentData);
+    it.only('should generate complete external agent file', async () => {
+      const externalAgentId = 'weather-agent';
+      const file = generateExternalAgentFile(externalAgentId, basicExternalAgentData);
 
       expect(file).toContain("import { externalAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const weatherAgent = externalAgent({');
@@ -259,6 +260,12 @@ describe('External Agent Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectExternalAgentDefinitionSnapshots(
+        externalAgentId,
+        basicExternalAgentData,
+        file.trimEnd()
+      );
     });
 
     it('should generate complex external agent file with all features', () => {
