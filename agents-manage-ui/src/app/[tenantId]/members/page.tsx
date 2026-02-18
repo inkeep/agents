@@ -1,13 +1,14 @@
 'use client';
 
+import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { UserPlus, X } from 'lucide-react';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
 import { MembersTable } from '@/components/settings/members-table';
+import { OrgRoleSelector } from '@/components/settings/org-role-selector';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { OrgRoles } from '@/constants/signoz';
 import { useAuthClient } from '@/contexts/auth-client';
 import { getUserProviders, type UserProvider } from '@/lib/actions/user-accounts';
 import MembersLoadingSkeleton from './loading';
@@ -34,6 +35,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
 
   const [emailChips, setEmailChips] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
+  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -147,6 +149,17 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
     if (!open) {
       setEmailChips([]);
       setEmailInput('');
+      setSelectedRole(OrgRoles.MEMBER);
+    }
+  };
+
+  const handleInvitationsSent = async () => {
+    const invitationsResult = await authClient.organization.listInvitations({
+      query: { organizationId: tenantId },
+    });
+    if (invitationsResult.data) {
+      const pending = invitationsResult.data.filter((inv) => inv.status === 'pending');
+      setPendingInvitations(pending);
     }
   };
 
@@ -164,7 +177,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-xl mx-auto">
       {isOrgAdmin && (
         <div className="flex gap-2 items-start">
           <div className="flex-1 flex items-center gap-2 min-h-10 px-3 py-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
@@ -202,6 +215,13 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
                 className="flex-1 min-w-[120px] bg-transparent outline-none text-sm placeholder:text-muted-foreground"
               />
             </div>
+            {emailChips.length > 0 && (
+              <OrgRoleSelector
+                value={selectedRole}
+                onChange={setSelectedRole}
+                triggerClassName="h-7 bg-muted/50 px-2 shrink-0"
+              />
+            )}
           </div>
           <Button
             onClick={handleAddClick}
@@ -228,8 +248,9 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
         open={inviteDialogOpen}
         onOpenChange={handleInviteDialogChange}
         isOrgAdmin={isOrgAdmin}
-        onInvitationsSent={fetchOrganization}
+        onInvitationsSent={handleInvitationsSent}
         initialEmails={emailChips}
+        initialRole={selectedRole}
       />
     </div>
   );

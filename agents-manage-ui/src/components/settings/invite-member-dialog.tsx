@@ -40,6 +40,7 @@ interface InviteMemberDialogProps {
   isOrgAdmin: boolean;
   onInvitationsSent?: () => void;
   initialEmails?: string[];
+  initialRole?: OrgRole;
 }
 
 interface InvitationResult {
@@ -55,6 +56,7 @@ export function InviteMemberDialog({
   isOrgAdmin,
   onInvitationsSent,
   initialEmails,
+  initialRole,
 }: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
@@ -103,10 +105,15 @@ export function InviteMemberDialog({
   const [invitationResults, setInvitationResults] = useState<InvitationResult[]>([]);
 
   useEffect(() => {
-    if (open && initialEmails && initialEmails.length > 0) {
-      setEmails(initialEmails.join(', '));
+    if (open) {
+      if (initialEmails && initialEmails.length > 0) {
+        setEmails(initialEmails.join(', '));
+      }
+      if (initialRole) {
+        setSelectedRole(initialRole);
+      }
     }
-  }, [open, initialEmails]);
+  }, [open, initialEmails, initialRole]);
 
   const selectedAuthOption = authMethodOptions.find((o) => o.value === selectedAuthMethod);
 
