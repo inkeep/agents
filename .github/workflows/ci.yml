@@ -101,7 +101,7 @@ jobs:
       - name: Run CI checks
         id: ci-check
         run: |
-          turbo check --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'
+          pnpm exec turbo check --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'
         env:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}

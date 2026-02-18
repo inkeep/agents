@@ -89,7 +89,7 @@ jobs:
 
       - name: Build, lint, and typecheck agents-docs
         run: |
-          turbo run build lint typecheck --filter=@inkeep/agents-docs
+          pnpm exec turbo run build lint typecheck --filter=@inkeep/agents-docs
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           CI: true
