@@ -477,7 +477,8 @@ describe('Environment Settings Generator', () => {
       );
     });
 
-    it('should handle special characters in credential keys', () => {
+    it.only('should handle special characters in credential keys', async () => {
+      const environmentName = 'special';
       const specialData = {
         credentials: {
           'api-key_v2': {
@@ -491,10 +492,12 @@ describe('Environment Settings Generator', () => {
         },
       };
 
-      const definition = generateEnvironmentSettingsDefinition('special', specialData);
+      const definition = generateEnvironmentSettingsDefinition(environmentName, specialData);
 
       expect(definition).toContain("'api-key_v2': {");
       expect(definition).toContain("id: 'api-key-v2',");
+
+      await expectEnvironmentSettingsDefinitionSnapshots(environmentName, specialData, definition);
     });
 
     it('should handle empty environments array for index', () => {
