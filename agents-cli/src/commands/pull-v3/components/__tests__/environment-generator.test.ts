@@ -159,12 +159,16 @@ describe('Environment Settings Generator', () => {
       await expectEnvironmentSettingsDefinitionSnapshots(environmentName, emptyData, definition);
     });
 
-    it('should handle environment with no credentials field', () => {
-      const definition = generateEnvironmentSettingsDefinition('minimal', {});
+    it.only('should handle environment with no credentials field', async () => {
+      const environmentName = 'minimal';
+      const data = {};
+      const definition = generateEnvironmentSettingsDefinition(environmentName, data);
 
       expect(definition).toContain('export const minimal = registerEnvironmentSettings({');
       expect(definition).toContain('credentials: {}');
       expect(definition).toContain('});');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(environmentName, data, definition);
     });
 
     it('should handle credentials without optional fields', () => {
