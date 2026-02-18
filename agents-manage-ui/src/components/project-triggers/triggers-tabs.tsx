@@ -76,7 +76,8 @@ function NewTriggerDialog({
             placeholder="Select an agent"
             searchPlaceholder="Search agents..."
             notFoundMessage="No agents found."
-            className="w-full"
+            triggerClassName="w-full"
+            className="w-[var(--radix-popover-trigger-width)]"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
