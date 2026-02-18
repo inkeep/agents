@@ -243,11 +243,6 @@ sync_projects() {
 sync_organizations
 sync_projects
 
-# NOTE: For migrating old plain project IDs → composite tenant-scoped IDs,
-# use the TypeScript migration script instead (atomic WriteRelationships):
-#   pnpm spicedb:migrate-ids          # dry run
-#   pnpm spicedb:migrate-ids --apply   # apply
-
 # Summary
 echo "═══════════════════════════════════════════════════════════════"
 echo -e "${BLUE}📊 Summary${NC}"
