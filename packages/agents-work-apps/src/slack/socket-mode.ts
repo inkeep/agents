@@ -48,13 +48,7 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
         span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType);
         span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType}`);
 
-        const result = await dispatchSlackEvent(
-          eventType,
-          body,
-          { registerBackgroundWork: () => {} },
-          span
-        );
-        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, result.outcome);
+        await dispatchSlackEvent(eventType, body, { registerBackgroundWork: () => {} }, span);
       } catch (error) {
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
         logger.error({ error }, 'Error handling Socket Mode event');
@@ -84,7 +78,6 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
             { registerBackgroundWork: () => {} },
             span
           );
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, r.outcome);
           return r;
         } catch (error) {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
@@ -126,5 +119,6 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
         ? (response as unknown as Record<string, unknown>)
         : undefined
     );
+    await flushTraces();
   });
 }
