@@ -21,6 +21,7 @@ type FullOrganization = NonNullable<
 >;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_EMAIL_REGEX = /[\w\d.+-]+@[\w\d.-]+\.[\w\d.-]+/g;
 
 export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>) {
   const authClient = useAuthClient();
@@ -36,7 +37,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
 
   const [emailChips, setEmailChips] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
-  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
+  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.ADMIN);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -125,12 +126,10 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   const handleEmailPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text');
-    const emails = pasted
-      .split(/[,\n\r]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const validEmails = emails.filter((email) => EMAIL_REGEX.test(email));
-    setEmailChips((prev) => [...new Set([...prev, ...validEmails])]);
+    const extracted = pasted.match(NAME_EMAIL_REGEX);
+    if (extracted) {
+      setEmailChips((prev) => [...new Set([...prev, ...extracted])]);
+    }
   };
 
   const removeEmailChip = (email: string) => {
@@ -154,7 +153,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
     if (!open) {
       setEmailChips([]);
       setEmailInput('');
-      setSelectedRole(OrgRoles.MEMBER);
+      setSelectedRole(OrgRoles.ADMIN);
     }
   };
 
