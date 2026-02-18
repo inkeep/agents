@@ -97,7 +97,8 @@ node-compile-cache/
 # inkeep pull temp folder
 .temp-validation-*/
 
-
+tmp
+.claude/specs
 tasks
 prd.json
 progress.txt
