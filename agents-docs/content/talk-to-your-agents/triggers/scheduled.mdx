@@ -50,6 +50,8 @@ Cron triggers use standard 5-field cron syntax to define recurring schedules:
 | `maxRetries` | `number` | No | `1` | Max retry attempts on failure (0–10) |
 | `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
 | `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
+| `runAsUserId` | `string` | No | — | User ID whose identity and credentials are used during execution |
+| `createdBy` | `string` | — | — | Read-only. User ID of the trigger creator, set automatically on creation. |
 
 <Note>
 You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.
@@ -94,6 +96,53 @@ const resilientTask = scheduledTrigger({
 
 Each retry creates a new conversation with the agent. All conversation IDs are tracked on the invocation record so you can review each attempt.
 
+## User-Scoped Execution
+
+By default, scheduled triggers execute without a user identity — tools with user-scoped credentials are skipped. Setting `runAsUserId` makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
+
+### Self-Scheduling
+
+Any user with `edit` permission on a project can create a scheduled trigger that runs as themselves:
+
+```bash
+POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers
+
+{
+  "name": "My Daily Report",
+  "cronExpression": "0 9 * * MON-FRI",
+  "messageTemplate": "Generate my daily status report",
+  "runAsUserId": "user_abc123"
+}
+```
+
+The target user must have `use` permission on the project. The system validates this at creation time and returns `400` if the user lacks access.
+
+### Admin Delegation
+
+Organization admins and owners can create triggers that run on behalf of other users in their org:
+
+```bash
+POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers
+
+{
+  "name": "Team Member Daily Sync",
+  "cronExpression": "0 8 * * MON-FRI",
+  "messageTemplate": "Sync {{source}} data for today",
+  "payload": { "source": "Jira" },
+  "runAsUserId": "user_target456"
+}
+```
+
+Only org admins/owners can set `runAsUserId` to a different user. Regular users with `edit` permission can only set it to themselves.
+
+### Runtime Permission Checks
+
+The system verifies the target user's project access before every execution. If the user has lost access since the trigger was created, the invocation fails with a clear error rather than executing without proper authorization.
+
+### Legacy Behavior
+
+Triggers without `runAsUserId` (including all existing triggers) continue to work exactly as before — executing without a user identity. No migration or backfill is needed.
+
 ## Invocation Tracking
 
 Every scheduled execution creates an **invocation** record with full observability:
@@ -131,7 +180,7 @@ Trigger an immediate execution of any scheduled trigger, regardless of its sched
 POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/run
 ```
 
-This creates a new invocation scheduled for the current time and executes it immediately with the trigger's configured payload, message template, and retry settings.
+This creates a new invocation scheduled for the current time and executes it immediately with the trigger's configured payload, message template, and retry settings. If the trigger has a `runAsUserId`, the execution uses that user's identity and credentials. For admin-delegated triggers (where `runAsUserId` differs from the caller), only org admins/owners can invoke "Run Now".
 
 ### Rerun a Past Invocation
 
@@ -141,7 +190,7 @@ Rerun any completed, failed, or cancelled invocation:
 POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/rerun
 ```
 
-This creates a new invocation using the same trigger configuration and executes it immediately.
+This creates a new invocation using the same trigger configuration and executes it immediately. The same delegation permission rules apply as for "Run Now".
 
 ### Cancel an Invocation
 
