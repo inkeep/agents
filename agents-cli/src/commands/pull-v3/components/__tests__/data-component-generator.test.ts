@@ -305,7 +305,8 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'simple-data': props");
     });
 
-    it('should generate code for complex nested schema that compiles', () => {
+    it.only('should generate code for complex nested schema that compiles', async () => {
+      const componentId = 'complex-data';
       const complexData = {
         name: 'Complex Data',
         description: 'A data component with nested objects and arrays',
@@ -327,10 +328,15 @@ describe('Data Component Generator', () => {
         },
       };
 
-      const definition = generateDataComponentDefinition('complex-data', complexData);
+      const definition = generateDataComponentDefinition(componentId, complexData);
 
       expect(definition).toContain('export const complexData = dataComponent({');
       expect(definition).toContain('props: z.object({');
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...complexData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
