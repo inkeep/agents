@@ -375,7 +375,8 @@ describe('External Agent Generator', () => {
     //   expect(definition).toContain("id: '2nd-generation-external-agent',");
     // });
 
-    it('should handle complex credential reference with all properties', () => {
+    it.only('should handle complex credential reference with all properties', async () => {
+      const externalAgentId = 'full-cred-agent';
       const complexCredData = {
         name: 'Full Cred Agent',
         description: 'Agent with full credential reference',
@@ -387,7 +388,7 @@ describe('External Agent Generator', () => {
         },
       };
 
-      const definition = generateExternalAgentDefinition('full-cred-agent', complexCredData);
+      const definition = generateExternalAgentDefinition(externalAgentId, complexCredData);
 
       expect(definition).toContain('credentialReference: {');
       expect(definition).toContain("id: 'full-credentials',");
@@ -397,6 +398,8 @@ describe('External Agent Generator', () => {
         "description: 'Complete API credentials with all properties',"
       ); // No trailing comma
       expect(definition).toContain('}');
+
+      await expectExternalAgentDefinitionSnapshots(externalAgentId, complexCredData, definition);
     });
 
     it.only('should handle URLs with special characters', async () => {
