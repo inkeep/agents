@@ -1,5 +1,45 @@
 # @inkeep/agents-api
 
+## 0.49.0
+
+### Patch Changes
+
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+- Updated dependencies [3f556b7]
+  - @inkeep/agents-work-apps@0.49.0
+  - @inkeep/agents-core@0.49.0
+  - @inkeep/agents-mcp@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+  - @inkeep/agents-work-apps@0.48.7
+  - @inkeep/agents-mcp@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-work-apps@0.48.6
+  - @inkeep/agents-mcp@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- ded8362: improve performance time for traces on vercel
+- Updated dependencies [f39f8b0]
+  - @inkeep/agents-work-apps@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-manage-mcp@0.48.5
+  - @inkeep/agents-mcp@0.48.5
+
 ## 0.48.4
 
 ### Patch Changes

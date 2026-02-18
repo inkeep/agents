@@ -1,5 +1,37 @@
 # @inkeep/agents-manage-ui
 
+## 0.49.0
+
+### Patch Changes
+
+- 97d5fce: fix azure form
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+  - @inkeep/agents-core@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- 1c85bf0: Fix breadcrumb error on GitHub work-app detail page
+- ded8362: improve performance time for traces on vercel
+  - @inkeep/agents-core@0.48.5
+
 ## 0.48.4
 
 ### Patch Changes

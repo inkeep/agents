@@ -31,6 +31,10 @@ export const modelOptions = {
       label: 'Claude Opus 4.1',
     },
     {
+      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_6,
+      label: 'Claude Sonnet 4.6',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
       label: 'Claude Sonnet 4.5',
     },

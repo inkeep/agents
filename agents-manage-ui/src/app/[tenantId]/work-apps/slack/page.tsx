@@ -1,10 +1,7 @@
-'use client';
-
-import { use } from 'react';
 import { SlackDashboard, SlackProvider } from '@/features/work-apps/slack';
 
-function SlackWorkAppPage({ params }: { params: Promise<{ tenantId: string }> }) {
-  const { tenantId } = use(params);
+async function SlackWorkAppPage({ params }: PageProps<'/[tenantId]/work-apps/slack'>) {
+  const { tenantId } = await params;
 
   return (
     <SlackProvider tenantId={tenantId}>

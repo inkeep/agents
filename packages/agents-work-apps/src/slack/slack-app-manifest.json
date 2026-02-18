@@ -33,7 +33,7 @@
         "command": "/inkeep",
         "url": "https://<YOUR_API_DOMAIN>/work-apps/slack/commands",
         "description": "Ask AI agents questions and manage your Inkeep integration",
-        "usage_hint": "[question] | run [agent] [question] | link | unlink | status | list | help",
+        "usage_hint": "[question] | link | unlink | status | help",
         "should_escape": false
       }
     ]
