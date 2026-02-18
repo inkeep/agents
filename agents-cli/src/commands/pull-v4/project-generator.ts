@@ -7,9 +7,8 @@ import {
 } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addObjectEntries,
   addReferenceGetterProperty,
-  addStringProperty,
+  addValueToObject,
   createInMemoryProject,
   toCamelCase,
 } from './utils';
@@ -76,19 +75,6 @@ ${z.prettifyError(result.error)}`);
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
-  if (hasReferences(parsed.agents)) {
-    addReferenceImports(sourceFile, parsed.agents, './agents');
-  }
-  if (hasReferences(parsed.dataComponents)) {
-    addReferenceImports(sourceFile, parsed.dataComponents, './data-components');
-  }
-  if (hasReferences(parsed.artifactComponents)) {
-    addReferenceImports(sourceFile, parsed.artifactComponents, './artifact-components');
-  }
-  if (hasReferences(parsed.credentialReferences)) {
-    addReferenceImports(sourceFile, parsed.credentialReferences, './credentials');
-  }
-
   const projectVarName = toCamelCase(parsed.projectId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
@@ -110,134 +96,61 @@ ${z.prettifyError(result.error)}`);
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeProjectConfig(configObject, parsed);
+  const {
+    projectId,
+    agents,
+    tools,
+    externalAgents,
+    dataComponents,
+    artifactComponents,
+    credentialReferences,
+    ...rest
+  } = parsed;
 
-  return sourceFile.getFullText().trimEnd();
-}
-
-function writeProjectConfig(
-  configObject: ObjectLiteralExpression,
-  data: ParsedProjectDefinitionData
-) {
-  addStringProperty(configObject, 'id', data.projectId);
-  addStringProperty(configObject, 'name', data.name);
-
-  if (data.description) {
-    addStringProperty(configObject, 'description', data.description);
+  for (const [key, value] of Object.entries({
+    id: projectId,
+    ...rest,
+  })) {
+    addValueToObject(configObject, key, value);
   }
 
-  addModelsProperty(configObject, data.models);
-
-  if (hasStopWhen(data.stopWhen)) {
-    addStopWhenProperty(configObject, data.stopWhen);
+  if (hasReferences(agents)) {
+    addReferenceImports(sourceFile, agents, './agents');
+    addReferenceGetterProperty(configObject, 'agents', toReferenceNames(agents));
   }
 
-  const agentReferences = toReferenceNames(data.agents);
-  if (agentReferences.length) {
-    addReferenceGetterProperty(configObject, 'agents', agentReferences);
+  if (hasReferences(tools)) {
+    addReferenceGetterProperty(configObject, 'tools', tools);
   }
 
-  if (hasReferences(data.tools)) {
-    addReferenceGetterProperty(configObject, 'tools', data.tools);
+  if (hasReferences(externalAgents)) {
+    addReferenceGetterProperty(configObject, 'externalAgents', externalAgents);
   }
 
-  if (hasReferences(data.externalAgents)) {
-    addReferenceGetterProperty(configObject, 'externalAgents', data.externalAgents);
+  if (hasReferences(dataComponents)) {
+    addReferenceImports(sourceFile, dataComponents, './data-components');
+    addReferenceGetterProperty(configObject, 'dataComponents', toReferenceNames(dataComponents));
   }
 
-  if (hasReferences(data.dataComponents)) {
-    addReferenceGetterProperty(
-      configObject,
-      'dataComponents',
-      toReferenceNames(data.dataComponents)
-    );
-  }
-
-  if (hasReferences(data.artifactComponents)) {
+  if (hasReferences(artifactComponents)) {
+    addReferenceImports(sourceFile, artifactComponents, './artifact-components');
     addReferenceGetterProperty(
       configObject,
       'artifactComponents',
-      toReferenceNames(data.artifactComponents)
+      toReferenceNames(artifactComponents)
     );
   }
 
-  if (hasReferences(data.credentialReferences)) {
+  if (hasReferences(credentialReferences)) {
+    addReferenceImports(sourceFile, credentialReferences, './credentials');
     addReferenceGetterProperty(
       configObject,
       'credentialReferences',
-      toReferenceNames(data.credentialReferences)
+      toReferenceNames(credentialReferences)
     );
   }
-}
 
-function addModelsProperty(
-  configObject: ObjectLiteralExpression,
-  models: ParsedProjectDefinitionData['models']
-) {
-  const modelsProperty = configObject.addPropertyAssignment({
-    name: 'models',
-    initializer: '{}',
-  });
-  const modelsObject = modelsProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  addModelEntry(modelsObject, 'base', models.base);
-  if (models.structuredOutput) {
-    addModelEntry(modelsObject, 'structuredOutput', models.structuredOutput);
-  }
-  if (models.summarizer) {
-    addModelEntry(modelsObject, 'summarizer', models.summarizer);
-  }
-}
-
-function addModelEntry(
-  modelsObject: ObjectLiteralExpression,
-  key: string,
-  value: Record<string, unknown>
-) {
-  const modelProperty = modelsObject.addPropertyAssignment({
-    name: key,
-    initializer: '{}',
-  });
-  const modelObject = modelProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-  addObjectEntries(modelObject, value);
-}
-
-function addStopWhenProperty(
-  configObject: ObjectLiteralExpression,
-  stopWhen: NonNullable<ParsedProjectDefinitionData['stopWhen']>
-) {
-  const stopWhenProperty = configObject.addPropertyAssignment({
-    name: 'stopWhen',
-    initializer: '{}',
-  });
-  const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  if (stopWhen.transferCountIs !== undefined) {
-    stopWhenObject.addPropertyAssignment({
-      name: 'transferCountIs',
-      initializer: String(stopWhen.transferCountIs),
-    });
-  }
-  if (stopWhen.stepCountIs !== undefined) {
-    stopWhenObject.addPropertyAssignment({
-      name: 'stepCountIs',
-      initializer: String(stopWhen.stepCountIs),
-    });
-  }
-}
-
-function hasStopWhen(
-  stopWhen: ParsedProjectDefinitionData['stopWhen']
-): stopWhen is NonNullable<ParsedProjectDefinitionData['stopWhen']> {
-  if (!stopWhen) {
-    return;
-  }
-
-  return stopWhen.transferCountIs !== undefined || stopWhen.stepCountIs !== undefined;
+  return sourceFile.getFullText().trimEnd();
 }
 
 function hasReferences(references?: string[]): references is string[] {
