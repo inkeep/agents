@@ -133,7 +133,7 @@ async function fetchReviewCommentReactions(
   )) {
     for (const reaction of response.data) {
       reactions.push({
-        user: reaction.user!.login,
+        user: reaction.user?.login ?? '[deleted]',
         content: reaction.content as Reaction['content'],
         createdAt: reaction.created_at,
       });
