@@ -3,6 +3,7 @@
  * Unit tests for project generator
  */
 import { generateProjectDefinition as generateProjectDefinitionV4 } from '../../../pull-v4/project-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import { generateProjectDefinition, generateProjectFile } from '../project-generator';
 
@@ -94,11 +95,8 @@ describe('Project Generator', () => {
       expect(definition).toContain('escalationAgent');
       expect(definition).toContain('});');
       expect(definition).not.toContain('escalationAgent,'); // No trailing comma
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should generate complex project with all features', async () => {
@@ -126,11 +124,8 @@ describe('Project Generator', () => {
       expect(definition).toContain('dataAnalysisTool,');
       expect(definition).toContain('reportGeneratorTool');
       expect(definition).not.toContain('reportGeneratorTool,'); // No trailing comma
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle single item arrays in single line format', async () => {
@@ -151,11 +146,8 @@ describe('Project Generator', () => {
 
       expect(definition).toContain('agents: () => [onlyAgent]');
       expect(definition).not.toContain('agents: () => [\n'); // Single line format
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...singleItemData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle multiple items in multi-line format', async () => {
@@ -173,11 +165,8 @@ describe('Project Generator', () => {
       expect(definition).toContain('  reportingAgent'); // Last one without comma
       expect(definition).toContain(']');
       expect(definition).not.toContain('reportingAgent,');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing models field', () => {
@@ -223,11 +212,8 @@ describe('Project Generator', () => {
       const definition = generateProjectDefinition(projectId, basicProjectData);
 
       expect(definition).toContain('export const myComplexProjectV2 = project({');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle multiline descriptions', async () => {
@@ -245,11 +231,8 @@ describe('Project Generator', () => {
 
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('It even contains newlines');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...multilineData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     // it('should handle different code styles', async () => {
@@ -287,11 +270,8 @@ describe('Project Generator', () => {
       expect(definition).not.toContain('tools:');
       expect(definition).not.toContain('dataComponents:');
       expect(definition).not.toContain('artifactComponents:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...emptyArraysData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle stopWhen with only transferCountIs', async () => {
@@ -312,11 +292,8 @@ describe('Project Generator', () => {
       expect(definition).toContain('transferCountIs: 5 // Max transfers for agents'); // No trailing comma when it's the only property
       expect(definition).toContain('}');
       expect(definition).not.toContain('stepCountIs');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...transferOnlyData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle stopWhen with only stepCountIs', async () => {
@@ -338,11 +315,8 @@ describe('Project Generator', () => {
       expect(definition).toContain('}');
       expect(definition).not.toContain('transferCountIs');
       expect(definition).not.toContain('stepCountIs: 50,'); // No trailing comma
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...stepOnlyData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle complex models with temperature settings', async () => {
@@ -365,11 +339,8 @@ describe('Project Generator', () => {
       expect(definition).toContain('maxTokens: 4096');
       expect(definition).toContain('structuredOutput: {');
       expect(definition).toContain('temperature: 0.3');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexModelsData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -410,11 +381,8 @@ describe('Project Generator', () => {
       expect(result.agents).toBeDefined();
       expect(typeof result.agents).toBe('function');
       expect(result.agents()).toHaveLength(2);
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should generate complex project code that compiles', async () => {
@@ -464,11 +432,8 @@ describe('Project Generator', () => {
       expect(result.dataComponents()).toHaveLength(2);
       expect(result.artifactComponents()).toHaveLength(2);
       expect(result.credentialReferences()).toHaveLength(2);
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for minimal project without required fields', () => {
@@ -601,11 +566,8 @@ describe('Project Generator', () => {
 
       expect(definition).toContain('agents: () => [stringAgent]');
       expect(definition).toContain('tools: () => [stringTool]');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4({ projectId, ...mixedData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing name only', () => {
