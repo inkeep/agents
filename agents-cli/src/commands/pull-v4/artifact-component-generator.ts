@@ -1,8 +1,6 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addObjectEntries,
-  addStringProperty,
   addValueToObject,
   convertJsonSchemaToZodSafe,
   createInMemoryProject,
@@ -41,8 +39,6 @@ const ArtifactComponentSchema = z.looseObject({
     })
     .optional(),
 });
-
-type ParsedArtifactComponentDefinitionData = z.infer<typeof ArtifactComponentSchema>;
 
 export function generateArtifactComponentDefinition(data: ArtifactComponentDefinitionData): string {
   const result = ArtifactComponentSchema.safeParse(data);
@@ -84,12 +80,7 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: artifactComponentVarName,
-        initializer: `${importName}({})`,
-      },
-    ],
+    declarations: [{ name: artifactComponentVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
@@ -120,69 +111,6 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
   }
 
   return sourceFile.getFullText().trimEnd();
-}
-
-function writeArtifactComponentConfig(
-  configObject: ObjectLiteralExpression,
-  data: ParsedArtifactComponentDefinitionData
-): void {
-  addStringProperty(configObject, 'id', data.artifactComponentId);
-  addStringProperty(configObject, 'name', data.name);
-
-  if (data.description !== undefined) {
-    addStringProperty(configObject, 'description', data.description);
-  }
-
-  const schema = data.props ?? data.schema;
-  if (schema) {
-    configObject.addPropertyAssignment({
-      name: 'props',
-      initializer: formatArtifactSchema(schema),
-    });
-  }
-
-  if (data.render) {
-    addRenderProperty(configObject, data.render);
-  }
-
-  if (data.template !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'template',
-      initializer: formatStringLiteral(data.template),
-    });
-  }
-
-  if (data.contentType !== undefined) {
-    addStringProperty(configObject, 'contentType', data.contentType);
-  }
-}
-
-function addRenderProperty(
-  configObject: ObjectLiteralExpression,
-  render: NonNullable<ParsedArtifactComponentDefinitionData['render']>
-): void {
-  const renderProperty = configObject.addPropertyAssignment({
-    name: 'render',
-    initializer: '{}',
-  });
-  const renderObject = renderProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  if (render.component !== undefined) {
-    addStringProperty(renderObject, 'component', render.component);
-  }
-
-  if (render.mockData && isPlainObject(render.mockData)) {
-    const mockDataProperty = renderObject.addPropertyAssignment({
-      name: 'mockData',
-      initializer: '{}',
-    });
-    const mockDataObject = mockDataProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    addObjectEntries(mockDataObject, render.mockData);
-  }
 }
 
 function hasInPreviewFields(schema: unknown): boolean {
