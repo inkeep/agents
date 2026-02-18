@@ -36,7 +36,7 @@ export function UserMenu() {
           variant="ghost"
           className="h-7 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground font-sans normal-case px-2"
         >
-          <User className="h-4 w-4" />
+          <User className="h-4 w-4" aria-hidden="true" />
           <span>{user.name ?? user.email}</span>
         </Button>
       </DropdownMenuTrigger>

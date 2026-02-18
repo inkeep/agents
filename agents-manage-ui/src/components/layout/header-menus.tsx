@@ -39,7 +39,7 @@ export function HeaderMenus() {
     <div className="ml-auto flex items-center gap-1">
       <a
         href={supportMailto}
-        className="text-sm text-muted-foreground hover:text-foreground px-2 py-1"
+        className="text-sm text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:outline-none px-2 py-1 rounded-sm"
       >
         Help
       </a>
@@ -47,7 +47,7 @@ export function HeaderMenus() {
         href={DOCS_BASE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm text-muted-foreground hover:text-foreground px-2 py-1"
+        className="text-sm text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:outline-none px-2 py-1 rounded-sm"
       >
         Docs
       </a>
