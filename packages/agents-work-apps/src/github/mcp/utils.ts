@@ -612,14 +612,36 @@ export function generatePrMarkdown(
     const sorted = [...comments].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-    const reviewSummaries = sorted.filter((c) => c.type === 'review_summary');
-    const issueComments = sorted.filter((c) => c.type === 'issue');
-    const reviewComments = sorted.filter((c) => c.type === 'review');
 
-    markdown += `comments: ${JSON.stringify(issueComments)}\n`;
-    markdown += `Review summaries: ${JSON.stringify(reviewSummaries)}\n`;
-    markdown += `Inline review comments: ${JSON.stringify(reviewComments)}\n`;
+    for (const comment of sorted) {
+      const date = new Date(comment.createdAt).toLocaleDateString();
+      const author = comment.author.login;
 
+      if (comment.type === 'review_summary') {
+        markdown += `[review_summary] user:${author} comment_id:${comment.id} (${date})\n`;
+      } else if (comment.type === 'review') {
+        const lineInfo = comment.line ? `:${comment.line}` : '';
+        markdown += `[review_comment] user:${author} on ${comment.path}${lineInfo} comment_id:${comment.id} (${date})\n`;
+      } else {
+        markdown += `[issue_comment] user:${author} comment_id:${comment.id} (${date})\n`;
+      }
+
+      markdown += `${comment.body}\n`;
+
+      if (comment.reactions && comment.reactions.length > 0) {
+        const reactionCounts = new Map<string, number>();
+        for (const r of comment.reactions) {
+          reactionCounts.set(r.content, (reactionCounts.get(r.content) || 0) + 1);
+        }
+        const parts: string[] = [];
+        for (const [emoji, count] of reactionCounts) {
+          parts.push(count > 1 ? `${emoji} x${count}` : emoji);
+        }
+        markdown += `reactions: ${parts.join(', ')}\n`;
+      }
+
+      markdown += '\n';
+    }
     markdown += '</comments>\n';
   }
 
