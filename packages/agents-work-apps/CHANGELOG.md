@@ -1,5 +1,15 @@
 # @inkeep/agents-work-apps
 
+## 0.49.0
+
+### Minor Changes
+
+- 3f556b7: Remove run and list commands from slack app
+
+### Patch Changes
+
+- @inkeep/agents-core@0.49.0
+
 ## 0.48.7
 
 ### Patch Changes

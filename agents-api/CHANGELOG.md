@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.49.0
+
+### Patch Changes
+
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+- Updated dependencies [3f556b7]
+  - @inkeep/agents-work-apps@0.49.0
+  - @inkeep/agents-core@0.49.0
+  - @inkeep/agents-mcp@0.49.0
+
 ## 0.48.7
 
 ### Patch Changes

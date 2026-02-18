@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.49.0
+
+### Patch Changes
+
+- 97d5fce: fix azure form
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+  - @inkeep/agents-core@0.49.0
+
 ## 0.48.7
 
 ### Patch Changes
