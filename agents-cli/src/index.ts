@@ -24,7 +24,7 @@ import {
   profileRemoveCommand,
   profileUseCommand,
 } from './commands/profile';
-import { pullV3Command } from './commands/pull-v3/index';
+import { pullV4Command } from './commands/pull-v4';
 import { pushCommand } from './commands/push';
 import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
@@ -133,7 +133,6 @@ program
   .option('--debug', 'Enable debug logging')
   .option('--verbose', 'Enable verbose logging')
   .option('--force', 'Force regeneration even if no changes detected')
-  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
   .option('--all', 'Pull all projects for current tenant')
   .option(
     '--tag <tag>',
@@ -141,7 +140,7 @@ program
   )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
-    await pullV3Command(options);
+    await pullV4Command(options);
   });
 
 program
