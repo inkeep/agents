@@ -196,6 +196,14 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
     for (const project of projectNames) {
       fixes.push(`  docker compose -p ${project} down`);
     }
+
+    // For standalone containers (no compose project), suggest docker rm -f
+    const standaloneContainers = occupiedPorts
+      .filter(({ project }) => project === null)
+      .map(({ container }) => container);
+    for (const name of standaloneContainers) {
+      fixes.push(`  docker rm -f ${name}`);
+    }
   }
 
   if (issues.length > 0) {
@@ -329,30 +337,8 @@ async function waitForDockerHealth(
 async function startDockerDatabases(composeFile: string, composeCmd: string) {
   logInfo('Starting database containers...');
   try {
-    await execAsync(`${composeCmd} -f ${composeFile} up -d`, { timeout: 60000 });
+    await execAsync(`${composeCmd} -f ${composeFile} up -d`, { timeout: 120000 });
     logSuccess('Database containers started');
-
-    logInfo('Polling Docker health status...');
-
-    const [doltgresResult, postgresResult] = await Promise.allSettled([
-      waitForDockerHealth(composeFile, 'doltgres-db', composeCmd, 60000),
-      waitForDockerHealth(composeFile, 'postgres-db', composeCmd, 30000),
-    ]);
-
-    if (doltgresResult.status === 'fulfilled') logSuccess('DoltgreSQL is healthy');
-    else
-      logWarning(`DoltgreSQL health check timed out: ${(doltgresResult.reason as Error).message}`);
-
-    if (postgresResult.status === 'fulfilled') logSuccess('PostgreSQL is healthy');
-    else
-      logWarning(`PostgreSQL health check timed out: ${(postgresResult.reason as Error).message}`);
-
-    if (doltgresResult.status === 'rejected' && postgresResult.status === 'rejected') {
-      logError('Both databases failed health checks - cannot proceed');
-      process.exit(1);
-    }
-
-    logSuccess('Database health checks complete');
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const stderr = (error as any)?.stderr || '';
@@ -360,19 +346,43 @@ async function startDockerDatabases(composeFile: string, composeCmd: string) {
     const isTimeout = (error as any)?.killed === true;
 
     const isPortConflict =
-      isTimeout ||
-      combined.includes('port is already allocated') ||
-      combined.includes('address already in use') ||
-      combined.includes('Bind for 0.0.0.0');
+      !isTimeout &&
+      (combined.includes('port is already allocated') ||
+        combined.includes('address already in use') ||
+        combined.includes('Bind for 0.0.0.0'));
 
-    if (isPortConflict) {
+    if (isTimeout) {
+      logWarning('docker compose up timed out — containers may still be starting');
+      logInfo('Will check health status below...');
+    } else if (isPortConflict) {
       logWarning('Database port conflict during startup (databases might already be running)');
       logInfo('Continuing with setup...');
+      return;
     } else {
       logError('Failed to start database containers', error);
       process.exit(1);
     }
   }
+
+  logInfo('Polling Docker health status...');
+
+  const [doltgresResult, postgresResult] = await Promise.allSettled([
+    waitForDockerHealth(composeFile, 'doltgres-db', composeCmd, 60000),
+    waitForDockerHealth(composeFile, 'postgres-db', composeCmd, 30000),
+  ]);
+
+  if (doltgresResult.status === 'fulfilled') logSuccess('DoltgreSQL is healthy');
+  else logWarning(`DoltgreSQL health check timed out: ${(doltgresResult.reason as Error).message}`);
+
+  if (postgresResult.status === 'fulfilled') logSuccess('PostgreSQL is healthy');
+  else logWarning(`PostgreSQL health check timed out: ${(postgresResult.reason as Error).message}`);
+
+  if (doltgresResult.status === 'rejected' && postgresResult.status === 'rejected') {
+    logError('Both databases failed health checks - cannot proceed');
+    process.exit(1);
+  }
+
+  logSuccess('Database health checks complete');
 }
 
 async function runMigrations(config: SetupConfig) {
