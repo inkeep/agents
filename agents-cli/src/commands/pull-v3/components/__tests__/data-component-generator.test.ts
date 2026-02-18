@@ -369,13 +369,19 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'missing-name': name");
     });
 
-    it('should not throw error for missing description (now optional)', () => {
-      expect(() => {
-        generateDataComponentDefinition('missing-desc', {
-          name: 'Test Component',
-          props: { type: 'object', properties: {} },
-        });
-      }).not.toThrow();
+    it.only('should not throw error for missing description (now optional)', async () => {
+      const componentId = 'missing-desc';
+      const componentData = {
+        name: 'Test Component',
+        props: { type: 'object', properties: {} },
+      };
+
+      const definition = generateDataComponentDefinition(componentId, componentData);
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
