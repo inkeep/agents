@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   addObjectEntries,
   addStringProperty,
+  addValueToObject,
   convertJsonSchemaToZodSafe,
   createInMemoryProject,
   formatPropertyName,
@@ -65,9 +66,10 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
       moduleSpecifier: '@inkeep/agents-core',
     });
   }
+  const importName = 'artifactComponent';
 
   sourceFile.addImportDeclaration({
-    namedImports: ['artifactComponent'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -85,7 +87,7 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
     declarations: [
       {
         name: artifactComponentVarName,
-        initializer: 'artifactComponent({})',
+        initializer: `${importName}({})`,
       },
     ],
   });
@@ -102,7 +104,20 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeArtifactComponentConfig(configObject, parsed);
+  const { artifactComponentId, schema: _, props: _2, ...rest } = parsed;
+
+  for (const [key, value] of Object.entries({
+    id: artifactComponentId,
+    ...rest,
+  })) {
+    addValueToObject(configObject, key, value);
+  }
+  if (schema) {
+    configObject.addPropertyAssignment({
+      name: 'props',
+      initializer: formatArtifactSchema(schema),
+    });
+  }
 
   return sourceFile.getFullText().trimEnd();
 }

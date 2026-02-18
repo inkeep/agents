@@ -5,8 +5,8 @@ export const test = artifactComponent({
   id: 'test',
   name: 'Test',
   description: 'Template component',
+  template: '<div>{{title}}</div>',
   props: z.object({
       title: z.string(),
-    }),
-  template: '<div>{{title}}</div>'
+    })
 });
