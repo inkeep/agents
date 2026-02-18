@@ -121,47 +121,44 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
       body: Record<string, string>;
     };
 
-    await tracer.startActiveSpan(
-      `${SLACK_SPAN_NAMES.WEBHOOK} slash_command`,
-      async (span) => {
-        try {
-          span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, 'slash_command');
-          if (body.command) span.setAttribute('slack.command', body.command);
-          if (body.team_id) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, body.team_id);
+    await tracer.startActiveSpan(`${SLACK_SPAN_NAMES.WEBHOOK} slash_command`, async (span) => {
+      try {
+        span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, 'slash_command');
+        if (body.command) span.setAttribute('slack.command', body.command);
+        if (body.team_id) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, body.team_id);
 
-          const commandPayload: SlackCommandPayload = {
-            command: body.command || '',
-            text: body.text || '',
-            userId: body.user_id || '',
-            userName: body.user_name || '',
-            teamId: body.team_id || '',
-            teamDomain: body.team_domain || '',
-            enterpriseId: body.enterprise_id,
-            channelId: body.channel_id || '',
-            channelName: body.channel_name || '',
-            responseUrl: body.response_url || '',
-            triggerId: body.trigger_id || '',
-          };
+        const commandPayload: SlackCommandPayload = {
+          command: body.command || '',
+          text: body.text || '',
+          userId: body.user_id || '',
+          userName: body.user_name || '',
+          teamId: body.team_id || '',
+          teamDomain: body.team_domain || '',
+          enterpriseId: body.enterprise_id,
+          channelId: body.channel_id || '',
+          channelName: body.channel_name || '',
+          responseUrl: body.response_url || '',
+          triggerId: body.trigger_id || '',
+        };
 
-          const response = await handleCommand(commandPayload);
-          await ack(
-            Object.keys(response).length > 0
-              ? (response as unknown as Record<string, unknown>)
-              : undefined
-          );
-        } catch (error) {
-          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
-          span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-          if (error instanceof Error) {
-            span.recordException(error);
-          }
-          logger.error({ error }, 'Error handling Socket Mode slash command');
-          await ack();
-        } finally {
-          span.end();
-          await flushTraces();
+        const response = await handleCommand(commandPayload);
+        await ack(
+          Object.keys(response).length > 0
+            ? (response as unknown as Record<string, unknown>)
+            : undefined
+        );
+      } catch (error) {
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+        span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+        if (error instanceof Error) {
+          span.recordException(error);
         }
+        logger.error({ error }, 'Error handling Socket Mode slash command');
+        await ack();
+      } finally {
+        span.end();
+        await flushTraces();
       }
-    );
+    });
   });
 }
