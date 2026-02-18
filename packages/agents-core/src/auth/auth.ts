@@ -382,7 +382,12 @@ export function createAuth(config: BetterAuthConfig) {
                 `🔐 SpiceDB: Removed member ${member.userId} from org ${org.name} and revoked all project memberships`
               );
             } catch (error) {
-              console.error('❌ SpiceDB sync failed for member removal:', error);
+              console.error('❌ SpiceDB sync failed for member removal:', {
+                tenantId: org.id,
+                userId: member.userId,
+                role: member.role,
+                error: error instanceof Error ? error.message : String(error),
+              });
             }
           },
         },

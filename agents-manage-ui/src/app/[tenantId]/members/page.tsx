@@ -3,6 +3,7 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { UserPlus, X } from 'lucide-react';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
 import { MembersTable } from '@/components/settings/members-table';
@@ -56,8 +57,10 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
         }),
       ]);
 
-      if (orgResult.error) {
-        setError(orgResult.error.message || 'Failed to fetch organization');
+      if (orgResult.error || memberResult.error) {
+        setError(
+          orgResult.error?.message || memberResult.error?.message || 'Failed to fetch organization'
+        );
         return;
       }
 
@@ -66,8 +69,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
 
         const userIds = orgResult.data.members?.map((m) => m.user.id) || [];
         if (userIds.length > 0) {
-          const providers = await getUserProviders(userIds, tenantId);
-          setMemberProviders(providers);
+          getUserProviders(userIds, tenantId).then(setMemberProviders);
         }
       }
 
@@ -96,7 +98,10 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   const addEmailChip = (email: string) => {
     const trimmed = email.trim();
     if (!trimmed) return;
-    if (!EMAIL_REGEX.test(trimmed)) return;
+    if (!EMAIL_REGEX.test(trimmed)) {
+      toast.error('Invalid email format');
+      return;
+    }
     if (emailChips.includes(trimmed)) return;
     setEmailChips((prev) => [...prev, trimmed]);
   };
