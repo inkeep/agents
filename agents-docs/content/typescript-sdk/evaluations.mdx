@@ -1,0 +1,96 @@
+---
+title: Evaluations
+sidebarTitle: Evaluations
+description: Manage datasets, evaluators, and run evaluations programmatically with the TypeScript SDK
+icon: LuFlaskConical
+keywords: evaluations, datasets, evaluators, batch evaluation, dataset runs
+---
+
+The TypeScript SDK provides an **EvaluationClient** that talks to the Evaluations API so you can manage datasets, evaluators, evaluation suite configs, trigger batch evaluations or dataset runs, and read results—all from code.
+
+For full endpoint details and request/response shapes, see the [Evaluations API reference](/api-reference/evaluations).
+## Evaluators
+
+Evaluators define how to score agent outputs (e.g. with a prompt and model, optional pass criteria).
+
+### Creating an evaluator
+
+Pass an object with `name`, `description`, `prompt`, `schema` (JSON schema for the evaluator output), and `model` (model identifier and optional provider options). Optionally include `passCriteria` to define pass/fail conditions on the schema fields.
+
+```typescript
+const evaluator = await client.createEvaluator({
+  name: "Helpfulness",
+  description: "Scores how helpful the agent response is (0-1)",
+  prompt: `You are an expert evaluator. Score how helpful the assistant's response is to the user on a scale of 0.0 to 1.0.
+Consider clarity, relevance, and completeness. Respond with a JSON object with a "score" field.`,
+  schema: {
+    type: "object",
+    properties: {
+      score: { type: "number", description: "Helpfulness score from 0 to 1" },
+    },
+    required: ["score"],
+  },
+  model: {
+    model: "gpt-4o-mini",
+    providerOptions: {},
+  },
+  passCriteria: {
+    operator: "and",
+    conditions: [{ field: "score", operator: ">=", value: 0.8 }],
+  },
+});
+```
+
+## Evaluation suite configs
+
+Suite configs group evaluators and optional agent filters and sample rates. They are used by **continuous tests** (evaluation run configs) to decide which conversations to evaluate automatically.
+
+### Creating an evaluation suite config
+
+Pass **evaluatorIds** (required, at least one) and optionally **sampleRate** (0–1) and **filters** (e.g. `agentIds` to restrict which agents’ conversations are evaluated). The suite can then be attached to a continuous test (evaluation run config).
+
+```typescript
+const suiteConfig = await client.createEvaluationSuiteConfig({
+  evaluatorIds: ["eval-helpfulness", "eval-accuracy"],
+  sampleRate: 0.1,
+  filters: {
+    agentIds: ["agent-support-bot"],
+  },
+});
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `evaluatorIds` | string[] | Yes | At least one evaluator ID to run in this suite |
+| `sampleRate` | number | No | Fraction of matching conversations to evaluate (0–1). Omit to evaluate all. |
+| `filters` | object | No | Restrict which conversations are in scope, e.g. `{ agentIds: ["agent-id"] }` |
+
+## Batch evaluation
+
+Trigger a one-off batch evaluation over conversations, optionally filtered by conversation IDs or date range:
+
+```typescript
+const result = await client.triggerBatchEvaluation({
+  evaluatorIds: ["eval-1", "eval-2"],
+  name: "Weekly quality check",
+  dateRange: {
+    startDate: "2025-02-01",
+    endDate: "2025-02-07",
+  },
+});
+// result: { message, evaluationJobConfigId, evaluatorIds }
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `evaluatorIds` | string[] | Yes | IDs of evaluators to run |
+| `name` | string | No | Name for the job (defaults to a timestamped name) |
+| `conversationIds` | string[] | No | Limit to these conversations |
+| `dateRange` | Object with `startDate` and `endDate` (YYYY-MM-DD) | No | Limit to conversations in this date range |
+
+To list results by job or run config, use the [Evaluations API](/api-reference/evaluations) (e.g. get evaluation results by job config ID or by run config ID).
+
+## Related
+
+- [Evaluations API reference](/api-reference/evaluations) — Full list of evaluation endpoints and schemas
+- [Visual Builder: Evaluations](/visual-builder/evaluations) — Configure evaluators, batch evaluations, and continuous tests in the UI
