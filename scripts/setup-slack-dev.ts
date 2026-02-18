@@ -1,17 +1,14 @@
 #!/usr/bin/env tsx
 
-import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, '..');
-const MANIFEST_PATH = join(
-  ROOT_DIR,
-  'packages/agents-work-apps/src/slack/slack-app-manifest.json'
-);
+const MANIFEST_PATH = join(ROOT_DIR, 'packages/agents-work-apps/src/slack/slack-app-manifest.json');
 const ENV_PATH = join(ROOT_DIR, '.env');
 
 function prompt(question: string): Promise<string> {
