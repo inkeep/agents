@@ -13,11 +13,13 @@
  *    - Thread + query → Execute agent with thread context included
  */
 
-import { signSlackUserToken } from '@inkeep/agents-core';
+import type { SlackLinkIntent } from '@inkeep/agents-core';
+import { signSlackLinkToken, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
+import { createSmartLinkMessage } from '../blocks';
 import {
   getSlackChannelInfo,
   getSlackClient,
@@ -168,14 +170,43 @@ export async function handleAppMention(params: {
 
       if (!existingLink) {
         logger.info({ slackUserId, teamId, channel }, 'User not linked — prompting account link');
+
+        const intent: SlackLinkIntent = {
+          entryPoint: 'mention',
+          question: text.slice(0, 2000),
+          channelId: channel,
+          threadTs: isInThread ? threadTs : undefined,
+          messageTs,
+          agentId: agentConfig.agentId,
+          projectId: agentConfig.projectId,
+        };
+
+        const linkToken = await signSlackLinkToken({
+          tenantId,
+          slackTeamId: teamId,
+          slackUserId,
+          intent,
+        });
+
+        const linkUrl = `${manageUiUrl}/link?token=${encodeURIComponent(linkToken)}`;
+        const message = createSmartLinkMessage(linkUrl);
+
+        logger.info(
+          {
+            event: 'smart_link_intent_captured',
+            entryPoint: 'mention',
+            questionLength: intent.question.length,
+            channelId: channel,
+          },
+          'Smart link intent captured'
+        );
+
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
           thread_ts: isInThread ? threadTs : undefined,
-          text:
-            `🔗 *Link your account to use @Inkeep*\n\n` +
-            `Run \`/inkeep link\` to connect your Slack and Inkeep accounts.\n\n` +
-            `This workspace uses: *${agentDisplayName}*`,
+          text: "To get started, let's connect your Inkeep account with Slack.",
+          blocks: message.blocks,
         });
         span.end();
         return;

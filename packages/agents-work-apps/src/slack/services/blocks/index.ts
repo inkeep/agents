@@ -186,6 +186,18 @@ export function createStatusMessage(
     .buildToObject();
 }
 
+export function createSmartLinkMessage(linkUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text("To get started, let's connect your Inkeep account with Slack."),
+      Blocks.Actions().elements(
+        Elements.Button().text('Link Account').url(linkUrl).actionId('smart_link_account').primary()
+      ),
+      Blocks.Context().elements('🕐 This only needs to happen once.')
+    )
+    .buildToObject();
+}
+
 export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {
   return Message()
     .blocks(
