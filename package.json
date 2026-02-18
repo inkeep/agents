@@ -79,7 +79,8 @@
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
     "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
-    "check:env-descriptions": "node scripts/check-env-descriptions.mjs"
+    "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
+    "setup-slack-dev": "tsx scripts/setup-slack-dev.ts"
   },
   "version": "0.1.0",
   "dependencies": {
