@@ -474,20 +474,31 @@ export async function executeScheduledTriggerStep(params: {
   } = params;
 
   if (runAsUserId) {
-    const canUse = await canUseProjectStrict({
-      userId: runAsUserId,
-      tenantId,
-      projectId,
-    });
+    try {
+      const canUse = await canUseProjectStrict({
+        userId: runAsUserId,
+        tenantId,
+        projectId,
+      });
 
-    if (!canUse) {
-      logger.warn(
-        { scheduledTriggerId, invocationId, runAsUserId, projectId },
-        'User no longer has access to project, failing invocation'
+      if (!canUse) {
+        logger.warn(
+          { scheduledTriggerId, invocationId, runAsUserId, projectId },
+          'User no longer has access to project, failing invocation'
+        );
+        return {
+          success: false,
+          error: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}. An org admin should update or remove the runAsUserId on this trigger.`,
+        };
+      }
+    } catch (err) {
+      logger.error(
+        { scheduledTriggerId, invocationId, runAsUserId, projectId, error: err },
+        'Failed to check user project access'
       );
       return {
         success: false,
-        error: `User ${runAsUserId} no longer has access to project ${projectId}`,
+        error: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }

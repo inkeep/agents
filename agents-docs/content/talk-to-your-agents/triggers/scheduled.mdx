@@ -51,7 +51,7 @@ Cron triggers use standard 5-field cron syntax to define recurring schedules:
 | `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
 | `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
 | `runAsUserId` | `string` | No | — | User ID whose identity and credentials are used during execution |
-| `createdBy` | `string` | No | — | User ID of the trigger creator (set automatically) |
+| `createdBy` | `string` | — | — | Read-only. User ID of the trigger creator, set automatically on creation. |
 
 <Note>
 You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.

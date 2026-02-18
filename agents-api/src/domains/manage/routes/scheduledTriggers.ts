@@ -64,6 +64,14 @@ async function validateRunAsUserId(params: {
   tenantRole: OrgRole;
 }): Promise<void> {
   const { runAsUserId, callerId, tenantId, projectId, tenantRole } = params;
+
+  if (runAsUserId === 'system' || runAsUserId.startsWith('apikey:')) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'runAsUserId must be a real user ID, not a system identifier',
+    });
+  }
+
   const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
 
   if (runAsUserId !== callerId && !isAdmin) {
@@ -399,13 +407,19 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     const id = body.id || generateId();
 
     const runAsUserId = body.runAsUserId || null;
 
     if (runAsUserId) {
+      if (!callerId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Authenticated user ID is required when setting runAsUserId',
+        });
+      }
       await validateRunAsUserId({
         runAsUserId,
         callerId,
@@ -499,7 +513,7 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     // Check if any update fields were actually provided
     const hasUpdateFields =
@@ -526,6 +540,12 @@ app.openapi(
     const runAsUserId = body.runAsUserId !== undefined ? body.runAsUserId || null : undefined;
 
     if (runAsUserId) {
+      if (!callerId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Authenticated user ID is required when setting runAsUserId',
+        });
+      }
       await validateRunAsUserId({
         runAsUserId,
         callerId,
@@ -1006,7 +1026,7 @@ app.openapi(
       invocationId,
     } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
@@ -1338,7 +1358,7 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId },
