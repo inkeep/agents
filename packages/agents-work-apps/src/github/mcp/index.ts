@@ -10,9 +10,14 @@ import { Hono } from 'hono';
 import { z } from 'zod/v3';
 import runDbClient from '../../db/runDbClient';
 import { githubMcpAuth } from './auth';
+import { ReactionContentSchema } from './schemas';
 import {
   commitFileChanges,
   commitNewFile,
+  createIssueCommentReaction,
+  createPullRequestReviewCommentReaction,
+  deleteIssueCommentReaction,
+  deletePullRequestReviewCommentReaction,
   fetchComments,
   fetchPrFileDiffs,
   fetchPrFiles,
@@ -978,6 +983,176 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error posting comment: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'add-comment-reaction',
+    `Add a reaction to a comment on a pull request. Supports general pull request comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      comment_id: z.number().describe('The ID of the comment to react to'),
+      comment_type: z
+        .enum(['issue_comment', 'review_comment'])
+        .describe(
+          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+        ),
+      reaction: ReactionContentSchema,
+    },
+    async ({ owner, repo, comment_id, comment_type, reaction }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const result =
+          comment_type === 'issue_comment'
+            ? await createIssueCommentReaction(githubClient, owner, repo, comment_id, reaction)
+            : await createPullRequestReviewCommentReaction(
+                githubClient,
+                owner,
+                repo,
+                comment_id,
+                reaction
+              );
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully added ${reaction} reaction to ${comment_type} comment ${comment_id} in ${owner}/${repo}\n\nReaction ID: ${result.id}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 422) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Invalid reaction. Ensure the reaction type is valid and the comment exists.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error adding reaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'remove-comment-reaction',
+    `Remove a reaction from a comment on a pull request. Requires the reaction ID (returned when adding a reaction or available from comment data). ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      comment_id: z.number().describe('The ID of the comment the reaction belongs to'),
+      comment_type: z
+        .enum(['issue_comment', 'review_comment'])
+        .describe(
+          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+        ),
+      reaction_id: z.number().describe('The ID of the reaction to remove'),
+    },
+    async ({ owner, repo, comment_id, comment_type, reaction_id }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        if (comment_type === 'issue_comment') {
+          await deleteIssueCommentReaction(githubClient, owner, repo, comment_id, reaction_id);
+        } else {
+          await deletePullRequestReviewCommentReaction(
+            githubClient,
+            owner,
+            repo,
+            comment_id,
+            reaction_id
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully removed reaction ${reaction_id} from ${comment_type} comment ${comment_id} in ${owner}/${repo}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Comment ${comment_id} or reaction ${reaction_id} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error removing reaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,

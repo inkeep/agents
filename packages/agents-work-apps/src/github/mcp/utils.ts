@@ -3,7 +3,15 @@ import { Octokit } from '@octokit/rest';
 import { minimatch } from 'minimatch';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
-import type { ChangedFile, Comment, GitHubUser, PullRequest } from './schemas';
+import type {
+  ChangedFile,
+  Comment,
+  GitHubUser,
+  PullRequest,
+  Reaction,
+  ReactionContent,
+  Reactions,
+} from './schemas';
 
 const logger = getLogger('github-mcp-utils');
 
@@ -69,6 +77,70 @@ function mapUser(user: { login: string }): GitHubUser {
   return {
     login: user.login,
   };
+}
+
+/**
+ * Fetch detailed reactions for an issue comment (with user attribution)
+ */
+async function fetchIssueCommentReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number
+): Promise<Reactions> {
+  const reactions: Reactions = [];
+
+  for await (const response of octokit.paginate.iterator(
+    octokit.rest.reactions.listForIssueComment,
+    {
+      owner,
+      repo,
+      comment_id: commentId,
+      per_page: 100,
+    }
+  )) {
+    for (const reaction of response.data) {
+      reactions.push({
+        user: reaction.user!.login,
+        content: reaction.content as Reaction['content'],
+        createdAt: reaction.created_at,
+      });
+    }
+  }
+
+  return reactions;
+}
+
+/**
+ * Fetch detailed reactions for a pull request review comment (with user attribution)
+ */
+async function fetchReviewCommentReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number
+): Promise<Reactions> {
+  const reactions: Reactions = [];
+
+  for await (const response of octokit.paginate.iterator(
+    octokit.rest.reactions.listForPullRequestReviewComment,
+    {
+      owner,
+      repo,
+      comment_id: commentId,
+      per_page: 100,
+    }
+  )) {
+    for (const reaction of response.data) {
+      reactions.push({
+        user: reaction.user!.login,
+        content: reaction.content as Reaction['content'],
+        createdAt: reaction.created_at,
+      });
+    }
+  }
+
+  return reactions;
 }
 
 /**
@@ -377,6 +449,12 @@ export async function fetchComments(
         per_page: 100,
       })) {
         for (const comment of response.data) {
+          // Fetch detailed reactions if there are any
+          let reactions: Reactions | undefined;
+          if (comment.reactions && comment.reactions.total_count > 0) {
+            reactions = await fetchIssueCommentReactions(octokit, owner, repo, comment.id);
+          }
+
           if (!comment.user) continue;
           results.push({
             id: comment.id,
@@ -385,6 +463,7 @@ export async function fetchComments(
             createdAt: comment.created_at,
             updatedAt: comment.updated_at,
             type: 'issue',
+            reactions: reactions,
           });
         }
       }
@@ -404,6 +483,12 @@ export async function fetchComments(
       )) {
         for (const comment of response.data) {
           const isSuggestion = /```suggestion\b/.test(comment.body);
+          // Fetch detailed reactions if there are any
+          let reactions: Reactions | undefined;
+          if (comment.reactions && comment.reactions.total_count > 0) {
+            reactions = await fetchReviewCommentReactions(octokit, owner, repo, comment.id);
+          }
+
           results.push({
             id: comment.id,
             body: comment.body,
@@ -415,6 +500,7 @@ export async function fetchComments(
             line: comment.line || comment.original_line,
             diffHunk: comment.diff_hunk,
             isSuggestion,
+            reactions: reactions,
           });
         }
       }
@@ -505,44 +591,16 @@ export function generatePrMarkdown(
   if (comments.length > 0) {
     markdown += '<comments>\n';
 
-    const reviewSummaries = comments.filter((c) => c.type === 'review_summary');
-    const issueComments = comments.filter((c) => c.type === 'issue');
-    const reviewComments = comments.filter((c) => c.type === 'review');
+    const sorted = [...comments].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    const reviewSummaries = sorted.filter((c) => c.type === 'review_summary');
+    const issueComments = sorted.filter((c) => c.type === 'issue');
+    const reviewComments = sorted.filter((c) => c.type === 'review');
 
-    // Review summaries (approvals, change requests)
-    for (const review of reviewSummaries) {
-      markdown += `[${review.state}] @${review.author.login} (${new Date(review.createdAt).toLocaleDateString()})\n`;
-      if (review.body) {
-        markdown += `${review.body}\n`;
-      }
-      markdown += '\n';
-    }
-
-    // General PR comments
-    for (const comment of issueComments) {
-      markdown += `@${comment.author.login} (${new Date(comment.createdAt).toLocaleDateString()})\n`;
-      markdown += `${comment.body}\n\n`;
-    }
-
-    // Inline code comments
-    if (reviewComments.length > 0) {
-      const commentsByFile = new Map<string, typeof reviewComments>();
-      for (const comment of reviewComments) {
-        const path = comment.path || 'unknown';
-        const existing = commentsByFile.get(path) || [];
-        existing.push(comment);
-        commentsByFile.set(path, existing);
-      }
-
-      for (const [path, fileComments] of commentsByFile) {
-        markdown += `${path}:\n`;
-        for (const comment of fileComments) {
-          const lineInfo = comment.line ? ` line ${comment.line}` : '';
-          markdown += `  @${comment.author.login}${lineInfo} (${new Date(comment.createdAt).toLocaleDateString()})\n`;
-          markdown += `  ${comment.body}\n\n`;
-        }
-      }
-    }
+    markdown += `comments: ${JSON.stringify(issueComments)}\n`;
+    markdown += `Review summaries: ${JSON.stringify(reviewSummaries)}\n`;
+    markdown += `Inline review comments: ${JSON.stringify(reviewComments)}\n`;
 
     markdown += '</comments>\n';
   }
@@ -900,6 +958,68 @@ export async function commitNewFile({
       `Failed to commit new file: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+export async function createIssueCommentReaction(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number,
+  content: ReactionContent
+): Promise<{ id: number; content: string }> {
+  const { data } = await octokit.rest.reactions.createForIssueComment({
+    owner,
+    repo,
+    comment_id: commentId,
+    content,
+  });
+  return { id: data.id, content: data.content };
+}
+
+export async function deleteIssueCommentReaction(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number,
+  reactionId: number
+): Promise<void> {
+  await octokit.rest.reactions.deleteForIssueComment({
+    owner,
+    repo,
+    comment_id: commentId,
+    reaction_id: reactionId,
+  });
+}
+
+export async function createPullRequestReviewCommentReaction(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number,
+  content: ReactionContent
+): Promise<{ id: number; content: string }> {
+  const { data } = await octokit.rest.reactions.createForPullRequestReviewComment({
+    owner,
+    repo,
+    comment_id: commentId,
+    content,
+  });
+  return { id: data.id, content: data.content };
+}
+
+export async function deletePullRequestReviewCommentReaction(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number,
+  reactionId: number
+): Promise<void> {
+  await octokit.rest.reactions.deleteForPullRequestComment({
+    owner,
+    repo,
+    comment_id: commentId,
+    reaction_id: reactionId,
+  });
 }
 
 export async function formatFileDiff(
