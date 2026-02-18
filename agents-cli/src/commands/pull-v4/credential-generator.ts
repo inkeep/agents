@@ -30,8 +30,9 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('credential-definition.ts', '', { overwrite: true });
+  const importName = 'credential';
   sourceFile.addImportDeclaration({
-    namedImports: ['credential'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -39,12 +40,7 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: credentialVarName,
-        initializer: 'credential({})',
-      },
-    ],
+    declarations: [{ name: credentialVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
