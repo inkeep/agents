@@ -161,15 +161,13 @@ app.openapi(
       const verifyResult = await verifySlackLinkToken(body.token);
 
       if (!verifyResult.valid || !verifyResult.payload) {
-        logger.warn({ error: verifyResult.error }, 'Invalid link token');
-        return c.json(
-          {
-            error:
-              verifyResult.error ||
-              'Invalid or expired link token. Please run /inkeep link in Slack to get a new one.',
-          },
-          400
-        );
+        const isExpired = verifyResult.error?.includes('"exp" claim timestamp check failed');
+        const errorMessage = isExpired
+          ? 'Token expired. Please run /inkeep link in Slack to get a new one.'
+          : verifyResult.error ||
+            'Invalid or expired link token. Please run /inkeep link in Slack to get a new one.';
+        logger.warn({ error: verifyResult.error, isExpired }, 'Invalid link token');
+        return c.json({ error: errorMessage }, 400);
       }
 
       const { tenantId, slack } = verifyResult.payload;
