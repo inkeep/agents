@@ -1,10 +1,5 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
-import {
-  type ObjectLiteralExpression,
-  type SourceFile,
-  SyntaxKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { type SourceFile, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addReferenceGetterProperty,
@@ -57,8 +52,6 @@ const ProjectSchema = z.looseObject({
   credentialReferences: z.array(z.string()).optional(),
 });
 
-type ParsedProjectDefinitionData = z.infer<typeof ProjectSchema>;
-
 export function generateProjectDefinition(data: ProjectDefinitionData): string {
   const result = ProjectSchema.safeParse(data);
   if (!result.success) {
@@ -70,8 +63,9 @@ ${z.prettifyError(result.error)}`);
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
+  const importName = 'project';
   sourceFile.addImportDeclaration({
-    namedImports: ['project'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -79,12 +73,7 @@ ${z.prettifyError(result.error)}`);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: projectVarName,
-        initializer: 'project({})',
-      },
-    ],
+    declarations: [{ name: projectVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
