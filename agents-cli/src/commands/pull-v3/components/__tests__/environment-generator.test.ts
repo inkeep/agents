@@ -288,10 +288,13 @@ describe('Environment Settings Generator', () => {
       await expectEnvironmentIndexDefinitionSnapshots(environments, definition);
     });
 
-    it('should handle empty environments array', () => {
-      const definition = generateEnvironmentIndexDefinition([]);
+    it.only('should handle empty environments array', async () => {
+      const environments: string[] = [];
+      const definition = generateEnvironmentIndexDefinition(environments);
 
       expect(definition).toBe('export const envSettings = createEnvironmentSettings({\n});');
+
+      await expectEnvironmentIndexDefinitionSnapshots(environments, definition);
     });
   });
 
