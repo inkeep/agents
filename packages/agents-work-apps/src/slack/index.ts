@@ -21,6 +21,8 @@ export function createSlackRoutes() {
 
 export const slackRoutes = createSlackRoutes();
 
+export type { DispatchOptions, SlackEventDispatchResult } from './dispatcher';
+export { dispatchSlackEvent } from './dispatcher';
 export { getBotTokenForTeam, setBotTokenForTeam } from './routes/oauth';
 export { getChannelAgentConfig, getWorkspaceDefaultAgent } from './services/events';
 export * from './services/nango';
