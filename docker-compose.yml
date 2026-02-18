@@ -25,8 +25,8 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - INKEEP_AGENTS_API_URL
-      - INKEEP_AGENTS_MANAGE_UI_URL
+      - INKEEP_AGENTS_MANAGE_UI_URL=${INKEEP_AGENTS_MANAGE_UI_URL:-http://localhost:3000}
+      - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-http://localhost:3002}
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
       - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
@@ -40,6 +40,9 @@ services:
       - OTEL_EXPORTER_OTLP_TRACES_HEADERS
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
       - NANGO_SECRET_KEY
+      - SIGNOZ_URL=${SIGNOZ_URL:-http://host.docker.internal:3080}
+      - SIGNOZ_API_KEY
+      - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
       - INKEEP_AGENTS_JWT_SIGNING_SECRET
       - INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY
       - INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY

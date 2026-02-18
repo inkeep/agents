@@ -1,5 +1,15 @@
 # @inkeep/agents-work-apps
 
+## 0.50.0
+
+### Minor Changes
+
+- 5bd9461: Add reaction tooling to github mcp.
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.0
+
 ## 0.49.0
 
 ### Minor Changes
