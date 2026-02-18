@@ -1,12 +1,6 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import {
-  addStringProperty,
-  createInMemoryProject,
-  formatInlineLiteral,
-  isPlainObject,
-  toCamelCase,
-} from './utils';
+import { addValueToObject, createInMemoryProject, toCamelCase } from './utils';
 
 type TriggerDefinitionData = {
   triggerId: string;
@@ -91,8 +85,6 @@ const TriggerSchema = z.looseObject({
     .optional(),
 });
 
-type ParsedTriggerDefinitionData = z.infer<typeof TriggerSchema>;
-
 export function generateTriggerDefinition(data: TriggerDefinitionData): string {
   const result = TriggerSchema.safeParse(data);
   if (!result.success) {
@@ -107,17 +99,6 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
     namedImports: ['Trigger'],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
-
-  const credentialReferenceId = extractCredentialReferenceId(
-    parsed.signingSecretCredentialReferenceId,
-    parsed.signingSecretCredentialReference
-  );
-  if (credentialReferenceId) {
-    sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(credentialReferenceId)],
-      moduleSpecifier: `../../credentials/${credentialReferenceId}`,
-    });
-  }
 
   const triggerVarName = toCamelCase(parsed.triggerId);
   const variableStatement = sourceFile.addVariableStatement({
@@ -139,280 +120,28 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.NewExpression);
   const configObject = callExpression
     .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    .asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeTriggerConfig(configObject, parsed);
+  const { triggerId, signingSecretCredentialReferenceId, ...rest } = parsed;
 
-  return sourceFile.getFullText().trimEnd();
-}
-
-function writeTriggerConfig(
-  configObject: ObjectLiteralExpression,
-  data: ParsedTriggerDefinitionData
-) {
-  addStringProperty(configObject, 'id', data.triggerId);
-  addStringProperty(configObject, 'name', data.name);
-
-  if (data.description !== undefined) {
-    addStringProperty(configObject, 'description', data.description);
+  for (const [key, value] of Object.entries({
+    id: triggerId,
+    ...rest,
+  })) {
+    addValueToObject(configObject, key, value);
   }
 
-  if (data.enabled !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'enabled',
-      initializer: data.enabled ? 'true' : 'false',
+  if (signingSecretCredentialReferenceId) {
+    const varName = toCamelCase(signingSecretCredentialReferenceId);
+    sourceFile.addImportDeclaration({
+      namedImports: [varName],
+      moduleSpecifier: `../../credentials/${signingSecretCredentialReferenceId}`,
     });
-  }
-
-  addStringProperty(configObject, 'messageTemplate', data.messageTemplate);
-
-  if (data.inputSchema !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'inputSchema',
-      initializer: formatInlineLiteral(data.inputSchema),
-    });
-  }
-
-  if (data.outputTransform) {
-    addOutputTransformProperty(configObject, data.outputTransform);
-  }
-
-  if (data.authentication) {
-    addAuthenticationProperty(configObject, data.authentication);
-  }
-
-  if (data.signatureVerification) {
-    addSignatureVerificationProperty(configObject, data.signatureVerification);
-  }
-
-  const credentialReferenceId = extractCredentialReferenceId(
-    data.signingSecretCredentialReferenceId,
-    data.signingSecretCredentialReference
-  );
-  if (credentialReferenceId) {
     configObject.addPropertyAssignment({
       name: 'signingSecretCredentialReference',
-      initializer: toCamelCase(credentialReferenceId),
+      initializer: varName,
     });
   }
-}
 
-function addOutputTransformProperty(
-  configObject: ObjectLiteralExpression,
-  outputTransform: NonNullable<ParsedTriggerDefinitionData['outputTransform']>
-) {
-  const outputTransformProperty = configObject.addPropertyAssignment({
-    name: 'outputTransform',
-    initializer: '{}',
-  });
-  const outputTransformObject = outputTransformProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  if (outputTransform.jmespath !== undefined) {
-    addStringProperty(outputTransformObject, 'jmespath', outputTransform.jmespath);
-  }
-
-  if (outputTransform.objectTransformation !== undefined) {
-    outputTransformObject.addPropertyAssignment({
-      name: 'objectTransformation',
-      initializer: formatInlineLiteral(outputTransform.objectTransformation),
-    });
-  }
-}
-
-function addAuthenticationProperty(
-  configObject: ObjectLiteralExpression,
-  authentication: NonNullable<ParsedTriggerDefinitionData['authentication']>
-) {
-  const validHeaders = (authentication.headers ?? []).filter(
-    (header) => isPlainObject(header) && typeof header.name === 'string'
-  );
-  if (validHeaders.length === 0) {
-    return;
-  }
-
-  const authenticationProperty = configObject.addPropertyAssignment({
-    name: 'authentication',
-    initializer: '{}',
-  });
-  const authenticationObject = authenticationProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-  const headersProperty = authenticationObject.addPropertyAssignment({
-    name: 'headers',
-    initializer: '[]',
-  });
-  const headersArray = headersProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ArrayLiteralExpression
-  );
-
-  for (const header of validHeaders) {
-    const headerName = String(header.name);
-    const headerExpression = headersArray.addElement('{}');
-    const headerObject = headerExpression.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-    addStringProperty(headerObject, 'name', headerName);
-    headerObject.addPropertyAssignment({
-      name: 'value',
-      initializer: `process.env.${toAuthenticationEnvVar(headerName)} || ''`,
-    });
-
-    if (typeof header.valueHash === 'string') {
-      addStringProperty(headerObject, 'valueHash', header.valueHash);
-    }
-    if (typeof header.valuePrefix === 'string') {
-      addStringProperty(headerObject, 'valuePrefix', header.valuePrefix);
-    }
-  }
-}
-
-function addSignatureVerificationProperty(
-  configObject: ObjectLiteralExpression,
-  signatureVerification: NonNullable<ParsedTriggerDefinitionData['signatureVerification']>
-) {
-  const signatureVerificationProperty = configObject.addPropertyAssignment({
-    name: 'signatureVerification',
-    initializer: '{}',
-  });
-  const signatureVerificationObject = signatureVerificationProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  if (signatureVerification.algorithm !== undefined) {
-    addStringProperty(signatureVerificationObject, 'algorithm', signatureVerification.algorithm);
-  }
-
-  if (signatureVerification.encoding !== undefined) {
-    addStringProperty(signatureVerificationObject, 'encoding', signatureVerification.encoding);
-  }
-
-  if (isPlainObject(signatureVerification.signature)) {
-    const signatureProperty = signatureVerificationObject.addPropertyAssignment({
-      name: 'signature',
-      initializer: '{}',
-    });
-    const signatureObject = signatureProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-
-    if (typeof signatureVerification.signature.source === 'string') {
-      addStringProperty(signatureObject, 'source', signatureVerification.signature.source);
-    }
-    if (typeof signatureVerification.signature.key === 'string') {
-      addStringProperty(signatureObject, 'key', signatureVerification.signature.key);
-    }
-    if (typeof signatureVerification.signature.prefix === 'string') {
-      addStringProperty(signatureObject, 'prefix', signatureVerification.signature.prefix);
-    }
-    if (typeof signatureVerification.signature.regex === 'string') {
-      addStringProperty(signatureObject, 'regex', signatureVerification.signature.regex);
-    }
-  }
-
-  const signedComponents = (signatureVerification.signedComponents ?? []).filter(isPlainObject);
-  if (signedComponents.length > 0) {
-    const signedComponentsProperty = signatureVerificationObject.addPropertyAssignment({
-      name: 'signedComponents',
-      initializer: '[]',
-    });
-    const signedComponentsArray = signedComponentsProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ArrayLiteralExpression
-    );
-
-    for (const component of signedComponents) {
-      const componentExpression = signedComponentsArray.addElement('{}');
-      const componentObject = componentExpression.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-
-      if (typeof component.source === 'string') {
-        addStringProperty(componentObject, 'source', component.source);
-      }
-      if (typeof component.key === 'string') {
-        addStringProperty(componentObject, 'key', component.key);
-      }
-      if (typeof component.value === 'string') {
-        addStringProperty(componentObject, 'value', component.value);
-      }
-      if (typeof component.regex === 'string') {
-        addStringProperty(componentObject, 'regex', component.regex);
-      }
-      if (typeof component.required === 'boolean') {
-        componentObject.addPropertyAssignment({
-          name: 'required',
-          initializer: component.required ? 'true' : 'false',
-        });
-      }
-    }
-  }
-
-  if (isPlainObject(signatureVerification.componentJoin)) {
-    const componentJoinProperty = signatureVerificationObject.addPropertyAssignment({
-      name: 'componentJoin',
-      initializer: '{}',
-    });
-    const componentJoinObject = componentJoinProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-
-    if (typeof signatureVerification.componentJoin.strategy === 'string') {
-      addStringProperty(
-        componentJoinObject,
-        'strategy',
-        signatureVerification.componentJoin.strategy
-      );
-    }
-    if (typeof signatureVerification.componentJoin.separator === 'string') {
-      addStringProperty(
-        componentJoinObject,
-        'separator',
-        signatureVerification.componentJoin.separator
-      );
-    }
-  }
-
-  if (isPlainObject(signatureVerification.validation)) {
-    const validationEntries = Object.entries(signatureVerification.validation).filter(
-      ([, value]) => typeof value === 'boolean'
-    );
-    if (validationEntries.length > 0) {
-      const validationProperty = signatureVerificationObject.addPropertyAssignment({
-        name: 'validation',
-        initializer: '{}',
-      });
-      const validationObject = validationProperty.getInitializerIfKindOrThrow(
-        SyntaxKind.ObjectLiteralExpression
-      );
-      for (const [key, value] of validationEntries) {
-        validationObject.addPropertyAssignment({
-          name: key,
-          initializer: value ? 'true' : 'false',
-        });
-      }
-    }
-  }
-}
-
-function extractCredentialReferenceId(
-  signingSecretCredentialReferenceId?: string,
-  signingSecretCredentialReference?: string | { id?: string }
-): string | undefined {
-  if (signingSecretCredentialReferenceId) {
-    return signingSecretCredentialReferenceId;
-  }
-  if (typeof signingSecretCredentialReference === 'string') {
-    return signingSecretCredentialReference;
-  }
-  if (
-    isPlainObject(signingSecretCredentialReference) &&
-    typeof signingSecretCredentialReference.id === 'string'
-  ) {
-    return signingSecretCredentialReference.id;
-  }
-}
-
-function toAuthenticationEnvVar(headerName: string): string {
-  const normalized = headerName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
-  if (!normalized) {
-    return 'TRIGGER_AUTH_HEADER';
-  }
-  return `TRIGGER_AUTH_${normalized}`;
+  return sourceFile.getFullText();
 }
