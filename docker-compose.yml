@@ -25,6 +25,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
+      - INKEEP_AGENTS_API_URL
       - INKEEP_AGENTS_MANAGE_UI_URL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
