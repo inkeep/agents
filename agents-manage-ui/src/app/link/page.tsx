@@ -12,6 +12,9 @@ import { useAuthSession } from '@/hooks/use-auth';
 
 type LinkState = 'waiting' | 'linking' | 'success' | 'error';
 
+const isExpiredTokenError = (error: string | null) =>
+  error?.toLowerCase().includes('expired') ?? false;
+
 function SuccessState({ slackUsername }: { slackUsername?: string }) {
   const [countdown, setCountdown] = useState(3);
 
@@ -122,7 +125,7 @@ function SlackLinkForm() {
   }
 
   if (!isAuthenticated && initialToken) {
-    const isExpiredError = error?.toLowerCase().includes('expired');
+    const isExpiredError = isExpiredTokenError(error);
 
     return (
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
@@ -222,7 +225,7 @@ function SlackLinkForm() {
             <Alert variant="destructive" className="border-destructive/10 dark:border-border">
               <AlertCircleIcon className="h-4 w-4" />
               <AlertDescription>
-                {error.toLowerCase().includes('expired') ? (
+                {isExpiredTokenError(error) ? (
                   <>
                     This link has expired. Try{' '}
                     <code className="bg-muted px-1 py-0.5 rounded">/inkeep link</code> on Slack to
