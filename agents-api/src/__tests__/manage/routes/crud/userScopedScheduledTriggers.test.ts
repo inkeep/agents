@@ -128,6 +128,45 @@ describe('User-Scoped Scheduled Triggers', () => {
       expect(body.error.message).toContain('use');
     });
 
+    it('should reject system identifier as runAsUserId', async () => {
+      const tenantId = await createTestTenantWithOrg('us-reject-system');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      for (const systemId of ['system', 'apikey:sk-test-123']) {
+        const res = await createTriggerWithUserId({
+          tenantId,
+          projectId,
+          agentId,
+          runAsUserId: systemId,
+        });
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error.message).toContain('system identifier');
+      }
+    });
+
+    it('should normalize empty string runAsUserId to null (legacy behavior)', async () => {
+      const tenantId = await createTestTenantWithOrg('us-empty-string');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'Empty userId trigger',
+        cronExpression: '0 * * * *',
+        messageTemplate: 'Test',
+        runAsUserId: '',
+      };
+
+      const res = await makeRequest(basePath(tenantId, projectId, agentId), {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.runAsUserId).toBeNull();
+    });
+
     it('should create trigger without runAsUserId (legacy behavior)', async () => {
       const tenantId = await createTestTenantWithOrg('us-legacy-create');
       const { agentId, projectId } = await createTestAgent(tenantId);
