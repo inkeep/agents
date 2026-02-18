@@ -1,7 +1,7 @@
 ---
-title: Prompt Troubleshooting
-sidebarTitle: Prompt Troubleshooting
-description: Fix common sub agent prompt issues.
+title: Troubleshooting
+sidebarTitle: Troubleshooting
+description: Fix common issues with sub agents.
 icon: LuShieldAlert
 ---
 
@@ -15,6 +15,8 @@ If your sub agent gives weak or inconsistent results, you usually do not need a 
 | Conflicting sources handled poorly | [Evidence and source quality](#evidence-and-source-quality) |
 | No escalation when blocked | [Decision boundaries and risk](#decision-boundaries-and-risk) |
 | Long, repetitive responses with buried findings | [Output clarity and structure](#output-clarity-and-structure) |
+| Only some list items processed | [Deterministic operations](#deterministic-operations) |
+| Date filtering is inaccurate | [Deterministic operations](#deterministic-operations) |
 
 ## Copy-paste guardrails by category
 
@@ -51,6 +53,14 @@ Use these snippets as starting points.
 - Return output in a strict format with ordered headings.
 - Lead with 2-5 key bullets, then details.
 - Avoid long preambles and repeated phrasing.
+```
+  </Tab>
+  <Tab title="Deterministic ops">
+```markdown
+- Do not rely on the LLM to iterate through lists; use programmatic loops.
+- When processing N items, call the sub agent N times from a parent tool.
+- Validate that all items in a list were processed before returning results.
+- Handle date/time filtering in the tool, not in the prompt; pass date parameters to the tool.
 ```
   </Tab>
 </Tabs>
@@ -172,6 +182,31 @@ Use these snippets as starting points.
     **Fix:**
     - Add a strict output format with ordered headings.
     - Add verbosity limits, for example: "Lead with 2-5 key bullets, then details."
+  </Accordion>
+</Accordions>
+
+### Deterministic operations
+
+<Accordions>
+  <Accordion title="The agent only processes some items in a list">
+    **What you see:** You give the agent a list of 10 companies and ask it to call a tool or sub agent for each one, but only 3-5 get processed.
+
+    **Why it happens:** LLMs are not reliable iterators. When asked to loop through a list and perform an action for each item, they often stop early, skip items, or lose track of progress. This is a fundamental limitation of how LLMs process lists.
+
+    **Fix:**
+    - Do not rely on the LLM to iterate. Instead, use programmatic iteration in a [function tool](/typescript-sdk/tools/function-tools) from a separate agent which calls the sub agent using a [webhook](/typescript-sdk/triggers/webhooks).
+    - The function tool accepts the list, loops through each item in code, and calls the sub agent via webhook once per item.
+    - The calling agent calls the function tool once with the full list; the tool handles the iteration deterministically.
+  </Accordion>
+  <Accordion title="The agent filters dates incorrectly">
+    **What you see:** You ask for "messages from the past 24 hours" but the agent returns messages from days ago, or misses recent ones. Date comparisons are inconsistent.
+
+    **Why it happens:** LLMs struggle with date/time reasoning. They may misparse timestamps, miscalculate relative dates ("past 24 hours"), or inconsistently compare date formats. This is especially problematic when filtering large result sets.
+
+    **Fix:**
+    - Move date filtering into the tool itself. Add date parameters to the tool schema.
+    - Have the tool compute the date range and filter results before returning them to the agent.
+    - The agent's job is to extract the user's intent ("past 24 hours") and pass it as a parameter; the tool does the actual filtering.
   </Accordion>
 </Accordions>
 
