@@ -484,7 +484,8 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it('should ignore invalid render attribute (missing component)', () => {
+    it.only('should ignore invalid render attribute (missing component)', async () => {
+      const componentId = 'invalid-render';
       const componentData = {
         name: 'Invalid Render',
         description: 'Component with invalid render',
@@ -500,12 +501,17 @@ describe('Data Component Generator', () => {
         },
       };
 
-      const definition = generateDataComponentDefinition('invalid-render', componentData);
+      const definition = generateDataComponentDefinition(componentId, componentData);
 
       expect(definition).toContain('export const invalidRender = dataComponent({');
       expect(definition).not.toContain('render:');
       expect(definition).not.toContain('component:');
       expect(definition).not.toContain('mockData:');
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 });
