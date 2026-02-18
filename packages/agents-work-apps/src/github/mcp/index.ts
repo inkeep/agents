@@ -26,6 +26,8 @@ import {
   generatePrMarkdown,
   getGitHubClientFromRepo,
   type LLMUpdateOperation,
+  listIssueCommentReactions,
+  listPullRequestReviewCommentReactions,
   visualizeUpdateOperations,
 } from './utils';
 
@@ -1066,6 +1068,17 @@ const getServer = async (toolId: string) => {
               isError: true,
             };
           }
+          if (apiError.status === 403) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Access denied when adding reaction to comment ${comment_id} in ${owner}/${repo}. Your GitHub App may not have sufficient permissions to create reactions.`,
+                },
+              ],
+              isError: true,
+            };
+          }
         }
 
         return {
@@ -1153,6 +1166,93 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error removing reaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'list-comment-reactions',
+    `List all reactions on a comment, including each reaction's ID (needed for removal). Supports both general issue/PR comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      comment_id: z.number().describe('The ID of the comment to list reactions for'),
+      comment_type: z
+        .enum(['issue_comment', 'review_comment'])
+        .describe(
+          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+        ),
+    },
+    async ({ owner, repo, comment_id, comment_type }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const reactions =
+          comment_type === 'issue_comment'
+            ? await listIssueCommentReactions(githubClient, owner, repo, comment_id)
+            : await listPullRequestReviewCommentReactions(githubClient, owner, repo, comment_id);
+
+        if (reactions.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No reactions found on ${comment_type} comment ${comment_id} in ${owner}/${repo}.`,
+              },
+            ],
+          };
+        }
+
+        const formatted = reactions
+          .map((r) => `• ${r.content} by @${r.user} (reaction_id: ${r.id})`)
+          .join('\n');
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${reactions.length} reaction(s) on ${comment_type} comment ${comment_id} in ${owner}/${repo}:\n\n${formatted}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error listing reactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,

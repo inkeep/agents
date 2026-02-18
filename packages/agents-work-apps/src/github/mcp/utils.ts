@@ -101,6 +101,7 @@ async function fetchIssueCommentReactions(
   )) {
     for (const reaction of response.data) {
       reactions.push({
+        id: reaction.id,
         user: reaction.user?.login ?? '[deleted]',
         content: reaction.content as Reaction['content'],
         createdAt: reaction.created_at,
@@ -133,6 +134,7 @@ async function fetchReviewCommentReactions(
   )) {
     for (const reaction of response.data) {
       reactions.push({
+        id: reaction.id,
         user: reaction.user?.login ?? '[deleted]',
         content: reaction.content as Reaction['content'],
         createdAt: reaction.created_at,
@@ -452,7 +454,15 @@ export async function fetchComments(
           // Fetch detailed reactions if there are any
           let reactions: Reactions | undefined;
           if (comment.reactions && comment.reactions.total_count > 0) {
-            reactions = await fetchIssueCommentReactions(octokit, owner, repo, comment.id);
+            try {
+              reactions = await fetchIssueCommentReactions(octokit, owner, repo, comment.id);
+            } catch (error) {
+              logger.warn(
+                { owner, repo, prNumber, commentId: comment.id },
+                `Failed to fetch issue comment reactions: ${error}`
+              );
+              reactions = undefined;
+            }
           }
 
           if (!comment.user) continue;
@@ -486,7 +496,15 @@ export async function fetchComments(
           // Fetch detailed reactions if there are any
           let reactions: Reactions | undefined;
           if (comment.reactions && comment.reactions.total_count > 0) {
-            reactions = await fetchReviewCommentReactions(octokit, owner, repo, comment.id);
+            try {
+              reactions = await fetchReviewCommentReactions(octokit, owner, repo, comment.id);
+            } catch (error) {
+              logger.warn(
+                { owner, repo, prNumber, commentId: comment.id },
+                `Failed to fetch review comment reactions: ${error}`
+              );
+              reactions = undefined;
+            }
           }
 
           results.push({
@@ -1014,12 +1032,65 @@ export async function deletePullRequestReviewCommentReaction(
   commentId: number,
   reactionId: number
 ): Promise<void> {
-  await octokit.rest.reactions.deleteForPullRequestReviewComment({
+  await octokit.rest.reactions.deleteForPullRequestComment({
     owner,
     repo,
     comment_id: commentId,
     reaction_id: reactionId,
   });
+}
+
+export interface ReactionDetail {
+  id: number;
+  content: ReactionContent;
+  user: string;
+  createdAt: string;
+}
+
+export async function listIssueCommentReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number
+): Promise<ReactionDetail[]> {
+  const reactions: ReactionDetail[] = [];
+  for await (const response of octokit.paginate.iterator(
+    octokit.rest.reactions.listForIssueComment,
+    { owner, repo, comment_id: commentId, per_page: 100 }
+  )) {
+    for (const r of response.data) {
+      reactions.push({
+        id: r.id,
+        content: r.content as ReactionContent,
+        user: r.user?.login ?? 'unknown',
+        createdAt: r.created_at,
+      });
+    }
+  }
+  return reactions;
+}
+
+export async function listPullRequestReviewCommentReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commentId: number
+): Promise<ReactionDetail[]> {
+  const reactions: ReactionDetail[] = [];
+  for await (const response of octokit.paginate.iterator(
+    octokit.rest.reactions.listForPullRequestReviewComment,
+    { owner, repo, comment_id: commentId, per_page: 100 }
+  )) {
+    for (const r of response.data) {
+      reactions.push({
+        id: r.id,
+        content: r.content as ReactionContent,
+        user: r.user?.login ?? 'unknown',
+        createdAt: r.created_at,
+      });
+    }
+  }
+  return reactions;
 }
 
 export async function formatFileDiff(

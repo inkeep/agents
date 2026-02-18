@@ -24,6 +24,7 @@ export const ReactionContentSchema = z.enum([
 ]);
 
 export const ReactionSchema = z.object({
+  id: z.number(),
   user: z.string(),
   content: ReactionContentSchema,
   createdAt: z.string(),
