@@ -130,14 +130,21 @@ describe('Environment Settings Generator', () => {
       );
     });
 
-    it('should handle production environment with keychain credentials', () => {
-      const definition = generateEnvironmentSettingsDefinition('production', productionData);
+    it.only('should handle production environment with keychain credentials', async () => {
+      const environmentName = 'production';
+      const definition = generateEnvironmentSettingsDefinition(environmentName, productionData);
 
       expect(definition).toContain('export const production = registerEnvironmentSettings({');
       expect(definition).toContain('type: CredentialStoreType.keychain,');
       expect(definition).toContain("credentialStoreId: 'keychain-main',");
       expect(definition).toContain("service: 'stripe-api',");
       expect(definition).toContain("account: 'production'");
+
+      await expectEnvironmentSettingsDefinitionSnapshots(
+        environmentName,
+        productionData,
+        definition
+      );
     });
 
     it('should handle empty credentials', () => {
