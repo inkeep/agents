@@ -26,8 +26,9 @@ export function HeaderMenus() {
   }, [resolvedTheme, monaco]);
 
   const supportSubject = encodeURIComponent('Support with Inkeep Agents');
+  const tenantInfo = tenantId ? `\n\n---\nTenant: ${tenantId}` : '';
   const supportBody = encodeURIComponent(
-    `Hi Inkeep team,\n\nCan you help me with <X>.\n\n---\nTenant: ${tenantId ?? ''}`
+    `Hi Inkeep team,\n\nCan you help me with <X>.${tenantInfo}`
   );
   const supportMailto = `mailto:support@inkeep.com?subject=${supportSubject}&body=${supportBody}`;
 
