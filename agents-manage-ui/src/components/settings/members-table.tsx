@@ -1,9 +1,19 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey, XCircle } from 'lucide-react';
+import {
+  ChevronDown,
+  Copy,
+  Info,
+  MoreVertical,
+  Plus,
+  RotateCcwKey,
+  UserMinus,
+  XCircle,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/settings/change-password-dialog';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
+import { RemoveMemberDialog } from '@/components/settings/remove-member-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +30,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -73,6 +84,8 @@ interface MembersTableProps {
   onMemberUpdated?: () => void;
   isOrgAdmin: boolean;
   memberProviders?: UserProvider[];
+  hideAddButton?: boolean;
+  initialEmails?: string[];
 }
 
 export function MembersTable({
@@ -83,6 +96,8 @@ export function MembersTable({
   onMemberUpdated,
   isOrgAdmin,
   memberProviders = [],
+  hideAddButton = false,
+  initialEmails,
 }: MembersTableProps) {
   const authClient = useAuthClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -91,6 +106,9 @@ export function MembersTable({
   const [resettingMemberId, setResettingMemberId] = useState<string | null>(null);
   const [revokingInvitation, setRevokingInvitation] = useState<Invitation | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   // State for the project access dialog
   const [projectAccessDialogOpen, setProjectAccessDialogOpen] = useState(false);
@@ -242,6 +260,38 @@ export function MembersTable({
     }
   };
 
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !isOrgAdmin) return;
+
+    setIsRemovingMember(true);
+    try {
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: memberToRemove.id,
+        organizationId,
+      });
+
+      if (error) {
+        toast.error('Failed to remove member', {
+          description: error.message || 'An error occurred while removing the member.',
+        });
+        return;
+      }
+
+      toast.success('Member removed', {
+        description: `${memberToRemove.user.name || memberToRemove.user.email} has been removed from the organization.`,
+      });
+      onMemberUpdated?.();
+    } catch (err) {
+      toast.error('Failed to remove member', {
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsRemovingMember(false);
+      setRemoveMemberDialogOpen(false);
+      setMemberToRemove(null);
+    }
+  };
+
   return (
     <div>
       <div className="rounded-lg border">
@@ -250,7 +300,7 @@ export function MembersTable({
             <h2 className="text-md font-medium text-gray-700 dark:text-white/70">Members</h2>
             <Badge variant="count">{members.length}</Badge>
           </div>
-          {isOrgAdmin && (
+          {isOrgAdmin && !hideAddButton && (
             <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
               <Plus />
               Add
@@ -356,7 +406,7 @@ export function MembersTable({
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {isOrgAdmin && memberHasCredentialAuth(member.user.id) && (
+                        {isOrgAdmin && (memberHasCredentialAuth(member.user.id) || isEditable) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -370,19 +420,39 @@ export function MembersTable({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {isCurrentUser ? (
-                                <DropdownMenuItem onClick={() => setChangePasswordDialogOpen(true)}>
-                                  <RotateCcwKey className="h-4 w-4" />
-                                  Change password
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  onClick={() => handleResetPassword(member)}
-                                  disabled={resettingMemberId === member.id}
-                                >
-                                  <RotateCcwKey className="h-4 w-4" />
-                                  Reset password
-                                </DropdownMenuItem>
+                              {memberHasCredentialAuth(member.user.id) &&
+                                (isCurrentUser ? (
+                                  <DropdownMenuItem
+                                    onClick={() => setChangePasswordDialogOpen(true)}
+                                  >
+                                    <RotateCcwKey className="h-4 w-4" />
+                                    Change password
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => handleResetPassword(member)}
+                                    disabled={resettingMemberId === member.id}
+                                  >
+                                    <RotateCcwKey className="h-4 w-4" />
+                                    Reset password
+                                  </DropdownMenuItem>
+                                ))}
+                              {isEditable && (
+                                <>
+                                  {memberHasCredentialAuth(member.user.id) && (
+                                    <DropdownMenuSeparator />
+                                  )}
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => {
+                                      setMemberToRemove(member);
+                                      setRemoveMemberDialogOpen(true);
+                                    }}
+                                  >
+                                    <UserMinus className="h-4 w-4" />
+                                    Remove from organization
+                                  </DropdownMenuItem>
+                                </>
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -471,6 +541,7 @@ export function MembersTable({
         onOpenChange={setInviteDialogOpen}
         isOrgAdmin={isOrgAdmin}
         onInvitationsSent={onMemberUpdated}
+        initialEmails={initialEmails}
       />
 
       <ChangePasswordDialog
@@ -490,6 +561,14 @@ export function MembersTable({
           onComplete={handleProjectAccessComplete}
         />
       )}
+
+      <RemoveMemberDialog
+        open={removeMemberDialogOpen}
+        onOpenChange={setRemoveMemberDialogOpen}
+        memberName={memberToRemove?.user.name || memberToRemove?.user.email || ''}
+        onConfirm={handleRemoveMember}
+        isRemoving={isRemovingMember}
+      />
 
       <AlertDialog
         open={!!revokingInvitation}

@@ -365,14 +365,22 @@ export function createAuth(config: BetterAuthConfig) {
           },
           afterRemoveMember: async ({ member, organization: org }) => {
             try {
-              const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
+              const { syncOrgMemberToSpiceDb, revokeAllProjectMemberships } = await import(
+                './authz/sync'
+              );
               await syncOrgMemberToSpiceDb({
                 tenantId: org.id,
                 userId: member.userId,
                 role: member.role as OrgRole,
                 action: 'remove',
               });
-              console.log(`🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`);
+              await revokeAllProjectMemberships({
+                tenantId: org.id,
+                userId: member.userId,
+              });
+              console.log(
+                `🔐 SpiceDB: Removed member ${member.userId} from org ${org.name} and revoked all project memberships`
+              );
             } catch (error) {
               console.error('❌ SpiceDB sync failed for member removal:', error);
             }

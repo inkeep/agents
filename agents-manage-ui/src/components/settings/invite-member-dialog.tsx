@@ -3,7 +3,7 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { AlertCircle, Check, ChevronDown, Copy } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +39,7 @@ interface InviteMemberDialogProps {
   onOpenChange: (open: boolean) => void;
   isOrgAdmin: boolean;
   onInvitationsSent?: () => void;
+  initialEmails?: string[];
 }
 
 interface InvitationResult {
@@ -53,6 +54,7 @@ export function InviteMemberDialog({
   onOpenChange,
   isOrgAdmin,
   onInvitationsSent,
+  initialEmails,
 }: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
@@ -99,6 +101,12 @@ export function InviteMemberDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationResults, setInvitationResults] = useState<InvitationResult[]>([]);
+
+  useEffect(() => {
+    if (open && initialEmails && initialEmails.length > 0) {
+      setEmails(initialEmails.join(', '));
+    }
+  }, [open, initialEmails]);
 
   const selectedAuthOption = authMethodOptions.find((o) => o.value === selectedAuthMethod);
 
