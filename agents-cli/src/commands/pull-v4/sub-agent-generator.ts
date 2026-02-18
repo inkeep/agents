@@ -1,9 +1,9 @@
 import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addObjectEntries,
   addReferenceGetterProperty,
   addStringProperty,
+  addValueToObject,
   createInMemoryProject,
   formatInlineLiteral,
   isPlainObject,
@@ -92,78 +92,72 @@ export function generateSubAgentDefinition(data: SubAgentDefinitionData): string
 
 function writeSubAgentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedSubAgentDefinitionData
+  {
+    subAgentId,
+    dataComponents,
+    name,
+    canDelegateTo,
+    canTransferTo,
+    skills,
+    artifactComponents,
+    stopWhen,
+    canUse,
+    ...rest
+  }: ParsedSubAgentDefinitionData
 ) {
-  addStringProperty(configObject, 'id', data.subAgentId);
-  addStringProperty(configObject, 'name', resolveSubAgentName(data.subAgentId, data.name));
-
-  if (data.description !== undefined) {
-    addStringProperty(configObject, 'description', data.description);
+  for (const [k, v] of Object.entries({ id: subAgentId, ...rest })) {
+    addValueToObject(configObject, k, v);
   }
+  addStringProperty(configObject, 'name', resolveSubAgentName(subAgentId, name));
 
-  if (data.prompt !== undefined) {
-    addStringProperty(configObject, 'prompt', data.prompt);
-  }
-
-  if (data.models && Object.keys(data.models).length) {
-    const modelsProperty = configObject.addPropertyAssignment({
-      name: 'models',
-      initializer: '{}',
-    });
-    const modelsObject = modelsProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    addObjectEntries(modelsObject, data.models);
-  }
-
-  const canUseReferences = collectCanUseReferences(data.canUse);
+  const canUseReferences = collectCanUseReferences(canUse);
   if (canUseReferences.length) {
     addReferenceGetterProperty(configObject, 'canUse', canUseReferences);
   }
 
-  const canDelegateToReferences = collectCanDelegateToReferences(data.canDelegateTo);
+  const canDelegateToReferences = collectCanDelegateToReferences(canDelegateTo);
   if (canDelegateToReferences.length) {
     addReferenceGetterProperty(configObject, 'canDelegateTo', canDelegateToReferences);
   }
 
-  if (hasReferences(data.canTransferTo)) {
+  if (hasReferences(canTransferTo)) {
     addReferenceGetterProperty(
       configObject,
       'canTransferTo',
-      data.canTransferTo.map((id) => toCamelCase(id))
+      canTransferTo.map((id) => toCamelCase(id))
     );
   }
 
-  if (hasReferences(data.dataComponents)) {
+  if (hasReferences(dataComponents)) {
     addReferenceGetterProperty(
       configObject,
       'dataComponents',
-      data.dataComponents.map((id) => toCamelCase(id))
+      dataComponents.map((id) => toCamelCase(id))
     );
   }
 
-  if (hasReferences(data.artifactComponents)) {
+  if (hasReferences(artifactComponents)) {
     addReferenceGetterProperty(
       configObject,
       'artifactComponents',
-      data.artifactComponents.map((id) => toCamelCase(id))
+      artifactComponents.map((id) => toCamelCase(id))
     );
   }
 
-  const skills = collectSkills(data.skills);
-  if (skills.length > 0) {
+  const collectedSkills = collectSkills(skills);
+  if (collectedSkills.length > 0) {
     const skillsProperty = configObject.addPropertyAssignment({
       name: 'skills',
       initializer: '() => []',
     });
     const skillsGetter = skillsProperty.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
     const skillsArray = skillsGetter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
-    for (const skill of skills) {
+    for (const skill of collectedSkills) {
       skillsArray.addElement(skill);
     }
   }
 
-  if (data.stopWhen?.stepCountIs !== undefined) {
+  if (stopWhen?.stepCountIs !== undefined) {
     const stopWhenProperty = configObject.addPropertyAssignment({
       name: 'stopWhen',
       initializer: '{}',
@@ -173,7 +167,7 @@ function writeSubAgentConfig(
     );
     stopWhenObject.addPropertyAssignment({
       name: 'stepCountIs',
-      initializer: String(data.stopWhen.stepCountIs),
+      initializer: String(stopWhen.stepCountIs),
     });
   }
 }

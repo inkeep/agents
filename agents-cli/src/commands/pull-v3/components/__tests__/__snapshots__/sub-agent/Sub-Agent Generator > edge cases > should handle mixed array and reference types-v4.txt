@@ -2,9 +2,9 @@ import { subAgent } from '@inkeep/agents-sdk';
 
 export const mixedTypesSubAgent = subAgent({
   id: 'mixed-types-sub-agent',
-  name: 'Mixed Types Agent',
   description: 'Agent with mixed reference types',
   prompt: 'I work with mixed types.',
+  name: 'Mixed Types Agent',
   canUse: () => [stringTool],
   dataComponents: () => [stringComponent]
 });
