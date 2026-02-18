@@ -273,7 +273,7 @@ export const createAgents = async (
     defaultModelSettings = defaultMockModelConfigurations;
     if (openAiKey || anthropicKey || googleKey || azureKey) {
       p.log.warn(
-        '--skip-provider is active. Provider key flags are ignored; mock/default model will be used.',
+        '--skip-provider is active. Provider key flags are ignored; mock/default model will be used.'
       );
     }
   } else if (anthropicKey) {
