@@ -99,6 +99,7 @@ node-compile-cache/
 
 tmp
 .claude/specs
+specs
 tasks
 prd.json
 progress.txt
