@@ -449,7 +449,7 @@ export function MembersTable({
                             )}
                             <DropdownMenuItem
                               onClick={() => setRevokingInvitation(invitation)}
-                              className="text-destructive focus:text-destructive"
+                              variant="destructive"
                             >
                               <XCircle className="h-4 w-4" />
                               Revoke invite
@@ -502,7 +502,7 @@ export function MembersTable({
             <AlertDialogTitle>Revoke invitation?</AlertDialogTitle>
             <AlertDialogDescription>
               This will revoke the pending invitation to {revokingInvitation?.email}. They will no
-              longer be able to accept it.
+              longer be able to accept it. You can send a new invitation if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
