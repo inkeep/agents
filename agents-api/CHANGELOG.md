@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.48.6
+
+### Patch Changes
+
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-work-apps@0.48.6
+  - @inkeep/agents-mcp@0.48.6
+
 ## 0.48.5
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
 ## 0.48.5
 
 ### Patch Changes

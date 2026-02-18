@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+- Updated dependencies [2e8d956]
+- Updated dependencies [4afaf71]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-manage-ui@0.48.6
+  - @inkeep/agents-sdk@0.48.6
+
 ## 0.48.5
 
 ### Patch Changes
