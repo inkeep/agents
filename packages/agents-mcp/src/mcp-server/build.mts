@@ -29,6 +29,19 @@ async function buildMcpServer() {
   const entrypoint = "./src/mcp-server/mcp-server.ts";
   const destinationDir = "./bin";
 
+  // Generate tool-names.ts for the landing page
+  const toolNamesContent = `// Auto-generated at build time
+export const toolNames: Array<{ name: string; description: string }>= ${JSON.stringify(
+    tools.map((tool: any) => ({
+      name: tool.name,
+      description: tool.description,
+    })),
+    null,
+    2
+  )};
+`;
+  await writeFile("./src/tool-names.ts", toolNamesContent);
+
   await build({
     entrypoints: [entrypoint],
     outdir: destinationDir,

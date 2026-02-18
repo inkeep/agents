@@ -17825,7 +17825,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Associate Function Tool with SubAgent",
+        "summary": "Assign an existing Function Tool to a SubAgent",
         "tags": [
           "SubAgents",
           "Function Tools"
@@ -17944,7 +17944,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get SubAgents Using Function Tool",
+        "summary": "List SubAgents that use a given Function Tool",
         "tags": [
           "SubAgents",
           "Function Tools"
@@ -18064,7 +18064,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get Function Tools for SubAgent",
+        "summary": "List Function Tools assigned to a SubAgent",
         "tags": [
           "SubAgents",
           "Function Tools"
@@ -18192,7 +18192,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Remove Function Tool from SubAgent",
+        "summary": "Unassign a Function Tool from a SubAgent",
         "tags": [
           "SubAgents",
           "Function Tools"
@@ -18320,7 +18320,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Check if Function Tool is Associated with SubAgent",
+        "summary": "Check if a Function Tool is assigned to a SubAgent",
         "tags": [
           "SubAgents",
           "Function Tools"
@@ -19418,7 +19418,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "List SubAgent Tool Relations",
+        "summary": "List MCP Tools assigned to SubAgents",
         "tags": [
           "SubAgents",
           "Tools"
@@ -19554,7 +19554,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Create SubAgent Tool Relation",
+        "summary": "Assign an existing MCP Tool to a SubAgent",
         "tags": [
           "SubAgents",
           "Tools"
@@ -19689,7 +19689,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get SubAgents for Tool",
+        "summary": "List SubAgents that use a given MCP Tool",
         "tags": [
           "SubAgents",
           "Tools"
@@ -19752,7 +19752,7 @@
             "description": "SubAgent tool relation not found"
           }
         },
-        "summary": "Delete SubAgent Tool Relation",
+        "summary": "Unassign an MCP Tool from a SubAgent",
         "tags": [
           "SubAgents",
           "Tools"
@@ -19870,7 +19870,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get SubAgent Tool Relation",
+        "summary": "Get a SubAgent MCP Tool assignment by ID",
         "tags": [
           "SubAgents",
           "Tools"
@@ -19997,7 +19997,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Update SubAgent Tool Relation",
+        "summary": "Update a SubAgent MCP Tool assignment",
         "tags": [
           "SubAgents",
           "Tools"
@@ -31957,7 +31957,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "List Functions",
+        "summary": "List Function Definitions",
         "tags": [
           "Functions"
         ],
@@ -32096,7 +32096,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Create Function",
+        "summary": "Create Function Definition",
         "tags": [
           "Functions"
         ]
@@ -32199,7 +32199,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Delete Function",
+        "summary": "Delete Function Definition",
         "tags": [
           "Functions"
         ]
@@ -32307,7 +32307,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get Function by ID",
+        "summary": "Get Function Definition by ID",
         "tags": [
           "Functions"
         ]
@@ -32424,7 +32424,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Update Function",
+        "summary": "Update Function Definition",
         "tags": [
           "Functions"
         ]
@@ -34616,7 +34616,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "List Tools",
+        "summary": "List MCP Tools",
         "tags": [
           "Tools"
         ],
@@ -34742,7 +34742,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Create Tool",
+        "summary": "Create MCP Tool",
         "tags": [
           "Tools"
         ]
@@ -34845,7 +34845,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Delete Tool",
+        "summary": "Delete MCP Tool",
         "tags": [
           "Tools"
         ]
@@ -34953,7 +34953,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get Tool",
+        "summary": "Get MCP Tool",
         "tags": [
           "Tools"
         ]
@@ -35070,7 +35070,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Update Tool",
+        "summary": "Update MCP Tool",
         "tags": [
           "Tools"
         ]
@@ -35180,7 +35180,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Get User Credential for Tool",
+        "summary": "Get User Credential for MCP Tool",
         "tags": [
           "Tools"
         ]
@@ -37300,7 +37300,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}": {
+    "/work-apps/slack/workspaces/:teamId": {
       "delete": {
         "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
         "operationId": "slack-delete-workspace",
@@ -37426,7 +37426,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}/channels": {
+    "/work-apps/slack/workspaces/:teamId/channels": {
       "get": {
         "description": "List Slack channels in the workspace that the bot can see",
         "operationId": "slack-list-channels",
@@ -37551,189 +37551,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}/channels/bulk": {
-      "delete": {
-        "description": "Remove agent configuration from multiple channels at once",
-        "operationId": "slack-bulk-delete-channel-agents",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "channelIds": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "channelIds"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "removed": {
-                      "type": "number"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "removed"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Configs removed"
-          }
-        },
-        "summary": "Bulk Remove Channel Configs",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      },
-      "put": {
-        "description": "Apply the same agent configuration to multiple channels at once",
-        "operationId": "slack-bulk-set-channel-agents",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "agentConfig": {
-                    "properties": {
-                      "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
-                        "type": "string"
-                      },
-                      "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "projectId",
-                      "agentId"
-                    ],
-                    "type": "object"
-                  },
-                  "channelIds": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "channelIds",
-                  "agentConfig"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "errors": {
-                      "items": {
-                        "properties": {
-                          "channelId": {
-                            "type": "string"
-                          },
-                          "error": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "channelId",
-                          "error"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "failed": {
-                      "type": "number"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "updated": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "updated",
-                    "failed"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Channels updated"
-          },
-          "400": {
-            "description": "Invalid request"
-          },
-          "404": {
-            "description": "Workspace not found"
-          }
-        },
-        "summary": "Bulk Set Channel Agents",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      }
-    },
-    "/work-apps/slack/workspaces/{teamId}/channels/{channelId}/settings": {
+    "/work-apps/slack/workspaces/:teamId/channels/:channelId/settings": {
       "delete": {
         "description": "Remove the default agent configuration for a channel",
         "operationId": "slack-delete-channel-settings",
@@ -37945,7 +37763,189 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}/health": {
+    "/work-apps/slack/workspaces/:teamId/channels/bulk": {
+      "delete": {
+        "description": "Remove agent configuration from multiple channels at once",
+        "operationId": "slack-bulk-delete-channel-agents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "channelIds"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "removed": {
+                      "type": "number"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "removed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Configs removed"
+          }
+        },
+        "summary": "Bulk Remove Channel Configs",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      },
+      "put": {
+        "description": "Apply the same agent configuration to multiple channels at once",
+        "operationId": "slack-bulk-set-channel-agents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentConfig": {
+                    "properties": {
+                      "agentId": {
+                        "type": "string"
+                      },
+                      "agentName": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projectId",
+                      "agentId"
+                    ],
+                    "type": "object"
+                  },
+                  "channelIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "channelIds",
+                  "agentConfig"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "errors": {
+                      "items": {
+                        "properties": {
+                          "channelId": {
+                            "type": "string"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "channelId",
+                          "error"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "failed": {
+                      "type": "number"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "updated": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "updated",
+                    "failed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channels updated"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Bulk Set Channel Agents",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/health": {
       "get": {
         "description": "Verify the bot token is valid and check permissions. Returns bot info and permission status.",
         "operationId": "slack-workspace-health",
@@ -38025,7 +38025,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}/settings": {
+    "/work-apps/slack/workspaces/:teamId/settings": {
       "get": {
         "description": "Get settings for a Slack workspace including default agent",
         "operationId": "slack-get-workspace-settings",
@@ -38172,7 +38172,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}/test-message": {
+    "/work-apps/slack/workspaces/:teamId/test-message": {
       "post": {
         "description": "Send a test message to verify the bot is working correctly.",
         "operationId": "slack-test-message",
@@ -38246,7 +38246,7 @@
         ]
       }
     },
-    "/work-apps/slack/workspaces/{teamId}/users": {
+    "/work-apps/slack/workspaces/:teamId/users": {
       "get": {
         "description": "List all users linked to Inkeep in this workspace",
         "operationId": "slack-list-linked-users",
