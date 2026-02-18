@@ -16,6 +16,12 @@ if (process.env.NODE_ENV !== 'production') {
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
 const nextConfig: NextConfig = {
+  typescript: {
+    // Typecheck runs explicitly before `next build` in the build script
+    // (via `pnpm typecheck`), so skip the redundant built-in check that
+    // runs *after* compilation and causes Vercel builds to timeout/OOM.
+    ignoreBuildErrors: true,
+  },
   experimental: {
     turbopackFileSystemCacheForBuild: true,
   },
