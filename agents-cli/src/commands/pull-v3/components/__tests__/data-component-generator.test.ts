@@ -455,7 +455,8 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle render with component only (no mockData)', () => {
+    it.only('should handle render with component only (no mockData)', async () => {
+      const componentId = 'component-only';
       const componentData = {
         name: 'Component Only',
         description: 'Component with render but no mock data',
@@ -470,12 +471,17 @@ describe('Data Component Generator', () => {
         },
       };
 
-      const definition = generateDataComponentDefinition('component-only', componentData);
+      const definition = generateDataComponentDefinition(componentId, componentData);
 
       expect(definition).toContain('export const componentOnly = dataComponent({');
       expect(definition).toContain('render: {');
       expect(definition).toContain('component: "function SimpleComponent');
       expect(definition).not.toContain('mockData:');
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should ignore invalid render attribute (missing component)', () => {
