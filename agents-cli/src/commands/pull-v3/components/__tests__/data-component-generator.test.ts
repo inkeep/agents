@@ -112,15 +112,22 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle component ID to camelCase conversion', () => {
-      const definition = generateDataComponentDefinition('user-profile-data', {
+    it.only('should handle component ID to camelCase conversion', async () => {
+      const componentId = 'user-profile-data';
+      const componentData = {
         name: 'Profile',
         description: 'User profile data',
         props: { type: 'object', properties: { name: { type: 'string' } } },
-      });
+      };
+      const definition = generateDataComponentDefinition(componentId, componentData);
 
       expect(definition).toContain('export const userProfileData = dataComponent({');
       expect(definition).toContain("id: 'user-profile-data',");
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing required fields', () => {
