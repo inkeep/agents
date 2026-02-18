@@ -24,6 +24,14 @@ const config: NextConfig = {
         protocol: 'https',
         hostname: 'docs.inkeep.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'cursor.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.shields.io',
+      },
     ],
   },
   async redirects() {
