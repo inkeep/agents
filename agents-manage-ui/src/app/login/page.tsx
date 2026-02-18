@@ -262,6 +262,11 @@ function LoginForm() {
               </div>
             </>
           )}
+
+          <div className="text-center pt-2">
+            <p className="font-medium">Don&apos;t have an account?</p>
+            <p className="text-sm text-muted-foreground">Ask your administrator for an invite.</p>
+          </div>
         </CardContent>
       </Card>
     </div>
