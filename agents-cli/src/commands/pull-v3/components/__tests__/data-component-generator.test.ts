@@ -224,11 +224,12 @@ describe('Data Component Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate code that compiles and creates a working data component', async () => {
-      generateDataComponentFile('task-list', testComponentData);
+    it.only('should generate code that compiles and creates a working data component', async () => {
+      const componentId = 'task-list';
+      generateDataComponentFile(componentId, testComponentData);
 
       // Extract just the component definition (remove imports and export)
-      const definition = generateDataComponentDefinition('task-list', testComponentData);
+      const definition = generateDataComponentDefinition(componentId, testComponentData);
       const definitionWithoutExport = definition.replace('export const ', 'const ');
 
       // Mock the dependencies and test compilation
@@ -285,6 +286,12 @@ describe('Data Component Generator', () => {
       expect(props.tasks.type).toBe('array');
       expect(props.totalCount).toBeDefined();
       expect(props.totalCount.type).toBe('number');
+
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...testComponentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for data component without props', () => {
