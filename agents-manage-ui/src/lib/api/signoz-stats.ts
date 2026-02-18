@@ -196,6 +196,9 @@ class SigNozStatsAPI {
       throw new Error('TenantId not set. Call setTenantId() before making requests.');
     }
 
+    const t0 = performance.now();
+    console.log('[traces-perf] makePipelineRequest START (batch)');
+
     const response = await axios.post(
       `/api/signoz?tenantId=${this.tenantId}&mode=batch`,
       { paginationPayload, detailPayloadTemplate },
@@ -211,6 +214,10 @@ class SigNozStatsAPI {
             (error.response !== undefined && error.response.status >= 500),
         },
       } as any
+    );
+
+    console.log(
+      `[traces-perf] makePipelineRequest END elapsed=${(performance.now() - t0).toFixed(0)}ms`
     );
     return response.data;
   }
@@ -343,9 +350,14 @@ class SigNozStatsAPI {
     searchQuery: string | undefined,
     agentId: string | undefined
   ): Promise<PaginatedConversationStats> {
+    const t0 = performance.now();
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
     const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
+
+    console.log(
+      `[traces-perf] getConversationStatsPaginated START path=${useServerSidePagination ? 'fast(pipeline)' : 'slow(2-roundtrip)'} page=${pagination.page} limit=${pagination.limit} hasSearch=${hasSearchQuery} hasSpanFilters=${hasSpanFilters}`
+    );
 
     const makePaginationResult = (total: number) => ({
       page: pagination.page,
@@ -416,6 +428,9 @@ class SigNozStatsAPI {
       aggregateStats.totalConversations = total;
 
       if (conversationIds.length === 0 || !detailResponse) {
+        console.log(
+          `[traces-perf] getConversationStatsPaginated END (fast, empty) elapsed=${(performance.now() - t0).toFixed(0)}ms total=${total}`
+        );
         return {
           data: [],
           pagination: makePaginationResult(total),
@@ -423,8 +438,15 @@ class SigNozStatsAPI {
         };
       }
 
+      const tParse = performance.now();
       const { orderedStats } = this.parseDetailResponse(detailResponse, conversationIds);
+      console.log(
+        `[traces-perf] parseDetailResponse elapsed=${(performance.now() - tParse).toFixed(0)}ms conversations=${conversationIds.length}`
+      );
 
+      console.log(
+        `[traces-perf] getConversationStatsPaginated END (fast) elapsed=${(performance.now() - t0).toFixed(0)}ms total=${total} returned=${orderedStats.length}`
+      );
       return {
         data: orderedStats,
         pagination: makePaginationResult(total),
@@ -433,6 +455,7 @@ class SigNozStatsAPI {
     }
 
     // Slow path: search or span filters require client-side processing (2 round-trips)
+    const tIds = performance.now();
     const { conversationIds, total, aggregateStats } = await this.getPaginatedConversationIds(
       startTime,
       endTime,
@@ -442,8 +465,14 @@ class SigNozStatsAPI {
       searchQuery,
       agentId
     );
+    console.log(
+      `[traces-perf] getPaginatedConversationIds elapsed=${(performance.now() - tIds).toFixed(0)}ms ids=${conversationIds.length} total=${total}`
+    );
 
     if (conversationIds.length === 0) {
+      console.log(
+        `[traces-perf] getConversationStatsPaginated END (slow, empty) elapsed=${(performance.now() - t0).toFixed(0)}ms`
+      );
       return {
         data: [],
         pagination: makePaginationResult(total),
@@ -460,8 +489,16 @@ class SigNozStatsAPI {
       conversationIds
     );
     const resp = await this.makeRequest(payload);
-    const { orderedStats } = this.parseDetailResponse(resp, conversationIds);
 
+    const tParse2 = performance.now();
+    const { orderedStats } = this.parseDetailResponse(resp, conversationIds);
+    console.log(
+      `[traces-perf] parseDetailResponse elapsed=${(performance.now() - tParse2).toFixed(0)}ms conversations=${conversationIds.length}`
+    );
+
+    console.log(
+      `[traces-perf] getConversationStatsPaginated END (slow) elapsed=${(performance.now() - t0).toFixed(0)}ms total=${total} returned=${orderedStats.length}`
+    );
     return {
       data: orderedStats,
       pagination: makePaginationResult(total),
@@ -988,11 +1025,16 @@ class SigNozStatsAPI {
     agentId?: string,
     projectId?: string
   ) {
+    const t0 = performance.now();
+    console.log('[traces-perf] getConversationsPerDay START');
     try {
-      // Fetch conversation activity directly — no need for a metadata pre-check
       const activityResp = await this.makeRequest(
         this.buildConversationActivityPayload(startTime, endTime, agentId, projectId)
       );
+      console.log(
+        `[traces-perf] getConversationsPerDay request completed elapsed=${(performance.now() - t0).toFixed(0)}ms`
+      );
+
       const activitySeries = this.extractSeries(activityResp, 'lastActivity');
 
       const buckets = new Map<string, number>();
@@ -1004,12 +1046,20 @@ class SigNozStatsAPI {
         buckets.set(key, (buckets.get(key) || 0) + 1);
       }
 
-      return datesRange(startTime, endTime).map((date) => ({
+      const result = datesRange(startTime, endTime).map((date) => ({
         date,
         count: buckets.get(date) || 0,
       }));
+
+      console.log(
+        `[traces-perf] getConversationsPerDay END elapsed=${(performance.now() - t0).toFixed(0)}ms series=${activitySeries.length} days=${result.length}`
+      );
+      return result;
     } catch (e) {
       console.error('getConversationsPerDay error:', e);
+      console.log(
+        `[traces-perf] getConversationsPerDay END (error) elapsed=${(performance.now() - t0).toFixed(0)}ms`
+      );
       return datesRange(startTime, endTime).map((date) => ({ date, count: 0 }));
     }
   }

@@ -142,6 +142,7 @@ app.post('/query', async (c) => {
 // POST /query-batch - Execute two dependent SigNoz queries in one round-trip to improve performance
 // Step 1 (paginationPayload) Step 2 (detailPayloadTemplate) Both responses are returned.
 app.post('/query-batch', async (c) => {
+  const t0 = Date.now();
   const body = await c.req.json();
   const { paginationPayload, detailPayloadTemplate } = body;
 
@@ -152,10 +153,22 @@ app.post('/query-batch', async (c) => {
     );
   }
 
+  const paginationQueryNames = Object.keys(
+    paginationPayload?.compositeQuery?.builderQueries ?? {}
+  ).join(', ');
+  const detailQueryNames = Object.keys(
+    detailPayloadTemplate?.compositeQuery?.builderQueries ?? {}
+  ).join(', ');
+
   const requestedProjectId = paginationPayload.projectId;
   const tenantId = c.get('tenantId');
   const userId = c.get('userId');
   const tenantRole = c.get('tenantRole') as OrgRole;
+
+  logger.info(
+    { tenantId, projectId: requestedProjectId, paginationQueryNames, detailQueryNames },
+    '[traces-perf] /query-batch START'
+  );
 
   if (!userId || !tenantId) {
     throw createApiError({
@@ -168,12 +181,14 @@ app.post('/query-batch', async (c) => {
   if (requestedProjectId) {
     const bypassCheck = userId === 'system' || userId?.startsWith('apikey:');
     if (!bypassCheck) {
+      const tAuth = Date.now();
       const hasAccess = await canViewProject({
         userId,
         tenantId,
         projectId: requestedProjectId,
         orgRole: tenantRole,
       });
+      logger.info({ authMs: Date.now() - tAuth }, '[traces-perf] /query-batch canViewProject');
       if (!hasAccess) {
         logger.warn(
           { tenantId, projectId: requestedProjectId, userId },
@@ -208,10 +223,16 @@ app.post('/query-batch', async (c) => {
       tenantId,
       requestedProjectId
     );
+    const tStep1 = Date.now();
     const step1 = await axios.post(signozEndpoint, securedPagination, {
       headers: signozHeaders,
       timeout: 30000,
     });
+    const step1Ms = Date.now() - tStep1;
+    logger.info(
+      { step1Ms, paginationQueryNames },
+      '[traces-perf] /query-batch step1 (pagination) complete'
+    );
 
     // Extract conversation IDs from the pageConversations result
     const pageResult = step1.data?.data?.result?.find(
@@ -222,16 +243,31 @@ app.post('/query-batch', async (c) => {
       .filter(Boolean);
 
     if (conversationIds.length === 0) {
+      logger.info(
+        { step1Ms, totalMs: Date.now() - t0 },
+        '[traces-perf] /query-batch END (no conversations)'
+      );
       return c.json({ paginationResponse: step1.data, detailResponse: null });
     }
 
     // Step 2: Inject conversation IDs into the detail template and execute
     const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
     const securedDetail = enforceSecurityFilters(detailWithIds, tenantId, requestedProjectId);
+    const tStep2 = Date.now();
     const step2 = await axios.post(signozEndpoint, securedDetail, {
       headers: signozHeaders,
       timeout: 30000,
     });
+    const step2Ms = Date.now() - tStep2;
+    logger.info(
+      { step2Ms, detailQueryNames, conversationCount: conversationIds.length },
+      '[traces-perf] /query-batch step2 (detail) complete'
+    );
+
+    logger.info(
+      { step1Ms, step2Ms, totalMs: Date.now() - t0, conversationCount: conversationIds.length },
+      '[traces-perf] /query-batch END'
+    );
 
     return c.json({ paginationResponse: step1.data, detailResponse: step2.data });
   } catch (error) {
