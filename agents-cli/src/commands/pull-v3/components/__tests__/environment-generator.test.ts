@@ -299,8 +299,9 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentSettingsFile', () => {
-    it('should generate complete environment settings file', () => {
-      const file = generateEnvironmentSettingsFile('development', developmentData);
+    it.only('should generate complete environment settings file', async () => {
+      const environmentName = 'development';
+      const file = generateEnvironmentSettingsFile(environmentName, developmentData);
 
       expect(file).toContain("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(file).toContain("import { CredentialStoreType } from '@inkeep/agents-core';");
@@ -310,6 +311,8 @@ describe('Environment Settings Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectEnvironmentSettingsFileSnapshots(environmentName, developmentData, file);
     });
   });
 
