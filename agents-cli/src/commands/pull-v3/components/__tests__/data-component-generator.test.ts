@@ -201,8 +201,9 @@ describe('Data Component Generator', () => {
   });
 
   describe('generateDataComponentFile', () => {
-    it('should generate complete file with imports and definition', () => {
-      const file = generateDataComponentFile('task-list', testComponentData);
+    it.only('should generate complete file with imports and definition', async () => {
+      const componentId = 'task-list';
+      const file = generateDataComponentFile(componentId, testComponentData);
 
       expect(file).toContain("import { dataComponent } from '@inkeep/agents-sdk';");
       expect(file).toContain("import { z } from 'zod';");
@@ -212,6 +213,13 @@ describe('Data Component Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const definition = generateDataComponentDefinition(componentId, testComponentData);
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...testComponentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
