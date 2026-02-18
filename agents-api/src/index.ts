@@ -1,4 +1,4 @@
-import './env';
+import { env } from './env';
 import { defaultSDK } from './instrumentation';
 
 defaultSDK.start();
@@ -127,6 +127,28 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
       console.error('Failed to start workflow world:', err);
     }
   }, STARTUP_DELAY_MS);
+}
+
+// Start Slack Socket Mode client for local development (when configured)
+if (env.SLACK_SOCKET_MODE && env.SLACK_APP_TOKEN) {
+  const SOCKET_MODE_DELAY_MS = 3000;
+  console.log(`Scheduling Slack Socket Mode start in ${SOCKET_MODE_DELAY_MS}ms...`);
+
+  setTimeout(async () => {
+    try {
+      const { startSocketMode } = await import('@inkeep/agents-work-apps/slack');
+      await startSocketMode(env.SLACK_APP_TOKEN as string);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+        console.error(
+          'SLACK_SOCKET_MODE=true but @slack/socket-mode is not installed. ' +
+            'Run: pnpm add -D @slack/socket-mode (in packages/agents-work-apps)'
+        );
+      } else {
+        console.error('Failed to start Slack Socket Mode:', err);
+      }
+    }
+  }, SOCKET_MODE_DELAY_MS);
 }
 
 export default app;
