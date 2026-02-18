@@ -1,6 +1,6 @@
 import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import { addStringProperty, addValueToObject, createInMemoryProject, toCamelCase } from './utils';
+import { addValueToObject, createInMemoryProject, toCamelCase } from './utils';
 
 interface FunctionToolDefinitionData {
   functionToolId: string;
@@ -85,30 +85,22 @@ export function generateFunctionToolDefinition(data: FunctionToolDefinitionData)
 
   writeFunctionToolConfig(configObject, parsed);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeFunctionToolConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedFunctionToolDefinitionData
+  { functionToolId, executeCode, inputSchema, schema, ...rest }: ParsedFunctionToolDefinitionData
 ): void {
-  addStringProperty(configObject, 'name', data.name);
-
-  if (data.description !== undefined) {
-    addStringProperty(configObject, 'description', data.description);
+  for (const [k, v] of Object.entries(rest)) {
+    addValueToObject(configObject, k, v);
+  }
+  const $inputSchema = inputSchema ?? schema;
+  if ($inputSchema) {
+    addValueToObject(configObject, 'inputSchema', $inputSchema);
   }
 
-  const inputSchema = data.inputSchema ?? data.schema;
-  if (inputSchema !== undefined) {
-    const p = configObject.addPropertyAssignment({ name: 'inputSchema', initializer: '{}' });
-    const schemaObj = p.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-    for (const [k, v] of Object.entries(inputSchema)) {
-      addValueToObject(schemaObj, k, v);
-    }
-  }
-
-  const executeCode = data.executeCode ?? data.execute;
-  if (executeCode !== undefined) {
+  if (executeCode) {
     configObject.addPropertyAssignment({
       name: 'execute',
       initializer: executeCode,
