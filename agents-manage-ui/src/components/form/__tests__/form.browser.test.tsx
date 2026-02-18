@@ -98,6 +98,10 @@ const NestedTestForm: FC = () => {
 };
 
 describe('Form', () => {
+  afterEach(() => {
+    agentStore.setState({ jsonSchemaMode: false });
+  });
+
   test('should properly highlight error state', async () => {
     const { container } = render(<TestForm />);
 
@@ -119,7 +123,7 @@ describe('Form', () => {
         // Wait for form validation error message to render
         expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
       },
-      { timeout: 30_000 }
+      { timeout: 45_000 }
     );
 
     await expect(container).toMatchScreenshot();

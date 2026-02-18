@@ -1,9 +1,19 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey } from 'lucide-react';
+import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/settings/change-password-dialog';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
@@ -80,6 +89,8 @@ export function MembersTable({
   const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [resettingMemberId, setResettingMemberId] = useState<string | null>(null);
+  const [revokingInvitation, setRevokingInvitation] = useState<Invitation | null>(null);
+  const [isRevoking, setIsRevoking] = useState(false);
 
   // State for the project access dialog
   const [projectAccessDialogOpen, setProjectAccessDialogOpen] = useState(false);
@@ -198,6 +209,36 @@ export function MembersTable({
       });
     } finally {
       setResettingMemberId(null);
+    }
+  };
+
+  const handleRevokeInvitation = async () => {
+    if (!revokingInvitation) return;
+
+    setIsRevoking(true);
+    try {
+      const { error } = await authClient.organization.cancelInvitation({
+        invitationId: revokingInvitation.id,
+      });
+
+      if (error) {
+        toast.error('Failed to revoke invitation', {
+          description: error.message || 'An error occurred while revoking the invitation.',
+        });
+        return;
+      }
+
+      toast.success('Invitation revoked', {
+        description: `Invitation to ${revokingInvitation.email} has been revoked.`,
+      });
+      onMemberUpdated?.();
+    } catch (err) {
+      toast.error('Failed to revoke invitation', {
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsRevoking(false);
+      setRevokingInvitation(null);
     }
   };
 
@@ -374,21 +415,21 @@ export function MembersTable({
                     </TableCell>
                     <TableCell />
                     <TableCell className="text-right">
-                      {isOrgAdmin &&
-                        (invitation.authMethod === 'email-password' ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                aria-label="Open actions menu"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                      {isOrgAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              aria-label="Open actions menu"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {invitation.authMethod === 'email-password' ? (
                               <DropdownMenuItem
                                 onClick={() => {
                                   const link = `${window.location.origin}/accept-invitation/${invitation.id}?email=${encodeURIComponent(invitation.email)}`;
@@ -399,26 +440,23 @@ export function MembersTable({
                                 <Copy className="h-4 w-4" />
                                 Copy invite link
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                              >
-                                <Info className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              User can sign in with{' '}
-                              {invitation.authMethod === 'google' ? 'Google' : 'Inkeep SSO'}
-                            </TooltipContent>
-                          </Tooltip>
-                        ))}
+                            ) : (
+                              <DropdownMenuItem disabled className="text-muted-foreground">
+                                <Info className="h-4 w-4" />
+                                Sign in via{' '}
+                                {invitation.authMethod === 'google' ? 'Google' : 'Inkeep SSO'}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => setRevokingInvitation(invitation)}
+                              variant="destructive"
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Revoke invite
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -452,6 +490,33 @@ export function MembersTable({
           onComplete={handleProjectAccessComplete}
         />
       )}
+
+      <AlertDialog
+        open={!!revokingInvitation}
+        onOpenChange={(open) => {
+          if (!open) setRevokingInvitation(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke invitation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will revoke the pending invitation to {revokingInvitation?.email}. They will no
+              longer be able to accept it. You can send a new invitation if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevoking}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevokeInvitation}
+              variant="destructive"
+              disabled={isRevoking}
+            >
+              {isRevoking ? 'Revoking...' : 'Revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
