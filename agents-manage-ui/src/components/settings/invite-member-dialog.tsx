@@ -295,7 +295,7 @@ export function InviteMemberDialog({
 
         {!hasResults ? (
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-5 py-4">
+            <div className="grid gap-6 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="emails">Email addresses</Label>
                 <div
@@ -345,7 +345,7 @@ export function InviteMemberDialog({
                     disabled={isSubmitting}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">Supports comma separated lists</p>
+                <p className="text-xs text-muted-foreground">Supports comma separated lists.</p>
               </div>
 
               <div className="grid gap-2">
