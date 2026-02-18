@@ -110,9 +110,8 @@ jobs:
         id: ci-check
         run: |
           # Run all checks in parallel using Turborepo's dependency graph
-          # Limit concurrency to 8 (runner has 4 vCPUs) to prevent CPU starvation
-          # during cache-miss runs, which causes Playwright browser tests to time out
-          pnpm check -- --concurrency=8
+          # This will build once and cache, then run lint, typecheck, and test in parallel
+          pnpm check
         env:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
