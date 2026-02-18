@@ -92,6 +92,8 @@ vi.mock('../../slack/services/client', () => ({
     chat: { postEphemeral: mockPostEphemeral, postMessage: mockPostMessage },
     chatStream: mockChatStream,
   })),
+  getSlackChannelInfo: vi.fn().mockResolvedValue(null),
+  getSlackUserInfo: vi.fn().mockResolvedValue(null),
   postMessageInThread: vi.fn(),
 }));
 
@@ -111,10 +113,16 @@ vi.mock('../../slack/services/events/utils', () => ({
   checkIfBotThread: vi.fn().mockResolvedValue(false),
   classifyError: vi.fn().mockReturnValue('unknown'),
   findCachedUserMapping: vi.fn(),
+  formatChannelLabel: vi.fn().mockReturnValue(''),
+  formatChannelContext: vi.fn().mockReturnValue('Slack'),
   generateSlackConversationId: vi.fn().mockReturnValue('conv-123'),
   getThreadContext: vi.fn().mockResolvedValue('Thread context here'),
   getUserFriendlyErrorMessage: vi.fn().mockReturnValue('Something went wrong'),
   resolveChannelAgentConfig: vi.fn(),
+  timedOp: vi.fn().mockImplementation(async (operation: Promise<unknown>) => ({
+    result: await operation,
+    durationMs: 0,
+  })),
 }));
 
 const baseParams = {
@@ -284,7 +292,7 @@ describe('handleAppMention', () => {
     expect(streamAgentResponse).toHaveBeenCalledWith(
       expect.objectContaining({
         agentId: 'agent-1',
-        question: 'What is Inkeep?',
+        question: expect.stringContaining('What is Inkeep?'),
       })
     );
   });

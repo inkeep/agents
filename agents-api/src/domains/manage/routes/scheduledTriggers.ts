@@ -13,6 +13,7 @@ import {
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
+  getWaitUntil,
   interpolateTemplate,
   listScheduledTriggerInvocationsPaginated,
   listScheduledTriggersPaginated,
@@ -35,6 +36,7 @@ import {
   updateScheduledTrigger,
   updateScheduledTriggerInvocationStatus,
 } from '@inkeep/agents-core';
+import { CronExpressionParser } from 'cron-parser';
 import { manageDbClient } from '../../../data/db';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -47,24 +49,6 @@ import {
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
 import { executeAgentAsync } from '../../run/services/TriggerService';
-
-// Lazy-load waitUntil for Vercel serverless environments
-let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
-let _waitUntilResolved = false;
-
-async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | undefined> {
-  if (_waitUntilResolved) return _waitUntil;
-  _waitUntilResolved = true;
-  if (!process.env.VERCEL) return undefined;
-  try {
-    const mod = await import('@vercel/functions');
-    _waitUntil = mod.waitUntil;
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    console.error('[ScheduledTriggers] Failed to import @vercel/functions:', errorMessage);
-  }
-  return _waitUntil;
-}
 
 const logger = getLogger('scheduled-triggers');
 
@@ -148,6 +132,34 @@ app.openapi(
         lastRunConversationIds: [],
         nextRunAt: null,
       };
+
+      // Calculate nextRunAt if it's null and trigger is enabled
+      if (!runInfo.nextRunAt && trigger.enabled) {
+        if (trigger.runAt) {
+          // One-time trigger - use runAt if it's in the future
+          const runAtDate = new Date(trigger.runAt);
+          if (runAtDate > new Date()) {
+            runInfo.nextRunAt = trigger.runAt;
+          }
+        } else if (trigger.cronExpression) {
+          // Cron trigger - calculate next execution time
+          try {
+            const baseDate = runInfo.lastRunAt ? new Date(runInfo.lastRunAt) : new Date();
+            const interval = CronExpressionParser.parse(trigger.cronExpression, {
+              currentDate: baseDate,
+              tz: trigger.cronTimezone || 'UTC',
+            });
+            const nextDate = interval.next();
+            runInfo.nextRunAt = nextDate.toISOString();
+          } catch (error) {
+            logger.warn(
+              { triggerId: trigger.id, cronExpression: trigger.cronExpression, error },
+              'Failed to calculate nextRunAt from cron expression'
+            );
+          }
+        }
+      }
+
       return {
         ...rest,
         ...runInfo,

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.48.2",
+  "version": "0.48.7",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -47,7 +47,7 @@
     "test": "vitest --run",
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "cypress open --config-file cypress/cypress.config.ts",
-    "test:e2e:run": "cypress run --config-file cypress/cypress.config.ts --headless",
+    "test:e2e:run": "cypress run --config-file cypress/cypress.config.ts --headless --no-runner-ui",
     "test:e2e:ci": "start-server-and-test start http-get://localhost:3000/default/projects test:e2e:run"
   },
   "dependencies": {

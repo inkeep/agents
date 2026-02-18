@@ -22,7 +22,7 @@ describe('MCP Tool Generator', () => {
     config: {
       mcp: {
         server: {
-          url: 'https://weather-mcp-hazel.vercel.app/mcp',
+          url: 'https://mcp.cloud.inkeep.com/weather/mcp',
         },
         transport: {
           type: 'streamable_http',
@@ -82,7 +82,7 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain('export const weatherMcp = mcpTool({');
       expect(definition).toContain("id: 'weather-mcp',");
       expect(definition).toContain("name: 'Weather',");
-      expect(definition).toContain("serverUrl: 'https://weather-mcp-hazel.vercel.app/mcp',");
+      expect(definition).toContain("serverUrl: 'https://mcp.cloud.inkeep.com/weather/mcp',");
       expect(definition).toContain("description: 'Get weather information from external API',");
       expect(definition).toContain(
         "imageUrl: 'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp'"
@@ -248,7 +248,7 @@ describe('MCP Tool Generator', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe('weather-mcp');
       expect(result.name).toBe('Weather');
-      expect(result.serverUrl).toBe('https://weather-mcp-hazel.vercel.app/mcp');
+      expect(result.serverUrl).toBe('https://mcp.cloud.inkeep.com/weather/mcp');
       expect(result.description).toBe('Get weather information from external API');
       expect(result.imageUrl).toBe(
         'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp'

@@ -3,5 +3,5 @@ import { mcpTool } from '@inkeep/agents-sdk';
 export const fUI2riwrBVJ6MepT8rjx0 = mcpTool({
   id: 'fUI2riwrBVJ6MepT8rjx0',
   name: `Forecast weather`,
-  serverUrl: `https://weather-mcp-hazel.vercel.app/mcp`,
+  serverUrl: `https://mcp.cloud.inkeep.com/weather/mcp`,
 });

@@ -127,28 +127,6 @@ export const slackApi = {
     return response.json();
   },
 
-  async getLinkedUsers(teamId: string): Promise<{
-    linkedUsers: Array<{
-      id: string;
-      slackUserId: string;
-      slackTeamId: string;
-      slackUsername?: string;
-      slackEmail?: string;
-      userId: string;
-      linkedAt: string;
-      lastUsedAt?: string;
-    }>;
-  }> {
-    const response = await fetch(
-      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/users`,
-      { credentials: 'include' }
-    );
-    if (!response.ok) {
-      return { linkedUsers: [] };
-    }
-    return response.json();
-  },
-
   async listChannels(teamId: string): Promise<{
     channels: Array<{
       id: string;
@@ -170,6 +148,28 @@ export const slackApi = {
     );
     if (!response.ok) {
       return { channels: [] };
+    }
+    return response.json();
+  },
+
+  async getLinkedUsers(teamId: string): Promise<{
+    linkedUsers: Array<{
+      id: string;
+      slackUserId: string;
+      slackTeamId: string;
+      slackUsername?: string;
+      slackEmail?: string;
+      userId: string;
+      linkedAt: string;
+      lastUsedAt?: string;
+    }>;
+  }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/users`,
+      { credentials: 'include' }
+    );
+    if (!response.ok) {
+      return { linkedUsers: [] };
     }
     return response.json();
   },

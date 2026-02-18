@@ -202,7 +202,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                          variant="destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
                           <Trash2 className="w-4 h-4" />

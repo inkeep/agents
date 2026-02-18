@@ -11,11 +11,12 @@ services:
       - external-net
       - internal-net
     restart: unless-stopped
-    # Copy cert to shared volume on startup
     entrypoint: ["/bin/bash", "-c", "cp /etc/squid/ssl/squid-ca.crt /certs/ && chmod 644 /certs/squid-ca.crt && exec squid -N"]
 
-  claude-sandbox:
-    image: docker/sandbox-templates:claude-code
+  sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: claude-sandbox
     environment:
       - HTTP_PROXY=http://proxy:3128
@@ -23,15 +24,18 @@ services:
       - http_proxy=http://proxy:3128
       - https_proxy=http://proxy:3128
       - NO_PROXY=localhost,127.0.0.1
-      # ANTHROPIC_API_KEY not needed if Claude is signed in
-      # Auth is stored in the claude-data volume
       - NODE_EXTRA_CA_CERTS=/certs/squid-ca.crt
       - REQUESTS_CA_BUNDLE=/certs/squid-ca.crt
       - SSL_CERT_FILE=/certs/squid-ca.crt
+      # API key — required for Claude Code
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # GitHub token — optional, only if pushing/creating PRs from inside container
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     volumes:
       - ..:/workspace
-      - claude-data:/home/user/.claude
+      - claude-data:/home/agent/.claude
       - squid-certs:/certs:ro
+      - ${HOME}/.claude/plugins:/host-plugins:ro
     working_dir: /workspace
     networks:
       - internal-net
@@ -39,7 +43,6 @@ services:
       - proxy
     stdin_open: true
     tty: true
-    entrypoint: /bin/bash
     deploy:
       resources:
         limits:

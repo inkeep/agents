@@ -5,7 +5,6 @@ import cliAuthRoutes from './routes/cliAuth';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
-import mcpRoutes from './routes/mcp';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
 import oauthRoutes from './routes/oauth';
 import passwordResetLinksRoutes from './routes/passwordResetLinks';
@@ -54,8 +53,6 @@ export function createManageRoutes() {
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
-
-  app.route('/mcp', mcpRoutes);
 
   app.route('/available-agents', availableAgentsRoutes);
 

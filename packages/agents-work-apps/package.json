@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-work-apps",
-  "version": "0.48.2",
+  "version": "0.48.7",
   "description": "First party integrations for Inkeep Agents",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",

@@ -1,5 +1,59 @@
 # @inkeep/agents-api
 
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+  - @inkeep/agents-work-apps@0.48.7
+  - @inkeep/agents-mcp@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-work-apps@0.48.6
+  - @inkeep/agents-mcp@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- ded8362: improve performance time for traces on vercel
+- Updated dependencies [f39f8b0]
+  - @inkeep/agents-work-apps@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-manage-mcp@0.48.5
+  - @inkeep/agents-mcp@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 37e72ed: Now localhost origins are only allowed when ENVIRONMENT is development or test. In production/pentest, CORS will require either INKEEP_AGENTS_MANAGE_UI_URL to be set or the origin to share the same base
+- Updated dependencies [11f4e14]
+- Updated dependencies [2a91f04]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-work-apps@0.48.4
+  - @inkeep/agents-manage-mcp@0.48.4
+  - @inkeep/agents-mcp@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- 9b64a7d: Fix internal fetch routing when deployed with Vercel bundling (cron triggers)
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-work-apps@0.48.3
+  - @inkeep/agents-manage-mcp@0.48.3
+  - @inkeep/agents-mcp@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes

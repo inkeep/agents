@@ -98,6 +98,10 @@ const NestedTestForm: FC = () => {
 };
 
 describe('Form', () => {
+  afterEach(() => {
+    agentStore.setState({ jsonSchemaMode: false });
+  });
+
   test('should properly highlight error state', async () => {
     const { container } = render(<TestForm />);
 
@@ -106,17 +110,22 @@ describe('Form', () => {
     });
 
     await expect(container).toMatchScreenshot();
-  }, 20_000);
+  }, 30_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
 
-    await waitFor(() => {
-      const message = container.querySelector<HTMLParagraphElement>('[data-slot="form-message"]');
-      expect(message).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        // Wait for Monaco editor to fully initialize (not just the skeleton loading state)
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
+        // Wait for form validation error message to render
+        expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+      },
+      { timeout: 45_000 }
+    );
 
     await expect(container).toMatchScreenshot();
-  }, 20_000);
+  }, 60_000);
 });
