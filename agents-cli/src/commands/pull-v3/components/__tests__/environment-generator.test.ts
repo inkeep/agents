@@ -171,7 +171,8 @@ describe('Environment Settings Generator', () => {
       await expectEnvironmentSettingsDefinitionSnapshots(environmentName, data, definition);
     });
 
-    it('should handle credentials without optional fields', () => {
+    it.only('should handle credentials without optional fields', async () => {
+      const environmentName = 'minimal';
       const minimalCredData = {
         credentials: {
           api_key: {
@@ -185,13 +186,19 @@ describe('Environment Settings Generator', () => {
         },
       };
 
-      const definition = generateEnvironmentSettingsDefinition('minimal', minimalCredData);
+      const definition = generateEnvironmentSettingsDefinition(environmentName, minimalCredData);
 
       expect(definition).toContain("'api_key': {");
       expect(definition).toContain("id: 'api-key',");
       expect(definition).toContain('type: CredentialStoreType.memory,');
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('description:');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(
+        environmentName,
+        minimalCredData,
+        definition
+      );
     });
 
     it('should handle complex retrieval params', () => {
