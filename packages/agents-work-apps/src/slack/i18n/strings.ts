@@ -80,12 +80,12 @@ export const SlackStrings = {
     title: 'Inkeep — How to Use',
     publicSection:
       '🔊 *Public* — everyone in the channel can see the response\n\n' +
-      '• `@Inkeep <message>` — Send a message to the default agent for this channel\n' +
+      '• `@Inkeep <message>` — message the default agent in this channel\n' +
       '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
       '• `@Inkeep` in a thread — Uses the full thread as context',
     privateSection:
       '🔒 *Private* — only you can see the response\n\n' +
-      '• `/inkeep <message>` — Send a message to the default agent in this channel\n' +
+      '• `/inkeep <message>` — message the default agent in this channel\n' +
       '• `/inkeep` — Open the agent picker to choose an agent and write a prompt',
     otherCommands:
       '⚙️ *Other Commands*\n\n' +
