@@ -224,7 +224,8 @@ describe('External Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it('should handle partial credential reference objects', () => {
+    it.only('should handle partial credential reference objects', async () => {
+      const externalAgentId = 'partial-cred-agent';
       const partialCredData = {
         name: 'Partial Cred Agent',
         description: 'Agent with partial credential reference',
@@ -235,13 +236,15 @@ describe('External Agent Generator', () => {
         },
       };
 
-      const definition = generateExternalAgentDefinition('partial-cred-agent', partialCredData);
+      const definition = generateExternalAgentDefinition(externalAgentId, partialCredData);
 
       expect(definition).toContain('credentialReference: {');
       expect(definition).toContain("id: 'partial-cred'");
       expect(definition).not.toContain("name: 'Full API Credentials'"); // Should not contain credential name
       expect(definition).not.toContain("description: 'Complete API credentials'"); // Should not contain credential description
       expect(definition).not.toContain("id: 'partial-cred',"); // No trailing comma on last property
+
+      await expectExternalAgentDefinitionSnapshots(externalAgentId, partialCredData, definition);
     });
   });
 
