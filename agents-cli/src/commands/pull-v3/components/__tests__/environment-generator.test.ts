@@ -443,7 +443,8 @@ describe('Environment Settings Generator', () => {
       await expectEnvironmentSettingsDefinitionSnapshots(environmentName, data, definition);
     });
 
-    it('should handle credential with null properties', () => {
+    it.only('should handle credential with null properties', async () => {
+      const environmentName = 'test';
       const dataWithNulls = {
         credentials: {
           test_key: {
@@ -460,7 +461,7 @@ describe('Environment Settings Generator', () => {
         },
       };
 
-      const definition = generateEnvironmentSettingsDefinition('test', dataWithNulls);
+      const definition = generateEnvironmentSettingsDefinition(environmentName, dataWithNulls);
 
       expect(definition).toContain("id: 'test-key',");
       expect(definition).toContain('type: CredentialStoreType.memory,');
@@ -468,6 +469,12 @@ describe('Environment Settings Generator', () => {
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('description:');
       expect(definition).not.toContain('fallback:');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(
+        environmentName,
+        dataWithNulls,
+        definition
+      );
     });
 
     it('should handle special characters in credential keys', () => {
