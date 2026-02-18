@@ -1,6 +1,9 @@
+import type { ChildProcess } from 'node:child_process';
+import { execSync, fork } from 'node:child_process';
 import path from 'node:path';
 import { execa } from 'execa';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { chromium } from 'playwright';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   cleanupDir,
   createTempDir,
@@ -12,11 +15,8 @@ import {
   waitForServerReady,
 } from './utils';
 
-// Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
 const manageApiUrl = 'http://127.0.0.1:3002';
 
-// Use a test bypass secret for authentication in CI
-// This bypasses the need for a real login/API key
 const TEST_BYPASS_SECRET = 'e2e-test-bypass-secret-for-ci-testing-only';
 
 describe('create-agents quickstart e2e', () => {
@@ -25,8 +25,12 @@ describe('create-agents quickstart e2e', () => {
   const workspaceName = 'test-project';
   const projectId = 'activities-planner';
 
+  beforeAll(() => {
+    console.log('Installing Playwright Chromium browser...');
+    execSync('npx playwright install chromium', { stdio: 'inherit' });
+  });
+
   beforeEach(async () => {
-    // Create a temporary directory for each test
     testDir = await createTempDir();
     projectDir = path.join(testDir, workspaceName);
   });
@@ -39,7 +43,7 @@ describe('create-agents quickstart e2e', () => {
     const monorepoRoot = path.join(__dirname, '../../../../../');
     const createAgentsPrefix = path.join(monorepoRoot, 'create-agents-template');
     const projectTemplatesPrefix = path.join(monorepoRoot, 'agents-cookbook/template-projects');
-    // Run the CLI with all options (non-interactive mode)
+
     console.log('Running CLI with options:');
     console.log(`Working directory: ${testDir}`);
     const result = await runCreateAgentsCLI(
@@ -47,26 +51,24 @@ describe('create-agents quickstart e2e', () => {
         workspaceName,
         '--openai-key',
         'test-openai-key',
-        '--disable-git', // Skip git init for faster tests
+        '--disable-git',
         '--local-agents-prefix',
         createAgentsPrefix,
         '--local-templates-prefix',
         projectTemplatesPrefix,
         '--skip-inkeep-cli',
         '--skip-inkeep-mcp',
-        '--skip-install', // Skip initial install so we can link local packages first
+        '--skip-install',
       ],
       testDir
     );
-    // Verify the CLI completed successfully
+
     expect(
       result.exitCode,
       `CLI failed with exit code ${result.exitCode}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
     ).toBe(0);
-
     console.log('CLI completed successfully');
 
-    // Verify the core directory structure
     console.log('Verifying directory structure...');
     await verifyDirectoryStructure(projectDir, [
       'src',
@@ -82,7 +84,6 @@ describe('create-agents quickstart e2e', () => {
     ]);
     console.log('Directory structure verified');
 
-    // Verify .env file has required variables
     console.log('Verifying .env file...');
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
@@ -90,46 +91,40 @@ describe('create-agents quickstart e2e', () => {
       /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
       /INKEEP_AGENTS_API_URL="http:\/\/127\.0\.0\.1:3002"/,
-      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
+      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/,
     ]);
     console.log('.env file verified');
 
-    // Verify inkeep.config.ts was created
     console.log('Verifying inkeep.config.ts...');
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
     console.log('inkeep.config.ts verified');
 
-    // Link to local monorepo packages (also runs pnpm install --no-frozen-lockfile)
     console.log('Linking local monorepo packages...');
     await linkLocalPackages(projectDir, monorepoRoot);
     console.log('Local monorepo packages linked and dependencies installed');
 
     console.log('Setting up project in database');
-    // Pass bypass secret so setup-dev:cloud's internal push can authenticate
     await runCommand({
       command: 'pnpm',
       args: ['setup-dev:cloud'],
       cwd: projectDir,
-      timeout: 600000, // 10 minutes for CI (includes migrations, server startup, push)
+      timeout: 600000,
       env: {
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
         INKEEP_API_KEY: TEST_BYPASS_SECRET,
         INKEEP_CI: 'true',
-        SKIP_UPGRADE: 'true', // Packages are already linked locally, skip pnpm update --latest
+        SKIP_UPGRADE: 'true',
       },
       stream: true,
     });
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
-    // Start dev servers in background with output monitoring
     const devProcess = execa('pnpm', ['dev'], {
       cwd: path.join(projectDir, 'apps/agents-api'),
       env: {
         ...process.env,
         FORCE_COLOR: '0',
-        NODE_ENV: 'test',
-        // Set bypass secret for authentication in CI
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
       },
       cleanup: true,
@@ -137,12 +132,10 @@ describe('create-agents quickstart e2e', () => {
       stderr: 'pipe',
     });
 
-    // Monitor output for errors and readiness signals
     let serverOutput = '';
     const outputHandler = (data: Buffer) => {
       const text = data.toString();
       serverOutput += text;
-      // Log important messages in CI
       if (process.env.CI) {
         if (text.includes('Error') || text.includes('EADDRINUSE') || text.includes('ready')) {
           console.log('[Server]:', text.trim());
@@ -152,16 +145,16 @@ describe('create-agents quickstart e2e', () => {
 
     if (devProcess.stderr) devProcess.stderr.on('data', outputHandler);
 
-    // Handle process crashes during startup
     devProcess.catch((error) => {
       console.error('Dev process crashed during startup:', error.message);
       console.error('Server output:', serverOutput);
     });
 
+    let uiChild: ChildProcess | null = null;
+
     console.log('Waiting for servers to be ready');
     try {
-      // Wait for servers to be ready with retries
-      await waitForServerReady(`${manageApiUrl}/health`, 120000); // Increased to 2 minutes for CI
+      await waitForServerReady(`${manageApiUrl}/health`, 120000);
       console.log('Manage API is ready');
 
       console.log('Pushing project');
@@ -186,7 +179,6 @@ describe('create-agents quickstart e2e', () => {
       ).toBe(0);
 
       console.log('Testing API requests');
-      // Test API requests with bypass secret authentication
       const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`, {
         headers: {
           Authorization: `Bearer ${TEST_BYPASS_SECRET}`,
@@ -196,9 +188,81 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
+
+      // --- Browser e2e: manage UI playground ---
+      console.log('Starting manage UI standalone server');
+      const manageUiServerPath = path.join(
+        projectDir,
+        'node_modules/@inkeep/agents-manage-ui/.next/standalone/agents-manage-ui/server.js'
+      );
+      const manageUiCwd = path.dirname(manageUiServerPath);
+
+      uiChild = fork(manageUiServerPath, [], {
+        cwd: manageUiCwd,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: '3000',
+          HOSTNAME: 'localhost',
+          INKEEP_AGENTS_API_URL: manageApiUrl,
+          PUBLIC_INKEEP_AGENTS_API_URL: 'http://localhost:3002',
+          INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
+        },
+        stdio: 'pipe',
+      });
+
+      uiChild.on('error', (err) => {
+        console.error('Manage UI process error:', err);
+      });
+
+      await waitForServerReady('http://localhost:3000', 120000);
+      console.log('Manage UI is ready');
+
+      console.log('Launching browser');
+      const browser = await chromium.launch({ headless: true });
+      try {
+        const context = await browser.newContext();
+        const page = await context.newPage();
+
+        console.log('Creating dev session');
+        const devSessionResp = await page.request.post(
+          'http://localhost:3002/api/auth/dev-session'
+        );
+        expect(devSessionResp.ok()).toBe(true);
+
+        const agentUrl = `http://localhost:3000/default/projects/${projectId}/agents/${projectId}`;
+        console.log(`Navigating to ${agentUrl}`);
+        await page.goto(agentUrl);
+        await page.waitForLoadState('networkidle');
+
+        console.log('Opening playground');
+        const tryItButton = page.locator('button:has-text("Try it")');
+        await tryItButton.waitFor({ state: 'visible', timeout: 30000 });
+        await tryItButton.click();
+
+        const chatInput = page.locator('textarea, input[placeholder]').first();
+        await chatInput.waitFor({ state: 'visible', timeout: 30000 });
+        const tagName = await chatInput.evaluate((el) => el.tagName);
+        console.log(`Found chat input: ${tagName}`);
+
+        console.log('Sending message');
+        await chatInput.fill('Hello');
+        const sendButton = page
+          .locator('button[aria-label="Send message"], button[type="submit"]')
+          .first();
+        await sendButton.click();
+
+        console.log('Waiting for assistant response');
+        await page.locator('[data-role="assistant"]').first().waitFor({ timeout: 90000 });
+
+        const textContent = await page.locator('[data-role="assistant"]').first().textContent();
+        expect(textContent?.length).toBeGreaterThan(0);
+        console.log('Browser test passed - assistant responded');
+      } finally {
+        await browser.close();
+      }
     } catch (error) {
       console.error('Test failed with error:', error);
-      // Print server output for debugging
       if (devProcess.stdout) {
         const stdout = await devProcess.stdout;
         console.log('Server stdout:', stdout);
@@ -210,15 +274,21 @@ describe('create-agents quickstart e2e', () => {
       throw error;
     } finally {
       console.log('Killing dev process');
-
-      // Kill the process and wait for it to die
       try {
         devProcess.kill('SIGTERM');
       } catch {
         // Might already be dead
       }
 
-      // Give it 2 seconds to shut down gracefully, then force kill
+      if (uiChild) {
+        console.log('Killing manage UI process');
+        try {
+          uiChild.kill('SIGTERM');
+        } catch {
+          // Might already be dead
+        }
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       try {
@@ -226,14 +296,20 @@ describe('create-agents quickstart e2e', () => {
       } catch {
         // Already dead or couldn't kill
       }
+      if (uiChild) {
+        try {
+          uiChild.kill('SIGKILL');
+        } catch {
+          // Already dead or couldn't kill
+        }
+      }
 
-      // Wait for the process to be fully cleaned up (with timeout)
       await Promise.race([
-        devProcess.catch(() => {}), // Wait for process to exit
-        new Promise((resolve) => setTimeout(resolve, 5000)), // Or timeout after 5s
+        devProcess.catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
       ]);
 
       console.log('Dev process cleanup complete');
     }
-  }, 900000); // 15 minute timeout for full flow with network calls (CI can be slow)
+  }, 900000);
 });

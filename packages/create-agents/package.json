@@ -55,6 +55,7 @@
     "@types/fs-extra": "^11.0.0",
     "@types/node": "^20.12.0",
     "execa": "^9.6.0",
+    "playwright": "^1.58.2",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",
     "vitest": "^3.2.4"
