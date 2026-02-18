@@ -3,7 +3,8 @@
  * Unit tests for data component generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateDataComponentDefinition as generateDataComponentDefinitionV4 } from '../../../pull-v4/data-component-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import {
   generateDataComponentDefinition,
   generateDataComponentFile,
@@ -103,6 +104,11 @@ describe('Data Component Generator', () => {
       expect(definition).toContain("description: 'Display user tasks with status',");
       expect(definition).toContain('props: z.object({');
       expect(definition).toContain('});');
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...testComponentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle component ID to camelCase conversion', () => {

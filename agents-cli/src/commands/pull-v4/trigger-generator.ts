@@ -95,21 +95,16 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('trigger-definition.ts', '', { overwrite: true });
+  const importName = 'Trigger';
   sourceFile.addImportDeclaration({
-    namedImports: ['Trigger'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
-  const triggerVarName = toCamelCase(parsed.triggerId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: triggerVarName,
-        initializer: 'new Trigger({})',
-      },
-    ],
+    declarations: [{ name: toCamelCase(parsed.triggerId), initializer: `new ${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
