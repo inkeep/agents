@@ -186,6 +186,7 @@ async function registerSSOProvider(
 
 export function createAuth(config: BetterAuthConfig) {
   const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
+  const isSecure = config.baseURL.startsWith('https://');
 
   const auth = betterAuth({
     baseURL: config.baseURL,
@@ -254,9 +255,11 @@ export function createAuth(config: BetterAuthConfig) {
         },
       }),
       defaultCookieAttributes: {
-        ...(cookieDomain
-          ? { sameSite: 'none' as const, secure: true, httpOnly: true, domain: cookieDomain }
+        httpOnly: true,
+        ...(isSecure
+          ? { sameSite: 'none' as const, secure: true }
           : { sameSite: 'lax' as const, secure: false }),
+        ...(cookieDomain && { domain: cookieDomain }),
       },
       ...config.advanced,
     },
