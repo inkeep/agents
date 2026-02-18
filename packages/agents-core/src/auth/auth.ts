@@ -254,10 +254,9 @@ export function createAuth(config: BetterAuthConfig) {
         },
       }),
       defaultCookieAttributes: {
-        sameSite: 'none',
-        secure: true,
-        httpOnly: true,
-        ...(cookieDomain && { domain: cookieDomain }),
+        ...(cookieDomain
+          ? { sameSite: 'none' as const, secure: true, httpOnly: true, domain: cookieDomain }
+          : { sameSite: 'lax' as const, secure: false }),
       },
       ...config.advanced,
     },
