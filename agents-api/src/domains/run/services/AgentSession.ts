@@ -1546,7 +1546,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
             // Get model context window and calculate safe data size
             const modelContextInfo = getModelContextWindow(modelToUse);
-            if (modelContextInfo.hasValidContextWindow && modelContextInfo.contextWindow) {
+            // Trust the context window even if it's from fallback - we need to truncate oversized artifacts!
+            if (modelContextInfo.contextWindow && modelContextInfo.contextWindow > 0) {
               const maxDataTokens = Math.floor(modelContextInfo.contextWindow * 0.2); // 20% for data
               const fullDataTokens = estimateTokens(fullDataStr);
 
@@ -1557,6 +1558,17 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
                   fullDataStr.slice(0, maxDataChars) +
                   `\n...\n[Truncated: showing first ~${Math.floor(maxDataTokens / 1000)}K tokens of ~${Math.floor(fullDataTokens / 1000)}K total. Full data saved in artifact.]`;
               }
+            } else {
+              logger.warn(
+                {
+                  sessionId: this.sessionId,
+                  artifactId: artifactData.artifactId,
+                  hasValidContextWindow: modelContextInfo.hasValidContextWindow,
+                  contextWindow: modelContextInfo.contextWindow,
+                  dataTokens: estimateTokens(fullDataStr),
+                },
+                'Skipping truncation - no context window available (should not happen)'
+              );
             }
 
             const prompt = `Create a unique name and description for this tool result artifact.

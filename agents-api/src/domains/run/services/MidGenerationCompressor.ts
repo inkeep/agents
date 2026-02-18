@@ -111,8 +111,11 @@ export class MidGenerationCompressor extends BaseCompressor {
       this.lastProcessedMessageIndex
     );
 
-    // Create conversation summary using base class method
-    const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);
+    // Only distill NEW messages (old messages are already in cumulativeSummary)
+    const newMessages = messages.slice(this.lastProcessedMessageIndex);
+
+    // Create conversation summary using base class method with only new messages
+    const summary = await this.createConversationSummary(newMessages, toolCallToArtifactMap);
 
     // Calculate context size after compression
     const contextSizeAfter = this.estimateTokens(JSON.stringify(summary));
