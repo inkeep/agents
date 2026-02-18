@@ -38,6 +38,7 @@ export async function proxy(request: NextRequest) {
         response.headers.set('set-cookie', setCookie);
         return response;
       }
+      console.warn('[proxy] dev auto-login API returned 200 but no set-cookie header');
     } else {
       console.warn(
         `[proxy] dev auto-login failed (HTTP ${res.status}). Run \`pnpm db:auth:init\` to create dev credentials.`
