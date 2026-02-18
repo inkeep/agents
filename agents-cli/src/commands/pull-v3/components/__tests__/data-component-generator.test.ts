@@ -484,6 +484,7 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
+    // TODO
     it.only('should ignore invalid render attribute (missing component)', async () => {
       const componentId = 'invalid-render';
       const componentData = {

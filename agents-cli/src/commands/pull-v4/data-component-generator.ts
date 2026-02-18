@@ -21,7 +21,7 @@ interface DataComponentDefinitionData {
   } | null;
 }
 
-const DataComponentSchema = z.looseObject({
+const DataComponentSchema = z.object({
   dataComponentId: z.string().nonempty(),
   name: z.string().nonempty(),
   description: z.string().nullable().optional(),

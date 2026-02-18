@@ -1,0 +1,6 @@
+export const invalidRender = dataComponent({
+  id: 'invalid-render',
+  name: 'Invalid Render',
+  description: 'Component with invalid render',
+  props: z.object({ "data": z.string().optional() })
+});
