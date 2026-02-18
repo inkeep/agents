@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
     const res = await fetch(`${apiUrl}/api/auth/dev-session`, {
       method: 'POST',
       headers: {
-        ...(bypassSecret && { Authorization: `Bearer ${bypassSecret}` }),
+        Authorization: `Bearer ${bypassSecret}`,
       },
     });
 
