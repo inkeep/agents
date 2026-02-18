@@ -95,8 +95,9 @@ describe('Data Component Generator', () => {
   });
 
   describe('generateDataComponentDefinition', () => {
-    it('should generate correct definition with all properties', () => {
-      const definition = generateDataComponentDefinition('task-list', testComponentData);
+    it.only('should generate correct definition with all properties', async () => {
+      const componentId = 'task-list';
+      const definition = generateDataComponentDefinition(componentId, testComponentData);
 
       expect(definition).toContain('export const taskList = dataComponent({');
       expect(definition).toContain("id: 'task-list',");
