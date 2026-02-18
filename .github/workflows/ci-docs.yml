@@ -6,13 +6,13 @@ on:
     paths:
       - 'agents-docs/**'
       - 'packages/agents-core/src/**'
-      - 'packages/agents-cli/src/**'
+      - 'agents-cli/src/**'
       - 'agents-api/__snapshots__/openapi.json'
   pull_request:
     paths:
       - 'agents-docs/**'
       - 'packages/agents-core/src/**'
-      - 'packages/agents-cli/src/**'
+      - 'agents-cli/src/**'
       - 'agents-api/__snapshots__/openapi.json'
   schedule:
     # Weekly Monday 6am UTC — catch silent breakage from indirect dependency changes
