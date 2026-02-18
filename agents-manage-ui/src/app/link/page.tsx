@@ -160,10 +160,7 @@ function SlackLinkForm() {
 
             <div className="text-center pt-2">
               <p className="font-medium">Don&apos;t have an account?</p>
-              <p className="text-sm text-muted-foreground">
-                Ask your administrator for an invite and run{' '}
-                <code className="bg-muted px-1 py-0.5 rounded">/inkeep link</code> from Slack.
-              </p>
+              <p className="text-sm text-muted-foreground">Ask your administrator for an invite.</p>
             </div>
           </CardContent>
         </Card>

@@ -95,21 +95,39 @@ async function resumeMention(
   teamId: string
 ): Promise<void> {
   if (!intent.agentId || !intent.projectId) {
-    logger.error({ intent }, 'Mention intent missing agentId or projectId');
+    logger.error(
+      {
+        entryPoint: intent.entryPoint,
+        channelId: intent.channelId,
+        hasAgentId: !!intent.agentId,
+        hasProjectId: !!intent.projectId,
+      },
+      'Mention intent missing agentId or projectId'
+    );
     await postErrorToChannel(slackClient, intent.channelId, slackUserId, intent.threadTs);
     return;
   }
 
   const replyThreadTs = intent.threadTs || intent.messageTs;
   if (!replyThreadTs) {
-    logger.error({ intent }, 'Mention intent missing threadTs and messageTs');
+    logger.error(
+      { entryPoint: intent.entryPoint, channelId: intent.channelId },
+      'Mention intent missing threadTs and messageTs'
+    );
+    await postErrorToChannel(
+      slackClient,
+      intent.channelId,
+      slackUserId,
+      undefined,
+      "We couldn't resume your question due to a technical issue. Please try mentioning @Inkeep again."
+    );
     return;
   }
 
   const ackMessage = await slackClient.chat.postMessage({
     channel: intent.channelId,
     thread_ts: replyThreadTs,
-    text: '_Preparing a response..._',
+    text: '_Answering your question..._',
   });
 
   const conversationId = generateSlackConversationId({
@@ -166,6 +184,7 @@ async function resumeCommand(
     intent,
     slackClient,
     slackUserToken,
+    slackUserId,
     teamId,
     agentId: resolvedAgent.agentId,
     agentName: resolvedAgent.agentName || resolvedAgent.agentId,
@@ -182,7 +201,10 @@ async function resumeRunCommand(
   tenantId: string
 ): Promise<void> {
   if (!intent.agentIdentifier) {
-    logger.error({ intent }, 'Run command intent missing agentIdentifier');
+    logger.error(
+      { entryPoint: intent.entryPoint, channelId: intent.channelId },
+      'Run command intent missing agentIdentifier'
+    );
     await postErrorToChannel(slackClient, intent.channelId, slackUserId);
     return;
   }
@@ -208,6 +230,7 @@ async function resumeRunCommand(
     intent,
     slackClient,
     slackUserToken,
+    slackUserId,
     teamId,
     agentId: agentInfo.id,
     agentName: agentInfo.name || agentInfo.id,
@@ -263,7 +286,14 @@ async function findAgentByIdentifierViaApi(
             name: agent.name,
             projectId: project.id,
           }));
-        } catch {
+        } catch (error) {
+          logger.warn(
+            {
+              error: error instanceof Error ? error.message : String(error),
+              projectId: project.id,
+            },
+            'Failed to fetch agents for project during identifier lookup'
+          );
           return [];
         }
       })
@@ -276,7 +306,17 @@ async function findAgentByIdentifierViaApi(
           a.id === identifier || a.name?.toLowerCase() === identifier.toLowerCase()
       ) || null
     );
-  } catch {
+  } catch (error) {
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    logger.warn(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        tenantId,
+        identifier,
+        isTimeout,
+      },
+      'Failed to find agent by identifier'
+    );
     return null;
   } finally {
     clearTimeout(timeout);
@@ -287,6 +327,7 @@ interface ExecuteAndDeliverParams {
   intent: SlackLinkIntent;
   slackClient: ReturnType<typeof getSlackClient>;
   slackUserToken: string;
+  slackUserId: string;
   teamId: string;
   agentId: string;
   agentName: string;
@@ -294,7 +335,16 @@ interface ExecuteAndDeliverParams {
 }
 
 async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void> {
-  const { intent, slackClient, slackUserToken, teamId, agentId, agentName, projectId } = params;
+  const {
+    intent,
+    slackClient,
+    slackUserToken,
+    slackUserId,
+    teamId,
+    agentId,
+    agentName,
+    projectId,
+  } = params;
   const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
   const controller = new AbortController();
@@ -328,6 +378,13 @@ async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void>
 
   if (!response.ok) {
     logger.error({ status: response.status, agentId, projectId }, 'Resume run API call failed');
+    await postErrorToChannel(
+      slackClient,
+      intent.channelId,
+      slackUserId,
+      undefined,
+      'Something went wrong while answering your question. Please try again.'
+    );
     return;
   }
 

@@ -270,6 +270,11 @@ app.openapi(
         const waitUntil = await getWaitUntil();
         if (waitUntil) {
           waitUntil(resumeWork);
+        } else {
+          logger.warn(
+            { entryPoint: intent.entryPoint },
+            'waitUntil not available, resume work may not complete'
+          );
         }
       }
 
