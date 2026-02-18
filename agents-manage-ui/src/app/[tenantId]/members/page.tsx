@@ -126,11 +126,13 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   };
 
   const handleAddClick = () => {
-    if (emailInput.trim()) {
+    let hasEmails = emailChips.length > 0;
+    if (emailInput.trim() && EMAIL_REGEX.test(emailInput.trim())) {
       addEmailChip(emailInput);
       setEmailInput('');
+      hasEmails = true;
     }
-    if (emailChips.length > 0 || emailInput.trim()) {
+    if (hasEmails) {
       setInviteDialogOpen(true);
     }
   };

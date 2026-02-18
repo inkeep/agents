@@ -536,13 +536,15 @@ export function MembersTable({
         </Table>
       </div>
 
-      <InviteMemberDialog
-        open={inviteDialogOpen}
-        onOpenChange={setInviteDialogOpen}
-        isOrgAdmin={isOrgAdmin}
-        onInvitationsSent={onMemberUpdated}
-        initialEmails={initialEmails}
-      />
+      {!hideAddButton && (
+        <InviteMemberDialog
+          open={inviteDialogOpen}
+          onOpenChange={setInviteDialogOpen}
+          isOrgAdmin={isOrgAdmin}
+          onInvitationsSent={onMemberUpdated}
+          initialEmails={initialEmails}
+        />
+      )}
 
       <ChangePasswordDialog
         open={changePasswordDialogOpen}
