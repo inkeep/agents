@@ -46,9 +46,7 @@ Triggers are ideal for:
 | **Form submissions** | Process Typeform or webhook-enabled forms |
 | **Scheduled tasks** | Invoke agents from cron jobs or schedulers |
 
-<Warning>
-**User-scoped MCP servers are not supported with triggers.** Webhook triggers do not have user context, so the framework cannot determine which user's credentials to use. Use only project-scoped MCP servers with trigger-invoked agents. See [User vs Project MCPs](/deployment/inkeep-cloud/user-vs-project-mcp) for more details.
-</Warning>
+<Snippet file="user-scoped-mcp-triggers-warning.mdx" />
 
 ## Trigger Configuration
 
