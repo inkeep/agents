@@ -174,7 +174,7 @@ describe('External Agent Generator', () => {
       const multilineData = {
         name: 'Multiline Agent',
         description:
-          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting',
+          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\nIt even contains newlines which should trigger multiline formatting',
         baseUrl: 'https://api.example.com/multiline',
       };
 
