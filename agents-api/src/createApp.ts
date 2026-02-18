@@ -30,12 +30,7 @@ import {
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
-import {
-  manageRefMiddleware,
-  oauthRefMiddleware,
-  runRefMiddleware,
-  writeProtectionMiddleware,
-} from './middleware/ref';
+import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from './middleware/ref';
 import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
@@ -244,11 +239,6 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/tenants/*', async (c, next) => manageRefMiddleware(c, next));
   app.use('/manage/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
   app.use('/manage/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
-
-  // Ref + branch-scoped DB for OAuth login (has tenant/project in query params)
-  // Note: OAuth callback doesn't use middleware - it extracts tenant/project from PKCE state
-  app.use('/manage/oauth/login', async (c, next) => oauthRefMiddleware(c, next));
-  app.use('/manage/oauth/login', async (c, next) => branchScopedDbMiddleware(c, next));
 
   // Apply ref middleware to all execution routes
   app.use('/run/*', async (c, next) => runRefMiddleware(c, next));

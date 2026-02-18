@@ -65,7 +65,7 @@
               },
               "@hono/zod-openapi": {
                 "importNames": ["createRoute"],
-                "message": "Use createProtectedRoute from @inkeep/agents-core/middleware instead. If this route intentionally has no permission check, add a biome-ignore comment explaining why."
+                "message": "Use createProtectedRoute from @inkeep/agents-core/middleware instead. For intentionally public routes, use createProtectedRoute with noAuth() as the permission. If neither applies, add a biome-ignore comment explaining why."
               }
             }
           }

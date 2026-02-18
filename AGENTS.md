@@ -374,6 +374,63 @@ Any code in `agents-api` that makes **internal A2A calls or self-referencing API
 | Calling an **external** service or third-party API | Global `fetch` |
 | Test environments (falls back automatically) | Either (auto-fallback) |
 
+### Route Authorization Pattern (`createProtectedRoute`)
+All API routes in `agents-api` **must** use `createProtectedRoute()` from `@inkeep/agents-core/middleware` instead of the plain `createRoute()` from `@hono/zod-openapi`. This is enforced by Biome lint rules and ensures every route has explicit authorization metadata (`x-authz`) in the OpenAPI spec.
+
+```typescript
+import { createProtectedRoute, noAuth, inheritedAuth } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../middleware/projectAccess';
+
+// Standard protected route — pass the permission middleware directly
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/',
+    permission: requireProjectPermission('view'),
+    // ... rest of route config
+  }),
+  handler,
+);
+
+// Public route (no auth) — use noAuth()
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/callback',
+    permission: noAuth(),
+    security: [],
+    // ... rest of route config
+  }),
+  handler,
+);
+
+// Route where auth is enforced by parent middleware — use inheritedAuth()
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/',
+    permission: inheritedAuth({
+      resource: 'organization',
+      permission: 'member',
+      description: 'Auth enforced by parent middleware in createApp.ts',
+    }),
+    // ... rest of route config
+  }),
+  handler,
+);
+```
+
+**Key helpers:**
+| Helper | When to use |
+|---|---|
+| `requireProjectPermission('view' \| 'edit')` | Routes scoped to a project |
+| `requirePermission({ project: 'create' })` | Org-level permission checks (admin) |
+| `noAuth()` | Truly public endpoints (webhooks, OAuth callbacks) |
+| `inheritedAuth(meta)` | Auth enforced by parent/global middleware |
+| `inheritedRunApiKeyAuth()` | Run-domain routes behind API key middleware |
+| `inheritedManageTenantAuth()` | Manage-domain routes behind session/API key middleware |
+| `inheritedWorkAppsAuth()` | Work-apps routes behind OIDC/Slack middleware |
+
 ### Common Gotchas
 - **Empty Task Messages**: Ensure task messages contain actual text content
 - **Context Extraction**: For delegation scenarios, extract contextId from task ID patterns like `task_math-demo-123456-chatcmpl-789`
