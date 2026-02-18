@@ -1,0 +1,9 @@
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const test = dataComponent({
+  id: 'test',
+  name: 'Test',
+  description: 'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings',
+  props: z.object({ "content": z.string().optional() })
+});

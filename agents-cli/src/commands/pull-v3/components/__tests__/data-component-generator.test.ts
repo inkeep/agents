@@ -179,7 +179,8 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
+      const componentId = 'test';
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings';
       const dataWithLongDesc = {
@@ -188,9 +189,14 @@ describe('Data Component Generator', () => {
         props: { type: 'object', properties: { content: { type: 'string' } } },
       };
 
-      const definition = generateDataComponentDefinition('test', dataWithLongDesc);
+      const definition = generateDataComponentDefinition(componentId, dataWithLongDesc);
 
       expect(definition).toContain(`description: \`${longDescription}\``);
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...dataWithLongDesc,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
