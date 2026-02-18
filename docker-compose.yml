@@ -116,6 +116,7 @@ services:
       - SPICEDB_DATASTORE_CONN_URI=postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
       - SPICEDB_HTTP_ENABLED=true
       - SPICEDB_TELEMETRY_ENDPOINT=""
+      - SPICEDB_METRICS_ENABLED=false
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=:50051"]
       interval: 5s
