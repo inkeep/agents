@@ -1,0 +1,9 @@
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const simpleData = dataComponent({
+  id: 'simple-data',
+  name: 'Simple Data',
+  description: 'Simple data without render',
+  props: z.object({ "value": z.string().optional() })
+});
