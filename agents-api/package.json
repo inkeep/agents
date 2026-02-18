@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.48.4",
+  "version": "0.48.7",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -54,7 +54,6 @@
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.1.5",
     "@inkeep/agents-core": "workspace:^",
-    "@inkeep/agents-manage-mcp": "workspace:^",
     "@inkeep/agents-mcp": "workspace:^",
     "@inkeep/agents-work-apps": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.25.2",

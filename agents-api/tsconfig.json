@@ -11,9 +11,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-    "paths": {
-      "@inkeep/agents-manage-mcp": ["../packages/agents-manage-mcp/dist/index.d.ts"]
-    },
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "noEmit": false

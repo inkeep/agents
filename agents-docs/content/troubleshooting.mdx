@@ -125,7 +125,8 @@ This usually means the manage UI was unreachable when you tried to approve the d
 If auto-login isn't working when you open `http://localhost:3000`:
 
 - **`pnpm db:auth:init` not run**: The admin user must exist in the database. Run `pnpm db:auth:init` to create it.
-- **API not running**: The auto-login calls `POST /api/auth/dev-session` on the API server. Make sure the API is running on `localhost:3002`.
+- **API not running**: The auto-login proxy calls `POST /api/auth/dev-session` on the API server. Make sure the API is running on `localhost:3002`.
+- **Bypass secret missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` is set in your `.env` file. The proxy uses this to authenticate with the API. Check the server console for `[proxy]` warnings.
 - **Credentials missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_UI_USERNAME` is set in your `.env` file. The password env var is only used by `pnpm db:auth:init` to create the admin user, not for auto-login.
 
 ## Common Configuration Issues

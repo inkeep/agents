@@ -37,6 +37,7 @@ import {
   updateScheduledTriggerInvocationStatus,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { CronExpressionParser } from 'cron-parser';
 import { manageDbClient } from '../../../data/db';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -115,6 +116,34 @@ app.openapi(
         lastRunConversationIds: [],
         nextRunAt: null,
       };
+
+      // Calculate nextRunAt if it's null and trigger is enabled
+      if (!runInfo.nextRunAt && trigger.enabled) {
+        if (trigger.runAt) {
+          // One-time trigger - use runAt if it's in the future
+          const runAtDate = new Date(trigger.runAt);
+          if (runAtDate > new Date()) {
+            runInfo.nextRunAt = trigger.runAt;
+          }
+        } else if (trigger.cronExpression) {
+          // Cron trigger - calculate next execution time
+          try {
+            const baseDate = runInfo.lastRunAt ? new Date(runInfo.lastRunAt) : new Date();
+            const interval = CronExpressionParser.parse(trigger.cronExpression, {
+              currentDate: baseDate,
+              tz: trigger.cronTimezone || 'UTC',
+            });
+            const nextDate = interval.next();
+            runInfo.nextRunAt = nextDate.toISOString();
+          } catch (error) {
+            logger.warn(
+              { triggerId: trigger.id, cronExpression: trigger.cronExpression, error },
+              'Failed to calculate nextRunAt from cron expression'
+            );
+          }
+        }
+      }
+
       return {
         ...rest,
         ...runInfo,

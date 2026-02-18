@@ -106,7 +106,7 @@ Developer/operator goal: run the system in containers for local development and 
 | **Local database stack (Docker Compose)** | Compose definition for Doltgres (manage), Postgres (run), and SpiceDB services used in dev and CI. | Environment templates (`.env.example`, `.env.docker.example`) | `docker-compose.dbs.yml` |
 | **Full local stack (Docker Compose)** | Compose definition running UI + APIs + migration job alongside the database stack for local integration testing. | Local database stack (Docker Compose), Runtime env schemas (API/CLI/Core) | `docker-compose.yml` |
 | **Doltgres container init** | Doltgres container config and entrypoint that initializes the `inkeep_agents` database on first boot. | Local database stack (Docker Compose) | `doltgres-config.yml`, `docker-doltgres-entrypoint.sh`, `init-dolt.sql` |
-| **Test Dockerfiles (Playwright/Manage API)** | Docker images used to run manage API tests and UI snapshot tests in a consistent environment. | pnpm workspace & dependency catalog, Turborepo task graph | `Dockerfile.manage-api-test`, `Dockerfile.manage-ui-test` |
+| **Test Dockerfiles (Playwright)** | Docker images used to run UI snapshot tests in a consistent environment. | pnpm workspace & dependency catalog, Turborepo task graph | `Dockerfile.manage-ui-test` |
 | **AI dev containers (`.ai-dev`)** | Internal Docker-based harness for AI automation (proxy, Claude sandbox container) used by maintainers. | Environment templates (`.env.example`, `.env.docker.example`) | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/entrypoint.sh` |
 
 ### Database Schemas & Migrations

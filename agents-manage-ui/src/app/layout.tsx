@@ -3,7 +3,6 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import { connection } from 'next/server';
 import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { DevAutoLoginProvider } from '@/components/providers/dev-auto-login-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
@@ -134,10 +133,8 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
               <PostHogProvider>
                 <QueryProvider>
                   <AuthClientProvider>
-                    <DevAutoLoginProvider>
-                      {children}
-                      <Toaster closeButton />
-                    </DevAutoLoginProvider>
+                    {children}
+                    <Toaster closeButton />
                   </AuthClientProvider>
                 </QueryProvider>
               </PostHogProvider>
