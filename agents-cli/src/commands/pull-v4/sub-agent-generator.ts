@@ -40,7 +40,7 @@ const SubAgentSchema = z.looseObject({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   stopWhen: z
-    .looseObject({
+    .object({
       stepCountIs: z.number().int().optional(),
     })
     .optional(),
