@@ -386,7 +386,8 @@ describe('Data Component Generator', () => {
   });
 
   describe('render attribute support', () => {
-    it('should generate data component with render attribute', () => {
+    it.only('should generate data component with render attribute', async () => {
+      const componentId = 'user-profile-card';
       const componentData = {
         name: 'User Profile Card',
         description: 'Display user profile information',
@@ -410,7 +411,7 @@ describe('Data Component Generator', () => {
         },
       };
 
-      const definition = generateDataComponentDefinition('user-profile-card', componentData);
+      const definition = generateDataComponentDefinition(componentId, componentData);
 
       expect(definition).toContain('export const userProfileCard = dataComponent({');
       expect(definition).toContain("id: 'user-profile-card',");
@@ -421,6 +422,11 @@ describe('Data Component Generator', () => {
       expect(definition).toContain('"name": "John Doe"');
       expect(definition).toContain('"email": "john@example.com"');
       expect(definition).toContain('"role": "Developer"');
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle data component without render attribute', () => {

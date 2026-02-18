@@ -1,0 +1,15 @@
+export const userProfileCard = dataComponent({
+  id: 'user-profile-card',
+  name: 'User Profile Card',
+  description: 'Display user profile information',
+  props: z.object({ "name": z.string(), "email": z.string(), "role": z.string().optional(), "avatarUrl": z.string() }),
+  render: {
+    component: "function UserProfile({ name, email, role, avatarUrl }) { return <div className=\"profile\"><img src={avatarUrl} alt={name} /><h2>{name}</h2><p>{email}</p><p>Role: {role}</p></div>; }",
+    mockData: {
+      "name": "John Doe",
+      "email": "john@example.com",
+      "role": "Developer",
+      "avatarUrl": "https://images.example.com/avatar.png"
+    },
+  }
+});
