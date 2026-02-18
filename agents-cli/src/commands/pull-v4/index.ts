@@ -23,8 +23,8 @@ import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
 import { loadProject } from '../../utils/project-loader';
-import { introspectGenerate } from './introspect-generator';
 import { extractSubAgents } from '../pull-v3/utils/component-registry';
+import { introspectGenerate } from './introspect-generator';
 
 export interface PullV3Options {
   project?: string;
@@ -75,10 +75,9 @@ interface ProjectPaths {
 /**
  * Create project directory structure
  */
-function createProjectStructure(projectDir: string): ProjectPaths {
-  const projectRoot = projectDir;
-
-  const paths = {
+export function createProjectStructure(projectRoot: string): ProjectPaths {
+  mkdirSync(projectRoot, { recursive: true });
+  return {
     projectRoot,
     agentsDir: join(projectRoot, 'agents'),
     toolsDir: join(projectRoot, 'tools'),
@@ -91,15 +90,6 @@ function createProjectStructure(projectDir: string): ProjectPaths {
     externalAgentsDir: join(projectRoot, 'external-agents'),
     skillsDir: join(projectRoot, 'skills'),
   };
-
-  // Ensure all directories exist
-  Object.values(paths).forEach((dir) => {
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
-  });
-
-  return paths;
 }
 
 /**
