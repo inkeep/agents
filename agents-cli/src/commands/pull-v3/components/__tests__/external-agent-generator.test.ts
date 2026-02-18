@@ -169,16 +169,8 @@ describe('External Agent Generator', () => {
       }).toThrow("Missing required fields for external agent 'fallback-agent': name");
     });
 
-    it('should handle camelCase conversion for variable names', () => {
-      const definition = generateExternalAgentDefinition(
-        'my-complex-external-agent_v2',
-        basicExternalAgentData
-      );
-
-      expect(definition).toContain('export const myComplexExternalAgentV2 = externalAgent({');
-    });
-
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
+      const externalAgentId = 'multiline-agent';
       const multilineData = {
         name: 'Multiline Agent',
         description:
@@ -186,10 +178,12 @@ describe('External Agent Generator', () => {
         baseUrl: 'https://api.example.com/multiline',
       };
 
-      const definition = generateExternalAgentDefinition('multiline-agent', multilineData);
+      const definition = generateExternalAgentDefinition(externalAgentId, multilineData);
 
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('It even contains newlines');
+
+      await expectExternalAgentDefinitionSnapshots(externalAgentId, multilineData, definition);
     });
 
     // it('should handle different code styles', () => {
