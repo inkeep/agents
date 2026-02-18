@@ -52,6 +52,12 @@ const envSchema = z.object({
   SLACK_SIGNING_SECRET: z.string().optional().describe('Slack App Signing Secret'),
   SLACK_BOT_TOKEN: z.string().optional().describe('Slack Bot Token (for testing)'),
   SLACK_APP_URL: z.string().optional().describe('Slack App Install URL'),
+  SLACK_APP_TOKEN: z.string().optional().describe('Slack App-Level Token for Socket Mode (xapp-*)'),
+  SLACK_SOCKET_MODE: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1')
+    .describe('Enable Slack Socket Mode for local development'),
 
   // Nango Configuration (Slack uses Nango for OAuth)
   NANGO_SECRET_KEY: z.string().optional().describe('Nango Secret Key'),
