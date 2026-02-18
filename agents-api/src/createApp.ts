@@ -436,8 +436,7 @@ function createAgentsHono(config: AppConfig) {
   // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
   app.route('/work-apps', workAppsRoutes);
 
-  // Mount MCP routes at top level (eclipses both manage and run services)
-  // Also available at /manage/mcp for backward compatibility
+  // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
