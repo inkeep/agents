@@ -317,8 +317,9 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentIndexFile', () => {
-    it('should generate complete environment index file', () => {
-      const file = generateEnvironmentIndexFile(['development', 'production']);
+    it.only('should generate complete environment index file', async () => {
+      const environments = ['development', 'production'];
+      const file = generateEnvironmentIndexFile(environments);
 
       expect(file).toContain("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(file).toContain("import { development } from './development.env';");
@@ -328,6 +329,8 @@ describe('Environment Settings Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectEnvironmentIndexFileSnapshots(environments, file);
     });
   });
 
