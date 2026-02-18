@@ -333,6 +333,10 @@ describe('create-agents quickstart e2e', () => {
         await page.waitForSelector('#playground-pane', { timeout: 15000 });
         console.log('Playground panel is visible');
 
+        console.log('Verifying chat widget initialized');
+        await page.locator('pierce/#inkeep-widget-root').waitFor({ timeout: 15000 });
+        console.log('Chat widget is initialized');
+
         console.log('Dashboard lap complete');
       } catch (dashboardError) {
         console.error('Dashboard lap failed:', dashboardError);

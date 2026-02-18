@@ -190,7 +190,7 @@ export const createAgents = async (
         { value: 'openai', label: 'OpenAI' },
         { value: 'google', label: 'Google' },
         { value: 'azure', label: 'Azure' },
-        { value: 'skip', label: 'Skip' },
+        { value: 'skip', label: 'Skip', hint: 'scaffolds with mock provider, no API key needed' },
       ],
     });
 
@@ -271,6 +271,11 @@ export const createAgents = async (
   let defaultModelSettings = {};
   if (skipProvider) {
     defaultModelSettings = defaultMockModelConfigurations;
+    if (openAiKey || anthropicKey || googleKey || azureKey) {
+      p.log.warn(
+        '--skip-provider is active. Provider key flags are ignored; mock/default model will be used.',
+      );
+    }
   } else if (anthropicKey) {
     defaultModelSettings = defaultAnthropicModelConfigurations;
   } else if (openAiKey) {
