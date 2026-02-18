@@ -40,9 +40,7 @@ export function generateEnvironmentSettingsImports(
 export function generateEnvironmentIndexImports(environments: string[]): string[] {
   const result = EnvironmentIndexSchema.safeParse(environments);
   if (!result.success) {
-    throw new Error(
-      `Missing required fields for environments index:\n${z.prettifyError(result.error)}`
-    );
+    throw new Error(`Validation failed for environments index:\n${z.prettifyError(result.error)}`);
   }
 
   const imports = [`import { createEnvironmentSettings } from '@inkeep/agents-sdk';`];
@@ -60,14 +58,14 @@ export function generateEnvironmentSettingsDefinition(
   const environmentNameResult = environmentNameSchema.safeParse(environmentName);
   if (!environmentNameResult.success) {
     throw new Error(
-      `Missing required fields for environment name:\n${z.prettifyError(environmentNameResult.error)}`
+      `Validation failed for environment name:\n${z.prettifyError(environmentNameResult.error)}`
     );
   }
 
   const result = EnvironmentSettingsSchema.safeParse(environmentData);
   if (!result.success) {
     throw new Error(
-      `Missing required fields for environment settings:\n${z.prettifyError(result.error)}`
+      `Validation failed for environment settings:\n${z.prettifyError(result.error)}`
     );
   }
 
@@ -120,9 +118,7 @@ export function generateEnvironmentSettingsDefinition(
 export function generateEnvironmentIndexDefinition(environments: string[]): string {
   const result = EnvironmentIndexSchema.safeParse(environments);
   if (!result.success) {
-    throw new Error(
-      `Missing required fields for environments index:\n${z.prettifyError(result.error)}`
-    );
+    throw new Error(`Validation failed for environments index:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();

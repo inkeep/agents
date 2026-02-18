@@ -192,7 +192,7 @@ describe('Artifact Component Generator', () => {
       expect(() => {
         generateArtifactComponentDefinitionV4({ artifactComponentId });
       }).toThrow(
-        new Error(`Missing required fields for artifact component:
+        new Error(`Validation failed for artifact component:
 ✖ Invalid input: expected string, received undefined
   → at name
 ✖ Invalid input: expected object, received undefined
@@ -296,7 +296,7 @@ describe('Artifact Component Generator', () => {
       expect(() => {
         generateArtifactComponentDefinitionV4({ artifactComponentId, ...dataWithSchema });
       }).toThrow(
-        new Error(`Missing required fields for artifact component:
+        new Error(`Validation failed for artifact component:
 ✖ Invalid input: expected object, received undefined
   → at props`)
       );

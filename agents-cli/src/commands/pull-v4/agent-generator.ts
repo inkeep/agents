@@ -58,7 +58,7 @@ type ParsedAgentDefinitionData = z.infer<typeof AgentSchema>;
 export function generateAgentDefinition(data: AgentDefinitionData): string {
   const result = AgentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for agent:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Validation failed for agent:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();

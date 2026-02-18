@@ -51,7 +51,7 @@ type ParsedSubAgentDefinitionData = z.infer<typeof SubAgentSchema>;
 export function generateSubAgentDefinition(data: SubAgentDefinitionData): string {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for sub-agent:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();

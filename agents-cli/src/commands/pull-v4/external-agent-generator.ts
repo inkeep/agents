@@ -38,9 +38,7 @@ type ParsedExternalAgentDefinitionData = z.infer<typeof ExternalAgentSchema>;
 export function generateExternalAgentDefinition(data: ExternalAgentDefinitionData): string {
   const result = ExternalAgentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(
-      `Missing required fields for external agent:\n${z.prettifyError(result.error)}`
-    );
+    throw new Error(`Validation failed for external agent:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;

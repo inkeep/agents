@@ -181,7 +181,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...minimalData });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Invalid input: expected object, received undefined
   → at models`)
       );
@@ -196,10 +196,9 @@ describe('Project Generator', () => {
         "Missing required fields for project 'fallback-project': name, models, models.base"
       );
       expect(() => {
-        // @ts-expect-error
         generateProjectDefinitionV4({ projectId });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Invalid input: expected string, received undefined
   → at name
 ✖ Invalid input: expected object, received undefined
@@ -446,7 +445,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...minimalData });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Invalid input: expected object, received undefined
   → at models`)
       );
@@ -496,7 +495,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...emptyStringData });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Too small: expected string to have >=1 characters
   → at name`)
       );
@@ -518,7 +517,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...nullData });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Invalid input: expected string, received null
   → at description
 ✖ Invalid input: expected object, received undefined
@@ -581,7 +580,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...data });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Invalid input: expected string, received undefined
   → at name`)
       );
@@ -599,7 +598,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...data });
       }).toThrow(
-        new Error(`Missing required fields for project:
+        new Error(`Validation failed for project:
 ✖ Invalid input: expected object, received undefined
   → at models.base`)
       );

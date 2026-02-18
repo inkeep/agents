@@ -67,7 +67,7 @@ type ParsedMcpToolDefinitionData = z.infer<typeof McpToolSchema>;
 export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
   const result = McpToolSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for MCP tool:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Validation failed for MCP tool:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();

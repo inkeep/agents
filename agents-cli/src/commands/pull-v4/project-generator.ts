@@ -55,7 +55,7 @@ const ProjectSchema = z.looseObject({
 export function generateProjectDefinition(data: ProjectDefinitionData): string {
   const result = ProjectSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for project:
+    throw new Error(`Validation failed for project:
 ${z.prettifyError(result.error)}`);
   }
 

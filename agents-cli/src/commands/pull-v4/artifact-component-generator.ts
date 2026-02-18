@@ -43,9 +43,7 @@ const ArtifactComponentSchema = z.looseObject({
 export function generateArtifactComponentDefinition(data: ArtifactComponentDefinitionData): string {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(
-      `Missing required fields for artifact component:\n${z.prettifyError(result.error)}`
-    );
+    throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;

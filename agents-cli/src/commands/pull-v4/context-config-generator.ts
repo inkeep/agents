@@ -38,9 +38,7 @@ type ParsedContextConfigDefinitionData = z.infer<typeof ContextConfigSchema>;
 export function generateContextConfigDefinition(data: ContextConfigDefinitionData): string {
   const result = ContextConfigSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(
-      `Missing required fields for context config:\n${z.prettifyError(result.error)}`
-    );
+    throw new Error(`Validation failed for context config:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();

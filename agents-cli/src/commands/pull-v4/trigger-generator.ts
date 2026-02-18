@@ -88,7 +88,7 @@ const TriggerSchema = z.looseObject({
 export function generateTriggerDefinition(data: TriggerDefinitionData): string {
   const result = TriggerSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for trigger:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Validation failed for trigger:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();

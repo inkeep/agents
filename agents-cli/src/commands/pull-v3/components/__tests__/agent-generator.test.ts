@@ -219,7 +219,7 @@ describe('Agent Generator', () => {
       expect(() => {
         generateAgentDefinitionV4({ agentId });
       }).toThrow(
-        new Error(`Missing required fields for agent:
+        new Error(`Validation failed for agent:
 ✖ Invalid input: expected string, received undefined
   → at name
 ✖ Invalid input: expected string, received undefined
@@ -446,7 +446,7 @@ describe('Agent Generator', () => {
       expect(() => {
         generateAgentDefinitionV4({ agentId, ...minimalData });
       }).toThrow(
-        new Error(`Missing required fields for agent:
+        new Error(`Validation failed for agent:
 ✖ Invalid input: expected string, received undefined
   → at defaultSubAgentId
 ✖ Invalid input
@@ -494,7 +494,7 @@ describe('Agent Generator', () => {
       expect(() => {
         generateAgentDefinitionV4({ agentId, ...emptyStringData });
       }).toThrow(
-        new Error(`Missing required fields for agent:
+        new Error(`Validation failed for agent:
 ✖ Too small: expected string to have >=1 characters
   → at name`)
       );
@@ -517,7 +517,7 @@ describe('Agent Generator', () => {
       expect(() => {
         generateAgentDefinitionV4({ agentId, ...nullData });
       }).toThrow(
-        new Error(`Missing required fields for agent:
+        new Error(`Validation failed for agent:
 ✖ Invalid input: expected string, received null
   → at description
 ✖ Invalid input: expected string, received undefined

@@ -45,7 +45,7 @@ type ParsedFunctionToolDefinitionData = z.infer<typeof FunctionToolSchema>;
 export function generateFunctionToolDefinition(data: FunctionToolDefinitionData): string {
   const result = FunctionToolSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for function tool:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Validation failed for function tool:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;
