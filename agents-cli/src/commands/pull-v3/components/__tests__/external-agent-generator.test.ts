@@ -388,18 +388,21 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('}');
     });
 
-    it('should handle URLs with special characters', () => {
+    it.only('should handle URLs with special characters', async () => {
+      const externalAgentId = 'special-url-agent';
       const specialUrlData = {
         name: 'Special URL Agent',
         description: 'Agent with special characters in URL',
         baseUrl: 'https://api.example.com/v1/agents/special?param=value&other=123',
       };
 
-      const definition = generateExternalAgentDefinition('special-url-agent', specialUrlData);
+      const definition = generateExternalAgentDefinition(externalAgentId, specialUrlData);
 
       expect(definition).toContain(
         "baseUrl: 'https://api.example.com/v1/agents/special?param=value&other=123'"
       );
+
+      await expectExternalAgentDefinitionSnapshots(externalAgentId, specialUrlData, definition);
     });
 
     it('should throw error for empty external agent data', () => {
