@@ -10,6 +10,30 @@ The TypeScript SDK provides an **EvaluationClient** that talks to the Evaluation
 
 For full endpoint details and request/response shapes, see the [Evaluations API reference](/api-reference/evaluations).
 
+## Setup: create a client
+
+Create an evaluation client with your tenant ID, project ID, API base URL, and optional API key. 
+
+```typescript
+import { EvaluationClient } from "@inkeep/agents-sdk";
+
+const client = new EvaluationClient({
+  tenantId: process.env.INKEEP_TENANT_ID!,
+  projectId: process.env.INKEEP_PROJECT_ID!,
+  apiUrl: "https://api.inkeep.com",
+  apiKey: process.env.INKEEP_API_KEY,
+});
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tenantId` | string | Yes | Your tenant (organization) ID |
+| `projectId` | string | Yes | Your project ID |
+| `apiUrl` | string | Yes | API base URL (e.g. `https://api.inkeep.com` or your self-hosted URL) |
+| `apiKey` | string | No | Bearer token for authenticated requests. Omit for unauthenticated or custom auth. |
+
+Use `client` in the examples below (e.g. `client.createEvaluator(...)`).
+
 ## Evaluators
 
 Evaluators define how to score agent outputs (e.g. with a prompt and model, optional pass criteria).
