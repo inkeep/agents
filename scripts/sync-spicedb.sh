@@ -229,7 +229,8 @@ sync_projects() {
       echo "  Project: $project_id → org:$tenant_id"
     fi
     
-    write_relationship "project" "$project_id" "organization" "organization" "$tenant_id"
+    # Use tenant-scoped composite project ID: tenantId/projectId
+    write_relationship "project" "${tenant_id}/${project_id}" "organization" "organization" "$tenant_id"
     ((PROJECTS_PROCESSED++)) || true
     ((project_count++)) || true
   done <<< "$projects"

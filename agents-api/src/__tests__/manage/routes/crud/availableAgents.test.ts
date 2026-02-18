@@ -149,8 +149,11 @@ describe('Available Agents Route - /manage/available-agents', () => {
         // Verify JWT was verified
         expect(verifyTempTokenMock).toHaveBeenCalledWith(expect.any(String), mockJwtToken);
 
-        // Verify SpiceDB was called with the user ID from JWT
-        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({ userId: 'user-123' });
+        // Verify SpiceDB was called with the user ID and tenant ID from JWT
+        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({
+          userId: 'user-123',
+          tenantId: 'test-tenant',
+        });
 
         // Verify agents were fetched with correct params
         expect(listAgentsAcrossProjectMainBranchesMock).toHaveBeenCalledWith(expect.anything(), {
@@ -173,7 +176,10 @@ describe('Available Agents Route - /manage/available-agents', () => {
         expect(body.data).toEqual([]);
 
         // Verify SpiceDB was called
-        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({ userId: 'user-123' });
+        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({
+          userId: 'user-123',
+          tenantId: 'test-tenant',
+        });
 
         // Verify agents query was NOT called (short-circuit when no projects)
         expect(listAgentsAcrossProjectMainBranchesMock).not.toHaveBeenCalled();
@@ -283,7 +289,10 @@ describe('Available Agents Route - /manage/available-agents', () => {
           },
         });
 
-        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({ userId: 'different-user-456' });
+        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({
+          userId: 'different-user-456',
+          tenantId: 'different-tenant',
+        });
         expect(listAgentsAcrossProjectMainBranchesMock).toHaveBeenCalledWith(expect.anything(), {
           tenantId: 'different-tenant',
           projectIds: expect.any(Array),
