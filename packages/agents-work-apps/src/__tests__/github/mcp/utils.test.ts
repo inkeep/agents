@@ -299,9 +299,8 @@ describe('github mcp utils', () => {
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
       expect(result).toContain('<comments>');
-      expect(result).toContain('Review summaries:');
-      expect(result).toContain('"body":"Looks good!"');
-      expect(result).toContain('"state":"APPROVED"');
+      expect(result).toContain('[review_summary] user:reviewer comment_id:1');
+      expect(result).toContain('Looks good!');
     });
 
     it('should include issue comments', () => {
@@ -315,9 +314,9 @@ describe('github mcp utils', () => {
         },
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
-      expect(result).toContain('comments:');
-      expect(result).toContain('"login":"commenter"');
-      expect(result).toContain('"body":"Nice work!"');
+      expect(result).toContain('<comments>');
+      expect(result).toContain('[issue_comment] user:commenter comment_id:2');
+      expect(result).toContain('Nice work!');
     });
 
     it('should include inline review comments', () => {
@@ -342,9 +341,10 @@ describe('github mcp utils', () => {
         },
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
-      expect(result).toContain('Inline review comments:');
-      expect(result).toContain('"body":"Consider renaming this."');
-      expect(result).toContain('"body":"Missing error handling."');
+      expect(result).toContain('[review_comment] user:reviewer on src/utils.ts:42 comment_id:3');
+      expect(result).toContain('Consider renaming this.');
+      expect(result).toContain('[review_comment] user:reviewer on src/utils.ts:55 comment_id:4');
+      expect(result).toContain('Missing error handling.');
     });
 
     it('should sort comments by createdAt', () => {
@@ -365,8 +365,8 @@ describe('github mcp utils', () => {
         },
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
-      const firstIdx = result.indexOf('"body":"First"');
-      const secondIdx = result.indexOf('"body":"Second"');
+      const firstIdx = result.indexOf('First');
+      const secondIdx = result.indexOf('Second');
       expect(firstIdx).toBeLessThan(secondIdx);
     });
 

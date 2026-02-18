@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import {
   getMcpToolRepositoryAccessWithDetails,
   type WorkAppGitHubRepositorySelect,
@@ -7,7 +8,6 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Octokit } from '@octokit/rest';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { Hono } from 'hono';
-import { z } from 'zod/v3';
 import runDbClient from '../../db/runDbClient';
 import { githubMcpAuth } from './auth';
 import { ReactionContentSchema } from './schemas';
