@@ -6,8 +6,8 @@ import {
 } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addObjectEntries,
   addStringProperty,
+  addValueToObject,
   convertJsonSchemaToZodSafe,
   createInMemoryProject,
   formatPropertyName,
@@ -137,7 +137,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
       .getArguments()[0]
       ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-    writeFetchDefinition(fetchConfigObject, fetchDefinition.key, fetchDefinition.data);
+    writeFetchDefinition(fetchConfigObject, fetchDefinition.data);
   }
 
   const contextConfigVarName = toContextConfigVariableName(parsed.contextConfigId);
@@ -265,53 +265,20 @@ function collectFetchDefinitionEntries(contextVariables?: Record<string, unknown
 
 function writeFetchDefinition(
   configObject: ObjectLiteralExpression,
-  key: string,
-  value: Record<string, unknown>
+  { contextConfigId, responseSchema, ...rest }: Record<string, unknown>
 ) {
-  const id = typeof value.id === 'string' ? value.id : key;
-  addStringProperty(configObject, 'id', id);
-
-  if (typeof value.name === 'string') {
-    addStringProperty(configObject, 'name', value.name);
-  }
-
-  if (typeof value.trigger === 'string') {
-    addStringProperty(configObject, 'trigger', value.trigger);
-  }
-
-  if (isPlainObject(value.fetchConfig)) {
-    const fetchConfigProperty = configObject.addPropertyAssignment({
-      name: 'fetchConfig',
-      initializer: '{}',
-    });
-    const fetchConfigObject = fetchConfigProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    addObjectEntries(fetchConfigObject, value.fetchConfig);
-  }
-
-  if (isPlainObject(value.responseSchema)) {
-    configObject.addPropertyAssignment({
-      name: 'responseSchema',
-      initializer: convertJsonSchemaToZod(value.responseSchema),
-    });
-  }
-
-  if (value.defaultValue !== undefined && value.defaultValue !== null) {
-    if (typeof value.defaultValue === 'string') {
-      addStringProperty(configObject, 'defaultValue', value.defaultValue);
-    } else {
-      configObject.addPropertyAssignment({
-        name: 'defaultValue',
-        initializer: formatUnknownLiteral(value.defaultValue),
-      });
+  for (const [k, v] of Object.entries({
+    id: contextConfigId,
+    ...rest,
+  })) {
+    if (v !== null) {
+      addValueToObject(configObject, k, v);
     }
   }
-
-  if (typeof value.credentialReferenceId === 'string') {
+  if (responseSchema) {
     configObject.addPropertyAssignment({
-      name: 'credentialReference',
-      initializer: toReferenceIdentifier(value.credentialReferenceId),
+      name: 'responseSchema',
+      initializer: convertJsonSchemaToZod(responseSchema),
     });
   }
 }
@@ -401,7 +368,7 @@ function generateStandaloneFetchDefinition(
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeFetchDefinition(configObject, data.contextConfigId, data);
+  writeFetchDefinition(configObject, data);
 
   return sourceFile.getFullText().trimEnd();
 }
@@ -411,26 +378,6 @@ function convertJsonSchemaToZod(schema: Record<string, unknown>): string {
     conversionOptions: { module: 'none' },
     emptyObjectAsAny: true,
   });
-}
-
-function formatUnknownLiteral(value: unknown): string {
-  if (typeof value === 'string') {
-    return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
-  }
-  if (typeof value === 'number' || typeof value === 'bigint') {
-    return String(value);
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  if (value === null) {
-    return 'null';
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return 'undefined';
-  }
 }
 
 function extractContextVariableReference(key: string, value: unknown): string | undefined {
