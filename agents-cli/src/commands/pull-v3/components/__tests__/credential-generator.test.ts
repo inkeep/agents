@@ -161,7 +161,7 @@ describe('Credential Generator', () => {
         // @ts-expect-error -- test missing fields
         generateCredentialDefinitionV4({ credentialId: 'minimal' });
       }).toThrow(
-        new Error(`Missing required fields for credential:
+        new Error(`Validation failed for credential:
 ✖ Invalid input: expected string, received undefined
   → at name
 ✖ Invalid input: expected string, received undefined
@@ -283,7 +283,7 @@ describe('Credential Generator', () => {
         name: 'Null Test Credential',
         type: 'env',
         credentialStoreId: 'env-default',
-        description: null,
+        description: undefined,
         retrievalParams: {
           key: 'API_KEY',
           fallback: undefined,

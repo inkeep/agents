@@ -1,12 +1,6 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import {
-  addObjectEntries,
-  addStringProperty,
-  createInMemoryProject,
-  isPlainObject,
-  toCamelCase,
-} from './utils';
+import { addValueToObject, createInMemoryProject, toCamelCase } from './utils';
 
 interface CredentialDefinitionData {
   credentialId: string;
@@ -22,16 +16,14 @@ const CredentialSchema = z.looseObject({
   name: z.string().nonempty(),
   type: z.string().nonempty(),
   credentialStoreId: z.string().nonempty(),
-  description: z.string().nullable().optional(),
+  description: z.string().optional(),
   retrievalParams: z.unknown().optional(),
 });
-
-type ParsedCredentialDefinitionData = z.infer<typeof CredentialSchema>;
 
 export function generateCredentialDefinition(data: CredentialDefinitionData): string {
   const result = CredentialSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Missing required fields for credential:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Validation failed for credential:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();
@@ -67,32 +59,11 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeCredentialConfig(configObject, parsed);
+  const { credentialId, ...rest } = parsed;
 
-  return sourceFile.getFullText().trimEnd();
-}
-
-function writeCredentialConfig(
-  configObject: ObjectLiteralExpression,
-  data: ParsedCredentialDefinitionData
-) {
-  addStringProperty(configObject, 'id', data.credentialId);
-  addStringProperty(configObject, 'name', data.name);
-  addStringProperty(configObject, 'type', data.type);
-  addStringProperty(configObject, 'credentialStoreId', data.credentialStoreId);
-
-  if (data.description) {
-    addStringProperty(configObject, 'description', data.description);
+  for (const [k, v] of Object.entries({ id: credentialId, ...rest })) {
+    addValueToObject(configObject, k, v);
   }
 
-  if (isPlainObject(data.retrievalParams)) {
-    const retrievalParamsProperty = configObject.addPropertyAssignment({
-      name: 'retrievalParams',
-      initializer: '{}',
-    });
-    const retrievalParamsObject = retrievalParamsProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    addObjectEntries(retrievalParamsObject, data.retrievalParams);
-  }
+  return sourceFile.getFullText();
 }
