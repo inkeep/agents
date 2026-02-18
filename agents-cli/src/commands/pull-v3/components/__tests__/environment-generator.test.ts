@@ -500,12 +500,15 @@ describe('Environment Settings Generator', () => {
       await expectEnvironmentSettingsDefinitionSnapshots(environmentName, specialData, definition);
     });
 
-    it('should handle empty environments array for index', () => {
-      const file = generateEnvironmentIndexFile([]);
+    it.only('should handle empty environments array for index', async () => {
+      const environments: string[] = [];
+      const file = generateEnvironmentIndexFile(environments);
 
       expect(file).toContain("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const envSettings = createEnvironmentSettings({');
       expect(file).toContain('});');
+
+      await expectEnvironmentIndexFileSnapshots(environments, file);
     });
   });
 });
