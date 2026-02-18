@@ -84,7 +84,7 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
 
   writeExternalAgentConfig(configObject, parsed);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeExternalAgentConfig(

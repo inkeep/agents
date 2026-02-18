@@ -164,7 +164,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
 
   writeContextConfig(configObject, parsed, headersReference);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeContextConfig(
@@ -320,7 +320,7 @@ function generateStandaloneHeadersDefinition(
     initializer: convertJsonSchemaToZod(data.schema),
   });
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function isHeadersDefinitionData(
@@ -368,7 +368,7 @@ function generateStandaloneFetchDefinition(
 
   writeFetchDefinition(configObject, data);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function convertJsonSchemaToZod(schema: Record<string, unknown>): string {

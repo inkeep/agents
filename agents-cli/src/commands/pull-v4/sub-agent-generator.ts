@@ -87,7 +87,7 @@ export function generateSubAgentDefinition(data: SubAgentDefinitionData): string
 
   writeSubAgentConfig(configObject, parsed);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeSubAgentConfig(

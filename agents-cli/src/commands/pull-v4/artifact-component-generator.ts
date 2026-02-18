@@ -108,7 +108,7 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
     });
   }
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function hasInPreviewFields(schema: unknown): boolean {

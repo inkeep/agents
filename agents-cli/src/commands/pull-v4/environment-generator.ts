@@ -112,7 +112,7 @@ export function generateEnvironmentSettingsDefinition(
 
   addCredentialsProperty(configObject, parsed.credentials, hasCredentialStoreType);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 export function generateEnvironmentIndexDefinition(environments: string[]): string {
@@ -164,7 +164,7 @@ export function generateEnvironmentIndexDefinition(environments: string[]): stri
     });
   }
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 export function generateEnvironmentSettingsFile(

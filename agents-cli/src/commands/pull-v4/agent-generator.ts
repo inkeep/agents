@@ -105,7 +105,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
 
   writeAgentConfig(configObject, parsed);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAgentDefinitionData) {

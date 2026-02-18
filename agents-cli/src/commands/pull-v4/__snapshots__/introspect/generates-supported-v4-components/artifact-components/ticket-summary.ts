@@ -8,3 +8,4 @@ export const ticketSummary = artifactComponent({
       title: z.string(),
     })
 });
+

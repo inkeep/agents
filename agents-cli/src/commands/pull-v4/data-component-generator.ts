@@ -89,7 +89,7 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
 
   writeDataComponentConfig(configObject, parsed, props);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeDataComponentConfig(

@@ -109,7 +109,7 @@ export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
 
   writeMcpToolConfig(configObject, parsed);
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function writeMcpToolConfig(
