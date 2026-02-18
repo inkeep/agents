@@ -373,7 +373,7 @@ export function ProjectScheduledTriggerInvocationsTable({
                             )}
                             {canCancel && (
                               <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
+                                variant="destructive"
                                 onClick={() => cancelInvocation(invocation)}
                               >
                                 <Ban className="w-4 h-4" />
