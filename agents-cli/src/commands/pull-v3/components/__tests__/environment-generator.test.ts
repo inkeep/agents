@@ -60,6 +60,48 @@ describe('Environment Settings Generator', () => {
     },
   };
 
+  const expectEnvironmentSettingsDefinitionSnapshots = async (
+    environmentName: string,
+    environmentData: Parameters<typeof generateEnvironmentSettingsDefinitionV4>[1],
+    definition: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
+    const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, environmentData);
+    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
+  };
+
+  const expectEnvironmentIndexDefinitionSnapshots = async (
+    environments: Parameters<typeof generateEnvironmentIndexDefinitionV4>[0],
+    definition: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(definition).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
+    const definitionV4 = generateEnvironmentIndexDefinitionV4(environments);
+    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
+  };
+
+  const expectEnvironmentSettingsFileSnapshots = async (
+    environmentName: string,
+    environmentData: Parameters<typeof generateEnvironmentSettingsFileV4>[1],
+    file: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(file).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
+    const fileV4 = generateEnvironmentSettingsFileV4(environmentName, environmentData);
+    await expect(fileV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
+  };
+
+  const expectEnvironmentIndexFileSnapshots = async (
+    environments: Parameters<typeof generateEnvironmentIndexFileV4>[0],
+    file: string
+  ) => {
+    const testName = expect.getState().currentTestName;
+    await expect(file).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
+    const fileV4 = generateEnvironmentIndexFileV4(environments);
+    await expect(fileV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
+  };
+
   describe('generateEnvironmentSettingsImports', () => {
     it('should generate basic imports', () => {
       const imports = generateEnvironmentSettingsImports(developmentData);
