@@ -1,16 +1,6 @@
 'use client';
 
-import {
-  Ban,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  Loader2,
-  MoreHorizontal,
-  RotateCcw,
-  XCircle,
-} from 'lucide-react';
-import Link from 'next/link';
+import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -22,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ExternalLink } from '@/components/ui/external-link';
 import {
   Table,
   TableBody,
@@ -36,6 +27,12 @@ import {
   rerunScheduledTriggerInvocationAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocation } from '@/lib/api/scheduled-triggers';
+import {
+  formatInvocationDateTime,
+  formatInvocationDuration,
+  getInvocationStatusBadge,
+  type InvocationStatus,
+} from '@/lib/utils/invocation-display';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 
@@ -45,66 +42,6 @@ interface ScheduledTriggerInvocationsTableProps {
   projectId: string;
   agentId: string;
   scheduledTriggerId: string;
-}
-
-type InvocationStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-
-function getStatusBadge(status: InvocationStatus) {
-  switch (status) {
-    case 'pending':
-      return (
-        <Badge variant="outline" className="gap-1">
-          <Clock className="w-3 h-3" />
-          Pending
-        </Badge>
-      );
-    case 'running':
-      return (
-        <Badge variant="default" className="gap-1 bg-blue-500">
-          <Loader2 className="w-3 h-3 animate-spin" />
-          Running
-        </Badge>
-      );
-    case 'completed':
-      return (
-        <Badge variant="default" className="gap-1 bg-blue-500">
-          <CheckCircle2 className="w-3 h-3" />
-          Completed
-        </Badge>
-      );
-    case 'failed':
-      return (
-        <Badge variant="destructive" className="gap-1">
-          <XCircle className="w-3 h-3" />
-          Failed
-        </Badge>
-      );
-    case 'cancelled':
-      return (
-        <Badge variant="secondary" className="gap-1">
-          <Ban className="w-3 h-3" />
-          Cancelled
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
-
-function formatDateTime(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleString();
-}
-
-function formatDuration(startedAt: string | null, completedAt: string | null): string {
-  if (!startedAt || !completedAt) return '—';
-  const start = new Date(startedAt).getTime();
-  const end = new Date(completedAt).getTime();
-  const durationMs = end - start;
-
-  if (durationMs < 1000) return `${durationMs}ms`;
-  if (durationMs < 60000) return `${(durationMs / 1000).toFixed(1)}s`;
-  return `${(durationMs / 60000).toFixed(1)}m`;
 }
 
 export function ScheduledTriggerInvocationsTable({
@@ -254,39 +191,41 @@ export function ScheduledTriggerInvocationsTable({
                 <TableRow key={invocation.id} noHover>
                   <TableCell>
                     <div className="font-mono text-sm">
-                      {formatDateTime(invocation.scheduledFor)}
+                      {formatInvocationDateTime(invocation.scheduledFor)}
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(invocation.status as InvocationStatus)}</TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDateTime(invocation.startedAt)}
-                    </div>
+                    {getInvocationStatusBadge(invocation.status as InvocationStatus)}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-muted-foreground">
-                      {formatDuration(invocation.startedAt, invocation.completedAt)}
+                      {formatInvocationDateTime(invocation.startedAt)}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{invocation.attemptNumber}</Badge>
+                    <div className="text-sm text-muted-foreground">
+                      {formatInvocationDuration(invocation.startedAt, invocation.completedAt)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="count">{invocation.attemptNumber}</Badge>
                   </TableCell>
                   <TableCell>
                     {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
                       <div className="flex flex-col gap-1">
                         {invocation.conversationIds.map((convId: string, idx: number) => (
-                          <Link
+                          <ExternalLink
                             key={convId}
                             href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                            className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
+                            className="text-primary no-underline"
+                            iconClassName="text-primary"
                           >
                             {invocation.conversationIds &&
                               invocation.conversationIds.length > 1 && (
                                 <span className="text-muted-foreground text-xs">#{idx + 1}</span>
                               )}
                             View
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
+                          </ExternalLink>
                         ))}
                       </div>
                     ) : (
@@ -308,18 +247,18 @@ export function ScheduledTriggerInvocationsTable({
                                 rerunInvocation(invocation.id);
                               }}
                             >
-                              <RotateCcw className="w-4 h-4 mr-2" />
+                              <RotateCcw className="w-4 h-4" />
                               Rerun
                             </DropdownMenuItem>
                           )}
                           {canCancel && (
                             <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
+                              variant="destructive"
                               onClick={() => {
                                 cancelInvocation(invocation.id);
                               }}
                             >
-                              <Ban className="w-4 h-4 mr-2" />
+                              <Ban className="w-4 h-4" />
                               Cancel
                             </DropdownMenuItem>
                           )}

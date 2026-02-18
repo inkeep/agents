@@ -1,6 +1,6 @@
 'use client';
 
-import { Filter, History, Plus, X } from 'lucide-react';
+import { History, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ScheduledTriggerWithAgent, TriggerWithAgent } from '@/lib/api/project-triggers';
+import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { ProjectScheduledTriggersTable } from './project-scheduled-triggers-table';
 import { ProjectTriggersTable } from './project-triggers-table';
 
@@ -128,8 +129,6 @@ export function TriggersTabs({
     return webhookTriggers.filter((trigger) => trigger.agentId === agentFilter);
   }, [webhookTriggers, agentFilter]);
 
-  const selectedAgentName = agents.find((a) => a.id === agentFilter)?.name;
-
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <div className="flex items-center justify-between border-b">
@@ -171,7 +170,6 @@ export function TriggersTabs({
 
       {agents.length > 1 && (
         <div className="flex items-center gap-2 mt-4">
-          <Filter className="h-4 w-4 text-muted-foreground" />
           <Combobox
             options={[
               { value: '', label: 'All agents' },
@@ -186,23 +184,19 @@ export function TriggersTabs({
             searchPlaceholder="Search agents..."
             notFoundMessage="No agents found."
             className="w-[200px]"
+            TriggerComponent={
+              <FilterTriggerComponent
+                filterLabel={agentFilter ? 'Agent' : 'All agents'}
+                multipleCheckboxValues={agentFilter ? [agentFilter] : []}
+                isRemovable={true}
+                onDeleteFilter={() => setAgentFilter('')}
+                options={agents.map((agent) => ({
+                  value: agent.id,
+                  label: agent.name,
+                }))}
+              />
+            }
           />
-          {agentFilter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setAgentFilter('')}
-              className="h-8 px-2 text-muted-foreground"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear filter
-            </Button>
-          )}
-          {agentFilter && (
-            <span className="text-sm text-muted-foreground">
-              Showing triggers for <span className="font-medium">{selectedAgentName}</span>
-            </span>
-          )}
         </div>
       )}
 

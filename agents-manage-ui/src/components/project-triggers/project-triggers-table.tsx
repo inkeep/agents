@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Check, Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { deleteTriggerAction, updateTriggerEnabledAction } from '@/lib/actions/triggers';
 import type { TriggerWithAgent } from '@/lib/api/project-triggers';
 
@@ -34,16 +35,7 @@ interface ProjectTriggersTableProps {
 export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectTriggersTableProps) {
   const router = useRouter();
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
-
-  const copyWebhookUrl = async (webhookUrl: string, name: string) => {
-    try {
-      await navigator.clipboard.writeText(webhookUrl);
-      toast.success(`Webhook URL for "${name}" copied to clipboard`);
-    } catch (error) {
-      console.error('Failed to copy webhook URL:', error);
-      toast.error('Failed to copy webhook URL');
-    }
-  };
+  const { isCopied, copyToClipboard } = useCopyToClipboard({});
 
   const toggleEnabled = async (triggerId: string, agentId: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
@@ -170,10 +162,10 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => copyWebhookUrl(trigger.webhookUrl, trigger.name)}
+                        onClick={() => copyToClipboard(trigger.webhookUrl)}
                         title="Copy webhook URL"
                       >
-                        <Copy className="w-4 h-4" />
+                        {isCopied ? <Check className="w-4 h-4 " /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
                   </TableCell>
@@ -202,7 +194,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                          variant="destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
                           <Trash2 className="w-4 h-4" />

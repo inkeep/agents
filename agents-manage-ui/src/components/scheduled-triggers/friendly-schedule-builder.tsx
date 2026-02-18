@@ -139,7 +139,7 @@ export function FriendlyScheduleBuilder({
   return (
     <div className={cn('space-y-4', className)}>
       {/* Frequency Selection */}
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
         <Label className="text-sm font-medium">How often?</Label>
         <Select value={frequency} onValueChange={handleFrequencyChange}>
           <SelectTrigger className="w-full">
