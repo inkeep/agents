@@ -13,9 +13,7 @@ const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 const ignoredRoutePrefixes = new Set(['/health', '/ready', '/manage/capabilities']);
 const ignoredRouteSegments = ['/evals/'];
 function isIgnoredRoute(path: string): boolean {
-  return (
-    ignoredRoutePrefixes.has(path) || ignoredRouteSegments.some((segment) => path.includes(segment))
-  );
+  return ignoredRouteSegments.some((segment) => path.includes(segment));
 }
 const hiddenTags = new Set(['Evaluations'] satisfies (keyof typeof TagToDescription)[]);
 function toTagFileName(tagName: string): string {
@@ -113,7 +111,7 @@ ${prettyError}`);
     output: OUTPUT_DIR,
     per: 'custom',
     toPages(builder) {
-      const { tags } = builder.document.dereferenced;
+      const { tags } = builder.document.bundled;
       const { operations, webhooks } = builder.extract();
       const visibleOperations = operations.filter((op) => !isIgnoredRoute(op.path));
 
@@ -121,14 +119,6 @@ ${prettyError}`);
         if (hiddenTags.has(tag.name)) {
           continue;
         }
-
-        const tagOperations = visibleOperations.filter((op) => op.tags?.includes(tag.name));
-        const tagWebhooks = webhooks.filter((webhook) => webhook.tags?.includes(tag.name));
-
-        if (!tagOperations.length && !tagWebhooks.length) {
-          continue;
-        }
-
         const { displayName } = builder.fromTag(tag);
         builder.create({
           type: 'tag',
@@ -138,8 +128,8 @@ ${prettyError}`);
             title: displayName,
             description: tag.description,
           },
-          operations: tagOperations,
-          webhooks: tagWebhooks,
+          operations: visibleOperations.filter((op) => op.tags?.includes(tag.name)),
+          webhooks: webhooks.filter((webhook) => webhook.tags?.includes(tag.name)),
           tag: tag.name,
           rawTag: tag,
         });
