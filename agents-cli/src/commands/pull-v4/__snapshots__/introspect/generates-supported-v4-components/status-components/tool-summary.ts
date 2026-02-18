@@ -6,3 +6,4 @@ export const toolSummary = statusComponent({
   description: 'Tool summary status component',
   detailsSchema: z.object({ "tool_name": z.string().optional() })
 });
+

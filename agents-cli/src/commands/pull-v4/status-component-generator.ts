@@ -1,7 +1,7 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addStringProperty,
+  addValueToObject,
   convertJsonSchemaToZodSafe,
   createInMemoryProject,
   toCamelCase,
@@ -23,8 +23,6 @@ const StatusComponentSchema = z.looseObject({
   schema: z.unknown().optional(),
 });
 
-type ParsedStatusComponentDefinitionData = z.infer<typeof StatusComponentSchema>;
-
 export function generateStatusComponentDefinition(data: StatusComponentDefinitionData): string {
   const result = StatusComponentSchema.safeParse(data);
   if (!result.success) {
@@ -38,9 +36,10 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
   const sourceFile = project.createSourceFile('status-component-definition.ts', '', {
     overwrite: true,
   });
+  const importName = 'statusComponent';
 
   sourceFile.addImportDeclaration({
-    namedImports: ['statusComponent'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -55,12 +54,7 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: statusComponentVarName,
-        initializer: 'statusComponent({})',
-      },
-    ],
+    declarations: [{ name: statusComponentVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
@@ -75,26 +69,17 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeStatusComponentConfig(configObject, parsed, detailsSchema);
+  const { statusComponentId, id, detailsSchema: _, schema: _2, ...rest } = parsed;
 
-  return sourceFile.getFullText().trimEnd();
-}
-
-function writeStatusComponentConfig(
-  configObject: ObjectLiteralExpression,
-  data: ParsedStatusComponentDefinitionData,
-  detailsSchema: unknown
-): void {
-  addStringProperty(configObject, 'type', data.type);
-
-  if (data.description !== undefined) {
-    addStringProperty(configObject, 'description', data.description);
+  for (const [k, v] of Object.entries(rest)) {
+    addValueToObject(configObject, k, v);
   }
-
-  if (detailsSchema !== undefined) {
+  if (detailsSchema) {
     configObject.addPropertyAssignment({
       name: 'detailsSchema',
-      initializer: convertJsonSchemaToZodSafe(detailsSchema, {}),
+      initializer: convertJsonSchemaToZodSafe(detailsSchema),
     });
   }
+
+  return sourceFile.getFullText();
 }
