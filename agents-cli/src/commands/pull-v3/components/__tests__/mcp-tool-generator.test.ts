@@ -4,6 +4,7 @@
  */
 
 import { generateMcpToolDefinition as generateMcpToolDefinitionV4 } from '../../../pull-v4/mcp-tool-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import {
   generateMcpToolDefinition,
   generateMcpToolFile,
@@ -49,17 +50,6 @@ describe('MCP Tool Generator', () => {
     credential: envSettings.getEnvironmentCredential('stripe_api_key'),
   };
 
-  const expectMcpToolDefinitionSnapshots = async (
-    mcpToolId: string,
-    mcpToolData: Omit<Parameters<typeof generateMcpToolDefinitionV4>[0], 'mcpToolId'>,
-    definition: string
-  ) => {
-    const testName = expect.getState().currentTestName;
-    await expect(definition).toMatchFileSnapshot(`__snapshots__/mcp-tool/${testName}.txt`);
-    const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...mcpToolData });
-    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/mcp-tool/${testName}-v4.txt`);
-  };
-
   describe('generateMcpToolImports', () => {
     it('should generate basic imports', () => {
       const imports = generateMcpToolImports(testToolData);
@@ -101,7 +91,8 @@ describe('MCP Tool Generator', () => {
       );
       expect(definition).toContain('});');
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolData, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...testToolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle tool ID to camelCase conversion', async () => {
@@ -122,7 +113,8 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain('export const stripePaymentTool = mcpTool({');
       expect(definition).toContain("id: 'stripe-payment-tool',");
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, conversionData, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...conversionData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing name', () => {
@@ -146,7 +138,8 @@ describe('MCP Tool Generator', () => {
 
       expect(definition).toContain('credential: mock-credential-stripe_api_key');
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolWithCredential, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...testToolWithCredential });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle credential as object', async () => {
@@ -171,7 +164,8 @@ describe('MCP Tool Generator', () => {
 
       expect(definition).toContain('credential: {"type":"api_key","value":"my-api-key"}');
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, toolWithObjectCredential, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...toolWithObjectCredential });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing required fields', () => {
@@ -194,7 +188,8 @@ describe('MCP Tool Generator', () => {
 
       expect(definition).toContain(`description: \`${longDescription}\``);
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, dataWithLongDesc, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...dataWithLongDesc });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle special characters in URLs', async () => {
@@ -223,7 +218,8 @@ describe('MCP Tool Generator', () => {
         "imageUrl: 'https://images.example.com/icon.png?size=256&format=webp'"
       );
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...toolData });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -240,7 +236,8 @@ describe('MCP Tool Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolData, file.trimEnd());
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...testToolData });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
 
     it.only('should generate complete file with direct credential', async () => {
@@ -252,7 +249,8 @@ describe('MCP Tool Generator', () => {
       expect(file).toContain('export const stripeMcp = mcpTool({');
       expect(file).toContain('credential: mock-credential-stripe_api_key');
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, testToolWithCredential, file.trimEnd());
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...testToolWithCredential });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
   });
 
@@ -377,7 +375,8 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain("serverUrl: 'not-a-valid-url',");
       expect(definition).toContain("imageUrl: 'also-not-valid'");
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...toolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle null and undefined values gracefully', async () => {
@@ -397,7 +396,8 @@ describe('MCP Tool Generator', () => {
       expect(definition).not.toContain('imageUrl:');
       expect(definition).not.toContain('credential:');
 
-      await expectMcpToolDefinitionSnapshots(mcpToolId, toolData, definition);
+      const definitionV4 = generateMcpToolDefinitionV4({ mcpToolId, ...toolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing name only', () => {

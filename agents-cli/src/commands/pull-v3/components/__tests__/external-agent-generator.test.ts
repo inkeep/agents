@@ -4,6 +4,7 @@
  */
 
 import { generateExternalAgentDefinition as generateExternalAgentDefinitionV4 } from '../../../pull-v4/external-agent-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateExternalAgentDefinition,
@@ -48,25 +49,6 @@ describe('External Agent Generator', () => {
     },
   };
 
-  const expectExternalAgentDefinitionSnapshots = async (
-    externalAgentId: string,
-    externalAgentData: Omit<
-      Parameters<typeof generateExternalAgentDefinitionV4>[0],
-      'externalAgentId'
-    >,
-    definition: string
-  ) => {
-    const testName = expect.getState().currentTestName;
-    await expect(definition).toMatchFileSnapshot(`__snapshots__/external-agent/${testName}.txt`);
-    const definitionV4 = generateExternalAgentDefinitionV4({
-      externalAgentId,
-      ...externalAgentData,
-    });
-    await expect(definitionV4).toMatchFileSnapshot(
-      `__snapshots__/external-agent/${testName}-v4.txt`
-    );
-  };
-
   describe('generateExternalAgentImports', () => {
     it('should generate basic imports', () => {
       const imports = generateExternalAgentImports('weather-agent', basicExternalAgentData);
@@ -101,11 +83,11 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('credentialReference:');
 
-      await expectExternalAgentDefinitionSnapshots(
+      const definitionV4 = generateExternalAgentDefinitionV4({
         externalAgentId,
-        basicExternalAgentData,
-        definition
-      );
+        ...basicExternalAgentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate external agent with credential reference object', async () => {
@@ -120,11 +102,11 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('}');
       expect(definition).not.toContain("description: 'API credentials for weather service',"); // No trailing comma
 
-      await expectExternalAgentDefinitionSnapshots(
+      const definitionV4 = generateExternalAgentDefinitionV4({
         externalAgentId,
-        complexExternalAgentData,
-        definition
-      );
+        ...complexExternalAgentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate external agent with credential reference variable', async () => {
@@ -145,7 +127,11 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('credentialReference: myCredentials');
       expect(definition).not.toContain('credentialReference: {');
 
-      await expectExternalAgentDefinitionSnapshots(externalAgentId, dataWithCredRef, definition);
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...dataWithCredRef,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing required fields', () => {
@@ -183,7 +169,8 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('It even contains newlines');
 
-      await expectExternalAgentDefinitionSnapshots(externalAgentId, multilineData, definition);
+      const definitionV4 = generateExternalAgentDefinitionV4({ externalAgentId, ...multilineData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     // it('should handle different code styles', () => {
@@ -244,7 +231,11 @@ describe('External Agent Generator', () => {
       expect(definition).not.toContain("description: 'Complete API credentials'"); // Should not contain credential description
       expect(definition).not.toContain("id: 'partial-cred',"); // No trailing comma on last property
 
-      await expectExternalAgentDefinitionSnapshots(externalAgentId, partialCredData, definition);
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...partialCredData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -261,11 +252,11 @@ describe('External Agent Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      await expectExternalAgentDefinitionSnapshots(
+      const definitionV4 = generateExternalAgentDefinitionV4({
         externalAgentId,
-        basicExternalAgentData,
-        file.trimEnd()
-      );
+        ...basicExternalAgentData,
+      });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
 
     it.only('should generate complex external agent file with all features', async () => {
@@ -281,11 +272,11 @@ describe('External Agent Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      await expectExternalAgentDefinitionSnapshots(
+      const definitionV4 = generateExternalAgentDefinitionV4({
         externalAgentId,
-        complexExternalAgentData,
-        file.trimEnd()
-      );
+        ...complexExternalAgentData,
+      });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
   });
 
@@ -399,7 +390,11 @@ describe('External Agent Generator', () => {
       ); // No trailing comma
       expect(definition).toContain('}');
 
-      await expectExternalAgentDefinitionSnapshots(externalAgentId, complexCredData, definition);
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...complexCredData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle URLs with special characters', async () => {
@@ -416,7 +411,11 @@ describe('External Agent Generator', () => {
         "baseUrl: 'https://api.example.com/v1/agents/special?param=value&other=123'"
       );
 
-      await expectExternalAgentDefinitionSnapshots(externalAgentId, specialUrlData, definition);
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...specialUrlData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for empty external agent data', () => {

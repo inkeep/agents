@@ -10,6 +10,7 @@ import {
   generateEnvironmentSettingsDefinition as generateEnvironmentSettingsDefinitionV4,
   generateEnvironmentSettingsFile as generateEnvironmentSettingsFileV4,
 } from '../../../pull-v4/environment-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import {
   generateEnvironmentIndexDefinition,
   generateEnvironmentIndexFile,
@@ -18,7 +19,6 @@ import {
   generateEnvironmentSettingsFile,
   generateEnvironmentSettingsImports,
 } from '../environment-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
 
 describe('Environment Settings Generator', () => {
   const developmentData = {

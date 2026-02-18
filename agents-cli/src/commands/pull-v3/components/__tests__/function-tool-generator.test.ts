@@ -5,6 +5,7 @@
  */
 
 import { generateFunctionToolDefinition as generateFunctionToolDefinitionV4 } from '../../../pull-v4/function-tool-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import {
   generateFunctionToolDefinition,
   generateFunctionToolFile,
@@ -31,19 +32,6 @@ describe('Function Tool Generator', () => {
 
   return { bmi: Math.round(bmi * 10) / 10, category };
 }`,
-  };
-
-  const expectFunctionToolDefinitionSnapshots = async (
-    functionToolId: string,
-    toolData: Omit<Parameters<typeof generateFunctionToolDefinitionV4>[0], 'functionToolId'>,
-    definition: string
-  ) => {
-    const testName = expect.getState().currentTestName;
-    await expect(definition).toMatchFileSnapshot(`__snapshots__/function-tool/${testName}.txt`);
-    const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...toolData });
-    await expect(definitionV4).toMatchFileSnapshot(
-      `__snapshots__/function-tool/${testName}-v4.txt`
-    );
   };
 
   describe('generateFunctionToolImports', () => {
@@ -77,7 +65,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('execute: async ({ weight, height }) => {');
       expect(definition).toContain('});');
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, testToolData, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...testToolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle tool ID to camelCase conversion', async () => {
@@ -93,7 +82,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('export const emailSenderTool = functionTool({');
       expect(definition).toContain("name: 'email-sender',");
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, conversionData, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...conversionData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing name', () => {
@@ -126,7 +116,8 @@ describe('Function Tool Generator', () => {
       };
 
       const definition = generateFunctionToolDefinition(functionToolId, dataWithSchema);
-      await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithSchema, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...dataWithSchema });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should prefer inputSchema over schema when both exist', async () => {
@@ -154,7 +145,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('"input"');
       expect(definition).not.toContain('"schema"');
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithBoth, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...dataWithBoth });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle multiline descriptions', async () => {
@@ -172,7 +164,11 @@ describe('Function Tool Generator', () => {
 
       expect(definition).toContain(`description: \`${longDescription}\``);
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, dataWithLongDesc, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({
+        functionToolId,
+        ...dataWithLongDesc,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should format execute function with proper indentation', async () => {
@@ -193,7 +189,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('  return { result: value * 2 };');
       expect(definition).toContain('  }');
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...toolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle execute as simple code block', async () => {
@@ -209,7 +206,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('execute: async ({}) => {');
       expect(definition).toContain('return { message: "Hello World" };');
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...toolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error when no executeCode is provided', () => {
@@ -270,7 +268,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('"items"');
       expect(definition).toContain('"preferences"');
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, complexData, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...complexData });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -287,7 +286,8 @@ describe('Function Tool Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, testToolData, file.trimEnd());
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...testToolData });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
   });
 
@@ -412,7 +412,8 @@ describe('Function Tool Generator', () => {
       expect(definition).toContain('execute: async ({}) => {');
       expect(definition).toContain('not a valid function');
 
-      await expectFunctionToolDefinitionSnapshots(functionToolId, toolData, definition);
+      const definitionV4 = generateFunctionToolDefinitionV4({ functionToolId, ...toolData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing executeCode only', () => {
