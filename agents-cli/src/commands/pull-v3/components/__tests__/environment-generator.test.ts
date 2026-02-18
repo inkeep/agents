@@ -433,10 +433,14 @@ describe('Environment Settings Generator', () => {
       await expectEnvironmentSettingsDefinitionSnapshots(environmentName, data, definition);
     });
 
-    it('should handle undefined credentials', () => {
-      const definition = generateEnvironmentSettingsDefinition('test', { credentials: undefined });
+    it.only('should handle undefined credentials', async () => {
+      const environmentName = 'test';
+      const data = { credentials: undefined };
+      const definition = generateEnvironmentSettingsDefinition(environmentName, data);
 
       expect(definition).toContain('credentials: {}');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(environmentName, data, definition);
     });
 
     it('should handle credential with null properties', () => {
