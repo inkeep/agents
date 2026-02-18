@@ -213,7 +213,9 @@ describe('dynamic agent_select lookup', () => {
 
     const { blockId, agentSelect } = findAgentSelectInValues(values);
     expect(blockId).toBe('agent_select_block_proj-xyz');
-    const parsed = JSON.parse(agentSelect!.selected_option!.value!);
+    const value = agentSelect?.selected_option?.value;
+    expect(value).toBeDefined();
+    const parsed = JSON.parse(value as string);
     expect(parsed.agentId).toBe('a2');
     expect(parsed.projectId).toBe('proj-xyz');
   });
