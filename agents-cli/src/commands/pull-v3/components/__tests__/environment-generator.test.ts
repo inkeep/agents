@@ -423,10 +423,14 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle null credentials', () => {
-      const definition = generateEnvironmentSettingsDefinition('test', { credentials: null });
+    it.only('should handle null credentials', async () => {
+      const environmentName = 'test';
+      const data = { credentials: null };
+      const definition = generateEnvironmentSettingsDefinition(environmentName, data);
 
       expect(definition).toContain('credentials: {}');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(environmentName, data, definition);
     });
 
     it('should handle undefined credentials', () => {
