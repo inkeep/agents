@@ -89,10 +89,17 @@ function createAgentsHono(config: AppConfig) {
   if (auth) {
     app.use('/api/auth/*', cors(authCorsConfig));
 
-    // Dev-only: auto-login endpoint — no credentials leave the server.
+    // Dev-only: auto-login endpoint — called server-to-server by the Next.js proxy.
+    // Requires the manage API bypass secret to prevent unauthenticated access.
     // MUST be registered BEFORE the catch-all /api/auth/* handler below (Hono uses first-match-wins).
     if (env.ENVIRONMENT === 'development') {
       app.post('/api/auth/dev-session', async (c) => {
+        const bypassSecret = env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
+        const authHeader = c.req.header('Authorization');
+        if (!bypassSecret || authHeader !== `Bearer ${bypassSecret}`) {
+          return c.json({ error: 'Unauthorized' }, 401);
+        }
+
         const email = env.INKEEP_AGENTS_MANAGE_UI_USERNAME;
 
         if (!email) {
@@ -436,8 +443,7 @@ function createAgentsHono(config: AppConfig) {
   // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
   app.route('/work-apps', workAppsRoutes);
 
-  // Mount MCP routes at top level (eclipses both manage and run services)
-  // Also available at /manage/mcp for backward compatibility
+  // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)

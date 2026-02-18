@@ -1,5 +1,19 @@
 # @inkeep/agents-core
 
+## 0.48.7
+
+### Patch Changes
+
+- 3532557: The browser silently drops the session cookie because secure: true is set but the site
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+
+## 0.48.5
+
 ## 0.48.4
 
 ### Patch Changes

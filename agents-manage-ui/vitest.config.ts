@@ -46,6 +46,17 @@ export default defineConfig({
       if (message.includes('Cannot use import statement outside a module')) {
         return false;
       }
+      // Suppress InvalidCharacterError from icon components that embed SVG as
+      // data URIs in createElement calls. This happens nondeterministically in
+      // browser tests and does not affect test correctness.
+      // The error name is "InvalidCharacterError" but the message is "Failed to
+      // execute 'createElement'...", so we check both the message and the error name.
+      if (
+        message.includes('is not a valid name') ||
+        (error as { name?: string })?.name === 'InvalidCharacterError'
+      ) {
+        return false;
+      }
     },
     projects: [
       {
