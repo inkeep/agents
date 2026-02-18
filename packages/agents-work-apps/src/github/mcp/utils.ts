@@ -1014,7 +1014,7 @@ export async function deletePullRequestReviewCommentReaction(
   commentId: number,
   reactionId: number
 ): Promise<void> {
-  await octokit.rest.reactions.deleteForPullRequestComment({
+  await octokit.rest.reactions.deleteForPullRequestReviewComment({
     owner,
     repo,
     comment_id: commentId,
