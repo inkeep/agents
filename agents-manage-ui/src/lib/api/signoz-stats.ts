@@ -2812,7 +2812,7 @@ class SigNozStatsAPI {
     avgUserMessagesPerConversation: number;
     totalUserMessages: number;
     totalTriggerInvocations: number;
-    totalSlackConversations: number;
+    totalSlackMessages: number;
     totalAICalls: number;
     totalMCPCalls: number;
   }> {
@@ -2825,7 +2825,7 @@ class SigNozStatsAPI {
       const totalConversationsSeries = this.extractSeries(resp, 'totalConversations');
       const totalUserMessagesSeries = this.extractSeries(resp, 'totalUserMessages');
       const totalTriggerInvocationsSeries = this.extractSeries(resp, 'totalTriggerInvocations');
-      const totalSlackConversationsSeries = this.extractSeries(resp, 'totalSlackConversations');
+      const totalSlackMessagesSeries = this.extractSeries(resp, 'totalSlackMessages');
       const totalAICallsSeries = this.extractSeries(resp, 'totalAICalls');
       const totalMCPCallsSeries = this.extractSeries(resp, 'totalMCPCalls');
 
@@ -2838,8 +2838,8 @@ class SigNozStatsAPI {
       const totalTriggerInvocations = countFromSeries(
         totalTriggerInvocationsSeries[0] || { values: [{ value: '0' }] }
       );
-      const totalSlackConversations = countFromSeries(
-        totalSlackConversationsSeries[0] || { values: [{ value: '0' }] }
+      const totalSlackMessages = countFromSeries(
+        totalSlackMessagesSeries[0] || { values: [{ value: '0' }] }
       );
       const totalAICalls = countFromSeries(totalAICallsSeries[0] || { values: [{ value: '0' }] });
       const totalMCPCalls = countFromSeries(totalMCPCallsSeries[0] || { values: [{ value: '0' }] });
@@ -2852,7 +2852,7 @@ class SigNozStatsAPI {
         avgUserMessagesPerConversation,
         totalUserMessages,
         totalTriggerInvocations,
-        totalSlackConversations,
+        totalSlackMessages,
         totalAICalls,
         totalMCPCalls,
       };
@@ -2863,7 +2863,7 @@ class SigNozStatsAPI {
         avgUserMessagesPerConversation: 0,
         totalUserMessages: 0,
         totalTriggerInvocations: 0,
-        totalSlackConversations: 0,
+        totalSlackMessages: 0,
         totalAICalls: 0,
         totalMCPCalls: 0,
       };
@@ -3139,13 +3139,13 @@ class SigNozStatsAPI {
             limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
-          totalSlackConversations: {
+          totalSlackMessages: {
             dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalSlackConversations',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
+            queryName: 'totalSlackMessages',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
             aggregateAttribute: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
             filters: {
               op: OPERATORS.AND,
@@ -3158,6 +3158,11 @@ class SigNozStatsAPI {
                   value: '',
                 },
                 {
+                  key: { key: SPAN_KEYS.MESSAGE_CONTENT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EXISTS,
+                  value: '',
+                },
+                {
                   key: { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
                   op: OPERATORS.EQUALS,
                   value: 'slack',
@@ -3165,7 +3170,7 @@ class SigNozStatsAPI {
               ],
             },
             groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalSlackConversations',
+            expression: 'totalSlackMessages',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [],

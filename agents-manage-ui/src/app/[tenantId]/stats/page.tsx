@@ -295,11 +295,11 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
               Icon={Zap}
             />
 
-            {/* Slack Conversations */}
+            {/* Slack Messages */}
             <StatCard
-              title="Slack Conversations"
-              stat={overviewStats.totalSlackConversations}
-              statDescription="Conversations from Slack"
+              title="Slack Messages"
+              stat={overviewStats.totalSlackMessages}
+              statDescription="Messages received from Slack"
               isLoading={overviewLoading}
               Icon={Hash}
             />

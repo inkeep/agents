@@ -30,6 +30,7 @@ import {
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
+import { SLACK_BRAND_COLOR } from '@/constants/theme';
 import { formatDateTime } from '@/lib/utils/format-date';
 
 function truncateWords(s: string, nWords: number) {
@@ -135,9 +136,9 @@ function statusIcon(
     | 'max_steps_reached',
   status: ActivityItem['status']
 ) {
-  const base: Record<string, { Icon: any; cls: string }> = {
+  const base: Record<string, { Icon: any; cls: string; style?: React.CSSProperties }> = {
     trigger_invocation: { Icon: Zap, cls: 'text-amber-500' },
-    slack_message: { Icon: Hash, cls: 'text-[#4A154B]' },
+    slack_message: { Icon: Hash, cls: '', style: { color: SLACK_BRAND_COLOR } },
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
@@ -170,7 +171,7 @@ function statusIcon(
             ? 'text-yellow-500'
             : map.cls;
 
-  return { Icon: map.Icon, className: cls };
+  return { Icon: map.Icon, className: cls, style: map.style };
 }
 
 interface TimelineItemProps {
@@ -219,7 +220,7 @@ export function TimelineItem({
                       ? 'tool_approval_denied'
                       : activity.type;
 
-  const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
+  const { Icon, className, style: iconStyle } = statusIcon(typeForIcon as any, activity.status);
   const formattedDateTime = formatDateTime(activity.timestamp, { local: true });
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
@@ -239,7 +240,7 @@ export function TimelineItem({
       <div className="flex items-start">
         <div className="mr-2 py-2" style={{ width: '16px' }}>
           <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
-            <Icon className={`w-4 h-4 ${className}`} />
+            <Icon className={`w-4 h-4 ${className}`} style={iconStyle} />
           </div>
         </div>
 
