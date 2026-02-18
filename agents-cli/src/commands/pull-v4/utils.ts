@@ -193,3 +193,9 @@ function addValueToArray(arr: ArrayLiteralExpression, value: unknown) {
 
   arr.addElement(formatInlineLiteral(value));
 }
+
+export async function expectSnapshots(definition: string, definitionV4: string): Promise<void> {
+  const testName = expect.getState().currentTestName;
+  await expect(definition).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
+  await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
+}

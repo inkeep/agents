@@ -18,6 +18,7 @@ import {
   generateEnvironmentSettingsFile,
   generateEnvironmentSettingsImports,
 } from '../environment-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 
 describe('Environment Settings Generator', () => {
   const developmentData = {
@@ -59,12 +60,6 @@ describe('Environment Settings Generator', () => {
       },
     },
   };
-
-  async function expectSnapshots(definition: string, definitionV4: string): Promise<void> {
-    const testName = expect.getState().currentTestName;
-    await expect(definition).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
-    await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
-  }
 
   describe('generateEnvironmentSettingsImports', () => {
     it('should generate basic imports', () => {
