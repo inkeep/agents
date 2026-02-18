@@ -174,7 +174,13 @@ export class ArtifactService {
             )
           : toolResult;
 
-      const sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
+      let sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
+
+      // Strip 'result.' prefix if it exists (tool results don't have this wrapper)
+      if (sanitizedBaseSelector.startsWith('result.')) {
+        sanitizedBaseSelector = sanitizedBaseSelector.slice('result.'.length);
+      }
+
       let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
 
       if (Array.isArray(selectedData)) {
