@@ -2,6 +2,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   addConversationIdToInvocation,
   cancelPendingInvocationsForTrigger,
+  canUseProjectStrict,
   commonGetErrorResponses,
   createApiError,
   createScheduledTrigger,
@@ -22,6 +23,8 @@ import {
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
+  type OrgRole,
+  OrgRoles,
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
@@ -52,6 +55,38 @@ import {
 import { executeAgentAsync } from '../../run/services/TriggerService';
 
 const logger = getLogger('scheduled-triggers');
+
+async function validateRunAsUserId(params: {
+  runAsUserId: string;
+  callerId: string;
+  tenantId: string;
+  projectId: string;
+  tenantRole: OrgRole;
+}): Promise<void> {
+  const { runAsUserId, callerId, tenantId, projectId, tenantRole } = params;
+  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+
+  if (runAsUserId !== callerId && !isAdmin) {
+    throw createApiError({
+      code: 'forbidden',
+      message:
+        'Only org admins or owners can set runAsUserId to a different user. Regular users can only set runAsUserId to themselves.',
+    });
+  }
+
+  const targetCanUse = await canUseProjectStrict({
+    userId: runAsUserId,
+    tenantId,
+    projectId,
+  });
+
+  if (!targetCanUse) {
+    throw createApiError({
+      code: 'bad_request',
+      message: `User ${runAsUserId} does not have 'use' permission on this project`,
+    });
+  }
+}
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -314,11 +349,23 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
 
     const id = body.id || generateId();
 
+    if (body.runAsUserId) {
+      await validateRunAsUserId({
+        runAsUserId: body.runAsUserId,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    }
+
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id },
+      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId: body.runAsUserId },
       'Creating scheduled trigger'
     );
 
@@ -338,6 +385,8 @@ app.openapi(
       maxRetries: body.maxRetries,
       retryDelaySeconds: body.retryDelaySeconds,
       timeoutSeconds: body.timeoutSeconds,
+      runAsUserId: body.runAsUserId ?? null,
+      createdBy: callerId || null,
     });
 
     // Start workflow for enabled triggers
@@ -398,6 +447,8 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
 
     // Check if any update fields were actually provided
     const hasUpdateFields =
@@ -411,7 +462,8 @@ app.openapi(
       body.messageTemplate !== undefined ||
       body.maxRetries !== undefined ||
       body.retryDelaySeconds !== undefined ||
-      body.timeoutSeconds !== undefined;
+      body.timeoutSeconds !== undefined ||
+      body.runAsUserId !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -420,8 +472,18 @@ app.openapi(
       });
     }
 
+    if (body.runAsUserId) {
+      await validateRunAsUserId({
+        runAsUserId: body.runAsUserId,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    }
+
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id },
+      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId: body.runAsUserId },
       'Updating scheduled trigger'
     );
 
@@ -505,6 +567,7 @@ app.openapi(
           60
         ),
         timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
+        runAsUserId: body.runAsUserId,
       },
     });
 

@@ -6074,6 +6074,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "maxLength": 256,
             "nullable": true,
@@ -6120,6 +6125,11 @@
             "minimum": -9007199254740991,
             "type": "number"
           },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "runAt": {
             "nullable": true,
             "type": "string"
@@ -6145,6 +6155,8 @@
           "maxRetries",
           "retryDelaySeconds",
           "timeoutSeconds",
+          "runAsUserId",
+          "createdBy",
           "createdAt",
           "updatedAt"
         ],
@@ -6153,6 +6165,11 @@
       "ScheduledTriggerCreate": {
         "properties": {
           "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "cronExpression": {
@@ -6208,6 +6225,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -6235,6 +6257,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "$ref": "#/components/schemas/CronExpression"
           },
@@ -6288,6 +6315,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -6455,6 +6487,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "$ref": "#/components/schemas/CronExpression"
           },
@@ -6511,6 +6548,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
