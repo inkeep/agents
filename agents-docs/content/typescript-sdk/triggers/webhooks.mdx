@@ -45,6 +45,10 @@ Triggers are useful for:
 - **Automated tasks** - Trigger agent actions based on external events
 - **Custom applications** - Allow your own services to invoke agents via HTTP
 
+<Warning>
+**User-scoped MCP servers are not supported with triggers.** Webhook triggers do not have user context, so the framework cannot determine which user's credentials to use. Use only project-scoped MCP servers with trigger-invoked agents. See [User vs Project MCPs](/deployment/inkeep-cloud/user-vs-project-mcp) for more details.
+</Warning>
+
 ## Creating Triggers
 
 ### Basic Trigger
