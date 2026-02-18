@@ -2,6 +2,7 @@ import { Hash } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { SLACK_BRAND_COLOR } from '@/constants/theme';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 
@@ -23,6 +24,8 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
     startTime,
   } = conversation;
 
+  // Backward-compat: ID prefix detects historical Slack conversations that predate the
+  // invocation.type span attribute. For new data, the authoritative source is invocation.type='slack'.
   const isSlackConversation = conversationId.startsWith('slack-');
 
   return (
@@ -37,7 +40,8 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
               {isSlackConversation && (
                 <Badge
                   variant="outline"
-                  className="flex items-center gap-1 text-[#4A154B] border-[#4A154B]/30"
+                  className="flex items-center gap-1"
+                  style={{ color: SLACK_BRAND_COLOR, borderColor: `${SLACK_BRAND_COLOR}4D` }}
                 >
                   <Hash className="h-3 w-3" />
                   Slack
