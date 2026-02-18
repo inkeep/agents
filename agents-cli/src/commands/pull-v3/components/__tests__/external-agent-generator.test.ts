@@ -268,8 +268,9 @@ describe('External Agent Generator', () => {
       );
     });
 
-    it('should generate complex external agent file with all features', () => {
-      const file = generateExternalAgentFile('complex-agent', complexExternalAgentData);
+    it.only('should generate complex external agent file with all features', async () => {
+      const externalAgentId = 'complex-agent';
+      const file = generateExternalAgentFile(externalAgentId, complexExternalAgentData);
 
       expect(file).toContain("import { externalAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const complexAgent = externalAgent({');
@@ -279,6 +280,12 @@ describe('External Agent Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      await expectExternalAgentDefinitionSnapshots(
+        externalAgentId,
+        complexExternalAgentData,
+        file.trimEnd()
+      );
     });
   });
 

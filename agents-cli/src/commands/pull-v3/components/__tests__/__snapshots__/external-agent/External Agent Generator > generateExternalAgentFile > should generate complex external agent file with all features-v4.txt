@@ -1,0 +1,13 @@
+import { externalAgent } from '@inkeep/agents-sdk';
+
+export const complexAgent = externalAgent({
+  id: 'complex-agent',
+  name: 'Complex External Agent',
+  description: 'A complex external agent with credential references and advanced configuration',
+  baseUrl: 'https://external-system.example.com/agents/complex',
+  credentialReference: {
+    id: 'weather-api-credentials',
+    name: 'Weather API Credentials',
+    description: 'API credentials for weather service'
+  }
+});
