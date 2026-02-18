@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import {
   type ArrayLiteralExpression,
@@ -195,7 +196,14 @@ function addValueToArray(arr: ArrayLiteralExpression, value: unknown) {
 }
 
 export async function expectSnapshots(definition: string, definitionV4: string): Promise<void> {
-  const testName = expect.getState().currentTestName;
-  await expect(definition).toMatchFileSnapshot(`__snapshots__/environment/${testName}.txt`);
-  await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/environment/${testName}-v4.txt`);
+  const { currentTestName, snapshotState } = expect.getState();
+
+  const snapshotDir = path.basename(snapshotState.testFilePath).replace('-generator.test.ts', '');
+
+  await expect(definition).toMatchFileSnapshot(
+    `__snapshots__/${snapshotDir}/${currentTestName}.txt`
+  );
+  await expect(definitionV4).toMatchFileSnapshot(
+    `__snapshots__/${snapshotDir}/${currentTestName}-v4.txt`
+  );
 }

@@ -4,8 +4,9 @@
  */
 
 import { generateAgentDefinition as generateAgentDefinitionV4 } from '../../../pull-v4/agent-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
-import { generateAgentDefinition, generateAgentFile } from '../agent-generator';
+import { generateAgentDefinition } from '../agent-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -133,11 +134,8 @@ describe('Agent Generator', () => {
       expect(definition).toContain('contextConfig: personalAgentContext');
       expect(definition).toContain('});');
       expect(definition).not.toContain('coordinatesAgent,'); // No trailing comma
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should generate agent with status updates', async () => {
@@ -160,11 +158,8 @@ describe('Agent Generator', () => {
         "prompt: 'Provide status updates on task progress and tool usage'"
       );
       expect(definition).toContain('},');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should generate agent with stopWhen configuration', async () => {
@@ -179,11 +174,8 @@ describe('Agent Generator', () => {
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 5 // Max transfers in one conversation');
       expect(definition).toContain('},');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     // it('should handle single sub-agent', () => {
@@ -242,11 +234,8 @@ describe('Agent Generator', () => {
       const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
       expect(definition).toContain('export const myComplexAgentV2 = agent({');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle multiline descriptions and prompts', async () => {
@@ -271,11 +260,8 @@ describe('Agent Generator', () => {
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...multilineData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     // it('should handle different code styles', () => {
@@ -316,11 +302,8 @@ describe('Agent Generator', () => {
       expect(definition).toContain('timeInSeconds: 15,');
       expect(definition).toContain("prompt: 'Test prompt'");
       expect(definition).not.toContain('statusComponents:'); // Empty array should be omitted
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...emptyStatusData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle statusUpdates without all optional fields', async () => {
@@ -347,11 +330,8 @@ describe('Agent Generator', () => {
       expect(definition).toContain('statusComponents: [\n      summary.config,\n    ]');
       expect(definition).not.toContain('timeInSeconds:');
       expect(definition).not.toContain('prompt:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...partialStatusData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should not generate stopWhen without transferCountIs', async () => {
@@ -373,11 +353,8 @@ describe('Agent Generator', () => {
       );
 
       expect(definition).not.toContain('stopWhen:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...noTransferCountData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -407,11 +384,8 @@ describe('Agent Generator', () => {
       expect(result.id).toBe('test-agent');
       expect(result.name).toBe('Personal Assistant Agent');
       // Note: result here refers to the agent definition, not the mock variables
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should generate complex agent code that compiles', async () => {
@@ -457,11 +431,8 @@ describe('Agent Generator', () => {
       );
       expect(result.stopWhen).toBeDefined();
       expect(result.stopWhen.transferCountIs).toBe(5);
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for minimal agent without required fields', () => {

@@ -5,6 +5,7 @@
  */
 
 import { generateContextConfigDefinition as generateContextConfigDefinitionV4 } from '../../../pull-v4/context-config-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateContextConfigDefinition,
@@ -181,13 +182,8 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('contextVariables: {');
       expect(definition).toContain('user: userFetcher');
       expect(definition).toContain('});');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...contextData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle context config without headers', async () => {
@@ -211,16 +207,11 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('contextVariables: {');
       expect(definition).toContain('config: someConfig,');
       expect(definition).toContain('data: someData');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({
         contextConfigId,
         ...dataWithoutHeaders,
       });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle context config without contextVariables', async () => {
@@ -239,16 +230,11 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('const headerOnlyContext = contextConfig({');
       expect(definition).toContain('headers: myHeaders');
       expect(definition).not.toContain('contextVariables:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({
         contextConfigId,
         ...dataWithoutVariables,
       });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle empty context config', async () => {
@@ -264,13 +250,8 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('headers:');
       expect(definition).not.toContain('contextVariables:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -358,16 +339,11 @@ describe('Context Config Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*const/s);
       expect(file.endsWith('\n')).toBe(true);
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({
         contextConfigId,
         ...fullContextData,
       });
-      await expect(file).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(file, definitionV4);
     });
 
     it.only('should generate simple context config file', async () => {
@@ -385,13 +361,8 @@ describe('Context Config Generator', () => {
       expect(file).toContain('export { simpleContext };');
       expect(file).not.toContain('headers');
       expect(file).not.toContain('fetchDefinition');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...simpleData });
-      await expect(file).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(file, definitionV4);
     });
   });
 
@@ -483,13 +454,8 @@ describe('Context Config Generator', () => {
       expect(result.headers).toBeDefined();
       expect(result.contextVariables).toBeDefined();
       expect(result.contextVariables.user).toBeDefined();
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...contextData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -514,16 +480,11 @@ describe('Context Config Generator', () => {
 
       expect(definition).toContain('const emptyHeaders = headers({');
       expect(definition).toContain('schema: z.any()');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({
         contextConfigId,
         ...emptySchemaData,
       });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle fetch definition with null and undefined values', async () => {
@@ -545,14 +506,9 @@ describe('Context Config Generator', () => {
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('trigger:');
       expect(definition).not.toContain('defaultValue:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...dataWithNulls });
       expect(definitionV4).toContain('fetchConfig: {');
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/context-config/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/context-config/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
   });
 });

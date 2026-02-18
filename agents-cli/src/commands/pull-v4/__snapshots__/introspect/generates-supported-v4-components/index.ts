@@ -1,5 +1,6 @@
 import { project } from '@inkeep/agents-sdk';
 import { supportAgent } from './agents/support-agent';
+import { customerProfile } from './data-components/customer-profile';
 import { ticketSummary } from './artifact-components/ticket-summary';
 import { apiCredentials } from './credentials/api-credentials';
 
@@ -13,6 +14,7 @@ export const supportProject = project({
     }
   },
   agents: () => [supportAgent],
+  dataComponents: () => [customerProfile],
   artifactComponents: () => [ticketSummary],
   credentialReferences: () => [apiCredentials]
 });

@@ -4,6 +4,7 @@
  */
 
 import { generateArtifactComponentDefinition as generateArtifactComponentDefinitionV4 } from '../../../pull-v4/artifact-component-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import {
   generateArtifactComponentDefinition,
   generateArtifactComponentFile,
@@ -141,18 +142,11 @@ describe('Artifact Component Generator', () => {
       expect(definition).toContain(
         'record_type: preview(z.string().describe("Type of record (documentation, blog, guide, etc.)")),'
       );
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...testComponentData,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle component ID to camelCase conversion', async () => {
@@ -166,18 +160,11 @@ describe('Artifact Component Generator', () => {
 
       expect(definition).toContain('export const documentTemplate = artifactComponent({');
       expect(definition).toContain("id: 'document-template',");
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...conversionData,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should not wrap non-preview fields with preview() function', async () => {
@@ -190,18 +177,11 @@ describe('Artifact Component Generator', () => {
       // Content field should not have preview() wrapper since inPreview is not set
       expect(definition).toContain('content: z.array(');
       expect(definition).not.toContain('content: preview(');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...testComponentData,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should throw error for missing required fields', () => {
@@ -232,18 +212,11 @@ describe('Artifact Component Generator', () => {
       const definition = generateArtifactComponentDefinition(artifactComponentId, dataWithTemplate);
 
       expect(definition).toContain("template: '<div>{{title}}</div>'");
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...dataWithTemplate,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle contentType property', async () => {
@@ -261,18 +234,11 @@ describe('Artifact Component Generator', () => {
       );
 
       expect(definition).toContain("contentType: 'text/html'");
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...dataWithContentType,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle multiline template with template literals', async () => {
@@ -303,18 +269,11 @@ describe('Artifact Component Generator', () => {
       );
 
       expect(definition).toContain(`template: \`${longTemplate}\``);
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...dataWithLongTemplate,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should throw error when only schema provided (needs props)', () => {
@@ -372,18 +331,11 @@ describe('Artifact Component Generator', () => {
 
       expect(definition).toContain('prop: preview(');
       expect(definition).not.toContain('schema:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...dataWithBoth,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle mixed preview and non-preview fields', async () => {
@@ -415,18 +367,11 @@ describe('Artifact Component Generator', () => {
       expect(definition).toContain(
         'regularField: z.string().describe("This is not shown in preview"),'
       );
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...mixedData,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -493,18 +438,11 @@ describe('Artifact Component Generator', () => {
 
       expect(result.id).toBe('simple-artifact');
       expect(result.name).toBe('Simple Artifact');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...simpleData,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -558,18 +496,11 @@ describe('Artifact Component Generator', () => {
       const artifactComponentId = 'nested';
       const definition = generateArtifactComponentDefinition(artifactComponentId, nestedData);
       expect(definition).toContain('export const nested = artifactComponent({');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateArtifactComponentDefinitionV4({
         artifactComponentId,
         ...nestedData,
       });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
+      await expectSnapshots(definition, definitionV4);
     });
   });
 });
