@@ -201,7 +201,8 @@ describe('Environment Settings Generator', () => {
       );
     });
 
-    it('should handle complex retrieval params', () => {
+    it.only('should handle complex retrieval params', async () => {
+      const environmentName = 'complex';
       const complexData = {
         credentials: {
           complex_cred: {
@@ -219,13 +220,15 @@ describe('Environment Settings Generator', () => {
         },
       };
 
-      const definition = generateEnvironmentSettingsDefinition('complex', complexData);
+      const definition = generateEnvironmentSettingsDefinition(environmentName, complexData);
 
       expect(definition).toContain("service: 'oauth-service',");
       expect(definition).toContain("account: 'user@example.com',");
       expect(definition).toContain('timeout: 5000,');
       expect(definition).toContain('retries: 3,');
       expect(definition).toContain('enabled: true');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(environmentName, complexData, definition);
     });
   });
 
