@@ -150,7 +150,7 @@ ${z.prettifyError(result.error)}`);
     );
   }
 
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile.getFullText();
 }
 
 function hasReferences(references?: string[]): references is string[] {
@@ -166,10 +166,6 @@ function addReferenceImports(sourceFile: SourceFile, references: string[], baseP
   }
 }
 
-function toReferenceNames(references?: string[]): string[] {
-  if (!hasReferences(references)) {
-    return [];
-  }
-
+function toReferenceNames(references: string[]): string[] {
   return references.map((reference) => toCamelCase(reference));
 }
