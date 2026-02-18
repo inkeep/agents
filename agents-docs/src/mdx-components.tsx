@@ -23,6 +23,7 @@ import {
 } from '@inkeep/docskit/mdx';
 import { createAPIPage } from 'fumadocs-openapi/ui';
 import { createGenerator } from 'fumadocs-typescript';
+import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { ComparisonTable } from '@/components/comparisons-table';
@@ -69,7 +70,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
       <AutoTypeTable defaultTypeLinks={defaultTypeLinks} {...props} generator={generator} />
     ),
     Image: (props) => (
-      <img
+      <ImageZoom
         alt={props.alt ?? 'Image'}
         {...props}
         height={props.height ?? 1200}
@@ -79,6 +80,16 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
       />
     ),
     ...components,
+    img: (props) => (
+      <img
+        alt={props.alt ?? 'Image'}
+        {...props}
+        height={props.height ?? 1200}
+        width={props.width ?? 1200}
+        sizes="100vw"
+        style={{ ...props.style, borderRadius: '10px', width: '100%' }}
+      />
+    ),
     Accordions,
     Accordion,
     BigVideo,
