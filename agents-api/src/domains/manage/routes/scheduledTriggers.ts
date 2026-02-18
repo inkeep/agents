@@ -87,6 +87,23 @@ async function validateRunAsUserId(params: {
   }
 }
 
+function validateRunNowDelegation(params: {
+  runAsUserId: string | null;
+  callerId: string;
+  tenantRole: OrgRole;
+}): void {
+  const { runAsUserId, callerId, tenantRole } = params;
+  if (!runAsUserId) return;
+  if (runAsUserId === callerId) return;
+  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+  if (!isAdmin) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'Only org admins or owners can run triggers configured to run as a different user.',
+    });
+  }
+}
+
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 const ScheduledTriggerIdParamsSchema = TenantProjectAgentParamsSchema.extend({
@@ -106,6 +123,20 @@ app.use('/:id', async (c, next) => {
     return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:id/run', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:id/invocations/:invocationId/rerun', async (c, next) => {
+  if (c.req.method === 'POST') {
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -959,6 +990,8 @@ app.openapi(
       id: scheduledTriggerId,
       invocationId,
     } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
@@ -999,6 +1032,12 @@ app.openapi(
         message: 'Scheduled trigger not found',
       });
     }
+
+    validateRunNowDelegation({
+      runAsUserId: trigger.runAsUserId,
+      callerId,
+      tenantRole,
+    });
 
     const { maxRetries, retryDelaySeconds, timeoutSeconds } = trigger;
 
@@ -1093,6 +1132,7 @@ app.openapi(
               userMessage,
               messageParts,
               resolvedRef,
+              runAsUserId: trigger.runAsUserId ?? undefined,
             }),
             timeoutPromise,
           ]);
@@ -1267,6 +1307,8 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId },
@@ -1285,6 +1327,12 @@ app.openapi(
         message: 'Scheduled trigger not found',
       });
     }
+
+    validateRunNowDelegation({
+      runAsUserId: trigger.runAsUserId,
+      callerId,
+      tenantRole,
+    });
 
     // Apply defaults for retry configuration
     const maxRetries = trigger.maxRetries ?? 1;
@@ -1315,6 +1363,7 @@ app.openapi(
         invocationId,
         maxRetries,
         retryDelaySeconds,
+        runAsUserId: trigger.runAsUserId,
       },
       'Created new invocation for manual run'
     );
@@ -1380,6 +1429,7 @@ app.openapi(
               userMessage,
               messageParts,
               resolvedRef,
+              runAsUserId: trigger.runAsUserId ?? undefined,
             }),
             timeoutPromise,
           ]);
