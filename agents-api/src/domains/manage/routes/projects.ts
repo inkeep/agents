@@ -78,6 +78,7 @@ app.openapi(
     if (userId) {
       const result = await listAccessibleProjectIds({
         userId,
+        tenantId,
         orgRole: tenantRole as OrgRole,
       });
       if (result !== 'all') {

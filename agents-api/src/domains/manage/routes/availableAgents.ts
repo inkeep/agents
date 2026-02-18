@@ -164,7 +164,7 @@ app.openapi(
     const { userId, tenantId } = user;
 
     // Get list of project IDs the user can use (SpiceDB lookup)
-    const projectIds = await listUsableProjectIds({ userId });
+    const projectIds = await listUsableProjectIds({ userId, tenantId });
 
     if (projectIds.length === 0) {
       return c.json({ data: [] });

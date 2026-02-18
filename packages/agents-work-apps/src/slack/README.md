@@ -26,7 +26,6 @@ Enables enterprise teams to interact with Inkeep AI agents directly from Slack v
 | `/inkeep link` | Link Slack account to Inkeep |
 | `/inkeep status` | Check account and agent status |
 | `/inkeep [message]` | Send a message to the default agent |
-| `/inkeep run "agent" [message]` | Send a message to a specific agent |
 
 ---
 
