@@ -5,8 +5,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { generateTriggerDefinition as generateTriggerDefinitionV4 } from '../../../pull-v4/trigger-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
-import { generateTriggerDefinition, generateTriggerFile } from '../trigger-generator';
+import { generateTriggerDefinition } from '../trigger-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -145,11 +146,8 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('signatureVerification:');
       expect(definition).not.toContain('signingSecretCredentialReference:');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...basicTriggerData });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate trigger with GitHub signature verification', async () => {
@@ -177,14 +175,11 @@ describe('Trigger Generator', () => {
       expect(definition).toContain("separator: ''");
       expect(definition).toContain('signingSecretCredentialReference: githubWebhookSecret');
       expect(definition).toContain('});');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({
         triggerId,
         ...triggerWithSignatureVerification,
       });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate trigger with Slack signature verification', async () => {
@@ -209,11 +204,8 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('allowEmptyBody: false,');
       expect(definition).toContain('normalizeUnicode: false');
       expect(definition).toContain('signingSecretCredentialReference: slackSigningSecret');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerWithSlackSignature });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate trigger with multiple algorithms', async () => {
@@ -234,11 +226,8 @@ describe('Trigger Generator', () => {
       );
 
       expect(definition).toContain("algorithm: 'sha512',");
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataSha512 });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate trigger with base64 encoding', async () => {
@@ -259,11 +248,8 @@ describe('Trigger Generator', () => {
       );
 
       expect(definition).toContain("encoding: 'base64',");
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataBase64 });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should generate trigger with regex in signature source', async () => {
@@ -288,11 +274,8 @@ describe('Trigger Generator', () => {
       );
 
       expect(definition).toContain("regex: 't=([^,]+)'");
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataWithRegex });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle optional signed components', async () => {
@@ -324,11 +307,8 @@ describe('Trigger Generator', () => {
 
       expect(definition).toContain('required: false');
       expect(definition).toContain('required: true');
-
-      const testName = expect.getState().currentTestName;
       const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataOptional });
-      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
-      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
+      await expectSnapshots(definition, definitionV4);
     });
     // TODO
     it.skip('should throw error if registry missing for credential reference', () => {

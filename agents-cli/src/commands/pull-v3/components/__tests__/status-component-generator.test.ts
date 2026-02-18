@@ -4,6 +4,7 @@
  */
 
 import { generateStatusComponentDefinition as generateStatusComponentDefinitionV4 } from '../../../pull-v4/status-component-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import {
   generateStatusComponentDefinition,
   generateStatusComponentFile,
@@ -36,25 +37,6 @@ describe('Status Component Generator', () => {
       },
       required: ['tool_name', 'purpose', 'outcome'],
     },
-  };
-
-  const expectStatusComponentDefinitionSnapshots = async (
-    statusComponentId: string,
-    definition: string,
-    componentData: Omit<
-      Parameters<typeof generateStatusComponentDefinitionV4>[0],
-      'statusComponentId'
-    >
-  ) => {
-    const testName = expect.getState().currentTestName;
-    await expect(definition).toMatchFileSnapshot(`__snapshots__/status-component/${testName}.txt`);
-    const definitionV4 = generateStatusComponentDefinitionV4({
-      statusComponentId,
-      ...componentData,
-    });
-    await expect(definitionV4).toMatchFileSnapshot(
-      `__snapshots__/status-component/${testName}-v4.txt`
-    );
   };
 
   describe('generateStatusComponentImports', () => {
@@ -111,11 +93,11 @@ describe('Status Component Generator', () => {
       expect(definition).toContain('detailsSchema: z.object({');
       expect(definition).toContain('});');
 
-      await expectStatusComponentDefinitionSnapshots(
+      const definitionV4 = generateStatusComponentDefinitionV4({
         statusComponentId,
-        definition,
-        testComponentData
-      );
+        ...testComponentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle component ID to camelCase conversion', async () => {
@@ -129,7 +111,11 @@ describe('Status Component Generator', () => {
       expect(definition).toContain('export const progressUpdate = statusComponent({');
       expect(definition).toContain("type: 'progress_update',");
 
-      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, componentData);
+      const definitionV4 = generateStatusComponentDefinitionV4({
+        statusComponentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing type', () => {
@@ -150,7 +136,11 @@ describe('Status Component Generator', () => {
       expect(definition).not.toContain('description:');
       expect(definition).not.toContain('detailsSchema:');
 
-      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, componentData);
+      const definitionV4 = generateStatusComponentDefinitionV4({
+        statusComponentId,
+        ...componentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle schema field (alternative to detailsSchema)', async () => {
@@ -171,7 +161,11 @@ describe('Status Component Generator', () => {
       expect(definition).toContain('detailsSchema: z.object({');
       expect(definition).toContain('value');
 
-      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithSchema);
+      const definitionV4 = generateStatusComponentDefinitionV4({
+        statusComponentId,
+        ...dataWithSchema,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should prefer detailsSchema over schema when both exist', async () => {
@@ -198,7 +192,11 @@ describe('Status Component Generator', () => {
       expect(definition).toContain('details');
       expect(definition).not.toContain('schema:');
 
-      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, dataWithBoth);
+      const definitionV4 = generateStatusComponentDefinitionV4({
+        statusComponentId,
+        ...dataWithBoth,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle multiline descriptions', async () => {
@@ -214,11 +212,11 @@ describe('Status Component Generator', () => {
 
       expect(definition).toContain(`description: \`${longDescription}\``);
 
-      await expectStatusComponentDefinitionSnapshots(
+      const definitionV4 = generateStatusComponentDefinitionV4({
         statusComponentId,
-        definition,
-        dataWithLongDesc
-      );
+        ...dataWithLongDesc,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it.only('should handle complex nested schema', async () => {
@@ -257,7 +255,11 @@ describe('Status Component Generator', () => {
       expect(definition).toContain('metadata');
       expect(definition).toContain('items');
 
-      await expectStatusComponentDefinitionSnapshots(statusComponentId, definition, complexData);
+      const definitionV4 = generateStatusComponentDefinitionV4({
+        statusComponentId,
+        ...complexData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
@@ -275,11 +277,11 @@ describe('Status Component Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      await expectStatusComponentDefinitionSnapshots(
+      const definitionV4 = generateStatusComponentDefinitionV4({
         statusComponentId,
-        file.trimEnd(),
-        testComponentData
-      );
+        ...testComponentData,
+      });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
   });
 
