@@ -20,10 +20,6 @@ const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
                   {breadcrumbs}
                 </ol>
               </nav>
-              <Separator
-                orientation="vertical"
-                className="mx-2 data-[orientation=vertical]:h-4 ml-auto"
-              />
               <HeaderMenus />
             </header>
             <main
