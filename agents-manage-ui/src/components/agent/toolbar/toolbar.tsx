@@ -1,4 +1,5 @@
-import { Play, Settings } from 'lucide-react';
+import { Activity, Play, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -14,9 +15,10 @@ interface ToolbarProps {
   onSubmit: () => MaybePromise<boolean>;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
+  tracesHref?: string;
 }
 
-export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
+export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHref }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -62,7 +64,15 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   }, [onSubmit]);
 
   return (
-    <div className="flex gap-2 flex-wrap justify-end content-start">
+    <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
+      {tracesHref && (
+        <Button {...commonProps} asChild>
+          <Link href={tracesHref}>
+            <Activity className="size-4 text-muted-foreground" />
+            Traces
+          </Link>
+        </Button>
+      )}
       {canUse && <ShipModal buttonClassName={commonProps.className} />}
       {(dirty || hasOpenModelConfig) && canUse ? (
         <Tooltip>

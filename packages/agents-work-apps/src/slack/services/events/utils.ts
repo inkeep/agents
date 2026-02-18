@@ -533,19 +533,22 @@ export async function getThreadContext(
       ? threadMessages.messages
       : threadMessages.messages.slice(0, -1);
 
+    const allMessages = threadMessages.messages;
+
     if (messagesToProcess.length === 0) {
       return '';
     }
 
-    // Build a cache of user IDs to names
-    const userNameCache = new Map<string, string>();
+    // Build a cache of user IDs to their Slack profile names
+    const userNameCache = new Map<
+      string,
+      { displayName: string | undefined; fullName: string | undefined; name: string | undefined }
+    >();
 
     if (resolveUserNames && slackClient.users) {
       const uniqueUserIds = [
         ...new Set(
-          messagesToProcess
-            .filter((m): m is typeof m & { user: string } => !!m.user)
-            .map((m) => m.user)
+          allMessages.filter((m): m is typeof m & { user: string } => !!m.user).map((m) => m.user)
         ),
       ];
 
@@ -553,20 +556,38 @@ export async function getThreadContext(
         uniqueUserIds.map(async (userId) => {
           try {
             const userInfo = await slackClient.users?.info({ user: userId });
-            const name =
-              userInfo?.user?.display_name ||
-              userInfo?.user?.real_name ||
-              userInfo?.user?.name ||
-              userId;
-            userNameCache.set(userId, name);
+            userNameCache.set(userId, {
+              displayName: userInfo?.user?.display_name,
+              fullName: userInfo?.user?.real_name,
+              name: userInfo?.user?.name,
+            });
           } catch {
-            userNameCache.set(userId, userId);
+            userNameCache.set(userId, {
+              displayName: undefined,
+              fullName: undefined,
+              name: undefined,
+            });
           }
         })
       );
     }
 
-    // Format messages with clear structure
+    // Build user directory mapping at the start of the context
+    const userDirectoryLines: string[] = [];
+    for (const [userId, info] of userNameCache) {
+      const parts = [`userId: ${userId}`];
+      if (info.displayName) parts.push(`"${info.displayName}"`);
+      if (info.fullName) parts.push(`"${info.fullName}"`);
+      if (info.name) parts.push(`"${info.name}"`);
+      userDirectoryLines.push(`- ${parts.join(', ')}`);
+    }
+
+    const userDirectory =
+      userDirectoryLines.length > 0
+        ? `Users in this thread (UserId - DisplayName, FullName, Name):\n${userDirectoryLines.join('\n')}\n\n`
+        : '';
+
+    // Format messages using only user IDs
     const formattedMessages = messagesToProcess.map((msg, index) => {
       const isBot = !!msg.bot_id;
       const isParent = index === 0;
@@ -575,25 +596,43 @@ export async function getThreadContext(
       if (isBot) {
         role = 'Inkeep Agent';
       } else if (msg.user) {
-        role = resolveUserNames ? userNameCache.get(msg.user) || msg.user : `<@${msg.user}>`;
+        role = msg.user;
       } else {
         role = 'Unknown';
       }
 
       const prefix = isParent ? '[Thread Start] ' : '';
-      const messageText =
-        msg.text?.replace(/<@U[A-Z0-9]+>/g, (match) => {
-          const userId = match.slice(2, -1);
-          return `@${userNameCache.get(userId) || userId}`;
-        }) || '';
+      const messageText = msg.text || '';
 
-      return `${prefix}${role}: ${messageText}`;
+      return `${prefix}${role}: """${messageText}"""`;
     });
 
-    return formattedMessages.join('\n\n');
+    return `${userDirectory}Messages in this thread:\n${formattedMessages.join('\n\n')}`;
   } catch (threadError) {
     logger.warn({ threadError, channel, threadTs }, 'Failed to fetch thread context');
   }
 
   return '';
+}
+
+export async function timedOp<T>(
+  operation: Promise<T>,
+  opts: { warnThresholdMs?: number; label: string; context: Record<string, unknown> }
+): Promise<{ result: T; durationMs: number }> {
+  const { warnThresholdMs = 3000, label, context } = opts;
+  const start = Date.now();
+  const result = await operation;
+  const durationMs = Date.now() - start;
+  if (durationMs > warnThresholdMs)
+    logger.warn({ ...context, durationMs, operation: label }, `Slow ${label}`);
+  return { result, durationMs };
+}
+
+export function formatChannelLabel(channelInfo: { name?: string } | null): string {
+  return channelInfo?.name ? `#${channelInfo.name}` : '';
+}
+
+export function formatChannelContext(channelInfo: { name?: string } | null): string {
+  const label = formatChannelLabel(channelInfo);
+  return label ? `the Slack channel ${label}` : 'Slack';
 }

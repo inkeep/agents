@@ -1,22 +1,10 @@
 'use client';
 
-import {
-  Ban,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  Filter,
-  Loader2,
-  MoreHorizontal,
-  RotateCcw,
-  X,
-  XCircle,
-} from 'lucide-react';
+import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import {
@@ -25,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ExternalLink } from '@/components/ui/external-link';
 import {
   Table,
   TableBody,
@@ -39,82 +28,21 @@ import {
   rerunScheduledTriggerInvocationAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocationWithContext } from '@/lib/api/project-triggers';
+import {
+  formatInvocationDateTime,
+  formatInvocationDuration,
+  getInvocationStatusBadge,
+  INVOCATION_STATUS_OPTIONS,
+  type InvocationStatus,
+} from '@/lib/utils/invocation-display';
+import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 
 const POLLING_INTERVAL_MS = 3000;
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'All statuses' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'running', label: 'Running' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'failed', label: 'Failed' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
 
 interface ProjectScheduledTriggerInvocationsTableProps {
   invocations: ScheduledTriggerInvocationWithContext[];
   tenantId: string;
   projectId: string;
-}
-
-type InvocationStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-
-function getStatusBadge(status: InvocationStatus) {
-  switch (status) {
-    case 'pending':
-      return (
-        <Badge variant="outline" className="gap-1">
-          <Clock className="w-3 h-3" />
-          Pending
-        </Badge>
-      );
-    case 'running':
-      return (
-        <Badge variant="default" className="gap-1 bg-blue-500">
-          <Loader2 className="w-3 h-3 animate-spin" />
-          Running
-        </Badge>
-      );
-    case 'completed':
-      return (
-        <Badge variant="default" className="gap-1 bg-blue-500">
-          <CheckCircle2 className="w-3 h-3" />
-          Completed
-        </Badge>
-      );
-    case 'failed':
-      return (
-        <Badge variant="destructive" className="gap-1">
-          <XCircle className="w-3 h-3" />
-          Failed
-        </Badge>
-      );
-    case 'cancelled':
-      return (
-        <Badge variant="secondary" className="gap-1">
-          <Ban className="w-3 h-3" />
-          Cancelled
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
-
-function formatDateTime(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleString();
-}
-
-function formatDuration(startedAt: string | null, completedAt: string | null): string {
-  if (!startedAt || !completedAt) return '—';
-  const start = new Date(startedAt).getTime();
-  const end = new Date(completedAt).getTime();
-  const durationMs = end - start;
-
-  if (durationMs < 1000) return `${durationMs}ms`;
-  if (durationMs < 60000) return `${(durationMs / 1000).toFixed(1)}s`;
-  return `${(durationMs / 60000).toFixed(1)}m`;
 }
 
 export function ProjectScheduledTriggerInvocationsTable({
@@ -279,7 +207,6 @@ export function ProjectScheduledTriggerInvocationsTable({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <Filter className="h-4 w-4 text-muted-foreground" />
         <Combobox
           options={agentOptions}
           onSelect={setAgentFilter}
@@ -288,6 +215,15 @@ export function ProjectScheduledTriggerInvocationsTable({
           searchPlaceholder="Search agents..."
           notFoundMessage="No agents found."
           className="w-[180px]"
+          TriggerComponent={
+            <FilterTriggerComponent
+              filterLabel={agentFilter ? 'Agent' : 'All agents'}
+              multipleCheckboxValues={agentFilter ? [agentFilter] : []}
+              isRemovable={true}
+              onDeleteFilter={() => setAgentFilter('')}
+              options={agentOptions}
+            />
+          }
         />
         <Combobox
           options={triggerOptions}
@@ -297,32 +233,34 @@ export function ProjectScheduledTriggerInvocationsTable({
           searchPlaceholder="Search triggers..."
           notFoundMessage="No triggers found."
           className="w-[180px]"
+          TriggerComponent={
+            <FilterTriggerComponent
+              filterLabel={triggerFilter ? 'Trigger' : 'All triggers'}
+              multipleCheckboxValues={triggerFilter ? [triggerFilter] : []}
+              isRemovable={true}
+              onDeleteFilter={() => setTriggerFilter('')}
+              options={triggerOptions}
+            />
+          }
         />
         <Combobox
-          options={STATUS_OPTIONS}
+          options={INVOCATION_STATUS_OPTIONS}
           onSelect={setStatusFilter}
           defaultValue={statusFilter}
           placeholder="Filter by status"
           searchPlaceholder="Search status..."
           notFoundMessage="No status found."
           className="w-[160px]"
+          TriggerComponent={
+            <FilterTriggerComponent
+              filterLabel={statusFilter ? 'Status' : 'All statuses'}
+              multipleCheckboxValues={statusFilter ? [statusFilter] : []}
+              isRemovable={true}
+              onDeleteFilter={() => setStatusFilter('')}
+              options={INVOCATION_STATUS_OPTIONS}
+            />
+          }
         />
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="h-8 px-2 text-muted-foreground"
-          >
-            <X className="h-4 w-4 mr-1" />
-            Clear filters
-          </Button>
-        )}
-        {hasActiveFilters && (
-          <span className="text-sm text-muted-foreground">
-            Showing {filteredInvocations.length} of {invocations.length} invocations
-          </span>
-        )}
       </div>
 
       <div className="rounded-lg border">
@@ -342,9 +280,16 @@ export function ProjectScheduledTriggerInvocationsTable({
             {filteredInvocations.length === 0 ? (
               <TableRow noHover>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  {invocations.length === 0
-                    ? 'No invocations yet. Create scheduled triggers to see their invocations here.'
-                    : 'No invocations match the current filters.'}
+                  <p>
+                    {invocations.length === 0
+                      ? 'No invocations yet. Create scheduled triggers to see their invocations here.'
+                      : 'No invocations match the current filters.'}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="link" size="sm" onClick={clearFilters}>
+                      Clear filters
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
@@ -378,31 +323,33 @@ export function ProjectScheduledTriggerInvocationsTable({
                     </TableCell>
                     <TableCell>
                       <div className="font-mono text-sm">
-                        {formatDateTime(invocation.scheduledFor)}
+                        {formatInvocationDateTime(invocation.scheduledFor)}
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(invocation.status as InvocationStatus)}</TableCell>
+                    <TableCell>
+                      {getInvocationStatusBadge(invocation.status as InvocationStatus)}
+                    </TableCell>
                     <TableCell>
                       <div className="text-sm text-muted-foreground">
-                        {formatDuration(invocation.startedAt, invocation.completedAt)}
+                        {formatInvocationDuration(invocation.startedAt, invocation.completedAt)}
                       </div>
                     </TableCell>
                     <TableCell>
                       {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
                         <div className="flex flex-col gap-1">
                           {invocation.conversationIds.map((convId: string, idx: number) => (
-                            <Link
+                            <ExternalLink
                               key={convId}
                               href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                              className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
+                              className="text-primary no-underline"
+                              iconClassName="text-primary"
                             >
                               {invocation.conversationIds &&
                                 invocation.conversationIds.length > 1 && (
                                   <span className="text-muted-foreground text-xs">#{idx + 1}</span>
                                 )}
                               View
-                              <ExternalLink className="w-3 h-3" />
-                            </Link>
+                            </ExternalLink>
                           ))}
                         </div>
                       ) : (
@@ -420,16 +367,16 @@ export function ProjectScheduledTriggerInvocationsTable({
                           <DropdownMenuContent align="end">
                             {canRerun && (
                               <DropdownMenuItem onClick={() => rerunInvocation(invocation)}>
-                                <RotateCcw className="w-4 h-4 mr-2" />
+                                <RotateCcw className="w-4 h-4" />
                                 Rerun
                               </DropdownMenuItem>
                             )}
                             {canCancel && (
                               <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
+                                variant="destructive"
                                 onClick={() => cancelInvocation(invocation)}
                               >
-                                <Ban className="w-4 h-4 mr-2" />
+                                <Ban className="w-4 h-4" />
                                 Cancel
                               </DropdownMenuItem>
                             )}

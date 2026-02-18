@@ -1,5 +1,155 @@
 # @inkeep/agents-api
 
+## 0.49.0
+
+### Patch Changes
+
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+- Updated dependencies [3f556b7]
+  - @inkeep/agents-work-apps@0.49.0
+  - @inkeep/agents-core@0.49.0
+  - @inkeep/agents-mcp@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+  - @inkeep/agents-work-apps@0.48.7
+  - @inkeep/agents-mcp@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-work-apps@0.48.6
+  - @inkeep/agents-mcp@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- ded8362: improve performance time for traces on vercel
+- Updated dependencies [f39f8b0]
+  - @inkeep/agents-work-apps@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-manage-mcp@0.48.5
+  - @inkeep/agents-mcp@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 37e72ed: Now localhost origins are only allowed when ENVIRONMENT is development or test. In production/pentest, CORS will require either INKEEP_AGENTS_MANAGE_UI_URL to be set or the origin to share the same base
+- Updated dependencies [11f4e14]
+- Updated dependencies [2a91f04]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-work-apps@0.48.4
+  - @inkeep/agents-manage-mcp@0.48.4
+  - @inkeep/agents-mcp@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- 9b64a7d: Fix internal fetch routing when deployed with Vercel bundling (cron triggers)
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-work-apps@0.48.3
+  - @inkeep/agents-manage-mcp@0.48.3
+  - @inkeep/agents-mcp@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.2
+- @inkeep/agents-manage-mcp@0.48.2
+- @inkeep/agents-mcp@0.48.2
+- @inkeep/agents-work-apps@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- Updated dependencies [a0464cb]
+  - @inkeep/agents-work-apps@0.48.1
+  - @inkeep/agents-core@0.48.1
+  - @inkeep/agents-manage-mcp@0.48.1
+  - @inkeep/agents-mcp@0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- 87270d9: Added tool call id to tool call results
+- f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
+- 0fd8b63: Add error logging to trigger execution paths and update invocation status to 'failed' on errors
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 7cb0d54: Normalize JSON schemas for OpenAI structured output compatibility
+- 80152a1: Fix internal A2A and self-referencing calls to use in-process fetch transport instead of network loopback, ensuring same-instance execution for features relying on process-local state like SSE stream registries
+- 7ad7e21: Refactor artifact and data component validation to use centralized Zod schemas from agents-core. This eliminates duplicate validation logic and improves consistency across the codebase.
+- aee6362: Fix missing OpenTelemetry spans in Vercel serverless streaming responses
+- 6922f83: Add SpiceDB authorization sync for project create and delete operations
+- 95a3abc: Add scheduled/cron trigger support across the full stack — database schema, API routes, Manage UI
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [7417653]
+- Updated dependencies [94fcd60]
+- Updated dependencies [228d4e2]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [2521fcf]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+  - @inkeep/agents-core@0.48.0
+  - @inkeep/agents-work-apps@0.48.0
+  - @inkeep/agents-manage-mcp@0.48.0
+  - @inkeep/agents-mcp@0.48.0
+
 ## 0.47.5
 
 ### Patch Changes

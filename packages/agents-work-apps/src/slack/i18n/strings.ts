@@ -56,7 +56,7 @@ export const SlackStrings = {
   usage: {
     mentionEmpty:
       '*To use your Inkeep agent, include a message:*\n\n' +
-      '• `@Inkeep <message>` — Send a message to your agent (reply appears in a thread)\n' +
+      '• `@Inkeep <message>` — Send a message to the default agent for the channel (reply appears in a thread)\n' +
       '• `@Inkeep <message>` in a thread — Includes the thread as context for your agent\n' +
       '• `@Inkeep` in a thread — Triggers your agent using the full thread as context\n\n' +
       '💡 Use `/inkeep help` for all available commands.',
@@ -80,28 +80,19 @@ export const SlackStrings = {
     title: 'Inkeep — How to Use',
     publicSection:
       '🔊 *Public* — everyone in the channel can see the response\n\n' +
-      '• `@Inkeep <message>` — Send a message to your agent\n' +
+      '• `@Inkeep <message>` — message the default agent in this channel\n' +
       '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
       '• `@Inkeep` in a thread — Uses the full thread as context',
     privateSection:
       '🔒 *Private* — only you can see the response\n\n' +
-      '• `/inkeep <message>` — Send a message to your agent\n' +
-      '• `/inkeep` — Open the agent picker to choose an agent and prompt',
+      '• `/inkeep <message>` — message the default agent in this channel\n' +
+      '• `/inkeep` — Open the agent picker to choose an agent and write a prompt',
     otherCommands:
       '⚙️ *Other Commands*\n\n' +
-      '• `/inkeep run "agent name" <message>` — Use a specific agent\n' +
-      '• `/inkeep list` — List available agents\n' +
       '• `/inkeep status` — Check your connection and agent config\n' +
       '• `/inkeep link` / `/inkeep unlink` — Manage account connection\n' +
       '• `/inkeep help` — Show this message',
-  },
-
-  // Agent list
-  agentList: {
-    title: '🤖 Available Agents',
-    usage: 'Usage:',
-    runUsage: '`/inkeep run "agent name" question` - Run a specific agent',
-    andMore: (count: number) => `...and ${count} more`,
+    docsLink: '📖 <https://docs.inkeep.com/talk-to-your-agents/slack/overview|Learn more>',
   },
 
   // Message context (for message shortcut modal)

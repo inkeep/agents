@@ -11,7 +11,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.5",
     "@hono/zod-openapi": "^1.1.5",
-    "@inkeep/agents-api": "^0.47.5",
+    "@inkeep/agents-api": "^0.49.0",
     "hono": "^4.11.7",
     "zod": "^4.3.6"
   },

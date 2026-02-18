@@ -1,7 +1,8 @@
 'use client';
 
-import { MessageSquare } from 'lucide-react';
+import { SlackIcon } from 'lucide-react';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,11 @@ import { useSlack } from '../context/slack-provider';
 import { AgentConfigurationCard } from './agent-configuration-card';
 import { LinkedUsersSection } from './linked-users-section';
 import { MyLinkStatus } from './my-link-status';
-import { NotificationBanner } from './notification-banner';
 import { WorkspaceHero } from './workspace-hero';
 
 export function SlackDashboard() {
   const { user, installedWorkspaces, actions } = useSlack();
-  const { handleInstallClick, setNotification } = actions;
+  const { handleInstallClick } = actions;
   const { isAdmin, isLoading: isLoadingRole } = useIsOrgAdmin();
 
   const hasWorkspace = installedWorkspaces.data.length > 0;
@@ -34,18 +34,10 @@ export function SlackDashboard() {
 
     if (error) {
       if (error === 'access_denied') {
-        setNotification({
-          type: 'info',
-          message: 'Slack installation was cancelled.',
-          action: 'cancelled',
-        });
+        toast.info('Slack installation was cancelled.');
       } else {
         console.error('Slack OAuth Error:', error);
-        setNotification({
-          type: 'error',
-          message: `Slack installation failed: ${error}`,
-          action: 'error',
-        });
+        toast.error(`Slack installation failed: ${error}`);
       }
       window.history.replaceState({}, '', window.location.pathname);
       return;
@@ -55,25 +47,16 @@ export function SlackDashboard() {
       try {
         const workspace = JSON.parse(workspaceData);
 
-        setNotification({
-          type: 'success',
-          message: `Workspace "${workspace.teamName}" installed successfully!`,
-          action: 'installed',
-        });
-
+        toast.success(`Workspace "${workspace.teamName}" installed successfully!`);
         installedWorkspaces.refetch();
       } catch (e) {
         console.error('Failed to parse workspace data:', e);
-        setNotification({
-          type: 'error',
-          message: 'Failed to process workspace data',
-          action: 'error',
-        });
+        toast.error('Failed to process workspace data');
       }
 
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [setNotification, installedWorkspaces]);
+  }, [installedWorkspaces]);
 
   return (
     <TooltipProvider>
@@ -113,14 +96,12 @@ export function SlackDashboard() {
             hasWorkspace &&
             isAdmin && (
               <Button className="gap-2" onClick={handleInstallClick}>
-                <MessageSquare className="h-4 w-4" />
+                <SlackIcon className="h-4 w-4" />
                 Add Workspace
               </Button>
             )
           }
         />
-
-        <NotificationBanner />
 
         {/* Workspace Status */}
         <WorkspaceHero />
@@ -140,85 +121,18 @@ export function SlackDashboard() {
               </div>
             ) : isAdmin ? (
               /* Admin Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2">
-                  <AgentConfigurationCard />
-                </div>
-
-                {/* Sidebar - Admin Tools */}
-                <div className="space-y-6">
-                  <LinkedUsersSection />
-
-                  {/* Admin Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Admin Tips</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Set a <strong>workspace default</strong> agent for all channels
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Use <strong>channel defaults</strong> to set a specific agent per channel
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Members can configure channels they&apos;re in</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Export linked users for auditing or reporting</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+              <div className="grid gap-6">
+                {/* Agent Configuration  */}
+                <AgentConfigurationCard />
+                <LinkedUsersSection />
               </div>
             ) : (
               /* Member Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2 space-y-6">
-                  <AgentConfigurationCard />
-                </div>
-
+              <div className="grid gap-6 ">
+                {/* Agent Configuration */}
+                <AgentConfigurationCard />
                 {/* Sidebar - Member Tools */}
-                <div className="space-y-6">
-                  <MyLinkStatus currentUserId={user?.id} />
-
-                  {/* Member Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Getting Started</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Run <code className="bg-muted px-1 rounded">/inkeep link</code> in Slack
-                          to connect your account
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          @mention the bot or use{' '}
-                          <code className="bg-muted px-1 rounded">/inkeep</code> to ask questions
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Configure agents for channels you&apos;re a member of</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>The workspace default is set by your admin</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                <MyLinkStatus currentUserId={user?.id} />
               </div>
             )}
           </>

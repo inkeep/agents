@@ -309,6 +309,8 @@ For dependency changes, vendored code, and license file modifications:
 
 For AGENTS.md, skills, rules, and agent definitions:
 
+**Statelessness:** AI artifacts should represent the current authoritative state, not reference prior versions. Flag "this supersedes", "previously", "updated from", or "replaces the old" language — agents have no memory of previous versions, so temporal framing wastes context tokens and adds noise. Change notes belong in commit messages or changelogs, not in the artifact itself.
+
 ### 8.1 AGENTS.md / CLAUDE.md
 - **Size:** Is the file reasonably sized? (Excessively long files dilute attention)
 - **Structure:** Clear sections with scannable headings?

@@ -1,6 +1,6 @@
 'use client';
 
-import { Github, Plug, Slack } from 'lucide-react';
+import { Blocks, Github, Slack } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,7 @@ const navItems = [
   {
     label: 'All Apps',
     href: (tenantId: string) => `/${tenantId}/work-apps`,
-    icon: Plug,
+    icon: Blocks,
     exact: true,
   },
   {

@@ -126,13 +126,3 @@ export const LOCAL_REMOTE = {
   api: 'http://localhost:3002',
   manageUi: 'http://localhost:3000',
 } as const;
-
-/**
- * Default local profile configuration
- * Note: credential is 'none' as local deployments typically don't require auth
- */
-export const DEFAULT_LOCAL_PROFILE: Profile = {
-  remote: LOCAL_REMOTE,
-  credential: 'none',
-  environment: 'development',
-};

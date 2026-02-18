@@ -84,40 +84,6 @@ export function buildConversationResponseBlocks(params: {
   return blocks;
 }
 
-export function createAgentListMessage(
-  agents: Array<{ id: string; name: string | null; projectName: string | null }>,
-  dashboardUrl: string
-) {
-  const agentList = agents
-    .slice(0, 15)
-    .map(
-      (a) => `• ${Md.bold(a.name || a.id)} ${a.projectName ? `(${Md.italic(a.projectName)})` : ''}`
-    )
-    .join('\n');
-
-  const moreText =
-    agents.length > 15 ? `\n\n${SlackStrings.agentList.andMore(agents.length - 15)}` : '';
-
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold(SlackStrings.agentList.title)}\n\n` +
-          agentList +
-          moreText +
-          '\n\n' +
-          `${Md.bold(SlackStrings.agentList.usage)}\n` +
-          `• ${SlackStrings.agentList.runUsage}`
-      ),
-      Blocks.Actions().elements(
-        Elements.Button()
-          .text(SlackStrings.buttons.openDashboard)
-          .url(dashboardUrl)
-          .actionId('view_agents')
-      )
-    )
-    .buildToObject();
-}
-
 export function createUpdatedHelpMessage() {
   return Message()
     .blocks(
@@ -126,7 +92,9 @@ export function createUpdatedHelpMessage() {
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.privateSection),
       Blocks.Divider(),
-      Blocks.Section().text(SlackStrings.help.otherCommands)
+      Blocks.Section().text(SlackStrings.help.otherCommands),
+      Blocks.Divider(),
+      Blocks.Section().text(SlackStrings.help.docsLink)
     )
     .buildToObject();
 }
