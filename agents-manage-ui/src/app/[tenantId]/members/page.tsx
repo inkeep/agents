@@ -37,7 +37,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
 
   const [emailChips, setEmailChips] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
-  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.ADMIN);
+  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -153,7 +153,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
     if (!open) {
       setEmailChips([]);
       setEmailInput('');
-      setSelectedRole(OrgRoles.ADMIN);
+      setSelectedRole(OrgRoles.MEMBER);
     }
   };
 

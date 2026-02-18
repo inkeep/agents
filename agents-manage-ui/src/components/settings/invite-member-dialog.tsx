@@ -102,7 +102,7 @@ export function InviteMemberDialog({
 
   const [emailChips, setEmailChips] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
-  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.ADMIN);
+  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
   const [selectedAuthMethod, setSelectedAuthMethod] = useState<InviteAuthMethod>(defaultAuthMethod);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -264,7 +264,7 @@ export function InviteMemberDialog({
       const hadSuccessfulInvitations = invitationResults.some((r) => r.status === 'success');
       setEmailChips([]);
       setEmailInput('');
-      setSelectedRole(OrgRoles.ADMIN);
+      setSelectedRole(OrgRoles.MEMBER);
       setSelectedAuthMethod(defaultAuthMethod);
       setError(null);
       setInvitationResults([]);
