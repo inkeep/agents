@@ -248,7 +248,7 @@ app.openapi(
       if (intent) {
         logger.info(
           {
-            event: 'smart_link_intent_captured',
+            event: 'smart_link_intent_resume_triggered',
             entryPoint: intent.entryPoint,
             questionLength: intent.question.length,
           },

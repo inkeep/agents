@@ -44,14 +44,21 @@ export async function resumeSmartLinkIntent(params: ResumeSmartLinkIntentParams)
       slackEnterpriseId,
     });
 
+    let resolvedAgentId: string | undefined;
+    let deliveryMethod: string | undefined;
+
     switch (intent.entryPoint) {
       case 'mention':
+        resolvedAgentId = intent.agentId;
+        deliveryMethod = 'streaming';
         await resumeMention(intent, slackClient, slackUserToken, slackUserId, teamId);
         break;
       case 'question_command':
+        deliveryMethod = intent.responseUrl ? 'response_url' : 'bot_token';
         await resumeCommand(intent, slackClient, slackUserToken, slackUserId, teamId, tenantId);
         break;
       case 'run_command':
+        deliveryMethod = intent.responseUrl ? 'response_url' : 'bot_token';
         await resumeRunCommand(intent, slackClient, slackUserToken, slackUserId, teamId, tenantId);
         break;
     }
@@ -62,6 +69,8 @@ export async function resumeSmartLinkIntent(params: ResumeSmartLinkIntentParams)
         event: 'smart_link_intent_resumed',
         entryPoint: intent.entryPoint,
         channelId: intent.channelId,
+        agentId: resolvedAgentId || intent.agentId,
+        deliveryMethod,
         durationMs,
       },
       'Smart link intent resumed'
@@ -178,14 +187,11 @@ async function resumeRunCommand(
     return;
   }
 
-  const authToken = await signSlackUserToken({
-    inkeepUserId: slackUserId,
+  const agentInfo = await findAgentByIdentifierViaApi(
     tenantId,
-    slackTeamId: teamId,
-    slackUserId,
-  });
-
-  const agentInfo = await findAgentByIdentifierViaApi(tenantId, intent.agentIdentifier, authToken);
+    intent.agentIdentifier,
+    slackUserToken
+  );
 
   if (!agentInfo) {
     await postErrorToChannel(
