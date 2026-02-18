@@ -4,7 +4,12 @@
  * Unit tests for environment settings generator
  */
 
-import { describe, expect, it } from 'vitest';
+import {
+  generateEnvironmentIndexDefinition as generateEnvironmentIndexDefinitionV4,
+  generateEnvironmentIndexFile as generateEnvironmentIndexFileV4,
+  generateEnvironmentSettingsDefinition as generateEnvironmentSettingsDefinitionV4,
+  generateEnvironmentSettingsFile as generateEnvironmentSettingsFileV4,
+} from '../../../pull-v4/environment-generator';
 import {
   generateEnvironmentIndexDefinition,
   generateEnvironmentIndexFile,
@@ -85,8 +90,9 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentSettingsDefinition', () => {
-    it('should generate correct definition with credentials', () => {
-      const definition = generateEnvironmentSettingsDefinition('development', developmentData);
+    it.only('should generate correct definition with credentials', async () => {
+      const environmentName = 'development';
+      const definition = generateEnvironmentSettingsDefinition(environmentName, developmentData);
 
       expect(definition).toContain('export const development = registerEnvironmentSettings({');
       expect(definition).toContain('credentials: {');
@@ -98,6 +104,12 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'STRIPE_API_KEY_DEV'");
       expect(definition).toContain('});');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(
+        environmentName,
+        developmentData,
+        definition
+      );
     });
 
     it('should handle multiple credentials', () => {
