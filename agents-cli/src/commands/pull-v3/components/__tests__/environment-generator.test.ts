@@ -147,13 +147,16 @@ describe('Environment Settings Generator', () => {
       );
     });
 
-    it('should handle empty credentials', () => {
+    it.only('should handle empty credentials', async () => {
       const emptyData = { credentials: {} };
-      const definition = generateEnvironmentSettingsDefinition('test', emptyData);
+      const environmentName = 'test';
+      const definition = generateEnvironmentSettingsDefinition(environmentName, emptyData);
 
       expect(definition).toContain('export const test = registerEnvironmentSettings({');
       expect(definition).toContain('credentials: {}');
       expect(definition).toContain('});');
+
+      await expectEnvironmentSettingsDefinitionSnapshots(environmentName, emptyData, definition);
     });
 
     it('should handle environment with no credentials field', () => {
