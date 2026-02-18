@@ -75,15 +75,6 @@ jobs:
             ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-
             ${{ runner.os }}-nextjs-build-
 
-      - name: Setup agents-docs build cache
-        uses: actions/cache@v4
-        with:
-          path: agents-docs/.next/cache
-          key: ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-docs/content/**', 'agents-docs/src/**', 'packages/agents-core/src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-docs-build-
-
       - name: Setup Playwright cache
         uses: actions/cache@v4
         with:
@@ -106,12 +97,11 @@ jobs:
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Run all CI checks in parallel with Turborepo
+      # agents-docs is excluded here and built in ci-docs.yml to prevent OOM kills
       - name: Run CI checks
         id: ci-check
         run: |
-          # Run all checks in parallel using Turborepo's dependency graph
-          # This will build once and cache, then run lint, typecheck, and test in parallel
-          pnpm check
+          turbo check --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'
         env:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
