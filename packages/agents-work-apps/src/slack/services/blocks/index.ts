@@ -208,9 +208,7 @@ export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) 
       Blocks.Actions().elements(
         Elements.Button().text('🔗 Link Account').url(linkUrl).actionId('link_account').primary()
       ),
-      Blocks.Context().elements(
-        `This link expires in ${expiresInMinutes} minutes`
-      )
+      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes`)
     )
     .buildToObject();
 }
