@@ -112,8 +112,9 @@ describe('Environment Settings Generator', () => {
       );
     });
 
-    it('should handle multiple credentials', () => {
-      const definition = generateEnvironmentSettingsDefinition('development', developmentData);
+    it.only('should handle multiple credentials', async () => {
+      const environmentName = 'development';
+      const definition = generateEnvironmentSettingsDefinition(environmentName, developmentData);
 
       expect(definition).toContain("'stripe_api_key': {");
       expect(definition).toContain("'database_url': {");
@@ -121,6 +122,12 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('type: CredentialStoreType.env,');
       expect(definition).toContain("description: 'Database connection string',");
       expect(definition).toContain("fallback: 'postgresql://localhost:5432/dev'");
+
+      await expectEnvironmentSettingsDefinitionSnapshots(
+        environmentName,
+        developmentData,
+        definition
+      );
     });
 
     it('should handle production environment with keychain credentials', () => {
