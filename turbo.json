@@ -58,17 +58,6 @@
       "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
       "outputs": ["coverage/**"]
     },
-    "@inkeep/agents-manage-mcp#build": {
-      "dependsOn": ["^build", "sync:licenses"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/*.test.*",
-        "!**/*.spec.*",
-        "!**/__tests__/**",
-        ".env.example"
-      ],
-      "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
-    },
     "@inkeep/agents-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
       "inputs": [
