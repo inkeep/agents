@@ -10,8 +10,15 @@ const OUTPUT_DIR = 'content/api-reference/(openapi)';
 
 const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
-const ignoreRoutes = new Set(['/health', '/ready', '/manage/capabilities']);
-
+const ignoredRoutePrefixes = new Set(['/health', '/ready', '/manage/capabilities']);
+const ignoredRouteSegments = ['/evals/'];
+function isIgnoredRoute(path: string): boolean {
+  return ignoredRouteSegments.some((segment) => path.includes(segment));
+}
+const hiddenTags = new Set(['Evaluations'] satisfies (keyof typeof TagToDescription)[]);
+function toTagFileName(tagName: string): string {
+  return `${tagName.replace(/\s+/g, '-').toLowerCase()}.mdx`;
+}
 const usedTags = new Set<string>();
 
 const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
@@ -71,7 +78,7 @@ async function main(): Promise<void> {
     toPages(builder) {
       const { operations } = builder.extract();
       for (const op of operations) {
-        if (ignoreRoutes.has(op.path)) {
+        if (ignoredRoutePrefixes.has(op.path)) {
           continue;
         }
         // biome-ignore lint/style/noNonNullAssertion: ignore
@@ -102,7 +109,32 @@ ${prettyError}`);
   await generateFiles({
     input: openapi,
     output: OUTPUT_DIR,
-    per: 'tag',
+    per: 'custom',
+    toPages(builder) {
+      const { tags } = builder.document.bundled;
+      const { operations, webhooks } = builder.extract();
+      const visibleOperations = operations.filter((op) => !isIgnoredRoute(op.path));
+
+      for (const tag of tags) {
+        if (hiddenTags.has(tag.name)) {
+          continue;
+        }
+        const { displayName } = builder.fromTag(tag);
+        builder.create({
+          type: 'tag',
+          path: toTagFileName(tag.name),
+          schemaId: builder.id,
+          info: {
+            title: displayName,
+            description: tag.description,
+          },
+          operations: visibleOperations.filter((op) => op.tags?.includes(tag.name)),
+          webhooks: webhooks.filter((webhook) => webhook.tags?.includes(tag.name)),
+          tag: tag.name,
+          rawTag: tag,
+        });
+      }
+    },
     // Fumadocs splits uppercase acronyms into spaced letters (e.g. "A P I").
     // This normalizes common cases back to their proper titles.
     frontmatter(_title) {
