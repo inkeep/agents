@@ -1,6 +1,6 @@
 import { swaggerUI } from '@hono/swagger-ui';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { Context, Env } from 'hono';
+import type { Env } from 'hono';
 
 export const TagToDescription = {
   A2A: 'Agent-to-Agent communication endpoints',
@@ -46,7 +46,7 @@ export const TagToDescription = {
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
   // OpenAPI specification endpoint - serves the complete API spec
-  app.get('/openapi.json', (c: Context) => {
+  app.get('/openapi.json', (c) => {
     try {
       // Support Vercel domain names:
       // - Production: Use VERCEL_PROJECT_PRODUCTION_URL (built-in Vercel env var)
