@@ -1024,18 +1024,16 @@ describe('github mcp utils', () => {
     it('should return reaction details with IDs', async () => {
       const mockOctokit = {
         paginate: {
-          iterator: vi
-            .fn()
-            .mockImplementation(() =>
-              createPaginateIterator([
-                {
-                  id: 201,
-                  content: 'rocket',
-                  user: { login: 'charlie' },
-                  created_at: '2026-02-01T00:00:00Z',
-                },
-              ])()
-            ),
+          iterator: vi.fn().mockImplementation(() =>
+            createPaginateIterator([
+              {
+                id: 201,
+                content: 'rocket',
+                user: { login: 'charlie' },
+                created_at: '2026-02-01T00:00:00Z',
+              },
+            ])()
+          ),
         },
         rest: { reactions: { listForPullRequestReviewComment: vi.fn() } },
       } as any;
