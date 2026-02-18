@@ -43,6 +43,20 @@ function logInfo(message: string) {
 
 const execAsync = promisify(exec);
 
+// --- Helpers ---
+
+function isLocalDatabaseUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return /[@/](localhost|127\.0\.0\.1)[:/]/.test(url);
+}
+
+function hasExternalDatabases(): boolean {
+  const manageUrl = process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
+  const runUrl = process.env.INKEEP_AGENTS_RUN_DATABASE_URL;
+  // Both URLs must be set AND at least one must point to a non-local host
+  return !!(manageUrl && runUrl && (!isLocalDatabaseUrl(manageUrl) || !isLocalDatabaseUrl(runUrl)));
+}
+
 // --- Pre-flight checks ---
 
 interface PortCheck {
@@ -109,11 +123,8 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
   try {
     await execAsync('docker info', { timeout: 10000 });
   } catch {
-    if (
-      process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
-      process.env.INKEEP_AGENTS_RUN_DATABASE_URL
-    ) {
-      logWarning('Docker is not available, but database URLs are configured');
+    if (hasExternalDatabases()) {
+      logWarning('Docker is not available, but database URLs point to external hosts');
       logInfo('Assuming databases are managed externally.');
       return { passed: true, dockerAvailable: false, portsAvailable: false, composeCmd: '' };
     }
@@ -131,11 +142,8 @@ async function runPreflightChecks(composeFile: string): Promise<PreflightResult>
       await execAsync('docker compose version', { timeout: 5000 });
       composeCmd = 'docker compose';
     } catch {
-      if (
-        process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL &&
-        process.env.INKEEP_AGENTS_RUN_DATABASE_URL
-      ) {
-        logWarning('Docker Compose not available, but database URLs are configured');
+      if (hasExternalDatabases()) {
+        logWarning('Docker Compose not available, but database URLs point to external hosts');
         logInfo('Assuming databases are managed externally.');
         return { passed: true, dockerAvailable: true, portsAvailable: false, composeCmd };
       }
@@ -366,9 +374,10 @@ async function startDockerDatabases(composeFile: string, composeCmd: string) {
 
   logInfo('Polling Docker health status...');
 
-  const [doltgresResult, postgresResult] = await Promise.allSettled([
+  const [doltgresResult, postgresResult, spicedbResult] = await Promise.allSettled([
     waitForDockerHealth(composeFile, 'doltgres-db', composeCmd, 60000),
     waitForDockerHealth(composeFile, 'postgres-db', composeCmd, 30000),
+    waitForDockerHealth(composeFile, 'spicedb-postgres', composeCmd, 30000),
   ]);
 
   if (doltgresResult.status === 'fulfilled') logSuccess('DoltgreSQL is healthy');
@@ -377,8 +386,14 @@ async function startDockerDatabases(composeFile: string, composeCmd: string) {
   if (postgresResult.status === 'fulfilled') logSuccess('PostgreSQL is healthy');
   else logWarning(`PostgreSQL health check timed out: ${(postgresResult.reason as Error).message}`);
 
+  if (spicedbResult.status === 'fulfilled') logSuccess('SpiceDB PostgreSQL is healthy');
+  else
+    logWarning(
+      `SpiceDB PostgreSQL health check timed out: ${(spicedbResult.reason as Error).message}`
+    );
+
   if (doltgresResult.status === 'rejected' && postgresResult.status === 'rejected') {
-    logError('Both databases failed health checks - cannot proceed');
+    logError('Both primary databases failed health checks - cannot proceed');
     process.exit(1);
   }
 

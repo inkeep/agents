@@ -339,6 +339,20 @@ describe('runSetup', () => {
     expect(upCalls).toHaveLength(1);
   });
 
+  it('should health-check spicedb-postgres alongside doltgres and postgres', async () => {
+    const { runSetup } = await import('../setup.js');
+
+    await runSetup(baseConfig({ isCloud: false }));
+
+    const healthCalls = mockExecImpl.mock.calls
+      .map((c: unknown[]) => c[0] as string)
+      .filter((cmd) => cmd.includes('docker inspect'));
+
+    expect(healthCalls.some((cmd) => cmd.includes('doltgres-db'))).toBe(true);
+    expect(healthCalls.some((cmd) => cmd.includes('postgres-db'))).toBe(true);
+    expect(healthCalls.some((cmd) => cmd.includes('spicedb-postgres'))).toBe(true);
+  });
+
   it('should continue when docker compose times out during startup', async () => {
     const { runSetup } = await import('../setup.js');
     const origImpl = mockExecImpl.getMockImplementation();
@@ -358,8 +372,12 @@ describe('runSetup', () => {
     expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:run:migrate');
   });
 
-  it('should skip docker when not available but database URLs are set', async () => {
+  it('should skip docker when not available but database URLs point to external hosts', async () => {
     const { runSetup } = await import('../setup.js');
+    process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL =
+      'postgresql://appuser:pw@prod-db.example.com:5432/inkeep_agents';
+    process.env.INKEEP_AGENTS_RUN_DATABASE_URL =
+      'postgresql://appuser:pw@prod-db.example.com:5433/inkeep_agents';
     mockExecImpl.mockImplementation((cmd: string) => {
       if (cmd === 'docker info') {
         return Promise.reject(new Error('docker not found'));
@@ -370,6 +388,28 @@ describe('runSetup', () => {
     await runSetup(baseConfig({ isCloud: false }));
 
     expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
+  });
+
+  it('should exit when docker not available and database URLs are localhost', async () => {
+    const { runSetup } = await import('../setup.js');
+    process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL =
+      'postgresql://appuser:pw@localhost:5432/inkeep_agents';
+    process.env.INKEEP_AGENTS_RUN_DATABASE_URL =
+      'postgresql://appuser:pw@localhost:5433/inkeep_agents';
+    mockExecImpl.mockImplementation((cmd: string) => {
+      if (cmd === 'docker info') {
+        return Promise.reject(new Error('docker not found'));
+      }
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    const mockExit = vi.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('process.exit called');
+    }) as never);
+
+    await expect(runSetup(baseConfig({ isCloud: false }))).rejects.toThrow('process.exit called');
+    expect(mockExit).toHaveBeenCalledWith(1);
+    mockExit.mockRestore();
   });
 
   it('should exit if database URLs are missing (non-cloud)', async () => {
