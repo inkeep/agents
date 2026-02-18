@@ -100,7 +100,12 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   };
 
   const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmailChip(emailInput);
+      setEmailInput('');
+    }
+    if (e.key === 'Tab' && emailInput.trim()) {
       e.preventDefault();
       addEmailChip(emailInput);
       setEmailInput('');
@@ -164,7 +169,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
         <div className="flex gap-2 items-start">
           <div className="flex-1 flex items-center gap-2 min-h-10 px-3 py-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
             <div className="flex-1 flex items-center flex-wrap gap-1.5 min-w-0">
-              <UserPlus className="size-4 text-muted-foreground shrink-0" />
+              <UserPlus className="size-4 text-muted-foreground shrink-0" aria-hidden="true" />
               <TooltipProvider>
                 {emailChips.map((email) => (
                   <Tooltip key={email}>
@@ -175,8 +180,9 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
                           type="button"
                           onClick={() => removeEmailChip(email)}
                           className="hover:text-destructive"
+                          aria-label={`Remove ${email}`}
                         >
-                          <X className="size-3" />
+                          <X className="size-3" aria-hidden="true" />
                         </button>
                       </span>
                     </TooltipTrigger>
@@ -186,12 +192,13 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
               </TooltipProvider>
               <input
                 ref={inputRef}
-                type="text"
+                type="email"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 onKeyDown={handleEmailKeyDown}
                 onPaste={handleEmailPaste}
                 placeholder={emailChips.length === 0 ? 'Invite by email...' : ''}
+                aria-label="Email address to invite"
                 className="flex-1 min-w-[120px] bg-transparent outline-none text-sm placeholder:text-muted-foreground"
               />
             </div>
