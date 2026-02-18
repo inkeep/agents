@@ -3,6 +3,7 @@ import {
   changeProjectRole,
   grantProjectAccess,
   removeProjectFromSpiceDb,
+  revokeAllProjectMemberships,
   revokeProjectAccess,
   syncOrgMemberToSpiceDb,
   syncProjectToSpiceDb,
@@ -204,6 +205,77 @@ describe('authz/sync', () => {
         optionalAllowPartialDeletions: false,
         optionalTransactionMetadata: undefined,
       });
+    });
+  });
+
+  describe('revokeAllProjectMemberships', () => {
+    it('should use tenant prefix to scope bulk deletions', async () => {
+      await revokeAllProjectMemberships({ tenantId: 'tenant-1', userId: 'user-1' });
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledTimes(3);
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith({
+        relationshipFilter: {
+          resourceType: 'project',
+          optionalResourceId: '',
+          optionalResourceIdPrefix: 'tenant-1/',
+          optionalRelation: 'project_admin',
+          optionalSubjectFilter: {
+            subjectType: 'user',
+            optionalSubjectId: 'user-1',
+            optionalRelation: undefined,
+          },
+        },
+        optionalPreconditions: [],
+        optionalLimit: 0,
+        optionalAllowPartialDeletions: false,
+        optionalTransactionMetadata: undefined,
+      });
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith({
+        relationshipFilter: {
+          resourceType: 'project',
+          optionalResourceId: '',
+          optionalResourceIdPrefix: 'tenant-1/',
+          optionalRelation: 'project_member',
+          optionalSubjectFilter: {
+            subjectType: 'user',
+            optionalSubjectId: 'user-1',
+            optionalRelation: undefined,
+          },
+        },
+        optionalPreconditions: [],
+        optionalLimit: 0,
+        optionalAllowPartialDeletions: false,
+        optionalTransactionMetadata: undefined,
+      });
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith({
+        relationshipFilter: {
+          resourceType: 'project',
+          optionalResourceId: '',
+          optionalResourceIdPrefix: 'tenant-1/',
+          optionalRelation: 'project_viewer',
+          optionalSubjectFilter: {
+            subjectType: 'user',
+            optionalSubjectId: 'user-1',
+            optionalRelation: undefined,
+          },
+        },
+        optionalPreconditions: [],
+        optionalLimit: 0,
+        optionalAllowPartialDeletions: false,
+        optionalTransactionMetadata: undefined,
+      });
+    });
+
+    it('should scope deletions to the specified tenant only', async () => {
+      await revokeAllProjectMemberships({ tenantId: 'tenant-2', userId: 'user-1' });
+
+      for (const call of mockSpiceClient.promises.deleteRelationships.mock.calls) {
+        expect(call[0].relationshipFilter.optionalResourceIdPrefix).toBe('tenant-2/');
+        expect(call[0].relationshipFilter.optionalSubjectFilter.optionalSubjectId).toBe('user-1');
+      }
     });
   });
 });
