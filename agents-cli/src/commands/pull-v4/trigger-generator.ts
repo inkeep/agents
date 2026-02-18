@@ -407,7 +407,6 @@ function extractCredentialReferenceId(
   ) {
     return signingSecretCredentialReference.id;
   }
-  return undefined;
 }
 
 function toAuthenticationEnvVar(headerName: string): string {
