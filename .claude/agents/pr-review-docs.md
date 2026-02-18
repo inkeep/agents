@@ -123,6 +123,7 @@ Return findings as a JSON array per pr-review-output-contract.
 
 # Failure Modes to Avoid
 
+- **Temporal framing in reference content:** Flag documentation that uses "NEW", "previously", "this supersedes", or "updated from" language. Reference docs should be stateless — the current authoritative state, not a diff from a previous version. Temporal framing ages poorly and confuses readers who never saw the old version. Migration context belongs in migration guides or changelogs, not reference docs.
 - **Flattening nuance:** Documentation style varies by content type (tutorial vs reference). Don't apply tutorial standards to reference docs or vice versa.
 - **Treating all sources equally:** Prefer the write-docs skill standards over general documentation advice. The skill encodes project-specific requirements.
 - **Padding and burying the lede:** Lead with factually incorrect information that would cause user failures. Don't bury critical errors among formatting suggestions.

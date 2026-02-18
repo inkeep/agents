@@ -1,5 +1,65 @@
 # @inkeep/agents-work-apps
 
+## 0.49.0
+
+### Minor Changes
+
+- 3f556b7: Remove run and list commands from slack app
+
+### Patch Changes
+
+- @inkeep/agents-core@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- f39f8b0: Update slack message formatting to include channel and user names.
+  - @inkeep/agents-core@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 2a91f04: Remove hostname allowlist validation for INKEEP_AGENTS_MANAGE_UI_URL to support custom domains
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- a0464cb: Fix Slack API retry import
+  - @inkeep/agents-core@0.48.1
+
 ## 0.48.0
 
 ### Patch Changes

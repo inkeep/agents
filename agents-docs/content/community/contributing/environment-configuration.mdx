@@ -39,13 +39,13 @@ This hierarchy allows for flexible configuration management across different sce
 
 ### 1. Basic Local Development
 
-For simple local development with a single repository copy:
+For local development, `pnpm setup-dev` creates your `.env` and initializes databases. You only need to add your AI provider API keys:
 
 ```bash
-# Copy the template
-cp .env.example .env
+# Run setup (creates .env, starts databases, runs migrations)
+pnpm setup-dev
 
-# Edit .env with your configuration
+# Add your API keys to .env
 vim .env
 
 # Start development
@@ -53,6 +53,23 @@ pnpm dev
 ```
 
 ## Troubleshooting
+
+### Auto-login not working
+
+The Manage UI auto-logs you in during local development via a server-side proxy (`proxy.ts`). If you're redirected to the login page instead, your `.env` is likely missing the required variables. Ensure these are set:
+
+```bash
+INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+BETTER_AUTH_SECRET=your-secret-key-change-in-production
+INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=<any-shared-secret>
+```
+
+Then run `pnpm db:auth:init` to create the admin user, and restart `pnpm dev`. Check the server console for `[proxy]` messages if the issue persists.
+
+<Note>
+If you used `pnpm setup-dev`, these variables are already set from `.env.example` and the admin user is created automatically.
+</Note>
 
 ### Environment variables not loading
 
@@ -66,4 +83,4 @@ Ensure all required variables are set in your deployment environment. The applic
 
 ### Database connection issues
 
-- For SQLite: Make sure youu are using an absolute path to the db file
+- For SQLite: Make sure you are using an absolute path to the db file

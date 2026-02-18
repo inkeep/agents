@@ -1,5 +1,66 @@
 # @inkeep/agents-manage-ui
 
+## 0.49.0
+
+### Patch Changes
+
+- 97d5fce: fix azure form
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+  - @inkeep/agents-core@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- 1c85bf0: Fix breadcrumb error on GitHub work-app detail page
+- ded8362: improve performance time for traces on vercel
+  - @inkeep/agents-core@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- 6b561f6: Fix Docker deployments to evaluate environment variables at request time instead of build time
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- 5287615: Add "View Traces" button to agent builder toolbar for quick access to agent-specific trace analytics
+  - @inkeep/agents-core@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.1
+
 ## 0.48.0
 
 ### Minor Changes

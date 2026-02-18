@@ -11,8 +11,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
+import type { FrequencyType } from '@/lib/utils/cron';
+import {
+  DAYS_OF_WEEK,
+  getCronDescription,
+  getOrdinalSuffix,
+  parseCronExpression,
+} from '@/lib/utils/cron';
 
 interface FriendlyScheduleBuilderProps {
   value: string;
@@ -20,16 +25,6 @@ interface FriendlyScheduleBuilderProps {
   timezone?: string;
   className?: string;
 }
-
-const DAYS_OF_WEEK = [
-  { value: '0', label: 'Sunday', short: 'Sun' },
-  { value: '1', label: 'Monday', short: 'Mon' },
-  { value: '2', label: 'Tuesday', short: 'Tue' },
-  { value: '3', label: 'Wednesday', short: 'Wed' },
-  { value: '4', label: 'Thursday', short: 'Thu' },
-  { value: '5', label: 'Friday', short: 'Fri' },
-  { value: '6', label: 'Saturday', short: 'Sat' },
-];
 
 // Helper to convert hour/minute to time string (HH:MM)
 function toTimeString(hour: string, minute: string): string {
@@ -49,72 +44,6 @@ const DAY_OF_MONTH_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
   value: String(i + 1),
   label: `${i + 1}${getOrdinalSuffix(i + 1)}`,
 }));
-
-function getOrdinalSuffix(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-}
-
-// Parse a cron expression to determine its type and values
-function parseCronExpression(cron: string): {
-  frequency: FrequencyType;
-  minuteInterval?: string;
-  minute?: string;
-  hour?: string;
-  daysOfWeek?: string[];
-  dayOfMonth?: string;
-} {
-  if (!cron || cron.trim() === '') {
-    return { frequency: 'daily', minute: '0', hour: '9' };
-  }
-
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length !== 5) {
-    return { frequency: 'custom' };
-  }
-
-  const [minute, hour, dayOfMonth, , dayOfWeek] = parts;
-
-  // Check for minute intervals: */N * * * *
-  if (minute.startsWith('*/') && hour === '*' && dayOfMonth === '*' && dayOfWeek === '*') {
-    const interval = minute.slice(2);
-    if (/^\d+$/.test(interval) && Number(interval) >= 1 && Number(interval) <= 59) {
-      return { frequency: 'minutes', minuteInterval: interval };
-    }
-  }
-
-  // Check for hourly: N * * * *
-  if (hour === '*' && dayOfMonth === '*' && dayOfWeek === '*' && !minute.includes('/')) {
-    return { frequency: 'hourly', minute };
-  }
-
-  // Check for daily: N N * * *
-  if (dayOfMonth === '*' && dayOfWeek === '*' && !minute.includes('/') && !hour.includes('/')) {
-    return { frequency: 'daily', minute, hour };
-  }
-
-  // Check for weekly: N N * * N or N N * * N,N,N
-  if (dayOfMonth === '*' && dayOfWeek !== '*' && !minute.includes('/') && !hour.includes('/')) {
-    const days = dayOfWeek.split(',').filter((d) => /^\d$/.test(d));
-    if (days.length > 0) {
-      return { frequency: 'weekly', minute, hour, daysOfWeek: days };
-    }
-  }
-
-  // Check for monthly: N N N * *
-  if (dayOfMonth !== '*' && dayOfWeek === '*' && !minute.includes('/') && !hour.includes('/')) {
-    if (
-      /^\d+$/.test(dayOfMonth) &&
-      Number.parseInt(dayOfMonth, 10) >= 1 &&
-      Number.parseInt(dayOfMonth, 10) <= 31
-    ) {
-      return { frequency: 'monthly', minute, hour, dayOfMonth };
-    }
-  }
-
-  return { frequency: 'custom' };
-}
 
 // Generate cron expression from friendly values
 function generateCronExpression(
@@ -145,52 +74,6 @@ function generateCronExpression(
     default:
       return '';
   }
-}
-
-// Human-readable description of the schedule
-function getScheduleDescription(cron: string): string {
-  const parsed = parseCronExpression(cron);
-
-  switch (parsed.frequency) {
-    case 'minutes':
-      return `Runs every ${parsed.minuteInterval} minutes`;
-    case 'hourly': {
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      return `Runs hourly at ${min} minutes past the hour`;
-    }
-    case 'daily': {
-      const hour = Number.parseInt(parsed.hour || '9', 10);
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min, 10));
-      return `Runs daily at ${timeStr}`;
-    }
-    case 'weekly': {
-      const hour = Number.parseInt(parsed.hour || '9', 10);
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min, 10));
-      const dayNames = parsed.daysOfWeek
-        ?.map((d) => DAYS_OF_WEEK.find((day) => day.value === d)?.short)
-        .filter(Boolean)
-        .join(', ');
-      return `Runs weekly on ${dayNames || 'Monday'} at ${timeStr}`;
-    }
-    case 'monthly': {
-      const hour = Number.parseInt(parsed.hour || '9', 10);
-      const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min, 10));
-      const day = parsed.dayOfMonth || '1';
-      return `Runs monthly on the ${day}${getOrdinalSuffix(Number.parseInt(day, 10))} at ${timeStr}`;
-    }
-    default:
-      return cron ? `Custom schedule: ${cron}` : 'No schedule configured';
-  }
-}
-
-function formatTime(hour: number, minute: number): string {
-  const period = hour < 12 ? 'AM' : 'PM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const displayMinute = minute.toString().padStart(2, '0');
-  return `${displayHour}:${displayMinute} ${period}`;
 }
 
 export function FriendlyScheduleBuilder({
@@ -256,7 +139,7 @@ export function FriendlyScheduleBuilder({
   return (
     <div className={cn('space-y-4', className)}>
       {/* Frequency Selection */}
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
         <Label className="text-sm font-medium">How often?</Label>
         <Select value={frequency} onValueChange={handleFrequencyChange}>
           <SelectTrigger className="w-full">
@@ -446,7 +329,7 @@ export function FriendlyScheduleBuilder({
           <Badge variant="secondary" className="text-xs">
             Preview
           </Badge>
-          <span className="text-sm text-foreground">{getScheduleDescription(value)}</span>
+          <span className="text-sm text-foreground">{getCronDescription(value)}</span>
         </div>
         {value && frequency !== 'custom' && (
           <p className="mt-1 text-xs text-muted-foreground font-mono">Cron: {value}</p>

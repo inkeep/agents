@@ -12,6 +12,8 @@ import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
+  flushTraces,
+  getWaitUntil,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../db/runDbClient';
@@ -88,6 +90,24 @@ app.post('/commands', async (c) => {
 });
 
 app.post('/events', async (c) => {
+  // Slack retries event delivery when the initial ack is slow (>3s).
+  // Retries include X-Slack-Retry-Num / X-Slack-Retry-Reason headers.
+  // Since we fire-and-forget background work, retries would cause duplicate processing.
+  const retryNum = c.req.header('x-slack-retry-num');
+  const retryReason = c.req.header('x-slack-retry-reason');
+  if (retryNum) {
+    return tracer.startActiveSpan(`${SLACK_SPAN_NAMES.WEBHOOK} retry`, (span) => {
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'ignored_slack_retry' satisfies SlackOutcome);
+      span.setAttribute('slack.retry_num', retryNum);
+      if (retryReason) span.setAttribute('slack.retry_reason', retryReason);
+      logger.info({ retryNum, retryReason }, 'Acknowledging Slack retry without re-processing');
+      span.end();
+      return c.json({ ok: true });
+    });
+  }
+
+  const waitUntil = await getWaitUntil();
+
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.WEBHOOK, async (span) => {
     let outcome: SlackOutcome = 'ignored_unknown_event';
 
@@ -186,21 +206,37 @@ app.post('/events', async (c) => {
             'Handling event: app_mention'
           );
 
-          handleAppMention({
+          const dispatchedAt = Date.now();
+          const mentionWork = handleAppMention({
             slackUserId: event.user,
             channel: event.channel,
             text: question,
             threadTs: event.thread_ts || event.ts || '',
             messageTs: event.ts || '',
             teamId,
-          }).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            const errorStack = err instanceof Error ? err.stack : undefined;
-            logger.error(
-              { errorMessage, errorStack },
-              'Failed to handle app mention (outer catch)'
+            dispatchedAt,
+          })
+            .catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              const errorStack = err instanceof Error ? err.stack : undefined;
+              logger.error(
+                { errorMessage, errorStack },
+                'Failed to handle app mention (outer catch)'
+              );
+            })
+            .finally(() => flushTraces());
+          if (waitUntil) {
+            waitUntil(mentionWork);
+            logger.info(
+              { teamId, channel: event.channel, dispatchedAt },
+              'app_mention work registered with waitUntil'
             );
-          });
+          } else {
+            logger.warn(
+              { teamId, channel: event.channel, dispatchedAt },
+              'waitUntil unavailable — app_mention background work is untracked fire-and-forget'
+            );
+          }
         } else {
           outcome = 'ignored_unknown_event';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -237,26 +273,32 @@ app.post('/events', async (c) => {
                 { teamId, actionId: action.action_id },
                 'Handling block_action: open_agent_selector_modal'
               );
-              handleOpenAgentSelectorModal({
+              const selectorWork = handleOpenAgentSelectorModal({
                 triggerId,
                 actionValue: action.value,
                 teamId,
                 responseUrl: responseUrl || '',
-              }).catch(async (err: unknown) => {
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                logger.error(
-                  { errorMessage, actionId: action.action_id },
-                  'Failed to open agent selector modal'
-                );
-                if (responseUrl) {
-                  await sendResponseUrlMessage(responseUrl, {
-                    text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
-                    response_type: 'ephemeral',
-                  }).catch((e) =>
-                    logger.warn({ error: e }, 'Failed to send error notification via response URL')
+              })
+                .catch(async (err: unknown) => {
+                  const errorMessage = err instanceof Error ? err.message : String(err);
+                  logger.error(
+                    { errorMessage, actionId: action.action_id },
+                    'Failed to open agent selector modal'
                   );
-                }
-              });
+                  if (responseUrl) {
+                    await sendResponseUrlMessage(responseUrl, {
+                      text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
+                      response_type: 'ephemeral',
+                    }).catch((e) =>
+                      logger.warn(
+                        { error: e },
+                        'Failed to send error notification via response URL'
+                      )
+                    );
+                  }
+                })
+                .finally(() => flushTraces());
+              if (waitUntil) waitUntil(selectorWork);
             }
 
             if (action.action_id === 'modal_project_select') {
@@ -275,7 +317,7 @@ app.post('/events', async (c) => {
               );
 
               if (selectedProjectId && view?.id) {
-                (async () => {
+                const projectSelectWork = (async () => {
                   try {
                     const metadata = JSON.parse(view.private_metadata || '{}');
                     const tenantId = metadata.tenantId;
@@ -338,8 +380,11 @@ app.post('/events', async (c) => {
                       { err, selectedProjectId },
                       'Failed to update modal on project change'
                     );
+                  } finally {
+                    await flushTraces();
                   }
                 })();
+                if (waitUntil) waitUntil(projectSelectWork);
               }
             }
 
@@ -349,18 +394,21 @@ app.post('/events', async (c) => {
                 { teamId, actionId: action.action_id },
                 'Handling block_action: open_follow_up_modal'
               );
-              handleOpenFollowUpModal({
+              const followUpModalWork = handleOpenFollowUpModal({
                 triggerId,
                 actionValue: action.value,
                 teamId,
                 responseUrl: responseUrl || undefined,
-              }).catch((err: unknown) => {
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                logger.error(
-                  { errorMessage, actionId: action.action_id },
-                  'Failed to open follow-up modal'
-                );
-              });
+              })
+                .catch((err: unknown) => {
+                  const errorMessage = err instanceof Error ? err.message : String(err);
+                  logger.error(
+                    { errorMessage, actionId: action.action_id },
+                    'Failed to open follow-up modal'
+                  );
+                })
+                .finally(() => flushTraces());
+              if (waitUntil) waitUntil(followUpModalWork);
             }
           }
 
@@ -410,7 +458,7 @@ app.post('/events', async (c) => {
               { teamId, channelId, userId, callbackId },
               'Handling message_action: ask_agent_shortcut'
             );
-            handleMessageShortcut({
+            const shortcutWork = handleMessageShortcut({
               triggerId,
               teamId,
               channelId,
@@ -419,10 +467,13 @@ app.post('/events', async (c) => {
               messageText: message.text || '',
               threadTs: message.thread_ts,
               responseUrl,
-            }).catch((err: unknown) => {
-              const errorMessage = err instanceof Error ? err.message : String(err);
-              logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
-            });
+            })
+              .catch((err: unknown) => {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
+              })
+              .finally(() => flushTraces());
+            if (waitUntil) waitUntil(shortcutWork);
           } else {
             outcome = 'ignored_unknown_event';
             span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -475,10 +526,13 @@ app.post('/events', async (c) => {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
           logger.info({ callbackId }, 'Handling view_submission: agent_selector_modal');
 
-          handleModalSubmission(view).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
-          });
+          const modalWork = handleModalSubmission(view)
+            .catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
+            })
+            .finally(() => flushTraces());
+          if (waitUntil) waitUntil(modalWork);
 
           span.end();
           return new Response(null, { status: 200 });
@@ -494,10 +548,13 @@ app.post('/events', async (c) => {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
           logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
 
-          handleFollowUpSubmission(view).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
-          });
+          const followUpWork = handleFollowUpSubmission(view)
+            .catch((err: unknown) => {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
+            })
+            .finally(() => flushTraces());
+          if (waitUntil) waitUntil(followUpWork);
 
           span.end();
           return new Response(null, { status: 200 });

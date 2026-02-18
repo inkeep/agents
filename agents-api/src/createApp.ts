@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { OrgRoles } from '@inkeep/agents-core';
+import { getWaitUntil, OrgRoles } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -88,6 +88,59 @@ function createAgentsHono(config: AppConfig) {
   // Better Auth routes - only mount if auth is enabled
   if (auth) {
     app.use('/api/auth/*', cors(authCorsConfig));
+
+    // Dev-only: auto-login endpoint — called server-to-server by the Next.js proxy.
+    // Requires the manage API bypass secret to prevent unauthenticated access.
+    // MUST be registered BEFORE the catch-all /api/auth/* handler below (Hono uses first-match-wins).
+    if (env.ENVIRONMENT === 'development') {
+      app.post('/api/auth/dev-session', async (c) => {
+        const bypassSecret = env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
+        const authHeader = c.req.header('Authorization');
+        if (!bypassSecret || authHeader !== `Bearer ${bypassSecret}`) {
+          return c.json({ error: 'Unauthorized' }, 401);
+        }
+
+        const email = env.INKEEP_AGENTS_MANAGE_UI_USERNAME;
+
+        if (!email) {
+          return c.json(
+            { error: 'Dev credentials not configured. Run pnpm db:auth:init first.' },
+            400
+          );
+        }
+
+        const ctx = await auth.$context;
+        const found = await ctx.internalAdapter.findUserByEmail(email);
+
+        if (!found) {
+          return c.json({ error: 'Dev user not found. Run pnpm db:auth:init first.' }, 400);
+        }
+
+        const session = await ctx.internalAdapter.createSession(found.user.id);
+
+        // Sign the session token with HMAC-SHA-256 (matches Better Auth's internal cookie signing)
+        const key = await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(ctx.secret),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(session.token));
+        const base64Sig = btoa(String.fromCharCode(...new Uint8Array(sig)));
+        const encodedValue = encodeURIComponent(`${session.token}.${base64Sig}`);
+
+        const { name: cookieName, options } = ctx.authCookies.sessionToken;
+        const { path, httpOnly, secure, sameSite = 'lax' } = options;
+        const maxAge = ctx.sessionConfig.expiresIn;
+        const sameSiteValue = sameSite.charAt(0).toUpperCase() + sameSite.slice(1);
+
+        const cookieString = `${cookieName}=${encodedValue}; Path=${path}; Max-Age=${maxAge}${httpOnly ? '; HttpOnly' : ''}${secure ? '; Secure' : ''}; SameSite=${sameSiteValue}`;
+
+        c.header('set-cookie', cookieString);
+        return c.json({ ok: true });
+      });
+    }
 
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
@@ -307,17 +360,9 @@ function createAgentsHono(config: AppConfig) {
 
   app.use('*', async (_c, next) => {
     await next();
-    if (process.env.VERCEL) {
-      try {
-        const { waitUntil } = await import('@vercel/functions');
-        waitUntil(flushBatchProcessor());
-      } catch (importError) {
-        logger.debug(
-          { error: importError },
-          '@vercel/functions import failed, flushing synchronously'
-        );
-        await flushBatchProcessor();
-      }
+    const waitUntil = await getWaitUntil();
+    if (waitUntil) {
+      waitUntil(flushBatchProcessor());
     } else {
       await flushBatchProcessor();
     }
@@ -398,8 +443,7 @@ function createAgentsHono(config: AppConfig) {
   // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
   app.route('/work-apps', workAppsRoutes);
 
-  // Mount MCP routes at top level (eclipses both manage and run services)
-  // Also available at /manage/mcp for backward compatibility
+  // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)

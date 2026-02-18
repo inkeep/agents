@@ -126,8 +126,8 @@ export function ScheduledTriggerForm({
 
   const defaultValues = getDefaultValues();
 
-  const form = useForm<ScheduledTriggerFormData>({
-    resolver: zodResolver(scheduledTriggerFormSchema) as any,
+  const form = useForm({
+    resolver: zodResolver(scheduledTriggerFormSchema),
     defaultValues,
   });
 
@@ -255,6 +255,7 @@ export function ScheduledTriggerForm({
               options={scheduleTypeOptions}
               placeholder="Select schedule type"
               isRequired
+              selectTriggerClassName="w-full"
             />
 
             {scheduleType === 'cron' && (
@@ -265,9 +266,9 @@ export function ScheduledTriggerForm({
                   <FormItem>
                     <FormControl>
                       <FriendlyScheduleBuilder
-                        value={field.value}
+                        value={field.value ?? ''}
                         onChange={field.onChange}
-                        timezone={form.watch('cronTimezone')}
+                        timezone={form.watch('cronTimezone') ?? 'UTC'}
                       />
                     </FormControl>
                     <FormMessage />
@@ -284,7 +285,7 @@ export function ScheduledTriggerForm({
                   <FormItem>
                     <FormControl>
                       <DateTimePicker
-                        value={field.value}
+                        value={field.value ?? ''}
                         onChange={field.onChange}
                         minDate={new Date()}
                       />
@@ -363,7 +364,13 @@ export function ScheduledTriggerForm({
                   <FormItem>
                     <FormLabel>Max Retries</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" min={0} max={10} />
+                      <Input
+                        {...field}
+                        value={Number(field.value)}
+                        type="number"
+                        min={0}
+                        max={10}
+                      />
                     </FormControl>
                     <FormDescription>Number of retry attempts (0-10)</FormDescription>
                     <FormMessage />
@@ -378,7 +385,13 @@ export function ScheduledTriggerForm({
                   <FormItem>
                     <FormLabel>Retry Delay (seconds)</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" min={10} max={3600} />
+                      <Input
+                        {...field}
+                        value={Number(field.value)}
+                        type="number"
+                        min={10}
+                        max={3600}
+                      />
                     </FormControl>
                     <FormDescription>Seconds between retries (10-3600)</FormDescription>
                     <FormMessage />
@@ -393,7 +406,13 @@ export function ScheduledTriggerForm({
                   <FormItem>
                     <FormLabel>Timeout (seconds)</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" min={30} max={900} />
+                      <Input
+                        {...field}
+                        value={Number(field.value)}
+                        type="number"
+                        min={30}
+                        max={900}
+                      />
                     </FormControl>
                     <FormDescription>Execution timeout (30-780)</FormDescription>
                     <FormMessage />

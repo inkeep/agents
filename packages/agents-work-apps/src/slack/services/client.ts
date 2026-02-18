@@ -5,7 +5,7 @@
  * Tokens are fetched from Nango at runtime and passed to these functions.
  */
 
-import { retryPolicies, WebClient } from '@slack/web-api';
+import { WebClient } from '@slack/web-api';
 import { getLogger } from '../../logger';
 
 const logger = getLogger('slack-client');
@@ -45,9 +45,7 @@ async function paginateSlack<TResponse, TItem>({
  * @returns Configured Slack WebClient instance
  */
 export function getSlackClient(token: string): WebClient {
-  return new WebClient(token, {
-    retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
-  });
+  return new WebClient(token);
 }
 
 /**
@@ -100,6 +98,34 @@ export async function getSlackTeamInfo(client: WebClient) {
     return null;
   } catch (error) {
     logger.error({ error }, 'Failed to fetch Slack team info');
+    return null;
+  }
+}
+
+/**
+ * Fetch channel information from Slack.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelId - Slack channel ID (e.g., C0ABC123)
+ * @returns Channel info object, or null if not found
+ */
+export async function getSlackChannelInfo(client: WebClient, channelId: string) {
+  try {
+    const result = await client.conversations.info({ channel: channelId });
+    if (result.ok && result.channel) {
+      return {
+        id: result.channel.id,
+        name: result.channel.name,
+        topic: result.channel.topic?.value,
+        purpose: result.channel.purpose?.value,
+        isPrivate: result.channel.is_private ?? false,
+        isShared: result.channel.is_shared ?? result.channel.is_ext_shared ?? false,
+        isMember: result.channel.is_member ?? false,
+      };
+    }
+    return null;
+  } catch (error) {
+    logger.error({ error, channelId }, 'Failed to fetch Slack channel info');
     return null;
   }
 }

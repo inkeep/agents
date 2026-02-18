@@ -1,7 +1,7 @@
 ---
 title: Webhook Triggers
 description: Create webhook endpoints for external services to invoke your Agents
-icon: LuWebhook
+icon: LuZap
 ---
 
 Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
@@ -45,6 +45,8 @@ Triggers are ideal for:
 | **Chat integrations** | Handle Slack or Discord messages |
 | **Form submissions** | Process Typeform or webhook-enabled forms |
 | **Scheduled tasks** | Invoke agents from cron jobs or schedulers |
+
+<Snippet file="user-scoped-mcp-triggers-warning.mdx" />
 
 ## Trigger Configuration
 

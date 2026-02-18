@@ -3,17 +3,15 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
-import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
-import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
-import { AzureConfigurationSection } from '@/components/shared/azure-configuration-section';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
 import {
+  azureModelProviderOptionsTemplate,
+  azureModelSummarizerProviderOptionsTemplate,
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
@@ -91,7 +89,7 @@ function StructuredOutputModelSection({
   });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
-  const structuredOutputModel = useWatch({ control, name: 'models.structuredOutput.model' });
+  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
 
   return (
     <div className="space-y-4">
@@ -102,64 +100,42 @@ function StructuredOutputModelSection({
         description="Model for structured outputs and components (defaults to base model)"
       >
         {(field) => (
-          <ModelSelector
+          <ModelConfiguration
+            value={field.value || ''}
+            providerOptions={
+              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+            }
             label=""
             placeholder="Select structured output model (optional)"
-            value={field.value || ''}
-            onValueChange={field.onChange}
             inheritedValue={baseModel}
+            inheritedProviderOptions={
+              baseProviderOptions ? JSON.stringify(baseProviderOptions, null, 2) : undefined
+            }
             canClear={!disabled}
+            onModelChange={field.onChange}
+            onProviderOptionsChange={(value) => {
+              if (!value?.trim()) {
+                providerOptionsField.onChange(undefined);
+                return;
+              }
+              try {
+                const parsed = JSON.parse(value);
+                providerOptionsField.onChange(parsed);
+              } catch {
+                // Invalid JSON - don't update the field value
+              }
+            }}
+            editorNamePrefix="project-structured"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelProviderOptionsTemplate;
+              }
+              return structuredOutputModelProviderOptionsTemplate;
+            }}
             disabled={disabled}
           />
         )}
       </FormFieldWrapper>
-
-      {/* Azure Configuration (appears above provider options) */}
-      {structuredOutputModel?.startsWith('azure/') && (
-        <AzureConfigurationSection
-          providerOptions={providerOptionsField.value ?? undefined}
-          onProviderOptionsChange={(value) => {
-            if (!value?.trim()) {
-              providerOptionsField.onChange(undefined);
-              return;
-            }
-            try {
-              const parsed = JSON.parse(value);
-              providerOptionsField.onChange(parsed);
-            } catch {
-              // Invalid JSON - don't update the field value
-            }
-          }}
-          editorNamePrefix="project-structured"
-          disabled={disabled}
-        />
-      )}
-
-      {/* Provider Options */}
-      <div className="space-y-2">
-        <FieldLabel id="models.structuredOutput.providerOptions" label="Provider options" />
-        <StandaloneJsonEditor
-          name="models.structuredOutput.providerOptions"
-          value={
-            providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-          }
-          onChange={(value) => {
-            if (!value?.trim()) {
-              providerOptionsField.onChange(undefined);
-              return;
-            }
-            try {
-              const parsed = JSON.parse(value);
-              providerOptionsField.onChange(parsed);
-            } catch {
-              // Invalid JSON - don't update the field value
-            }
-          }}
-          placeholder={structuredOutputModelProviderOptionsTemplate}
-          customTemplate={structuredOutputModelProviderOptionsTemplate}
-          readOnly={disabled}
-        />
-      </div>
     </div>
   );
 }
@@ -177,7 +153,7 @@ function SummarizerModelSection({
   });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
-  const summarizerModel = useWatch({ control, name: 'models.summarizer.model' });
+  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
 
   return (
     <div className="space-y-4">
@@ -188,64 +164,42 @@ function SummarizerModelSection({
         description="Model for summarization tasks (defaults to base model)"
       >
         {(field) => (
-          <ModelSelector
+          <ModelConfiguration
+            value={field.value || ''}
+            providerOptions={
+              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+            }
             label=""
             placeholder="Select summarizer model (optional)"
-            value={field.value || ''}
-            onValueChange={field.onChange}
             inheritedValue={baseModel}
+            inheritedProviderOptions={
+              baseProviderOptions ? JSON.stringify(baseProviderOptions, null, 2) : undefined
+            }
             canClear={true}
+            onModelChange={field.onChange}
+            onProviderOptionsChange={(value) => {
+              if (!value?.trim()) {
+                providerOptionsField.onChange(undefined);
+                return;
+              }
+              try {
+                const parsed = JSON.parse(value);
+                providerOptionsField.onChange(parsed);
+              } catch {
+                // Invalid JSON - don't update the field value
+              }
+            }}
+            editorNamePrefix="project-summarizer"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelSummarizerProviderOptionsTemplate;
+              }
+              return summarizerModelProviderOptionsTemplate;
+            }}
             disabled={disabled}
           />
         )}
       </FormFieldWrapper>
-
-      {/* Azure Configuration (appears above provider options) */}
-      {summarizerModel?.startsWith('azure/') && (
-        <AzureConfigurationSection
-          providerOptions={providerOptionsField.value ?? undefined}
-          onProviderOptionsChange={(value) => {
-            if (!value?.trim()) {
-              providerOptionsField.onChange(undefined);
-              return;
-            }
-            try {
-              const parsed = JSON.parse(value);
-              providerOptionsField.onChange(parsed);
-            } catch {
-              // Invalid JSON - don't update the field value
-            }
-          }}
-          editorNamePrefix="project-summarizer"
-          disabled={disabled}
-        />
-      )}
-
-      {/* Provider Options */}
-      <div className="space-y-2">
-        <FieldLabel id="models.summarizer.providerOptions" label="Provider options" />
-        <StandaloneJsonEditor
-          name="models.summarizer.providerOptions"
-          value={
-            providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-          }
-          onChange={(value) => {
-            if (!value?.trim()) {
-              providerOptionsField.onChange(undefined);
-              return;
-            }
-            try {
-              const parsed = JSON.parse(value);
-              providerOptionsField.onChange(parsed);
-            } catch {
-              // Invalid JSON - don't update the field value
-            }
-          }}
-          placeholder={summarizerModelProviderOptionsTemplate}
-          customTemplate={summarizerModelProviderOptionsTemplate}
-          readOnly={disabled}
-        />
-      </div>
     </div>
   );
 }

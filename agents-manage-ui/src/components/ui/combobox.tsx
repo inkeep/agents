@@ -36,6 +36,7 @@ interface ComboboxProps {
   multipleCheckboxValues?: string[];
   enableSearch?: boolean;
   className?: string;
+  triggerClassName?: string;
 }
 
 export function Combobox({
@@ -51,6 +52,7 @@ export function Combobox({
   multipleCheckboxValues,
   enableSearch = true,
   className,
+  triggerClassName,
 }: ComboboxProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
@@ -78,7 +80,7 @@ export function Combobox({
           <Button
             aria-expanded={isOpen}
             aria-label="Combobox"
-            className="min-w-[250px] justify-between flex-nowrap"
+            className={cn('min-w-[250px] justify-between flex-nowrap', triggerClassName)}
             role="combobox"
             variant="outline"
           >

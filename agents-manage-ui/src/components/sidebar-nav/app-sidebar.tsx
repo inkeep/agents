@@ -3,16 +3,14 @@
 import {
   Activity,
   BarChart3,
-  BookOpen,
+  Blocks,
   Component,
   Globe,
   Key,
   Layers,
   Library,
-  LifeBuoy,
   Lock,
   LucideHexagon,
-  Plug,
   Settings,
   Users,
   Workflow,
@@ -31,26 +29,12 @@ import {
   SidebarHeader,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
+import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 import type { NavItemProps } from './nav-item';
-
-const bottomNavItems: NavItemProps[] = [
-  {
-    title: 'Support',
-    url: 'mailto:support@inkeep.com',
-    icon: LifeBuoy,
-  },
-  {
-    title: 'Documentation',
-    url: DOCS_BASE_URL,
-    icon: BookOpen,
-    isExternal: true,
-  },
-];
 
 interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   open: boolean;
@@ -81,7 +65,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
               {
                 title: STATIC_LABELS['work-apps'],
                 url: `/${tenantId}/work-apps`,
-                icon: Plug,
+                icon: Blocks,
               },
             ]
           : []),
@@ -242,7 +226,6 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
             {user && <NavGroup label="Organization" items={orgNavItems} />}
           </div>
         )}
-        <NavGroup items={bottomNavItems} />
       </SidebarContent>
       {projectId && (
         <SidebarFooter>

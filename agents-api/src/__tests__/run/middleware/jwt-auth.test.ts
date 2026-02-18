@@ -105,6 +105,7 @@ describe('JWT + SpiceDB Authorization', () => {
       // Verify SpiceDB was called with correct params
       expect(canUseProjectStrictMock).toHaveBeenCalledWith({
         userId: 'user-123',
+        tenantId: 'test-tenant',
         projectId: 'test-project',
       });
     });
@@ -130,6 +131,7 @@ describe('JWT + SpiceDB Authorization', () => {
       // SpiceDB should have been called
       expect(canUseProjectStrictMock).toHaveBeenCalledWith({
         userId: 'user-123',
+        tenantId: 'test-tenant',
         projectId: 'test-project',
       });
     });
@@ -158,6 +160,7 @@ describe('JWT + SpiceDB Authorization', () => {
       // SpiceDB should check for the viewer user
       expect(canUseProjectStrictMock).toHaveBeenCalledWith({
         userId: 'viewer-user-456',
+        tenantId: 'test-tenant',
         projectId: 'test-project',
       });
     });

@@ -36,6 +36,8 @@ export const SLACK_SPAN_KEYS = {
   IS_BOT_MESSAGE: 'slack.is_bot_message',
   HAS_QUERY: 'slack.has_query',
   IS_IN_THREAD: 'slack.is_in_thread',
+  STREAM_FINALIZATION_FAILED: 'slack.stream_finalization_failed',
+  CONTENT_ALREADY_DELIVERED: 'slack.content_already_delivered',
 } as const;
 
 export type SlackOutcome =
@@ -43,6 +45,7 @@ export type SlackOutcome =
   | 'ignored_bot_message'
   | 'ignored_unknown_event'
   | 'ignored_no_action_match'
+  | 'ignored_slack_retry'
   | 'url_verification'
   | 'validation_error'
   | 'signature_invalid'

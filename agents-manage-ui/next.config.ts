@@ -16,6 +16,9 @@ if (process.env.NODE_ENV !== 'production') {
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbopackFileSystemCacheForBuild: true,
+  },
   env: {
     NEXT_PUBLIC_CI: process.env.CI,
   },

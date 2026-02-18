@@ -10,10 +10,11 @@
  * - Message posting (channels and threads)
  */
 
-import { retryPolicies, WebClient } from '@slack/web-api';
+import type { WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkUserIsChannelMember,
+  getSlackChannelInfo,
   getSlackChannels,
   getSlackClient,
   getSlackTeamInfo,
@@ -22,8 +23,8 @@ import {
   postMessageInThread,
 } from '../../slack/services/client';
 
-vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
+const { mockWebClient } = vi.hoisted(() => {
+  const mockWebClient = vi.fn().mockImplementation(() => ({
     users: {
       info: vi.fn(),
     },
@@ -37,11 +38,16 @@ vi.mock('@slack/web-api', () => ({
     chat: {
       postMessage: vi.fn(),
     },
-  })),
-  retryPolicies: {
-    fiveRetriesInFiveMinutes: { retries: 5, factor: 3.86, randomize: true },
-  },
-}));
+  }));
+
+  return { mockWebClient };
+});
+
+vi.mock('@slack/web-api', () => {
+  return {
+    WebClient: mockWebClient,
+  };
+});
 
 vi.mock('../../logger', () => ({
   getLogger: () => ({
@@ -58,14 +64,12 @@ describe('Slack Client', () => {
   });
 
   describe('getSlackClient', () => {
-    it('should create a WebClient with the provided token and retry config', () => {
+    it('should create a WebClient with the provided token', () => {
       const token = 'xoxb-test-token';
 
       const client = getSlackClient(token);
 
-      expect(WebClient).toHaveBeenCalledWith(token, {
-        retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
-      });
+      expect(mockWebClient).toHaveBeenCalledWith(token);
       expect(client).toBeDefined();
     });
 
@@ -76,8 +80,8 @@ describe('Slack Client', () => {
       getSlackClient(token1);
       getSlackClient(token2);
 
-      expect(WebClient).toHaveBeenCalledWith(token1, expect.anything());
-      expect(WebClient).toHaveBeenCalledWith(token2, expect.anything());
+      expect(mockWebClient).toHaveBeenCalledWith(token1);
+      expect(mockWebClient).toHaveBeenCalledWith(token2);
     });
   });
 
@@ -190,6 +194,96 @@ describe('Slack Client', () => {
       } as unknown as WebClient;
 
       const result = await getSlackTeamInfo(mockClient);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getSlackChannelInfo', () => {
+    it('should return channel info when successful', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockResolvedValue({
+            ok: true,
+            channel: {
+              id: 'C123',
+              name: 'general',
+              topic: { value: 'General discussion' },
+              purpose: { value: 'Company-wide announcements' },
+              is_private: false,
+              is_shared: false,
+              is_ext_shared: false,
+              is_member: true,
+            },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C123');
+
+      expect(result).toEqual({
+        id: 'C123',
+        name: 'general',
+        topic: 'General discussion',
+        purpose: 'Company-wide announcements',
+        isPrivate: false,
+        isShared: false,
+        isMember: true,
+      });
+      expect(mockClient.conversations.info).toHaveBeenCalledWith({ channel: 'C123' });
+    });
+
+    it('should handle private shared channels', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockResolvedValue({
+            ok: true,
+            channel: {
+              id: 'C456',
+              name: 'secret-collab',
+              topic: { value: '' },
+              purpose: { value: '' },
+              is_private: true,
+              is_shared: true,
+              is_member: false,
+            },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C456');
+
+      expect(result).toEqual({
+        id: 'C456',
+        name: 'secret-collab',
+        topic: '',
+        purpose: '',
+        isPrivate: true,
+        isShared: true,
+        isMember: false,
+      });
+    });
+
+    it('should return null when request fails', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockResolvedValue({ ok: false }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C123');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null on error', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockRejectedValue(new Error('channel_not_found')),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C999');
 
       expect(result).toBeNull();
     });

@@ -23,14 +23,35 @@ runs:
 
     - name: Install Cypress binary
       shell: bash
-      run: cd agents-manage-ui && npx cypress install
+      run: cd agents-manage-ui && pnpm exec cypress install
 
-    - run: pnpm setup-dev
+    - name: Wait for DoltGres to be fully initialized
       shell: bash
+      run: |
+        echo "Waiting for DoltGres system tables to be available..."
+        for i in $(seq 1 30); do
+          if PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' 2>/dev/null; then
+            echo "DoltGres is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Timeout waiting for DoltGres after 60 seconds"
+            exit 1
+          fi
+          echo "  Attempt $i/30..."
+          sleep 2
+        done
+
+    - name: Setup development environment
+      shell: bash
+      env:
+        ENVIRONMENT: development
+      run: pnpm setup-dev
 
     - name: Start backend API server
       shell: bash
       env:
+        ENVIRONMENT: development
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
         BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
       run: pnpm dev --filter='@inkeep/agents-api' & # & means run job in background
@@ -64,7 +85,24 @@ runs:
       shell: bash
       env:
         INKEEP_API_KEY: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
-      run: cd agents-cookbook/template-projects && npx inkeep push --project weather-project
+      run: |
+        max_attempts=3
+        attempt=1
+        while [ $attempt -le $max_attempts ]; do
+          echo "Push attempt $attempt/$max_attempts..."
+          if cd agents-cookbook/template-projects && npx inkeep push --project weather-project; then
+            echo "Push succeeded on attempt $attempt"
+            break
+          fi
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Push failed after $max_attempts attempts"
+            exit 1
+          fi
+          echo "Push failed, retrying in $((attempt * 5)) seconds..."
+          sleep $((attempt * 5))
+          cd "$GITHUB_WORKSPACE"
+          attempt=$((attempt + 1))
+        done
 
     - name: Run Cypress E2E Tests
       shell: bash
@@ -85,3 +123,4 @@ runs:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
         retention-days: 7
+

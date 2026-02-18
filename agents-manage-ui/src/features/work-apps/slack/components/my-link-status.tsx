@@ -53,9 +53,7 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-medium">Account Linked</p>
-                <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">
-                  Active
-                </Badge>
+                <Badge variant="success">Active</Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Linked as{' '}

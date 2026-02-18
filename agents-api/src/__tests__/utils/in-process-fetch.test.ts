@@ -20,6 +20,7 @@ describe('in-process-fetch', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.mocked(trace.getActiveSpan).mockReset();
+    delete (globalThis as any).__inkeep_appFetch;
   });
 
   it('should delegate to registered fetch when app is registered', async () => {

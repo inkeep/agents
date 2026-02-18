@@ -4,6 +4,7 @@
     "agents",
     "mcp-servers",
     "cli",
+    "observability",
     "../connect-your-data",
     "upgrading",
     "agent-engineering",

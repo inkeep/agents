@@ -1,0 +1,239 @@
+---
+title: Troubleshooting
+sidebarTitle: Troubleshooting
+description: Fix common issues with sub agents.
+icon: LuShieldAlert
+---
+
+If your sub agent gives weak or inconsistent results, you usually do not need a full prompt rewrite. Start by matching symptoms, apply one targeted prompt fix, and testing again.
+
+## Quick symptom picker
+
+| If you see this | Start with |
+|---|---|
+| Silent assumptions or over-questioning | [Ambiguity and assumptions](#ambiguity-and-assumptions) |
+| Conflicting sources handled poorly | [Evidence and source quality](#evidence-and-source-quality) |
+| No escalation when blocked | [Decision boundaries and risk](#decision-boundaries-and-risk) |
+| Long, repetitive responses with buried findings | [Output clarity and structure](#output-clarity-and-structure) |
+| Only some list items processed | [Deterministic operations](#deterministic-operations) |
+| Date filtering is inaccurate | [Deterministic operations](#deterministic-operations) |
+
+## Copy-paste guardrails by category
+
+Use these snippets as starting points.
+
+<Tabs>
+  <Tab title="Ambiguity">
+```markdown
+- If requirements are ambiguous and the decision is high impact, ask before proceeding.
+- For low-risk, reversible decisions, proceed with labeled assumptions.
+- If assumptions materially affect outcomes, list them explicitly.
+- If new input conflicts with prior constraints, surface the conflict before proceeding.
+```
+  </Tab>
+  <Tab title="Evidence">
+```markdown
+- When sources conflict, state the conflict and provide options with tradeoffs.
+- Separate direct evidence from inference.
+- Prioritize sources: official docs -> established repo patterns -> examples -> blog posts.
+- Call out when applying guidance outside its original context.
+- If confidence is low, say "I don't know" and state what must be verified.
+```
+  </Tab>
+  <Tab title="Boundaries">
+```markdown
+- Before acting, check: what could this break and who depends on it?
+- Escalate when requests are out of scope, low-confidence/high-impact, or blocked by permissions.
+- Define directive strength: must (non-negotiable), should (strong default), consider (optional).
+- When multiple valid paths exist, present options with tradeoffs.
+```
+  </Tab>
+  <Tab title="Output shape">
+```markdown
+- Return output in a strict format with ordered headings.
+- Lead with 2-5 key bullets, then details.
+- Avoid long preambles and repeated phrasing.
+```
+  </Tab>
+  <Tab title="Deterministic ops">
+```markdown
+- Do not rely on the LLM to iterate through lists; use programmatic loops.
+- When processing N items, call the sub agent N times from a parent tool.
+- Validate that all items in a list were processed before returning results.
+- Handle date/time filtering in the tool, not in the prompt; pass date parameters to the tool.
+```
+  </Tab>
+</Tabs>
+
+## Common issues and fixes
+
+### Ambiguity and assumptions
+
+<Accordions>
+  <Accordion title="The agent assumes missing details and proceeds">
+    **What you see:** Silent assumptions, fabricated defaults, no clarification.
+
+    **Why it happens:** The prompt says what to do, but not when to pause and ask.
+
+    **Fix:**
+    - Add: "If requirements are ambiguous and the decision is high impact, ask before proceeding."
+    - Add: "If you proceed with assumptions, state them explicitly."
+  </Accordion>
+  <Accordion title="The agent asks too many clarifying questions">
+    **What you see:** Repeated low-stakes questions and slow progress on reversible decisions.
+
+    **Why it happens:** The prompt does not define when asking is required versus optional.
+
+    **Fix:**
+    - Add ask policy: ask only for high-impact ambiguity or preference-sensitive decisions.
+    - Add proceed policy: for low-risk decisions, proceed with labeled assumptions.
+  </Accordion>
+  <Accordion title="The agent overreacts to the most recent message">
+    **What you see:** New feedback causes the agent to ignore earlier goals and constraints.
+
+    **Why it happens:** The prompt does not include continuity guidance.
+
+    **Fix:**
+    - Add: "New input adds context; it does not erase prior requirements."
+    - Add: "If new input conflicts with prior constraints, surface the conflict before proceeding."
+  </Accordion>
+  <Accordion title="Assumptions compound without visibility">
+    **What you see:** Output depends on multiple hidden assumptions that were never validated.
+
+    **Why it happens:** The prompt does not require explicit assumption disclosure.
+
+    **Fix:**
+    - Add: "When assumptions affect outcome, list them explicitly before final recommendations."
+    - Add: "If assumptions stack, pause and request confirmation before further work."
+  </Accordion>
+</Accordions>
+
+### Evidence and source quality
+
+<Accordions>
+  <Accordion title="The agent flattens nuance across conflicting sources">
+    **What you see:** Conflicting sources are treated as agreement; alternatives are not named.
+
+    **Why it happens:** The prompt does not explain how to handle ambiguous or conflicting evidence.
+
+    **Fix:**
+    - Add: "When sources conflict, state the conflict and provide options with tradeoffs."
+    - Add: "Separate direct evidence from inference."
+  </Accordion>
+  <Accordion title="The agent treats weak sources as equally authoritative">
+    **What you see:** Low-trust examples are used instead of official docs or established repo patterns.
+
+    **Why it happens:** The prompt does not define source priority.
+
+    **Fix:**
+    - Add source priority guidance, for example: official docs -> established repo patterns -> examples -> blog posts.
+    - Add: "Call out when applying guidance outside its original context."
+  </Accordion>
+  <Accordion title="The agent invents details when uncertain">
+    **What you see:** Plausible but unverified claims are presented confidently.
+
+    **Why it happens:** The prompt does not allow uncertainty language, so the agent guesses.
+
+    **Fix:**
+    - Add: "'I don't know' is valid when confidence is low."
+    - Add: "Do not invent missing details; state what must be verified."
+  </Accordion>
+</Accordions>
+
+### Decision boundaries and risk
+
+<Accordions>
+  <Accordion title="The agent never escalates">
+    **What you see:** The agent tries to answer everything, including out-of-scope decisions.
+
+    **Why it happens:** The prompt does not define escalation boundaries.
+
+    **Fix:**
+    - Add explicit escalation criteria: out-of-scope requests, low confidence on high-impact decisions, missing permissions.
+    - Add expected escalation output: what is blocked, why, and what is needed to continue.
+  </Accordion>
+  <Accordion title="The agent misreads directive strength">
+    **What you see:** Suggestions are treated as requirements, or hard requirements are ignored.
+
+    **Why it happens:** Directive strength is not defined consistently.
+
+    **Fix:**
+    - Define terms once: `must` = non-negotiable, `should` = strong default, `consider` = optional.
+    - Rewrite ambiguous constraints to use one of those terms consistently.
+  </Accordion>
+  <Accordion title="The agent presents one option only">
+    **What you see:** One option is presented even when multiple valid options exist.
+
+    **Why it happens:** The prompt does not require tradeoff framing when uncertainty is high.
+
+    **Fix:**
+    - Add: "When multiple valid options exist, present options with tradeoffs."
+  </Accordion>
+</Accordions>
+
+### Output clarity and structure
+
+<Accordions>
+  <Accordion title="The agent is verbose, repetitive, or buries key points">
+    **What you see:** Long preambles, repeated phrasing, and key findings that are hard to locate.
+
+    **Why it happens:** The prompt does not define a clear output shape.
+
+    **Fix:**
+    - Add a strict output format with ordered headings.
+    - Add verbosity limits, for example: "Lead with 2-5 key bullets, then details."
+  </Accordion>
+</Accordions>
+
+### Deterministic operations
+
+<Accordions>
+  <Accordion title="The agent only processes some items in a list">
+    **What you see:** You give the agent a list of 10 companies and ask it to call a tool or sub agent for each one, but only 3-5 get processed.
+
+    **Why it happens:** LLMs are not reliable iterators. When asked to loop through a list and perform an action for each item, they often stop early, skip items, or lose track of progress. This is a fundamental limitation of how LLMs process lists.
+
+    **Fix:**
+    - Do not rely on the LLM to iterate. Instead, use programmatic iteration in a [function tool](/typescript-sdk/tools/function-tools) from a separate agent which calls the sub agent using a [webhook](/typescript-sdk/triggers/webhooks).
+    - The function tool accepts the list, loops through each item in code, and calls the sub agent via webhook once per item.
+    - The calling agent calls the function tool once with the full list; the tool handles the iteration deterministically.
+  </Accordion>
+  <Accordion title="The agent filters dates incorrectly">
+    **What you see:** You ask for "messages from the past 24 hours" but the agent returns messages from days ago, or misses recent ones. Date comparisons are inconsistent.
+
+    **Why it happens:** LLMs struggle with date/time reasoning. They may misparse timestamps, miscalculate relative dates ("past 24 hours"), or inconsistently compare date formats. This is especially problematic when filtering large result sets.
+
+    **Fix:**
+    - Move date filtering into the tool itself. Add date parameters to the tool schema.
+    - Have the tool compute the date range and filter results before returning them to the agent.
+    - The agent's job is to extract the user's intent ("past 24 hours") and pass it as a parameter; the tool does the actual filtering.
+  </Accordion>
+</Accordions>
+
+## Adding fixes to your prompt
+
+You can add these guardrails in three ways. If you are new to prompt writing, start with Option A.
+
+### Option A: Dedicated troubleshooting section
+
+```markdown
+## Prompt pitfalls to avoid
+
+- If requirements are unclear on a high-impact decision, ask before proceeding.
+- When sources conflict, acknowledge the conflict and separate evidence from inference.
+- Lead with key findings and avoid repeated wording.
+```
+
+### Option B: Weave fixes into operating principles
+
+```markdown
+## Operating principles
+
+- Clarify before action on high-impact ambiguity.
+- Weigh evidence by source authority and relevance.
+- Match confidence to certainty and provide options when needed.
+```
+
+### Option C: Hybrid
+
+Use operating principles for defaults, then add a short "watch-outs" block near the end of the prompt.

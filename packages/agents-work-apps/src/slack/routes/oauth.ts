@@ -29,32 +29,7 @@ const logger = getLogger('slack-oauth');
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-/**
- * Allowed redirect domains for OAuth callbacks.
- * Validates INKEEP_AGENTS_MANAGE_UI_URL to prevent open redirect attacks.
- */
-const ALLOWED_REDIRECT_HOSTNAMES = new Set(['localhost', '127.0.0.1', 'agents.inkeep.com']);
-
-function isAllowedRedirectUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    if (ALLOWED_REDIRECT_HOSTNAMES.has(parsed.hostname)) return true;
-    // Allow any *.inkeep.com subdomain
-    if (parsed.hostname.endsWith('.inkeep.com')) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-// Validate at module load time so misconfig is caught early
 const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-if (!isAllowedRedirectUrl(manageUiUrl)) {
-  throw new Error(
-    `Invalid INKEEP_AGENTS_MANAGE_UI_URL: "${manageUiUrl}" is not in the allowed redirect domains. ` +
-      'Allowed: localhost, 127.0.0.1, *.inkeep.com'
-  );
-}
 
 interface OAuthState {
   nonce: string;

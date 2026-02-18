@@ -28,7 +28,7 @@ cd agents
 
 ### Step 2: Run the setup script
 
-For first-time setup, run:
+Ensure Docker Desktop (or Docker daemon) is running, then run:
 
 ```bash
 pnpm setup-dev
@@ -41,6 +41,11 @@ This will:
 - Add `.env` to `.gitignore` if needed
 - Install dependencies
 - Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml` and run migrations
+- Create the admin user for auto-login (`pnpm db:auth:init`)
+
+<Tip>
+`pnpm setup-dev` is idempotent — safe to re-run after pulling changes, resetting your database, or switching branches.
+</Tip>
 
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
@@ -58,7 +63,7 @@ pnpm dev
 
 ### Step 4: Start building!
 
-Open `http://localhost:3000` in the browser and start building agents.
+Open `http://localhost:3000` in the browser — you'll be signed in automatically. Start building agents right away.
 
 # Push your project
 
@@ -93,13 +98,20 @@ inkeep push
   style={{ border: "1px solid #e1e5e9" }}
 />
 
-# Set up live traces
+# Set up optional services (traces + credentials)
 
-For full instructions, see [Traces](/get-started/traces). Short version:
+Set up all optional local services — Nango (credential store), SigNoz (traces), OTEL Collector, and Jaeger — with one command:
 
-- For local SigNoz, clone `agents-optional-local-dev` and run `docker-compose --profile signoz up -d`.
-- Set `SIGNOZ_URL`, `SIGNOZ_API_KEY`, and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` in the root `.env` (see `.env.example`).
-- Restart `pnpm dev`, then open `http://localhost:3080` to view traces.
+```bash
+pnpm setup-dev:optional
+```
+
+This clones [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) into `.optional-services/`, starts services via Docker Compose, and writes the required env vars to your `.env`. Restart `pnpm dev` to pick up the new variables.
+
+- **Traces**: Open `http://localhost:3080` for SigNoz. See [Traces](/get-started/traces) for details.
+- **Credentials**: Create a credential in the Visual Builder using Nango Store. See [Nango](/typescript-sdk/credentials/nango) for details.
+
+<Snippet file="setup-dev-optional-lifecycle.mdx" />
 
 <Image
   src="/images/live-traces.png"
@@ -107,15 +119,11 @@ For full instructions, see [Traces](/get-started/traces). Short version:
   style={{ border: "1px solid #e1e5e9" }}
 />
 
-# Set up credentials
-
-For Nango setup (cloud or local), follow [Use Nango as a credential store](/typescript-sdk/credentials/nango). Short version:
-
-- Set `NANGO_SECRET_KEY` in the root `.env`.
-- For local Nango, start services from `agents-optional-local-dev` (`docker-compose --profile nango up -d`) and set `NANGO_SERVER_URL` / `PUBLIC_NANGO_CONNECT_BASE_URL` as needed (see `.env.example`).
-- Restart `pnpm dev`, then create a credential in the Visual Builder (Credentials tab).
-
 # Development Workflow
+
+### Conductor
+
+The repo includes a `conductor.json` that automatically configures Claude Code workspaces with the correct permissions and skills. No manual setup needed.
 
 ### Git Hooks
 

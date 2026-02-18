@@ -58,12 +58,16 @@ cd inkeep-external-services
 
 Run this command to autogenerate a `.env` file:
 ```bash
-cp .env.example .env && \
-  encryption_key=$(openssl rand -base64 32) && \
+cp .env.docker.example .env && \
+  nango_encryption_key=$(openssl rand -base64 32) && \
+  nango_dashboard_password=$(openssl rand -base64 8) && \
   tmp_file=$(mktemp) && \
-  sed "s|<REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY>|$encryption_key|" .env > "$tmp_file" && \
+  sed \
+    -e "s|<REPLACE_WITH_NANGO_ENCRYPTION_KEY>|$nango_encryption_key|" \
+    -e "s|<REPLACE_WITH_NANGO_DASHBOARD_PASSWORD>|$nango_dashboard_password|" \
+    .env > "$tmp_file" && \
   mv "$tmp_file" .env && \
-  echo "Docker environment file created with auto-generated encryption key"
+  echo "Docker environment file created with auto-generated NANGO_ENCRYPTION_KEY and NANGO_DASHBOARD_PASSWORD"
 ```
 
 Nango requires a `NANGO_ENCRYPTION_KEY`. Once you create this, it cannot be edited.

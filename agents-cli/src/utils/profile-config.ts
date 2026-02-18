@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
 import { getCredentialExpiryInfo, loadCredentials } from './credentials';
-import { ProfileManager, type ResolvedProfile } from './profiles';
+import { LOCAL_REMOTE, ProfileManager, type ResolvedProfile } from './profiles';
 
 export interface ProfileConfig {
   profileName: string;
@@ -48,8 +48,8 @@ export async function resolveProfileConfig(
     // No profile configured - return defaults for backward compatibility
     return {
       profileName: 'default',
-      agentsApiUrl: 'http://localhost:3002',
-      manageUiUrl: 'http://localhost:3000',
+      agentsApiUrl: LOCAL_REMOTE.api,
+      manageUiUrl: LOCAL_REMOTE.manageUi,
       environment: 'development',
       credentialKey: 'auth-credentials',
       isAuthenticated: false,

@@ -7,6 +7,9 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ### Build & Development
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
+- **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 - **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
 - **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
 - **Typecheck**: `pnpm typecheck`
@@ -22,6 +25,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
 - **Check schema**: `pnpm db:check`
+- **Initialize auth**: `pnpm db:auth:init` - Create default organization and admin user for local development
 
 ### Creating Changelog Entries (Changesets)
 
@@ -278,6 +282,10 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
    This is the standard development procedure to ensure code review and CI/CD processes.
    
    **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
+
+### PR Review Agents
+
+The `.claude/agents/pr-review*.md` agents are for **on-demand invocation only** (user requests a review, or CI triggers one). Do NOT invoke them during autonomous implementation workflows like `/ship` — those workflows delegate review to external reviewers via `/review`.
 
 ### 📁 Git Worktrees for Parallel Feature Development
 
