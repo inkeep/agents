@@ -1,3 +1,4 @@
+import type { SlackLinkIntent } from '@inkeep/agents-core';
 import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
@@ -18,6 +19,7 @@ import {
   createErrorMessage,
   createJwtLinkMessage,
   createNotLinkedMessage,
+  createSmartLinkMessage,
   createStatusMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
@@ -266,7 +268,8 @@ export async function handleAgentPickerCommand(
 
 async function generateLinkCodeWithIntent(
   payload: SlackCommandPayload,
-  tenantId: string
+  tenantId: string,
+  intent?: SlackLinkIntent
 ): Promise<SlackCommandResponse> {
   try {
     const linkToken = await signSlackLinkToken({
@@ -275,12 +278,31 @@ async function generateLinkCodeWithIntent(
       slackUserId: payload.userId,
       slackEnterpriseId: payload.enterpriseId,
       slackUsername: payload.userName,
+      intent,
     });
 
     const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
     const linkUrl = `${manageUiUrl}/link?token=${encodeURIComponent(linkToken)}`;
 
-    logger.info({ slackUserId: payload.userId, tenantId }, 'Generated JWT link token with intent');
+    if (intent) {
+      logger.info(
+        {
+          event: 'smart_link_intent_captured',
+          entryPoint: intent.entryPoint,
+          questionLength: intent.question.length,
+          channelId: payload.channelId,
+        },
+        'Smart link intent captured'
+      );
+      const message = createSmartLinkMessage(linkUrl);
+      return {
+        response_type: 'ephemeral',
+        text: "To get started, let's connect your Inkeep account with Slack.",
+        blocks: message.blocks,
+      };
+    }
+
+    logger.info({ slackUserId: payload.userId, tenantId }, 'Generated JWT link token');
 
     const message = createJwtLinkMessage(linkUrl, LINK_CODE_TTL_MINUTES);
     return { response_type: 'ephemeral', ...message };
@@ -305,7 +327,13 @@ export async function handleQuestionCommand(
   );
 
   if (!existingLink) {
-    return generateLinkCodeWithIntent(payload, tenantId);
+    const intent: SlackLinkIntent = {
+      entryPoint: 'question_command',
+      question: question.slice(0, 2000),
+      channelId: payload.channelId,
+      responseUrl: payload.responseUrl,
+    };
+    return generateLinkCodeWithIntent(payload, tenantId, intent);
   }
 
   // Use the tenant from the user's mapping

@@ -21,6 +21,7 @@ const mockChatStream = vi.fn().mockReturnValue({
 
 vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
+  signSlackLinkToken: vi.fn().mockResolvedValue('mock-link-token'),
 }));
 
 const mockSpan = {
@@ -201,7 +202,7 @@ describe('handleAppMention', () => {
 
     expect(mockPostEphemeral).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Link your account'),
+        text: expect.stringContaining('connect your Inkeep account'),
       })
     );
   });

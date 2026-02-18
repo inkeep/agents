@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { SlackLinkIntent } from '../../utils/slack-link-token';
 import {
+  SlackLinkIntentSchema,
   SlackLinkTokenPayloadSchema,
   signSlackLinkToken,
   verifySlackLinkToken,
@@ -207,6 +209,194 @@ describe('slack-link-token', () => {
 
       const result = SlackLinkTokenPayloadSchema.safeParse(payload);
       expect(result.success).toBe(true);
+    });
+
+    it('should accept payload with intent', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'slack-link',
+        sub: 'slack:T12345678:U87654321',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 600,
+        tokenUse: 'slackLinkCode',
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+        },
+        intent: {
+          entryPoint: 'mention',
+          question: 'What is the API rate limit?',
+          channelId: 'C12345678',
+          threadTs: '1234567890.123456',
+          messageTs: '1234567890.123457',
+          agentId: 'agent_123',
+          projectId: 'project_456',
+        },
+      };
+
+      const result = SlackLinkTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept payload without intent', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'slack-link',
+        sub: 'slack:T12345678:U87654321',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 600,
+        tokenUse: 'slackLinkCode',
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+        },
+      };
+
+      const result = SlackLinkTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('SlackLinkIntentSchema', () => {
+    it('should validate a mention intent', () => {
+      const intent = {
+        entryPoint: 'mention',
+        question: 'What is the API rate limit?',
+        channelId: 'C12345678',
+        threadTs: '1234567890.123456',
+        messageTs: '1234567890.123457',
+        agentId: 'agent_123',
+        projectId: 'project_456',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate a question_command intent', () => {
+      const intent = {
+        entryPoint: 'question_command',
+        question: 'What is the API rate limit?',
+        channelId: 'C12345678',
+        responseUrl: 'https://hooks.slack.com/commands/T123/456/abc',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate a run_command intent', () => {
+      const intent = {
+        entryPoint: 'run_command',
+        question: 'What is the API rate limit?',
+        channelId: 'C12345678',
+        responseUrl: 'https://hooks.slack.com/commands/T123/456/abc',
+        agentIdentifier: 'my-agent',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject question longer than 2000 characters', () => {
+      const intent = {
+        entryPoint: 'mention',
+        question: 'x'.repeat(2001),
+        channelId: 'C12345678',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty question', () => {
+      const intent = {
+        entryPoint: 'mention',
+        question: '',
+        channelId: 'C12345678',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject invalid entry point', () => {
+      const intent = {
+        entryPoint: 'invalid',
+        question: 'test',
+        channelId: 'C12345678',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing channelId', () => {
+      const intent = {
+        entryPoint: 'mention',
+        question: 'test',
+      };
+
+      const result = SlackLinkIntentSchema.safeParse(intent);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('sign and verify with intent', () => {
+    const mentionIntent: SlackLinkIntent = {
+      entryPoint: 'mention',
+      question: 'What is the API rate limit?',
+      channelId: 'C12345678',
+      threadTs: '1234567890.123456',
+      messageTs: '1234567890.123457',
+      agentId: 'agent_123',
+      projectId: 'project_456',
+    };
+
+    it('should round-trip a token with intent', async () => {
+      const token = await signSlackLinkToken({
+        ...validParams,
+        intent: mentionIntent,
+      });
+      const result = await verifySlackLinkToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.intent).toEqual(mentionIntent);
+    });
+
+    it('should round-trip a token without intent', async () => {
+      const token = await signSlackLinkToken(validParams);
+      const result = await verifySlackLinkToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.intent).toBeUndefined();
+    });
+
+    it('should preserve all intent fields through sign/verify', async () => {
+      const runIntent: SlackLinkIntent = {
+        entryPoint: 'run_command',
+        question: 'How do I deploy?',
+        channelId: 'C99999999',
+        responseUrl: 'https://hooks.slack.com/commands/T123/456/abc',
+        agentIdentifier: 'deploy-agent',
+      };
+
+      const token = await signSlackLinkToken({
+        ...validParams,
+        intent: runIntent,
+      });
+      const result = await verifySlackLinkToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.intent?.entryPoint).toBe('run_command');
+      expect(result.payload?.intent?.question).toBe('How do I deploy?');
+      expect(result.payload?.intent?.channelId).toBe('C99999999');
+      expect(result.payload?.intent?.responseUrl).toBe(
+        'https://hooks.slack.com/commands/T123/456/abc'
+      );
+      expect(result.payload?.intent?.agentIdentifier).toBe('deploy-agent');
     });
   });
 });
