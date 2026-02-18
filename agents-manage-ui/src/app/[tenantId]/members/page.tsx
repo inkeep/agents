@@ -185,7 +185,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   }
 
   return (
-    <div className="space-y-6 max-w-xl mx-auto">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {isOrgAdmin && (
         <div className="flex gap-2 items-start">
           <div className="flex-1 flex items-center gap-2 min-h-10 px-3 py-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">

@@ -297,17 +297,6 @@ export function InviteMemberDialog({
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Role</Label>
-                <OrgRoleSelector
-                  value={selectedRole}
-                  onChange={setSelectedRole}
-                  disabled={isSubmitting}
-                  triggerClassName="w-full h-auto py-2"
-                  ref={roleSelectorRef}
-                />
-              </div>
-
-              <div className="grid gap-2">
                 <Label htmlFor="emails">Email addresses</Label>
                 <div
                   role="textbox"
@@ -360,6 +349,17 @@ export function InviteMemberDialog({
                   Paste emails from your email client — supports &quot;Name &lt;email&gt;&quot;
                   format
                 </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Role</Label>
+                <OrgRoleSelector
+                  value={selectedRole}
+                  onChange={setSelectedRole}
+                  disabled={isSubmitting}
+                  triggerClassName="w-full h-auto py-2"
+                  ref={roleSelectorRef}
+                />
               </div>
 
               <div className="grid gap-2">
