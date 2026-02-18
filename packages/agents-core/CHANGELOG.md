@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+
 ## 0.48.5
 
 ## 0.48.4
