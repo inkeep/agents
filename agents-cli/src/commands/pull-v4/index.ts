@@ -19,33 +19,12 @@ import chalk from 'chalk';
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
 EventEmitter.defaultMaxListeners = 20;
 
-/**
- * Clean up stdin state between interactive prompts to prevent listener leaks
- */
-function resetStdinState(): void {
-  process.stdin.removeAllListeners('data');
-  process.stdin.removeAllListeners('keypress');
-  process.stdin.removeAllListeners('end');
-  if (process.stdin.isTTY && process.stdin.isRaw) {
-    process.stdin.setRawMode(false);
-  }
-  if (!process.stdin.isPaused()) {
-    process.stdin.pause();
-  }
-}
-
 import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
 import { loadProject } from '../../utils/project-loader';
-import {
-  checkAndPromptForStaleComponentCleanup,
-  cleanupStaleComponents,
-  copyProjectToTemp,
-} from './component-updater';
 import { introspectGenerate } from './introspect-generator';
-import { compareProjects } from './project-comparator';
-import { extractSubAgents } from './utils/component-registry';
+import { extractSubAgents } from '../pull-v3/utils/component-registry';
 
 export interface PullV3Options {
   project?: string;
@@ -175,44 +154,6 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
         }
       }
     }
-  }
-}
-
-/**
- * Read existing project from filesystem if it exists
- */
-async function readExistingProject(projectRoot: string): Promise<FullProjectDefinition | null> {
-  const indexPath = join(projectRoot, 'index.ts');
-
-  if (!existsSync(indexPath)) {
-    return null;
-  }
-
-  try {
-    // Import the project-loader utility (same as pull-v2)
-    const { loadProject } = await import('../../utils/project-loader');
-
-    // Load the project from index.ts
-    const project = await loadProject(projectRoot);
-
-    // Convert to FullProjectDefinition with timeout to prevent hanging
-    const projectDefinition = await Promise.race([
-      project.getFullDefinition(),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(
-            new Error(
-              'getFullDefinition() timed out after 30 seconds - likely circular reference or infinite loop in local project'
-            )
-          );
-        }, 30000);
-      }),
-    ]);
-
-    return projectDefinition;
-  } catch {
-    // If there's any error parsing the existing project, treat as if it doesn't exist
-    return null;
   }
 }
 
@@ -450,253 +391,25 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     const paths = createProjectStructure(projectDir);
 
     if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
-      const { generateSkills } = await import('./components/skill-generator');
+      const { generateSkills } = await import('../pull-v3/components/skill-generator');
       await generateSkills(remoteProject.skills, paths.skillsDir);
     }
 
-    // Step 6: Introspect mode - skip comparison, regenerate everything
-    if (options.introspect) {
-      console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
+    console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
 
-      s.start('Generating all files deterministically...');
-      await introspectGenerate(
-        remoteProject,
-        paths,
-        options.env || 'development',
-        options.debug || false
-      );
-      s.stop('All files generated');
-
-      console.log(chalk.green('\n✅ Project regenerated successfully with introspect mode!'));
-      console.log(chalk.gray(`   📁 Location: ${paths.projectRoot}`));
-      console.log(chalk.gray(`   🌍 Environment: ${options.env || 'development'}`));
-      console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
-
-      restoreLogLevel();
-      if (batchMode) {
-        return { success: true };
-      }
-      process.exit(0);
-    }
-
-    // Step 7: Read existing project and compare
-    // s.start('Reading existing project...');
-    const localProject = await readExistingProject(paths.projectRoot);
-
-    if (!localProject) {
-      s.message('No existing project found - treating as new project');
-    } else {
-      s.message('Existing project loaded');
-    }
-
-    // Step 8: Build local component registry to understand current project structure
-    s.start('Building component registry from local files...');
-    const { buildComponentRegistryFromParsing } = await import('./component-parser');
-    const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
-
-    s.message('Component registry built');
-
-    // Step 9: Debug registry to see variable name conflicts
-    if (options.debug) {
-      console.log(chalk.cyan('\n🔍 Component Registry Debug:'));
-      const allComponents = localRegistry.getAllComponents();
-      console.log(chalk.gray('   Total components registered:'), allComponents.length);
-
-      // Group by variable name to see conflicts
-      const nameGroups = new Map<string, any[]>();
-      for (const comp of allComponents) {
-        if (!nameGroups.has(comp.name)) {
-          nameGroups.set(comp.name, []);
-        }
-        nameGroups.get(comp.name)?.push(comp);
-      }
-
-      // Show any conflicts
-      for (const [varName, components] of nameGroups.entries()) {
-        if (components.length > 1) {
-          console.log(chalk.red(`   ❌ Variable name conflict: "${varName}"`));
-          for (const comp of components) {
-            console.log(chalk.gray(`      - ${comp.type}:${comp.id} -> ${comp.filePath}`));
-          }
-        } else {
-          console.log(chalk.gray(`   ✅ ${varName} (${components[0].type}:${components[0].id})`));
-        }
-      }
-    }
-
-    // Step 10: Comprehensive project comparison (now with access to registry)
-    s.start('Comparing projects for changes...');
-    const comparison = await compareProjects(localProject, remoteProject, options.debug);
-
-    if (!comparison.hasChanges && !options.force) {
-      s.stop();
-      console.log(chalk.green('✅ Project is already up to date'));
-      console.log(chalk.gray('   No differences detected between local and remote projects'));
-      restoreLogLevel();
-      if (batchMode) {
-        return { success: true, upToDate: true };
-      }
-      process.exit(0);
-    }
-
-    s.message(`Detected ${comparison.changeCount} differences`);
-
-    // Step 11: Create temp directory and copy existing project (or start empty)
-    const tempDirName = `.temp-validation-${Date.now()}`;
-    s.start('Preparing temp directory...');
-
-    let performedCleanup = false;
-
-    if (localProject) {
-      // Copy existing project to temp directory
-      copyProjectToTemp(paths.projectRoot, tempDirName);
-      console.log(chalk.green(`✅ Existing project copied to temp directory`));
-
-      // Check for stale components and ask user permission to clean them up (in temp directory first)
-      s.start('Checking for stale components...');
-      const shouldCleanupStale = await checkAndPromptForStaleComponentCleanup(
-        remoteProject,
-        localRegistry
-      );
-
-      // Reset stdin state after interactive prompt to prevent listener leaks
-      resetStdinState();
-
-      if (shouldCleanupStale) {
-        s.start('Cleaning up stale components from temp directory...');
-        await cleanupStaleComponents(paths.projectRoot, tempDirName, remoteProject, localRegistry);
-        console.log(chalk.green(`✅ Stale components cleaned up from temp directory`));
-        performedCleanup = true;
-      }
-    } else {
-      // Start with empty temp directory for new projects
-      const tempDir = join(paths.projectRoot, tempDirName);
-      mkdirSync(tempDir, { recursive: true });
-      console.log(chalk.green(`✅ Empty temp directory created for new project`));
-    }
-
-    s.message('Temp directory prepared');
-
-    // Step 12: Add new components to temp directory
-    const newComponentCount = Object.values(comparison.componentChanges).reduce(
-      (sum, changes) => sum + changes.added.length,
-      0
-    );
-
-    let newComponentResults: any[] = [];
-    if (newComponentCount > 0) {
-      s.start('Creating new component files in temp directory...');
-      const { createNewComponents } = await import('./new-component-generator');
-      newComponentResults = await createNewComponents(
-        comparison,
-        remoteProject,
-        localRegistry,
-        paths,
-        options.env || 'development',
-        tempDirName
-      );
-
-      // Debug registry after new components are generated
-      if (options.debug) {
-        console.log(chalk.cyan('\n🔍 Component Registry After Generation:'));
-        const allComponents = localRegistry.getAllComponents();
-        console.log(chalk.gray('   Total components registered:'), allComponents.length);
-
-        // Group by variable name to see conflicts
-        const nameGroups = new Map<string, any[]>();
-        for (const comp of allComponents) {
-          if (!nameGroups.has(comp.name)) {
-            nameGroups.set(comp.name, []);
-          }
-          nameGroups.get(comp.name)?.push(comp);
-        }
-
-        // Show any conflicts
-        for (const [varName, components] of nameGroups.entries()) {
-          if (components.length > 1) {
-            console.log(chalk.red(`   ❌ Variable name conflict: "${varName}"`));
-            for (const comp of components) {
-              console.log(chalk.gray(`      - ${comp.type}:${comp.id} -> ${comp.filePath}`));
-            }
-          } else {
-            console.log(chalk.gray(`   ✅ ${varName} (${components[0].type}:${components[0].id})`));
-          }
-        }
-      }
-
-      const successful = newComponentResults.filter((r) => r.success);
-      console.log(chalk.green(`✅ Added ${successful.length} new components to temp directory`));
-      s.message('New component files created');
-    }
-
-    // Step 13: Apply modified components to temp directory
-    const modifiedCount = Object.values(comparison.componentChanges).reduce(
-      (sum, changes) => sum + changes.modified.length,
-      0
-    );
-
-    if (modifiedCount > 0) {
-      // Stop spinner - updateModifiedComponents will log its own progress
-      s.stop();
-      const { updateModifiedComponents } = await import('./component-updater');
-
-      // Transform new component results for LLM context
-      const newComponentsForContext =
-        newComponentResults && newComponentResults.length > 0
-          ? newComponentResults
-              .filter((result) => result.success)
-              .map((result) => ({
-                componentId: result.componentId,
-                componentType: result.componentType,
-                filePath: result.filePath.replace(`${paths.projectRoot}/`, ''), // Convert to relative path
-              }))
-          : undefined;
-
-      await updateModifiedComponents(
-        comparison,
-        remoteProject,
-        localRegistry,
-        paths.projectRoot,
-        options.debug,
-        tempDirName, // Use the temp directory we created
-        newComponentsForContext
-      );
-    }
-
-    // Step 14: Create index.ts in temp directory only
-    s.start('Generating project index file in temp directory...');
-    const { generateProjectIndex } = await import('./project-index-generator');
-
-    // Only create in temp directory for validation
-    await generateProjectIndex(
-      join(paths.projectRoot, tempDirName),
+    s.start('Generating all files deterministically...');
+    await introspectGenerate(
       remoteProject,
-      localRegistry,
-      projectId
+      paths,
+      options.env || 'development',
+      options.debug || false
     );
+    s.stop('All files generated');
 
-    s.message('Project index file created');
-
-    // Step 15: Run validation and user interaction on complete temp directory
-    if (newComponentCount > 0 || modifiedCount > 0 || performedCleanup) {
-      // Stop spinner before validation - validateTempDirectory handles its own user interaction
-      s.stop('Running validation on complete project...');
-      const { validateTempDirectory } = await import('./project-validator');
-      const validationResult = await validateTempDirectory(
-        paths.projectRoot,
-        tempDirName,
-        remoteProject,
-        { skipExit: batchMode }
-      );
-      if (batchMode) {
-        restoreLogLevel();
-        return { success: validationResult.success, upToDate: validationResult.upToDate };
-      }
-      // Note: validateTempDirectory calls process.exit() internally when not in batch mode
-    } else {
-      s.stop();
-      console.log(chalk.green('\n✅ No changes detected - project is up to date'));
-    }
+    console.log(chalk.green('\n✅ Project regenerated successfully with introspect mode!'));
+    console.log(chalk.gray(`   📁 Location: ${paths.projectRoot}`));
+    console.log(chalk.gray(`   🌍 Environment: ${options.env || 'development'}`));
+    console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
 
     restoreLogLevel();
     if (batchMode) {
@@ -865,7 +578,7 @@ async function pullSingleProject(
 
       try {
         // Call the main pull command in batch mode (returns results instead of exiting)
-        const result = await pullV3Command({
+        const result = await pullV4Command({
           ...options,
           project: projectId,
           all: false, // Don't recurse into batch mode
