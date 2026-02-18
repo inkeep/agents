@@ -107,6 +107,13 @@ function StructuredOutputModelSection({
             placeholder="Select structured output model (optional)"
             value={field.value || ''}
             onValueChange={field.onChange}
+            onProviderOptionsChange={(options) => {
+              if (!options || Object.keys(options).length === 0) {
+                providerOptionsField.onChange(undefined);
+                return;
+              }
+              providerOptionsField.onChange(options);
+            }}
             inheritedValue={baseModel}
             canClear={!disabled}
             disabled={disabled}
@@ -193,6 +200,13 @@ function SummarizerModelSection({
             placeholder="Select summarizer model (optional)"
             value={field.value || ''}
             onValueChange={field.onChange}
+            onProviderOptionsChange={(options) => {
+              if (!options || Object.keys(options).length === 0) {
+                providerOptionsField.onChange(undefined);
+                return;
+              }
+              providerOptionsField.onChange(options);
+            }}
             inheritedValue={baseModel}
             canClear={true}
             disabled={disabled}
