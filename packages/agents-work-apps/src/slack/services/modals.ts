@@ -133,6 +133,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
           text: SlackStrings.placeholders.selectAgent,
         },
         options: agentOptions,
+        ...(agents.length > 0 ? { initial_option: agentOptions[0] } : {}),
       },
       label: {
         type: 'plain_text',
@@ -392,6 +393,7 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
           text: SlackStrings.placeholders.selectAgent,
         },
         options: agentOptions,
+        ...(agents.length > 0 ? { initial_option: agentOptions[0] } : {}),
       },
       label: {
         type: 'plain_text',
