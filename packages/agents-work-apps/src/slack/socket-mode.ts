@@ -1,4 +1,5 @@
 import { flushTraces } from '@inkeep/agents-core';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { getLogger } from '../logger';
 import { dispatchSlackEvent } from './dispatcher';
 import { handleCommand } from './services';
@@ -20,8 +21,8 @@ export async function startSocketMode(appToken: string): Promise<void> {
 
   setupSocketModeListeners(client);
 
-  (globalThis as Record<string, unknown>)[GLOBAL_KEY] = client;
   await client.start();
+  (globalThis as Record<string, unknown>)[GLOBAL_KEY] = client;
   logger.info({}, 'Slack Socket Mode client started');
 }
 
@@ -29,7 +30,25 @@ interface SocketModeEventEmitter {
   on: (event: string, listener: (...args: unknown[]) => void) => void;
 }
 
+function registerBackgroundWork(work: Promise<unknown>): void {
+  work.catch((err) => {
+    logger.error({ error: err }, 'Background work failed in Socket Mode');
+  });
+}
+
 function setupSocketModeListeners(client: SocketModeEventEmitter): void {
+  client.on('error', (...args: unknown[]) => {
+    logger.error({ error: args[0] }, 'Socket Mode client error');
+  });
+
+  client.on('disconnected', () => {
+    logger.warn({}, 'Socket Mode client disconnected');
+  });
+
+  client.on('reconnecting', () => {
+    logger.info({}, 'Socket Mode client reconnecting...');
+  });
+
   client.on('slack_event', async (...args: unknown[]) => {
     const { ack, body, type } = args[0] as {
       ack: () => Promise<void>;
@@ -48,9 +67,13 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
         span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType);
         span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType}`);
 
-        await dispatchSlackEvent(eventType, body, { registerBackgroundWork: () => {} }, span);
+        await dispatchSlackEvent(eventType, body, { registerBackgroundWork }, span);
       } catch (error) {
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+        span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+        if (error instanceof Error) {
+          span.recordException(error);
+        }
         logger.error({ error }, 'Error handling Socket Mode event');
       } finally {
         span.end();
@@ -72,15 +95,14 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
       async (span) => {
         try {
           span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType);
-          const r = await dispatchSlackEvent(
-            eventType,
-            body,
-            { registerBackgroundWork: () => {} },
-            span
-          );
+          const r = await dispatchSlackEvent(eventType, body, { registerBackgroundWork }, span);
           return r;
         } catch (error) {
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+          span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+          if (error instanceof Error) {
+            span.recordException(error);
+          }
           logger.error({ error }, 'Error handling Socket Mode interactive event');
           return { outcome: 'error' as const };
         } finally {
@@ -99,26 +121,47 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
       body: Record<string, string>;
     };
 
-    const commandPayload: SlackCommandPayload = {
-      command: body.command || '',
-      text: body.text || '',
-      userId: body.user_id || '',
-      userName: body.user_name || '',
-      teamId: body.team_id || '',
-      teamDomain: body.team_domain || '',
-      enterpriseId: body.enterprise_id,
-      channelId: body.channel_id || '',
-      channelName: body.channel_name || '',
-      responseUrl: body.response_url || '',
-      triggerId: body.trigger_id || '',
-    };
+    await tracer.startActiveSpan(
+      `${SLACK_SPAN_NAMES.WEBHOOK} slash_command`,
+      async (span) => {
+        try {
+          span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, 'slash_command');
+          if (body.command) span.setAttribute('slack.command', body.command);
+          if (body.team_id) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, body.team_id);
 
-    const response = await handleCommand(commandPayload);
-    await ack(
-      Object.keys(response).length > 0
-        ? (response as unknown as Record<string, unknown>)
-        : undefined
+          const commandPayload: SlackCommandPayload = {
+            command: body.command || '',
+            text: body.text || '',
+            userId: body.user_id || '',
+            userName: body.user_name || '',
+            teamId: body.team_id || '',
+            teamDomain: body.team_domain || '',
+            enterpriseId: body.enterprise_id,
+            channelId: body.channel_id || '',
+            channelName: body.channel_name || '',
+            responseUrl: body.response_url || '',
+            triggerId: body.trigger_id || '',
+          };
+
+          const response = await handleCommand(commandPayload);
+          await ack(
+            Object.keys(response).length > 0
+              ? (response as unknown as Record<string, unknown>)
+              : undefined
+          );
+        } catch (error) {
+          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+          span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+          if (error instanceof Error) {
+            span.recordException(error);
+          }
+          logger.error({ error }, 'Error handling Socket Mode slash command');
+          await ack();
+        } finally {
+          span.end();
+          await flushTraces();
+        }
+      }
     );
-    await flushTraces();
   });
 }

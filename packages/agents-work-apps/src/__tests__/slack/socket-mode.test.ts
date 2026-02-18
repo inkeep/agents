@@ -22,6 +22,7 @@ vi.mock('../../slack/tracer', () => {
     SLACK_SPAN_KEYS: {
       EVENT_TYPE: 'slack.event_type',
       OUTCOME: 'slack.outcome',
+      TEAM_ID: 'slack.team_id',
     },
   };
 });
@@ -101,6 +102,22 @@ describe('startSocketMode', () => {
     expect(registeredListeners.slack_event).toHaveLength(1);
     expect(registeredListeners.interactive).toHaveLength(1);
     expect(registeredListeners.slash_commands).toHaveLength(1);
+    expect(registeredListeners.error).toHaveLength(1);
+    expect(registeredListeners.disconnected).toHaveLength(1);
+    expect(registeredListeners.reconnecting).toHaveLength(1);
+  });
+
+  it('should store client in globalThis only after successful start', async () => {
+    const { startSocketMode } = await import('../../slack/socket-mode');
+    const key = '__inkeep_slack_socket_mode_client__';
+
+    mockSocketModeStart.mockImplementationOnce(() => {
+      expect((globalThis as Record<string, unknown>)[key]).toBeUndefined();
+      return Promise.resolve();
+    });
+
+    await startSocketMode('xapp-test-token');
+    expect((globalThis as Record<string, unknown>)[key]).toBeDefined();
   });
 
   it('should skip if client already exists (HMR safety)', async () => {
