@@ -12,8 +12,8 @@ const userInfo = fetchDefinition({
     url: 'https://api.example.com/users/${headers.toTemplate("user_id")}',
     method: 'GET'
   },
-  responseSchema: z.object({ "name": z.string().optional() }),
-  defaultValue: 'Unable to fetch user information'
+  defaultValue: 'Unable to fetch user information',
+  responseSchema: z.object({ "name": z.string().optional() })
 });
 export const supportContext = contextConfig({
   id: 'support-context',

@@ -16,8 +16,8 @@ const userInfo = fetchDefinition({
     },
     transform: 'user'
   },
-  responseSchema: z.object({ "name": z.string().optional(), "email": z.string().optional() }),
-  defaultValue: 'Unable to fetch user information'
+  defaultValue: 'Unable to fetch user information',
+  responseSchema: z.object({ "name": z.string().optional(), "email": z.string().optional() })
 });
 export const personalAgentContext = contextConfig({
   headers: personalAgentHeaders,
