@@ -263,14 +263,17 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentIndexDefinition', () => {
-    it('should generate index definition for multiple environments', () => {
-      const definition = generateEnvironmentIndexDefinition(['development', 'production']);
+    it.only('should generate index definition for multiple environments', async () => {
+      const environments = ['development', 'production'];
+      const definition = generateEnvironmentIndexDefinition(environments);
 
       expect(definition).toContain('export const envSettings = createEnvironmentSettings({');
       expect(definition).toContain('  development,');
       expect(definition).toContain('  production');
       expect(definition).toContain('});');
       expect(definition).not.toContain('production,'); // No trailing comma on last item
+
+      await expectEnvironmentIndexDefinitionSnapshots(environments, definition);
     });
 
     it('should generate index definition for single environment', () => {
