@@ -14,11 +14,14 @@ import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
+  flushTraces,
+  getWaitUntil,
   verifySlackLinkToken,
 } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { createConnectSession } from '../services';
+import { resumeSmartLinkIntent } from '../services/resume-intent';
 import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-users');
@@ -240,6 +243,35 @@ app.openapi(
         },
         'Successfully linked Slack user to Inkeep account via JWT token'
       );
+
+      const { intent } = verifyResult.payload;
+      if (intent) {
+        logger.info(
+          {
+            event: 'smart_link_intent_captured',
+            entryPoint: intent.entryPoint,
+            questionLength: intent.question.length,
+          },
+          'Smart link intent detected in verify-token'
+        );
+
+        const resumeWork = resumeSmartLinkIntent({
+          intent,
+          teamId,
+          slackUserId,
+          inkeepUserId,
+          tenantId,
+          slackEnterpriseId: enterpriseId,
+          slackUsername: username,
+        })
+          .catch((error) => logger.error({ error }, 'Resume smart link intent failed'))
+          .finally(() => flushTraces());
+
+        const waitUntil = await getWaitUntil();
+        if (waitUntil) {
+          waitUntil(resumeWork);
+        }
+      }
 
       return c.json({
         success: true,
