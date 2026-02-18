@@ -29,6 +29,7 @@ generation:
     generateTests: false
     generateNewTests: true
     skipResponseBodyAssertions: false
+  versioningStrategy: automatic
 mcp-typescript:
   version: 0.0.1
   additionalDependencies:
@@ -50,3 +51,4 @@ mcp-typescript:
   outputModelSuffix: output
   packageName: '@inkeep/agents-mcp'
   responseFormat: envelope
+  validateResponse: true
