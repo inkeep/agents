@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.50.0
+
+### Patch Changes
+
+- d32f38f: fix filtering being undone by polling
+  - @inkeep/agents-core@0.50.0
+
 ## 0.49.0
 
 ### Patch Changes
