@@ -255,6 +255,7 @@ export function ScheduledTriggerForm({
               options={scheduleTypeOptions}
               placeholder="Select schedule type"
               isRequired
+              selectTriggerClassName="w-full"
             />
 
             {scheduleType === 'cron' && (

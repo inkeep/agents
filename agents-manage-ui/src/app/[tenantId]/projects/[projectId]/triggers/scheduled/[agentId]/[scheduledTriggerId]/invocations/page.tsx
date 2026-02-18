@@ -57,7 +57,7 @@ export default async function ScheduledTriggerInvocationsPage({
       <div className="flex items-center gap-4">
         <Link href={`/${tenantId}/projects/${projectId}/triggers?tab=scheduled`}>
           <Button variant="ghost" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
             Back to triggers
           </Button>
         </Link>
