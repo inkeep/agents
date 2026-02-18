@@ -398,9 +398,11 @@ app.openapi(
 
     const id = body.id || generateId();
 
-    if (body.runAsUserId) {
+    const runAsUserId = body.runAsUserId || null;
+
+    if (runAsUserId) {
       await validateRunAsUserId({
-        runAsUserId: body.runAsUserId,
+        runAsUserId,
         callerId,
         tenantId,
         projectId,
@@ -409,7 +411,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId: body.runAsUserId },
+      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId },
       'Creating scheduled trigger'
     );
 
@@ -429,7 +431,7 @@ app.openapi(
       maxRetries: body.maxRetries,
       retryDelaySeconds: body.retryDelaySeconds,
       timeoutSeconds: body.timeoutSeconds,
-      runAsUserId: body.runAsUserId ?? null,
+      runAsUserId,
       createdBy: callerId || null,
     });
 
@@ -515,9 +517,11 @@ app.openapi(
       });
     }
 
-    if (body.runAsUserId) {
+    const runAsUserId = body.runAsUserId !== undefined ? body.runAsUserId || null : undefined;
+
+    if (runAsUserId) {
       await validateRunAsUserId({
-        runAsUserId: body.runAsUserId,
+        runAsUserId,
         callerId,
         tenantId,
         projectId,
@@ -526,7 +530,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId: body.runAsUserId },
+      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId },
       'Updating scheduled trigger'
     );
 
@@ -610,7 +614,7 @@ app.openapi(
           60
         ),
         timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
-        runAsUserId: body.runAsUserId,
+        runAsUserId,
       },
     });
 
@@ -1106,6 +1110,20 @@ app.openapi(
           metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
         });
 
+        // Runtime permission check: verify target user still has project access
+        if (trigger.runAsUserId) {
+          const canUse = await canUseProjectStrict({
+            userId: trigger.runAsUserId,
+            tenantId,
+            projectId,
+          });
+          if (!canUse) {
+            throw new Error(
+              `User ${trigger.runAsUserId} no longer has access to project ${projectId}`
+            );
+          }
+        }
+
         // Execute with retries (same logic as workflow)
         const maxAttempts = maxRetries + 1;
         let attemptNumber = 1;
@@ -1402,6 +1420,20 @@ app.openapi(
           data: effectivePayload,
           metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
         });
+
+        // Runtime permission check: verify target user still has project access
+        if (trigger.runAsUserId) {
+          const canUse = await canUseProjectStrict({
+            userId: trigger.runAsUserId,
+            tenantId,
+            projectId,
+          });
+          if (!canUse) {
+            throw new Error(
+              `User ${trigger.runAsUserId} no longer has access to project ${projectId}`
+            );
+          }
+        }
 
         // Execute with retries
         const maxAttempts = maxRetries + 1;
