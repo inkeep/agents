@@ -3,7 +3,7 @@
 import { History, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import {
@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import type { ScheduledTriggerWithAgent, TriggerWithAgent } from '@/lib/api/project-triggers';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { ProjectScheduledTriggersTable } from './project-scheduled-triggers-table';
@@ -97,17 +98,39 @@ function NewTriggerDialog({
   );
 }
 
+const POLLING_INTERVAL_MS = 3000;
+
 export function TriggersTabs({
   tenantId,
   projectId,
   webhookTriggers,
-  scheduledTriggers,
+  scheduledTriggers: initialScheduledTriggers,
   agents,
 }: TriggersTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [agentFilter, setAgentFilter] = useState<string>('');
+  const [scheduledTriggers, setScheduledTriggers] =
+    useState<ScheduledTriggerWithAgent[]>(initialScheduledTriggers);
+
+  useEffect(() => {
+    setScheduledTriggers(initialScheduledTriggers);
+  }, [initialScheduledTriggers]);
+
+  useEffect(() => {
+    const fetchTriggers = async () => {
+      try {
+        const updatedTriggers = await getProjectScheduledTriggersAction(tenantId, projectId);
+        setScheduledTriggers(updatedTriggers);
+      } catch (error) {
+        console.error('Failed to fetch scheduled triggers:', error);
+      }
+    };
+
+    const intervalId = setInterval(fetchTriggers, POLLING_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [tenantId, projectId]);
 
   const tabParam = searchParams.get('tab');
   const activeTab: TabValue = VALID_TABS.includes(tabParam as TabValue)
