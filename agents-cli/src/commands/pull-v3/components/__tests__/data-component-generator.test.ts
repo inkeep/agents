@@ -153,7 +153,8 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'test': props");
     });
 
-    it('should prefer props over schema when both exist', () => {
+    it.only('should prefer props over schema when both exist', async () => {
+      const componentId = 'test';
       const dataWithBoth = {
         name: 'Test',
         description: 'Test component with both props and schema',
@@ -167,10 +168,15 @@ describe('Data Component Generator', () => {
         },
       };
 
-      const definition = generateDataComponentDefinition('test', dataWithBoth);
+      const definition = generateDataComponentDefinition(componentId, dataWithBoth);
 
       expect(definition).toContain('prop');
       expect(definition).not.toContain('"schema"'); // Should not contain schema property
+      const definitionV4 = generateDataComponentDefinitionV4({
+        dataComponentId: componentId,
+        ...dataWithBoth,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should handle multiline descriptions', () => {
