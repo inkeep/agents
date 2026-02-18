@@ -40,6 +40,7 @@ app.post('/query', async (c) => {
     if (!bypassCheck) {
       const hasAccess = await canViewProject({
         userId,
+        tenantId,
         projectId: requestedProjectId,
         orgRole: tenantRole,
       });
@@ -169,6 +170,7 @@ app.post('/query-batch', async (c) => {
     if (!bypassCheck) {
       const hasAccess = await canViewProject({
         userId,
+        tenantId,
         projectId: requestedProjectId,
         orgRole: tenantRole,
       });
