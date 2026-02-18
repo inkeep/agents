@@ -5,6 +5,7 @@ import { generateAgentDefinition } from './agent-generator';
 import { generateArtifactComponentDefinition } from './artifact-component-generator';
 import { generateContextConfigDefinition } from './context-config-generator';
 import { generateCredentialDefinition } from './credential-generator';
+import { generateDataComponentDefinition } from './data-component-generator';
 import { mergeGeneratedModule } from './module-merge';
 import { generateProjectDefinition } from './project-generator';
 import { generateStatusComponentDefinition } from './status-component-generator';
@@ -58,7 +59,6 @@ interface UnsupportedComponentCounts {
   tools: number;
   functionTools: number;
   functions: number;
-  dataComponents: number;
   externalAgents: number;
 }
 
@@ -130,6 +130,11 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       generate: generateArtifactComponentDefinition,
     },
     {
+      type: 'data-component',
+      collect: collectDataComponentRecords,
+      generate: generateDataComponentDefinition,
+    },
+    {
       type: 'context-config',
       collect: collectContextConfigRecords,
       generate: generateContextConfigDefinition,
@@ -198,6 +203,23 @@ function collectArtifactComponentRecords(
       } as Parameters<typeof generateArtifactComponentDefinition>[0],
     })
   );
+}
+
+function collectDataComponentRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateDataComponentDefinition>[0]>> {
+  if (!context.project.dataComponents) {
+    return [];
+  }
+
+  return Object.entries(context.project.dataComponents).map(([dataComponentId, dataComponent]) => ({
+    id: dataComponentId,
+    filePath: join(context.paths.dataComponentsDir, `${dataComponentId}.ts`),
+    payload: {
+      dataComponentId,
+      ...dataComponent,
+    } as Parameters<typeof generateDataComponentDefinition>[0],
+  }));
 }
 
 function collectContextConfigRecords(
@@ -450,7 +472,6 @@ function collectUnsupportedComponentCounts(
     tools: getObjectKeys(project.tools).length,
     functionTools: getObjectKeys(project.functionTools).length,
     functions: getObjectKeys(project.functions).length,
-    dataComponents: getObjectKeys(project.dataComponents).length,
     externalAgents: getObjectKeys(project.externalAgents).length,
   };
 }

@@ -79,6 +79,9 @@ ${z.prettifyError(result.error)}`);
   if (hasReferences(parsed.agents)) {
     addReferenceImports(sourceFile, parsed.agents, './agents');
   }
+  if (hasReferences(parsed.dataComponents)) {
+    addReferenceImports(sourceFile, parsed.dataComponents, './data-components');
+  }
   if (hasReferences(parsed.artifactComponents)) {
     addReferenceImports(sourceFile, parsed.artifactComponents, './artifact-components');
   }
@@ -143,7 +146,11 @@ function writeProjectConfig(
   }
 
   if (hasReferences(data.dataComponents)) {
-    addReferenceGetterProperty(configObject, 'dataComponents', data.dataComponents);
+    addReferenceGetterProperty(
+      configObject,
+      'dataComponents',
+      toReferenceNames(data.dataComponents)
+    );
   }
 
   if (hasReferences(data.artifactComponents)) {

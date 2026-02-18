@@ -127,6 +127,27 @@ function createProjectFixture(): FullProjectDefinition {
         },
       },
     },
+    dataComponents: {
+      'customer-profile': {
+        id: 'customer-profile',
+        name: 'Customer Profile',
+        description: 'Customer profile data component',
+        props: {
+          type: 'object',
+          properties: {
+            fullName: { type: 'string' },
+            avatarUrl: { type: 'string' },
+          },
+        },
+        render: {
+          component: '<img src="{{avatarUrl}}" alt="{{fullName}}" />',
+          mockData: {
+            fullName: 'Ada Lovelace',
+            avatarUrl: 'https://example.com/avatar.png',
+          },
+        },
+      },
+    },
     artifactComponents: {
       'ticket-summary': {
         id: 'ticket-summary',
