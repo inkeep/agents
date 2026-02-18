@@ -1005,7 +1005,9 @@ const getServer = async (toolId: string) => {
         .describe(
           'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
         ),
-      reaction: ReactionContentSchema,
+      reaction: ReactionContentSchema.describe(
+        'The reaction emoji to add: +1, -1, laugh, hooray, confused, heart, rocket, or eyes'
+      ),
     },
     async ({ owner, repo, comment_id, comment_type, reaction }) => {
       try {
