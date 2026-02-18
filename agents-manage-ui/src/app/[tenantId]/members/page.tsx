@@ -162,6 +162,10 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
     const invitationsResult = await authClient.organization.listInvitations({
       query: { organizationId: tenantId },
     });
+    if (invitationsResult.error) {
+      toast.error('Failed to refresh invitations');
+      return;
+    }
     if (invitationsResult.data) {
       const pending = invitationsResult.data.filter((inv) => inv.status === 'pending');
       setPendingInvitations(pending);
