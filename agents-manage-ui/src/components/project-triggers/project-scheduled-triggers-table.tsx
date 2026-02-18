@@ -3,7 +3,7 @@
 import { Clock, History, MoreHorizontal, Pencil, Play, RotateCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import {
   deleteScheduledTriggerAction,
   runScheduledTriggerNowAction,
@@ -31,8 +30,6 @@ import {
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
 import { getCronDescription } from '@/lib/utils/cron';
-
-const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 
 interface ProjectScheduledTriggersTableProps {
   triggers: ScheduledTriggerWithAgent[];
@@ -62,34 +59,12 @@ function formatNextRun(trigger: ScheduledTriggerWithAgent): string {
 }
 
 export function ProjectScheduledTriggersTable({
-  triggers: initialTriggers,
+  triggers,
   tenantId,
   projectId,
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
-  const [triggers, setTriggers] = useState<ScheduledTriggerWithAgent[]>(initialTriggers);
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
-
-  // Poll for updates
-  useEffect(() => {
-    const fetchTriggers = async () => {
-      try {
-        const updatedTriggers = await getProjectScheduledTriggersAction(tenantId, projectId);
-        setTriggers(updatedTriggers);
-      } catch (error) {
-        console.error('Failed to fetch scheduled triggers:', error);
-      }
-    };
-
-    fetchTriggers();
-    const intervalId = setInterval(fetchTriggers, POLLING_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [tenantId, projectId]);
-
-  // Update triggers when initial data changes
-  useEffect(() => {
-    setTriggers(initialTriggers);
-  }, [initialTriggers]);
 
   const toggleEnabled = async (triggerId: string, agentId: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
