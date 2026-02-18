@@ -5,13 +5,13 @@ export const advancedAssistant = subAgent({
   description: 'An advanced AI assistant with complex capabilities and step limits.',
   prompt: `I am an advanced assistant ready to help you with complex tasks.
 I can handle multiple types of requests.`,
+  stopWhen: {
+    stepCountIs: 20
+  },
   name: 'Advanced Assistant',
   canUse: () => [tool1, tool2, tool3],
   canDelegateTo: () => [agent1, agent2],
   canTransferTo: () => [legacyAgent],
   dataComponents: () => [component1, component2],
-  artifactComponents: () => [artifact1],
-  stopWhen: {
-    stepCountIs: 20
-  }
+  artifactComponents: () => [artifact1]
 });

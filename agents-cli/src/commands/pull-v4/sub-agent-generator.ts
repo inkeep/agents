@@ -100,7 +100,6 @@ function writeSubAgentConfig(
     canTransferTo,
     skills,
     artifactComponents,
-    stopWhen,
     canUse,
     ...rest
   }: ParsedSubAgentDefinitionData
@@ -155,20 +154,6 @@ function writeSubAgentConfig(
     for (const skill of collectedSkills) {
       skillsArray.addElement(skill);
     }
-  }
-
-  if (stopWhen?.stepCountIs !== undefined) {
-    const stopWhenProperty = configObject.addPropertyAssignment({
-      name: 'stopWhen',
-      initializer: '{}',
-    });
-    const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    stopWhenObject.addPropertyAssignment({
-      name: 'stepCountIs',
-      initializer: String(stopWhen.stepCountIs),
-    });
   }
 }
 
