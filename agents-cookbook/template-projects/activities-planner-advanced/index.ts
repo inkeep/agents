@@ -9,7 +9,7 @@ import { weatherMcpTool } from './tools/weather-mcp';
 export const activitiesPlannerAdvanced = project({
   id: 'activities-planner-advanced',
   name: 'Activities planner advanced',
-  description: 'Activities planner project template with advanced SDK features',
+  description: 'Activities planner project template',
   agents: () => [activitiesPlannerAdvancedAgent],
   skills: () => loadSkills(path.join('activities-planner-advanced/skills')),
   models: {
