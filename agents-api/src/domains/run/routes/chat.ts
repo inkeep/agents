@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
@@ -11,6 +11,7 @@ import {
   PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
@@ -34,7 +35,7 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('completionsHandler');
 
-const chatCompletionsRoute = createRoute({
+const chatCompletionsRoute = createProtectedRoute({
   method: 'post',
   path: '/completions',
   tags: ['Chat'],
@@ -42,6 +43,7 @@ const chatCompletionsRoute = createRoute({
   description:
     'Creates a new chat completion with streaming SSE response using the configured agent',
   security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
   request: {
     body: {
       content: {

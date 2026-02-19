@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -7,6 +7,8 @@ import {
   TenantProjectParamsSchema,
   ThirdPartyMCPServerResponse,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -28,7 +30,7 @@ const OAuthRedirectResponse = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Get Third-Party MCP Server Details',
@@ -36,6 +38,7 @@ app.openapi(
     tags: ['Third-Party MCP Servers'],
     description:
       'Fetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL',
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -79,7 +82,7 @@ app.openapi(
 
 // Get OAuth redirect URL for a third-party MCP server based on credential scope
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/oauth-redirect',
     summary: 'Get OAuth Redirect URL',
@@ -87,6 +90,7 @@ app.openapi(
     tags: ['Third-Party MCP Servers'],
     description:
       'Get the OAuth redirect URL for a third-party MCP server. Call this after scope selection to get the correct URL for the selected scope.',
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {

@@ -19,7 +19,7 @@
  * - Workspace uninstall (DELETE): Inkeep org admin/owner only (requireWorkspaceAdmin middleware)
  */
 
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
@@ -30,6 +30,7 @@ import {
   listWorkAppSlackUserMappingsByTeam,
   upsertWorkAppSlackChannelAgentConfig,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { requireChannelMemberOrAdmin, requireWorkspaceAdmin } from '../middleware/permissions';
@@ -64,34 +65,6 @@ function verifyTenantOwnership(
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/:teamId/settings', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
-app.use('/:teamId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
-app.use('/:teamId/channels/:channelId/settings', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireChannelMemberOrAdmin()(c, next);
-  }
-  return next();
-});
-
-app.use('/:teamId/test-message', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
 const ChannelAgentConfigSchema = z.object({
   projectId: z.string(),
   agentId: z.string(),
@@ -104,13 +77,14 @@ const WorkspaceSettingsSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Workspaces',
     description: 'List all installed Slack workspaces for the tenant',
     operationId: 'slack-list-workspaces',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     responses: {
       200: {
         description: 'List of workspaces',
@@ -169,13 +143,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}',
     summary: 'Get Workspace',
     description: 'Get details of a specific Slack workspace',
     operationId: 'slack-get-workspace',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -232,13 +207,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/settings',
     summary: 'Get Workspace Settings',
     description: 'Get settings for a Slack workspace including default agent',
     operationId: 'slack-get-workspace-settings',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -285,13 +261,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/settings',
     summary: 'Update Workspace Settings',
     description: 'Update workspace settings including default agent',
     operationId: 'slack-update-workspace-settings',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -352,13 +329,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{teamId}',
     summary: 'Uninstall Workspace',
     description: 'Uninstall Slack app from workspace. Accepts either teamId or connectionId.',
     operationId: 'slack-delete-workspace',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -467,13 +445,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/channels',
     summary: 'List Channels',
     description: 'List Slack channels in the workspace that the bot can see',
     operationId: 'slack-list-channels',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -573,13 +552,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Get Channel Settings',
     description: 'Get default agent configuration for a specific channel',
     operationId: 'slack-get-channel-settings',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -630,13 +610,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Set Channel Default Agent',
     description: 'Set or update the default agent for a specific channel',
     operationId: 'slack-set-channel-settings',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireChannelMemberOrAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -700,21 +681,15 @@ app.openapi(
   }
 );
 
-app.use('/:teamId/channels/bulk', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/channels/bulk',
     summary: 'Bulk Set Channel Agents',
     description: 'Apply the same agent configuration to multiple channels at once',
     operationId: 'slack-bulk-set-channel-agents',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -819,13 +794,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{teamId}/channels/bulk',
     summary: 'Bulk Remove Channel Configs',
     description: 'Remove agent configuration from multiple channels at once',
     operationId: 'slack-bulk-delete-channel-agents',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -884,13 +860,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Remove Channel Config',
     description: 'Remove the default agent configuration for a channel',
     operationId: 'slack-delete-channel-settings',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireChannelMemberOrAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -931,13 +908,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/users',
     summary: 'List Linked Users',
     description: 'List all users linked to Inkeep in this workspace',
     operationId: 'slack-list-linked-users',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -997,7 +975,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/health',
     summary: 'Check Workspace Health',
@@ -1005,6 +983,7 @@ app.openapi(
       'Verify the bot token is valid and check permissions. Returns bot info and permission status.',
     operationId: 'slack-workspace-health',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -1114,13 +1093,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{teamId}/test-message',
     summary: 'Send Test Message',
     description: 'Send a test message to verify the bot is working correctly.',
     operationId: 'slack-test-message',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),

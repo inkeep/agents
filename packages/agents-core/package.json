@@ -94,6 +94,10 @@
       "types": "./dist/auth/password-reset-link-store.d.ts",
       "import": "./dist/auth/password-reset-link-store.js"
     },
+    "./middleware": {
+      "types": "./dist/middleware/index.d.ts",
+      "import": "./dist/middleware/index.js"
+    },
     "./setup": {
       "types": "./dist/setup/index.d.ts",
       "import": "./dist/setup/index.js"

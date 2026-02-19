@@ -8,10 +8,12 @@ import {
   verifySlackUserToken,
 } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
+import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
+import { sessionAuth } from './sessionAuth';
 
 const logger = getLogger('env-key-auth');
 /**
@@ -29,7 +31,7 @@ export const manageApiKeyAuth = () =>
       userId?: string;
       userEmail?: string;
       tenantId?: string;
-      auth: ReturnType<typeof createAuth> | null;
+      auth: ReturnType<typeof createAuth>;
     };
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');
@@ -60,45 +62,40 @@ export const manageApiKeyAuth = () =>
 
     // 2. Try to validate as a better-auth session token (from device authorization flow or cookie)
     const auth = c.get('auth');
-    if (auth) {
-      try {
-        // Create headers with the Authorization header for bearer token validation
-        const headers = new Headers();
-        headers.set('Authorization', authHeader);
+    try {
+      // Create headers with the Authorization header for bearer token validation
+      const headers = new Headers();
+      headers.set('Authorization', authHeader);
 
-        // Also include cookie for session validation - check x-forwarded-cookie first (from MCP/SDK calls)
-        const forwardedCookie = c.req.header('x-forwarded-cookie');
-        const cookie = c.req.header('cookie');
-        if (forwardedCookie) {
-          headers.set('cookie', forwardedCookie);
-          logger.debug(
-            { source: 'x-forwarded-cookie' },
-            'Using x-forwarded-cookie for session validation'
-          );
-        } else if (cookie) {
-          headers.set('cookie', cookie);
-          logger.debug({ source: 'cookie' }, 'Using cookie for session validation');
-        }
-
-        const session = await auth.api.getSession({ headers });
-
-        if (session?.user) {
-          logger.info(
-            { userId: session.user.id },
-            'Better-auth session authenticated successfully'
-          );
-
-          c.set('userId', session.user.id);
-          c.set('userEmail', session.user.email);
-          // Note: tenantId will be validated by tenant-access middleware based on the route
-
-          await next();
-          return;
-        }
-      } catch (error) {
-        // Session validation failed, continue to API key validation
-        logger.debug({ error }, 'Better-auth session validation failed, trying API key');
+      // Also include cookie for session validation - check x-forwarded-cookie first (from MCP/SDK calls)
+      const forwardedCookie = c.req.header('x-forwarded-cookie');
+      const cookie = c.req.header('cookie');
+      if (forwardedCookie) {
+        headers.set('cookie', forwardedCookie);
+        logger.debug(
+          { source: 'x-forwarded-cookie' },
+          'Using x-forwarded-cookie for session validation'
+        );
+      } else if (cookie) {
+        headers.set('cookie', cookie);
+        logger.debug({ source: 'cookie' }, 'Using cookie for session validation');
       }
+
+      const session = await auth.api.getSession({ headers });
+
+      if (session?.user) {
+        logger.info({ userId: session.user.id }, 'Better-auth session authenticated successfully');
+
+        c.set('userId', session.user.id);
+        c.set('userEmail', session.user.email);
+        // Note: tenantId will be validated by tenant-access middleware based on the route
+
+        await next();
+        return;
+      }
+    } catch (error) {
+      // Session validation failed, continue to API key validation
+      logger.debug({ error }, 'Better-auth session validation failed, trying API key');
     }
 
     // 3. Validate against database API keys
@@ -183,3 +180,29 @@ export const manageApiKeyAuth = () =>
       message: 'Invalid Token',
     });
   });
+
+/**
+ * Middleware that gates a route with manage-domain authentication.
+ * Uses Bearer token → API key auth, otherwise falls back to session auth.
+ */
+export const manageApiKeyOrSessionAuth = () => {
+  const mw = createMiddleware(async (c, next) => {
+    if (env.ENVIRONMENT === 'test') {
+      await next();
+      return;
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      return manageApiKeyAuth()(c as any, next);
+    }
+
+    return sessionAuth()(c as any, next);
+  });
+  registerAuthzMeta(mw, {
+    resource: 'organization',
+    permission: 'member',
+    description: 'Requires session cookie or API key authentication',
+  });
+  return mw;
+};

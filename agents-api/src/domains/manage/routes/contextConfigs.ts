@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   ContextConfigApiInsertSchema,
   ContextConfigApiUpdateSchema,
@@ -18,6 +18,7 @@ import {
   TenantProjectAgentParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -25,30 +26,14 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Context Configurations',
     operationId: 'list-context-configs',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -81,12 +66,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Context Configuration',
     operationId: 'get-context-config-by-id',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -122,12 +108,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Context Configuration',
     operationId: 'create-context-config',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -168,12 +155,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
     summary: 'Update Context Configuration',
     operationId: 'update-context-config',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -219,12 +207,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Context Configuration',
     operationId: 'delete-context-config',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
