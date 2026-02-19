@@ -26,19 +26,31 @@ export const workAppsAuth = async (c: Context, next: Next) => {
     return;
   }
 
-  // DEV ONLY: Allow localhost origins without session auth
-  // This is needed because cross-origin cookies don't work with ngrok during development
-  // In production, the dashboard and API are on the same domain so session cookies work
-  // Restricted to development environment only — never active in production/staging
+  // DEV ONLY: Allow localhost origins without strict session auth
+  // Cross-origin cookies don't work between localhost:3000 and localhost:3002 during development.
+  // In production, the dashboard and API share a domain so session cookies work natively.
+  // When a real session exists (set by the global sessionContext middleware), prefer it so that
+  // endpoints requiring a real user identity (e.g. Slack account linking) work correctly.
   if (env.ENVIRONMENT === 'development') {
     const origin = c.req.header('Origin');
     if (origin) {
       try {
         const originUrl = new URL(origin);
         if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
-          c.set('userId', 'dev-user');
-          c.set('tenantId', 'default');
-          c.set('tenantRole', 'owner');
+          const sessionUser = c.get('user') as { id: string; email: string } | null;
+          const session = c.get('session') as { activeOrganizationId?: string } | null;
+
+          if (sessionUser?.id) {
+            c.set('userId', sessionUser.id);
+            c.set('userEmail', sessionUser.email);
+            c.set('tenantId', session?.activeOrganizationId || 'default');
+            c.set('tenantRole', 'owner');
+          } else {
+            c.set('userId', 'dev-user');
+            c.set('tenantId', 'default');
+            c.set('tenantRole', 'owner');
+          }
+
           await next();
           return;
         }
