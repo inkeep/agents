@@ -48,9 +48,9 @@ export async function handleModalSubmission(view: {
 
       const values = view.state?.values || {};
 
-      const agentSelectValue = values.agent_select_block?.agent_select as {
-        selected_option?: { value?: string };
-      };
+      const agentSelectValue = Object.values(values)
+        .map((block) => (block as Record<string, unknown>).agent_select)
+        .find(Boolean) as { selected_option?: { value?: string } } | undefined;
       const questionValue = values.question_block?.question_input as { value?: string };
       const includeContextValue = values.context_block?.include_context_checkbox as {
         selected_options?: Array<{ value?: string }>;

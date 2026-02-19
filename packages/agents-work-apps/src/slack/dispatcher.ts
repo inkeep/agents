@@ -369,11 +369,16 @@ export async function dispatchSlackEvent(
         state?: { values?: Record<string, Record<string, unknown>> };
       };
 
-      const agentSelect = view.state?.values?.agent_select_block?.agent_select as
-        | {
-            selected_option?: { value?: string };
-          }
-        | undefined;
+      const values = view.state?.values || {};
+      const agentSelectEntry = Object.entries(values).find(
+        ([, block]) => (block as Record<string, unknown>).agent_select
+      );
+      const agentSelectBlockId = agentSelectEntry?.[0];
+      const agentSelect = agentSelectEntry
+        ? ((agentSelectEntry[1] as Record<string, unknown>).agent_select as
+            | { selected_option?: { value?: string } }
+            | undefined)
+        : undefined;
       if (!agentSelect?.selected_option?.value || agentSelect.selected_option.value === 'none') {
         outcome = 'validation_error';
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -383,7 +388,7 @@ export async function dispatchSlackEvent(
           response: {
             response_action: 'errors',
             errors: {
-              agent_select_block:
+              [agentSelectBlockId || 'agent_select_block']:
                 'Please select an agent. If none are available, add agents to this project in the dashboard.',
             },
           },
