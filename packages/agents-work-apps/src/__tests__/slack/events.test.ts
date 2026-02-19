@@ -4,6 +4,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  extractApiErrorMessage,
   getChannelAgentConfig,
   getThreadContext,
   getWorkspaceDefaultAgent,
@@ -249,5 +250,35 @@ describe('getChannelAgentConfig', () => {
 
     const result = await getChannelAgentConfig('T123', 'C456');
     expect(result?.agentId).toBe('workspace-agent');
+  });
+});
+
+describe('extractApiErrorMessage', () => {
+  it('should extract message from valid JSON body', () => {
+    const body = JSON.stringify({ message: 'Access denied: insufficient permissions' });
+    expect(extractApiErrorMessage(body)).toBe('Access denied: insufficient permissions');
+  });
+
+  it('should return null for JSON without message field', () => {
+    const body = JSON.stringify({ error: 'something went wrong' });
+    expect(extractApiErrorMessage(body)).toBeNull();
+  });
+
+  it('should return null for empty message string', () => {
+    const body = JSON.stringify({ message: '' });
+    expect(extractApiErrorMessage(body)).toBeNull();
+  });
+
+  it('should return null for non-string message', () => {
+    const body = JSON.stringify({ message: 42 });
+    expect(extractApiErrorMessage(body)).toBeNull();
+  });
+
+  it('should return null for invalid JSON', () => {
+    expect(extractApiErrorMessage('not json')).toBeNull();
+  });
+
+  it('should return null for empty string', () => {
+    expect(extractApiErrorMessage('')).toBeNull();
   });
 });
