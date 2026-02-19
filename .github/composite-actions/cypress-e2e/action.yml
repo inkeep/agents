@@ -44,7 +44,7 @@ runs:
 
     - name: Build agents-core (required by setup-dev.js)
       shell: bash
-      run: pnpm turbo run build --filter=@inkeep/agents-core
+      run: pnpm exec turbo run build --filter=@inkeep/agents-core
 
     - name: Setup development environment
       shell: bash
@@ -83,7 +83,7 @@ runs:
 
     - name: Build dashboard and cookbook monorepo dependencies
       shell: bash
-      run: npx turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
+      run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
 
     - name: Push Weather Example Project
       shell: bash

@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   ci:
-    runs-on: ubuntu-16gb
+    runs-on: ubuntu-32gb
     timeout-minutes: 30
     env:
       TURBO_TELEMETRY_DISABLED: 1
@@ -66,15 +66,6 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
-      - name: Setup Next.js build cache
-        uses: actions/cache@v4
-        with:
-          path: agents-manage-ui/.next/cache
-          key: ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-manage-ui/src/**', 'packages/agents-core/src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-build-
-
       - name: Setup Playwright cache
         uses: actions/cache@v4
         with:
@@ -106,7 +97,7 @@ jobs:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          NODE_OPTIONS: --max-old-space-size=4096
+          NODE_OPTIONS: --max-old-space-size=8192
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           CI: true
@@ -157,7 +148,7 @@ jobs:
           fi
 
   create-agents-e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-32gb
     name: Create Agents E2E Tests
 
     services:
