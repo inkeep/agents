@@ -375,10 +375,10 @@ export async function listUserProjectMembershipsInSpiceDb(params: {
 }
 
 /**
- * Revoke all project memberships for a user.
- * Call when: user is promoted to org admin (they get inherited access, explicit project roles become redundant).
+ * Revoke all project memberships for a user within a specific tenant.
+ * Call when: user is removed from org, or promoted to org admin (inherited access makes explicit roles redundant).
  *
- * Uses efficient bulk delete - deletes all project relationships for user without listing first.
+ * Uses efficient bulk delete with tenant-scoped prefix to prevent cross-tenant side effects.
  */
 export async function revokeAllProjectMemberships(params: {
   tenantId: string;

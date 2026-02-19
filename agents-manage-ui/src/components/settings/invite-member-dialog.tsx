@@ -1,9 +1,9 @@
 'use client';
 
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { AlertCircle, Check, ChevronDown, Copy } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, Copy, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,10 +21,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { OrgRoleSelector } from './org-role-selector';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_EMAIL_REGEX = /[\w\d.+-]+@[\w\d.-]+\.[\w\d.-]+/g;
 
 type InviteAuthMethod = 'email-password' | 'google' | 'sso';
 
@@ -39,6 +42,8 @@ interface InviteMemberDialogProps {
   onOpenChange: (open: boolean) => void;
   isOrgAdmin: boolean;
   onInvitationsSent?: () => void;
+  initialEmails?: string[];
+  initialRole?: OrgRole;
 }
 
 interface InvitationResult {
@@ -53,6 +58,8 @@ export function InviteMemberDialog({
   onOpenChange,
   isOrgAdmin,
   onInvitationsSent,
+  initialEmails,
+  initialRole,
 }: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
@@ -93,19 +100,67 @@ export function InviteMemberDialog({
   // Default to the first available method (based on priority)
   const defaultAuthMethod = authMethodOptions[0]?.value ?? 'email-password';
 
-  const [emails, setEmails] = useState('');
+  const [emailChips, setEmailChips] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState('');
   const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
   const [selectedAuthMethod, setSelectedAuthMethod] = useState<InviteAuthMethod>(defaultAuthMethod);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationResults, setInvitationResults] = useState<InvitationResult[]>([]);
+  const chipInputRef = useRef<HTMLInputElement>(null);
+  const roleSelectorRef = useRef<HTMLButtonElement>(null);
+
+  const addEmailChip = useCallback((email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    if (!EMAIL_REGEX.test(trimmed)) {
+      toast.error(`Invalid email: ${trimmed}`);
+      return;
+    }
+    setEmailChips((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+  }, []);
+
+  const parseAndAddEmails = useCallback((text: string) => {
+    const extracted = text.match(NAME_EMAIL_REGEX);
+    if (extracted) {
+      const unique = [...new Set(extracted)];
+      setEmailChips((prev) => [...new Set([...prev, ...unique])]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      if (initialEmails && initialEmails.length > 0) {
+        setEmailChips(initialEmails);
+      }
+      if (initialRole) {
+        setSelectedRole(initialRole);
+      }
+      setTimeout(() => roleSelectorRef.current?.focus(), 100);
+    }
+  }, [open, initialEmails, initialRole]);
 
   const selectedAuthOption = authMethodOptions.find((o) => o.value === selectedAuthMethod);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!emails.trim()) {
+    // Commit any pending input before submitting
+    const finalChips = [...emailChips];
+    if (emailInput.trim()) {
+      const extracted = emailInput.match(NAME_EMAIL_REGEX);
+      if (extracted) {
+        for (const em of extracted) {
+          if (!finalChips.includes(em)) finalChips.push(em);
+        }
+      } else if (EMAIL_REGEX.test(emailInput.trim())) {
+        if (!finalChips.includes(emailInput.trim())) finalChips.push(emailInput.trim());
+      }
+      setEmailInput('');
+      setEmailChips(finalChips);
+    }
+
+    if (finalChips.length === 0) {
       setError('At least one email is required');
       return;
     }
@@ -124,26 +179,10 @@ export function InviteMemberDialog({
     setError(null);
     setInvitationResults([]);
 
-    // Parse comma-separated emails and clean them
-    const emailList = emails
-      .split(',')
-      .map((e) => e.trim())
-      .filter((e) => e.length > 0);
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emailList.filter((e) => !emailRegex.test(e));
-
-    if (invalidEmails.length > 0) {
-      setError(`Invalid email format: ${invalidEmails.join(', ')}`);
-      setIsSubmitting(false);
-      return;
-    }
-
     const results: InvitationResult[] = [];
 
     // Create invitations for each email
-    for (const email of emailList) {
+    for (const email of finalChips) {
       try {
         const result = await authClient.organization.inviteMember({
           email,
@@ -187,10 +226,44 @@ export function InviteMemberDialog({
     setIsSubmitting(false);
   };
 
+  const handleChipKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      if (emailInput.trim()) {
+        const extracted = emailInput.match(NAME_EMAIL_REGEX);
+        if (extracted) {
+          for (const em of extracted) addEmailChip(em);
+        } else {
+          addEmailChip(emailInput);
+        }
+        setEmailInput('');
+      }
+    }
+    if (e.key === 'Tab' && emailInput.trim()) {
+      e.preventDefault();
+      addEmailChip(emailInput);
+      setEmailInput('');
+    }
+    if (e.key === 'Backspace' && emailInput === '' && emailChips.length > 0) {
+      setEmailChips((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const handleChipPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text');
+    parseAndAddEmails(pasted);
+  };
+
+  const removeEmailChip = (email: string) => {
+    setEmailChips((prev) => prev.filter((e) => e !== email));
+  };
+
   const handleOpenChange = (newOpen: boolean) => {
     if (!isSubmitting) {
       const hadSuccessfulInvitations = invitationResults.some((r) => r.status === 'success');
-      setEmails('');
+      setEmailChips([]);
+      setEmailInput('');
       setSelectedRole(OrgRoles.MEMBER);
       setSelectedAuthMethod(defaultAuthMethod);
       setError(null);
@@ -222,23 +295,57 @@ export function InviteMemberDialog({
 
         {!hasResults ? (
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-6 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="emails">Email addresses</Label>
-                <Textarea
-                  id="emails"
-                  value={emails}
-                  onChange={(e) => setEmails(e.target.value)}
-                  disabled={isSubmitting}
-                  autoFocus
-                  required
-                  rows={3}
-                  placeholder="user@example.com, another@example.com, ..."
-                  className="resize-none"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Separate multiple email addresses with commas
-                </p>
+                <div
+                  role="textbox"
+                  tabIndex={-1}
+                  className="flex min-h-[80px] w-full flex-wrap items-start gap-1.5 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 cursor-text"
+                  onClick={() => chipInputRef.current?.focus()}
+                  onKeyDown={() => chipInputRef.current?.focus()}
+                >
+                  <TooltipProvider>
+                    {emailChips.map((email) => (
+                      <Tooltip key={email}>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
+                            <span className="max-w-[200px] truncate">{email}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeEmailChip(email);
+                              }}
+                              className="hover:text-destructive"
+                              aria-label={`Remove ${email}`}
+                              disabled={isSubmitting}
+                            >
+                              <X className="size-3" aria-hidden="true" />
+                            </button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{email}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                  <input
+                    ref={chipInputRef}
+                    id="emails"
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={handleChipKeyDown}
+                    onPaste={handleChipPaste}
+                    placeholder={
+                      emailChips.length === 0 ? 'user@example.com, Name <email>, ...' : ''
+                    }
+                    aria-label="Email address to invite"
+                    className="flex-1 min-w-[150px] bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Supports comma separated lists.</p>
               </div>
 
               <div className="grid gap-2">
@@ -248,6 +355,7 @@ export function InviteMemberDialog({
                   onChange={setSelectedRole}
                   disabled={isSubmitting}
                   triggerClassName="w-full h-auto py-2"
+                  ref={roleSelectorRef}
                 />
               </div>
 
@@ -303,7 +411,10 @@ export function InviteMemberDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !emails.trim()}>
+              <Button
+                type="submit"
+                disabled={isSubmitting || (emailChips.length === 0 && !emailInput.trim())}
+              >
                 {isSubmitting ? 'Adding...' : 'Add Members'}
               </Button>
             </DialogFooter>

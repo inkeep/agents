@@ -2,7 +2,7 @@
 
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { ChevronDown } from 'lucide-react';
-import type { FC } from 'react';
+import type { RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,20 +29,23 @@ interface OrgRoleSelectorProps {
   onChange: (role: OrgRole) => void;
   disabled?: boolean;
   triggerClassName?: string;
+  ref?: RefObject<HTMLButtonElement | null>;
 }
 
-export const OrgRoleSelector: FC<OrgRoleSelectorProps> = ({
+export const OrgRoleSelector = ({
   value,
   onChange,
   disabled = false,
   triggerClassName,
-}) => {
+  ref,
+}: OrgRoleSelectorProps) => {
   const currentLabel = ORG_ROLES.find((r) => r.value === value)?.label || value;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          ref={ref}
           variant="outline"
           size="sm"
           className={`gap-1 normal-case text-xs justify-between ${triggerClassName || ''}`}
