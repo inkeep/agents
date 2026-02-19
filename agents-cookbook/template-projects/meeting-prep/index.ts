@@ -1,6 +1,6 @@
 import { project } from '@inkeep/agents-sdk';
 import { meetingAssistant } from './agents/meeting-assistant';
-import { exaMcpTool } from './tools/exa-mcp.js';
+import { exaMcpTool } from './tools/exa-mcp';
 import { googleCalendarMcpTool } from './tools/google-calendar-mcp';
 
 export const meetingPrep = project({
