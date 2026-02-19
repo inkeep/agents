@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-adding otel to manage ui
+Add OpenTelemetry instrumentation for server-side tracing

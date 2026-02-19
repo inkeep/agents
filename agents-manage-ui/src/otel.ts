@@ -85,4 +85,11 @@ export const sdk = new NodeSDK({
   instrumentations: defaultInstrumentations,
 });
 
-sdk.start();
+try {
+  sdk.start();
+  process.on('SIGTERM', async () => {
+    await sdk.shutdown();
+  });
+} catch (error) {
+  console.warn('[otel] Failed to start OpenTelemetry SDK - tracing will be disabled', error);
+}
