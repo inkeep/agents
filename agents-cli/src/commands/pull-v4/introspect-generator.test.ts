@@ -83,6 +83,50 @@ export const apiCredentials = credential({
     );
   });
 
+  it('preserves leading comments when merging existing agent statements', async () => {
+    const project = createProjectFixture();
+    const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
+    fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
+    const before = `import { agent, subAgent } from '@inkeep/agents-sdk';
+
+/**
+ * Keeps routing instructions for tier one support.
+ */
+const tierOneCustom = subAgent({
+  id: 'tier-one',
+  name: 'Legacy Tier One'
+});
+
+/**
+ * Keeps top-level documentation for this agent.
+ */
+export const supportAgent = agent({
+  id: 'support-agent',
+  name: 'Legacy Support Agent',
+  defaultSubAgent: tierOneCustom,
+  subAgents: () => [tierOneCustom]
+});
+`;
+    fs.writeFileSync(agentFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
+    expect(mergedAgentFile).toContain('/**');
+    expect(mergedAgentFile).toContain('Keeps routing instructions for tier one support.');
+    expect(mergedAgentFile).toContain('Keeps top-level documentation for this agent.');
+    expect(mergedAgentFile).toContain('export const tierOneCustom = subAgent({');
+
+    await expect(mergedAgentFile).toMatchFileSnapshot(
+      '__snapshots__/introspect/preserves-leading-comments-when-merging-existing-agent-statements.ts'
+    );
+
+    const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
+    await expect(agentDiff).toMatchFileSnapshot(
+      '__snapshots__/introspect/preserves-leading-comments-when-merging-existing-agent-statements.diff'
+    );
+  });
+
   it('reuses existing file when sub-agent already exists in the agent file', async () => {
     const project = createProjectFixture();
     const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
