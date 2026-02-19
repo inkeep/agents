@@ -8,6 +8,7 @@ import {
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
+  TransformToUndefined,
 } from './utils';
 
 interface ArtifactComponentDefinitionData {
@@ -24,7 +25,7 @@ interface ArtifactComponentDefinitionData {
   };
 }
 
-const ArtifactComponentSchema = z.looseObject({
+const ArtifactComponentSchema = z.object({
   artifactComponentId: z.string().nonempty(),
   name: z.string().nonempty(),
   description: z.string().optional(),
@@ -32,12 +33,14 @@ const ArtifactComponentSchema = z.looseObject({
   schema: z.looseObject({}).optional(),
   template: z.string().optional(),
   contentType: z.string().optional(),
-  render: z
-    .looseObject({
-      component: z.string().optional(),
-      mockData: z.looseObject({}).optional(),
-    })
-    .optional(),
+  render: TransformToUndefined.pipe(
+    z
+      .looseObject({
+        component: z.string().optional(),
+        mockData: z.looseObject({}).optional(),
+      })
+      .optional()
+  ),
 });
 
 export function generateArtifactComponentDefinition(data: ArtifactComponentDefinitionData): string {
