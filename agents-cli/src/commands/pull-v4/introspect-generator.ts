@@ -1138,14 +1138,12 @@ function writeTypeScriptFile(
 ): void {
   mkdirSync(dirname(filePath), { recursive: true });
 
-  if (writeMode === 'merge' && existsSync(filePath)) {
-    const existingContent = readFileSync(filePath, 'utf8');
-    const mergedContent = mergeSafely(existingContent, content);
-    writeFileSync(filePath, `${mergedContent}\n`);
-    return;
-  }
+  const processedContent =
+    writeMode === 'merge' && existsSync(filePath)
+      ? mergeSafely(readFileSync(filePath, 'utf8'), content)
+      : content;
 
-  writeFileSync(filePath, `${content}\n`);
+  writeFileSync(filePath, `${normalizeGeneratedCode(processedContent)}\n`);
 }
 
 function mergeSafely(existingContent: string, generatedContent: string): string {
