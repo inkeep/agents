@@ -226,6 +226,103 @@ describe('Model Context Utils', () => {
         });
       });
     });
+
+    describe('Provider options override', () => {
+      it('should use context window from providerOptions when provided', () => {
+        const result = getModelContextWindow({
+          model: 'custom-model',
+          providerOptions: { contextWindowSize: 100000 },
+        });
+        expect(result).toEqual({
+          modelId: 'custom-model',
+          contextWindow: 100000,
+          hasValidContextWindow: true,
+          source: 'provider-options',
+        });
+      });
+
+      it('should prioritize providerOptions over model lookup', () => {
+        const result = getModelContextWindow({
+          model: 'gpt-4o',
+          providerOptions: { contextWindowSize: 150000 },
+        });
+        expect(result).toEqual({
+          modelId: 'gpt-4o',
+          contextWindow: 150000,
+          hasValidContextWindow: true,
+          source: 'provider-options',
+        });
+      });
+
+      it('should fall back to model lookup when contextWindowSize is zero', () => {
+        const result = getModelContextWindow({
+          model: 'gpt-4o',
+          providerOptions: { contextWindowSize: 0 },
+        });
+        expect(result).toEqual({
+          modelId: 'gpt-4o',
+          contextWindow: 128000,
+          hasValidContextWindow: true,
+          source: 'llm-info',
+        });
+      });
+
+      it('should fall back to model lookup when contextWindowSize is negative', () => {
+        const result = getModelContextWindow({
+          model: 'gpt-4o',
+          providerOptions: { contextWindowSize: -1000 },
+        });
+        expect(result).toEqual({
+          modelId: 'gpt-4o',
+          contextWindow: 128000,
+          hasValidContextWindow: true,
+          source: 'llm-info',
+        });
+      });
+
+      it('should fall back to model lookup when contextWindowSize is not a number', () => {
+        const result = getModelContextWindow({
+          model: 'gpt-4o',
+          providerOptions: { contextWindowSize: '100000' as any },
+        });
+        expect(result).toEqual({
+          modelId: 'gpt-4o',
+          contextWindow: 128000,
+          hasValidContextWindow: true,
+          source: 'llm-info',
+        });
+      });
+
+      it('should handle providerOptions with other properties', () => {
+        const result = getModelContextWindow({
+          model: 'custom-model',
+          providerOptions: {
+            contextWindowSize: 80000,
+            temperature: 0.7,
+            topP: 0.9,
+          },
+        });
+        expect(result).toEqual({
+          modelId: 'custom-model',
+          contextWindow: 80000,
+          hasValidContextWindow: true,
+          source: 'provider-options',
+        });
+      });
+
+      it('should use override even when model is unknown', () => {
+        const result = getModelContextWindow({
+          model: 'unknown-custom-model',
+          providerOptions: { contextWindowSize: 200000 },
+        });
+        expect(result).toEqual({
+          modelId: 'unknown-custom-model',
+          contextWindow: 200000,
+          hasValidContextWindow: true,
+          source: 'provider-options',
+        });
+      });
+    });
   });
 
   describe('getCompressionConfigForModel', () => {

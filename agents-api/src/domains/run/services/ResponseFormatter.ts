@@ -24,6 +24,7 @@ export class ResponseFormatter {
       artifactComponents?: any[];
       streamRequestId?: string;
       subAgentId?: string;
+      contextWindowSize?: number;
     }
   ) {
     this.subAgentId = artifactParserOptions?.subAgentId;

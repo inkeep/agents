@@ -22,7 +22,7 @@ function linkNode(anchor: string, display: string): any {
   return {
     type: 'element',
     tagName: 'a',
-    properties: { href: '#' + anchor },
+    properties: { href: `#${anchor}` },
     children: [textNode(display)],
   };
 }
