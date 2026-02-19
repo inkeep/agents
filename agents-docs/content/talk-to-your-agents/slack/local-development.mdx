@@ -1,0 +1,148 @@
+---
+title: Local Development with Socket Mode
+sidebarTitle: Local Development
+description: Set up a personal Slack app for local development using Socket Mode — no tunnel required.
+---
+
+# Local Development with Socket Mode
+
+Socket Mode lets you receive Slack events over a WebSocket connection during local development — no tunnel (ngrok, Cloudflare Tunnel) needed.
+
+<Note>
+Each developer should create their **own personal Slack app** with Socket Mode enabled. Socket Mode distributes events randomly across connected clients rather than broadcasting to all. Sharing an app means each developer receives roughly half the events.
+</Note>
+
+## Prerequisites
+
+- A Slack workspace where you can install apps (workspace admin or create-app permissions)
+- The monorepo set up: `pnpm install`
+- `ENVIRONMENT=development` set in your `.env` file — Socket Mode only starts in development
+
+## Quick setup (recommended)
+
+Run the guided setup script from the monorepo root:
+
+```bash
+pnpm setup-slack-dev
+```
+
+The script walks through four steps automatically:
+
+1. **Config token** — Opens [api.slack.com/apps](https://api.slack.com/apps) and prompts for your Slack App Configuration refresh token (one-time paste)
+2. **Create app** — Creates a personal Slack app named `Inkeep Dev <random-id>` (e.g. `Inkeep Dev frost-ember`) using the canonical manifest
+3. **App-Level Token** — Prompts you to generate a `connections:write` token in your app settings (the only manual step — Slack provides no API for this)
+4. **OAuth install** — Starts a temporary local server, opens the browser, and completes the OAuth flow automatically
+
+All credentials are written to your `.env` file. State is saved to `.slack-dev.json` (git-ignored) so subsequent runs require **zero pastes**.
+
+| Run | Pastes required |
+|-----|----------------|
+| First run | 2 (refresh token + app-level token) |
+| Re-runs | 0 |
+
+<Tip>
+To start fresh (e.g. if you deleted your app), remove `.slack-dev.json` and re-run the script.
+</Tip>
+
+## Manual setup
+
+If you prefer to configure things yourself:
+
+<Steps>
+  <Step>
+    ### Create a dev Slack app
+
+    Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From an app manifest**.
+
+    Use `packages/agents-work-apps/src/slack/slack-app-manifest.json` as your starting point. Make these changes:
+
+    - Set `settings.socket_mode_enabled` to `true`
+    - Remove all `request_url` and `url` fields from `event_subscriptions`, `interactivity`, and slash commands
+    - Rename the app (e.g. `Inkeep Dev - YourName`)
+  </Step>
+  <Step>
+    ### Generate an App-Level Token
+
+    In your app settings → **Basic Information** → **App-Level Tokens**:
+
+    1. Click **Generate Token and Scopes**
+    2. Name: `socket-mode`, Scope: `connections:write`
+    3. Copy the token (starts with `xapp-`)
+  </Step>
+  <Step>
+    ### Install the app
+
+    Go to **Install App** → **Install to Workspace** and authorize. Copy the **Bot User OAuth Token** (starts with `xoxb-`).
+  </Step>
+  <Step>
+    ### Configure environment variables
+
+    Add to your `.env`:
+
+    ```dotenv
+    SLACK_APP_TOKEN=xapp-your-token-here
+    SLACK_BOT_TOKEN=xoxb-your-token-here
+    ```
+  </Step>
+</Steps>
+
+## Verify it works
+
+1. Start the dev server:
+   ```bash
+   pnpm dev
+   ```
+2. Look for the log message: `Slack Socket Mode client started`
+3. In your Slack workspace, `@mention` your dev bot in a channel — the event should be received and processed locally
+
+<Tip>
+If the bot hasn't been added to a channel yet, invite it first: `/invite @inkeep-your-dev-id`
+</Tip>
+
+## How it works
+
+Socket Mode and the production HTTP path share the same event dispatcher and handlers — only the transport differs:
+
+```
+Production (HTTP):  Slack → HTTPS POST → Hono route → dispatcher → handlers
+Local Dev (Socket): Slack → WebSocket  → adapter    → dispatcher → handlers
+```
+
+The Socket Mode adapter:
+- Receives pre-parsed events over WebSocket (no signature verification needed — the connection is authenticated)
+- Calls `ack()` immediately instead of returning an HTTP 200
+- Routes events through the same `dispatchSlackEvent()` function used by the HTTP path
+- Creates OTel tracing spans with identical span names and attributes
+
+## Troubleshooting
+
+<Accordions>
+  <Accordion title="'Scheduling Slack Socket Mode start...' but no 'started' message">
+    Check that `SLACK_APP_TOKEN` is valid (starts with `xapp-`). If it's missing or malformed, the client won't connect.
+
+    Also ensure the `@slack/socket-mode` package is installed:
+    ```bash
+    pnpm --filter @inkeep/agents-work-apps add -D @slack/socket-mode
+    ```
+  </Accordion>
+  <Accordion title="'Socket Mode client already running (HMR reload detected)'">
+    This is expected. The Socket Mode client uses a `globalThis` singleton to survive Vite HMR reloads without creating duplicate connections. No action needed.
+  </Accordion>
+  <Accordion title="Events not arriving in my local server">
+    Check the following:
+    - Your dev app is installed to the workspace where you're testing
+    - The bot has been invited to the channel: `/invite @inkeep-your-dev-id`
+    - `socket_mode_enabled: true` is set in your Slack app settings
+  </Accordion>
+  <Accordion title="'SLACK_APP_TOKEN is set but @slack/socket-mode is not installed'">
+    Run:
+    ```bash
+    pnpm --filter @inkeep/agents-work-apps add -D @slack/socket-mode
+    ```
+  </Accordion>
+</Accordions>
+
+## Related
+
+- [AI Assistant for Slack — Overview](/talk-to-your-agents/slack/overview)
+- [Slash Commands Reference](/talk-to-your-agents/slack/commands)
