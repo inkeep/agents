@@ -87,7 +87,6 @@ export function getDevDefaultAgent(config: SlackDevConfig | null): DefaultAgentC
     return null;
   }
 }
-}
 
 export function saveSlackDevConfig(config: SlackDevConfig): boolean {
   const configPath = getDevConfigPath();

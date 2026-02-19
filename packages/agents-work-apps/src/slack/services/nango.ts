@@ -227,6 +227,8 @@ export async function findWorkspaceConnectionByTeamId(
       logger.debug({ teamId }, 'Using .slack-dev.json for workspace connection');
       return buildDevWorkspaceConnection(devConfig, teamId);
     }
+    logger.debug({ teamId }, 'No .slack-dev.json found returning null');
+    return null;
   }
 
   try {
