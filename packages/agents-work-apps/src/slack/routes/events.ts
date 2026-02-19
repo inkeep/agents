@@ -39,6 +39,7 @@ import {
   handleModalSubmission,
   handleOpenAgentSelectorModal,
   handleOpenFollowUpModal,
+  handleToolApproval,
   sendResponseUrlMessage,
 } from '../services/events';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, type SlackOutcome, tracer } from '../tracer';
@@ -409,6 +410,38 @@ app.post('/events', async (c) => {
                 })
                 .finally(() => flushTraces());
               if (waitUntil) waitUntil(followUpModalWork);
+            }
+
+            if (
+              (action.action_id === 'tool_approval_approve' ||
+                action.action_id === 'tool_approval_deny') &&
+              action.value
+            ) {
+              anyHandled = true;
+              const approved = action.action_id === 'tool_approval_approve';
+              const slackUserId = (eventBody.user as { id?: string })?.id;
+              logger.info(
+                { teamId, actionId: action.action_id, approved },
+                'Handling block_action: tool_approval'
+              );
+              if (slackUserId) {
+                const approvalWork = handleToolApproval({
+                  actionValue: action.value,
+                  approved,
+                  teamId,
+                  slackUserId,
+                  responseUrl: responseUrl || undefined,
+                })
+                  .catch((err: unknown) => {
+                    const errorMessage = err instanceof Error ? err.message : String(err);
+                    logger.error(
+                      { errorMessage, actionId: action.action_id },
+                      'Failed to handle tool approval'
+                    );
+                  })
+                  .finally(() => flushTraces());
+                if (waitUntil) waitUntil(approvalWork);
+              }
             }
           }
 

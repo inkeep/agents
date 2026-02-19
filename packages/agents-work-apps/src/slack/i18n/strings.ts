@@ -65,6 +65,7 @@ export const SlackStrings = {
   // Status messages
   status: {
     thinking: (agentName: string) => `_${agentName} is thinking..._`,
+    readingThread: (agentName: string) => `_${agentName} is reading this thread..._`,
     noAgentsAvailable: 'No agents available',
     noProjectsConfigured: '⚙️ No projects configured. Please set up projects in the dashboard.',
   },

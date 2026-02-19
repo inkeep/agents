@@ -58,17 +58,9 @@ export function buildConversationResponseBlocks(params: {
   isError: boolean;
   followUpParams: FollowUpButtonParams;
 }) {
-  const { userMessage, responseText, agentName, isError, followUpParams } = params;
-
-  // Truncate user message for display (Slack section text max is 3000 chars)
-  const displayMessage = userMessage.length > 200 ? `${userMessage.slice(0, 200)}...` : userMessage;
+  const { responseText, agentName, isError, followUpParams } = params;
 
   const blocks: any[] = [
-    {
-      type: 'context',
-      elements: [{ type: 'mrkdwn', text: `💬 *You:* ${displayMessage}` }],
-    },
-    { type: 'divider' },
     {
       type: 'section',
       text: { type: 'mrkdwn', text: responseText },
@@ -87,14 +79,14 @@ export function buildConversationResponseBlocks(params: {
 export function createUpdatedHelpMessage() {
   return Message()
     .blocks(
-      Blocks.Section().text(`${Md.bold(SlackStrings.help.title)}`),
+      Blocks.Header().text(SlackStrings.help.title),
       Blocks.Section().text(SlackStrings.help.publicSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.privateSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.otherCommands),
       Blocks.Divider(),
-      Blocks.Section().text(SlackStrings.help.docsLink)
+      Blocks.Context().elements(SlackStrings.help.docsLink)
     )
     .buildToObject();
 }
@@ -184,6 +176,89 @@ export function createStatusMessage(
       )
     )
     .buildToObject();
+}
+
+export interface ToolApprovalButtonValue {
+  toolCallId: string;
+  conversationId: string;
+  projectId: string;
+  agentId: string;
+  slackUserId: string;
+  channel: string;
+  threadTs: string;
+  toolName: string;
+}
+
+export function buildToolApprovalBlocks(params: {
+  toolName: string;
+  input?: Record<string, unknown>;
+  buttonValue: string;
+}) {
+  const { toolName, input, buttonValue } = params;
+
+  const blocks: any[] = [
+    {
+      type: 'header',
+      text: { type: 'plain_text', text: 'Tool Approval Required', emoji: false },
+    },
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: `The agent wants to use \`${toolName}\`.` },
+    },
+  ];
+
+  if (input && Object.keys(input).length > 0) {
+    const fields = Object.entries(input)
+      .slice(0, 10)
+      .map(([key, value]) => {
+        const valueStr =
+          typeof value === 'string'
+            ? value.length > 80
+              ? `${value.slice(0, 80)}…`
+              : value
+            : JSON.stringify(value).slice(0, 80);
+        return { type: 'mrkdwn', text: `*${key}*\n${valueStr}` };
+      });
+
+    blocks.push({ type: 'section', fields });
+  }
+
+  blocks.push({ type: 'divider' });
+
+  blocks.push({
+    type: 'actions',
+    elements: [
+      {
+        type: 'button',
+        text: { type: 'plain_text', text: 'Approve', emoji: false },
+        style: 'primary',
+        action_id: 'tool_approval_approve',
+        value: buttonValue,
+      },
+      {
+        type: 'button',
+        text: { type: 'plain_text', text: 'Deny', emoji: false },
+        style: 'danger',
+        action_id: 'tool_approval_deny',
+        value: buttonValue,
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+export function buildToolApprovalDoneBlocks(params: {
+  toolName: string;
+  approved: boolean;
+  actorUserId: string;
+}) {
+  const { toolName, approved, actorUserId } = params;
+  const statusText = approved
+    ? `✅ Approved \`${toolName}\` · <@${actorUserId}>`
+    : `❌ Denied \`${toolName}\` · <@${actorUserId}>`;
+
+  return [{ type: 'context', elements: [{ type: 'mrkdwn', text: statusText }] }];
 }
 
 export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {

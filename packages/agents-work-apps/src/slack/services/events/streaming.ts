@@ -8,7 +8,11 @@
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { createContextBlock } from '../blocks';
+import {
+  buildToolApprovalBlocks,
+  createContextBlock,
+  type ToolApprovalButtonValue,
+} from '../blocks';
 import type { getSlackClient } from '../client';
 import { classifyError, getUserFriendlyErrorMessage, SlackErrorType } from './utils';
 
@@ -52,7 +56,7 @@ export async function streamAgentResponse(params: {
   agentId: string;
   question: string;
   agentName: string;
-  conversationId?: string;
+  conversationId: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -244,6 +248,39 @@ export async function streamAgentResponse(params: {
                 agentCompleted = true;
                 break;
               }
+              continue;
+            }
+
+            if (data.type === 'tool-approval-request' && conversationId) {
+              const toolName: string = data.toolName || 'Tool';
+              const toolCallId: string = data.toolCallId;
+              const input: Record<string, unknown> | undefined = data.input;
+
+              const buttonValue: ToolApprovalButtonValue = {
+                toolCallId,
+                conversationId,
+                projectId,
+                agentId,
+                slackUserId,
+                channel,
+                threadTs,
+                toolName,
+              };
+
+              await slackClient.chat
+                .postMessage({
+                  channel,
+                  thread_ts: threadTs,
+                  text: `Tool approval required: \`${toolName}\``,
+                  blocks: buildToolApprovalBlocks({
+                    toolName,
+                    input,
+                    buttonValue: JSON.stringify(buttonValue),
+                  }),
+                })
+                .catch((e) =>
+                  logger.warn({ error: e, toolCallId }, 'Failed to post tool approval message')
+                );
               continue;
             }
 
