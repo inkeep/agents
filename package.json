@@ -13,7 +13,7 @@
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build --filter='!agents-cookbook-templates'",
     "knip": "turbo knip",
-    "dev": "turbo dev --filter='!@inkeep/create-agents' --filter='!@inkeep/agents-work-apps'",
+    "dev": "turbo dev --filter=@inkeep/agents-api --filter=@inkeep/agents-manage-ui --filter=@inkeep/agents-docs --filter=@inkeep/agents-core --filter=@inkeep/agents-sdk",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
