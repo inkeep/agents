@@ -5,8 +5,8 @@ import {
   addReferenceGetterProperty,
   addValueToObject,
   createInMemoryProject,
-  toCamelCase,
   TransformToUndefined,
+  toCamelCase,
 } from './utils';
 
 const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());

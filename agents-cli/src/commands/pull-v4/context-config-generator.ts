@@ -360,7 +360,6 @@ function generateStandaloneFetchDefinition(
 function convertJsonSchemaToZod(schema: Record<string, unknown>): string {
   return convertJsonSchemaToZodSafe(schema, {
     conversionOptions: { module: 'none' },
-    emptyObjectAsAny: true,
   });
 }
 
@@ -370,7 +369,7 @@ function extractContextVariableReference(key: string, value: unknown): string | 
   }
 
   if (!isPlainObject(value)) {
-    return undefined;
+    return;
   }
 
   if (typeof value.id === 'string') {

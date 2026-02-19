@@ -7,8 +7,8 @@ import {
   formatPropertyName,
   formatStringLiteral,
   isPlainObject,
-  toCamelCase,
   TransformToUndefined,
+  toCamelCase,
 } from './utils';
 
 interface ArtifactComponentDefinitionData {
