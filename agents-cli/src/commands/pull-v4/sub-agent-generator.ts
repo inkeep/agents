@@ -9,49 +9,35 @@ import {
   isPlainObject,
   toCamelCase,
 } from './utils';
+import { FullAgentAgentInsertSchema } from '@inkeep/agents-core';
 
-type SubAgentDefinitionData = {
-  subAgentId: string;
-  name?: string;
-  description?: string;
-  prompt?: string;
-  models?: Record<string, unknown>;
-  skills?: unknown[];
-  canUse?: unknown[];
-  canDelegateTo?: unknown[];
-  canTransferTo?: string[];
-  dataComponents?: string[];
-  artifactComponents?: string[];
-  stopWhen?: {
-    stepCountIs?: number;
-  };
-};
-
-const SubAgentSchema = z.looseObject({
-  subAgentId: z.string().nonempty(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  prompt: z.string().optional(),
-  models: z.looseObject({}).optional(),
-  skills: z.array(z.unknown()).optional(),
-  canUse: z.array(z.unknown()).optional(),
-  canDelegateTo: z.array(z.unknown()).optional(),
-  canTransferTo: z.array(z.string()).optional(),
-  dataComponents: z.array(z.string()).optional(),
-  artifactComponents: z.array(z.string()).optional(),
-  stopWhen: z
-    .object({
-      stepCountIs: z.number().int().optional(),
-    })
-    .optional(),
-});
+const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema
+  //
+  .omit({ type: true })
+  .extend({
+    canDelegateTo: z
+      .transform((value) =>
+        Array.isArray(value)
+          ? value.map((item) => (item.subAgentId ? item.subAgentId : item))
+          : value
+      )
+      .pipe(FullAgentAgentInsertSchema.shape.canDelegateTo),
+    models: z
+      .transform((v) => (v === null ? undefined : v))
+      .pipe(FullAgentAgentInsertSchema.shape.models),
+    stopWhen: FullAgentAgentInsertSchema.shape.stopWhen.transform((v) =>
+      v === null ? undefined : v
+    ),
+  });
 
 type ParsedSubAgentDefinitionData = z.infer<typeof SubAgentSchema>;
 
-export function generateSubAgentDefinition(data: SubAgentDefinitionData): string {
+export function generateSubAgentDefinition(data: z.input<typeof SubAgentSchema>): string {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);
+    throw new Error(
+      `Validation failed for sub-agent "${data.id}":\n${z.prettifyError(result.error)}`
+    );
   }
 
   const project = createInMemoryProject();
@@ -63,7 +49,7 @@ export function generateSubAgentDefinition(data: SubAgentDefinitionData): string
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
-  const subAgentVarName = toCamelCase(parsed.subAgentId);
+  const subAgentVarName = toCamelCase(parsed.id);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
@@ -77,7 +63,7 @@ export function generateSubAgentDefinition(data: SubAgentDefinitionData): string
 
   const [declaration] = variableStatement.getDeclarations();
   if (!declaration) {
-    throw new Error(`Failed to create variable declaration for sub-agent '${parsed.subAgentId}'`);
+    throw new Error(`Failed to create variable declaration for sub-agent '${parsed.id}'`);
   }
 
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
@@ -93,7 +79,6 @@ export function generateSubAgentDefinition(data: SubAgentDefinitionData): string
 function writeSubAgentConfig(
   configObject: ObjectLiteralExpression,
   {
-    subAgentId,
     dataComponents,
     name,
     canDelegateTo,
@@ -104,10 +89,10 @@ function writeSubAgentConfig(
     ...rest
   }: ParsedSubAgentDefinitionData
 ) {
-  for (const [k, v] of Object.entries({ id: subAgentId, ...rest })) {
+  for (const [k, v] of Object.entries(rest)) {
     addValueToObject(configObject, k, v);
   }
-  addStringProperty(configObject, 'name', resolveSubAgentName(subAgentId, name));
+  addStringProperty(configObject, 'name', resolveSubAgentName(rest.id, name));
 
   const canUseReferences = collectCanUseReferences(canUse);
   if (canUseReferences.length) {
