@@ -1,7 +1,6 @@
 import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
-  findWorkAppSlackUserMappingBySlackUser,
   flushTraces,
   getWaitUntil,
   signSlackLinkToken,
@@ -297,8 +296,8 @@ export async function handleQuestionCommand(
   _dashboardUrl: string,
   tenantId: string
 ): Promise<SlackCommandResponse> {
-  // Find user mapping without tenant filter to get the correct tenant
-  const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
     payload.userId,
     payload.teamId,
     DEFAULT_CLIENT_ID
@@ -308,7 +307,6 @@ export async function handleQuestionCommand(
     return generateLinkCodeWithIntent(payload, tenantId);
   }
 
-  // Use the tenant from the user's mapping
   const userTenantId = existingLink.tenantId;
 
   const resolvedAgent = await resolveEffectiveAgent({

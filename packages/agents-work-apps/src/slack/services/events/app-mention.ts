@@ -25,7 +25,6 @@ import {
   postMessageInThread,
 } from '../client';
 import { findWorkspaceConnectionByTeamId } from '../nango';
-import { getBotTokenForTeam } from '../workspace-tokens';
 import { streamAgentResponse } from './streaming';
 import {
   checkIfBotThread,
@@ -99,15 +98,13 @@ export async function handleAppMention(params: {
       context: { teamId },
     });
 
-    const botToken =
-      workspaceConnection?.botToken || getBotTokenForTeam(teamId) || env.SLACK_BOT_TOKEN;
-    if (!botToken) {
+    if (!workspaceConnection?.botToken) {
       logger.error({ teamId }, 'No bot token available — cannot respond to @mention');
       span.end();
       return;
     }
 
-    const tenantId = workspaceConnection?.tenantId;
+    const { botToken, tenantId } = workspaceConnection;
     if (!tenantId) {
       logger.error(
         { teamId },
