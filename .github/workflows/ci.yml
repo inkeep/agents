@@ -97,7 +97,7 @@ jobs:
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Run all CI checks in parallel with Turborepo
-      # agents-docs is excluded here — lint/typecheck run in ci-docs.yml, build runs in Vercel preview
+      # agents-docs build is excluded (causes OOM) — Vercel preview handles the Next.js build
       - name: Run CI checks
         id: ci-check
         run: |
@@ -111,6 +111,13 @@ jobs:
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           CI: true
           HUSKY: 0
+
+      # Lint and typecheck agents-docs separately (build excluded above to avoid OOM)
+      - name: Lint and typecheck agents-docs
+        run: |
+          pnpm exec turbo run lint typecheck --filter=@inkeep/agents-docs
+        env:
+          CI: true
 
       - name: Upload Vitest Screenshots
         if: failure()
