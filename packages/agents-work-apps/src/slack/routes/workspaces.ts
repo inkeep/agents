@@ -1154,7 +1154,7 @@ app.openapi(
       const slackClient = getSlackClient(workspace.botToken);
 
       const testMessage =
-        message || '✅ *Test message from Inkeep*\n\nYour Slack integration is working correctly!';
+        message || '*Test message from Inkeep*\n\nYour Slack integration is working correctly.';
 
       const result = await slackClient.chat.postMessage({
         channel: channelId,

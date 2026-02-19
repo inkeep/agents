@@ -207,7 +207,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     elements: [
       {
         type: 'mrkdwn',
-        text: `⚙️ <${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
+        text: `<${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
       },
     ],
   } as unknown as (typeof blocks)[number]);
@@ -425,7 +425,7 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     elements: [
       {
         type: 'mrkdwn',
-        text: `⚙️ <${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
+        text: `<${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
       },
     ],
   } as unknown as (typeof blocks)[number]);
