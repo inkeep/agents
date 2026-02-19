@@ -158,7 +158,7 @@ export async function handleModalSubmission(view: {
         await slackClient.chat.postEphemeral({
           channel: metadata.channel,
           user: metadata.slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+          text: 'Link your account first. Run `/inkeep link` to connect.',
         });
         span.end();
         return;
@@ -313,7 +313,7 @@ export async function handleFollowUpSubmission(view: {
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+          text: 'Link your account first. Run `/inkeep link` to connect.',
         });
         span.end();
         return;
