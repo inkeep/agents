@@ -3,7 +3,7 @@
 describe('Agent', () => {
   describe('Unsaved changes dialog', () => {
     beforeEach(() => {
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?nodeId=geocoder-agent');
+      cy.visit('/default/projects/activities-planner/agents/activities-planner?nodeId=get-coordinates-agent');
     });
 
     it('should show dialog when user closes browser tab', () => {

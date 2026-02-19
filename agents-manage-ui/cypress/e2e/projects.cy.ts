@@ -5,8 +5,8 @@ import { randomId } from '../support/utils';
 describe('Projects', () => {
   it('should create project, navigate to agents page and update project switcher', () => {
     const projectName = `test${randomId()}`;
-    cy.visit('/default/projects/my-weather-project');
-    cy.get('[data-slot=dropdown-menu-trigger]').contains('Weather Project').click();
+    cy.visit('/default/projects/activities-planner');
+    cy.get('[data-slot=dropdown-menu-trigger]').contains('Activities planner').click();
     cy.contains('Create project').click();
     cy.get('[name=name]').type(projectName, { delay: 0 });
     cy.get('textarea[name=description]').type('test description');

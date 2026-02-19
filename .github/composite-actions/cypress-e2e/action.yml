@@ -90,7 +90,7 @@ runs:
         done
 
     # --- Phase 5: Seed + test ---
-    - name: Push Weather Example Project
+    - name: Push Activities Planner Project
       shell: bash
       env:
         INKEEP_API_KEY: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
@@ -99,7 +99,7 @@ runs:
         attempt=1
         while [ $attempt -le $max_attempts ]; do
           echo "Push attempt $attempt/$max_attempts..."
-          if cd agents-cookbook/template-projects && npx inkeep push --project weather-project; then
+          if cd agents-cookbook/template-projects && npx inkeep push --project activities-planner; then
             echo "Push succeeded on attempt $attempt"
             break
           fi
