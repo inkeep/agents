@@ -254,7 +254,7 @@ export const deleteAgent =
 export const fetchComponentRelationships =
   (db: AgentsManageDatabaseClient) =>
   async <T extends Record<string, unknown>>(
-    scopes: ProjectScopeConfig,
+    scopes: AgentScopeConfig,
     subAgentIds: string[],
     config: {
       relationTable: PgTable<any>;
@@ -279,6 +279,7 @@ export const fetchComponentRelationships =
           and(
             eq((config.relationTable as any).tenantId, scopes.tenantId),
             eq((config.relationTable as any).projectId, scopes.projectId),
+            eq((config.relationTable as any).agentId, scopes.agentId),
             inArray(config.subAgentIdField as any, subAgentIds)
           )
         );
@@ -689,7 +690,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
         relationIdField: subAgentDataComponents.dataComponentId,
@@ -707,7 +708,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
         relationIdField: subAgentArtifactComponents.artifactComponentId,
@@ -812,6 +813,7 @@ const getFullAgentDefinitionInternal =
                         and(
                           eq(subAgents.tenantId, tenantId),
                           eq(subAgents.projectId, projectId),
+                          eq(subAgents.agentId, agentId),
                           eq(subAgents.id, subAgentId)
                         )
                       );
