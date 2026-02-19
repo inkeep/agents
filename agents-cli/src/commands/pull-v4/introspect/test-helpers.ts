@@ -130,6 +130,7 @@ export function createProjectFixture(): FullProjectDefinition {
               name: 'User Information',
               trigger: 'initialization',
               fetchConfig: {
+                // biome-ignore lint/suspicious/noTemplateCurlyInString: snapshot should produce template string
                 url: 'https://api.example.com/users/${headersSchema.toTemplate("user_id")}',
                 method: 'GET',
               },

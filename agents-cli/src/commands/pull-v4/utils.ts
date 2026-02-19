@@ -9,7 +9,6 @@ import {
   QuoteKind,
   SyntaxKind,
 } from 'ts-morph';
-import { z } from 'zod';
 
 export function createInMemoryProject(): Project {
   return new Project({

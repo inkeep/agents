@@ -310,7 +310,7 @@ function extractIds(value: string[] | Record<string, unknown>): string[] {
         if (isPlainObject(item) && typeof item.id === 'string') {
           return item.id;
         }
-        return;
+        return null;
       })
       .filter((id) => !!id);
   }

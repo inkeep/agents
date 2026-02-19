@@ -5,7 +5,7 @@
 import { generateProjectDefinition as generateProjectDefinitionV4 } from '../../../pull-v4/project-generator';
 import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
-import { generateProjectDefinition, generateProjectFile } from '../project-generator';
+import { generateProjectDefinition } from '../project-generator';
 
 // Mock registry for tests
 const mockRegistry = {
