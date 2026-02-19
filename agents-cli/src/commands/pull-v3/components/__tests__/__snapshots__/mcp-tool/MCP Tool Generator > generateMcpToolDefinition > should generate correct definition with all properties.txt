@@ -1,7 +1,7 @@
 export const weatherMcp = mcpTool({
   id: 'weather-mcp',
   name: 'Weather',
-  serverUrl: 'https://weather-mcp-hazel.vercel.app/mcp',
+  serverUrl: 'https://mcp.cloud.inkeep.com/weather/mcp',
   transport: {
   "type": "streamable_http"
 },
