@@ -38,15 +38,39 @@ Each organization operates as an isolated tenant:
 
 | Role | Permissions |
 |------|-------------|
-| **Admin** | Full access to all projects and settings, can add members |
+| **Admin** | Full access to all projects and settings, can add and remove members |
 | **Member** | Access determined by project-level roles |
 
 ### Managing Team Members
+
+#### Adding Members
 
 1. Go to **Settings** in the left sidebar
 2. View current members and their roles
 3. Click **Add** to add new team members
 4. Select a role (Admin or Member) for the new team member
+
+#### Removing Members
+
+1. Go to **Settings** in the left sidebar
+2. Click the actions menu (**⋮**) next to the member you want to remove
+3. Select **Delete member**
+4. Confirm the deletion in the modal
+
+Deleting a member permanently removes them from the organization and revokes their access to all projects.
+
+<Note>
+  You cannot delete yourself or the organization owner. Only organization Admins can delete members.
+</Note>
+
+#### Revoking Invitations
+
+1. Go to **Settings** in the left sidebar
+2. Click the actions menu (**⋮**) next to the pending invitation
+3. Select **Revoke invite**
+4. Confirm the revocation in the modal
+
+Revoking an invitation prevents the recipient from accepting it. You can send a new invitation if needed.
 
 ## Project Roles & Permissions
 
