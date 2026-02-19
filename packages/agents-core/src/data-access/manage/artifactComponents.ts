@@ -222,7 +222,11 @@ export const getArtifactComponentsForAgent =
       .from(artifactComponents)
       .innerJoin(
         subAgentArtifactComponents,
-        eq(artifactComponents.id, subAgentArtifactComponents.artifactComponentId)
+        and(
+          eq(artifactComponents.id, subAgentArtifactComponents.artifactComponentId),
+          eq(artifactComponents.tenantId, subAgentArtifactComponents.tenantId),
+          eq(artifactComponents.projectId, subAgentArtifactComponents.projectId)
+        )
       )
       .where(
         and(
@@ -285,6 +289,7 @@ export const deleteAgentArtifactComponentRelationByAgent =
       .where(
         and(
           eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
           eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
         )
@@ -343,7 +348,9 @@ export const agentHasArtifactComponents =
         subAgents,
         and(
           eq(subAgentArtifactComponents.subAgentId, subAgents.id),
-          eq(subAgentArtifactComponents.tenantId, subAgents.tenantId)
+          eq(subAgentArtifactComponents.tenantId, subAgents.tenantId),
+          eq(subAgentArtifactComponents.projectId, subAgents.projectId),
+          eq(subAgentArtifactComponents.agentId, subAgents.agentId)
         )
       )
       .innerJoin(
