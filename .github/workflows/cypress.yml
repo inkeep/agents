@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -121,6 +121,7 @@ jobs:
       - name: Run Cypress E2E Tests
         uses: ./.github/composite-actions/cypress-e2e
         env:
+          NODE_OPTIONS: --max-old-space-size=8192
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
