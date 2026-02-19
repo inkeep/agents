@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import { Node, SyntaxKind } from 'ts-morph';
+import { Node, type SourceFile, SyntaxKind } from 'ts-morph';
 import { buildComponentRegistryFromParsing } from '../pull-v3/component-parser';
 import type { ComponentRegistry, ComponentType } from '../pull-v3/utils/component-registry';
 import { generateAgentDefinition } from './agent-generator';
@@ -1147,10 +1147,20 @@ function writeTypeScriptFile(
       ? mergeSafely(readFileSync(filePath, 'utf8'), content)
       : content;
 
-  const normalizedContent = moveVariableDeclarationsBeforeUsage(
-    applyObjectShorthand(processedContent)
+  const sourceFile = createInMemoryProject().createSourceFile('generated.ts', processedContent, {
+    overwrite: true,
+  });
+
+  sourceFile.formatText({
+    // indentSize: 2,
+    // convertTabsToSpaces: true,
+    // semicolons: ts.SemicolonPreference.Insert,
+  });
+
+  const normalizedSourceFile = moveVariableDeclarationsBeforeUsage(
+    applyObjectShorthand(sourceFile)
   );
-  writeFileSync(filePath, `${normalizedContent}\n`);
+  writeFileSync(filePath, `${normalizedSourceFile.getFullText().trimEnd()}\n`);
 }
 
 function mergeSafely(existingContent: string, generatedContent: string): string {
@@ -1161,11 +1171,7 @@ function mergeSafely(existingContent: string, generatedContent: string): string 
   }
 }
 
-function applyObjectShorthand(content: string): string {
-  const sourceFile = createInMemoryProject().createSourceFile('generated.ts', content, {
-    overwrite: true,
-  });
-
+function applyObjectShorthand(sourceFile: SourceFile): SourceFile {
   for (const objectLiteral of sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)) {
     for (const property of objectLiteral.getProperties()) {
       if (!Node.isPropertyAssignment(property)) {
@@ -1182,15 +1188,10 @@ function applyObjectShorthand(content: string): string {
       property.replaceWithText(nameNode.getText());
     }
   }
-
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile;
 }
 
-function moveVariableDeclarationsBeforeUsage(content: string): string {
-  const sourceFile = createInMemoryProject().createSourceFile('generated.ts', content, {
-    overwrite: true,
-  });
-
+function moveVariableDeclarationsBeforeUsage(sourceFile: SourceFile): SourceFile {
   let moved = true;
   while (moved) {
     moved = false;
@@ -1253,8 +1254,7 @@ function moveVariableDeclarationsBeforeUsage(content: string): string {
       break;
     }
   }
-
-  return sourceFile.getFullText().trimEnd();
+  return sourceFile;
 }
 
 function isReferenceInsideFunctionLike(referenceNode: Node): boolean {
