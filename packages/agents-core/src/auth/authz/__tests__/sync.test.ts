@@ -296,7 +296,7 @@ describe('authz/sync', () => {
       );
 
       expect(projectCall).toBeDefined();
-      expect(projectCall![0].relationshipFilter.optionalResourceIdPrefix).toBe('my-org-123/');
+      expect(projectCall?.[0].relationshipFilter.optionalResourceIdPrefix).toBe('my-org-123/');
     });
 
     it('should handle SpiceDB errors by throwing them up', async () => {
