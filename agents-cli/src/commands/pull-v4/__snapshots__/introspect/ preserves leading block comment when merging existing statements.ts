@@ -6,7 +6,7 @@ import { githubWebhook } from './triggers/github-webhook';
 /**
  * Keeps routing instructions for tier one support.
  */
-export const tierOneCustom = subAgent({
+const tierOneCustom = subAgent({
   id: 'tier-one',
   name: 'Tier One'
 });

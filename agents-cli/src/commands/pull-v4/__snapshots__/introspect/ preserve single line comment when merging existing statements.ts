@@ -3,7 +3,7 @@ import { supportContext } from '../context-configs/support-context';
 import { toolSummary } from '../status-components/tool-summary';
 import { githubWebhook } from './triggers/github-webhook';
 
-export const tierOneCustom = subAgent({
+const tierOneCustom = subAgent({
   id: 'tier-one',
   name: 'Tier One'
 });

@@ -11,8 +11,7 @@ Index: agents/support-agent.ts
  /**
   * Keeps routing instructions for tier one support.
   */
--const tierOneCustom = subAgent({
-+export const tierOneCustom = subAgent({
+ const tierOneCustom = subAgent({
    id: 'tier-one',
 -  name: 'Legacy Tier One'
 +  name: 'Tier One'
