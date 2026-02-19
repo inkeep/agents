@@ -42,6 +42,7 @@ yarn-error.log*
 .env.docker
 .env.production
 .env.staging
+.slack-dev.json
 
 # Keep providers.yaml for Nango integrations
 !providers.yaml
