@@ -50,6 +50,17 @@ export async function handleToolApproval(params: {
       const { toolCallId, conversationId, projectId, agentId, toolName } = buttonValue;
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
 
+      if (slackUserId !== buttonValue.slackUserId) {
+        if (responseUrl) {
+          await sendResponseUrlMessage(responseUrl, {
+            text: 'Only the user who started this conversation can approve or deny this action.',
+            response_type: 'ephemeral',
+          }).catch((e) => logger.warn({ error: e }, 'Failed to send ownership error notification'));
+        }
+        span.end();
+        return;
+      }
+
       const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
       if (!workspaceConnection?.botToken) {
         logger.error({ teamId }, 'No bot token for tool approval');
