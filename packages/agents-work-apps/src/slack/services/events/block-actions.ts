@@ -3,7 +3,7 @@
  * and message shortcuts
  */
 
-import { signSlackUserToken } from '@inkeep/agents-core';
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
@@ -91,7 +91,7 @@ export async function handleToolApproval(params: {
 
       const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
-      const approvalResponse = await fetch(`${apiUrl}/run/api/chat`, {
+      const approvalResponse = await getInProcessFetch()(`${apiUrl}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,6 +146,12 @@ export async function handleToolApproval(params: {
     } catch (error) {
       if (error instanceof Error) setSpanWithError(span, error);
       logger.error({ error, teamId, slackUserId }, 'Failed to handle tool approval');
+      if (responseUrl) {
+        await sendResponseUrlMessage(responseUrl, {
+          text: 'Something went wrong processing your request. Please try again.',
+          response_type: 'ephemeral',
+        }).catch((e) => logger.warn({ error: e }, 'Failed to send error notification'));
+      }
       span.end();
     }
   });

@@ -28,6 +28,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const original = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...original,
+    getInProcessFetch: vi.fn(() => mockFetch),
     signSlackUserToken: mockSignSlackUserToken,
   };
 });
@@ -57,8 +58,6 @@ vi.mock('../../slack/services/events/utils', async (importOriginal) => {
 vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: mockFindWorkspaceConnectionByTeamId,
 }));
-
-vi.stubGlobal('fetch', mockFetch);
 
 import { handleToolApproval } from '../../slack/services/events/block-actions';
 
@@ -183,6 +182,45 @@ describe('handleToolApproval', () => {
           text: expect.stringContaining('search_web'),
           response_type: 'ephemeral',
         })
+      );
+    });
+  });
+
+  describe('unexpected errors', () => {
+    it('should send ephemeral error when an unexpected exception is thrown', async () => {
+      mockFindWorkspaceConnectionByTeamId.mockRejectedValue(new Error('DB connection failed'));
+
+      await handleToolApproval({
+        actionValue: buttonValue,
+        approved: true,
+        teamId: TEAM_ID,
+        slackUserId: INITIATING_USER,
+        responseUrl: RESPONSE_URL,
+      });
+
+      expect(mockSendResponseUrlMessage).toHaveBeenCalledWith(
+        RESPONSE_URL,
+        expect.objectContaining({
+          text: expect.stringContaining('Something went wrong'),
+          response_type: 'ephemeral',
+        })
+      );
+    });
+
+    it('should not throw when Zod parse fails on malformed button value', async () => {
+      await expect(
+        handleToolApproval({
+          actionValue: '{"invalid":"json"}',
+          approved: true,
+          teamId: TEAM_ID,
+          slackUserId: INITIATING_USER,
+          responseUrl: RESPONSE_URL,
+        })
+      ).resolves.toBeUndefined();
+
+      expect(mockSendResponseUrlMessage).toHaveBeenCalledWith(
+        RESPONSE_URL,
+        expect.objectContaining({ response_type: 'ephemeral' })
       );
     });
   });
