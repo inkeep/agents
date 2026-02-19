@@ -307,7 +307,9 @@ function extractIds(value: string[] | Record<string, unknown>): string[] {
         if (typeof item === 'string') {
           return item;
         }
+        // @ts-expect-error -- fixme
         if (isPlainObject(item) && typeof item.id === 'string') {
+          // @ts-expect-error -- fixme
           return item.id;
         }
         return null;
