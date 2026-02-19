@@ -19,7 +19,9 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { getLogger } from './lib/logger';
 
+const logger = getLogger('instrumentation');
 const otlpExporter = new OTLPTraceExporter();
 
 function createSafeBatchProcessor(): SpanProcessor {
@@ -29,7 +31,7 @@ function createSafeBatchProcessor(): SpanProcessor {
       maxExportBatchSize: Number(process.env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE) || 64,
     });
   } catch (error) {
-    console.warn('[otel] Failed to create batch processor', error);
+    logger.warn({ error }, 'Failed to create batch processor, falling back to NoopSpanProcessor');
     return new NoopSpanProcessor();
   }
 }
@@ -91,5 +93,5 @@ try {
     await sdk.shutdown();
   });
 } catch (error) {
-  console.warn('[otel] Failed to start OpenTelemetry SDK - tracing will be disabled', error);
+  logger.warn({ error }, 'Failed to start OpenTelemetry SDK - tracing will be disabled');
 }
