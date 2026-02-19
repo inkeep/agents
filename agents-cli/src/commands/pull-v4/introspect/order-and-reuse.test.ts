@@ -173,4 +173,89 @@ export const supportAgent = agent({
     );
     await expect(credentialDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
+
+  it('inserts new local sub-agent variable before existing agent variable during merge', async () => {
+    const project: FullProjectDefinition = {
+      id: 'weather-project',
+      name: 'Weather Project',
+      description: 'Project used for merge ordering regression coverage',
+      models: {
+        base: {
+          model: 'gpt-4o-mini',
+        },
+      },
+      agents: {
+        'weather-agent': {
+          id: 'weather-agent',
+          name: 'Weather agent',
+          defaultSubAgentId: 'weather-assistant',
+          subAgents: {
+            'weather-forecaster': {
+              id: 'weather-forecaster',
+              name: 'Weather forecaster',
+            },
+            'geocoder-agent': {
+              id: 'geocoder-agent',
+              name: 'Geocoder agent',
+            },
+            'weather-assistant': {
+              id: 'weather-assistant',
+              name: 'Weather assistant',
+              description: 'Main weather assistant',
+              canDelegateTo: [
+                { subAgentId: 'weather-forecaster' },
+                { subAgentId: 'geocoder-agent' },
+              ],
+            },
+          },
+        },
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const agentFilePath = join(testDir, 'agents', 'weather-agent.ts');
+    fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
+    const before = `import { agent, subAgent } from '@inkeep/agents-sdk';
+
+export const weatherForecaster = subAgent({
+  id: 'weather-forecaster',
+  name: 'Weather forecaster'
+});
+
+export const geocoderAgent = subAgent({
+  id: 'geocoder-agent',
+  name: 'Geocoder agent'
+});
+
+export const weatherAgent = agent({
+  id: 'weather-agent',
+  name: 'Weather agent',
+  subAgents: () => [weatherForecaster, geocoderAgent],
+  defaultSubAgent: subAgent({
+    id: 'weather-assistant',
+    name: 'Weather assistant',
+    description: 'Legacy inline weather assistant'
+  })
+});
+`;
+    fs.writeFileSync(agentFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
+    const insertedSubAgentIndex = mergedAgentFile.indexOf(
+      'export const weatherAssistant = subAgent({'
+    );
+    const weatherAgentIndex = mergedAgentFile.indexOf('export const weatherAgent = agent({');
+
+    expect(insertedSubAgentIndex).toBeGreaterThan(-1);
+    expect(weatherAgentIndex).toBeGreaterThan(-1);
+    expect(insertedSubAgentIndex).toBeLessThan(weatherAgentIndex);
+    expect(mergedAgentFile).toContain('defaultSubAgent: weatherAssistant');
+    expect(mergedAgentFile).not.toContain('defaultSubAgent: subAgent({');
+
+    const agentDiff = await createUnifiedDiff('agents/weather-agent.ts', before, mergedAgentFile);
+    await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
+  });
 });
