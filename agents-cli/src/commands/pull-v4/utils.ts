@@ -52,15 +52,33 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function escapeTemplateLiteral(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
-}
+const QUOTE = Object.freeze({
+  single: "'",
+  double: '"',
+  template: '`',
+});
+
+type Quote = (typeof QUOTE)[keyof typeof QUOTE];
 
 export function formatStringLiteral(value: string): string {
-  if (value.includes('\n')) {
-    return `\`${escapeTemplateLiteral(value)}\``;
+  const hasSingleQuote = value.includes(QUOTE.single);
+  const hasDoubleQuote = value.includes(QUOTE.double);
+  const quote =
+    value.includes('\n') || (hasSingleQuote && hasDoubleQuote)
+      ? QUOTE.template
+      : hasSingleQuote
+        ? QUOTE.double
+        : QUOTE.single;
+  return escapeStringLiteral(value, quote);
+}
+
+function escapeStringLiteral(value: string, quote: Quote): string {
+  value = value.replaceAll('\\', '\\\\').replaceAll(quote, `\\${quote}`);
+
+  if (quote === QUOTE.template) {
+    value = value.replaceAll('${', '\\${');
   }
-  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+  return [quote, value, quote].join('');
 }
 
 export function formatPropertyName(key: string): string {
