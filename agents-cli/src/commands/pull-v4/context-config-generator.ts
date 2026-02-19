@@ -23,7 +23,16 @@ interface ContextConfigDefinitionData {
   headers?: string | { id?: string; name?: string };
   headersSchema?: Record<string, unknown>;
   contextVariables?: Record<string, unknown>;
+  referenceOverrides?: {
+    credentialReferences?: Record<string, string>;
+  };
 }
+
+const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
+
+const ReferenceOverridesSchema = z.object({
+  credentialReferences: ReferenceNameByIdSchema.optional(),
+});
 
 const ContextConfigSchema = z.looseObject({
   contextConfigId: z.string().nonempty(),
@@ -32,6 +41,7 @@ const ContextConfigSchema = z.looseObject({
   headers: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
   headersSchema: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
   contextVariables: z.record(z.string(), z.unknown()).optional(),
+  referenceOverrides: ReferenceOverridesSchema.optional(),
 });
 
 type ParsedContextConfigDefinitionData = z.infer<typeof ContextConfigSchema>;
@@ -59,6 +69,10 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
 
   const headersReference = resolveHeadersReference(parsed);
   const fetchDefinitions = collectFetchDefinitionEntries(parsed.contextVariables);
+  const credentialReferenceNames = collectCredentialReferenceNames(
+    fetchDefinitions,
+    parsed.referenceOverrides?.credentialReferences
+  );
   const coreImports = ['contextConfig'];
   if (headersReference && isPlainObject(parsed.headersSchema)) {
     coreImports.unshift('headers');
@@ -79,6 +93,13 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     sourceFile.addImportDeclaration({
       namedImports: ['z'],
       moduleSpecifier: 'zod',
+    });
+  }
+
+  for (const [credentialId, credentialReferenceName] of credentialReferenceNames) {
+    sourceFile.addImportDeclaration({
+      namedImports: [credentialReferenceName],
+      moduleSpecifier: `../credentials/${credentialId}`,
     });
   }
 
@@ -136,7 +157,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
       .getArguments()[0]
       ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-    writeFetchDefinition(fetchConfigObject, fetchDefinition.data);
+    writeFetchDefinition(fetchConfigObject, fetchDefinition.data, credentialReferenceNames);
   }
 
   const contextConfigVarName = toContextConfigVariableName(parsed.contextConfigId);
@@ -258,7 +279,8 @@ function collectFetchDefinitionEntries(contextVariables?: Record<string, unknown
 
 function writeFetchDefinition(
   configObject: ObjectLiteralExpression,
-  { contextConfigId, responseSchema, ...rest }: Record<string, unknown>
+  { contextConfigId, responseSchema, credentialReferenceId, ...rest }: Record<string, unknown>,
+  credentialReferenceNames?: Map<string, string>
 ) {
   for (const [k, v] of Object.entries({
     id: contextConfigId,
@@ -273,6 +295,21 @@ function writeFetchDefinition(
       name: 'responseSchema',
       initializer: convertJsonSchemaToZod(responseSchema),
     });
+  }
+
+  if (
+    typeof credentialReferenceId === 'string' &&
+    credentialReferenceNames?.has(credentialReferenceId)
+  ) {
+    configObject.addPropertyAssignment({
+      name: 'credentialReference',
+      initializer: credentialReferenceNames.get(credentialReferenceId) as string,
+    });
+    return;
+  }
+
+  if (typeof credentialReferenceId === 'string') {
+    addStringProperty(configObject, 'credentialReferenceId', credentialReferenceId);
   }
 }
 
@@ -337,6 +374,19 @@ function generateStandaloneFetchDefinition(
     });
   }
 
+  const credentialReferenceNames = new Map<string, string>();
+  if (typeof (data as Record<string, unknown>).credentialReferenceId === 'string') {
+    const credentialReferenceId = (data as Record<string, unknown>).credentialReferenceId as string;
+    const credentialReferenceName =
+      data.referenceOverrides?.credentialReferences?.[credentialReferenceId] ??
+      toReferenceIdentifier(credentialReferenceId);
+    credentialReferenceNames.set(credentialReferenceId, credentialReferenceName);
+    sourceFile.addImportDeclaration({
+      namedImports: [credentialReferenceName],
+      moduleSpecifier: `../credentials/${credentialReferenceId}`,
+    });
+  }
+
   const fetchVarName = toContextConfigVariableName(data.contextConfigId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
@@ -353,7 +403,7 @@ function generateStandaloneFetchDefinition(
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeFetchDefinition(configObject, data);
+  writeFetchDefinition(configObject, data, credentialReferenceNames);
 
   return sourceFile.getFullText();
 }
@@ -396,3 +446,30 @@ function extractContextVariableReference(key: string, value: unknown): string | 
 const toContextConfigVariableName = toCamelCase;
 
 const toReferenceIdentifier = toCamelCase;
+
+function collectCredentialReferenceNames(
+  fetchDefinitions: Array<{ data: unknown }>,
+  overrideNamesById?: Record<string, string>
+): Map<string, string> {
+  const credentialReferenceNames = new Map<string, string>();
+
+  for (const fetchDefinition of fetchDefinitions) {
+    const fetchDefinitionData = isPlainObject(fetchDefinition.data)
+      ? fetchDefinition.data
+      : undefined;
+    const credentialReferenceId =
+      fetchDefinitionData && typeof fetchDefinitionData.credentialReferenceId === 'string'
+        ? fetchDefinitionData.credentialReferenceId
+        : undefined;
+    if (!credentialReferenceId || credentialReferenceNames.has(credentialReferenceId)) {
+      continue;
+    }
+
+    credentialReferenceNames.set(
+      credentialReferenceId,
+      overrideNamesById?.[credentialReferenceId] ?? toReferenceIdentifier(credentialReferenceId)
+    );
+  }
+
+  return credentialReferenceNames;
+}

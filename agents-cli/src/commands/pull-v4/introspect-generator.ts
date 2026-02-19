@@ -300,6 +300,10 @@ function collectContextConfigRecords(
     }
 
     if (!contextConfigRecordsById.has(contextConfigId)) {
+      const credentialReferenceOverrides = collectContextConfigCredentialReferenceOverrides(
+        context,
+        contextConfig
+      );
       contextConfigRecordsById.set(contextConfigId, {
         id: contextConfigId,
         filePath: resolveRecordFilePath(
@@ -311,12 +315,51 @@ function collectContextConfigRecords(
         payload: {
           contextConfigId,
           ...contextConfig,
+          ...(credentialReferenceOverrides && {
+            referenceOverrides: {
+              credentialReferences: credentialReferenceOverrides,
+            },
+          }),
         } as Parameters<typeof generateContextConfigDefinition>[0],
       });
     }
   }
 
   return [...contextConfigRecordsById.values()];
+}
+
+function collectContextConfigCredentialReferenceOverrides(
+  context: GenerationContext,
+  contextConfigData: Record<string, unknown>
+): Record<string, string> | undefined {
+  const registry = context.existingComponentRegistry;
+  if (!registry) {
+    return;
+  }
+
+  const contextVariables = asRecord(contextConfigData.contextVariables);
+  if (!contextVariables) {
+    return;
+  }
+
+  const overrides: Record<string, string> = {};
+  for (const contextVariable of Object.values(contextVariables)) {
+    const contextVariableRecord = asRecord(contextVariable);
+    const credentialReferenceId =
+      contextVariableRecord && typeof contextVariableRecord.credentialReferenceId === 'string'
+        ? contextVariableRecord.credentialReferenceId
+        : undefined;
+    if (!credentialReferenceId) {
+      continue;
+    }
+
+    const existingCredential = registry.get(credentialReferenceId, 'credentials');
+    if (existingCredential?.name) {
+      overrides[credentialReferenceId] = existingCredential.name;
+    }
+  }
+
+  return Object.keys(overrides).length ? overrides : undefined;
 }
 
 function collectTriggerRecords(
