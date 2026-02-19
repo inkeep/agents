@@ -121,6 +121,10 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
       body: Record<string, string>;
     };
 
+    // Ack immediately to avoid Slack's 3-second timeout ("dispatch_failed").
+    // Command responses are sent asynchronously via response_url.
+    await ack();
+
     await tracer.startActiveSpan(`${SLACK_SPAN_NAMES.WEBHOOK} slash_command`, async (span) => {
       try {
         span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, 'slash_command');
@@ -142,11 +146,13 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
         };
 
         const response = await handleCommand(commandPayload);
-        await ack(
-          Object.keys(response).length > 0
-            ? (response as unknown as Record<string, unknown>)
-            : undefined
-        );
+        if (Object.keys(response).length > 0 && commandPayload.responseUrl) {
+          await fetch(commandPayload.responseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(response),
+          });
+        }
       } catch (error) {
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
         span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
@@ -154,7 +160,6 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
           span.recordException(error);
         }
         logger.error({ error }, 'Error handling Socket Mode slash command');
-        await ack();
       } finally {
         span.end();
         await flushTraces();

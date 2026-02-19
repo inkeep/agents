@@ -56,6 +56,7 @@ const fmt = {
   ok: (s: string) => `${c.green}${s}${c.reset}`,
   warn: (s: string) => `${c.yellow}${s}${c.reset}`,
   err: (s: string) => `${c.red}${s}${c.reset}`,
+  dim: (s: string) => `${c.dim}${s}${c.reset}`,
   info: (s: string) => `${c.dim}${s}${c.reset}`,
   label: (s: string) => `${c.bold}${s}${c.reset}`,
   url: (s: string) => `${c.blue}${c.bold}${s}${c.reset}`,
@@ -333,7 +334,10 @@ function generateDevManifest(devId: string): Record<string, unknown> {
     manifest.features.slash_commands = manifest.features.slash_commands.map(
       (cmd: Record<string, unknown>) => {
         const { url: _url, ...rest } = cmd;
-        return rest;
+        return {
+          ...rest,
+          command: `/inkeep-${devId}`,
+        };
       }
     );
   }
@@ -364,10 +368,19 @@ function setEnvVar(envPath: string, key: string, value: string): void {
   const content = readFileSync(envPath, 'utf-8');
   const lines = content.split('\n');
   const regex = new RegExp(`^#?\\s*${key}=`);
-  const existingIndex = lines.findIndex((line) => regex.test(line));
 
-  if (existingIndex !== -1) {
-    lines[existingIndex] = `${key}=${value}`;
+  const matchingIndices: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (regex.test(lines[i])) {
+      matchingIndices.push(i);
+    }
+  }
+
+  if (matchingIndices.length > 0) {
+    lines[matchingIndices[0]] = `${key}=${value}`;
+    for (let i = matchingIndices.length - 1; i >= 1; i--) {
+      lines.splice(matchingIndices[i], 1);
+    }
     writeFileSync(envPath, lines.join('\n'));
   } else {
     appendFileSync(envPath, `\n${key}=${value}`);

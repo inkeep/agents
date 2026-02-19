@@ -182,6 +182,8 @@ describe('startSocketMode', () => {
   });
 
   it('should handle slash commands and call handleCommand', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+
     const { startSocketMode } = await import('../../slack/socket-mode');
     await startSocketMode('xapp-test-token');
 
@@ -203,6 +205,7 @@ describe('startSocketMode', () => {
       },
     });
 
+    expect(ack).toHaveBeenCalledWith();
     expect(mockHandleCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         command: '/inkeep',
@@ -211,11 +214,20 @@ describe('startSocketMode', () => {
         teamId: 'T123',
       })
     );
-    expect(ack).toHaveBeenCalledWith({ text: 'response' });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://hooks.slack.com/commands/123',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ text: 'response' }),
+      })
+    );
+
+    fetchSpy.mockRestore();
   });
 
-  it('should ack with undefined for empty command response', async () => {
+  it('should not post to response_url for empty command response', async () => {
     mockHandleCommand.mockResolvedValueOnce({});
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
 
     const { startSocketMode } = await import('../../slack/socket-mode');
     await startSocketMode('xapp-test-token');
@@ -224,10 +236,13 @@ describe('startSocketMode', () => {
     const listener = registeredListeners.slash_commands[0];
     await listener({
       ack,
-      body: { command: '/inkeep', text: '' },
+      body: { command: '/inkeep', text: '', response_url: 'https://hooks.slack.com/commands/123' },
     });
 
-    expect(ack).toHaveBeenCalledWith(undefined);
+    expect(ack).toHaveBeenCalledWith();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fetchSpy.mockRestore();
   });
 
   it('should handle dispatchSlackEvent errors in slack_event listener', async () => {
@@ -276,6 +291,7 @@ describe('startSocketMode', () => {
       body: { command: '/inkeep', text: 'hello', team_id: 'T123' },
     });
 
+    expect(ack).toHaveBeenCalledTimes(1);
     expect(ack).toHaveBeenCalledWith();
   });
 });
