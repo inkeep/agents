@@ -42,11 +42,15 @@ runs:
           sleep 2
         done
 
+    - name: Build agents-core (required by setup-dev.js)
+      shell: bash
+      run: pnpm turbo run build --filter=@inkeep/agents-core
+
     - name: Setup development environment
       shell: bash
       env:
         ENVIRONMENT: development
-      run: pnpm setup-dev
+      run: pnpm setup-dev --skip-push
 
     - name: Start backend API server
       shell: bash

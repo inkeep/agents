@@ -94,6 +94,10 @@
       "types": "./dist/auth/password-reset-link-store.d.ts",
       "import": "./dist/auth/password-reset-link-store.js"
     },
+    "./setup": {
+      "types": "./dist/setup/index.d.ts",
+      "import": "./dist/setup/index.js"
+    },
     "./drizzle": "./drizzle/",
     "./package.json": "./package.json"
   },
