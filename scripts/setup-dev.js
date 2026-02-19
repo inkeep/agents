@@ -21,7 +21,7 @@ await runSetup({
   runMigrateCommand: 'pnpm db:run:migrate',
   authInitCommand: 'pnpm db:auth:init',
   pushProject: {
-    projectPath: 'agents-cookbook/template-projects/weather-project',
+    projectPath: 'agents-cookbook/template-projects/activities-planner',
     configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
     apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
   },
