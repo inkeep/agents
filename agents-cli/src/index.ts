@@ -24,6 +24,7 @@ import {
   profileRemoveCommand,
   profileUseCommand,
 } from './commands/profile';
+import { pullV3Command } from './commands/pull-v3';
 import { pullV4Command } from './commands/pull-v4';
 import { pushCommand } from './commands/push';
 import { statusCommand } from './commands/status';
@@ -133,6 +134,13 @@ program
   .option('--debug', 'Enable debug logging')
   .option('--verbose', 'Enable verbose logging')
   .option('--force', 'Force regeneration even if no changes detected')
+  // TODO remove it
+  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
+  // TODO remove this flag after pull v4 will be merged
+  .option(
+    '--sync',
+    'Sync local code with remote project by merging existing files and generating missing/new files.'
+  )
   .option('--all', 'Pull all projects for current tenant')
   .option(
     '--tag <tag>',
@@ -140,7 +148,8 @@ program
   )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
-    await pullV4Command(options);
+    const commandToUse = options.sync ? pullV4Command : pullV3Command;
+    await commandToUse(options);
   });
 
 program
