@@ -240,6 +240,44 @@ export const supportAgent = agent({
     );
   });
 
+  it('does not duplicate single-line leading comments across repeated merges', async () => {
+    const project = createProjectFixture();
+    const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
+    fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
+    const before = `import { agent, subAgent } from '@inkeep/agents-sdk';
+
+const tierOneCustom = subAgent({
+  id: 'tier-one',
+  name: 'Legacy Tier One'
+});
+
+// Agent
+export const supportAgent = agent({
+  id: 'support-agent',
+  name: 'Legacy Support Agent',
+  defaultSubAgent: tierOneCustom,
+  subAgents: () => [tierOneCustom]
+});
+`;
+    fs.writeFileSync(agentFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
+    const singleLineCommentMatches = mergedAgentFile.match(/\/\/ Agent/g) ?? [];
+    expect(singleLineCommentMatches).toHaveLength(1);
+
+    await expect(mergedAgentFile).toMatchFileSnapshot(
+      '__snapshots__/introspect/does-not-duplicate-single-line-leading-comments-across-repeated-merges.ts'
+    );
+
+    const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
+    await expect(agentDiff).toMatchFileSnapshot(
+      '__snapshots__/introspect/does-not-duplicate-single-line-leading-comments-across-repeated-merges.diff'
+    );
+  });
+
   it('overwrites existing files when writeMode is overwrite', async () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
