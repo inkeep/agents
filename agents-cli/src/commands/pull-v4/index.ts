@@ -385,9 +385,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       await generateSkills(remoteProject.skills, paths.skillsDir);
     }
 
-    console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
-
-    s.start('Generating all files deterministically...');
+    s.start('Starting generating files...');
     await introspectGenerate({
       project: remoteProject,
       paths,
