@@ -20,38 +20,39 @@ import { getWeatherForecast } from '../tools/get-weather-forecast';
  */
 
 const activitiesPlanner = subAgent({
-	id: 'activities-planner',
-	name: 'Activities planner',
-	description: 'Responsible for routing between the coordinates agent and weather forecast agent',
-	prompt:
-		'You are a helpful assistant. When the user asks about activities in a given location, first ask the coordinates agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast. Then based on the weather forecast, suggest good activities for the conditions.',
-	canDelegateTo: () => [weatherForecaster, coordinatesAgent],
-	dataComponents: () => [activities],
+  id: 'activities-planner',
+  name: 'Activities planner',
+  description: 'Responsible for routing between the coordinates agent and weather forecast agent',
+  prompt:
+    'You are a helpful assistant. When the user asks about activities in a given location, first ask the coordinates agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast. Then based on the weather forecast, suggest good activities for the conditions.',
+  canDelegateTo: () => [weatherForecaster, coordinatesAgent],
+  dataComponents: () => [activities],
 });
 
 const weatherForecaster = subAgent({
-	id: 'weather-forecaster',
-	name: 'Weather forecaster',
-	description:
-		'This agent is responsible for taking in coordinates and returning the forecast for the weather at that location',
-	prompt:
-		'You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool',
-	canUse: () => [getWeatherForecast],
+  id: 'weather-forecaster',
+  name: 'Weather forecaster',
+  description:
+    'This agent is responsible for taking in coordinates and returning the forecast for the weather at that location',
+  prompt:
+    'You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool',
+  canUse: () => [getWeatherForecast],
 });
 
 const coordinatesAgent = subAgent({
-	id: 'get-coordinates-agent',
-	name: 'Coordinates agent',
-	description: 'Responsible for converting location or address into coordinates',
-	prompt:
-		'You are a helpful assistant responsible for converting location or address into coordinates using your coordinate converter tool',
-	canUse: () => [getCoordinates],
+  id: 'get-coordinates-agent',
+  name: 'Coordinates agent',
+  description: 'Responsible for converting location or address into coordinates',
+  prompt:
+    'You are a helpful assistant responsible for converting location or address into coordinates using your coordinate converter tool',
+  canUse: () => [getCoordinates],
 });
 
 export const activitiesPlannerSoloAgent = agent({
-	id: 'activities-planner-solo',
-	name: 'Activities planner solo',
-	description: 'Plans activities for any location based on weather forecasts — fully offline, no network required',
-	defaultSubAgent: activitiesPlanner,
-	subAgents: () => [activitiesPlanner, weatherForecaster, coordinatesAgent],
+  id: 'activities-planner-solo',
+  name: 'Activities planner solo',
+  description:
+    'Plans activities for any location based on weather forecasts — fully offline, no network required',
+  defaultSubAgent: activitiesPlanner,
+  subAgents: () => [activitiesPlanner, weatherForecaster, coordinatesAgent],
 });
