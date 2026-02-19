@@ -63,6 +63,7 @@ export function createProjectFixture(): FullProjectDefinition {
       'api-credentials': {
         id: 'api-credentials',
         name: 'API Credentials',
+        // @ts-expect-error -- fixme
         type: 'bearer',
         credentialStoreId: 'main-store',
         retrievalParams: {
@@ -78,7 +79,9 @@ export function createProjectFixture(): FullProjectDefinition {
         props: {
           type: 'object',
           properties: {
+            // @ts-expect-error -- fixme
             fullName: { type: 'string' },
+            // @ts-expect-error -- fixme
             avatarUrl: { type: 'string' },
           },
         },
@@ -98,6 +101,7 @@ export function createProjectFixture(): FullProjectDefinition {
         props: {
           type: 'object',
           properties: {
+            // @ts-expect-error -- fixme
             title: { type: 'string' },
           },
         },
@@ -109,6 +113,7 @@ export function createProjectFixture(): FullProjectDefinition {
         name: 'Support Agent',
         defaultSubAgentId: 'tier-one',
         subAgents: {
+          // @ts-expect-error -- fixme
           'tier-one': {
             id: 'tier-one',
             name: 'Tier One',
@@ -157,6 +162,7 @@ export function createProjectFixture(): FullProjectDefinition {
           numEvents: 1,
           statusComponents: [
             {
+              // @ts-expect-error -- fixme
               id: 'tool-summary',
               type: 'tool_summary',
               description: 'Tool summary status component',

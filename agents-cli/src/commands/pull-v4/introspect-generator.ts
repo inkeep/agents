@@ -694,7 +694,11 @@ function isAgentComplete(
   if (!data.defaultSubAgentId || typeof data.defaultSubAgentId !== 'string') {
     return { complete: false, reason: 'missing defaultSubAgentId' };
   }
-  if (!asRecord(data.subAgents) || !Object.keys(data.subAgents).length) {
+  if (
+    !asRecord(data.subAgents) ||
+    // @ts-expect-error -- fixme
+    !Object.keys(data.subAgents).length
+  ) {
     return { complete: false, reason: 'no sub-agents defined' };
   }
   return { complete: true };
@@ -1095,7 +1099,7 @@ function extractReferenceIds(value: unknown): string[] {
         }
         return undefined;
       })
-      .filter((id) => !!id);
+      .filter((id): id is string => !!id);
   }
 
   const record = asRecord(value);

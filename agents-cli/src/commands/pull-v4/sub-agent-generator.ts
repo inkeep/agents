@@ -41,6 +41,7 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
 });
 
 type SubAgentInput = z.input<typeof SubAgentSchema>;
+type SubAgentOutput = z.output<typeof SubAgentSchema>;
 
 export function generateSubAgentDefinition(data: SubAgentInput): string {
   const result = SubAgentSchema.safeParse(data);
@@ -87,7 +88,7 @@ function writeSubAgentConfig(
     canUse,
     referenceOverrides,
     ...rest
-  }: SubAgentInput
+  }: SubAgentOutput
 ) {
   for (const [k, v] of Object.entries(rest)) {
     addValueToObject(configObject, k, v);
