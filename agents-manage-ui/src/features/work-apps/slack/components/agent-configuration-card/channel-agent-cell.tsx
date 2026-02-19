@@ -1,7 +1,8 @@
 'use client';
 
-import { Check, ChevronDown, Loader2, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Check, ChevronDown, Loader2, RotateCcw, ShieldCheck, SlackIcon } from 'lucide-react';
 import { memo, useState } from 'react';
+import { InkeepIconMono } from '@/components/icons/inkeep';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -45,8 +46,37 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
     );
   }
 
+  const grantAccess = channel.agentConfig?.grantAccessToMembers ?? true;
+
   return (
-    <div className="flex min-w-0 items-center justify-end gap-2">
+    <div className="flex min-w-0 items-center justify-end gap-1">
+      {channel.hasAgentConfig && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              role="img"
+              aria-label={
+                grantAccess
+                  ? 'Authenticated via Slack channel membership'
+                  : 'Explicit Inkeep project access required'
+              }
+              className="inline-flex shrink-0 items-center gap-0.5 text-muted-foreground"
+            >
+              {grantAccess ? (
+                <SlackIcon className="h-3.5 w-3.5" />
+              ) : (
+                <InkeepIconMono className="h-3.5 w-3.5" />
+              )}
+              <ShieldCheck className="h-3 w-3" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-[240px]">
+            {grantAccess
+              ? 'Slack channel membership grants access — no explicit project invite needed.'
+              : 'Only users with explicit Inkeep project access can use this agent.'}
+          </TooltipContent>
+        </Tooltip>
+      )}
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className={cn('h-8 min-w-0 max-w-full text-xs')}>
@@ -87,10 +117,10 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                           htmlFor={`grant-access-${channel.id}`}
                           className="flex items-center gap-2 text-xs cursor-pointer"
                         >
-                          <ShieldCheck
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5 text-muted-foreground"
-                          />
+                          <span className="inline-flex items-center gap-0.5 text-muted-foreground">
+                            <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                            <ShieldCheck aria-hidden="true" className="h-3 w-3" />
+                          </span>
                           <span>Grant access to members</span>
                         </label>
                       </TooltipTrigger>
