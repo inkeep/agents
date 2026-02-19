@@ -8,10 +8,9 @@ import {
   formatInlineLiteral,
   isPlainObject,
   toCamelCase,
+  TransformToUndefined,
 } from './utils';
 import { FullAgentAgentInsertSchema } from '@inkeep/agents-core';
-
-const TransformToUndefined = z.transform((v) => (v == null ? undefined : v));
 
 const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema.pick({
   id: true,

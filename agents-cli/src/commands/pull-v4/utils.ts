@@ -9,6 +9,7 @@ import {
   QuoteKind,
   SyntaxKind,
 } from 'ts-morph';
+import { z } from 'zod';
 
 export function createInMemoryProject(): Project {
   return new Project({
@@ -207,3 +208,7 @@ export async function expectSnapshots(definition: string, definitionV4: string):
     `__snapshots__/${snapshotDir}/${currentTestName}-v4.txt`
   );
 }
+
+export const TransformToUndefined: z.ZodTransform<any> = z.transform((v) =>
+  v == null ? undefined : v
+);
