@@ -18,4 +18,3 @@ export const supportProject = project({
   artifactComponents: () => [ticketSummary],
   credentialReferences: () => [apiCredentials]
 });
-

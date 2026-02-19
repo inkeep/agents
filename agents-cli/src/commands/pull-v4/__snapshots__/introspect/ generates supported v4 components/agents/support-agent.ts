@@ -16,4 +16,3 @@ export const supportAgent = agent({
     statusComponents: [toolSummary.config]
   }
 });
-

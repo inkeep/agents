@@ -19,7 +19,6 @@ export const supportContext = contextConfig({
   id: 'support-context',
   headers: supportContextHeaders,
   contextVariables: {
-    userInfo: userInfo
+    userInfo
   }
 });
-

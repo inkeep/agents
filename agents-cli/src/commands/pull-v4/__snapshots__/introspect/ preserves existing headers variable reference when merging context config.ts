@@ -21,6 +21,6 @@ const supportContext = contextConfig({
   id: 'support-context',
   headers: headersSchema,
   contextVariables: {
-    userInfo: userInfo
+    userInfo
   }
 });

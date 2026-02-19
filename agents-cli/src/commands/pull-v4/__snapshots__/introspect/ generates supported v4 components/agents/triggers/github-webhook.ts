@@ -5,4 +5,3 @@ export const githubWebhook = new Trigger({
   name: 'GitHub Webhook',
   messageTemplate: 'New webhook event'
 });
-

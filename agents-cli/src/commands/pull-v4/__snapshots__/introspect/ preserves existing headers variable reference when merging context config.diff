@@ -13,7 +13,7 @@ Index: context-configs/support-context.ts
  });
  
  const userInfo = fetchDefinition({
-@@ -16,15 +14,13 @@
+@@ -16,9 +14,7 @@
      method: 'GET'
    },
    defaultValue: 'Unable to fetch user information',
@@ -24,10 +24,3 @@ Index: context-configs/support-context.ts
  });
  
  const supportContext = contextConfig({
-   id: 'support-context',
-   headers: headersSchema,
-   contextVariables: {
--    userInfo
-+    userInfo: userInfo
-   }
- });

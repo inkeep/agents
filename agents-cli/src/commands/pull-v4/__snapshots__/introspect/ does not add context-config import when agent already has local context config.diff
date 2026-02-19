@@ -15,7 +15,7 @@ Index: agents/support-agent.ts
 +  id: 'support-context',
 +  headers: supportContextHeaders,
 +  contextVariables: {
-+    userInfo: userInfo
++    userInfo
 +  }
  });
  

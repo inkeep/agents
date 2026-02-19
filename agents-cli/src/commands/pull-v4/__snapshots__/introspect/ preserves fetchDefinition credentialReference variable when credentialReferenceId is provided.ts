@@ -18,7 +18,7 @@ const userInfo = fetchDefinition({
 export const supportContext = contextConfig({
   id: 'support-context',
   contextVariables: {
-    userInfo: userInfo
+    userInfo
   },
   headers: supportContextHeaders
 });

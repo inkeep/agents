@@ -9,4 +9,3 @@ export const apiCredentials = credential({
     key: 'token'
   }
 });
-
