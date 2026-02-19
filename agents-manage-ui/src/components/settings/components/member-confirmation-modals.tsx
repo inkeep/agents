@@ -1,7 +1,8 @@
 import type { OrgRole } from '@inkeep/agents-core/client-exports';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import type { useAuthClient } from '@/contexts/auth-client';
 
-type AuthClient = any; // Replace with proper type
+type AuthClient = ReturnType<typeof useAuthClient>;
 type Member = AuthClient['$Infer']['Member'];
 type Invitation = AuthClient['$Infer']['Invitation'];
 

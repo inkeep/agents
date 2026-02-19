@@ -385,20 +385,6 @@ export function createAuth(config: BetterAuthConfig) {
               );
             }
           },
-          afterRemoveMember: async ({ member, organization: org }) => {
-            try {
-              const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
-              await syncOrgMemberToSpiceDb({
-                tenantId: org.id,
-                userId: member.userId,
-                role: member.role as OrgRole,
-                action: 'remove',
-              });
-              console.log(`🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`);
-            } catch (error) {
-              console.error('❌ SpiceDB sync failed for member removal:', error);
-            }
-          },
         },
       }),
       deviceAuthorization({

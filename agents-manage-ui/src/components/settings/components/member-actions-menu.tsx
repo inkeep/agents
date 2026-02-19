@@ -8,9 +8,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { useAuthClient } from '@/contexts/auth-client';
 import type { UserProvider } from '@/lib/actions/user-accounts';
 
-type AuthClient = any; // Replace with proper type
+type AuthClient = ReturnType<typeof useAuthClient>;
 type Member = AuthClient['$Infer']['Member'];
 
 interface MemberActionsMenuProps {

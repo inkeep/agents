@@ -3,6 +3,7 @@ import {
   changeProjectRole,
   grantProjectAccess,
   removeProjectFromSpiceDb,
+  revokeAllUserRelationships,
   revokeProjectAccess,
   syncOrgMemberToSpiceDb,
   syncProjectToSpiceDb,
@@ -204,6 +205,128 @@ describe('authz/sync', () => {
         optionalAllowPartialDeletions: false,
         optionalTransactionMetadata: undefined,
       });
+    });
+  });
+
+  describe('revokeAllUserRelationships', () => {
+    it('should delete all organization-level relationships for user', async () => {
+      await revokeAllUserRelationships({
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+      });
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relationshipFilter: expect.objectContaining({
+            resourceType: 'organization',
+            optionalResourceId: 'tenant-1',
+            optionalResourceIdPrefix: '',
+            optionalRelation: '', // Empty = all relations
+            optionalSubjectFilter: {
+              subjectType: 'user',
+              optionalSubjectId: 'user-1',
+              optionalRelation: undefined,
+            },
+          }),
+          optionalPreconditions: [],
+          optionalLimit: 0,
+          optionalAllowPartialDeletions: false,
+          optionalTransactionMetadata: undefined,
+        })
+      );
+    });
+
+    it('should delete all project-level relationships scoped to tenant', async () => {
+      await revokeAllUserRelationships({
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+      });
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relationshipFilter: expect.objectContaining({
+            resourceType: 'project',
+            optionalResourceId: '',
+            optionalResourceIdPrefix: 'tenant-1/', // Tenant prefix
+            optionalRelation: '', // Empty = all relations
+            optionalSubjectFilter: {
+              subjectType: 'user',
+              optionalSubjectId: 'user-1',
+              optionalRelation: undefined,
+            },
+          }),
+          optionalPreconditions: [],
+          optionalLimit: 0,
+          optionalAllowPartialDeletions: false,
+          optionalTransactionMetadata: undefined,
+        })
+      );
+    });
+
+    it('should execute both deletions in parallel', async () => {
+      await revokeAllUserRelationships({
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+      });
+
+      // Verify both organization and project deletions were called
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledTimes(2);
+
+      // Verify they were called with different resource types
+      const calls = mockSpiceClient.promises.deleteRelationships.mock.calls;
+      const organizationCall = calls.find(
+        (call) => call[0].relationshipFilter.resourceType === 'organization'
+      );
+      const projectCall = calls.find(
+        (call) => call[0].relationshipFilter.resourceType === 'project'
+      );
+
+      expect(organizationCall).toBeDefined();
+      expect(projectCall).toBeDefined();
+    });
+
+    it('should use correct tenant prefix for project deletions', async () => {
+      await revokeAllUserRelationships({
+        tenantId: 'my-org-123',
+        userId: 'user-456',
+      });
+
+      const projectCall = mockSpiceClient.promises.deleteRelationships.mock.calls.find(
+        (call) => call[0].relationshipFilter.resourceType === 'project'
+      );
+
+      expect(projectCall).toBeDefined();
+      expect(projectCall![0].relationshipFilter.optionalResourceIdPrefix).toBe('my-org-123/');
+    });
+
+    it('should handle SpiceDB errors by throwing them up', async () => {
+      const error = new Error('SpiceDB connection failed');
+      mockSpiceClient.promises.deleteRelationships.mockRejectedValueOnce(error);
+
+      await expect(
+        revokeAllUserRelationships({
+          tenantId: 'tenant-1',
+          userId: 'user-1',
+        })
+      ).rejects.toThrow('SpiceDB connection failed');
+    });
+
+    it('should work with different tenant and user ID formats', async () => {
+      await revokeAllUserRelationships({
+        tenantId: 'org_abc123',
+        userId: 'auth0|user456',
+      });
+
+      expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relationshipFilter: expect.objectContaining({
+            optionalResourceId: 'org_abc123',
+            optionalSubjectFilter: expect.objectContaining({
+              optionalSubjectId: 'auth0|user456',
+            }),
+          }),
+        })
+      );
     });
   });
 });

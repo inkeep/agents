@@ -7,8 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { useAuthClient } from '@/contexts/auth-client';
 
-type AuthClient = any; // Replace with proper type
+type AuthClient = ReturnType<typeof useAuthClient>;
 type Invitation = AuthClient['$Infer']['Invitation'];
 
 interface InvitationActionsMenuProps {
