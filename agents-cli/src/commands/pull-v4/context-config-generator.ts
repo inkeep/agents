@@ -9,6 +9,7 @@ import {
   addStringProperty,
   addValueToObject,
   convertJsonSchemaToZodSafe,
+  convertNullToUndefined,
   createInMemoryProject,
   formatPropertyName,
   isPlainObject,
@@ -29,7 +30,7 @@ const ContextConfigSchema = z.looseObject({
   id: z.string().optional(),
   schema: z.looseObject({}).optional(),
   headers: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
-  headersSchema: z.looseObject({}).optional(),
+  headersSchema: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
   contextVariables: z.record(z.string(), z.unknown()).optional(),
 });
 

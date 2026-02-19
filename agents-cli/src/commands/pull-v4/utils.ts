@@ -228,5 +228,5 @@ export async function expectSnapshots(definition: string, definitionV4: string):
 }
 
 export function convertNullToUndefined(v: unknown) {
-  return v == null ? undefined : v
+  return v == null ? undefined : v;
 }
