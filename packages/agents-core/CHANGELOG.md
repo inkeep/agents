@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- d50fa44: Released Gemini 3.1-pro
+
 ## 0.50.2
 
 ### Patch Changes
