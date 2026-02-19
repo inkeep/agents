@@ -30,7 +30,7 @@ concurrency:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
       TURBO_TELEMETRY_DISABLED: 1
       TURBO_CACHE_DIR: .turbo
@@ -75,23 +75,13 @@ jobs:
           key: ${{ runner.os }}-turbo-docs-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-docs-
 
-      - name: Setup agents-docs build cache
-        uses: actions/cache@v4
-        with:
-          path: agents-docs/.next/cache
-          key: ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-docs/content/**', 'agents-docs/src/**', 'packages/agents-core/src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-docs-build-${{ hashFiles('pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-docs-build-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
-      - name: Build, lint, and typecheck agents-docs
+      - name: Lint and typecheck agents-docs
         run: |
-          pnpm exec turbo run build lint typecheck --filter=@inkeep/agents-docs
+          pnpm exec turbo run lint typecheck --filter=@inkeep/agents-docs
         env:
-          NODE_OPTIONS: --max-old-space-size=8192
           CI: true

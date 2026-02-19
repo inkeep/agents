@@ -97,7 +97,7 @@ jobs:
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Run all CI checks in parallel with Turborepo
-      # agents-docs is excluded here and built in ci-docs.yml to prevent OOM kills
+      # agents-docs is excluded here — lint/typecheck run in ci-docs.yml, build runs in Vercel preview
       - name: Run CI checks
         id: ci-check
         run: |
