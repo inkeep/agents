@@ -16,7 +16,6 @@ Index: index.ts
    id: 'support-project',
 -  name: 'Legacy support project',
 +  name: 'Support Project',
-+  description: 'Support project for introspect v4 tests',
    models: {
      base: {
        model: 'gpt-4o-mini'
@@ -25,6 +24,7 @@ Index: index.ts
    agents: () => [supportAgent],
 -  tools: () => [weatherMcpTool, exaMcpTool]
 +  tools: () => [weatherMcpTool, exaMcpTool],
++  description: 'Support project for introspect v4 tests',
 +  dataComponents: () => [customerProfile],
 +  artifactComponents: () => [ticketSummary],
 +  credentialReferences: () => [apiCredentials]

@@ -9,7 +9,6 @@ import { weatherMcpTool } from './tools/weather-mcp';
 export const supportProject = project({
   id: 'support-project',
   name: 'Support Project',
-  description: 'Support project for introspect v4 tests',
   models: {
     base: {
       model: 'gpt-4o-mini'
@@ -17,6 +16,7 @@ export const supportProject = project({
   },
   agents: () => [supportAgent],
   tools: () => [weatherMcpTool, exaMcpTool],
+  description: 'Support project for introspect v4 tests',
   dataComponents: () => [customerProfile],
   artifactComponents: () => [ticketSummary],
   credentialReferences: () => [apiCredentials]
