@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.50.2
+
+### Patch Changes
+
+- fa71905: Added Oversized Artifact Handling and Context Window Size Management at Provider Options
+- a4ee2d4: Add scope-aware query helpers and scoping isolation tests for junction tables
+- becf184: standardize permission checks in routes
+
 ## 0.50.1
 
 ### Patch Changes

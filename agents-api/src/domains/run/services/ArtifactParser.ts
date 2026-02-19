@@ -69,6 +69,7 @@ export class ArtifactParser {
     /<artifact:create(?![^>]*(?:\/>|<\/artifact:create>))/;
 
   private artifactService: ArtifactService;
+  private contextWindowSize?: number;
 
   constructor(
     executionContext: FullExecutionContext,
@@ -81,8 +82,10 @@ export class ArtifactParser {
       streamRequestId?: string;
       subAgentId?: string;
       artifactService?: ArtifactService; // Allow passing existing ArtifactService
+      contextWindowSize?: number;
     }
   ) {
+    this.contextWindowSize = options?.contextWindowSize;
     if (options?.artifactService) {
       this.artifactService = options.artifactService;
     } else {
@@ -92,6 +95,13 @@ export class ArtifactParser {
       };
       this.artifactService = new ArtifactService(context);
     }
+  }
+
+  /**
+   * Set the context window size for oversized artifact detection
+   */
+  setContextWindowSize(size: number): void {
+    this.contextWindowSize = size;
   }
 
   /**
@@ -233,7 +243,7 @@ export class ArtifactParser {
       detailsSelector: annotation.detailsSelector,
     };
 
-    return this.artifactService.createArtifact(request, subAgentId);
+    return this.artifactService.createArtifact(request, subAgentId, this.contextWindowSize);
   }
 
   /**
