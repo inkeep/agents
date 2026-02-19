@@ -173,10 +173,10 @@ Use for specialized instructions that only apply to certain requests.
 A complete example with skills directory structure and usage:
 
 ```
-activities-planner-complex/
+activities-planner-advanced/
 ├── index.ts
 ├── agents/
-│   └── activities-planner-complex.ts
+│   └── activities-planner-advanced.ts
 └── skills/
     ├── weather-safety-guardrails/
     │   └── SKILL.md
@@ -187,14 +187,14 @@ activities-planner-complex/
 ```typescript title="index.ts"
 import path from 'node:path';
 import { loadSkills, project } from '@inkeep/agents-sdk';
-import { activitiesPlannerAgent } from './agents/activities-planner-complex';
+import { activitiesPlannerAgent } from './agents/activities-planner-advanced';
 
-export const activitiesPlannerComplex = project({
-  id: 'activities-planner-complex',
-  name: 'Activities Planner Complex',
+export const activitiesPlannerAdvanced = project({
+  id: 'activities-planner-advanced',
+  name: 'Activities Planner Advanced',
   description: 'Plans activities based on weather forecasts',
   agents: () => [activitiesPlannerAgent],
-  skills: () => loadSkills(path.join('activities-planner-complex/skills')),
+  skills: () => loadSkills(path.join('activities-planner-advanced/skills')),
   models: {
     base: {
       model: 'openai/gpt-4o-mini',
@@ -203,7 +203,7 @@ export const activitiesPlannerComplex = project({
 });
 ```
 
-```typescript title="agents/activities-planner-complex.ts"
+```typescript title="agents/activities-planner-advanced.ts"
 import { subAgent, agent } from '@inkeep/agents-sdk';
 
 const activitiesPlanner = subAgent({
@@ -218,8 +218,8 @@ const activitiesPlanner = subAgent({
 });
 
 export const activitiesPlannerAgent = agent({
-  id: 'activities-planner-complex',
-  name: 'Activities Planner Complex',
+  id: 'activities-planner-advanced',
+  name: 'Activities Planner Advanced',
   defaultSubAgent: activitiesPlanner,
   subAgents: () => [activitiesPlanner],
 });

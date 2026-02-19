@@ -156,9 +156,9 @@ const coordinatesAgent = subAgent({
 });
 
 // Agent
-export const activitiesPlannerComplexAgent = agent({
-  id: 'activities-planner-complex',
-  name: 'Activities planner complex',
+export const activitiesPlannerAdvancedAgent = agent({
+  id: 'activities-planner-advanced',
+  name: 'Activities planner advanced',
   description: 'Plans activities for any location based on 24-hour weather forecasts',
   defaultSubAgent: activitiesPlanner,
   subAgents: () => [activitiesPlanner, weatherForecaster, coordinatesAgent],

@@ -1,17 +1,17 @@
 import path from 'node:path';
 import { loadSkills, project } from '@inkeep/agents-sdk';
-import { activitiesPlannerComplexAgent } from './agents/activities-planner-complex';
+import { activitiesPlannerAdvancedAgent } from './agents/activities-planner-advanced';
 import { citation } from './artifact-components/citation';
 import { activities } from './data-components/activities';
 import { exaMcpTool } from './tools/exa-mcp';
 import { weatherMcpTool } from './tools/weather-mcp';
 
-export const activitiesPlannerComplex = project({
-  id: 'activities-planner-complex',
-  name: 'Activities planner complex',
+export const activitiesPlannerAdvanced = project({
+  id: 'activities-planner-advanced',
+  name: 'Activities planner advanced',
   description: 'Activities planner project template with advanced SDK features',
-  agents: () => [activitiesPlannerComplexAgent],
-  skills: () => loadSkills(path.join('activities-planner-complex/skills')),
+  agents: () => [activitiesPlannerAdvancedAgent],
+  skills: () => loadSkills(path.join('activities-planner-advanced/skills')),
   models: {
     base: {
       model: 'openai/gpt-4o-mini',
