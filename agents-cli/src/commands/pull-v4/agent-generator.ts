@@ -20,7 +20,7 @@ const SubAgentReferenceSchema = z.object({
   local: z.boolean().optional(),
 });
 
-const AgentSchema: z.ZodType<any> = z.looseObject({
+const AgentSchema = z.looseObject({
   agentId: z.string().nonempty(),
   name: z.string().nonempty(),
   description: z.string().optional(),

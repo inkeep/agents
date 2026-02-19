@@ -23,7 +23,7 @@ const ReferenceOverridesSchema = z.object({
   artifactComponents: ReferenceNameByIdSchema.optional(),
 });
 
-const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema.pick({
+const SubAgentSchema = FullAgentAgentInsertSchema.pick({
   id: true,
   description: true,
   prompt: true,
