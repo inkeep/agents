@@ -77,7 +77,21 @@ type SubAgentReferenceOverrideType =
   | 'dataComponents'
   | 'artifactComponents';
 
-type SubAgentReferenceOverrides = Partial<Record<SubAgentReferenceOverrideType, Record<string, string>>>;
+type SubAgentReferenceOverrides = Partial<
+  Record<SubAgentReferenceOverrideType, Record<string, string>>
+>;
+
+type ProjectReferenceOverrideType =
+  | 'agents'
+  | 'tools'
+  | 'externalAgents'
+  | 'dataComponents'
+  | 'artifactComponents'
+  | 'credentialReferences';
+
+type ProjectReferenceOverrides = Partial<
+  Record<ProjectReferenceOverrideType, Record<string, string>>
+>;
 
 export async function introspectGenerate({
   project,
@@ -471,6 +485,8 @@ function collectStatusComponentRecords(
 function collectProjectRecord(
   context: GenerationContext
 ): Array<GenerationRecord<Parameters<typeof generateProjectDefinition>[0]>> {
+  const referenceOverrides = collectProjectReferenceOverrides(context);
+
   return [
     {
       id: context.project.id,
@@ -492,6 +508,7 @@ function collectProjectRecord(
         dataComponents: getObjectKeys(context.project.dataComponents),
         artifactComponents: getObjectKeys(context.project.artifactComponents),
         credentialReferences: getObjectKeys(context.project.credentialReferences),
+        ...(referenceOverrides && { referenceOverrides }),
       } as Parameters<typeof generateProjectDefinition>[0],
     },
   ];
@@ -699,7 +716,13 @@ function collectSubAgentDependencyReferenceOverrides(
       continue;
     }
     if (typeof canDelegateRecord.agentId === 'string') {
-      assignComponentReferenceOverride(registry, overrides, 'agents', canDelegateRecord.agentId, 'agents');
+      assignComponentReferenceOverride(
+        registry,
+        overrides,
+        'agents',
+        canDelegateRecord.agentId,
+        'agents'
+      );
       continue;
     }
     if (typeof canDelegateRecord.externalAgentId === 'string') {
@@ -788,6 +811,102 @@ function assignReferenceOverride(
   const overrideMap = overrides[overrideType] ?? {};
   overrideMap[componentId] = referenceName;
   overrides[overrideType] = overrideMap;
+}
+
+function collectProjectReferenceOverrides(
+  context: GenerationContext
+): ProjectReferenceOverrides | undefined {
+  const registry = context.existingComponentRegistry;
+  if (!registry) {
+    return;
+  }
+
+  const overrides: ProjectReferenceOverrides = {};
+
+  for (const agentId of context.completeAgentIds) {
+    assignComponentReferenceOverrideForProject(registry, overrides, 'agents', agentId, 'agents');
+  }
+
+  const toolIds = getObjectKeys(context.project.tools);
+  for (const toolId of toolIds) {
+    if (
+      assignComponentReferenceOverrideForProject(
+        registry,
+        overrides,
+        'tools',
+        toolId,
+        'functionTools'
+      )
+    ) {
+      continue;
+    }
+
+    assignComponentReferenceOverrideForProject(registry, overrides, 'tools', toolId, 'tools');
+  }
+
+  const externalAgentIds = getObjectKeys(context.project.externalAgents);
+  for (const externalAgentId of externalAgentIds) {
+    assignComponentReferenceOverrideForProject(
+      registry,
+      overrides,
+      'externalAgents',
+      externalAgentId,
+      'externalAgents'
+    );
+  }
+
+  const dataComponentIds = getObjectKeys(context.project.dataComponents);
+  for (const dataComponentId of dataComponentIds) {
+    assignComponentReferenceOverrideForProject(
+      registry,
+      overrides,
+      'dataComponents',
+      dataComponentId,
+      'dataComponents'
+    );
+  }
+
+  const artifactComponentIds = getObjectKeys(context.project.artifactComponents);
+  for (const artifactComponentId of artifactComponentIds) {
+    assignComponentReferenceOverrideForProject(
+      registry,
+      overrides,
+      'artifactComponents',
+      artifactComponentId,
+      'artifactComponents'
+    );
+  }
+
+  const credentialIds = getObjectKeys(context.project.credentialReferences);
+  for (const credentialId of credentialIds) {
+    assignComponentReferenceOverrideForProject(
+      registry,
+      overrides,
+      'credentialReferences',
+      credentialId,
+      'credentials'
+    );
+  }
+
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function assignComponentReferenceOverrideForProject(
+  registry: ComponentRegistry,
+  overrides: ProjectReferenceOverrides,
+  overrideType: ProjectReferenceOverrideType,
+  componentId: string,
+  componentType: ComponentType
+): boolean {
+  const component = registry.get(componentId, componentType);
+  if (!component?.name) {
+    return false;
+  }
+
+  const overrideMap = overrides[overrideType] ?? {};
+  overrideMap[componentId] = component.name;
+  overrides[overrideType] = overrideMap;
+  return true;
 }
 
 function extractReferenceIds(value: unknown): string[] {
