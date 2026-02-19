@@ -100,6 +100,7 @@ export const inkeepApiKey = credential({
     );
     expect(mergedContextConfigFile).toContain('credentialReference: inkeepApiKey');
     expect(mergedContextConfigFile).not.toContain("credentialReferenceId: 'inkeep-api-key'");
+    expect(mergedContextConfigFile).not.toContain('userInfo: userInfo');
 
     await expect(mergedContextConfigFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const contextConfigDiff = await createUnifiedDiff(

@@ -121,6 +121,7 @@ const supportContext = contextConfig({
     expect(mergedContextConfigFile).toContain('headers: headersSchema,');
     expect(mergedContextConfigFile).not.toContain('supportContextHeaders');
     expect(mergedContextConfigFile).toContain('const headersSchema = headers({');
+    expect(mergedContextConfigFile).not.toContain('userInfo: userInfo');
 
     await expect(mergedContextConfigFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const contextConfigDiff = await createUnifiedDiff(

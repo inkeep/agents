@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import { Node } from 'ts-morph';
+import { Node, SyntaxKind } from 'ts-morph';
 import { buildComponentRegistryFromParsing } from '../pull-v3/component-parser';
 import type { ComponentRegistry, ComponentType } from '../pull-v3/utils/component-registry';
 import { generateAgentDefinition } from './agent-generator';
@@ -1154,4 +1154,29 @@ function mergeSafely(existingContent: string, generatedContent: string): string 
   } catch {
     return generatedContent;
   }
+}
+
+function normalizeGeneratedCode(content: string): string {
+  const sourceFile = createInMemoryProject().createSourceFile('generated.ts', content, {
+    overwrite: true,
+  });
+
+  for (const objectLiteral of sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)) {
+    for (const property of objectLiteral.getProperties()) {
+      if (!Node.isPropertyAssignment(property)) {
+        continue;
+      }
+      const nameNode = property.getNameNode();
+      const initializer = property.getInitializer();
+      if (!Node.isIdentifier(nameNode) || !initializer || !Node.isIdentifier(initializer)) {
+        continue;
+      }
+      if (nameNode.getText() !== initializer.getText()) {
+        continue;
+      }
+      property.replaceWithText(nameNode.getText());
+    }
+  }
+
+  return sourceFile.getFullText().trimEnd();
 }
