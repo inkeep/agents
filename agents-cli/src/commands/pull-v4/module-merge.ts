@@ -324,16 +324,7 @@ function appendUniqueStatement(existingFile: SourceFile, generatedStatement: Sta
     .some((statement) => statement.getText() === statementText);
 
   if (hasExistingStatement) return;
-
-  const insertionIndex = findInsertionIndexForNewVariableStatement(
-    existingFile,
-    generatedStatement
-  );
-  if (insertionIndex === undefined) {
-    existingFile.addStatements([statementText]);
-  } else {
-    existingFile.insertStatements(insertionIndex, [statementText]);
-  }
+  existingFile.addStatements([statementText]);
 }
 
 function buildReplacementStatementText(
@@ -392,54 +383,6 @@ function alignVariableStatementOrdering(
   }
 
   return applyTextReplacements(generatedText, replacements);
-}
-
-function findInsertionIndexForNewVariableStatement(
-  existingFile: SourceFile,
-  generatedStatement: Statement
-): number | undefined {
-  if (!Node.isVariableStatement(generatedStatement)) {
-    return;
-  }
-
-  const generatedEntitySignatures = generatedStatement
-    .getDeclarations()
-    .map((declaration) => getVariableDeclarationEntitySignature(declaration))
-    .filter((signature) => !!signature);
-
-  if (!generatedEntitySignatures.length) {
-    return;
-  }
-
-  const existingStatements = existingFile.getStatements();
-  for (const [index, existingStatement] of existingStatements.entries()) {
-    if (!Node.isVariableStatement(existingStatement)) {
-      continue;
-    }
-
-    const hasCurrentEntity = existingStatement
-      .getDescendantsOfKind(SyntaxKind.CallExpression)
-      .some((callExpression) => {
-        const expression = callExpression.getExpression();
-        if (!Node.isIdentifier(expression)) {
-          return false;
-        }
-
-        const args = callExpression.getArguments();
-        if (!args.length || !Node.isObjectLiteralExpression(args[0])) {
-          return false;
-        }
-        const text = expression.getText();
-        const entityId = readEntityId(args[0], text);
-        if (entityId) {
-          return generatedEntitySignatures.includes(`${text}:${entityId}`);
-        }
-        return false;
-      });
-    if (hasCurrentEntity) {
-      return index;
-    }
-  }
 }
 
 function alignExpressionText(
