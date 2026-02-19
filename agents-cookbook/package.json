@@ -9,8 +9,6 @@
     "knip": "knip --directory .. --workspace agents-cookbook --config agents-cookbook/knip.config.ts --dependencies",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
-    "start:weather": "tsx weather-project/index.ts",
-    "dev:weather": "tsx --watch weather-project/index.ts",
     "type-check": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
