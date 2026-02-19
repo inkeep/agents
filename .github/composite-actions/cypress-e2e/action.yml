@@ -14,6 +14,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # --- Phase 1: Cache + install (no dependencies) ---
     - name: Setup Cypress cache
       uses: actions/cache@v4
       with:
@@ -24,6 +25,11 @@ runs:
     - name: Install Cypress binary
       shell: bash
       run: cd agents-manage-ui && pnpm exec cypress install
+
+    # --- Phase 2: Build while DB initializes ---
+    - name: Build agents-core (required by setup-dev.js)
+      shell: bash
+      run: pnpm exec turbo run build --filter=@inkeep/agents-core
 
     - name: Wait for DoltGres to be fully initialized
       shell: bash
@@ -42,15 +48,17 @@ runs:
           sleep 2
         done
 
-    - name: Build agents-core (required by setup-dev.js)
-      shell: bash
-      run: pnpm exec turbo run build --filter=@inkeep/agents-core
-
+    # --- Phase 3: DB setup ---
     - name: Setup development environment
       shell: bash
       env:
         ENVIRONMENT: development
       run: pnpm setup-dev --skip-push
+
+    # --- Phase 4: Dashboard build + API startup (reordered) ---
+    - name: Build dashboard and monorepo dependencies
+      shell: bash
+      run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-sdk'
 
     - name: Start backend API server
       shell: bash
@@ -81,10 +89,7 @@ runs:
           elapsed=$((elapsed + 2))
         done
 
-    - name: Build dashboard and cookbook monorepo dependencies
-      shell: bash
-      run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
-
+    # --- Phase 5: Seed + test ---
     - name: Push Weather Example Project
       shell: bash
       env:
@@ -94,7 +99,7 @@ runs:
         attempt=1
         while [ $attempt -le $max_attempts ]; do
           echo "Push attempt $attempt/$max_attempts..."
-          if cd agents-cookbook/template-projects && npx inkeep push --project weather-project; then
+          if cd agents-cookbook/template-projects && pnpm exec inkeep push --project weather-project; then
             echo "Push succeeded on attempt $attempt"
             break
           fi
@@ -127,4 +132,3 @@ runs:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
         retention-days: 7
-
