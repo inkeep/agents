@@ -130,7 +130,7 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
 }
 
 // Start Slack Socket Mode client for local development (when configured)
-if (env.SLACK_APP_TOKEN) {
+if (env.ENVIRONMENT === 'development' && env.SLACK_APP_TOKEN) {
   const SOCKET_MODE_DELAY_MS = 3000;
   console.log(`Scheduling Slack Socket Mode start in ${SOCKET_MODE_DELAY_MS}ms...`);
 
