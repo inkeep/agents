@@ -4,7 +4,7 @@ import { exaMcpTool } from './tools/exa-mcp';
 import { googleCalendarMcpTool } from './tools/google-calendar-mcp';
 
 export const meetingPrep = project({
-  id: 'activities-planner',
+  id: 'meeting-prep',
   name: 'Meeting prep',
   description: 'Meeting prep project template',
   agents: () => [meetingAssistant],
