@@ -4,12 +4,14 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/ci-docs.yml'
       - 'agents-docs/**'
       - 'packages/agents-core/src/**'
       - 'agents-cli/src/**'
       - 'agents-api/__snapshots__/openapi.json'
   pull_request:
     paths:
+      - '.github/workflows/ci-docs.yml'
       - 'agents-docs/**'
       - 'packages/agents-core/src/**'
       - 'agents-cli/src/**'
