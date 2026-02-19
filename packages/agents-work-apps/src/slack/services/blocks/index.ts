@@ -217,19 +217,12 @@ export function buildToolApprovalBlocks(params: {
   ];
 
   if (input && Object.keys(input).length > 0) {
-    const fields = Object.entries(input)
-      .slice(0, 10)
-      .map(([key, value]) => {
-        const valueStr =
-          typeof value === 'string'
-            ? value.length > 80
-              ? `${value.slice(0, 80)}…`
-              : value
-            : JSON.stringify(value).slice(0, 80);
-        return { type: 'mrkdwn', text: `*${key}*\n${valueStr}` };
-      });
-
-    blocks.push({ type: 'section', fields });
+    const jsonStr = JSON.stringify(input, null, 2);
+    const truncated = jsonStr.length > 2900 ? `${jsonStr.slice(0, 2900)}…` : jsonStr;
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `\`\`\`json\n${truncated}\n\`\`\`` },
+    });
   }
 
   blocks.push({ type: 'divider' });
