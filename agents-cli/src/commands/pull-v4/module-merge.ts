@@ -22,7 +22,7 @@ export function mergeGeneratedModule(existingContent: string, generatedContent: 
   }
 
   existingSourceFile.organizeImports();
-  return existingSourceFile.getFullText().trimEnd();
+  return dedupeConsecutiveIdenticalSingleLineComments(existingSourceFile.getFullText().trimEnd());
 }
 
 function mergeImports(existingFile: SourceFile, generatedFile: SourceFile) {
@@ -195,7 +195,9 @@ function upsertVariableStatement(existingFile: SourceFile, generatedStatement: S
   }
 
   const [firstExistingStatement, ...remainingStatements] = [...existingStatements];
-  firstExistingStatement?.replaceWithText(generatedStatement.getText());
+  firstExistingStatement?.replaceWithText(
+    withPreservedLeadingComments(firstExistingStatement, generatedStatement.getText())
+  );
   for (const statement of remainingStatements) {
     statement.remove();
   }
@@ -314,7 +316,9 @@ function upsertNamedStatement(
     return;
   }
 
-  existingStatement.replaceWithText(generatedStatement.getText());
+  existingStatement.replaceWithText(
+    withPreservedLeadingComments(existingStatement, generatedStatement.getText())
+  );
 }
 
 function appendUniqueStatement(existingFile: SourceFile, statementText: string) {
@@ -330,4 +334,54 @@ function appendUniqueStatement(existingFile: SourceFile, statementText: string) 
 
 function normalizeStatementText(value: string): string {
   return value.trim().replaceAll(/\s+/g, ' ');
+}
+
+function withPreservedLeadingComments(existingStatement: Statement, replacementText: string): string {
+  const leadingComments = getLeadingCommentsText(existingStatement);
+  if (!leadingComments) {
+    return replacementText;
+  }
+
+  return `${leadingComments}\n${replacementText}`;
+}
+
+function getLeadingCommentsText(statement: Statement): string | undefined {
+  const leadingCommentRanges = statement.getLeadingCommentRanges();
+  if (leadingCommentRanges.length === 0) {
+    return;
+  }
+
+  const commentTexts = leadingCommentRanges
+    .filter((commentRange) => commentRange.getKind() === SyntaxKind.MultiLineCommentTrivia)
+    .map((commentRange) => commentRange.getText())
+    .filter((text) => text.trim().length > 0);
+
+  if (commentTexts.length === 0) {
+    return;
+  }
+
+  return [...new Set(commentTexts)].join('\n');
+}
+
+function dedupeConsecutiveIdenticalSingleLineComments(content: string): string {
+  const lines = content.split('\n');
+  const deduped: string[] = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const previousLine = deduped.at(-1);
+    const previousTrimmedLine = previousLine?.trim();
+    const isDuplicateSingleLineComment =
+      trimmedLine.startsWith('//') &&
+      previousTrimmedLine?.startsWith('//') &&
+      trimmedLine === previousTrimmedLine;
+
+    if (isDuplicateSingleLineComment) {
+      continue;
+    }
+
+    deduped.push(line);
+  }
+
+  return deduped.join('\n');
 }

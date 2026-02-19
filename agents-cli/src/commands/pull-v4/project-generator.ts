@@ -6,6 +6,7 @@ import {
   addValueToObject,
   createInMemoryProject,
   toCamelCase,
+  TransformToUndefined,
 } from './utils';
 
 type ProjectDefinitionData = Omit<
@@ -38,12 +39,14 @@ const ProjectSchema = z.looseObject({
     structuredOutput: z.looseObject({}).optional(),
     summarizer: z.looseObject({}).optional(),
   }),
-  stopWhen: z
-    .strictObject({
-      transferCountIs: z.int().optional(),
-      stepCountIs: z.int().optional(),
-    })
-    .optional(),
+  stopWhen: TransformToUndefined.pipe(
+    z
+      .strictObject({
+        transferCountIs: z.int().optional(),
+        stepCountIs: z.int().optional(),
+      })
+      .optional()
+  ),
   agents: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   externalAgents: z.array(z.string()).optional(),

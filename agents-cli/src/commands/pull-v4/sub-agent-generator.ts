@@ -12,6 +12,17 @@ import {
   toCamelCase,
 } from './utils';
 
+const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
+
+const ReferenceOverridesSchema = z.object({
+  tools: ReferenceNameByIdSchema.optional(),
+  subAgents: ReferenceNameByIdSchema.optional(),
+  agents: ReferenceNameByIdSchema.optional(),
+  externalAgents: ReferenceNameByIdSchema.optional(),
+  dataComponents: ReferenceNameByIdSchema.optional(),
+  artifactComponents: ReferenceNameByIdSchema.optional(),
+});
+
 const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema.pick({
   id: true,
   description: true,
@@ -26,6 +37,7 @@ const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema.pick({
   canTransferTo: z.array(z.string()).optional(),
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
+  referenceOverrides: ReferenceOverridesSchema.optional(),
 });
 
 type SubAgentInput = z.input<typeof SubAgentSchema>;
@@ -73,6 +85,7 @@ function writeSubAgentConfig(
     skills,
     artifactComponents,
     canUse,
+    referenceOverrides,
     ...rest
   }: SubAgentInput
 ) {
@@ -81,12 +94,16 @@ function writeSubAgentConfig(
   }
   addStringProperty(configObject, 'name', resolveSubAgentName(rest.id, name));
 
-  const canUseReferences = collectCanUseReferences(canUse);
+  const canUseReferences = collectCanUseReferences(canUse, referenceOverrides?.tools);
   if (canUseReferences.length) {
     addReferenceGetterProperty(configObject, 'canUse', canUseReferences);
   }
 
-  const canDelegateToReferences = collectCanDelegateToReferences(canDelegateTo);
+  const canDelegateToReferences = collectCanDelegateToReferences(canDelegateTo, {
+    subAgents: referenceOverrides?.subAgents,
+    agents: referenceOverrides?.agents,
+    externalAgents: referenceOverrides?.externalAgents,
+  });
   if (canDelegateToReferences.length) {
     addReferenceGetterProperty(configObject, 'canDelegateTo', canDelegateToReferences);
   }
@@ -95,7 +112,13 @@ function writeSubAgentConfig(
     addReferenceGetterProperty(
       configObject,
       'canTransferTo',
-      canTransferTo.map((id) => toCamelCase(id))
+      canTransferTo.map((id) =>
+        resolveReferenceName(id, [
+          referenceOverrides?.subAgents,
+          referenceOverrides?.agents,
+          referenceOverrides?.externalAgents,
+        ])
+      )
     );
   }
 
@@ -103,7 +126,7 @@ function writeSubAgentConfig(
     addReferenceGetterProperty(
       configObject,
       'dataComponents',
-      dataComponents.map((id) => toCamelCase(id))
+      dataComponents.map((id) => resolveReferenceName(id, [referenceOverrides?.dataComponents]))
     );
   }
 
@@ -111,7 +134,9 @@ function writeSubAgentConfig(
     addReferenceGetterProperty(
       configObject,
       'artifactComponents',
-      artifactComponents.map((id) => toCamelCase(id))
+      artifactComponents.map((id) =>
+        resolveReferenceName(id, [referenceOverrides?.artifactComponents])
+      )
     );
   }
 
@@ -140,7 +165,10 @@ function resolveSubAgentName(subAgentId: string, name?: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function collectCanUseReferences(canUse?: unknown[]): string[] {
+function collectCanUseReferences(
+  canUse?: unknown[],
+  toolReferenceOverrides?: Record<string, string>
+): string[] {
   if (!Array.isArray(canUse)) {
     return [];
   }
@@ -148,7 +176,7 @@ function collectCanUseReferences(canUse?: unknown[]): string[] {
   const references: string[] = [];
   for (const item of canUse) {
     if (typeof item === 'string') {
-      references.push(toCamelCase(item));
+      references.push(resolveReferenceName(item, [toolReferenceOverrides]));
       continue;
     }
 
@@ -161,7 +189,7 @@ function collectCanUseReferences(canUse?: unknown[]): string[] {
       continue;
     }
 
-    const toolReference = toCamelCase(toolId);
+    const toolReference = resolveReferenceName(toolId, [toolReferenceOverrides]);
     const withConfig: Record<string, unknown> = {};
     const selectedTools =
       Array.isArray(item.toolSelection) && item.toolSelection.length
@@ -193,7 +221,14 @@ function collectCanUseReferences(canUse?: unknown[]): string[] {
   return references;
 }
 
-function collectCanDelegateToReferences(canDelegateTo?: unknown[]): string[] {
+function collectCanDelegateToReferences(
+  canDelegateTo: unknown[] | undefined,
+  referenceOverrides: {
+    subAgents?: Record<string, string>;
+    agents?: Record<string, string>;
+    externalAgents?: Record<string, string>;
+  }
+): string[] {
   if (!Array.isArray(canDelegateTo)) {
     return [];
   }
@@ -201,7 +236,13 @@ function collectCanDelegateToReferences(canDelegateTo?: unknown[]): string[] {
   const references: string[] = [];
   for (const item of canDelegateTo) {
     if (typeof item === 'string') {
-      references.push(toCamelCase(item));
+      references.push(
+        resolveReferenceName(item, [
+          referenceOverrides.subAgents,
+          referenceOverrides.agents,
+          referenceOverrides.externalAgents,
+        ])
+      );
       continue;
     }
 
@@ -209,20 +250,22 @@ function collectCanDelegateToReferences(canDelegateTo?: unknown[]): string[] {
       continue;
     }
 
-    const targetId =
-      typeof item.subAgentId === 'string'
-        ? item.subAgentId
-        : typeof item.agentId === 'string'
-          ? item.agentId
-          : typeof item.externalAgentId === 'string'
-            ? item.externalAgentId
-            : undefined;
+    const subAgentId = typeof item.subAgentId === 'string' ? item.subAgentId : undefined;
+    const agentId = typeof item.agentId === 'string' ? item.agentId : undefined;
+    const externalAgentId =
+      typeof item.externalAgentId === 'string' ? item.externalAgentId : undefined;
+    const targetId = subAgentId || agentId || externalAgentId;
 
     if (!targetId) {
       continue;
     }
 
-    const targetReference = toCamelCase(targetId);
+    const targetReference = subAgentId
+      ? resolveReferenceName(subAgentId, [referenceOverrides.subAgents])
+      : agentId
+        ? resolveReferenceName(agentId, [referenceOverrides.agents])
+        : resolveReferenceName(targetId, [referenceOverrides.externalAgents]);
+
     if (isPlainObject(item.headers) && Object.keys(item.headers).length > 0) {
       references.push(
         `${targetReference}.with(${formatInlineLiteral({
@@ -236,6 +279,19 @@ function collectCanDelegateToReferences(canDelegateTo?: unknown[]): string[] {
   }
 
   return references;
+}
+
+function resolveReferenceName(
+  id: string,
+  overrideMaps: Array<Record<string, string> | undefined>
+): string {
+  for (const overrideMap of overrideMaps) {
+    const overrideName = overrideMap?.[id];
+    if (overrideName) {
+      return overrideName;
+    }
+  }
+  return toCamelCase(id);
 }
 
 function collectSkills(skills?: unknown[]): string[] {

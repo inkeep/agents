@@ -69,6 +69,16 @@ interface UnsupportedComponentCounts {
   externalAgents: number;
 }
 
+type SubAgentReferenceOverrideType =
+  | 'tools'
+  | 'subAgents'
+  | 'agents'
+  | 'externalAgents'
+  | 'dataComponents'
+  | 'artifactComponents';
+
+type SubAgentReferenceOverrides = Partial<Record<SubAgentReferenceOverrideType, Record<string, string>>>;
+
 export async function introspectGenerate({
   project,
   paths,
@@ -387,6 +397,8 @@ function collectSubAgentRecords(
         continue;
       }
 
+      const referenceOverrides = collectSubAgentDependencyReferenceOverrides(context, payload);
+
       records.push({
         id: subAgentId,
         filePath: resolveRecordFilePath(
@@ -398,6 +410,7 @@ function collectSubAgentRecords(
         payload: {
           subAgentId,
           ...payload,
+          ...(referenceOverrides && { referenceOverrides }),
         } as Parameters<typeof generateSubAgentDefinition>[0],
       });
     }
@@ -624,6 +637,157 @@ function collectSubAgentReferenceOverrides(
   }
 
   return overrides;
+}
+
+function collectSubAgentDependencyReferenceOverrides(
+  context: GenerationContext,
+  subAgentData: Record<string, unknown>
+): SubAgentReferenceOverrides | undefined {
+  const registry = context.existingComponentRegistry;
+  if (!registry) {
+    return;
+  }
+
+  const overrides: SubAgentReferenceOverrides = {};
+  const canUse = Array.isArray(subAgentData.canUse) ? subAgentData.canUse : [];
+  for (const item of canUse) {
+    if (typeof item === 'string') {
+      assignComponentReferenceOverride(registry, overrides, 'tools', item, 'tools');
+      assignComponentReferenceOverride(registry, overrides, 'tools', item, 'functionTools');
+      continue;
+    }
+
+    const canUseRecord = asRecord(item);
+    if (!canUseRecord || typeof canUseRecord.toolId !== 'string') {
+      continue;
+    }
+
+    assignComponentReferenceOverride(registry, overrides, 'tools', canUseRecord.toolId, 'tools');
+    assignComponentReferenceOverride(
+      registry,
+      overrides,
+      'tools',
+      canUseRecord.toolId,
+      'functionTools'
+    );
+  }
+
+  const canDelegateTo = Array.isArray(subAgentData.canDelegateTo) ? subAgentData.canDelegateTo : [];
+  for (const item of canDelegateTo) {
+    if (typeof item === 'string') {
+      assignFirstMatchingComponentReferenceOverride(registry, overrides, item, [
+        ['subAgents', 'subAgents'],
+        ['agents', 'agents'],
+        ['externalAgents', 'externalAgents'],
+      ]);
+      continue;
+    }
+
+    const canDelegateRecord = asRecord(item);
+    if (!canDelegateRecord) {
+      continue;
+    }
+
+    if (typeof canDelegateRecord.subAgentId === 'string') {
+      assignComponentReferenceOverride(
+        registry,
+        overrides,
+        'subAgents',
+        canDelegateRecord.subAgentId,
+        'subAgents'
+      );
+      continue;
+    }
+    if (typeof canDelegateRecord.agentId === 'string') {
+      assignComponentReferenceOverride(registry, overrides, 'agents', canDelegateRecord.agentId, 'agents');
+      continue;
+    }
+    if (typeof canDelegateRecord.externalAgentId === 'string') {
+      assignComponentReferenceOverride(
+        registry,
+        overrides,
+        'externalAgents',
+        canDelegateRecord.externalAgentId,
+        'externalAgents'
+      );
+    }
+  }
+
+  const canTransferTo = extractReferenceIds(subAgentData.canTransferTo);
+  for (const transferTargetId of canTransferTo) {
+    assignFirstMatchingComponentReferenceOverride(registry, overrides, transferTargetId, [
+      ['subAgents', 'subAgents'],
+      ['agents', 'agents'],
+      ['externalAgents', 'externalAgents'],
+    ]);
+  }
+
+  const dataComponentIds = extractReferenceIds(subAgentData.dataComponents);
+  for (const dataComponentId of dataComponentIds) {
+    assignComponentReferenceOverride(
+      registry,
+      overrides,
+      'dataComponents',
+      dataComponentId,
+      'dataComponents'
+    );
+  }
+
+  const artifactComponentIds = extractReferenceIds(subAgentData.artifactComponents);
+  for (const artifactComponentId of artifactComponentIds) {
+    assignComponentReferenceOverride(
+      registry,
+      overrides,
+      'artifactComponents',
+      artifactComponentId,
+      'artifactComponents'
+    );
+  }
+
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function assignFirstMatchingComponentReferenceOverride(
+  registry: ComponentRegistry,
+  overrides: SubAgentReferenceOverrides,
+  componentId: string,
+  candidates: Array<[SubAgentReferenceOverrideType, ComponentType]>
+): void {
+  for (const [overrideType, componentType] of candidates) {
+    const component = registry.get(componentId, componentType);
+    if (!component?.name) {
+      continue;
+    }
+
+    assignReferenceOverride(overrides, overrideType, componentId, component.name);
+    return;
+  }
+}
+
+function assignComponentReferenceOverride(
+  registry: ComponentRegistry,
+  overrides: SubAgentReferenceOverrides,
+  overrideType: SubAgentReferenceOverrideType,
+  componentId: string,
+  componentType: ComponentType
+): void {
+  const component = registry.get(componentId, componentType);
+  if (!component?.name) {
+    return;
+  }
+
+  assignReferenceOverride(overrides, overrideType, componentId, component.name);
+}
+
+function assignReferenceOverride(
+  overrides: SubAgentReferenceOverrides,
+  overrideType: SubAgentReferenceOverrideType,
+  componentId: string,
+  referenceName: string
+): void {
+  const overrideMap = overrides[overrideType] ?? {};
+  overrideMap[componentId] = referenceName;
+  overrides[overrideType] = overrideMap;
 }
 
 function extractReferenceIds(value: unknown): string[] {
