@@ -48,7 +48,7 @@ export const apiCredentials = credential({
   it('generates supported v4 components', async () => {
     const project = createProjectFixture();
 
-    await introspectGenerate(project, projectPaths, 'development', false);
+    await introspectGenerate({ project, paths: projectPaths });
 
     const generatedTsFiles = fs.globSync('**/*.ts', { cwd: testDir });
 
@@ -70,7 +70,7 @@ export const apiCredentials = credential({
     fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
     fs.writeFileSync(credentialFile, beforeCredentialContent);
 
-    await introspectGenerate(project, projectPaths, 'development', false, { writeMode: 'merge' });
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
 
     const { default: afterCredentialContent } = await import(`${credentialFile}?raw`);
     const credentialDiff = await createUnifiedDiff(
@@ -89,7 +89,9 @@ export const apiCredentials = credential({
     fs.mkdirSync(join(testDir, 'credentials'), { recursive: true });
     fs.writeFileSync(credentialFile, beforeCredentialContent);
 
-    await introspectGenerate(project, projectPaths, 'development', false, {
+    await introspectGenerate({
+      project,
+      paths: projectPaths,
       writeMode: 'overwrite',
     });
 

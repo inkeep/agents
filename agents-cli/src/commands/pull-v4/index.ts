@@ -388,12 +388,11 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
 
     s.start('Generating all files deterministically...');
-    await introspectGenerate(
-      remoteProject,
+    await introspectGenerate({
+      project: remoteProject,
       paths,
-      options.env || 'development',
-      options.debug || false
-    );
+      debug: options.debug,
+    });
     s.stop('All files generated');
 
     console.log(chalk.green('\n✅ Project regenerated successfully with introspect mode!'));
@@ -632,12 +631,10 @@ async function pullSingleProject(
     const paths = createProjectStructure(targetDir);
 
     // Generate all files using introspect mode for new projects
-    await introspectGenerate(
-      remoteProject,
+    await introspectGenerate({
+      project: remoteProject,
       paths,
-      options.env || 'development',
-      false // debug
-    );
+    });
 
     restoreLogLevel();
 
