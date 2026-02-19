@@ -393,7 +393,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     });
     s.stop('All files generated');
 
-    console.log(chalk.green('\n✅ Project regenerated successfully with introspect mode!'));
+    console.log(chalk.green('\n✅ Project synced successfully!'));
     console.log(chalk.gray(`   📁 Location: ${paths.projectRoot}`));
     console.log(chalk.gray(`   🌍 Environment: ${options.env || 'development'}`));
     console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
