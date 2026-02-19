@@ -6,6 +6,7 @@ import {
   addValueToObject,
   convertNullToUndefined,
   createInMemoryProject,
+  formatStringLiteral,
   toCamelCase,
 } from './utils';
 
@@ -23,6 +24,7 @@ const ReferenceOverridesSchema = z.object({
 type ProjectDefinitionData = Omit<
   ProjectConfig,
   | 'id'
+  | 'skills'
   | 'agents'
   | 'tools'
   | 'externalAgents'
@@ -31,6 +33,7 @@ type ProjectDefinitionData = Omit<
   | 'credentialReferences'
 > & {
   projectId: string;
+  skills?: string[];
   agents?: string[];
   tools?: string[];
   externalAgents?: string[];
@@ -60,6 +63,7 @@ const ProjectSchema = z.looseObject({
       })
       .optional()
   ),
+  skills: z.array(z.string()).optional(),
   agents: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   externalAgents: z.array(z.string()).optional(),
@@ -81,10 +85,17 @@ ${z.prettifyError(result.error)}`);
   const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
   const importName = 'project';
+  const sdkImports = hasReferences(parsed.skills) ? ['loadSkills', importName] : [importName];
   sourceFile.addImportDeclaration({
-    namedImports: [importName],
+    namedImports: sdkImports,
     moduleSpecifier: '@inkeep/agents-sdk',
   });
+  if (hasReferences(parsed.skills)) {
+    sourceFile.addImportDeclaration({
+      defaultImport: 'path',
+      moduleSpecifier: 'node:path',
+    });
+  }
 
   const projectVarName = toCamelCase(parsed.projectId);
   const variableStatement = sourceFile.addVariableStatement({
@@ -101,6 +112,7 @@ ${z.prettifyError(result.error)}`);
 
   const {
     projectId,
+    skills,
     agents,
     tools,
     externalAgents,
@@ -116,6 +128,13 @@ ${z.prettifyError(result.error)}`);
     ...rest,
   })) {
     addValueToObject(configObject, key, value);
+  }
+
+  if (hasReferences(skills)) {
+    configObject.addPropertyAssignment({
+      name: 'skills',
+      initializer: `() => loadSkills(path.join(${formatStringLiteral(projectId)}, 'skills'))`,
+    });
   }
 
   if (hasReferences(agents)) {

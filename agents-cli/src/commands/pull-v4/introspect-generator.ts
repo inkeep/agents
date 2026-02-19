@@ -634,6 +634,7 @@ function collectProjectRecord(
         description: context.project.description,
         models: context.project.models,
         stopWhen: context.project.stopWhen,
+        skills: getObjectKeys(context.project.skills),
         agents: [...context.completeAgentIds],
         tools: getObjectKeys(context.project.tools),
         externalAgents: getObjectKeys(context.project.externalAgents),

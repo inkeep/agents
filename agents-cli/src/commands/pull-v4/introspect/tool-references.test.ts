@@ -154,4 +154,55 @@ export const exaMcpTool = mcpTool({
     const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
     await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
+
+  it('preserves project skills loader when merging project index', async () => {
+    const project = createProjectFixture();
+    project.skills = {
+      'weather-safety-guardrails': {
+        id: 'weather-safety-guardrails',
+        name: 'Weather Safety Guardrails',
+        description: 'Safety guidance for weather planning',
+        content: '# Weather safety guidance',
+      },
+    } as any;
+
+    const indexFilePath = join(testDir, 'index.ts');
+    const before = `import path from 'node:path';
+import { loadSkills, project } from '@inkeep/agents-sdk';
+import { supportAgent } from './agents/support-agent';
+import { customerProfile } from './data-components/customer-profile';
+import { ticketSummary } from './artifact-components/ticket-summary';
+import { apiCredentials } from './credentials/api-credentials';
+
+export const supportProject = project({
+  id: 'support-project',
+  name: 'Legacy support project',
+  description: 'Support project for introspect v4 tests',
+  agents: () => [supportAgent],
+  skills: () => loadSkills(path.join('support-project', 'skills')),
+  models: {
+    base: {
+      model: 'gpt-4o-mini'
+    }
+  },
+  dataComponents: () => [customerProfile],
+  artifactComponents: () => [ticketSummary],
+  credentialReferences: () => [apiCredentials]
+});
+`;
+    fs.writeFileSync(indexFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedIndexFile } = await import(`${indexFilePath}?raw`);
+    expect(mergedIndexFile).toContain("import path from 'node:path';");
+    expect(mergedIndexFile).toContain("import { loadSkills, project } from '@inkeep/agents-sdk';");
+    expect(mergedIndexFile).toContain(
+      "skills: () => loadSkills(path.join('support-project', 'skills'))"
+    );
+
+    await expect(mergedIndexFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
+    const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
+    await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
+  });
 });
