@@ -3,7 +3,7 @@ import pkgJson from '../../package.json' with { type: 'json' };
 /**
  * The default package name for version checks and updates
  */
-export const DEFAULT_PACKAGE_NAME = '@inkeep/agents-cli';
+export const DEFAULT_PACKAGE_NAME: string = pkgJson.name;
 
 export interface VersionInfo {
   current: string;
