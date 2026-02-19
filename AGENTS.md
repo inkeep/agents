@@ -10,15 +10,24 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
 - **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
 - **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
-- **Check (full CI gate)**: `pnpm check` — runs lint + typecheck + test + format:check + env-descriptions + knip (mirrors CI exactly)
-- **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
-- **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
-- **Typecheck**: `pnpm typecheck`
 
-### Testing
-- **Test (all)**: `pnpm test` or `turbo test`
-- **Test (single file)**: `cd <package> && pnpm test --run <file-path>` (use `--run` to avoid watch mode)
-- **Test (package)**: `cd <package> && pnpm test --run`
+### Verification
+
+**Before pushing**, run the full CI gate:
+```bash
+pnpm format     # auto-fix formatting first
+pnpm check      # full CI gate: lint + typecheck + test + build + format:check + env-descriptions + knip
+```
+
+**During development**, use individual commands for fast iteration:
+
+| Command | What it checks | When to use |
+|---|---|---|
+| `pnpm typecheck` | Type errors | Fixing type issues |
+| `pnpm lint` | Lint rules | Fixing lint warnings (`pnpm lint:fix` to auto-fix) |
+| `pnpm test` | Unit + integration tests | After changing logic |
+| `pnpm format` | Code formatting | Before committing (`pnpm format:check` to verify only) |
+| `cd <pkg> && pnpm test --run <file>` | Single test file | Targeted test iteration (use `--run` to avoid watch mode) |
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -248,11 +257,9 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
 **Before marking any feature complete, verify:**
-- [ ] Tests written and passing (`pnpm test`)
+- [ ] `pnpm check` passes (full CI gate: lint + typecheck + test + build + format + env-descriptions + knip)
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
-- [ ] All linting passes (`pnpm lint`)
-- [ ] Code is formatted (`pnpm format` to auto-fix, `pnpm format:check` to verify)
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
 
 ### 📋 Standard Development Workflow
@@ -264,10 +271,10 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
    git checkout -b feature/your-feature-name
    ```
 
-2. **Run verification commands** to ensure everything passes:
+2. **Run the full CI gate** (see [Verification](#verification) above):
    ```bash
-   pnpm check      # runs the full CI gate: lint + typecheck + test + format:check + env-descriptions + knip
-   pnpm format     # IMPORTANT: Always run formatter before committing
+   pnpm format     # auto-fix formatting first
+   pnpm check      # full CI gate: lint + typecheck + test + build + format:check + env-descriptions + knip
    ```
 
 3. **Commit your changes** with a descriptive message
