@@ -7,6 +7,7 @@ import {
   createProjectFixture,
   createTestEnvironment,
   createUnifiedDiff,
+  getTestPath,
 } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -81,14 +82,9 @@ export const weatherMcpTool = mcpTool({
     );
     expect(mergedAgentFile).not.toContain('weatherMcp.with');
 
-    await expect(mergedAgentFile).toMatchFileSnapshot(
-      '../__snapshots__/introspect/preserves-existing-tool-reference-names-when-merging-sub-agents-in-an-agent-file.ts'
-    );
-
+    await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
-    await expect(agentDiff).toMatchFileSnapshot(
-      '../__snapshots__/introspect/preserves-existing-tool-reference-names-when-merging-sub-agents-in-an-agent-file.diff'
-    );
+    await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
   it('preserves existing tool reference names in project index', async () => {
@@ -154,13 +150,8 @@ export const exaMcpTool = mcpTool({
     expect(mergedIndexFile).not.toContain('tools: () => [weather-mcp');
     expect(mergedIndexFile).not.toContain('tools: () => [exa-mcp');
 
-    await expect(mergedIndexFile).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.ts`
-    );
-
+    await expect(mergedIndexFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
-    await expect(indexDiff).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.diff`
-    );
+    await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 });

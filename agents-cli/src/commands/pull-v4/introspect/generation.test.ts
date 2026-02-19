@@ -6,6 +6,7 @@ import {
   cleanupTestEnvironment,
   createProjectFixture,
   createTestEnvironment,
+  getTestPath,
 } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -28,14 +29,12 @@ describe('pull-v4 introspect generator', () => {
     const generatedTsFiles = fs.globSync('**/*.ts', { cwd: testDir });
 
     await expect(generatedTsFiles.sort().join('\n')).toMatchFileSnapshot(
-      '../__snapshots__/introspect/generates-supported-v4-components/structure.md'
+      `${getTestPath()}/structure.md`
     );
 
     for (const filePath of generatedTsFiles) {
       const { default: fileContent } = await import(`${testDir}/${filePath}?raw`);
-      await expect(fileContent).toMatchFileSnapshot(
-        `../__snapshots__/introspect/generates-supported-v4-components/${filePath}`
-      );
+      await expect(fileContent).toMatchFileSnapshot(`${getTestPath()}/${filePath}`);
     }
   });
 

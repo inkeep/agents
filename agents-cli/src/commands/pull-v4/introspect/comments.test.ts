@@ -7,6 +7,7 @@ import {
   createProjectFixture,
   createTestEnvironment,
   createUnifiedDiff,
+  getTestPath,
 } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -55,14 +56,9 @@ export const supportAgent = agent({
     expect(mergedAgentFile).toContain('Keeps top-level documentation for this agent.');
     expect(mergedAgentFile).toContain('export const tierOneCustom = subAgent({');
 
-    await expect(mergedAgentFile).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.ts`
-    );
-
+    await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
-    await expect(agentDiff).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.diff`
-    );
+    await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
   it('preserves comment indentation above object field across repeated merges', async () => {
@@ -100,9 +96,7 @@ export const supportProject = project({
      */
     base: {`);
 
-    await expect(secondMergedIndexFile).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.ts`
-    );
+    await expect(secondMergedIndexFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
   });
 
   it('preserves comment above object field', async () => {
@@ -134,14 +128,9 @@ export const supportProject = project({
     expect(mergedIndexFile).toContain('/**');
     expect(mergedIndexFile).toContain('base: {');
 
-    await expect(mergedIndexFile).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.ts`
-    );
-
+    await expect(mergedIndexFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
-    await expect(indexDiff).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.diff`
-    );
+    await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
   it('preserve single line comment when merging existing statements', async () => {
@@ -172,13 +161,8 @@ export const supportAgent = agent({
     const singleLineCommentMatches = mergedAgentFile.match(/\/\/ Agent/g) ?? [];
     expect(singleLineCommentMatches).toHaveLength(1);
 
-    await expect(mergedAgentFile).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.ts`
-    );
-
+    await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
-    await expect(agentDiff).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.diff`
-    );
+    await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 });

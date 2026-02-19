@@ -8,6 +8,7 @@ import {
   createProjectFixture,
   createTestEnvironment,
   createUnifiedDiff,
+  getTestPath,
 } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -36,9 +37,7 @@ describe('pull-v4 introspect generator', () => {
       beforeCredentialContent,
       afterCredentialContent
     );
-    await expect(credentialDiff).toMatchFileSnapshot(
-      '../__snapshots__/introspect/merges-generated-code-with-existing-files-by-default-credential.diff'
-    );
+    await expect(credentialDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
   it('overwrites existing files when writeMode is overwrite', async () => {
@@ -60,8 +59,6 @@ describe('pull-v4 introspect generator', () => {
       afterCredentialContent
     );
 
-    await expect(credentialDiff).toMatchFileSnapshot(
-      '../__snapshots__/introspect/overwrites-existing-files-when-writemode-is-overwrite-credential.diff'
-    );
+    await expect(credentialDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 });

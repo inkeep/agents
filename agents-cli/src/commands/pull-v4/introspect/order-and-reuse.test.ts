@@ -8,6 +8,7 @@ import {
   createProjectFixture,
   createTestEnvironment,
   createUnifiedDiff,
+  getTestPath,
 } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -125,14 +126,10 @@ export const supportAgent = agent({
       plannerSection.indexOf('canDelegateTo: () => [weather, coordinates, websearch]')
     );
 
-    await expect(mergedAgentFile).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.ts`
-    );
+    await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
 
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
-    await expect(agentDiff).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.diff`
-    );
+    await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
   it('reuses existing file when sub-agent already exists in the agent file', async () => {
@@ -173,8 +170,6 @@ export const supportAgent = agent({
       before,
       mergedAgentFile
     );
-    await expect(credentialDiff).toMatchFileSnapshot(
-      `../__snapshots__/introspect/${expect.getState().currentTestName}.diff`
-    );
+    await expect(credentialDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 });

@@ -45,6 +45,10 @@ export function cleanupTestEnvironment(testDir: string): void {
   fs.rmSync(testDir, { recursive: true, force: true });
 }
 
+export function getTestPath(): string {
+  return `../__snapshots__/introspect/${expect.getState().currentTestName?.split('>').at(-1)}`;
+}
+
 export function createProjectFixture(): FullProjectDefinition {
   return {
     id: 'support-project',
