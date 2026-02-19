@@ -9,7 +9,6 @@ const configLogger = getLogger('config');
 configLogger.updateOptions({ level: 'silent' });
 
 import { Command } from 'commander';
-import pkgJson from '../package.json' with { type: 'json' };
 import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
@@ -24,16 +23,16 @@ import {
   profileRemoveCommand,
   profileUseCommand,
 } from './commands/profile';
-import { pullV3Command } from './commands/pull-v3';
 import { pullV4Command } from './commands/pull-v4/introspect';
 import { pushCommand } from './commands/push';
 import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
 import { whoamiCommand } from './commands/whoami';
+import { PACKAGE_VERSION } from './utils/version-check';
 
 const program = new Command();
 
-program.name('inkeep').description('CLI tool for Inkeep Agent Framework').version(pkgJson.version);
+program.name('inkeep').description('CLI tool for Inkeep Agent Framework').version(PACKAGE_VERSION);
 
 program
   .command('add [template]')
@@ -134,13 +133,6 @@ program
   .option('--debug', 'Enable debug logging')
   .option('--verbose', 'Enable verbose logging')
   .option('--force', 'Force regeneration even if no changes detected')
-  // TODO remove it
-  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
-  // TODO remove this flag after pull v4 will be merged
-  .option(
-    '--sync',
-    'Sync local code with remote project by merging existing files and generating missing/new files.'
-  )
   .option('--all', 'Pull all projects for current tenant')
   .option(
     '--tag <tag>',
@@ -148,8 +140,7 @@ program
   )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
-    const commandToUse = options.sync ? pullV4Command : pullV3Command;
-    await commandToUse(options);
+    await pullV4Command(options);
   });
 
 program
