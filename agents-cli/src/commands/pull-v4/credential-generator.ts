@@ -11,7 +11,7 @@ interface CredentialDefinitionData {
   retrievalParams?: unknown;
 }
 
-const CredentialSchema = z.looseObject({
+const CredentialSchema = z.object({
   credentialId: z.string().nonempty(),
   name: z.string().nonempty(),
   type: z.string().nonempty(),
