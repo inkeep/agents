@@ -12,13 +12,36 @@ import appPackageJson from '../package.json' with { type: 'json' };
 
 const NODE_MODULES_PATH = '.next/node_modules';
 
-fs.readdir(NODE_MODULES_PATH).then(async (dirs) => {
-  const newAppPkgJson = structuredClone(appPackageJson);
+async function collectHashedPackages(): Promise<{ dir: string; pkgJsonPath: string }[]> {
+  const entries: { dir: string; pkgJsonPath: string }[] = [];
+  const dirs = await fs.readdir(NODE_MODULES_PATH);
+
   for (const dir of dirs) {
-    const pkgJsonPath = path.join('..', NODE_MODULES_PATH, dir, 'package.json');
+    if (dir.startsWith('@')) {
+      const scopePath = path.join(NODE_MODULES_PATH, dir);
+      const scopedDirs = await fs.readdir(scopePath);
+      for (const scopedDir of scopedDirs) {
+        entries.push({
+          dir: `${dir}/${scopedDir}`,
+          pkgJsonPath: path.join('..', NODE_MODULES_PATH, dir, scopedDir, 'package.json'),
+        });
+      }
+    } else {
+      entries.push({
+        dir,
+        pkgJsonPath: path.join('..', NODE_MODULES_PATH, dir, 'package.json'),
+      });
+    }
+  }
+
+  return entries;
+}
+
+collectHashedPackages().then(async (entries) => {
+  const newAppPkgJson = structuredClone(appPackageJson);
+  for (const { dir, pkgJsonPath } of entries) {
     // @ts-expect-error -- ignore type error
     const { default: pkgJson } = await import(pkgJsonPath, { with: { type: 'json' } });
-    // Add dependency with hash
     newAppPkgJson.dependencies[dir] = `npm:${pkgJson.name}@${pkgJson.version}`;
   }
   const content = JSON.stringify(newAppPkgJson, null, 2);
