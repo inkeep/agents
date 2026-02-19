@@ -8,8 +8,7 @@ Index: credentials/api-credentials.ts
 +import { toolSummary } from '../status-components/tool-summary';
 +import { githubWebhook } from './triggers/github-webhook';
  
--const tierOneCustom = subAgent({
-+export const tierOneCustom = subAgent({
+ const tierOneCustom = subAgent({
    id: 'tier-one',
 -  name: 'Legacy Tier One'
 +  name: 'Tier One'
