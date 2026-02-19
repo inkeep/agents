@@ -18,7 +18,7 @@ import { classifyError, getUserFriendlyErrorMessage, SlackErrorType } from './ut
 
 const logger = getLogger('slack-streaming');
 
-const STREAM_TIMEOUT_MS = 120_000;
+const STREAM_TIMEOUT_MS = 799_000;
 const CHATSTREAM_OP_TIMEOUT_MS = 10_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;

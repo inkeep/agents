@@ -1010,6 +1010,8 @@ export class BufferingStreamHelper implements StreamHelper {
   async writeToolApprovalRequest(params: {
     approvalId: string;
     toolCallId: string;
+    toolName?: string;
+    input?: Record<string, unknown>;
   }): Promise<void> {
     this.capturedData.push({ type: 'tool-approval-request', ...params });
   }

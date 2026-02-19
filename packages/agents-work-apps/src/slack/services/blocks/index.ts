@@ -1,4 +1,5 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
+import { z } from 'zod';
 import { SlackStrings } from '../../i18n';
 
 export function createErrorMessage(message: string) {
@@ -188,6 +189,17 @@ export interface ToolApprovalButtonValue {
   threadTs: string;
   toolName: string;
 }
+
+export const ToolApprovalButtonValueSchema = z.object({
+  toolCallId: z.string(),
+  conversationId: z.string(),
+  projectId: z.string(),
+  agentId: z.string(),
+  slackUserId: z.string(),
+  channel: z.string(),
+  threadTs: z.string(),
+  toolName: z.string(),
+});
 
 export function buildToolApprovalBlocks(params: {
   toolName: string;

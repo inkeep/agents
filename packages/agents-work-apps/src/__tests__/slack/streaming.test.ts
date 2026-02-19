@@ -149,6 +149,100 @@ describe('streamAgentResponse', () => {
     expect(body.stream).toBe(true);
   });
 
+  describe('tool-approval-request event handling', () => {
+    it('should post an approval message when tool-approval-request event is received', async () => {
+      const sseData =
+        'data: {"type":"tool-approval-request","toolCallId":"tc-1","toolName":"search_web","input":{"query":"hello"}}\n' +
+        'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(sseData));
+          controller.close();
+        },
+      });
+
+      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+      await streamAgentResponse(baseParams);
+
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channel: 'C456',
+          thread_ts: '1234.5678',
+          text: expect.stringContaining('search_web'),
+          blocks: expect.arrayContaining([expect.objectContaining({ type: 'header' })]),
+        })
+      );
+    });
+
+    it('should default toolName to "Tool" when toolName is absent from event', async () => {
+      const sseData =
+        'data: {"type":"tool-approval-request","toolCallId":"tc-2"}\n' +
+        'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(sseData));
+          controller.close();
+        },
+      });
+
+      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+      await streamAgentResponse(baseParams);
+
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: expect.stringContaining('Tool'),
+        })
+      );
+    });
+
+    it('should embed conversationId and toolCallId in the button value', async () => {
+      const sseData =
+        'data: {"type":"tool-approval-request","toolCallId":"tc-3","toolName":"run_code"}\n' +
+        'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(sseData));
+          controller.close();
+        },
+      });
+
+      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+      await streamAgentResponse(baseParams);
+
+      const call = mockPostMessage.mock.calls[0][0];
+      const actionsBlock = call.blocks.find((b: any) => b.type === 'actions');
+      const buttonValue = JSON.parse(actionsBlock.elements[0].value);
+      expect(buttonValue.toolCallId).toBe('tc-3');
+      expect(buttonValue.conversationId).toBe('conv-123');
+      expect(buttonValue.toolName).toBe('run_code');
+    });
+
+    it('should not post approval message when conversationId is absent', async () => {
+      const sseData =
+        'data: {"type":"tool-approval-request","toolCallId":"tc-4","toolName":"search_web"}\n' +
+        'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(sseData));
+          controller.close();
+        },
+      });
+
+      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+      await streamAgentResponse({ ...baseParams, conversationId: '' });
+
+      expect(mockPostMessage).not.toHaveBeenCalled();
+    });
+  });
+
   describe('contentAlreadyDelivered error suppression', () => {
     it('should return success and suppress error message when content was already streamed', async () => {
       // Simulate a stream that delivers content then throws on the next read

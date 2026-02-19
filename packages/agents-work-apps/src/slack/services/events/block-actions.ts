@@ -8,7 +8,7 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { buildToolApprovalDoneBlocks, type ToolApprovalButtonValue } from '../blocks';
+import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
 import { getSlackClient } from '../client';
 import {
   buildAgentSelectorModal,
@@ -46,7 +46,7 @@ export async function handleToolApproval(params: {
     span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
 
     try {
-      const buttonValue = JSON.parse(actionValue) as ToolApprovalButtonValue;
+      const buttonValue = ToolApprovalButtonValueSchema.parse(JSON.parse(actionValue));
       const { toolCallId, conversationId, projectId, agentId, toolName } = buttonValue;
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
 
@@ -112,6 +112,14 @@ export async function handleToolApproval(params: {
           { status: approvalResponse.status, errorBody, toolCallId, conversationId },
           'Tool approval API call failed'
         );
+        if (responseUrl) {
+          await sendResponseUrlMessage(responseUrl, {
+            text: `Failed to ${approved ? 'approve' : 'deny'} \`${toolName}\`. Please try again.`,
+            response_type: 'ephemeral',
+          }).catch((e) => logger.warn({ error: e }, 'Failed to send approval error notification'));
+        }
+        span.end();
+        return;
       }
 
       if (responseUrl) {
