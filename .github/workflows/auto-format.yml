@@ -41,7 +41,7 @@ jobs:
       - name: Checkout code
         if: steps.pr-check.outputs.skip != 'true'
         id: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         continue-on-error: true
         with:
           # On PRs, check out the PR branch so we push back to it.
