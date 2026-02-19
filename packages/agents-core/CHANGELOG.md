@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.50.1
+
+### Patch Changes
+
+- e643f0e: Fix incomplete scope filtering in 9 data-access queries that could leak data across project/agent boundaries
+- 561659a: Add shared setup module for unified dev environment bootstrapping
+- 6d31fe6: Fix data and artifact components being shared across agents when subagents share the same ID
+
 ## 0.50.0
 
 ## 0.49.0
