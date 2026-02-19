@@ -4,4 +4,4 @@
 "@inkeep/agents-api": patch
 ---
 
-Move in process fetch to agents-core and use it in the slack work app.
+Fix internal API routing for Slack work app in multi-instance environments.
