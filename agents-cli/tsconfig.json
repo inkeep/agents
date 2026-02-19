@@ -2,7 +2,7 @@
   "compilerOptions": {
     "verbatimModuleSyntax": true,
     "target": "ES2022",
-    "module": "node20",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
