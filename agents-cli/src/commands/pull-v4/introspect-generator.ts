@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { Node } from 'ts-morph';
 import { buildComponentRegistryFromParsing } from '../pull-v3/component-parser';
 import type { ComponentRegistry, ComponentType } from '../pull-v3/utils/component-registry';
 import { generateAgentDefinition } from './agent-generator';
@@ -13,6 +14,7 @@ import { generateProjectDefinition } from './project-generator';
 import { generateStatusComponentDefinition } from './status-component-generator';
 import { generateSubAgentDefinition } from './sub-agent-generator';
 import { generateTriggerDefinition } from './trigger-generator';
+import { createInMemoryProject } from './utils';
 
 export interface ProjectPaths {
   projectRoot: string;
@@ -300,21 +302,30 @@ function collectContextConfigRecords(
     }
 
     if (!contextConfigRecordsById.has(contextConfigId)) {
+      const contextConfigFilePath = resolveRecordFilePath(
+        context,
+        'contextConfigs',
+        contextConfigId,
+        join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+      );
       const credentialReferenceOverrides = collectContextConfigCredentialReferenceOverrides(
         context,
         contextConfig
       );
+      const headersReferenceOverride = collectContextConfigHeadersReferenceOverride(
+        context,
+        contextConfigId,
+        contextConfigFilePath
+      );
       contextConfigRecordsById.set(contextConfigId, {
         id: contextConfigId,
-        filePath: resolveRecordFilePath(
-          context,
-          'contextConfigs',
-          contextConfigId,
-          join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
-        ),
+        filePath: contextConfigFilePath,
         payload: {
           contextConfigId,
           ...contextConfig,
+          ...(headersReferenceOverride && {
+            headers: headersReferenceOverride,
+          }),
           ...(credentialReferenceOverrides && {
             referenceOverrides: {
               credentialReferences: credentialReferenceOverrides,
@@ -360,6 +371,84 @@ function collectContextConfigCredentialReferenceOverrides(
   }
 
   return Object.keys(overrides).length ? overrides : undefined;
+}
+
+function collectContextConfigHeadersReferenceOverride(
+  context: GenerationContext,
+  contextConfigId: string,
+  filePath: string
+): string | undefined {
+  if (!context.existingComponentRegistry || !existsSync(filePath)) {
+    return;
+  }
+
+  const sourceFile = createInMemoryProject().createSourceFile(
+    'existing-context-config.ts',
+    readFileSync(filePath, 'utf8'),
+    { overwrite: true }
+  );
+
+  for (const declaration of sourceFile.getVariableDeclarations()) {
+    const initializer = declaration.getInitializer();
+    if (!initializer || !Node.isCallExpression(initializer)) {
+      continue;
+    }
+
+    const expression = initializer.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== 'contextConfig') {
+      continue;
+    }
+
+    const [configArg] = initializer.getArguments();
+    if (!configArg || !Node.isObjectLiteralExpression(configArg)) {
+      continue;
+    }
+
+    const idProperty = configArg.getProperty('id');
+    if (!idProperty || !Node.isPropertyAssignment(idProperty)) {
+      continue;
+    }
+    const idInitializer = idProperty.getInitializer();
+    if (!idInitializer || !Node.isStringLiteral(idInitializer)) {
+      continue;
+    }
+    if (idInitializer.getLiteralValue() !== contextConfigId) {
+      continue;
+    }
+
+    const headersProperty = configArg.getProperty('headers');
+    if (!headersProperty) {
+      return;
+    }
+
+    if (Node.isShorthandPropertyAssignment(headersProperty)) {
+      return headersProperty.getName();
+    }
+
+    if (!Node.isPropertyAssignment(headersProperty)) {
+      return;
+    }
+
+    const headersInitializer = headersProperty.getInitializer();
+    if (!headersInitializer) {
+      return;
+    }
+
+    if (Node.isIdentifier(headersInitializer)) {
+      return headersInitializer.getText();
+    }
+
+    if (Node.isAsExpression(headersInitializer)) {
+      const valueExpression = headersInitializer.getExpression();
+      if (Node.isIdentifier(valueExpression)) {
+        return valueExpression.getText();
+      }
+    }
+
+    return;
+  }
+
+  return;
 }
 
 function collectTriggerRecords(
