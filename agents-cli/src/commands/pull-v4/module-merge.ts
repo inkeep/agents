@@ -565,53 +565,13 @@ function withPreservedNodeLeadingComments(
 }
 
 function getNodeLeadingCommentsText(node: Node): string | undefined {
-  const commentTexts = node
-    .getLeadingCommentRanges()
-    .map((commentRange) => normalizeCommentText(commentRange.getText()))
-    .filter((text) => text.trim());
+  const commentTexts = node.getLeadingCommentRanges().map((commentRange) => commentRange.getText());
 
   if (commentTexts.length === 0) {
     return;
   }
 
   return [...new Set(commentTexts)].join('\n');
-}
-
-function normalizeCommentText(text: string): string {
-  const lines = text.split('\n');
-  const nonEmptyLines = lines.filter((line) => line.trim().length > 0);
-  const commonIndent =
-    nonEmptyLines.length > 0
-      ? Math.min(...nonEmptyLines.map((line) => line.match(/^[ \t]*/)?.[0].length ?? 0))
-      : 0;
-  const dedentedLines = lines.map((line) => {
-    if (line.trim().length === 0) {
-      return '';
-    }
-    const lineIndent = line.match(/^[ \t]*/)?.[0].length ?? 0;
-    return line.slice(Math.min(commonIndent, lineIndent));
-  });
-
-  if (dedentedLines.length <= 1) {
-    return dedentedLines[0]?.trimStart() || '';
-  }
-
-  if (!dedentedLines[0]?.trimStart().startsWith('/*')) {
-    return dedentedLines.map((line) => line.trimStart()).join('\n');
-  }
-
-  return dedentedLines
-    .map((line, index) => {
-      const trimmedLine = line.trimStart();
-      if (index === 0) {
-        return trimmedLine;
-      }
-      if (trimmedLine.startsWith('*')) {
-        return ` ${trimmedLine}`;
-      }
-      return trimmedLine;
-    })
-    .join('\n');
 }
 
 function alignArrayLiteralText(
@@ -719,21 +679,16 @@ function orderArrayElements(existingElements: Node[], generatedElements: Node[])
 }
 
 function getObjectPropertyKey(property: Node): string | undefined {
-  if (Node.isPropertyAssignment(property)) {
+  if (
+    Node.isPropertyAssignment(property) ||
+    Node.isShorthandPropertyAssignment(property) ||
+    Node.isMethodDeclaration(property) ||
+    Node.isGetAccessorDeclaration(property) ||
+    Node.isSetAccessorDeclaration(property)
+  ) {
     return property.getName();
   }
-  if (Node.isShorthandPropertyAssignment(property)) {
-    return property.getName();
-  }
-  if (Node.isMethodDeclaration(property)) {
-    return property.getName();
-  }
-  if (Node.isGetAccessorDeclaration(property)) {
-    return property.getName();
-  }
-  if (Node.isSetAccessorDeclaration(property)) {
-    return property.getName();
-  }
+
   if (Node.isSpreadAssignment(property)) {
     return `...${normalizeStatementText(property.getExpression().getText())}`;
   }
@@ -900,8 +855,7 @@ function getLeadingCommentsText(statement: Statement): string | undefined {
         commentRange.getKind() === SyntaxKind.MultiLineCommentTrivia ||
         commentRange.getKind() === SyntaxKind.SingleLineCommentTrivia
     )
-    .map((commentRange) => normalizeCommentText(commentRange.getText()))
-    .filter((text) => text.trim());
+    .map((commentRange) => commentRange.getText());
 
   if (commentTexts.length === 0) {
     return;
