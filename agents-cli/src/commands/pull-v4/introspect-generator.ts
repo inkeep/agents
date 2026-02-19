@@ -28,10 +28,14 @@ export interface ProjectPaths {
 }
 
 export interface IntrospectOptions {
+  project: FullProjectDefinition;
+  paths: ProjectPaths;
   /** @default "merge" */
   writeMode?: 'merge' | 'overwrite';
   /** @default false */
   failOnUnsupportedComponents?: boolean;
+  /** @default false */
+  debug?: boolean;
 }
 
 interface GenerationContext {
@@ -65,13 +69,13 @@ interface UnsupportedComponentCounts {
   externalAgents: number;
 }
 
-export async function introspectGenerate(
-  project: FullProjectDefinition,
-  paths: ProjectPaths,
-  _environment: string,
-  debug: boolean,
-  { writeMode = 'merge', failOnUnsupportedComponents = false }: IntrospectOptions = {}
-): Promise<void> {
+export async function introspectGenerate({
+  project,
+  paths,
+  writeMode = 'merge',
+  failOnUnsupportedComponents = false,
+  debug = false,
+}: IntrospectOptions): Promise<void> {
   validateProject(project);
 
   const skippedAgents: SkippedAgent[] = [];

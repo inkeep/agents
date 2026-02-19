@@ -83,6 +83,49 @@ export const apiCredentials = credential({
     );
   });
 
+  it('reuses existing file when sub-agent already exists in the agent file', async () => {
+    const project = createProjectFixture();
+    const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
+    fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
+    const before = `import { agent, subAgent } from '@inkeep/agents-sdk';
+
+const tierOneCustom = subAgent({
+  id: 'tier-one',
+  name: 'Legacy Tier One'
+});
+
+export const supportAgent = agent({
+  id: 'support-agent',
+  name: 'Legacy Support Agent',
+  defaultSubAgent: tierOneCustom,
+  subAgents: () => [tierOneCustom]
+});
+`;
+    fs.writeFileSync(agentFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    expect(fs.existsSync(join(testDir, 'agents', 'sub-agents', 'tier-one.ts'))).toBe(false);
+
+    const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
+    expect(mergedAgentFile).toContain("import { agent, subAgent } from '@inkeep/agents-sdk';");
+    expect(mergedAgentFile).not.toContain("from './sub-agents/tier-one'");
+    expect(mergedAgentFile).toContain('const tierOneCustom = subAgent({');
+    expect(mergedAgentFile).toContain("id: 'tier-one'");
+    expect(mergedAgentFile).toContain("name: 'Tier One'");
+    expect(mergedAgentFile).toContain('defaultSubAgent: tierOneCustom');
+    expect(mergedAgentFile).toContain('subAgents: () => [tierOneCustom]');
+
+    const credentialDiff = await createUnifiedDiff(
+      'credentials/api-credentials.ts',
+      before,
+      mergedAgentFile
+    );
+    await expect(credentialDiff).toMatchFileSnapshot(
+      `__snapshots__/introspect/${expect.getState().currentTestName}.diff`
+    );
+  });
+
   it('overwrites existing files when writeMode is overwrite', async () => {
     const project = createProjectFixture();
     const credentialFile = join(testDir, 'credentials', 'api-credentials.ts');
