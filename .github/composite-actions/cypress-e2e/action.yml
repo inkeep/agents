@@ -99,7 +99,7 @@ runs:
         attempt=1
         while [ $attempt -le $max_attempts ]; do
           echo "Push attempt $attempt/$max_attempts..."
-          if cd agents-cookbook/template-projects && pnpm exec inkeep push --project weather-project; then
+          if cd agents-cookbook/template-projects && npx inkeep push --project weather-project; then
             echo "Push succeeded on attempt $attempt"
             break
           fi
