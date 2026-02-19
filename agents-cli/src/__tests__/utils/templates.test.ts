@@ -196,7 +196,7 @@ describe('Template Utils', () => {
     it('should handle complete workflow from template fetch to clone', async () => {
       // Mock getAvailableTemplates
       const mockResponse = [
-        { name: 'weather', type: 'dir' },
+        { name: 'activities-planner', type: 'dir' },
         { name: 'chatbot', type: 'dir' },
       ];
 
@@ -212,14 +212,14 @@ describe('Template Utils', () => {
 
       // Test complete workflow
       const templates = await getAvailableTemplates('template-projects', undefined);
-      expect(templates).toContain('weather');
+      expect(templates).toContain('activities-planner');
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
-        './weather-project'
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/activities-planner',
+        './activities-planner'
       );
 
-      expect(mockEmitter.clone).toHaveBeenCalledWith('./weather-project');
+      expect(mockEmitter.clone).toHaveBeenCalledWith('./activities-planner');
     });
 
     it('should handle concurrent template operations', async () => {
@@ -229,16 +229,16 @@ describe('Template Utils', () => {
 
       const clonePromises = [
         cloneTemplate(
-          'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
-          './weather1'
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/activities-planner',
+          './planner1'
         ),
         cloneTemplate(
           'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
           './chatbot1'
         ),
         cloneTemplate(
-          'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
-          './weather2'
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/activities-planner',
+          './planner2'
         ),
       ];
 
