@@ -64,7 +64,7 @@ export function formatStringLiteral(value: string): string {
   const hasSingleQuote = value.includes(QUOTE.single);
   const hasDoubleQuote = value.includes(QUOTE.double);
   const quote =
-    value.includes('\n') || (hasSingleQuote && hasDoubleQuote)
+    value.includes('\n') || value.includes('${') || (hasSingleQuote && hasDoubleQuote)
       ? QUOTE.template
       : hasSingleQuote
         ? QUOTE.double
@@ -73,12 +73,11 @@ export function formatStringLiteral(value: string): string {
 }
 
 function escapeStringLiteral(value: string, quote: Quote): string {
-  value = value.replaceAll('\\', '\\\\').replaceAll(quote, `\\${quote}`);
-
-  if (quote === QUOTE.template) {
-    value = value.replaceAll('${', '\\${');
-  }
-  return [quote, value, quote].join('');
+  return [
+    quote, //
+    value.replaceAll('\\', '\\\\').replaceAll(quote, `\\${quote}`),
+    quote,
+  ].join('');
 }
 
 export function formatPropertyName(key: string): string {

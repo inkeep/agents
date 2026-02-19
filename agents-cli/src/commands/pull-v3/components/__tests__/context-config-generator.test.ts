@@ -46,10 +46,10 @@ describe('Context Config Generator', () => {
     name: 'User Information',
     trigger: 'initialization',
     fetchConfig: {
-      url: 'https://api.example.com/users/${headers.toTemplate("user_id")}',
+      url: 'https://api.example.com/users/${headersSchema.toTemplate("user_id")}',
       method: 'GET',
       headers: {
-        Authorization: 'Bearer ${headers.toTemplate("api_key")}',
+        Authorization: 'Bearer ${headersSchema.toTemplate("api_key")}',
       },
       transform: 'user',
     },
@@ -109,7 +109,7 @@ describe('Context Config Generator', () => {
       expect(definition).toContain("trigger: 'initialization',");
       expect(definition).toContain('fetchConfig: {');
       expect(definition).toContain(
-        'url: \'https://api.example.com/users/${headers.toTemplate("user_id")}\','
+        'url: \'https://api.example.com/users/${headersSchema.toTemplate("user_id")}\','
       );
       expect(definition).toContain("method: 'GET',");
       expect(definition).toContain('responseSchema: z.object({');

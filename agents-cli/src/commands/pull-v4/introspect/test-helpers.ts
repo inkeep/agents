@@ -130,8 +130,7 @@ export function createProjectFixture(): FullProjectDefinition {
               name: 'User Information',
               trigger: 'initialization',
               fetchConfig: {
-                url:
-                  'https://api.example.com/users/' + '${' + 'headers.toTemplate("user_id")' + '}',
+                url: 'https://api.example.com/users/${headersSchema.toTemplate("user_id")}',
                 method: 'GET',
               },
               responseSchema: {

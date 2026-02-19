@@ -10,10 +10,10 @@ const user = fetchDefinition({
   name: 'User Information',
   trigger: 'initialization',
   fetchConfig: {
-    url: 'https://api.example.com/users/${headers.toTemplate("user_id")}',
+    url: 'https://api.example.com/users/${headersSchema.toTemplate("user_id")}',
     method: 'GET',
     headers: {
-    Authorization: 'Bearer ${headers.toTemplate("api_key")}'
+    Authorization: 'Bearer ${headersSchema.toTemplate("api_key")}'
   },
     transform: 'user'
   },
