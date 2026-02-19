@@ -895,9 +895,13 @@ function getLeadingCommentsText(statement: Statement): string | undefined {
   }
 
   const commentTexts = leadingCommentRanges
-    .filter((commentRange) => commentRange.getKind() === SyntaxKind.MultiLineCommentTrivia)
-    .map((commentRange) => commentRange.getText())
-    .filter((text) => text.trim().length > 0);
+    .filter(
+      (commentRange) =>
+        commentRange.getKind() === SyntaxKind.MultiLineCommentTrivia ||
+        commentRange.getKind() === SyntaxKind.SingleLineCommentTrivia
+    )
+    .map((commentRange) => normalizeCommentText(commentRange.getText()))
+    .filter((text) => text.trim());
 
   if (commentTexts.length === 0) {
     return;

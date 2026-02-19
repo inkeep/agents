@@ -165,4 +165,35 @@ export const supportAgent = agent({
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
     await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
+
+  it('preserves single line comment above sub-agent when merge exports it', async () => {
+    const project = createProjectFixture();
+    const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
+    fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
+    const before = `import { agent, subAgent } from '@inkeep/agents-sdk';
+
+/**
+ * Tier-one routing helper.
+ */
+// Knowledge Base Q&A Agent
+const tierOneCustom = subAgent({
+  id: 'tier-one',
+  name: 'Legacy Tier One'
+});
+
+export const supportAgent = agent({
+  id: 'support-agent',
+  name: 'Legacy Support Agent',
+  defaultSubAgent: tierOneCustom,
+  subAgents: () => [tierOneCustom]
+});
+`;
+    fs.writeFileSync(agentFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
+    await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
+    expect(mergedAgentFile).toContain('// Knowledge Base Q&A Agent');
+  });
 });
