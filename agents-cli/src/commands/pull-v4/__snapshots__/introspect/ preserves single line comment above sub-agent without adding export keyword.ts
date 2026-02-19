@@ -7,7 +7,7 @@ import { githubWebhook } from './triggers/github-webhook';
  * Tier-one routing helper.
  */
 // Knowledge Base Q&A Agent
-export const tierOneCustom = subAgent({
+const tierOneCustom = subAgent({
   id: 'tier-one',
   name: 'Tier One'
 });
