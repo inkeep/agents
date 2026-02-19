@@ -23,4 +23,4 @@ Index: context-configs/support-context.ts
 +  responseSchema: z.object({ "name": z.string().optional() })
  });
  
- const supportContext = contextConfig({
+ const _supportContext = contextConfig({

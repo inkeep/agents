@@ -17,7 +17,7 @@ const userInfo = fetchDefinition({
   responseSchema: z.object({ "name": z.string().optional() })
 });
 
-const supportContext = contextConfig({
+const _supportContext = contextConfig({
   id: 'support-context',
   headers: headersSchema,
   contextVariables: {

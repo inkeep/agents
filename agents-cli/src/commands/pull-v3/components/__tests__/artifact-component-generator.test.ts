@@ -55,67 +55,67 @@ describe('Artifact Component Generator', () => {
     },
   };
 
-  describe('generateArtifactComponentImports', () => {
-    // it('should generate correct imports with preview fields', () => {
-    //   const imports = generateArtifactComponentImports(testComponentData);
-    //
-    //   expect(imports).toHaveLength(3);
-    //   expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core';");
-    //   expect(imports[1]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
-    //   expect(imports[2]).toBe("import { z } from 'zod';");
-    // });
-    // it('should generate imports without preview when no preview fields', () => {
-    //   const dataWithoutPreview = {
-    //     name: 'Simple',
-    //     description: 'Simple artifact component',
-    //     props: {
-    //       type: 'object',
-    //       properties: {
-    //         value: {
-    //           type: 'string',
-    //           description: 'Simple value',
-    //         },
-    //       },
-    //     },
-    //   };
-    //
-    //   const imports = generateArtifactComponentImports(dataWithoutPreview);
-    //
-    //   expect(imports).toHaveLength(2);
-    //   expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
-    //   expect(imports[1]).toBe("import { z } from 'zod';");
-    //   expect(imports).not.toContain(expect.stringContaining('preview'));
-    // });
-    // it('should generate only artifactComponent import without schema', () => {
-    //   const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
-    //   const imports = generateArtifactComponentImports(dataWithoutSchema);
-    //
-    //   expect(imports).toHaveLength(1);
-    //   expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
-    // });
-    // it('should handle double quotes style', () => {
-    //   const imports = generateArtifactComponentImports(testComponentData, {
-    //     quotes: 'double',
-    //     semicolons: true,
-    //     indentation: '  ',
-    //   });
-    //
-    //   expect(imports[0]).toBe('import { preview } from "@inkeep/agents-core";');
-    //   expect(imports[1]).toBe('import { artifactComponent } from "@inkeep/agents-sdk";');
-    //   expect(imports[2]).toBe('import { z } from "zod";');
-    // });
-    // it('should handle no semicolons style', () => {
-    //   const imports = generateArtifactComponentImports(testComponentData, {
-    //     quotes: 'single',
-    //     semicolons: false,
-    //     indentation: '  ',
-    //   });
-    //
-    //   expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core'");
-    //   expect(imports[1]).toBe("import { artifactComponent } from '@inkeep/agents-sdk'");
-    //   expect(imports[2]).toBe("import { z } from 'zod'");
-    // });
-  });
+  // describe('generateArtifactComponentImports', () => {
+  // it('should generate correct imports with preview fields', () => {
+  //   const imports = generateArtifactComponentImports(testComponentData);
+  //
+  //   expect(imports).toHaveLength(3);
+  //   expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core';");
+  //   expect(imports[1]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
+  //   expect(imports[2]).toBe("import { z } from 'zod';");
+  // });
+  // it('should generate imports without preview when no preview fields', () => {
+  //   const dataWithoutPreview = {
+  //     name: 'Simple',
+  //     description: 'Simple artifact component',
+  //     props: {
+  //       type: 'object',
+  //       properties: {
+  //         value: {
+  //           type: 'string',
+  //           description: 'Simple value',
+  //         },
+  //       },
+  //     },
+  //   };
+  //
+  //   const imports = generateArtifactComponentImports(dataWithoutPreview);
+  //
+  //   expect(imports).toHaveLength(2);
+  //   expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
+  //   expect(imports[1]).toBe("import { z } from 'zod';");
+  //   expect(imports).not.toContain(expect.stringContaining('preview'));
+  // });
+  // it('should generate only artifactComponent import without schema', () => {
+  //   const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
+  //   const imports = generateArtifactComponentImports(dataWithoutSchema);
+  //
+  //   expect(imports).toHaveLength(1);
+  //   expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
+  // });
+  // it('should handle double quotes style', () => {
+  //   const imports = generateArtifactComponentImports(testComponentData, {
+  //     quotes: 'double',
+  //     semicolons: true,
+  //     indentation: '  ',
+  //   });
+  //
+  //   expect(imports[0]).toBe('import { preview } from "@inkeep/agents-core";');
+  //   expect(imports[1]).toBe('import { artifactComponent } from "@inkeep/agents-sdk";');
+  //   expect(imports[2]).toBe('import { z } from "zod";');
+  // });
+  // it('should handle no semicolons style', () => {
+  //   const imports = generateArtifactComponentImports(testComponentData, {
+  //     quotes: 'single',
+  //     semicolons: false,
+  //     indentation: '  ',
+  //   });
+  //
+  //   expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core'");
+  //   expect(imports[1]).toBe("import { artifactComponent } from '@inkeep/agents-sdk'");
+  //   expect(imports[2]).toBe("import { z } from 'zod'");
+  // });
+  // });
 
   describe('generateArtifactComponentDefinition', () => {
     it('should generate correct definition with all properties', async () => {

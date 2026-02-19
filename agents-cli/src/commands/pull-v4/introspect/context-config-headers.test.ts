@@ -106,7 +106,7 @@ const userInfo = fetchDefinition({
   })
 });
 
-const supportContext = contextConfig({
+const _supportContext = contextConfig({
   id: 'support-context',
   headers: headersSchema,
   contextVariables: {
