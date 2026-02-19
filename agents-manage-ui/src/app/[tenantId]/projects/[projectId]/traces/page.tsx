@@ -2,7 +2,7 @@
 
 import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { ConversationStatsCard } from '@/components/traces/conversation-stats/conversation-stats-card';
@@ -44,14 +44,6 @@ export default function TracesOverview({
     setAgentFilter: setSelectedAgent,
     setSpanFilter,
   } = useTracesQueryState();
-
-  const mountTime = useRef(performance.now());
-  const statsReadyLogged = useRef(false);
-  const activityReadyLogged = useRef(false);
-
-  useEffect(() => {
-    console.log(`[traces-perf] TracesOverview mounted at t=0`);
-  }, []);
 
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,30 +124,6 @@ export default function TracesOverview({
   const aggregateLoading = loading;
   const aggregateError = error;
 
-  useEffect(() => {
-    if (!loading && !statsReadyLogged.current) {
-      statsReadyLogged.current = true;
-      console.log(
-        `[traces-perf] TracesOverview: conversation stats ready elapsed=${(performance.now() - mountTime.current).toFixed(0)}ms results=${stats.length}`
-      );
-    }
-    if (loading) {
-      statsReadyLogged.current = false;
-    }
-  }, [loading, stats.length]);
-
-  useEffect(() => {
-    if (!activityLoading && !activityReadyLogged.current) {
-      activityReadyLogged.current = true;
-      console.log(
-        `[traces-perf] TracesOverview: activity chart ready elapsed=${(performance.now() - mountTime.current).toFixed(0)}ms points=${activityData.length}`
-      );
-    }
-    if (activityLoading) {
-      activityReadyLogged.current = false;
-    }
-  }, [activityLoading, activityData.length]);
-
   // Fetch conversations per day activity
   useEffect(() => {
     const fetchActivity = async () => {
@@ -163,14 +131,7 @@ export default function TracesOverview({
         setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId);
         const agentId = selectedAgent ? selectedAgent : undefined;
-        console.log('🔍 Fetching activity data:', {
-          startTime,
-          endTime,
-          agentId,
-          selectedAgent,
-        });
         const data = await client.getConversationsPerDay(startTime, endTime, agentId, projectId);
-        console.log('🔍 Activity data received:', data);
         setActivityData(data);
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
