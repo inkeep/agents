@@ -318,14 +318,22 @@ function upsertNamedStatement(
   );
 }
 
-function appendUniqueStatement(existingFile: SourceFile, statementText: string) {
-  const normalizedIncoming = normalizeStatementText(statementText);
+function appendUniqueStatement(existingFile: SourceFile, generatedStatement: Statement) {
+  const statementText = generatedStatement.getText();
   const hasExistingStatement = existingFile
     .getStatements()
     .some((statement) => statement.getText() === statementText);
 
-  if (!hasExistingStatement) {
+  if (hasExistingStatement) return;
+
+  const insertionIndex = findInsertionIndexForNewVariableStatement(
+    existingFile,
+    generatedStatement
+  );
+  if (insertionIndex === undefined) {
     existingFile.addStatements([statementText]);
+  } else {
+    existingFile.insertStatements(insertionIndex, [statementText]);
   }
 }
 
