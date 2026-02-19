@@ -570,6 +570,12 @@ function installViaOAuth(
 
 async function main(): Promise<void> {
   console.log(`\n${fmt.heading('=== Slack Dev App Setup ===')}\n`);
+  console.log(
+    `  ${fmt.dim('This script creates a personal Slack app for local Socket Mode development.')}`
+  );
+  console.log(
+    `  ${fmt.dim('All credentials are saved to')} ${fmt.info('.slack-dev.json')} ${fmt.dim('(git-ignored) so re-runs skip completed steps.')}\n`
+  );
 
   if (!existsSync(MANIFEST_PATH)) {
     console.error(fmt.err(`Manifest not found at: ${MANIFEST_PATH}`));
@@ -702,10 +708,15 @@ async function main(): Promise<void> {
   console.log(`  ${fmt.label('App:')}        ${fmt.value(`Inkeep Dev ${devId}`)}`);
   console.log(`  ${fmt.label('Bot:')}        ${fmt.value(`@inkeep-${devId}`)}`);
   console.log(`  ${fmt.label('Workspace:')}  ${fmt.value(devConfig.teamName || 'unknown')}`);
-  console.log(`  ${fmt.label('Config:')}     ${fmt.info('.slack-dev.json')}`);
-  console.log(`  ${fmt.label('Env:')}        ${fmt.info('.env')}`);
+  console.log(
+    `  ${fmt.label('Config:')}     ${fmt.info('.slack-dev.json')} ${fmt.dim('(app ID, tokens, refresh token — enables zero-paste re-runs)')}`
+  );
+  console.log(
+    `  ${fmt.label('Env:')}        ${fmt.info('.env')} ${fmt.dim('(SLACK_APP_TOKEN, SLACK_BOT_TOKEN, etc.)')}`
+  );
   console.log('');
-  console.log(`  Run ${fmt.value('pnpm dev')} to start with Socket Mode.\n`);
+  console.log(`  Run ${fmt.value('pnpm dev')} to start with Socket Mode.`);
+  console.log(`  To start fresh, delete ${fmt.info('.slack-dev.json')} and re-run this script.\n`);
 }
 
 main().catch((err) => {
