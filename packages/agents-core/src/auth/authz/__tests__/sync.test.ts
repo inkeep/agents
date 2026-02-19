@@ -18,10 +18,12 @@ vi.mock('../client', async (importOriginal) => {
     writeRelationship: vi.fn(),
     deleteRelationship: vi.fn(),
     readRelationships: vi.fn(),
+    checkBulkPermissions: vi.fn(),
   };
 });
 
 import {
+  checkBulkPermissions,
   deleteRelationship,
   getSpiceClient,
   readRelationships,
@@ -33,6 +35,7 @@ describe('authz/sync', () => {
   const mockDeleteRelationship = vi.mocked(deleteRelationship);
   const mockReadRelationships = vi.mocked(readRelationships);
   const mockGetSpiceClient = vi.mocked(getSpiceClient);
+  const mockCheckBulkPermissions = vi.mocked(checkBulkPermissions);
 
   const mockSpiceClient = {
     promises: {
@@ -46,6 +49,7 @@ describe('authz/sync', () => {
     mockGetSpiceClient.mockReturnValue(mockSpiceClient as any);
     // Default: user has no existing org roles (not admin/owner)
     mockReadRelationships.mockResolvedValue([]);
+    mockCheckBulkPermissions.mockResolvedValue({ manage: false });
   });
 
   afterEach(() => {
