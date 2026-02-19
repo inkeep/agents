@@ -1,4 +1,4 @@
-import type { ObjectLiteralExpression, SourceFile, Statement, VariableStatement } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile, Statement } from 'ts-morph';
 import { Node, SyntaxKind } from 'ts-morph';
 import { createInMemoryProject } from './utils';
 
