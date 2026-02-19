@@ -53,8 +53,11 @@ function isLocalDatabaseUrl(url: string | undefined): boolean {
 function hasExternalDatabases(): boolean {
   const manageUrl = process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
   const runUrl = process.env.INKEEP_AGENTS_RUN_DATABASE_URL;
-  // Both URLs must be set AND at least one must point to a non-local host
-  return !!(manageUrl && runUrl && (!isLocalDatabaseUrl(manageUrl) || !isLocalDatabaseUrl(runUrl)));
+  if (!manageUrl || !runUrl) return false;
+  // In CI, databases are always externally managed (GitHub Actions service containers, etc.)
+  if (process.env.CI) return true;
+  // Outside CI, localhost URLs indicate Docker-managed DBs
+  return !isLocalDatabaseUrl(manageUrl) || !isLocalDatabaseUrl(runUrl);
 }
 
 // --- Pre-flight checks ---

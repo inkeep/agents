@@ -63,6 +63,9 @@ describe('runSetup', () => {
     execCalls.length = 0;
     vi.stubGlobal('fetch', mockFetch);
 
+    // Ensure CI is not set — tests for CI behavior set it explicitly
+    delete process.env.CI;
+
     process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL = 'postgresql://localhost:5432/test';
     process.env.INKEEP_AGENTS_RUN_DATABASE_URL = 'postgresql://localhost:5433/test';
     process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = 'existing-key';
@@ -410,6 +413,25 @@ describe('runSetup', () => {
     await expect(runSetup(baseConfig({ isCloud: false }))).rejects.toThrow('process.exit called');
     expect(mockExit).toHaveBeenCalledWith(1);
     mockExit.mockRestore();
+  });
+
+  it('should skip docker in CI even with localhost database URLs', async () => {
+    const { runSetup } = await import('../setup.js');
+    process.env.CI = 'true';
+    process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL =
+      'postgresql://appuser:pw@localhost:5432/inkeep_agents';
+    process.env.INKEEP_AGENTS_RUN_DATABASE_URL =
+      'postgresql://appuser:pw@localhost:5433/inkeep_agents';
+    mockExecImpl.mockImplementation((cmd: string) => {
+      if (cmd === 'docker info') {
+        return Promise.reject(new Error('docker not found'));
+      }
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    await runSetup(baseConfig({ isCloud: false }));
+
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
   });
 
   it('should exit if database URLs are missing (non-cloud)', async () => {
