@@ -73,6 +73,7 @@ import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
+import { formatOversizedRetrievalReason } from '../utils/artifact-utils';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { extractTextFromParts } from '../utils/message-parts';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
@@ -2054,7 +2055,7 @@ export class Agent {
 
         // Check if artifact is oversized and block retrieval
         if (artifactData.metadata?.isOversized || artifactData.metadata?.retrievalBlocked) {
-          logger.warn(
+          logger.info(
             {
               artifactId,
               toolCallId,
@@ -2072,7 +2073,10 @@ export class Agent {
             status: 'retrieval_blocked',
             warning:
               '⚠️ This artifact contains an oversized tool result that cannot be retrieved to prevent context overflow.',
-            reason: `Tool result is ~${Math.floor((artifactData.metadata?.originalTokenSize || 0) / 1000)}K tokens, which exceeds safe context limits (max safe: ${Math.floor(((artifactData.metadata?.contextWindowSize || 0) * 0.3) / 1000)}K tokens).`,
+            reason: formatOversizedRetrievalReason(
+              artifactData.metadata?.originalTokenSize || 0,
+              artifactData.metadata?.contextWindowSize || 0
+            ),
             toolInfo: {
               toolName: artifactData.metadata?.toolName,
               toolArgs: artifactData.metadata?.toolArgs,
@@ -2993,7 +2997,7 @@ ${output}`;
               hasStructuredOutput,
               shouldStream,
             },
-            '🚀 Starting generation'
+            'Starting generation'
           );
 
           // Execute generation
@@ -3019,7 +3023,7 @@ ${output}`;
               dataComponentsCount: (rawResponse.output as any)?.dataComponents?.length || 0,
               finishReason: rawResponse.finishReason,
             },
-            '✅ Generation completed'
+            'Generation completed'
           );
 
           response = await resolveGenerationResponse(rawResponse);
@@ -3036,7 +3040,7 @@ ${output}`;
                 dataComponentNames:
                   response.output?.dataComponents?.map((dc: any) => dc.name) || [],
               },
-              '📦 Processing response with data components'
+              'Processing response with data components'
             );
             textResponse = JSON.stringify(response.output, null, 2);
           } else if (hasToolCallWithPrefix('transfer_to_')(response)) {
@@ -3762,7 +3766,7 @@ ${output}`;
         errorStack: errorToThrow.stack,
         errorName: errorToThrow.name,
       },
-      '❌ Generation error in Agent'
+      'Generation error in Agent'
     );
     setSpanWithError(span, errorToThrow);
     span.end();

@@ -271,10 +271,7 @@ export class AgentSession {
    */
   enableEmitOperations(): void {
     this.isEmitOperations = true;
-    logger.info(
-      { sessionId: this.sessionId },
-      '🔍 DEBUG: Emit operations enabled for AgentSession'
-    );
+    logger.info({ sessionId: this.sessionId }, 'DEBUG: Emit operations enabled for AgentSession');
   }
 
   /**
@@ -303,7 +300,7 @@ export class AgentSession {
           eventType: event.eventType,
           error: error instanceof Error ? error.message : error,
         },
-        '❌ DEBUG: Failed to send data operation'
+        'DEBUG: Failed to send data operation'
       );
     }
   }
@@ -855,7 +852,7 @@ export class AgentSession {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         },
-        '❌ Failed to generate status update'
+        'Failed to generate status update'
       );
     } finally {
       // Clear the flag to allow future updates

@@ -150,7 +150,7 @@ export class ExecutionHandler {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         },
-        '❌ Failed to initialize session configuration, continuing with defaults'
+        'Failed to initialize session configuration, continuing with defaults'
       );
     }
 

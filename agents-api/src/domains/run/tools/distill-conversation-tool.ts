@@ -247,7 +247,7 @@ Return **only** valid JSON.`;
 
       // If over limit, try next truncation level
       if (estimatedTokens > safeLimit) {
-        logger.warn(
+        logger.info(
           {
             conversationId,
             attempt: attempt.name,
@@ -276,7 +276,7 @@ Return **only** valid JSON.`;
         // LLM call failed - check if it's a token limit error
         const errorMessage = llmError instanceof Error ? llmError.message : String(llmError);
         if (errorMessage.includes('too long') || errorMessage.includes('token')) {
-          logger.warn(
+          logger.info(
             {
               conversationId,
               attempt: attempt.name,

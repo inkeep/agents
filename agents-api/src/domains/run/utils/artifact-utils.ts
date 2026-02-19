@@ -39,6 +39,18 @@ export function generateStructureInfo(data: any): string {
   }
 }
 
+/**
+ * Formats the retrieval-blocked reason string for an oversized artifact.
+ */
+export function formatOversizedRetrievalReason(
+  originalTokenSize: number,
+  contextWindowSize: number
+): string {
+  const tokenSizeK = Math.floor(originalTokenSize / 1000);
+  const maxSafeK = Math.floor((contextWindowSize * 0.3) / 1000);
+  return `Tool result is ~${tokenSizeK}K tokens, which exceeds safe context limits (max safe: ${maxSafeK}K tokens).`;
+}
+
 export interface OversizedDetectionResult {
   isOversized: boolean;
   originalTokenSize: number;

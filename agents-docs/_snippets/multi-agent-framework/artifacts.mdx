@@ -12,7 +12,7 @@ When an agent uses a tool (whether that's another agent or a utility tool), the 
 When tool results exceed **30% of the model's context window**, they're marked as **oversized** to prevent context overflow.
 
 **What happens:**
-- ✅ Full data is saved to the database
+- ✅ Full data is persisted to storage
 - ❌ Retrieval is blocked to preserve context space
 - ⚠️ Visual warnings appear in the UI traces panel
 
