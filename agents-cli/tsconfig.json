@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    // tsdown uses oxc-transform for .d.ts generation (very fast, recommended)
-    "isolatedDeclarations": true,
     "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "node20",
