@@ -113,7 +113,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('artifactComponents: () => [citation]');
       expect(definition).toContain('});');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...basicSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...basicSubAgentData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -131,7 +131,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('stepCountIs: 20 // Max tool calls + LLM responses');
       expect(definition).toContain('}');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...complexSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...complexSubAgentData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -156,7 +156,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('dataComponents: () => [onlyComponent]');
       expect(definition).not.toContain('canUse: () => [\n'); // Single line format
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...singleItemData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...singleItemData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -176,7 +176,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain(']');
       expect(definition).not.toContain('tool3,');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...complexSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...complexSubAgentData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -204,7 +204,7 @@ describe('Sub-Agent Generator', () => {
       // Should generate a human-readable name from the ID
       expect(definition).toContain("name: 'Fallback Agent',");
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...noNameData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...noNameData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -219,7 +219,7 @@ describe('Sub-Agent Generator', () => {
 
       expect(definition).toContain('export const myComplexSubAgentV2 = subAgent({');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...basicSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...basicSubAgentData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -244,7 +244,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...multilineData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...multilineData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -292,7 +292,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('dataComponents:');
       expect(definition).not.toContain('artifactComponents:');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...emptyArraysData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...emptyArraysData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -317,7 +317,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('legacyAgent2');
       expect(definition).not.toContain('legacyAgent2,');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...transferData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...transferData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -341,7 +341,7 @@ describe('Sub-Agent Generator', () => {
 
       expect(definition).not.toContain('stopWhen:');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...noStepCountData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...noStepCountData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -369,7 +369,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('}');
       expect(definition).not.toContain('otherProperty');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...stepCountOnlyData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...stepCountOnlyData });
       await expectSnapshots(definition, definitionV4);
     });
   });
@@ -389,7 +389,7 @@ describe('Sub-Agent Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...basicSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...basicSubAgentData });
       await expectSnapshots(file, definitionV4);
     });
 
@@ -408,7 +408,7 @@ describe('Sub-Agent Generator', () => {
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...complexSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...complexSubAgentData });
       await expectSnapshots(file, definitionV4);
     });
   });
@@ -451,7 +451,7 @@ describe('Sub-Agent Generator', () => {
       expect(result.canUse()).toHaveLength(2);
       expect(result.canDelegateTo()).toHaveLength(2);
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...basicSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...basicSubAgentData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -497,7 +497,7 @@ describe('Sub-Agent Generator', () => {
       expect(result.dataComponents()).toHaveLength(2);
       expect(result.artifactComponents()).toHaveLength(1);
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...complexSubAgentData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...complexSubAgentData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -557,7 +557,7 @@ describe('Sub-Agent Generator', () => {
       );
       expect(definition).toContain("name: '',");
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...emptyStringData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...emptyStringData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -592,7 +592,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('canUse: () => [stringTool]');
       expect(definition).toContain('dataComponents: () => [stringComponent]');
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...mixedData });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...mixedData });
       await expectSnapshots(definition, definitionV4);
     });
 
@@ -608,7 +608,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain("name: 'Missing Name',");
       expect(definition).toContain("description: 'Test description',");
 
-      const definitionV4 = generateSubAgentDefinitionV4({ subAgentId, ...data });
+      const definitionV4 = generateSubAgentDefinitionV4({ id: subAgentId, ...data });
       await expectSnapshots(definition, definitionV4);
     });
 
