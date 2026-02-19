@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -13,32 +13,20 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   upsertSubAgentSkill,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/agent/:subAgentId/skill/:skillId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agent/{subAgentId}',
     summary: 'List Skills for Sub-Agent',
     operationId: 'get-skills-for-subagent',
     tags: ['Skills'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -67,12 +55,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Attach Skill to Sub-Agent',
     operationId: 'create-subagent-skill',
     tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -130,12 +119,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/agent/{subAgentId}/skill/{skillId}',
     summary: 'Detach Skill from Sub-Agent',
     operationId: 'delete-subagent-skill',
     tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         subAgentId: z.string(),

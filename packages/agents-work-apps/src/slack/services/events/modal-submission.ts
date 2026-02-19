@@ -48,9 +48,9 @@ export async function handleModalSubmission(view: {
 
       const values = view.state?.values || {};
 
-      const agentSelectValue = values.agent_select_block?.agent_select as {
-        selected_option?: { value?: string };
-      };
+      const agentSelectValue = Object.values(values)
+        .map((block) => (block as Record<string, unknown>).agent_select)
+        .find(Boolean) as { selected_option?: { value?: string } } | undefined;
       const questionValue = values.question_block?.question_input as { value?: string };
       const includeContextValue = values.context_block?.include_context_checkbox as {
         selected_options?: Array<{ value?: string }>;
@@ -158,7 +158,7 @@ export async function handleModalSubmission(view: {
         await slackClient.chat.postEphemeral({
           channel: metadata.channel,
           user: metadata.slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+          text: 'Link your account first. Run `/inkeep link` to connect.',
         });
         span.end();
         return;
@@ -313,7 +313,7 @@ export async function handleFollowUpSubmission(view: {
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+          text: 'Link your account first. Run `/inkeep link` to connect.',
         });
         span.end();
         return;

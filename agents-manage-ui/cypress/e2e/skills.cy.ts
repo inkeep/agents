@@ -7,7 +7,7 @@ describe('Skills', () => {
       metadata: '{"foo":"only-string"}',
     };
 
-    cy.visit('/default/projects/my-weather-project/skills');
+    cy.visit('/default/projects/activities-planner/skills');
     cy.contains('Create skill').click();
     cy.get('[name=name]').type(fixture.name);
     cy.get('textarea[name=description]').type(fixture.description);

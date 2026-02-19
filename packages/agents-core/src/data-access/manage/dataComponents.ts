@@ -254,7 +254,11 @@ export const getDataComponentsForAgent =
       .from(dataComponents)
       .innerJoin(
         subAgentDataComponents,
-        eq(dataComponents.id, subAgentDataComponents.dataComponentId)
+        and(
+          eq(dataComponents.id, subAgentDataComponents.dataComponentId),
+          eq(dataComponents.tenantId, subAgentDataComponents.tenantId),
+          eq(dataComponents.projectId, subAgentDataComponents.projectId)
+        )
       )
       .where(
         and(
@@ -317,6 +321,7 @@ export const deleteAgentDataComponentRelationByAgent =
       .where(
         and(
           eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
           eq(subAgentDataComponents.agentId, params.scopes.agentId),
           eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )

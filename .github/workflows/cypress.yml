@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   ci:
-    runs-on: ubuntu-16gb
+    runs-on: ubuntu-32gb
     timeout-minutes: 30
 
     services:
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -87,15 +87,6 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
-      - name: Setup Next.js build cache
-        uses: actions/cache@v4
-        with:
-          path: agents-manage-ui/.next/cache
-          key: ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('agents-manage-ui/src/**', 'packages/agents-core/src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-build-${{ hashFiles('pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-build-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
@@ -130,6 +121,7 @@ jobs:
       - name: Run Cypress E2E Tests
         uses: ./.github/composite-actions/cypress-e2e
         env:
+          NODE_OPTIONS: --max-old-space-size=8192
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}

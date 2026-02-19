@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
@@ -17,6 +17,7 @@ import {
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -31,24 +32,11 @@ const logger = getLogger('agentFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:agentId', async (c, next) => {
-  if (['PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
+    permission: requireProjectPermission('edit'),
     summary: 'Create Full Agent',
     operationId: 'create-full-agent',
     tags: ['Agents'],
@@ -120,9 +108,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{agentId}',
+    permission: requireProjectPermission('view'),
     summary: 'Get Full Agent',
     operationId: 'get-full-agent',
     tags: ['Agents'],
@@ -180,9 +169,10 @@ app.openapi(
 
 // Update/upsert full agent
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{agentId}',
+    permission: requireProjectPermission('edit'),
     summary: 'Update Full Agent',
     operationId: 'update-full-agent',
     tags: ['Agents'],
@@ -331,9 +321,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{agentId}',
+    permission: requireProjectPermission('edit'),
     summary: 'Delete Full Agent',
     operationId: 'delete-full-agent',
     tags: ['Agents'],

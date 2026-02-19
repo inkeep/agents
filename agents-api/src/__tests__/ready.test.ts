@@ -14,7 +14,7 @@ describe('GET /ready', () => {
     app = createAgentsHono({
       serverConfig: { port: 3002, serverOptions: {} },
       credentialStores: { getAll: () => [], get: () => null } as any,
-      auth: null,
+      auth: null as any,
     });
   });
 

@@ -1,5 +1,30 @@
 # @inkeep/create-agents
 
+## 0.50.2
+
+### Patch Changes
+
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- 46b5769: Add --skip-provider CLI option to scaffold projects with mock provider
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.0
+
 ## 0.49.0
 
 ### Patch Changes

@@ -1,3 +1,4 @@
+import { type ChildProcess, fork } from 'node:child_process';
 import os from 'node:os';
 import path, { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -182,6 +183,7 @@ export async function linkLocalPackages(projectDir: string, monorepoRoot: string
     '@inkeep/agents-core': `link:${path.join(monorepoRoot, 'packages/agents-core')}`,
     '@inkeep/agents-api': `link:${path.join(monorepoRoot, 'agents-api')}`,
     '@inkeep/agents-cli': `link:${path.join(monorepoRoot, 'agents-cli')}`,
+    '@inkeep/agents-manage-ui': `link:${path.join(monorepoRoot, 'agents-manage-ui')}`,
   };
 
   // Replace package versions with local links
@@ -261,4 +263,49 @@ export async function waitForServerReady(url: string, timeout: number): Promise<
   throw new Error(
     `Server not ready at ${url} after ${elapsed}ms (${attempts} attempts)${errorDetails}`
   );
+}
+
+export async function startDashboardServer(
+  projectDir: string,
+  env: Record<string, string> = {}
+): Promise<ChildProcess> {
+  const manageUiPkgJson = path.join(
+    projectDir,
+    'node_modules/@inkeep/agents-manage-ui/package.json'
+  );
+  const manageUiRoot = path.dirname(manageUiPkgJson);
+  const standaloneDir = path.join(manageUiRoot, '.next/standalone/agents-manage-ui');
+  const serverEntry = path.join(standaloneDir, 'server.js');
+
+  if (!(await fs.pathExists(serverEntry))) {
+    throw new Error(`Dashboard standalone server not found at ${serverEntry}`);
+  }
+
+  const child = fork(serverEntry, [], {
+    cwd: standaloneDir,
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      PORT: '3000',
+      HOSTNAME: '0.0.0.0',
+      ...env,
+    },
+    stdio: 'pipe',
+  });
+
+  const outputHandler = (data: Buffer) => {
+    const text = data.toString();
+    if (process.env.CI) {
+      if (text.includes('Error') || text.includes('EADDRINUSE') || text.includes('ready')) {
+        console.log('[Dashboard]:', text.trim());
+      }
+    }
+  };
+
+  if (child.stdout) child.stdout.on('data', outputHandler);
+  if (child.stderr) child.stderr.on('data', outputHandler);
+
+  await waitForServerReady('http://localhost:3000', 30000);
+
+  return child;
 }

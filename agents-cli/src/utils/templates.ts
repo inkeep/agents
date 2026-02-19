@@ -325,7 +325,7 @@ export async function getAvailableTemplates(
     const directories = [];
     for (const item of items) {
       const stat = await fs.stat(path.join(fullTemplatePath, item));
-      if (stat.isDirectory() && item !== 'weather-project') {
+      if (stat.isDirectory()) {
         directories.push(item);
       }
     }
@@ -357,7 +357,5 @@ export async function getAvailableTemplates(
     );
   }
 
-  return contents
-    .filter((item: any) => item.type === 'dir' && item.name !== 'weather-project')
-    .map((item: any) => item.name);
+  return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
 }

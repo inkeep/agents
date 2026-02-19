@@ -298,7 +298,8 @@ describe('github mcp utils', () => {
         },
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
-      expect(result).toContain('[APPROVED] @reviewer');
+      expect(result).toContain('<comments>');
+      expect(result).toContain('[review_summary] user:reviewer comment_id:1');
       expect(result).toContain('Looks good!');
     });
 
@@ -313,11 +314,12 @@ describe('github mcp utils', () => {
         },
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
-      expect(result).toContain('@commenter');
+      expect(result).toContain('<comments>');
+      expect(result).toContain('[issue_comment] user:commenter comment_id:2');
       expect(result).toContain('Nice work!');
     });
 
-    it('should group inline review comments by file', () => {
+    it('should include inline review comments', () => {
       const comments: Comment[] = [
         {
           id: 3,
@@ -339,11 +341,33 @@ describe('github mcp utils', () => {
         },
       ];
       const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
-      expect(result).toContain('src/utils.ts:');
-      expect(result).toContain('line 42');
-      expect(result).toContain('line 55');
+      expect(result).toContain('[review_comment] user:reviewer on src/utils.ts:42 comment_id:3');
       expect(result).toContain('Consider renaming this.');
+      expect(result).toContain('[review_comment] user:reviewer on src/utils.ts:55 comment_id:4');
       expect(result).toContain('Missing error handling.');
+    });
+
+    it('should sort comments by createdAt', () => {
+      const comments: Comment[] = [
+        {
+          id: 2,
+          body: 'Second',
+          author: { login: 'user' },
+          createdAt: '2026-01-16T12:00:00Z',
+          type: 'issue',
+        },
+        {
+          id: 1,
+          body: 'First',
+          author: { login: 'user' },
+          createdAt: '2026-01-16T10:00:00Z',
+          type: 'issue',
+        },
+      ];
+      const result = generatePrMarkdown(basePr, [], comments, 'owner', 'repo');
+      const firstIdx = result.indexOf('First');
+      const secondIdx = result.indexOf('Second');
+      expect(firstIdx).toBeLessThan(secondIdx);
     });
 
     it('should not include comments section when there are no comments', () => {
@@ -739,6 +763,309 @@ describe('github mcp utils', () => {
       expect(result).toHaveLength(2);
       expect(result[0].isSuggestion).toBe(true);
       expect(result[1].isSuggestion).toBe(false);
+    });
+  });
+
+  describe('createIssueCommentReaction', () => {
+    let createIssueCommentReaction: typeof import('../../../github/mcp/utils').createIssueCommentReaction;
+
+    beforeEach(async () => {
+      ({ createIssueCommentReaction } = await import('../../../github/mcp/utils'));
+    });
+
+    it('should create a reaction and return id and content', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            createForIssueComment: vi.fn().mockResolvedValue({
+              data: { id: 101, content: '+1' },
+            }),
+          },
+        },
+      } as any;
+
+      const result = await createIssueCommentReaction(mockOctokit, 'owner', 'repo', 42, '+1');
+
+      expect(mockOctokit.rest.reactions.createForIssueComment).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        comment_id: 42,
+        content: '+1',
+      });
+      expect(result).toEqual({ id: 101, content: '+1' });
+    });
+
+    it('should propagate API errors', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            createForIssueComment: vi.fn().mockRejectedValue(new Error('Not found')),
+          },
+        },
+      } as any;
+
+      await expect(
+        createIssueCommentReaction(mockOctokit, 'owner', 'repo', 999, 'heart')
+      ).rejects.toThrow('Not found');
+    });
+  });
+
+  describe('deleteIssueCommentReaction', () => {
+    let deleteIssueCommentReaction: typeof import('../../../github/mcp/utils').deleteIssueCommentReaction;
+
+    beforeEach(async () => {
+      ({ deleteIssueCommentReaction } = await import('../../../github/mcp/utils'));
+    });
+
+    it('should call the delete API with correct parameters', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            deleteForIssueComment: vi.fn().mockResolvedValue({}),
+          },
+        },
+      } as any;
+
+      await deleteIssueCommentReaction(mockOctokit, 'owner', 'repo', 42, 101);
+
+      expect(mockOctokit.rest.reactions.deleteForIssueComment).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        comment_id: 42,
+        reaction_id: 101,
+      });
+    });
+
+    it('should propagate API errors', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            deleteForIssueComment: vi.fn().mockRejectedValue(new Error('Forbidden')),
+          },
+        },
+      } as any;
+
+      await expect(
+        deleteIssueCommentReaction(mockOctokit, 'owner', 'repo', 42, 101)
+      ).rejects.toThrow('Forbidden');
+    });
+  });
+
+  describe('createPullRequestReviewCommentReaction', () => {
+    let createPullRequestReviewCommentReaction: typeof import('../../../github/mcp/utils').createPullRequestReviewCommentReaction;
+
+    beforeEach(async () => {
+      ({ createPullRequestReviewCommentReaction } = await import('../../../github/mcp/utils'));
+    });
+
+    it('should create a reaction and return id and content', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            createForPullRequestReviewComment: vi.fn().mockResolvedValue({
+              data: { id: 202, content: 'rocket' },
+            }),
+          },
+        },
+      } as any;
+
+      const result = await createPullRequestReviewCommentReaction(
+        mockOctokit,
+        'owner',
+        'repo',
+        55,
+        'rocket'
+      );
+
+      expect(mockOctokit.rest.reactions.createForPullRequestReviewComment).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        comment_id: 55,
+        content: 'rocket',
+      });
+      expect(result).toEqual({ id: 202, content: 'rocket' });
+    });
+
+    it('should propagate API errors', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            createForPullRequestReviewComment: vi.fn().mockRejectedValue(new Error('422')),
+          },
+        },
+      } as any;
+
+      await expect(
+        createPullRequestReviewCommentReaction(mockOctokit, 'owner', 'repo', 55, 'eyes')
+      ).rejects.toThrow('422');
+    });
+  });
+
+  describe('deletePullRequestReviewCommentReaction', () => {
+    let deletePullRequestReviewCommentReaction: typeof import('../../../github/mcp/utils').deletePullRequestReviewCommentReaction;
+
+    beforeEach(async () => {
+      ({ deletePullRequestReviewCommentReaction } = await import('../../../github/mcp/utils'));
+    });
+
+    it('should call the delete API with correct parameters', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            deleteForPullRequestComment: vi.fn().mockResolvedValue({}),
+          },
+        },
+      } as any;
+
+      await deletePullRequestReviewCommentReaction(mockOctokit, 'owner', 'repo', 55, 202);
+
+      expect(mockOctokit.rest.reactions.deleteForPullRequestComment).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        comment_id: 55,
+        reaction_id: 202,
+      });
+    });
+
+    it('should propagate API errors', async () => {
+      const mockOctokit = {
+        rest: {
+          reactions: {
+            deleteForPullRequestComment: vi.fn().mockRejectedValue(new Error('Not found')),
+          },
+        },
+      } as any;
+
+      await expect(
+        deletePullRequestReviewCommentReaction(mockOctokit, 'owner', 'repo', 55, 202)
+      ).rejects.toThrow('Not found');
+    });
+  });
+
+  describe('listIssueCommentReactions', () => {
+    let listIssueCommentReactions: typeof import('../../../github/mcp/utils').listIssueCommentReactions;
+
+    beforeEach(async () => {
+      ({ listIssueCommentReactions } = await import('../../../github/mcp/utils'));
+    });
+
+    function createPaginateIterator(items: any[]) {
+      return async function* () {
+        yield { data: items };
+      };
+    }
+
+    it('should return reaction details with IDs', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() =>
+            createPaginateIterator([
+              {
+                id: 101,
+                content: '+1',
+                user: { login: 'alice' },
+                created_at: '2026-01-01T00:00:00Z',
+              },
+              {
+                id: 102,
+                content: 'heart',
+                user: { login: 'bob' },
+                created_at: '2026-01-01T01:00:00Z',
+              },
+            ])()
+          ),
+        },
+        rest: { reactions: { listForIssueComment: vi.fn() } },
+      } as any;
+
+      const result = await listIssueCommentReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 101,
+        content: '+1',
+        user: 'alice',
+        createdAt: '2026-01-01T00:00:00Z',
+      });
+      expect(result[1]).toEqual({
+        id: 102,
+        content: 'heart',
+        user: 'bob',
+        createdAt: '2026-01-01T01:00:00Z',
+      });
+    });
+
+    it('should return empty array when no reactions', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() => createPaginateIterator([])()),
+        },
+        rest: { reactions: { listForIssueComment: vi.fn() } },
+      } as any;
+
+      const result = await listIssueCommentReactions(mockOctokit, 'owner', 'repo', 42);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('listPullRequestReviewCommentReactions', () => {
+    let listPullRequestReviewCommentReactions: typeof import('../../../github/mcp/utils').listPullRequestReviewCommentReactions;
+
+    beforeEach(async () => {
+      ({ listPullRequestReviewCommentReactions } = await import('../../../github/mcp/utils'));
+    });
+
+    function createPaginateIterator(items: any[]) {
+      return async function* () {
+        yield { data: items };
+      };
+    }
+
+    it('should return reaction details with IDs', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() =>
+            createPaginateIterator([
+              {
+                id: 201,
+                content: 'rocket',
+                user: { login: 'charlie' },
+                created_at: '2026-02-01T00:00:00Z',
+              },
+            ])()
+          ),
+        },
+        rest: { reactions: { listForPullRequestReviewComment: vi.fn() } },
+      } as any;
+
+      const result = await listPullRequestReviewCommentReactions(mockOctokit, 'owner', 'repo', 55);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        id: 201,
+        content: 'rocket',
+        user: 'charlie',
+        createdAt: '2026-02-01T00:00:00Z',
+      });
+    });
+
+    it('should handle missing user gracefully', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi
+            .fn()
+            .mockImplementation(() =>
+              createPaginateIterator([
+                { id: 301, content: 'eyes', user: null, created_at: '2026-02-01T00:00:00Z' },
+              ])()
+            ),
+        },
+        rest: { reactions: { listForPullRequestReviewComment: vi.fn() } },
+      } as any;
+
+      const result = await listPullRequestReviewCommentReactions(mockOctokit, 'owner', 'repo', 55);
+
+      expect(result[0].user).toBe('unknown');
     });
   });
 

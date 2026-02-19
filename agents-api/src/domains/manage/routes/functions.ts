@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -15,6 +15,7 @@ import {
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -24,31 +25,14 @@ const logger = getLogger('functions');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Functions',
     operationId: 'list-functions',
     tags: ['Functions'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -90,9 +74,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
+    permission: requireProjectPermission('view'),
     summary: 'Get Function by ID',
     operationId: 'get-function',
     tags: ['Functions'],
@@ -141,9 +126,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
+    permission: requireProjectPermission('edit'),
     summary: 'Create Function',
     operationId: 'create-function',
     tags: ['Functions'],
@@ -205,9 +191,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
+    permission: requireProjectPermission('edit'),
     summary: 'Update Function',
     operationId: 'update-function',
     tags: ['Functions'],
@@ -278,9 +265,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
+    permission: requireProjectPermission('edit'),
     summary: 'Delete Function',
     operationId: 'delete-function',
     tags: ['Functions'],

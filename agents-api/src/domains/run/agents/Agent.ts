@@ -73,9 +73,10 @@ import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
+import { formatOversizedRetrievalReason } from '../utils/artifact-utils';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { extractTextFromParts } from '../utils/message-parts';
-import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
@@ -2052,6 +2053,41 @@ export class Agent {
           throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
         }
 
+        // Check if artifact is oversized and block retrieval
+        if (artifactData.metadata?.isOversized || artifactData.metadata?.retrievalBlocked) {
+          logger.info(
+            {
+              artifactId,
+              toolCallId,
+              tokenSize: artifactData.metadata?.originalTokenSize,
+              contextWindowSize: artifactData.metadata?.contextWindowSize,
+            },
+            'Blocked retrieval of oversized artifact'
+          );
+
+          return {
+            artifactId: artifactData.artifactId,
+            name: artifactData.name,
+            description: artifactData.description,
+            type: artifactData.type,
+            status: 'retrieval_blocked',
+            warning:
+              '⚠️ This artifact contains an oversized tool result that cannot be retrieved to prevent context overflow.',
+            reason: formatOversizedRetrievalReason(
+              artifactData.metadata?.originalTokenSize || 0,
+              artifactData.metadata?.contextWindowSize || 0
+            ),
+            toolInfo: {
+              toolName: artifactData.metadata?.toolName,
+              toolArgs: artifactData.metadata?.toolArgs,
+              structureInfo: (artifactData.data as any)?._structureInfo,
+            },
+            recommendation:
+              'The tool arguments that caused this large result are included above. Consider: 1) Using more specific filters/queries with the original tool, 2) Asking the user to break down the request, 3) Processing the data differently.',
+          };
+        }
+
+        // Normal retrieval for non-oversized artifacts
         return {
           artifactId: artifactData.artifactId,
           name: artifactData.name,
@@ -2961,7 +2997,7 @@ ${output}`;
               hasStructuredOutput,
               shouldStream,
             },
-            '🚀 Starting generation'
+            'Starting generation'
           );
 
           // Execute generation
@@ -2987,7 +3023,7 @@ ${output}`;
               dataComponentsCount: (rawResponse.output as any)?.dataComponents?.length || 0,
               finishReason: rawResponse.finishReason,
             },
-            '✅ Generation completed'
+            'Generation completed'
           );
 
           response = await resolveGenerationResponse(rawResponse);
@@ -3004,7 +3040,7 @@ ${output}`;
                 dataComponentNames:
                   response.output?.dataComponents?.map((dc: any) => dc.name) || [],
               },
-              '📦 Processing response with data components'
+              'Processing response with data components'
             );
             textResponse = JSON.stringify(response.output, null, 2);
           } else if (hasToolCallWithPrefix('transfer_to_')(response)) {
@@ -3572,6 +3608,10 @@ ${output}`;
       throw new Error('Stream helper is unexpectedly undefined in streaming context');
     }
     const session = toolSessionManager.getSession(sessionId);
+
+    // Get context window size for oversized artifact detection
+    const modelContextInfo = getModelContextWindow(this.getPrimaryModel());
+
     const artifactParserOptions = {
       sessionId,
       taskId: session?.taskId,
@@ -3579,6 +3619,7 @@ ${output}`;
       artifactComponents: this.artifactComponents,
       streamRequestId: this.getStreamRequestId(),
       subAgentId: this.config.id,
+      contextWindowSize: modelContextInfo.contextWindow ?? undefined,
     };
     const parser = new IncrementalStreamParser(
       streamHelper,
@@ -3681,6 +3722,10 @@ ${output}`;
 
     if (!formattedContent) {
       const session = toolSessionManager.getSession(sessionId);
+
+      // Get context window size for oversized artifact detection
+      const modelContextInfo = getModelContextWindow(this.getPrimaryModel());
+
       const responseFormatter = new ResponseFormatter(this.executionContext, {
         sessionId,
         taskId: session?.taskId,
@@ -3689,6 +3734,7 @@ ${output}`;
         artifactComponents: this.artifactComponents,
         streamRequestId: this.getStreamRequestId(),
         subAgentId: this.config.id,
+        contextWindowSize: modelContextInfo.contextWindow ?? undefined,
       });
 
       if (response.object) {
@@ -3720,7 +3766,7 @@ ${output}`;
         errorStack: errorToThrow.stack,
         errorName: errorToThrow.name,
       },
-      '❌ Generation error in Agent'
+      'Generation error in Agent'
     );
     setSpanWithError(span, errorToThrow);
     span.end();

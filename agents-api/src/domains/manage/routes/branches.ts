@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   BranchListResponseSchema,
   BranchNameParamsSchema,
@@ -16,35 +16,23 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:branchName', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 // List branches for a project
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Branches',
     description: 'List all branches within a project',
     operationId: 'list-branches',
     tags: ['Branches'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -71,13 +59,14 @@ app.openapi(
 
 // Get a single branch
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{branchName}',
     summary: 'Get Branch',
     description: 'Get a single branch by name',
     operationId: 'get-branch',
     tags: ['Branches'],
+    permission: requireProjectPermission('view'),
     request: {
       params: BranchNameParamsSchema,
     },
@@ -112,13 +101,14 @@ app.openapi(
 
 // List branches for an agent
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agents/{agentId}',
     summary: 'List Branches for Agent',
     description: 'List all branches within a project that contain the agent',
     operationId: 'list-branches-for-agent',
     tags: ['Branches'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
     },
@@ -145,13 +135,14 @@ app.openapi(
 
 // Create a new branch
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Branch',
     description: 'Create a new branch',
     operationId: 'create-branch',
     tags: ['Branches'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -220,13 +211,14 @@ app.openapi(
 
 // Delete a branch
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{branchName}',
     summary: 'Delete Branch',
     description: 'Delete a branch. Cannot delete protected branches like main.',
     operationId: 'delete-branch',
     tags: ['Branches'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: BranchNameParamsSchema,
     },

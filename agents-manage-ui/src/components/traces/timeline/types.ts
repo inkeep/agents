@@ -120,6 +120,10 @@ export interface ActivityItem {
   artifactData?: string;
   artifactSubAgentId?: string;
   artifactToolCallId?: string;
+  artifactIsOversized?: boolean;
+  artifactRetrievalBlocked?: boolean;
+  artifactOriginalTokenSize?: number;
+  artifactContextWindowSize?: number;
   // Tool approval fields
   approvalToolName?: string;
   approvalToolCallId?: string;

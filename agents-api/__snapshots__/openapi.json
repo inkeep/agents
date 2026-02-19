@@ -9824,6 +9824,7 @@
             "description": "Processing complete"
           }
         },
+        "security": [],
         "summary": "Process workflow jobs",
         "tags": [
           "Workflows"
@@ -9961,7 +9962,10 @@
         "summary": "Trigger evaluation on a single conversation",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires eval API key (bypass secret or internal service token)"
+        }
       }
     },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversations": {
@@ -10117,7 +10121,10 @@
         "summary": "Trigger evaluations on conversations with specified evaluators",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires eval API key (bypass secret or internal service token)"
+        }
       }
     },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversations-by-job": {
@@ -10194,7 +10201,10 @@
         "summary": "Trigger evaluations on conversations by evaluation job config",
         "tags": [
           "Workflows"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires eval API key (bypass secret or internal service token)"
+        }
       }
     },
     "/evals/tenants/{tenantId}/projects/{projectId}/run-dataset-items": {
@@ -10267,7 +10277,10 @@
         "summary": "Run dataset items",
         "tags": [
           "Workflows"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires eval API key (bypass secret or internal service token)"
+        }
       }
     },
     "/health": {
@@ -10279,6 +10292,7 @@
             "description": "Service is healthy"
           }
         },
+        "security": [],
         "summary": "Health check",
         "tags": [
           "Health"
@@ -10358,7 +10372,10 @@
         "summary": "Get CLI user info",
         "tags": [
           "CLI"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires an active user session (cookie-based)"
+        }
       }
     },
     "/manage/available-agents": {
@@ -10418,7 +10435,10 @@
         "summary": "List available agents",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires a valid JWT token (temp-jwt or work-app user token). Auth and SpiceDB authorization are enforced in the handler."
+        }
       }
     },
     "/manage/capabilities": {
@@ -10437,12 +10457,17 @@
             "description": "Server capabilities"
           }
         },
-        "summary": "Get server capabilities"
+        "summary": "Get server capabilities",
+        "x-authz": {
+          "description": "Requires session cookie or API key authentication",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/oauth/callback": {
       "get": {
-        "description": "Handles OAuth authorization codes for MCP tools and completes the authentication flow",
+        "description": "Handles OAuth authorization codes for MCP tools and completes the authentication flow. Secured via PKCE state parameter (not HTTP authentication) since this is an external redirect from an OAuth provider.",
         "operationId": "mcp-oauth-callback",
         "parameters": [
           {
@@ -10505,81 +10530,8 @@
             "description": "Internal server error"
           }
         },
+        "security": [],
         "summary": "MCP OAuth authorization callback",
-        "tags": [
-          "OAuth"
-        ]
-      }
-    },
-    "/manage/oauth/login": {
-      "get": {
-        "description": "Detects OAuth requirements and redirects to authorization server (public endpoint)",
-        "operationId": "initiate-oauth-login-public",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "projectId",
-            "required": true,
-            "schema": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "toolId",
-            "required": true,
-            "schema": {
-              "minLength": 1,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "302": {
-            "description": "Redirect to OAuth authorization server"
-          },
-          "400": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "OAuth not supported or configuration error"
-          },
-          "404": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Tool not found"
-          },
-          "500": {
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Internal server error"
-          }
-        },
-        "summary": "Initiate OAuth login for MCP tool",
         "tags": [
           "OAuth"
         ]
@@ -10685,7 +10637,12 @@
         "summary": "Get GitHub App installation URL",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/github/installations": {
@@ -10845,7 +10802,12 @@
         "summary": "List GitHub App installations",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/github/installations/{installationId}": {
@@ -10960,7 +10922,12 @@
         "summary": "Delete a GitHub App installation permanently",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       },
       "get": {
         "description": "Returns detailed information about a specific GitHub App installation, including the full list of repositories.",
@@ -11158,7 +11125,12 @@
         "summary": "Get GitHub App installation details",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/github/installations/{installationId}/disconnect": {
@@ -11263,7 +11235,12 @@
         "summary": "Disconnect a GitHub App installation",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/github/installations/{installationId}/reconnect": {
@@ -11447,7 +11424,12 @@
         "summary": "Reconnect a disconnected GitHub App installation",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/github/installations/{installationId}/sync": {
@@ -11681,7 +11663,12 @@
         "summary": "Sync repositories for a GitHub App installation",
         "tags": [
           "GitHub"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/playground/token": {
@@ -11764,7 +11751,12 @@
         "summary": "Generate temporary API key for playground",
         "tags": [
           "API Keys"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/project-full": {
@@ -11876,7 +11868,12 @@
         "summary": "Create Full Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization admin role",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/project-full/{projectId}": {
@@ -11971,7 +11968,12 @@
         "summary": "Delete Full Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization admin role",
+          "permission": "admin",
+          "resource": "organization"
+        }
       },
       "get": {
         "description": "Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships",
@@ -12071,7 +12073,12 @@
         "summary": "Get Full Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
@@ -12190,7 +12197,10 @@
         "summary": "Update Full Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Dynamic: requires organization admin for new projects, or project edit permission for existing projects."
+        }
       }
     },
     "/manage/tenants/{tenantId}/project-full/{projectId}/with-relation-ids": {
@@ -12292,7 +12302,12 @@
         "summary": "Get Full Project with Relation IDs",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects": {
@@ -12402,6 +12417,11 @@
         "tags": [
           "Projects"
         ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -12529,7 +12549,12 @@
         "summary": "Create Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization admin role",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{id}": {
@@ -12634,7 +12659,12 @@
         "summary": "Delete Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization admin role",
+          "permission": "admin",
+          "resource": "organization"
+        }
       },
       "get": {
         "description": "Get a single project by ID",
@@ -12734,7 +12764,12 @@
         "summary": "Get Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "description": "Update an existing project",
@@ -12843,7 +12878,12 @@
         "summary": "Update Project",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agent": {
@@ -12964,7 +13004,12 @@
         "summary": "Create Full Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agent/{agentId}": {
@@ -13068,7 +13113,12 @@
         "summary": "Delete Full Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "description": "Retrieve a complete agent definition with all agents, tools, and relationships",
@@ -13177,7 +13227,12 @@
         "summary": "Get Full Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
@@ -13305,7 +13360,12 @@
         "summary": "Update Full Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents": {
@@ -13423,6 +13483,11 @@
         "tags": [
           "Agents"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -13548,7 +13613,12 @@
         "summary": "Create Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs": {
@@ -13675,6 +13745,11 @@
         "tags": [
           "Context Configs"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -13809,7 +13884,12 @@
         "summary": "Create Context Configuration",
         "tags": [
           "Context Configs"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}": {
@@ -13921,7 +14001,12 @@
         "summary": "Delete Context Configuration",
         "tags": [
           "Context Configs"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-context-config-by-id",
@@ -14038,7 +14123,12 @@
         "summary": "Get Context Configuration",
         "tags": [
           "Context Configs"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-context-config",
@@ -14164,7 +14254,12 @@
         "summary": "Update Context Configuration",
         "tags": [
           "Context Configs"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full": {
@@ -14274,7 +14369,12 @@
         "summary": "Get Full Agent Definition",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools": {
@@ -14401,6 +14501,11 @@
         "tags": [
           "Function Tools"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -14535,7 +14640,12 @@
         "summary": "Create Function Tool",
         "tags": [
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}": {
@@ -14647,7 +14757,12 @@
         "summary": "Delete Function Tool",
         "tags": [
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-function-tool",
@@ -14764,7 +14879,12 @@
         "summary": "Get Function Tool by ID",
         "tags": [
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-function-tool",
@@ -14890,7 +15010,12 @@
         "summary": "Update Function Tool",
         "tags": [
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers": {
@@ -15017,6 +15142,11 @@
         "tags": [
           "Scheduled Triggers"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -15151,7 +15281,12 @@
         "summary": "Create Scheduled Trigger",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/upcoming-runs": {
@@ -15292,6 +15427,11 @@
         "tags": [
           "Scheduled Triggers"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -15422,7 +15562,12 @@
         "summary": "Delete Scheduled Trigger",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-scheduled-trigger-by-id",
@@ -15540,7 +15685,12 @@
         "summary": "Get Scheduled Trigger",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-scheduled-trigger",
@@ -15667,7 +15817,12 @@
         "summary": "Update Scheduled Trigger",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations": {
@@ -15843,6 +15998,11 @@
         "tags": [
           "Scheduled Triggers"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -15990,7 +16150,12 @@
         "summary": "Get Scheduled Trigger Invocation",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/cancel": {
@@ -16135,7 +16300,12 @@
         "summary": "Cancel Scheduled Trigger Invocation",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/rerun": {
@@ -16281,7 +16451,12 @@
         "summary": "Rerun Scheduled Trigger Invocation",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/run": {
@@ -16413,7 +16588,12 @@
         "summary": "Run Scheduled Trigger Now",
         "tags": [
           "Scheduled Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components": {
@@ -16560,7 +16740,12 @@
         "tags": [
           "Agents",
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}": {
@@ -16680,7 +16865,12 @@
         "tags": [
           "Agents",
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}": {
@@ -16808,7 +16998,12 @@
         "tags": [
           "Agents",
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}/exists": {
@@ -16936,7 +17131,12 @@
         "tags": [
           "Agents",
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/component/{artifactComponentId}/agents": {
@@ -17055,7 +17255,12 @@
         "tags": [
           "Agents",
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components": {
@@ -17204,7 +17409,12 @@
         "tags": [
           "Agents",
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}": {
@@ -17324,7 +17534,12 @@
         "tags": [
           "Agents",
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}": {
@@ -17452,7 +17667,12 @@
         "tags": [
           "Agents",
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}/exists": {
@@ -17580,7 +17800,12 @@
         "tags": [
           "Agents",
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/component/{dataComponentId}/agents": {
@@ -17699,7 +17924,12 @@
         "tags": [
           "Agents",
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools": {
@@ -17829,7 +18059,12 @@
         "tags": [
           "SubAgents",
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/function-tool/{functionToolId}/sub-agents": {
@@ -17948,7 +18183,12 @@
         "tags": [
           "SubAgents",
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}": {
@@ -18068,7 +18308,12 @@
         "tags": [
           "SubAgents",
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}/function-tool/{functionToolId}": {
@@ -18196,7 +18441,12 @@
         "tags": [
           "SubAgents",
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}/function-tool/{functionToolId}/exists": {
@@ -18324,7 +18574,12 @@
         "tags": [
           "SubAgents",
           "Function Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations": {
@@ -18483,6 +18738,11 @@
         "tags": [
           "SubAgents"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -18617,7 +18877,12 @@
         "summary": "Create Sub Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}": {
@@ -18679,7 +18944,12 @@
         "summary": "Delete Sub Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-sub-agent-relation-by-id",
@@ -18796,7 +19066,12 @@
         "summary": "Get Sub Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-sub-agent-relation",
@@ -18922,7 +19197,12 @@
         "summary": "Update Sub Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills": {
@@ -19041,7 +19321,12 @@
         "summary": "Attach Skill to Sub-Agent",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills/agent/{subAgentId}": {
@@ -19160,7 +19445,12 @@
         "summary": "List Skills for Sub-Agent",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills/agent/{subAgentId}/skill/{skillId}": {
@@ -19279,7 +19569,12 @@
         "summary": "Detach Skill from Sub-Agent",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations": {
@@ -19423,6 +19718,11 @@
           "SubAgents",
           "Tools"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -19558,7 +19858,12 @@
         "tags": [
           "SubAgents",
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/tool/{toolId}/sub-agents": {
@@ -19693,7 +19998,12 @@
         "tags": [
           "SubAgents",
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}": {
@@ -19756,7 +20066,12 @@
         "tags": [
           "SubAgents",
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-subagent-tool-relation",
@@ -19874,7 +20189,12 @@
         "tags": [
           "SubAgents",
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-subagent-tool-relation",
@@ -20001,7 +20321,12 @@
         "tags": [
           "SubAgents",
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents": {
@@ -20128,6 +20453,11 @@
         "tags": [
           "SubAgents"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -20262,7 +20592,12 @@
         "summary": "Create SubAgent",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}": {
@@ -20334,7 +20669,12 @@
         "summary": "Delete SubAgent",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-subagent-by-id",
@@ -20451,7 +20791,12 @@
         "summary": "Get SubAgent",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-subagent",
@@ -20577,7 +20922,12 @@
         "summary": "Update SubAgent",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations": {
@@ -20714,6 +21064,11 @@
           "SubAgents",
           "External Agents"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -20858,7 +21213,12 @@
         "tags": [
           "SubAgents",
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}": {
@@ -20930,7 +21290,12 @@
         "tags": [
           "SubAgents",
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-sub-agent-external-agent-relation-by-id",
@@ -21057,7 +21422,12 @@
         "tags": [
           "SubAgents",
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-sub-agent-external-agent-relation",
@@ -21193,7 +21563,12 @@
         "tags": [
           "SubAgents",
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related": {
@@ -21312,7 +21687,12 @@
         "summary": "Get Related Agent Infos",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations": {
@@ -21448,6 +21828,11 @@
         "tags": [
           "SubAgents"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -21591,7 +21976,12 @@
         "summary": "Create Sub Agent Team Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}": {
@@ -21662,7 +22052,12 @@
         "summary": "Delete Sub Agent Team Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-sub-agent-team-agent-relation-by-id",
@@ -21788,7 +22183,12 @@
         "summary": "Get Sub Agent Team Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-sub-agent-team-agent-relation",
@@ -21923,7 +22323,12 @@
         "summary": "Update Sub Agent Team Agent Relation",
         "tags": [
           "SubAgents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers": {
@@ -22050,6 +22455,11 @@
         "tags": [
           "Triggers"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -22184,7 +22594,12 @@
         "summary": "Create Trigger",
         "tags": [
           "Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}": {
@@ -22296,7 +22711,12 @@
         "summary": "Delete Trigger",
         "tags": [
           "Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-trigger-by-id",
@@ -22413,7 +22833,12 @@
         "summary": "Get Trigger",
         "tags": [
           "Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-trigger",
@@ -22539,7 +22964,12 @@
         "summary": "Update Trigger",
         "tags": [
           "Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/invocations": {
@@ -22712,6 +23142,11 @@
         "tags": [
           "Triggers"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -22858,7 +23293,12 @@
         "summary": "Get Trigger Invocation",
         "tags": [
           "Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/rerun": {
@@ -23028,7 +23468,12 @@
         "summary": "Rerun Trigger",
         "tags": [
           "Triggers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project use permission (project_member+, or org admin/owner)",
+          "permission": "use",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{id}": {
@@ -23081,7 +23526,12 @@
         "summary": "Delete Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-agent",
@@ -23189,7 +23639,12 @@
         "summary": "Get Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-agent",
@@ -23306,7 +23761,12 @@
         "summary": "Update Agent",
         "tags": [
           "Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/api-keys": {
@@ -23435,6 +23895,11 @@
         "tags": [
           "API Keys"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -23582,7 +24047,12 @@
         "summary": "Create API Key",
         "tags": [
           "API Keys"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project use permission (project_member+, or org admin/owner)",
+          "permission": "use",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/api-keys/{id}": {
@@ -23636,7 +24106,12 @@
         "summary": "Delete API Key",
         "tags": [
           "API Keys"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "description": "Get a specific API key by ID (does not return the actual key)",
@@ -23745,7 +24220,12 @@
         "summary": "Get API Key",
         "tags": [
           "API Keys"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "description": "Update an API key (currently only expiration date can be changed)",
@@ -23863,7 +24343,12 @@
         "summary": "Update API Key",
         "tags": [
           "API Keys"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/artifact-components": {
@@ -23981,6 +24466,11 @@
         "tags": [
           "Artifact Components"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -24106,7 +24596,12 @@
         "summary": "Create Artifact Component",
         "tags": [
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}": {
@@ -24159,7 +24654,12 @@
         "summary": "Delete Artifact Component",
         "tags": [
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-artifact-component-by-id",
@@ -24267,7 +24767,12 @@
         "summary": "Get Artifact Component",
         "tags": [
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-artifact-component",
@@ -24384,7 +24889,12 @@
         "summary": "Update Artifact Component",
         "tags": [
           "Artifact Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/branches": {
@@ -24486,7 +24996,12 @@
         "summary": "List Branches",
         "tags": [
           "Branches"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
         "description": "Create a new branch",
@@ -24605,7 +25120,12 @@
         "summary": "Create Branch",
         "tags": [
           "Branches"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/branches/agents/{agentId}": {
@@ -24716,7 +25236,12 @@
         "summary": "List Branches for Agent",
         "tags": [
           "Branches"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/branches/{branchName}": {
@@ -24817,7 +25342,12 @@
         "summary": "Delete Branch",
         "tags": [
           "Branches"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "description": "Get a single branch by name",
@@ -24923,7 +25453,12 @@
         "summary": "Get Branch",
         "tags": [
           "Branches"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/conversations/{id}": {
@@ -25054,7 +25589,12 @@
         "summary": "Get Conversation",
         "tags": [
           "Conversations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/credential-stores": {
@@ -25155,7 +25695,12 @@
         "summary": "List Credential Stores",
         "tags": [
           "Credential Stores"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/credential-stores/{id}/credentials": {
@@ -25274,7 +25819,12 @@
         "summary": "Create Credential in Store",
         "tags": [
           "Credential Stores"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/credentials": {
@@ -25392,6 +25942,11 @@
         "tags": [
           "Credentials"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -25517,7 +26072,12 @@
         "summary": "Create Credential",
         "tags": [
           "Credentials"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/credentials/{id}": {
@@ -25570,7 +26130,12 @@
         "summary": "Delete Credential",
         "tags": [
           "Credentials"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-credential-by-id",
@@ -25678,7 +26243,12 @@
         "summary": "Get Credential",
         "tags": [
           "Credentials"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-credential",
@@ -25795,7 +26365,12 @@
         "summary": "Update Credential",
         "tags": [
           "Credentials"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/data-components": {
@@ -25913,6 +26488,11 @@
         "tags": [
           "Data Components"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -26038,7 +26618,12 @@
         "summary": "Create Data Component",
         "tags": [
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/data-components/{id}": {
@@ -26091,7 +26676,12 @@
         "summary": "Delete Data Component",
         "tags": [
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-data-component-by-id",
@@ -26199,7 +26789,12 @@
         "summary": "Get Data Component",
         "tags": [
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-data-component",
@@ -26316,7 +26911,12 @@
         "summary": "Update Data Component",
         "tags": [
           "Data Components"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}": {
@@ -26440,7 +27040,12 @@
         "summary": "List Dataset Items by Dataset ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items": {
@@ -26566,7 +27171,12 @@
         "summary": "Create Dataset Item",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items/bulk": {
@@ -26702,7 +27312,12 @@
         "summary": "Create Multiple Dataset Items",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items/{itemId}": {
@@ -26812,7 +27427,12 @@
         "summary": "Delete Dataset Item by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-dataset-item",
@@ -26935,7 +27555,12 @@
         "summary": "Get Dataset Item by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-dataset-item",
@@ -27067,7 +27692,12 @@
         "summary": "Update Dataset Item",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets": {
@@ -27183,7 +27813,12 @@
         "summary": "List all Datasets",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "create-dataset",
@@ -27299,7 +27934,12 @@
         "summary": "Create Dataset",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets/{datasetId}": {
@@ -27401,7 +28041,12 @@
         "summary": "Delete Dataset by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-dataset",
@@ -27516,7 +28161,12 @@
         "summary": "Get Dataset by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-dataset",
@@ -27640,7 +28290,12 @@
         "summary": "Update Dataset by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs": {
@@ -27756,7 +28411,12 @@
         "summary": "List Evaluation Job Configs",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "create-evaluation-job-config",
@@ -27872,7 +28532,12 @@
         "summary": "Create Evaluation Job Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}": {
@@ -27974,7 +28639,12 @@
         "summary": "Delete Evaluation Job Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-evaluation-job-config",
@@ -28089,7 +28759,12 @@
         "summary": "Get Evaluation Job Config by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators": {
@@ -28201,7 +28876,12 @@
         "summary": "List Evaluators for Evaluation Job Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators/{evaluatorId}": {
@@ -28311,7 +28991,12 @@
         "summary": "Remove Evaluator from Evaluation Job Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "add-evaluator-to-job-config",
@@ -28426,7 +29111,12 @@
         "summary": "Add Evaluator to Evaluation Job Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/results": {
@@ -28550,7 +29240,12 @@
         "summary": "Get Evaluation Results by Job Config ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results": {
@@ -28668,7 +29363,12 @@
         "summary": "Create Evaluation Result",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results/{resultId}": {
@@ -28770,7 +29470,12 @@
         "summary": "Delete Evaluation Result",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-evaluation-result",
@@ -28885,7 +29590,12 @@
         "summary": "Get Evaluation Result by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-evaluation-result",
@@ -29009,7 +29719,12 @@
         "summary": "Update Evaluation Result",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs": {
@@ -29125,7 +29840,12 @@
         "summary": "List Evaluation Run Configs",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "create-evaluation-run-config",
@@ -29241,7 +29961,12 @@
         "summary": "Create Evaluation Run Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs/{configId}": {
@@ -29343,7 +30068,12 @@
         "summary": "Delete Evaluation Run Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-evaluation-run-config",
@@ -29458,7 +30188,12 @@
         "summary": "Get Evaluation Run Config by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-evaluation-run-config",
@@ -29582,7 +30317,12 @@
         "summary": "Update Evaluation Run Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs/{configId}/results": {
@@ -29706,7 +30446,12 @@
         "summary": "Get Evaluation Results by Run Config ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs": {
@@ -29822,7 +30567,12 @@
         "summary": "List Evaluation Suite Configs",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "create-evaluation-suite-config",
@@ -29938,7 +30688,12 @@
         "summary": "Create Evaluation Suite Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}": {
@@ -30040,7 +30795,12 @@
         "summary": "Delete Evaluation Suite Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-evaluation-suite-config",
@@ -30155,7 +30915,12 @@
         "summary": "Get Evaluation Suite Config by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-evaluation-suite-config",
@@ -30279,7 +31044,12 @@
         "summary": "Update Evaluation Suite Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators": {
@@ -30391,7 +31161,12 @@
         "summary": "List Evaluators for Evaluation Suite Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}": {
@@ -30501,7 +31276,12 @@
         "summary": "Remove Evaluator from Evaluation Suite Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "add-evaluator-to-suite-config",
@@ -30616,7 +31396,12 @@
         "summary": "Add Evaluator to Evaluation Suite Config",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators": {
@@ -30732,7 +31517,12 @@
         "summary": "List Evaluators",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
         "operationId": "create-evaluator",
@@ -30848,7 +31638,12 @@
         "summary": "Create Evaluator",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/batch": {
@@ -30981,7 +31776,12 @@
         "summary": "Get Evaluators by IDs",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/{evaluatorId}": {
@@ -31083,7 +31883,12 @@
         "summary": "Delete Evaluator",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-evaluator",
@@ -31198,7 +32003,12 @@
         "summary": "Get Evaluator by ID",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "patch": {
         "operationId": "update-evaluator",
@@ -31322,7 +32132,12 @@
         "summary": "Update Evaluator",
         "tags": [
           "Evaluations"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/external-agents": {
@@ -31440,6 +32255,11 @@
         "tags": [
           "External Agents"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -31565,7 +32385,12 @@
         "summary": "Create External Agent",
         "tags": [
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/external-agents/{id}": {
@@ -31618,7 +32443,12 @@
         "summary": "Delete External Agent",
         "tags": [
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-external-agent-by-id",
@@ -31726,7 +32556,12 @@
         "summary": "Get External Agent",
         "tags": [
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-external-agent",
@@ -31843,7 +32678,12 @@
         "summary": "Update External Agent",
         "tags": [
           "External Agents"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/functions": {
@@ -31961,6 +32801,11 @@
         "tags": [
           "Functions"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -32099,7 +32944,12 @@
         "summary": "Create Function",
         "tags": [
           "Functions"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/functions/{id}": {
@@ -32202,7 +33052,12 @@
         "summary": "Delete Function",
         "tags": [
           "Functions"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-function",
@@ -32310,7 +33165,12 @@
         "summary": "Get Function by ID",
         "tags": [
           "Functions"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-function",
@@ -32427,7 +33287,12 @@
         "summary": "Update Function",
         "tags": [
           "Functions"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/github-access": {
@@ -32590,7 +33455,12 @@
         "summary": "Get project GitHub repository access",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "description": "Configures which GitHub repositories a project can access. When mode is \"all\", the project has access to all repositories from tenant GitHub installations. When mode is \"selected\", the project is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration.",
@@ -32737,7 +33607,12 @@
         "summary": "Set project GitHub repository access",
         "tags": [
           "Projects"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/mcp-catalog": {
@@ -32839,12 +33714,17 @@
         "summary": "List MCP Server Catalog",
         "tags": [
           "MCP Catalog"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/members": {
       "get": {
-        "description": "List all users with explicit project access. Requires authz to be enabled.",
+        "description": "List all users with explicit project access.",
         "operationId": "list-project-members",
         "parameters": [
           {
@@ -32967,10 +33847,15 @@
         "summary": "List Project Members",
         "tags": [
           "Project Members"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "post": {
-        "description": "Add a user to a project with a specified role. Requires authz to be enabled.",
+        "description": "Add a user to a project with a specified role.",
         "operationId": "add-project-member",
         "parameters": [
           {
@@ -33121,12 +34006,17 @@
         "summary": "Add Project Member",
         "tags": [
           "Project Members"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/members/{userId}": {
       "delete": {
-        "description": "Remove a user from a project. Requires authz to be enabled. Pass role as query param to specify which role to revoke.",
+        "description": "Remove a user from a project. Pass role as query param to specify which role to revoke.",
         "operationId": "remove-project-member",
         "parameters": [
           {
@@ -33235,10 +34125,15 @@
         "summary": "Remove Project Member",
         "tags": [
           "Project Members"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "patch": {
-        "description": "Update a project member's role. Requires authz to be enabled. Include previousRole to specify which role to revoke.",
+        "description": "Update a project member's role. Include previousRole to specify which role to revoke.",
         "operationId": "update-project-member",
         "parameters": [
           {
@@ -33400,7 +34295,12 @@
         "summary": "Update Project Member Role",
         "tags": [
           "Project Members"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/permissions": {
@@ -33524,7 +34424,12 @@
         "summary": "Get Project Permissions",
         "tags": [
           "Project Permissions"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/refs/resolve": {
@@ -33626,7 +34531,12 @@
         "summary": "Resolve Ref",
         "tags": [
           "Refs"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/skills": {
@@ -33744,6 +34654,11 @@
         "tags": [
           "Skills"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -33869,7 +34784,12 @@
         "summary": "Create Skill",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/skills/{id}": {
@@ -33972,7 +34892,12 @@
         "summary": "Delete Skill",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-skill",
@@ -34080,7 +35005,12 @@
         "summary": "Get Skill",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-skill",
@@ -34197,7 +35127,12 @@
         "summary": "Update Skill",
         "tags": [
           "Skills"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers": {
@@ -34326,7 +35261,12 @@
         "summary": "Get Third-Party MCP Server Details",
         "tags": [
           "Third-Party MCP Servers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers/oauth-redirect": {
@@ -34473,7 +35413,12 @@
         "summary": "Get OAuth Redirect URL",
         "tags": [
           "Third-Party MCP Servers"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/tools": {
@@ -34620,6 +35565,11 @@
         "tags": [
           "Tools"
         ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -34745,7 +35695,12 @@
         "summary": "Create Tool",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}": {
@@ -34848,7 +35803,12 @@
         "summary": "Delete Tool",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "get": {
         "operationId": "get-tool",
@@ -34956,7 +35916,12 @@
         "summary": "Get Tool",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       },
       "put": {
         "operationId": "update-tool",
@@ -35073,7 +36038,91 @@
         "summary": "Update Tool",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}/oauth/login": {
+      "get": {
+        "description": "Detects OAuth requirements and redirects to the authorization server for the specified tool",
+        "operationId": "initiate-tool-oauth-login",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to OAuth authorization server"
+          },
+          "400": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OAuth not supported or configuration error"
+          },
+          "404": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool not found"
+          },
+          "500": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Initiate OAuth login for MCP tool",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}/user-credential": {
@@ -35183,7 +36232,12 @@
         "summary": "Get User Credential for Tool",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/tools/{toolId}/github-access": {
@@ -35362,7 +36416,12 @@
         "summary": "Get MCP tool GitHub repository access",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       },
       "put": {
         "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
@@ -35520,12 +36579,17 @@
         "summary": "Set MCP tool GitHub repository access",
         "tags": [
           "Tools"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
       }
     },
     "/manage/tenants/{tenantId}/users/{userId}/project-memberships": {
       "get": {
-        "description": "List all projects a user has explicit access to and their role in each. Requires authz to be enabled.",
+        "description": "List all projects a user has explicit access to and their role in each.",
         "operationId": "list-user-project-memberships",
         "parameters": [
           {
@@ -35648,7 +36712,12 @@
         "summary": "List User Project Memberships",
         "tags": [
           "User Project Memberships"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
       }
     },
     "/ready": {
@@ -35677,6 +36746,7 @@
             "description": "Service is not ready - one or more health checks failed"
           }
         },
+        "security": [],
         "summary": "Readiness check",
         "tags": [
           "Health"
@@ -35782,7 +36852,10 @@
         ],
         "tags": [
           "A2A"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
       }
     },
     "/run/api/chat": {
@@ -36082,7 +37155,10 @@
         "summary": "Chat (Vercel Streaming Protocol)",
         "tags": [
           "Chat"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
       }
     },
     "/run/api/tool-approvals": {
@@ -36209,7 +37285,10 @@
         "summary": "Approve or deny tool execution",
         "tags": [
           "Chat"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
       }
     },
     "/run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}": {
@@ -36412,6 +37491,7 @@
             "description": "Internal server error"
           }
         },
+        "security": [],
         "summary": "Invoke agent via trigger webhook",
         "tags": [
           "Webhooks"
@@ -36731,7 +37811,10 @@
         "summary": "Create chat completion",
         "tags": [
           "Chat"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
       }
     },
     "/run/v1/mcp": {
@@ -36794,7 +37877,10 @@
         "summary": "MCP Protocol",
         "tags": [
           "MCP"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/install": {
@@ -36816,6 +37902,7 @@
             "description": "Redirect to Slack OAuth"
           }
         },
+        "security": [],
         "summary": "Install Slack App",
         "tags": [
           "Work Apps",
@@ -36859,6 +37946,7 @@
             "description": "Redirect to dashboard with workspace data"
           }
         },
+        "security": [],
         "summary": "Slack OAuth Callback",
         "tags": [
           "Work Apps",
@@ -36932,7 +38020,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/disconnect": {
@@ -37000,7 +38091,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/link-status": {
@@ -37068,7 +38162,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/link/verify-token": {
@@ -37145,7 +38242,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/status": {
@@ -37236,7 +38336,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/workspaces": {
@@ -37297,10 +38400,13 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId": {
+    "/work-apps/slack/workspaces/{teamId}": {
       "delete": {
         "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
         "operationId": "slack-delete-workspace",
@@ -37348,7 +38454,12 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       },
       "get": {
         "description": "Get details of a specific Slack workspace",
@@ -37423,10 +38534,13 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId/channels": {
+    "/work-apps/slack/workspaces/{teamId}/channels": {
       "get": {
         "description": "List Slack channels in the workspace that the bot can see",
         "operationId": "slack-list-channels",
@@ -37548,222 +38662,13 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId/channels/:channelId/settings": {
-      "delete": {
-        "description": "Remove the default agent configuration for a channel",
-        "operationId": "slack-delete-channel-settings",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "channelId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Channel config removed"
-          }
-        },
-        "summary": "Remove Channel Config",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      },
-      "get": {
-        "description": "Get default agent configuration for a specific channel",
-        "operationId": "slack-get-channel-settings",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "channelId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "agentConfig": {
-                      "properties": {
-                        "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
-                          "type": "string"
-                        },
-                        "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "projectId",
-                        "agentId"
-                      ],
-                      "type": "object"
-                    },
-                    "channelId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "channelId"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Channel settings"
-          }
-        },
-        "summary": "Get Channel Settings",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      },
-      "put": {
-        "description": "Set or update the default agent for a specific channel",
-        "operationId": "slack-set-channel-settings",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "channelId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "agentConfig": {
-                    "properties": {
-                      "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
-                        "type": "string"
-                      },
-                      "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "projectId",
-                      "agentId"
-                    ],
-                    "type": "object"
-                  },
-                  "channelName": {
-                    "type": "string"
-                  },
-                  "channelType": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "agentConfig"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "configId": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "configId"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Channel settings updated"
-          }
-        },
-        "summary": "Set Channel Default Agent",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Channels"
-        ]
-      }
-    },
-    "/work-apps/slack/workspaces/:teamId/channels/bulk": {
+    "/work-apps/slack/workspaces/{teamId}/channels/bulk": {
       "delete": {
         "description": "Remove agent configuration from multiple channels at once",
         "operationId": "slack-bulk-delete-channel-agents",
@@ -37827,7 +38732,12 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       },
       "put": {
         "description": "Apply the same agent configuration to multiple channels at once",
@@ -37942,10 +38852,236 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId/health": {
+    "/work-apps/slack/workspaces/{teamId}/channels/{channelId}/settings": {
+      "delete": {
+        "description": "Remove the default agent configuration for a channel",
+        "operationId": "slack-delete-channel-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channel config removed"
+          }
+        },
+        "summary": "Remove Channel Config",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep organization admin role, or Slack channel membership to modify channel settings"
+        }
+      },
+      "get": {
+        "description": "Get default agent configuration for a specific channel",
+        "operationId": "slack-get-channel-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "agentConfig": {
+                      "properties": {
+                        "agentId": {
+                          "type": "string"
+                        },
+                        "agentName": {
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "projectId",
+                        "agentId"
+                      ],
+                      "type": "object"
+                    },
+                    "channelId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "channelId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channel settings"
+          }
+        },
+        "summary": "Get Channel Settings",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
+      },
+      "put": {
+        "description": "Set or update the default agent for a specific channel",
+        "operationId": "slack-set-channel-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentConfig": {
+                    "properties": {
+                      "agentId": {
+                        "type": "string"
+                      },
+                      "agentName": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projectId",
+                      "agentId"
+                    ],
+                    "type": "object"
+                  },
+                  "channelName": {
+                    "type": "string"
+                  },
+                  "channelType": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "agentConfig"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "configId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "configId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channel settings updated"
+          }
+        },
+        "summary": "Set Channel Default Agent",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep organization admin role, or Slack channel membership to modify channel settings"
+        }
+      }
+    },
+    "/work-apps/slack/workspaces/{teamId}/health": {
       "get": {
         "description": "Verify the bot token is valid and check permissions. Returns bot info and permission status.",
         "operationId": "slack-workspace-health",
@@ -38022,10 +39158,13 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId/settings": {
+    "/work-apps/slack/workspaces/{teamId}/settings": {
       "get": {
         "description": "Get settings for a Slack workspace including default agent",
         "operationId": "slack-get-workspace-settings",
@@ -38079,7 +39218,10 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       },
       "put": {
         "description": "Update workspace settings including default agent",
@@ -38169,10 +39311,15 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId/test-message": {
+    "/work-apps/slack/workspaces/{teamId}/test-message": {
       "post": {
         "description": "Send a test message to verify the bot is working correctly.",
         "operationId": "slack-test-message",
@@ -38243,10 +39390,15 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
-    "/work-apps/slack/workspaces/:teamId/users": {
+    "/work-apps/slack/workspaces/{teamId}/users": {
       "get": {
         "description": "List all users linked to Inkeep in this workspace",
         "operationId": "slack-list-linked-users",
@@ -38321,7 +39473,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     }
   },

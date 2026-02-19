@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   checkBulkPermissions,
   commonGetErrorResponses,
@@ -8,6 +8,8 @@ import {
   SpiceDbProjectPermissions,
   SpiceDbResourceTypes,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -27,7 +29,7 @@ const ProjectPermissionsResponseSchema = z.object({
 
 // Get project permissions for the current user
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'Get Project Permissions',
@@ -35,6 +37,7 @@ app.openapi(
       "Get the current user's permissions for a project. Returns which actions the user can perform.",
     operationId: 'get-project-permissions',
     tags: ['Project Permissions'],
+    permission: requireProjectPermission('view'),
     request: {
       params: ProjectPermissionsParamsSchema,
     },

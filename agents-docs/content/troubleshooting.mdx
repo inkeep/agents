@@ -80,10 +80,20 @@ If `pnpm dev` fails or services aren't reachable, the most common cause is that 
 **How to fix:**
 
 1. Ensure Docker Desktop (or Docker daemon) is running
-2. Run `pnpm setup-dev` — this is idempotent and will start any stopped databases, apply pending migrations, and ensure the admin user exists
+2. Run `pnpm setup-dev` — it will start any stopped databases, apply pending migrations, and ensure the admin user exists
 3. Run `pnpm dev` again
 
 For the [quickstart template](/get-started/quick-start), the same applies: run `pnpm setup-dev` from the workspace root before `pnpm dev`.
+
+### Port conflicts
+
+If `pnpm setup-dev` reports that ports 5432, 5433, or 5434 are in use by another Docker Compose project, stop that project first:
+
+```bash
+docker compose -p <project-name> down
+```
+
+The setup script tells you the exact project name and command. After stopping the conflicting project, re-run `pnpm setup-dev`.
 
 ## Check service logs (local development)
 
