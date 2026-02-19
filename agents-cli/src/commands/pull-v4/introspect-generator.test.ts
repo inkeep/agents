@@ -197,6 +197,79 @@ export const weatherMcpTool = mcpTool({
     );
   });
 
+  it('preserves existing tool reference names in project index', async () => {
+    const project = createProjectFixture();
+    project.tools = {
+      'weather-mcp': {
+        id: 'weather-mcp',
+      },
+      'exa-mcp': {
+        id: 'exa-mcp',
+      },
+    };
+
+    fs.mkdirSync(join(testDir, 'tools'), { recursive: true });
+
+    const indexFilePath = join(testDir, 'index.ts');
+    const before = `import { project } from '@inkeep/agents-sdk';
+import { supportAgent } from './agents/support-agent';
+import { weatherMcpTool } from './tools/weather-mcp';
+import { exaMcpTool } from './tools/exa-mcp';
+
+export const supportProject = project({
+  id: 'support-project',
+  name: 'Legacy support project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini'
+    }
+  },
+  agents: () => [supportAgent],
+  tools: () => [weatherMcpTool, exaMcpTool]
+});
+`;
+    fs.writeFileSync(indexFilePath, before);
+
+    fs.writeFileSync(
+      join(testDir, 'tools', 'weather-mcp.ts'),
+      `import { mcpTool } from '@inkeep/agents-sdk';
+
+export const weatherMcpTool = mcpTool({
+  id: 'weather-mcp',
+  name: 'Weather MCP'
+});
+`
+    );
+    fs.writeFileSync(
+      join(testDir, 'tools', 'exa-mcp.ts'),
+      `import { mcpTool } from '@inkeep/agents-sdk';
+
+export const exaMcpTool = mcpTool({
+  id: 'exa-mcp',
+  name: 'Exa MCP'
+});
+`
+    );
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedIndexFile } = await import(`${indexFilePath}?raw`);
+    expect(mergedIndexFile).toContain("import { weatherMcpTool } from './tools/weather-mcp';");
+    expect(mergedIndexFile).toContain("import { exaMcpTool } from './tools/exa-mcp';");
+    expect(mergedIndexFile).toContain('tools: () => [weatherMcpTool, exaMcpTool]');
+    expect(mergedIndexFile).not.toContain('tools: () => [weather-mcp');
+    expect(mergedIndexFile).not.toContain('tools: () => [exa-mcp');
+
+    await expect(mergedIndexFile).toMatchFileSnapshot(
+      `__snapshots__/introspect/${expect.getState().currentTestName}.ts`
+    );
+
+    const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
+    await expect(indexDiff).toMatchFileSnapshot(
+      `__snapshots__/introspect/${expect.getState().currentTestName}.diff`
+    );
+  });
+
   it('reuses existing file when sub-agent already exists in the agent file', async () => {
     const project = createProjectFixture();
     const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
