@@ -32,7 +32,7 @@ function mergeImports(existingFile: SourceFile, generatedFile: SourceFile) {
       .getImportDeclarations()
       .filter((existingImport) => existingImport.getModuleSpecifierValue() === moduleSpecifier);
 
-    if (matchingImports.length === 0) {
+    if (!matchingImports.length) {
       existingFile.addImportDeclaration(generatedImport.getStructure());
       continue;
     }
@@ -289,8 +289,6 @@ function readEntityId(
       }
     }
   }
-
-  return;
 }
 
 function upsertNamedStatement(
@@ -791,7 +789,7 @@ function indentMultilineText(text: string, indent: string): string {
       : (firstNonEmptyLine?.match(/^[ \t]*/)?.[0].length ?? 0);
 
   const normalizedLines = lines.map((line) => {
-    if (line.trim().length === 0) {
+    if (!line.trim()) {
       return '';
     }
     if (stripIndent === 0) {
@@ -857,7 +855,7 @@ function getLeadingCommentsText(statement: Statement): string | undefined {
     )
     .map((commentRange) => commentRange.getText());
 
-  if (commentTexts.length === 0) {
+  if (!commentTexts.length) {
     return;
   }
 
