@@ -79,9 +79,14 @@ export function getDevDefaultAgent(config: SlackDevConfig | null): DefaultAgentC
   if (!config?.metadata?.default_agent) return null;
   try {
     return JSON.parse(config.metadata.default_agent);
-  } catch {
+  } catch (error) {
+    logger.warn(
+      { error, rawValue: config.metadata.default_agent },
+      'Failed to parse default_agent metadata as JSON - check .slack-dev.json format'
+    );
     return null;
   }
+}
 }
 
 export function saveSlackDevConfig(config: SlackDevConfig): boolean {
