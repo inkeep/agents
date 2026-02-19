@@ -135,7 +135,7 @@ describe('Trigger Generator', () => {
   // });
 
   describe('generateTriggerDefinition', () => {
-    it.only('should generate basic trigger definition', async () => {
+    it('should generate basic trigger definition', async () => {
       const triggerId = 'github-webhook';
       const definition = generateTriggerDefinition(triggerId, basicTriggerData);
 
@@ -150,7 +150,7 @@ describe('Trigger Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate trigger with GitHub signature verification', async () => {
+    it('should generate trigger with GitHub signature verification', async () => {
       const triggerId = 'github-webhook';
       const definition = generateTriggerDefinition(
         triggerId,
@@ -182,7 +182,7 @@ describe('Trigger Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate trigger with Slack signature verification', async () => {
+    it('should generate trigger with Slack signature verification', async () => {
       const triggerId = 'slack-webhook';
       const definition = generateTriggerDefinition(
         triggerId,
@@ -208,7 +208,7 @@ describe('Trigger Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate trigger with multiple algorithms', async () => {
+    it('should generate trigger with multiple algorithms', async () => {
       const triggerDataSha512 = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -230,7 +230,7 @@ describe('Trigger Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate trigger with base64 encoding', async () => {
+    it('should generate trigger with base64 encoding', async () => {
       const triggerDataBase64 = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -252,7 +252,7 @@ describe('Trigger Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate trigger with regex in signature source', async () => {
+    it('should generate trigger with regex in signature source', async () => {
       const triggerDataWithRegex = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
@@ -278,7 +278,7 @@ describe('Trigger Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle optional signed components', async () => {
+    it('should handle optional signed components', async () => {
       const triggerDataOptional = {
         ...triggerWithSignatureVerification,
         signatureVerification: {
