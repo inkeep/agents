@@ -1,0 +1,109 @@
+---
+title: Local Slack Development with Socket Mode
+sidebarTitle: Local Development
+description: Set up automated local Slack development using Socket Mode for testing Inkeep agents in Slack without tunneling tools.
+icon: LuLaptop
+---
+
+# Local Slack Development with Socket Mode
+
+Run and test the Inkeep Slack integration locally without tunneling tools like ngrok or Cloudflare Tunnel. The `pnpm setup-slack-dev` script automates the full Slack app setup using [Socket Mode](https://api.slack.com/apis/socket-mode) — a WebSocket-based connection that lets Slack push events directly to your local process.
+
+<Note>
+Each developer needs their own Slack app. Socket Mode distributes events randomly across connected clients, so sharing an app with teammates means you'll only receive a fraction of events.
+</Note>
+
+## Prerequisites
+
+- Repository cloned and dependencies installed (`pnpm install`)
+- Local database initialized (`pnpm setup-dev`)
+- Access to a Slack workspace where you can create apps
+
+## Quick start
+
+Run the setup script:
+
+```bash
+pnpm setup-slack-dev
+```
+
+The script walks through four automated steps to create and configure your personal Slack app.
+
+## What the script does
+
+<Steps>
+  <Step>
+    ### Config token management
+
+    The script checks for an existing Slack configuration token and prompts you to provide one if needed. This token authorizes the script to create and manage apps in your workspace via the Slack API.
+  </Step>
+  <Step>
+    ### App creation / update
+
+    The script creates (or updates) a Slack app in your workspace using a predefined manifest. Your app gets a unique name using a two-word noun pair:
+
+    | Surface | Format | Example |
+    |---------|--------|---------|
+    | App name | `Inkeep Dev {noun}-{noun}` | `Inkeep Dev frost-ember` |
+    | Bot username | `@inkeep-{noun}-{noun}` | `@inkeep-frost-ember` |
+    | Slash command | `/{noun}-{noun}` | `/inkeep-frost-ember` |
+
+    Using unique names per developer prevents conflicts when multiple developers share the same workspace.
+  </Step>
+  <Step>
+    ### Generate an app-level token — manual step
+
+    This is the only step requiring manual action. The script prompts you to generate an app-level token (`xapp-...`) in the Slack console with the `connections:write` scope, then paste it back into the terminal.
+
+    <Tip>
+    The Slack console link is printed directly in the terminal output — open it, generate the token, and paste it back to continue.
+    </Tip>
+  </Step>
+  <Step>
+    ### OAuth installation
+
+    The script completes the OAuth flow to install the app into your workspace, obtaining the bot token (`xoxb-...`) and all required credentials.
+  </Step>
+</Steps>
+
+## Environment variables
+
+After setup, the following variables are written to your `.env` file:
+
+| Variable | Description |
+|----------|-------------|
+| `SLACK_APP_TOKEN` | App-level token (`xapp-...`) for Socket Mode |
+| `SLACK_BOT_TOKEN` | Bot token (`xoxb-...`) for API calls |
+| `SLACK_CLIENT_ID` | OAuth client ID |
+| `SLACK_CLIENT_SECRET` | OAuth client secret |
+| `SLACK_SIGNING_SECRET` | Request signature verification |
+| `SLACK_APP_URL` | Set to `http://localhost:3002` for local dev |
+| `ENVIRONMENT` | Set to `development` |
+
+## Start the development server
+
+```bash
+pnpm dev
+```
+
+Look for this line in the output to confirm Socket Mode is active:
+
+```
+Slack Socket Mode client started
+```
+
+Then test your app by mentioning the bot (`@inkeep-{noun}-{noun}`) or running the slash command (`/inkeep-{noun}-{noun}`) in any Slack channel where it's been invited.
+
+## Troubleshooting
+
+<Accordions>
+  <Accordion title="Socket Mode client isn't starting">
+    Check that `SLACK_APP_TOKEN` is set in your `.env` and starts with `xapp-`. If it's missing, re-run `pnpm setup-slack-dev` to regenerate it.
+  </Accordion>
+  <Accordion title="Events aren't arriving">
+    Invite the bot to the channel first (`/invite @inkeep-{noun}-{noun}`). Also verify that `socket_mode_enabled: true` is set in your app manifest in the Slack console.
+  </Accordion>
+  <Accordion title="\"HMR reload\" message appears in logs">
+    This is expected. Hot Module Replacement restarts the handler code, but the Socket Mode singleton survives reloads and reconnects automatically — no action needed.
+  </Accordion>
+</Accordions>
