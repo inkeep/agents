@@ -73,8 +73,9 @@ export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
   const project = createInMemoryProject();
   const parsed = result.data;
   const sourceFile = project.createSourceFile('mcp-tool-definition.ts', '', { overwrite: true });
+  const importName = 'mcpTool';
   sourceFile.addImportDeclaration({
-    namedImports: ['mcpTool'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -89,12 +90,7 @@ export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: mcpToolVarName,
-        initializer: 'mcpTool({})',
-      },
-    ],
+    declarations: [{ name: mcpToolVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();

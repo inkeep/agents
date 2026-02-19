@@ -74,8 +74,9 @@ export function generateEnvironmentSettingsDefinition(
   const sourceFile = project.createSourceFile('environment-settings-definition.ts', '', {
     overwrite: true,
   });
+  const importName = 'registerEnvironmentSettings';
   sourceFile.addImportDeclaration({
-    namedImports: ['registerEnvironmentSettings'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -90,12 +91,7 @@ export function generateEnvironmentSettingsDefinition(
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: environmentNameResult.data,
-        initializer: 'registerEnvironmentSettings({})',
-      },
-    ],
+    declarations: [{ name: environmentNameResult.data, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
@@ -119,8 +115,9 @@ export function generateEnvironmentIndexDefinition(environments: string[]): stri
   const sourceFile = project.createSourceFile('environment-index-definition.ts', '', {
     overwrite: true,
   });
+  const importName = 'createEnvironmentSettings';
   sourceFile.addImportDeclaration({
-    namedImports: ['createEnvironmentSettings'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -134,12 +131,7 @@ export function generateEnvironmentIndexDefinition(environments: string[]): stri
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: 'envSettings',
-        initializer: 'createEnvironmentSettings({})',
-      },
-    ],
+    declarations: [{ name: 'envSettings', initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();

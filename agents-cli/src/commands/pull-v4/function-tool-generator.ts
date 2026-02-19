@@ -53,9 +53,9 @@ export function generateFunctionToolDefinition(data: FunctionToolDefinitionData)
   const sourceFile = project.createSourceFile('function-tool-definition.ts', '', {
     overwrite: true,
   });
-
+  const importName = 'functionTool';
   sourceFile.addImportDeclaration({
-    namedImports: ['functionTool'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -63,12 +63,7 @@ export function generateFunctionToolDefinition(data: FunctionToolDefinitionData)
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: functionToolVarName,
-        initializer: 'functionTool({})',
-      },
-    ],
+    declarations: [{ name: functionToolVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();

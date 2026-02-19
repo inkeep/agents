@@ -279,8 +279,9 @@ function generateStandaloneHeadersDefinition(
   sourceFile: SourceFile,
   data: ParsedContextConfigDefinitionData
 ): string {
+  const importName = 'headers';
   sourceFile.addImportDeclaration({
-    namedImports: ['headers'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-core',
   });
   sourceFile.addImportDeclaration({
@@ -291,12 +292,7 @@ function generateStandaloneHeadersDefinition(
   const headersVarName = toContextConfigVariableName(data.contextConfigId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
-    declarations: [
-      {
-        name: headersVarName,
-        initializer: 'headers({})',
-      },
-    ],
+    declarations: [{ name: headersVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
@@ -327,8 +323,9 @@ function generateStandaloneFetchDefinition(
   sourceFile: SourceFile,
   data: ParsedContextConfigDefinitionData
 ): string {
+  const importName = 'fetchDefinition';
   sourceFile.addImportDeclaration({
-    namedImports: ['fetchDefinition'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-core',
   });
 
@@ -342,12 +339,7 @@ function generateStandaloneFetchDefinition(
   const fetchVarName = toContextConfigVariableName(data.contextConfigId);
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
-    declarations: [
-      {
-        name: fetchVarName,
-        initializer: 'fetchDefinition({})',
-      },
-    ],
+    declarations: [{ name: fetchVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();

@@ -50,9 +50,9 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
   const sourceFile = project.createSourceFile('data-component-definition.ts', '', {
     overwrite: true,
   });
-
+  const importName = 'dataComponent';
   sourceFile.addImportDeclaration({
-    namedImports: ['dataComponent'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -67,12 +67,7 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: dataComponentVarName,
-        initializer: 'dataComponent({})',
-      },
-    ],
+    declarations: [{ name: dataComponentVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();

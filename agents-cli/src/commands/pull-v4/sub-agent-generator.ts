@@ -1,3 +1,4 @@
+import { FullAgentAgentInsertSchema } from '@inkeep/agents-core';
 import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -7,10 +8,9 @@ import {
   createInMemoryProject,
   formatInlineLiteral,
   isPlainObject,
-  toCamelCase,
   TransformToUndefined,
+  toCamelCase,
 } from './utils';
-import { FullAgentAgentInsertSchema } from '@inkeep/agents-core';
 
 const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema.pick({
   id: true,

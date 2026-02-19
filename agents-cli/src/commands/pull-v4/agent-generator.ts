@@ -80,8 +80,9 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
 
   const parsed = result.data;
   const sourceFile = project.createSourceFile('agent-definition.ts', '', { overwrite: true });
+  const importName = 'agent';
   sourceFile.addImportDeclaration({
-    namedImports: ['agent'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -127,12 +128,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: agentVarName,
-        initializer: 'agent({})',
-      },
-    ],
+    declarations: [{ name: agentVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();

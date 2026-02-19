@@ -46,8 +46,9 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
   const sourceFile = project.createSourceFile('external-agent-definition.ts', '', {
     overwrite: true,
   });
+  const importName = 'externalAgent';
   sourceFile.addImportDeclaration({
-    namedImports: ['externalAgent'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -62,12 +63,7 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: externalAgentVarName,
-        initializer: 'externalAgent({})',
-      },
-    ],
+    declarations: [{ name: externalAgentVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
