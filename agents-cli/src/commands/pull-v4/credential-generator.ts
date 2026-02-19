@@ -44,12 +44,6 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(
-      `Failed to create variable declaration for credential '${parsed.credentialId}'`
-    );
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

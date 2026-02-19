@@ -108,10 +108,6 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create variable declaration for trigger '${parsed.triggerId}'`);
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.NewExpression);
   const configObject = callExpression
     .getArguments()[0]

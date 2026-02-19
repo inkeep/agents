@@ -151,12 +151,6 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(
-      `Failed to create variable declaration for context config '${parsed.contextConfigId}'`
-    );
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

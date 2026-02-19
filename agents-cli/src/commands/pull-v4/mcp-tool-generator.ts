@@ -98,10 +98,6 @@ export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create variable declaration for MCP tool '${parsed.mcpToolId}'`);
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

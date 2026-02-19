@@ -58,12 +58,6 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(
-      `Failed to create variable declaration for status component '${parsed.statusComponentId}'`
-    );
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

@@ -99,12 +99,6 @@ export function generateEnvironmentSettingsDefinition(
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(
-      `Failed to create variable declaration for environment '${environmentNameResult.data}'`
-    );
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

@@ -82,12 +82,6 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(
-      `Failed to create variable declaration for artifact component '${parsed.artifactComponentId}'`
-    );
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

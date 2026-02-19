@@ -71,12 +71,6 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(
-      `Failed to create variable declaration for external agent '${parsed.externalAgentId}'`
-    );
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

@@ -136,10 +136,6 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create variable declaration for agent '${parsed.agentId}'`);
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

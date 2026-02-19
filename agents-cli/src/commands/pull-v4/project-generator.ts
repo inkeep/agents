@@ -77,9 +77,6 @@ ${z.prettifyError(result.error)}`);
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create variable declaration for project '${parsed.projectId}'`);
-  }
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]

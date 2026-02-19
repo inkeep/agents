@@ -11,41 +11,38 @@ import {
 } from './utils';
 import { FullAgentAgentInsertSchema } from '@inkeep/agents-core';
 
-const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema
-  //
-  .omit({ type: true })
-  .extend({
-    canDelegateTo: z
-      .transform((value) =>
-        Array.isArray(value)
-          ? value.map((item) => (item.subAgentId ? item.subAgentId : item))
-          : value
-      )
-      .pipe(FullAgentAgentInsertSchema.shape.canDelegateTo),
-    models: z
-      .transform((v) => (v === null ? undefined : v))
-      .pipe(FullAgentAgentInsertSchema.shape.models),
-    stopWhen: FullAgentAgentInsertSchema.shape.stopWhen.transform((v) =>
-      v === null ? undefined : v
-    ),
-  });
+const TransformToUndefined = z.transform((v) => (v == null ? undefined : v));
 
-type ParsedSubAgentDefinitionData = z.infer<typeof SubAgentSchema>;
+const SubAgentSchema: z.ZodType<any> = FullAgentAgentInsertSchema.pick({
+  id: true,
+  description: true,
+  prompt: true,
+}).extend({
+  name: z.string().optional(),
+  stopWhen: TransformToUndefined.pipe(FullAgentAgentInsertSchema.shape.stopWhen),
+  models: TransformToUndefined.pipe(z.looseObject({}).optional()),
+  skills: z.array(z.unknown()).optional(),
+  canUse: z.array(z.unknown()).optional(),
+  canDelegateTo: z.array(z.unknown()).optional(),
+  canTransferTo: z.array(z.string()).optional(),
+  dataComponents: z.array(z.string()).optional(),
+  artifactComponents: z.array(z.string()).optional(),
+});
 
-export function generateSubAgentDefinition(data: z.input<typeof SubAgentSchema>): string {
+type SubAgentInput = z.input<typeof SubAgentSchema>;
+
+export function generateSubAgentDefinition(data: SubAgentInput): string {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(
-      `Validation failed for sub-agent "${data.id}":\n${z.prettifyError(result.error)}`
-    );
+    throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);
   }
 
   const project = createInMemoryProject();
   const parsed = result.data;
   const sourceFile = project.createSourceFile('sub-agent-definition.ts', '', { overwrite: true });
-
+  const importName = 'subAgent';
   sourceFile.addImportDeclaration({
-    namedImports: ['subAgent'],
+    namedImports: [importName],
     moduleSpecifier: '@inkeep/agents-sdk',
   });
 
@@ -53,19 +50,10 @@ export function generateSubAgentDefinition(data: z.input<typeof SubAgentSchema>)
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [
-      {
-        name: subAgentVarName,
-        initializer: 'subAgent({})',
-      },
-    ],
+    declarations: [{ name: subAgentVarName, initializer: `${importName}({})` }],
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create variable declaration for sub-agent '${parsed.id}'`);
-  }
-
   const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
   const configObject = callExpression
     .getArguments()[0]
@@ -87,7 +75,7 @@ function writeSubAgentConfig(
     artifactComponents,
     canUse,
     ...rest
-  }: ParsedSubAgentDefinitionData
+  }: SubAgentInput
 ) {
   for (const [k, v] of Object.entries(rest)) {
     addValueToObject(configObject, k, v);
