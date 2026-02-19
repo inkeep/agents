@@ -209,6 +209,4 @@ export async function expectSnapshots(definition: string, definitionV4: string):
   );
 }
 
-export const TransformToUndefined: z.ZodTransform<any> = z.transform((v) =>
-  v == null ? undefined : v
-);
+export const TransformToUndefined = z.transform((v) => (v == null ? undefined : v));
