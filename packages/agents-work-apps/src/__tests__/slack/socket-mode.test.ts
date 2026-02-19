@@ -229,4 +229,53 @@ describe('startSocketMode', () => {
 
     expect(ack).toHaveBeenCalledWith(undefined);
   });
+
+  it('should handle dispatchSlackEvent errors in slack_event listener', async () => {
+    mockDispatchSlackEvent.mockRejectedValueOnce(new Error('dispatch failed'));
+
+    const { startSocketMode } = await import('../../slack/socket-mode');
+    await startSocketMode('xapp-test-token');
+
+    const ack = vi.fn().mockResolvedValue(undefined);
+    const listener = registeredListeners.slack_event[0];
+    await listener({
+      ack,
+      body: { event: { type: 'app_mention' }, team_id: 'T123' },
+      type: 'events_api',
+    });
+
+    expect(ack).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle dispatchSlackEvent errors in interactive listener', async () => {
+    mockDispatchSlackEvent.mockRejectedValueOnce(new Error('dispatch failed'));
+
+    const { startSocketMode } = await import('../../slack/socket-mode');
+    await startSocketMode('xapp-test-token');
+
+    const ack = vi.fn().mockResolvedValue(undefined);
+    const listener = registeredListeners.interactive[0];
+    await listener({
+      ack,
+      body: { type: 'view_submission', view: { callback_id: 'test' } },
+    });
+
+    expect(ack).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should handle handleCommand errors in slash_commands listener', async () => {
+    mockHandleCommand.mockRejectedValueOnce(new Error('command failed'));
+
+    const { startSocketMode } = await import('../../slack/socket-mode');
+    await startSocketMode('xapp-test-token');
+
+    const ack = vi.fn().mockResolvedValue(undefined);
+    const listener = registeredListeners.slash_commands[0];
+    await listener({
+      ack,
+      body: { command: '/inkeep', text: 'hello', team_id: 'T123' },
+    });
+
+    expect(ack).toHaveBeenCalledWith();
+  });
 });

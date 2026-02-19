@@ -122,6 +122,33 @@ describe('dispatchSlackEvent', () => {
       expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
     });
 
+    it('should register background work even when handleAppMention rejects', async () => {
+      const { handleAppMention } = await import('../../slack/services/events');
+      vi.mocked(handleAppMention).mockRejectedValueOnce(new Error('mention failed'));
+
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '123.456',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+    });
+
     it('should ignore unknown inner event types', async () => {
       const span = createMockSpan();
       const options = createMockOptions();

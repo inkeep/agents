@@ -187,7 +187,13 @@ export async function dispatchSlackEvent(
                 }
 
                 const workspace = await findWorkspaceConnectionByTeamId(teamId);
-                if (!workspace?.botToken) return;
+                if (!workspace?.botToken) {
+                  logger.warn(
+                    { teamId },
+                    'Workspace found but no botToken — skipping modal project update'
+                  );
+                  return;
+                }
 
                 const slackClient = getSlackClient(workspace.botToken);
 
@@ -257,12 +263,20 @@ export async function dispatchSlackEvent(
             teamId,
             responseUrl: responseUrl || undefined,
           })
-            .catch((err: unknown) => {
+            .catch(async (err: unknown) => {
               const errorMessage = err instanceof Error ? err.message : String(err);
               logger.error(
                 { errorMessage, actionId: action.action_id },
                 'Failed to open follow-up modal'
               );
+              if (responseUrl) {
+                await sendResponseUrlMessage(responseUrl, {
+                  text: 'Sorry, something went wrong while opening the follow-up form. Please try again.',
+                  response_type: 'ephemeral',
+                }).catch((e) =>
+                  logger.warn({ error: e }, 'Failed to send error notification via response URL')
+                );
+              }
             })
             .finally(() => flushTraces());
           registerBackgroundWork(followUpModalWork);

@@ -23,7 +23,14 @@ function prompt(question: string): Promise<string> {
 
 function generateDevManifest(devName: string): Record<string, unknown> {
   const raw = readFileSync(MANIFEST_PATH, 'utf-8');
-  const manifest = JSON.parse(raw);
+  let manifest: Record<string, unknown>;
+  try {
+    manifest = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(
+      `Failed to parse manifest at ${MANIFEST_PATH}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 
   // Remove the _readme section
   delete manifest._readme;
