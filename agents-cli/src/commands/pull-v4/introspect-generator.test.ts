@@ -83,7 +83,7 @@ export const apiCredentials = credential({
     );
   });
 
-  it('preserves leading comments when merging existing agent statements', async () => {
+  it('preserves leading block comment when merging existing statements', async () => {
     const project = createProjectFixture();
     const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
     fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
@@ -118,12 +118,12 @@ export const supportAgent = agent({
     expect(mergedAgentFile).toContain('export const tierOneCustom = subAgent({');
 
     await expect(mergedAgentFile).toMatchFileSnapshot(
-      '__snapshots__/introspect/preserves-leading-comments-when-merging-existing-agent-statements.ts'
+      `__snapshots__/introspect/${expect.getState().currentTestName}.ts`
     );
 
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
     await expect(agentDiff).toMatchFileSnapshot(
-      '__snapshots__/introspect/preserves-leading-comments-when-merging-existing-agent-statements.diff'
+      `__snapshots__/introspect/${expect.getState().currentTestName}.diff`
     );
   });
 
@@ -240,7 +240,7 @@ export const supportAgent = agent({
     );
   });
 
-  it('does not duplicate single-line leading comments across repeated merges', async () => {
+  it('preserve single line comment when merging existing statements', async () => {
     const project = createProjectFixture();
     const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
     fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
@@ -269,12 +269,12 @@ export const supportAgent = agent({
     expect(singleLineCommentMatches).toHaveLength(1);
 
     await expect(mergedAgentFile).toMatchFileSnapshot(
-      '__snapshots__/introspect/does-not-duplicate-single-line-leading-comments-across-repeated-merges.ts'
+      `__snapshots__/introspect/${expect.getState().currentTestName}.ts`
     );
 
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
     await expect(agentDiff).toMatchFileSnapshot(
-      '__snapshots__/introspect/does-not-duplicate-single-line-leading-comments-across-repeated-merges.diff'
+      `__snapshots__/introspect/${expect.getState().currentTestName}.diff`
     );
   });
 
