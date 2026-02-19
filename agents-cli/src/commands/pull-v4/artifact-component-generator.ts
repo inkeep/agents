@@ -3,11 +3,11 @@ import { z } from 'zod';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
+  convertNullToUndefined,
   createInMemoryProject,
   formatPropertyName,
   formatStringLiteral,
   isPlainObject,
-  TransformToUndefined,
   toCamelCase,
 } from './utils';
 
@@ -33,7 +33,8 @@ const ArtifactComponentSchema = z.object({
   schema: z.looseObject({}).optional(),
   template: z.string().optional(),
   contentType: z.string().optional(),
-  render: TransformToUndefined.pipe(
+  render: z.preprocess(
+    convertNullToUndefined,
     z
       .looseObject({
         component: z.string().optional(),

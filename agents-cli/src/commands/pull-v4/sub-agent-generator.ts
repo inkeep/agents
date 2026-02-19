@@ -5,10 +5,10 @@ import {
   addReferenceGetterProperty,
   addStringProperty,
   addValueToObject,
+  convertNullToUndefined,
   createInMemoryProject,
   formatInlineLiteral,
   isPlainObject,
-  TransformToUndefined,
   toCamelCase,
 } from './utils';
 
@@ -29,8 +29,8 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
   prompt: true,
 }).extend({
   name: z.string().optional(),
-  stopWhen: TransformToUndefined.pipe(FullAgentAgentInsertSchema.shape.stopWhen),
-  models: TransformToUndefined.pipe(z.looseObject({}).optional()),
+  stopWhen: z.preprocess(convertNullToUndefined, FullAgentAgentInsertSchema.shape.stopWhen),
+  models: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
   skills: z.array(z.unknown()).optional(),
   canUse: z.array(z.unknown()).optional(),
   canDelegateTo: z.array(z.unknown()).optional(),

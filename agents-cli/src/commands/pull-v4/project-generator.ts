@@ -4,8 +4,8 @@ import { z } from 'zod';
 import {
   addReferenceGetterProperty,
   addValueToObject,
+  convertNullToUndefined,
   createInMemoryProject,
-  TransformToUndefined,
   toCamelCase,
 } from './utils';
 
@@ -51,7 +51,8 @@ const ProjectSchema = z.looseObject({
     structuredOutput: z.looseObject({}).optional(),
     summarizer: z.looseObject({}).optional(),
   }),
-  stopWhen: TransformToUndefined.pipe(
+  stopWhen: z.preprocess(
+    convertNullToUndefined,
     z
       .strictObject({
         transferCountIs: z.int().optional(),
