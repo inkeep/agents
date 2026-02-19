@@ -118,7 +118,7 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('generateArtifactComponentDefinition', () => {
-    it.only('should generate correct definition with all properties', async () => {
+    it('should generate correct definition with all properties', async () => {
       const artifactComponentId = 'citation';
       const definition = generateArtifactComponentDefinition(
         artifactComponentId,
@@ -149,7 +149,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle component ID to camelCase conversion', async () => {
+    it('should handle component ID to camelCase conversion', async () => {
       const artifactComponentId = 'document-template';
       const conversionData = {
         name: 'Template',
@@ -167,7 +167,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should not wrap non-preview fields with preview() function', async () => {
+    it('should not wrap non-preview fields with preview() function', async () => {
       const artifactComponentId = 'citation';
       const definition = generateArtifactComponentDefinition(
         artifactComponentId,
@@ -184,7 +184,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should throw error for missing required fields', () => {
+    it('should throw error for missing required fields', () => {
       const artifactComponentId = 'minimal';
       expect(() => {
         generateArtifactComponentDefinition(artifactComponentId, {});
@@ -200,7 +200,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it.only('should handle template property', async () => {
+    it('should handle template property', async () => {
       const dataWithTemplate = {
         name: 'Test',
         description: 'Template component',
@@ -219,7 +219,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle contentType property', async () => {
+    it('should handle contentType property', async () => {
       const dataWithContentType = {
         name: 'Test',
         description: 'Component with content type',
@@ -241,7 +241,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiline template with template literals', async () => {
+    it('should handle multiline template with template literals', async () => {
       const longTemplate = `<div class="citation">
   <h3>{{title}}</h3>
   <a href="{{url}}">{{url}}</a>
@@ -276,7 +276,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should throw error when only schema provided (needs props)', () => {
+    it('should throw error when only schema provided (needs props)', () => {
       const dataWithSchema = {
         name: 'Test',
         schema: {
@@ -302,7 +302,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it.only('should prefer props over schema when both exist', async () => {
+    it('should prefer props over schema when both exist', async () => {
       const dataWithBoth = {
         name: 'Test',
         description: 'Component with both props and schema',
@@ -338,7 +338,7 @@ describe('Artifact Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle mixed preview and non-preview fields', async () => {
+    it('should handle mixed preview and non-preview fields', async () => {
       const mixedData = {
         name: 'Mixed',
         description: 'Component with mixed preview fields',
@@ -392,7 +392,7 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it.only('should generate code for artifact component without preview fields that compiles', async () => {
+    it('should generate code for artifact component without preview fields that compiles', async () => {
       const simpleData = {
         name: 'Simple Artifact',
         description: 'A simple artifact component',
@@ -468,7 +468,7 @@ describe('Artifact Component Generator', () => {
     //   expect(definition).toContain('export const _2023Artifact = artifactComponent({');
     // });
 
-    it.only('should handle deeply nested objects with preview fields', async () => {
+    it('should handle deeply nested objects with preview fields', async () => {
       const nestedData = {
         name: 'Nested',
         description: 'Component with nested objects',

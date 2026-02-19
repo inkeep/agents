@@ -95,7 +95,7 @@ describe('Data Component Generator', () => {
   });
 
   describe('generateDataComponentDefinition', () => {
-    it.only('should generate correct definition with all properties', async () => {
+    it('should generate correct definition with all properties', async () => {
       const componentId = 'task-list';
       const definition = generateDataComponentDefinition(componentId, testComponentData);
 
@@ -112,7 +112,7 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle component ID to camelCase conversion', async () => {
+    it('should handle component ID to camelCase conversion', async () => {
       const componentId = 'user-profile-data';
       const componentData = {
         name: 'Profile',
@@ -153,7 +153,7 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'test': props");
     });
 
-    it.only('should prefer props over schema when both exist', async () => {
+    it('should prefer props over schema when both exist', async () => {
       const componentId = 'test';
       const dataWithBoth = {
         name: 'Test',
@@ -179,7 +179,7 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const componentId = 'test';
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings';
@@ -201,7 +201,7 @@ describe('Data Component Generator', () => {
   });
 
   describe('generateDataComponentFile', () => {
-    it.only('should generate complete file with imports and definition', async () => {
+    it('should generate complete file with imports and definition', async () => {
       const componentId = 'task-list';
       const file = generateDataComponentFile(componentId, testComponentData);
 
@@ -224,7 +224,7 @@ describe('Data Component Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it.only('should generate code that compiles and creates a working data component', async () => {
+    it('should generate code that compiles and creates a working data component', async () => {
       const componentId = 'task-list';
       generateDataComponentFile(componentId, testComponentData);
 
@@ -305,7 +305,7 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'simple-data': props");
     });
 
-    it.only('should generate code for complex nested schema that compiles', async () => {
+    it('should generate code for complex nested schema that compiles', async () => {
       const componentId = 'complex-data';
       const complexData = {
         name: 'Complex Data',
@@ -369,7 +369,7 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'missing-name': name");
     });
 
-    it.only('should not throw error for missing description (now optional)', async () => {
+    it('should not throw error for missing description (now optional)', async () => {
       const componentId = 'missing-desc';
       const componentData = {
         name: 'Test Component',
@@ -386,7 +386,7 @@ describe('Data Component Generator', () => {
   });
 
   describe('render attribute support', () => {
-    it.only('should generate data component with render attribute', async () => {
+    it('should generate data component with render attribute', async () => {
       const componentId = 'user-profile-card';
       const componentData = {
         name: 'User Profile Card',
@@ -429,7 +429,7 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle data component without render attribute', async () => {
+    it('should handle data component without render attribute', async () => {
       const componentId = 'simple-data';
       const componentData = {
         name: 'Simple Data',
@@ -455,7 +455,7 @@ describe('Data Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle render with component only (no mockData)', async () => {
+    it('should handle render with component only (no mockData)', async () => {
       const componentId = 'component-only';
       const componentData = {
         name: 'Component Only',
@@ -485,7 +485,7 @@ describe('Data Component Generator', () => {
     });
 
     // TODO
-    it.only('should ignore invalid render attribute (missing component)', async () => {
+    it('should ignore invalid render attribute (missing component)', async () => {
       const componentId = 'invalid-render';
       const componentData = {
         name: 'Invalid Render',

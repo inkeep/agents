@@ -54,7 +54,7 @@ describe('Function Tool Generator', () => {
   });
 
   describe('generateFunctionToolDefinition', () => {
-    it.only('should generate correct definition with all properties', async () => {
+    it('should generate correct definition with all properties', async () => {
       const functionToolId = 'calculate-bmi';
       const definition = generateFunctionToolDefinition(functionToolId, testToolData);
 
@@ -69,7 +69,7 @@ describe('Function Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle tool ID to camelCase conversion', async () => {
+    it('should handle tool ID to camelCase conversion', async () => {
       const functionToolId = 'email-sender-tool';
       const conversionData = {
         name: 'email-sender',
@@ -101,7 +101,7 @@ describe('Function Tool Generator', () => {
       }).toThrow("Missing required fields for function tool 'minimal': inputSchema, executeCode");
     });
 
-    it.only('should accept schema as alternative to inputSchema', async () => {
+    it('should accept schema as alternative to inputSchema', async () => {
       const functionToolId = 'test';
       const dataWithSchema = {
         name: 'test-tool',
@@ -120,7 +120,7 @@ describe('Function Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should prefer inputSchema over schema when both exist', async () => {
+    it('should prefer inputSchema over schema when both exist', async () => {
       const functionToolId = 'test';
       const dataWithBoth = {
         name: 'test-tool',
@@ -149,7 +149,7 @@ describe('Function Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the function tool';
       const functionToolId = 'test';
@@ -171,7 +171,7 @@ describe('Function Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should format execute function with proper indentation', async () => {
+    it('should format execute function with proper indentation', async () => {
       const simpleExecute = `async ({ value }) => {
   return { result: value * 2 };
 }`;
@@ -193,7 +193,7 @@ describe('Function Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle execute as simple code block', async () => {
+    it('should handle execute as simple code block', async () => {
       const functionToolId = 'simple';
       const toolData = {
         name: 'simple-tool',
@@ -223,7 +223,7 @@ describe('Function Tool Generator', () => {
       );
     });
 
-    it.only('should handle complex input schema', async () => {
+    it('should handle complex input schema', async () => {
       const functionToolId = 'complex';
       const complexData = {
         name: 'complex-tool',
@@ -274,7 +274,7 @@ describe('Function Tool Generator', () => {
   });
 
   describe('generateFunctionToolFile', () => {
-    it.only('should generate complete file with imports and definition', async () => {
+    it('should generate complete file with imports and definition', async () => {
       const functionToolId = 'calculate-bmi';
       const file = generateFunctionToolFile(functionToolId, testToolData);
 
@@ -398,7 +398,7 @@ describe('Function Tool Generator', () => {
     //   expect(definition).toContain('export const _2023Calculator = functionTool({');
     // });
 
-    it.only('should handle malformed execute function gracefully', async () => {
+    it('should handle malformed execute function gracefully', async () => {
       const functionToolId = 'bad-execute';
       const toolData = {
         name: 'bad-execute-tool',

@@ -77,7 +77,7 @@ describe('MCP Tool Generator', () => {
   });
 
   describe('generateMcpToolDefinition', () => {
-    it.only('should generate correct definition with all properties', async () => {
+    it('should generate correct definition with all properties', async () => {
       const mcpToolId = 'weather-mcp';
       const definition = generateMcpToolDefinition(mcpToolId, testToolData);
 
@@ -95,7 +95,7 @@ describe('MCP Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle tool ID to camelCase conversion', async () => {
+    it('should handle tool ID to camelCase conversion', async () => {
       const mcpToolId = 'stripe-payment-tool';
       const conversionData = {
         name: 'Stripe Payment',
@@ -132,7 +132,7 @@ describe('MCP Tool Generator', () => {
       }).toThrow("Missing required fields for MCP tool 'no-server': serverUrl");
     });
 
-    it.only('should handle credential as direct reference', async () => {
+    it('should handle credential as direct reference', async () => {
       const mcpToolId = 'stripe-mcp';
       const definition = generateMcpToolDefinition(mcpToolId, testToolWithCredential);
 
@@ -142,7 +142,7 @@ describe('MCP Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle credential as object', async () => {
+    it('should handle credential as object', async () => {
       const mcpToolId = 'api-tool';
       const toolWithObjectCredential = {
         name: 'API Tool',
@@ -174,7 +174,7 @@ describe('MCP Tool Generator', () => {
       }).toThrow("Missing required fields for MCP tool 'minimal': name, serverUrl");
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the MCP tool functionality';
       const mcpToolId = 'detailed';
@@ -192,7 +192,7 @@ describe('MCP Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle special characters in URLs', async () => {
+    it('should handle special characters in URLs', async () => {
       const mcpToolId = 'special';
       const toolData = {
         name: 'Special Tool',
@@ -224,7 +224,7 @@ describe('MCP Tool Generator', () => {
   });
 
   describe('generateMcpToolFile', () => {
-    it.only('should generate complete file with direct credential', async () => {
+    it('should generate complete file with direct credential', async () => {
       const mcpToolId = 'stripe-mcp';
       const file = generateMcpToolFile(mcpToolId, testToolWithCredential);
 
@@ -339,7 +339,7 @@ describe('MCP Tool Generator', () => {
     //   expect(definition).toContain('export const _2023McpTool = mcpTool({');
     // });
 
-    it.only('should handle invalid URLs gracefully', async () => {
+    it('should handle invalid URLs gracefully', async () => {
       const mcpToolId = 'invalid';
       const toolData = {
         name: 'Invalid URL Tool',
@@ -363,7 +363,7 @@ describe('MCP Tool Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle null and undefined values gracefully', async () => {
+    it('should handle null and undefined values gracefully', async () => {
       const mcpToolId = 'null-tool';
       const toolData = {
         name: 'Null Tool',

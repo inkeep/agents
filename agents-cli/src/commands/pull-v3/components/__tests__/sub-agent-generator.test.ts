@@ -89,7 +89,7 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('generateSubAgentDefinition', () => {
-    it.only('should generate basic sub-agent definition', async () => {
+    it('should generate basic sub-agent definition', async () => {
       const subAgentId = 'personal-assistant';
       const definition = generateSubAgentDefinition(
         subAgentId,
@@ -117,7 +117,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate sub-agent with stopWhen configuration', async () => {
+    it('should generate sub-agent with stopWhen configuration', async () => {
       const subAgentId = 'advanced-assistant';
       const definition = generateSubAgentDefinition(
         subAgentId,
@@ -135,7 +135,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle single item arrays in single line format', async () => {
+    it('should handle single item arrays in single line format', async () => {
       const singleItemData = {
         name: 'Single Item Agent',
         description: 'Agent with single items',
@@ -160,7 +160,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiple items in multi-line format', async () => {
+    it('should handle multiple items in multi-line format', async () => {
       const subAgentId = 'multi-item-agent';
       const definition = generateSubAgentDefinition(
         subAgentId,
@@ -190,7 +190,7 @@ describe('Sub-Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it.only('should generate name from ID when name is missing', async () => {
+    it('should generate name from ID when name is missing', async () => {
       const noNameData = {};
       const subAgentId = 'fallback-agent';
 
@@ -208,7 +208,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle camelCase conversion for variable names', async () => {
+    it('should handle camelCase conversion for variable names', async () => {
       const subAgentId = 'my-complex-sub-agent_v2';
       const definition = generateSubAgentDefinition(
         subAgentId,
@@ -223,7 +223,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiline prompts and descriptions', async () => {
+    it('should handle multiline prompts and descriptions', async () => {
       const multilineData = {
         name: 'Multiline Agent',
         description:
@@ -267,7 +267,7 @@ describe('Sub-Agent Generator', () => {
     //   expect(definition).toContain('})'); // No semicolon at the end
     // });
 
-    it.only('should handle empty arrays', async () => {
+    it('should handle empty arrays', async () => {
       const emptyArraysData = {
         name: 'Empty Arrays Agent',
         description: 'Agent with empty arrays',
@@ -296,7 +296,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle canTransferTo (legacy support)', async () => {
+    it('should handle canTransferTo (legacy support)', async () => {
       const transferData = {
         name: 'Transfer Agent',
         description: 'Agent with transfer capability',
@@ -321,7 +321,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should not generate stopWhen without stepCountIs', async () => {
+    it('should not generate stopWhen without stepCountIs', async () => {
       const noStepCountData = {
         name: 'No Step Count Agent',
         description: 'Agent without step count',
@@ -345,7 +345,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle stopWhen with only stepCountIs', async () => {
+    it('should handle stopWhen with only stepCountIs', async () => {
       const stepCountOnlyData = {
         name: 'Step Count Only Agent',
         description: 'Agent with step count limit',
@@ -375,7 +375,7 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('generateSubAgentFile', () => {
-    it.only('should generate complete sub-agent file', async () => {
+    it('should generate complete sub-agent file', async () => {
       const subAgentId = 'personal-assistant';
       const file = generateSubAgentFile(subAgentId, basicSubAgentData, undefined, mockRegistry);
 
@@ -393,7 +393,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(file, definitionV4);
     });
 
-    it.only('should generate complex sub-agent file with all features', async () => {
+    it('should generate complex sub-agent file with all features', async () => {
       const subAgentId = 'advanced-assistant';
       const file = generateSubAgentFile(subAgentId, complexSubAgentData, undefined, mockRegistry);
 
@@ -414,7 +414,7 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it.only('should generate sub-agent code that compiles', async () => {
+    it('should generate sub-agent code that compiles', async () => {
       const subAgentId = 'test-sub-agent';
       const definition = generateSubAgentDefinition(
         subAgentId,
@@ -455,7 +455,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate complex sub-agent code that compiles', async () => {
+    it('should generate complex sub-agent code that compiles', async () => {
       const subAgentId = 'complex-test-sub-agent';
       const definition = generateSubAgentDefinition(
         subAgentId,
@@ -535,7 +535,7 @@ describe('Sub-Agent Generator', () => {
     //   expect(definition).toContain("id: '2nd-generation-sub-agent',");
     // });
 
-    it.only('should preserve empty string name when provided', async () => {
+    it('should preserve empty string name when provided', async () => {
       const emptyStringData = {
         name: '',
         description: '',
@@ -577,7 +577,7 @@ describe('Sub-Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it.only('should handle mixed array and reference types', async () => {
+    it('should handle mixed array and reference types', async () => {
       const mixedData = {
         name: 'Mixed Types Agent',
         description: 'Agent with mixed reference types',
@@ -596,7 +596,7 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate name from ID when name is missing', async () => {
+    it('should generate name from ID when name is missing', async () => {
       const subAgentId = 'missing-name';
       const data = {
         description: 'Test description',

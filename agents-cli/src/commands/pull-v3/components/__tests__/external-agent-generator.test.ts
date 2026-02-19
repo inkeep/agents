@@ -69,7 +69,7 @@ describe('External Agent Generator', () => {
   });
 
   describe('generateExternalAgentDefinition', () => {
-    it.only('should generate basic external agent definition', async () => {
+    it('should generate basic external agent definition', async () => {
       const externalAgentId = 'weather-agent';
       const definition = generateExternalAgentDefinition(externalAgentId, basicExternalAgentData);
 
@@ -90,7 +90,7 @@ describe('External Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate external agent with credential reference object', async () => {
+    it('should generate external agent with credential reference object', async () => {
       const externalAgentId = 'complex-agent';
       const definition = generateExternalAgentDefinition(externalAgentId, complexExternalAgentData);
 
@@ -109,7 +109,7 @@ describe('External Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate external agent with credential reference variable', async () => {
+    it('should generate external agent with credential reference variable', async () => {
       const dataWithCredRef = {
         ...basicExternalAgentData,
         credentialReference: 'myCredentials',
@@ -155,7 +155,7 @@ describe('External Agent Generator', () => {
       }).toThrow("Missing required fields for external agent 'fallback-agent': name");
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const externalAgentId = 'multiline-agent';
       const multilineData = {
         name: 'Multiline Agent',
@@ -211,7 +211,7 @@ describe('External Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it.only('should handle partial credential reference objects', async () => {
+    it('should handle partial credential reference objects', async () => {
       const externalAgentId = 'partial-cred-agent';
       const partialCredData = {
         name: 'Partial Cred Agent',
@@ -240,7 +240,7 @@ describe('External Agent Generator', () => {
   });
 
   describe('generateExternalAgentFile', () => {
-    it.only('should generate complete external agent file', async () => {
+    it('should generate complete external agent file', async () => {
       const externalAgentId = 'weather-agent';
       const file = generateExternalAgentFile(externalAgentId, basicExternalAgentData);
 
@@ -259,7 +259,7 @@ describe('External Agent Generator', () => {
       await expectSnapshots(file.trimEnd(), definitionV4);
     });
 
-    it.only('should generate complex external agent file with all features', async () => {
+    it('should generate complex external agent file with all features', async () => {
       const externalAgentId = 'complex-agent';
       const file = generateExternalAgentFile(externalAgentId, complexExternalAgentData);
 
@@ -366,7 +366,7 @@ describe('External Agent Generator', () => {
     //   expect(definition).toContain("id: '2nd-generation-external-agent',");
     // });
 
-    it.only('should handle complex credential reference with all properties', async () => {
+    it('should handle complex credential reference with all properties', async () => {
       const externalAgentId = 'full-cred-agent';
       const complexCredData = {
         name: 'Full Cred Agent',
@@ -397,7 +397,7 @@ describe('External Agent Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle URLs with special characters', async () => {
+    it('should handle URLs with special characters', async () => {
       const externalAgentId = 'special-url-agent';
       const specialUrlData = {
         name: 'Special URL Agent',

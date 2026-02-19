@@ -44,7 +44,7 @@ describe('Credential Generator', () => {
   };
 
   describe('generateCredentialDefinition', () => {
-    it.only('should generate correct definition with all properties', async () => {
+    it('should generate correct definition with all properties', async () => {
       const credentialId = 'inkeep-api-key';
       const definition = generateCredentialDefinition(credentialId, testCredentialData);
 
@@ -63,7 +63,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle credential ID to camelCase conversion', async () => {
+    it('should handle credential ID to camelCase conversion', async () => {
       const credentialId = 'database-connection-url';
       const conversionData = {
         name: 'Database Connection URL',
@@ -79,7 +79,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle credential with all required fields', async () => {
+    it('should handle credential with all required fields', async () => {
       const credentialId = 'my-credential';
       const requiredFieldsData = {
         name: 'My Credential',
@@ -120,7 +120,7 @@ describe('Credential Generator', () => {
     //   expect(memoryDef).toContain("credentialStoreId: 'memory-default'");
     // });
 
-    it.only('should handle env credential with complex retrieval params', async () => {
+    it('should handle env credential with complex retrieval params', async () => {
       const credentialId = 'database-url';
       const definition = generateCredentialDefinition(credentialId, envCredentialData);
 
@@ -135,7 +135,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle keychain credential with service and account', async () => {
+    it('should handle keychain credential with service and account', async () => {
       const credentialId = 'slack-token';
       const definition = generateCredentialDefinition(credentialId, keychainCredentialData);
 
@@ -153,7 +153,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should throw error for missing required fields', () => {
+    it('should throw error for missing required fields', () => {
       expect(() => {
         generateCredentialDefinition('minimal', {});
       }).toThrow("Missing required fields for credential 'minimal': name, type, credentialStoreId");
@@ -171,7 +171,7 @@ describe('Credential Generator', () => {
       );
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const credentialId = 'long-desc';
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the credential';
@@ -190,7 +190,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle nested retrieval params', async () => {
+    it('should handle nested retrieval params', async () => {
       const credentialId = 'complex';
       const complexCredential = {
         name: 'Complex Credential',
@@ -219,7 +219,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle different data types in retrieval params', async () => {
+    it('should handle different data types in retrieval params', async () => {
       const credentialId = 'mixed';
       const mixedParamsCredential = {
         name: 'Mixed Params Credential',
@@ -277,7 +277,7 @@ describe('Credential Generator', () => {
     //   expect(definition).toContain('export const _2023ApiKey = credential({');
     // });
 
-    it.only('should handle null and undefined values gracefully', async () => {
+    it('should handle null and undefined values gracefully', async () => {
       const credentialId = 'null-test';
       const credentialData = {
         name: 'Null Test Credential',
@@ -301,7 +301,7 @@ describe('Credential Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle empty retrieval params object', async () => {
+    it('should handle empty retrieval params object', async () => {
       const credentialId = 'empty-params';
       const credentialData = {
         name: 'Empty Params Credential',

@@ -83,7 +83,7 @@ describe('Status Component Generator', () => {
   });
 
   describe('generateStatusComponentDefinition', () => {
-    it.only('should generate correct definition with all properties', async () => {
+    it('should generate correct definition with all properties', async () => {
       const statusComponentId = 'tool-summary';
       const definition = generateStatusComponentDefinition(statusComponentId, testComponentData);
 
@@ -100,7 +100,7 @@ describe('Status Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle component ID to camelCase conversion', async () => {
+    it('should handle component ID to camelCase conversion', async () => {
       const statusComponentId = 'progress-update';
       const componentData = {
         type: 'progress_update',
@@ -126,7 +126,7 @@ describe('Status Component Generator', () => {
       }).toThrow("Missing required fields for status component 'my-status': type");
     });
 
-    it.only('should handle components with only type', async () => {
+    it('should handle components with only type', async () => {
       const statusComponentId = 'minimal';
       const componentData = { type: 'minimal_status' };
       const definition = generateStatusComponentDefinition(statusComponentId, componentData);
@@ -143,7 +143,7 @@ describe('Status Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle schema field (alternative to detailsSchema)', async () => {
+    it('should handle schema field (alternative to detailsSchema)', async () => {
       const statusComponentId = 'test';
       const dataWithSchema = {
         type: 'test_status',
@@ -168,7 +168,7 @@ describe('Status Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should prefer detailsSchema over schema when both exist', async () => {
+    it('should prefer detailsSchema over schema when both exist', async () => {
       const statusComponentId = 'test';
       const dataWithBoth = {
         type: 'test_status',
@@ -199,7 +199,7 @@ describe('Status Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiline descriptions', async () => {
+    it('should handle multiline descriptions', async () => {
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information';
       const statusComponentId = 'test';
@@ -219,7 +219,7 @@ describe('Status Component Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle complex nested schema', async () => {
+    it('should handle complex nested schema', async () => {
       const statusComponentId = 'complex';
       const complexData = {
         type: 'complex_status',
@@ -264,7 +264,7 @@ describe('Status Component Generator', () => {
   });
 
   describe('generateStatusComponentFile', () => {
-    it.only('should generate complete file with imports and definition', async () => {
+    it('should generate complete file with imports and definition', async () => {
       const statusComponentId = 'tool-summary';
       const file = generateStatusComponentFile(statusComponentId, testComponentData);
 

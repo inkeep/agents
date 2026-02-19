@@ -91,7 +91,7 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentSettingsDefinition', () => {
-    it.only('should generate correct definition with credentials', async () => {
+    it('should generate correct definition with credentials', async () => {
       const environmentName = 'development';
       const definition = generateEnvironmentSettingsDefinition(environmentName, developmentData);
 
@@ -113,7 +113,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle multiple credentials', async () => {
+    it('should handle multiple credentials', async () => {
       const environmentName = 'development';
       const definition = generateEnvironmentSettingsDefinition(environmentName, developmentData);
 
@@ -131,7 +131,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle production environment with keychain credentials', async () => {
+    it('should handle production environment with keychain credentials', async () => {
       const environmentName = 'production';
       const definition = generateEnvironmentSettingsDefinition(environmentName, productionData);
 
@@ -145,7 +145,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle empty credentials', async () => {
+    it('should handle empty credentials', async () => {
       const emptyData = { credentials: {} };
       const environmentName = 'test';
       const definition = generateEnvironmentSettingsDefinition(environmentName, emptyData);
@@ -158,7 +158,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle environment with no credentials field', async () => {
+    it('should handle environment with no credentials field', async () => {
       const environmentName = 'minimal';
       const data = {};
       const definition = generateEnvironmentSettingsDefinition(environmentName, data);
@@ -171,7 +171,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle credentials without optional fields', async () => {
+    it('should handle credentials without optional fields', async () => {
       const environmentName = 'minimal';
       const minimalCredData = {
         credentials: {
@@ -201,7 +201,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle complex retrieval params', async () => {
+    it('should handle complex retrieval params', async () => {
       const environmentName = 'complex';
       const complexData = {
         credentials: {
@@ -264,7 +264,7 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentIndexDefinition', () => {
-    it.only('should generate index definition for multiple environments', async () => {
+    it('should generate index definition for multiple environments', async () => {
       const environments = ['development', 'production'];
       const definition = generateEnvironmentIndexDefinition(environments);
 
@@ -278,7 +278,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should generate index definition for single environment', async () => {
+    it('should generate index definition for single environment', async () => {
       const environments = ['development'];
       const definition = generateEnvironmentIndexDefinition(environments);
 
@@ -291,7 +291,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle empty environments array', async () => {
+    it('should handle empty environments array', async () => {
       const environments: string[] = [];
       const definition = generateEnvironmentIndexDefinition(environments);
 
@@ -303,7 +303,7 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentSettingsFile', () => {
-    it.only('should generate complete environment settings file', async () => {
+    it('should generate complete environment settings file', async () => {
       const environmentName = 'development';
       const file = generateEnvironmentSettingsFile(environmentName, developmentData);
 
@@ -322,7 +322,7 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('generateEnvironmentIndexFile', () => {
-    it.only('should generate complete environment index file', async () => {
+    it('should generate complete environment index file', async () => {
       const environments = ['development', 'production'];
       const file = generateEnvironmentIndexFile(environments);
 
@@ -429,7 +429,7 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('edge cases', () => {
-    it.only('should handle null credentials', async () => {
+    it('should handle null credentials', async () => {
       const environmentName = 'test';
       const data = { credentials: null };
       const definition = generateEnvironmentSettingsDefinition(environmentName, data);
@@ -440,7 +440,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle undefined credentials', async () => {
+    it('should handle undefined credentials', async () => {
       const environmentName = 'test';
       const data = { credentials: undefined };
       const definition = generateEnvironmentSettingsDefinition(environmentName, data);
@@ -451,7 +451,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle credential with null properties', async () => {
+    it('should handle credential with null properties', async () => {
       const environmentName = 'test';
       const dataWithNulls = {
         credentials: {
@@ -482,7 +482,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle special characters in credential keys', async () => {
+    it('should handle special characters in credential keys', async () => {
       const environmentName = 'special';
       const specialData = {
         credentials: {
@@ -506,7 +506,7 @@ describe('Environment Settings Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle empty environments array for index', async () => {
+    it('should handle empty environments array for index', async () => {
       const environments: string[] = [];
       const file = generateEnvironmentIndexFile(environments);
 

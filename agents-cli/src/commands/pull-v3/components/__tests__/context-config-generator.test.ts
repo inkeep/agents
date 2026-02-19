@@ -168,7 +168,7 @@ describe('Context Config Generator', () => {
   });
 
   describe('generateContextConfigDefinition', () => {
-    it.only('should generate correct context config definition', async () => {
+    it('should generate correct context config definition', async () => {
       const contextConfigId = 'personalAgentContext';
       const definition = generateContextConfigDefinition(
         contextConfigId,
@@ -186,7 +186,7 @@ describe('Context Config Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle context config without headers', async () => {
+    it('should handle context config without headers', async () => {
       const dataWithoutHeaders = {
         contextVariables: {
           config: 'someConfig',
@@ -214,7 +214,7 @@ describe('Context Config Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle context config without contextVariables', async () => {
+    it('should handle context config without contextVariables', async () => {
       const dataWithoutVariables = {
         headers: 'myHeaders',
       };
@@ -237,7 +237,7 @@ describe('Context Config Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle empty context config', async () => {
+    it('should handle empty context config', async () => {
       const contextConfigId = 'emptyContext';
       const definition = generateContextConfigDefinition(
         contextConfigId,
@@ -310,7 +310,7 @@ describe('Context Config Generator', () => {
   // });
 
   describe('generateContextConfigFile', () => {
-    it.only('should generate complete context config file', async () => {
+    it('should generate complete context config file', async () => {
       const fullContextData = {
         headers: 'personalAgentHeaders',
         headersSchema: headersData.schema,
@@ -346,7 +346,7 @@ describe('Context Config Generator', () => {
       await expectSnapshots(file, definitionV4);
     });
 
-    it.only('should generate simple context config file', async () => {
+    it('should generate simple context config file', async () => {
       const simpleData = {
         contextVariables: {
           config: 'someValue',
@@ -425,7 +425,7 @@ describe('Context Config Generator', () => {
       expect(result.fetchConfig.url).toBeDefined();
     });
 
-    it.only('should generate context config code that compiles', async () => {
+    it('should generate context config code that compiles', async () => {
       const contextConfigId = 'testContext';
       const definition = generateContextConfigDefinition(
         contextConfigId,
@@ -471,7 +471,7 @@ describe('Context Config Generator', () => {
     //   expect(definition).toContain('const contextConfigV2 = contextConfig({');
     // });
 
-    it.only('should handle empty schemas', async () => {
+    it('should handle empty schemas', async () => {
       const emptySchemaData = {
         schema: {},
       };
@@ -487,7 +487,7 @@ describe('Context Config Generator', () => {
       await expectSnapshots(definition, definitionV4);
     });
 
-    it.only('should handle fetch definition with null and undefined values', async () => {
+    it('should handle fetch definition with null and undefined values', async () => {
       const dataWithNulls = {
         id: 'test',
         name: null,
