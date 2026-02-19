@@ -24,6 +24,9 @@ import { getLogger } from './lib/logger';
 const logger = getLogger('instrumentation');
 const otlpExporter = new OTLPTraceExporter();
 
+/**
+ * Creates a safe batch processor that falls back to no-op when SigNoz is not configured
+ */
 function createSafeBatchProcessor(): SpanProcessor {
   try {
     return new BatchSpanProcessor(otlpExporter, {
