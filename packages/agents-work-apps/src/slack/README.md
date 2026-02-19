@@ -82,11 +82,13 @@ pnpm setup-slack-dev
 ```
 
 The script will:
-1. Ask for your name (for the app display name)
-2. Generate a dev-variant Slack manifest (Socket Mode enabled, no webhook URLs)
-3. Walk you through creating the app in the Slack UI
-4. Collect your App-Level Token and Bot Token
-5. Write the tokens to your `.env` file
+1. Generate a random dev identifier (e.g., `frost-ember`) for your app display name
+2. Create the Slack app via API using your configuration token
+3. Collect your App-Level Token (the only manual step — no API exists for this)
+4. Install the app to your workspace via automatic OAuth flow
+5. Write all credentials to your `.env` file
+
+First run requires 2 pastes (config refresh token + app-level token). Re-runs require 0 pastes.
 
 ### Manual Setup
 
@@ -112,7 +114,6 @@ If you prefer to set things up manually:
    ```
    SLACK_APP_TOKEN=xapp-your-token-here
    SLACK_BOT_TOKEN=xoxb-your-token-here
-   SLACK_SOCKET_MODE=true
    ```
 
 ### Verifying It Works
@@ -149,7 +150,7 @@ Both transports share the same event dispatcher and handlers. The Socket Mode ad
 - Check that the bot has been invited to the channel (`/invite @YourDevBot`)
 - Ensure `socket_mode_enabled: true` is set in your Slack app settings
 
-**"SLACK_SOCKET_MODE=true but @slack/socket-mode is not installed"**
+**"SLACK_APP_TOKEN is set but @slack/socket-mode is not installed"**
 - Run: `pnpm --filter @inkeep/agents-work-apps add -D @slack/socket-mode`
 
 ---

@@ -164,11 +164,6 @@ const envSchema = z.object({
 
   // Slack Socket Mode (local development)
   SLACK_APP_TOKEN: z.string().optional().describe('Slack App-Level Token for Socket Mode (xapp-*)'),
-  SLACK_SOCKET_MODE: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true' || val === '1')
-    .describe('Enable Slack Socket Mode for local development'),
 
   // Workflow Configuration
   WORKFLOW_TARGET_WORLD: z.string().optional().describe('Target world for workflow execution'),
