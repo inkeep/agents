@@ -101,7 +101,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                     </Tooltip>
                     <Switch
                       id={`grant-access-${channel.id}`}
-                      checked={channel.agentConfig?.grantAccessToMembers !== false}
+                      checked={channel.agentConfig?.grantAccessToMembers ?? true}
                       onCheckedChange={(checked) => onToggleGrantAccess(channel.id, checked)}
                     />
                   </div>
