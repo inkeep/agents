@@ -1,0 +1,166 @@
+---
+title: Local development with Socket Mode
+sidebarTitle: Local Development
+description: Set up a personal Slack dev app with Socket Mode to receive events locally without a tunnel.
+---
+
+Socket Mode lets you receive Slack events over a WebSocket connection — no tunnel (ngrok, Cloudflare Tunnel) required. Each developer creates their own Slack app so all events arrive locally during development.
+
+<Note>
+  Socket Mode distributes events randomly across connected clients. If two developers share one app, each receives roughly half the events. Use a personal dev app to receive all events locally.
+</Note>
+
+## Prerequisites
+
+- A Slack workspace where you can install apps
+- Permission to create Slack apps (workspace admin or appropriate permissions)
+- Monorepo set up with dependencies installed (`pnpm install`)
+
+## Setup
+
+<Tabs>
+  <Tab title="Automated (recommended)">
+
+Run the guided setup script from the monorepo root:
+
+```bash
+pnpm setup-slack-dev
+```
+
+The script handles the full setup in four steps:
+
+1. **Generates a random dev identifier** (e.g., `frost-ember`) used as your app's display name (`Inkeep Dev frost-ember`) and bot name (`@inkeep-frost-ember`)
+2. **Creates the Slack app** via API using your configuration token — no manual manifest copy-paste
+3. **Collects your App-Level Token** — the only manual step, as Slack provides no API for this
+4. **Installs the app** to your workspace via an automatic OAuth flow
+5. **Writes all credentials** to your `.env` file
+
+**First run** requires 2 pastes: a config refresh token and an app-level token.  
+**Re-runs** require 0 pastes — everything is persisted in `.slack-dev.json`.
+
+### Step-by-step walkthrough
+
+<Steps>
+  <Step>
+    ### Get a config refresh token
+
+    The script opens [api.slack.com/apps](https://api.slack.com/apps) in your browser.
+
+    Scroll to **Your App Configuration Tokens** and click **Generate Token**. You'll see two tokens — copy only the **Refresh Token** (starts with `xoxe-`). Paste it when prompted.
+
+    <Warning>
+      Do not copy the access token. Only the refresh token is needed — the script derives the access token automatically.
+    </Warning>
+  </Step>
+  <Step>
+    ### Generate an App-Level Token
+
+    The script opens your new app's settings page. Scroll to **App-Level Tokens** and click **Generate Token and Scopes**.
+
+    - **Name**: `socket-mode`
+    - **Scope**: `connections:write`
+
+    Copy the token (starts with `xapp-`) and paste it when prompted.
+  </Step>
+  <Step>
+    ### Authorize via OAuth
+
+    A temporary local server starts on port `38745`. Your browser opens the Slack OAuth consent page automatically. Click **Allow** to install the app to your workspace.
+
+    Once authorized, the script writes all credentials to `.env` and prints a summary.
+  </Step>
+</Steps>
+
+  </Tab>
+  <Tab title="Manual">
+
+<Steps>
+  <Step>
+    ### Create a dev Slack app
+
+    Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From an app manifest**.
+
+    Use `packages/agents-work-apps/src/slack/slack-app-manifest.json` as your starting point, then apply these changes:
+
+    - Set `settings.socket_mode_enabled` to `true`
+    - Remove all `request_url` and `url` fields from `settings` and `features`
+    - Rename the app (e.g., `Inkeep Dev - YourName`)
+  </Step>
+  <Step>
+    ### Generate an App-Level Token
+
+    In your app settings, go to **Basic Information** → **App-Level Tokens** → **Generate Token and Scopes**.
+
+    - **Name**: `socket-mode`
+    - **Scope**: `connections:write`
+
+    Copy the token (starts with `xapp-`).
+  </Step>
+  <Step>
+    ### Install the app
+
+    Go to **Install App** → **Install to Workspace** and approve the permissions. Copy the **Bot User OAuth Token** (starts with `xoxb-`).
+  </Step>
+  <Step>
+    ### Configure environment variables
+
+    Add the following to your `.env` file:
+
+    ```dotenv
+    SLACK_APP_TOKEN=xapp-your-token-here
+    SLACK_BOT_TOKEN=xoxb-your-token-here
+    ```
+  </Step>
+</Steps>
+
+  </Tab>
+</Tabs>
+
+## Verify the setup
+
+1. Start the dev server: `pnpm dev`
+2. Look for the log line: `Slack Socket Mode client started`
+3. In your Slack workspace, @mention your dev bot in a channel
+4. The event should be received and processed locally
+
+## How it works
+
+Both local and production transports share the same event dispatcher and handlers — only the transport layer differs:
+
+```
+Production (HTTP):  Slack → HTTPS POST → Hono route → dispatcher → handlers
+Local Dev (Socket): Slack → WebSocket  → adapter    → dispatcher → handlers
+```
+
+The Socket Mode adapter receives pre-parsed events over WebSocket (no signature verification needed — the connection itself is authenticated), calls `ack()` immediately in place of an HTTP 200 response, and routes events through the same `dispatchSlackEvent()` function used by the HTTP route.
+
+## Troubleshooting
+
+<Accordions>
+  <Accordion title="No 'started' log message after 'Scheduling Slack Socket Mode start...'">
+    - Verify `SLACK_APP_TOKEN` is valid and starts with `xapp-`
+    - Ensure `@slack/socket-mode` is installed:
+      ```bash
+      pnpm --filter @inkeep/agents-work-apps add -D @slack/socket-mode
+      ```
+  </Accordion>
+  <Accordion title="'Socket Mode client already running (HMR reload detected)'">
+    This is expected. The Socket Mode client uses a `globalThis` singleton to survive Vite HMR reloads without creating duplicate WebSocket connections.
+  </Accordion>
+  <Accordion title="Events not arriving in the terminal">
+    - Verify the app is installed to the workspace where you're testing
+    - Invite the bot to the channel: `/invite @YourDevBot`
+    - Confirm `socket_mode_enabled: true` is set in your Slack app settings
+  </Accordion>
+  <Accordion title="Config token expired on re-run">
+    Delete `.slack-dev.json` and re-run `pnpm setup-slack-dev` to start fresh.
+  </Accordion>
+</Accordions>
+
+## Reset
+
+To start from scratch, delete `.slack-dev.json` and re-run the setup script:
+
+```bash
+rm .slack-dev.json && pnpm setup-slack-dev
+```
