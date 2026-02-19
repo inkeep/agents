@@ -9,6 +9,17 @@ import {
   TransformToUndefined,
 } from './utils';
 
+const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
+
+const ReferenceOverridesSchema = z.object({
+  agents: ReferenceNameByIdSchema.optional(),
+  tools: ReferenceNameByIdSchema.optional(),
+  externalAgents: ReferenceNameByIdSchema.optional(),
+  dataComponents: ReferenceNameByIdSchema.optional(),
+  artifactComponents: ReferenceNameByIdSchema.optional(),
+  credentialReferences: ReferenceNameByIdSchema.optional(),
+});
+
 type ProjectDefinitionData = Omit<
   ProjectConfig,
   | 'id'
@@ -26,6 +37,7 @@ type ProjectDefinitionData = Omit<
   dataComponents?: string[];
   artifactComponents?: string[];
   credentialReferences?: string[];
+  referenceOverrides?: z.infer<typeof ReferenceOverridesSchema>;
 };
 
 const ProjectSchema = z.looseObject({
@@ -53,6 +65,7 @@ const ProjectSchema = z.looseObject({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   credentialReferences: z.array(z.string()).optional(),
+  referenceOverrides: ReferenceOverridesSchema.optional(),
 });
 
 export function generateProjectDefinition(data: ProjectDefinitionData): string {
@@ -93,6 +106,7 @@ ${z.prettifyError(result.error)}`);
     dataComponents,
     artifactComponents,
     credentialReferences,
+    referenceOverrides,
     ...rest
   } = parsed;
 
@@ -104,38 +118,76 @@ ${z.prettifyError(result.error)}`);
   }
 
   if (hasReferences(agents)) {
-    addReferenceImports(sourceFile, agents, './agents');
-    addReferenceGetterProperty(configObject, 'agents', toReferenceNames(agents));
+    addReferenceImports(sourceFile, agents, './agents', referenceOverrides?.agents);
+    addReferenceGetterProperty(
+      configObject,
+      'agents',
+      toReferenceNames(agents, referenceOverrides?.agents)
+    );
   }
 
   if (hasReferences(tools)) {
-    addReferenceGetterProperty(configObject, 'tools', tools);
+    addReferenceImports(sourceFile, tools, './tools', referenceOverrides?.tools);
+    addReferenceGetterProperty(
+      configObject,
+      'tools',
+      toReferenceNames(tools, referenceOverrides?.tools)
+    );
   }
 
   if (hasReferences(externalAgents)) {
-    addReferenceGetterProperty(configObject, 'externalAgents', externalAgents);
+    addReferenceImports(
+      sourceFile,
+      externalAgents,
+      './external-agents',
+      referenceOverrides?.externalAgents
+    );
+    addReferenceGetterProperty(
+      configObject,
+      'externalAgents',
+      toReferenceNames(externalAgents, referenceOverrides?.externalAgents)
+    );
   }
 
   if (hasReferences(dataComponents)) {
-    addReferenceImports(sourceFile, dataComponents, './data-components');
-    addReferenceGetterProperty(configObject, 'dataComponents', toReferenceNames(dataComponents));
+    addReferenceImports(
+      sourceFile,
+      dataComponents,
+      './data-components',
+      referenceOverrides?.dataComponents
+    );
+    addReferenceGetterProperty(
+      configObject,
+      'dataComponents',
+      toReferenceNames(dataComponents, referenceOverrides?.dataComponents)
+    );
   }
 
   if (hasReferences(artifactComponents)) {
-    addReferenceImports(sourceFile, artifactComponents, './artifact-components');
+    addReferenceImports(
+      sourceFile,
+      artifactComponents,
+      './artifact-components',
+      referenceOverrides?.artifactComponents
+    );
     addReferenceGetterProperty(
       configObject,
       'artifactComponents',
-      toReferenceNames(artifactComponents)
+      toReferenceNames(artifactComponents, referenceOverrides?.artifactComponents)
     );
   }
 
   if (hasReferences(credentialReferences)) {
-    addReferenceImports(sourceFile, credentialReferences, './credentials');
+    addReferenceImports(
+      sourceFile,
+      credentialReferences,
+      './credentials',
+      referenceOverrides?.credentialReferences
+    );
     addReferenceGetterProperty(
       configObject,
       'credentialReferences',
-      toReferenceNames(credentialReferences)
+      toReferenceNames(credentialReferences, referenceOverrides?.credentialReferences)
     );
   }
 
@@ -146,15 +198,31 @@ function hasReferences(references?: string[]): references is string[] {
   return Array.isArray(references) && references.length > 0;
 }
 
-function addReferenceImports(sourceFile: SourceFile, references: string[], basePath: string): void {
+function addReferenceImports(
+  sourceFile: SourceFile,
+  references: string[],
+  basePath: string,
+  referenceOverrides?: Record<string, string>
+): void {
   for (const reference of references) {
+    const referenceName = resolveReferenceName(reference, referenceOverrides);
     sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(reference)],
+      namedImports: [referenceName],
       moduleSpecifier: `${basePath}/${reference}`,
     });
   }
 }
 
-function toReferenceNames(references: string[]): string[] {
-  return references.map((reference) => toCamelCase(reference));
+function toReferenceNames(
+  references: string[],
+  referenceOverrides?: Record<string, string>
+): string[] {
+  return references.map((reference) => resolveReferenceName(reference, referenceOverrides));
+}
+
+function resolveReferenceName(
+  referenceId: string,
+  referenceOverrides?: Record<string, string>
+): string {
+  return referenceOverrides?.[referenceId] ?? toCamelCase(referenceId);
 }
