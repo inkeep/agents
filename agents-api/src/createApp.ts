@@ -1,5 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { getWaitUntil } from '@inkeep/agents-core';
+import { getInProcessFetch, getWaitUntil, registerAppFetch } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -37,7 +37,6 @@ import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
 import { workflowProcessHandler } from './routes/workflowProcess';
 import type { AppConfig, AppVariables } from './types';
-import { getInProcessFetch, registerAppFetch } from './utils/in-process-fetch';
 
 const logger = getLogger('agents-api');
 

@@ -5,7 +5,7 @@
  * All responses are private (ephemeral) with a Follow Up button for multi-turn conversations.
  */
 
-import { signSlackUserToken } from '@inkeep/agents-core';
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
@@ -423,7 +423,7 @@ async function callAgentApi(params: {
 
     let response: Response;
     try {
-      response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
