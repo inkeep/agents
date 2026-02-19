@@ -205,4 +205,43 @@ export const supportProject = project({
     const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
     await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
+
+  it('does not add context-config import when agent already has local context config', async () => {
+    const project = createProjectFixture();
+
+    const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
+    fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
+    const before = `import { contextConfig } from '@inkeep/agents-core';
+import { agent, subAgent } from '@inkeep/agents-sdk';
+
+const supportContextCustom = contextConfig({
+  id: 'support-context'
+});
+
+const tierOneCustom = subAgent({
+  id: 'tier-one',
+  name: 'Legacy tier one'
+});
+
+export const supportAgent = agent({
+  id: 'support-agent',
+  name: 'Legacy support agent',
+  defaultSubAgent: tierOneCustom,
+  subAgents: () => [tierOneCustom],
+  contextConfig: supportContextCustom
+});
+`;
+    fs.writeFileSync(agentFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
+    expect(mergedAgentFile).not.toContain("from '../context-configs/support-context';");
+    expect(mergedAgentFile).toContain('contextConfig: supportContextCustom');
+    expect(mergedAgentFile).not.toContain('supportContextCustomContextConfig');
+
+    await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
+    const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
+    await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
+  });
 });

@@ -507,6 +507,11 @@ function collectAgentRecords(
     );
     const existingAgent = context.existingComponentRegistry?.get(agentId, 'agents');
     const subAgentReferences = collectSubAgentReferenceOverrides(context, agentData, agentFilePath);
+    const contextConfigReference = collectAgentContextConfigReferenceOverride(
+      context,
+      agentData,
+      agentFilePath
+    );
 
     records.push({
       id: agentId,
@@ -516,6 +521,7 @@ function collectAgentRecords(
         ...agentData,
         ...(existingAgent?.name?.length && { agentVariableName: existingAgent.name }),
         ...(Object.keys(subAgentReferences).length > 0 ? { subAgentReferences } : {}),
+        ...(contextConfigReference && { contextConfigReference }),
       } as Parameters<typeof generateAgentDefinition>[0],
     });
   }
@@ -787,6 +793,40 @@ function collectSubAgentReferenceOverrides(
   }
 
   return overrides;
+}
+
+function collectAgentContextConfigReferenceOverride(
+  context: GenerationContext,
+  agentData: Record<string, unknown>,
+  agentFilePath: string
+): { name: string; local?: boolean } | undefined {
+  const contextConfig =
+    typeof agentData.contextConfig === 'string'
+      ? { id: agentData.contextConfig }
+      : asRecord(agentData.contextConfig);
+  const contextConfigId =
+    contextConfig && typeof contextConfig.id === 'string' ? contextConfig.id : undefined;
+  if (!contextConfigId) {
+    return;
+  }
+
+  const existingContextConfig = context.existingComponentRegistry?.get(
+    contextConfigId,
+    'contextConfigs'
+  );
+  if (!existingContextConfig?.name) {
+    return;
+  }
+
+  const existingContextConfigFilePath = resolveProjectFilePath(
+    context.paths.projectRoot,
+    existingContextConfig.filePath
+  );
+  const isLocal =
+    normalizeFilePath(existingContextConfigFilePath) === normalizeFilePath(agentFilePath);
+  return isLocal
+    ? { name: existingContextConfig.name, local: true }
+    : { name: existingContextConfig.name };
 }
 
 function collectSubAgentDependencyReferenceOverrides(

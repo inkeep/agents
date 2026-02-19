@@ -57,6 +57,7 @@ const AgentSchema = z.looseObject({
   triggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
+  contextConfigReference: SubAgentReferenceSchema.optional(),
 });
 
 type AgentDefinitionData = z.input<typeof AgentSchema>;
@@ -102,12 +103,24 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
   const contextConfigId = extractContextConfigId(parsed.contextConfig);
   let contextConfigReferenceName: string | undefined;
   if (contextConfigId) {
+    const contextConfigImportName =
+      parsed.contextConfigReference?.name ?? toCamelCase(contextConfigId);
     contextConfigReferenceName = createUniqueReferenceName(
-      toCamelCase(contextConfigId),
+      contextConfigImportName,
       reservedReferenceNames,
       'ContextConfig'
     );
-    addContextConfigImport(sourceFile, contextConfigId, contextConfigReferenceName);
+
+    if (parsed.contextConfigReference?.local !== true) {
+      sourceFile.addImportDeclaration({
+        namedImports: [
+          contextConfigImportName === contextConfigReferenceName
+            ? contextConfigImportName
+            : { name: contextConfigImportName, alias: contextConfigReferenceName },
+        ],
+        moduleSpecifier: `../context-configs/${contextConfigId}`,
+      });
+    }
   }
 
   const triggerIds = parsed.triggers ? extractIds(parsed.triggers) : [];
@@ -332,20 +345,6 @@ function addSubAgentImports(
       moduleSpecifier: `./sub-agents/${subAgentId}`,
     });
   }
-}
-
-function addContextConfigImport(
-  sourceFile: SourceFile,
-  contextConfigId: string,
-  referenceName: string
-): void {
-  const importName = toCamelCase(contextConfigId);
-  sourceFile.addImportDeclaration({
-    namedImports: [
-      importName === referenceName ? importName : { name: importName, alias: referenceName },
-    ],
-    moduleSpecifier: `../context-configs/${contextConfigId}`,
-  });
 }
 
 function addTriggerImports(sourceFile: SourceFile, referenceNames: ReferenceNameMap): void {
