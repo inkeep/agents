@@ -5,6 +5,7 @@ export * from './credential-store-utils';
 export * from './date';
 export * from './error';
 export * from './format-messages';
+export * from './in-process-fetch';
 export * from './internal-service-auth';
 export * from './JsonTransformer';
 export * from './json-parser';

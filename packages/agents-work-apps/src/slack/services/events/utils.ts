@@ -6,6 +6,7 @@ import {
   findWorkAppSlackChannelAgentConfig,
   findWorkAppSlackUserMapping,
   generateInternalServiceToken,
+  getInProcessFetch,
   InternalServices,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../db/runDbClient';
@@ -214,14 +215,17 @@ export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectO
   const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-    });
+    const response = await getInProcessFetch()(
+      `${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      }
+    );
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
@@ -261,7 +265,7 @@ export async function fetchAgentsForProject(
   const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(
+    const response = await getInProcessFetch()(
       `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=50`,
       {
         method: 'GET',
