@@ -1,4 +1,4 @@
-import type { ObjectLiteralExpression, SourceFile, Statement } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile, Statement, VariableStatement } from 'ts-morph';
 import { Node, SyntaxKind } from 'ts-morph';
 import { createInMemoryProject } from './utils';
 
@@ -104,10 +104,7 @@ function findBestImportTarget(
 }
 
 function hasImportWithText(imports: ReturnType<SourceFile['getImportDeclarations']>, text: string) {
-  const normalized = normalizeStatementText(text);
-  return imports.some(
-    (importDeclaration) => normalizeStatementText(importDeclaration.getText()) === normalized
-  );
+  return imports.some((importDeclaration) => importDeclaration.getText() === text);
 }
 
 function upsertStatement(existingFile: SourceFile, generatedStatement: Statement) {
@@ -151,7 +148,7 @@ function upsertStatement(existingFile: SourceFile, generatedStatement: Statement
     return;
   }
 
-  appendUniqueStatement(existingFile, generatedStatement.getText());
+  appendUniqueStatement(existingFile, generatedStatement);
 }
 
 function upsertVariableStatement(existingFile: SourceFile, generatedStatement: Statement) {
@@ -160,8 +157,8 @@ function upsertVariableStatement(existingFile: SourceFile, generatedStatement: S
   }
 
   const generatedDeclarations = generatedStatement.getDeclarations();
-  if (generatedDeclarations.length === 0) {
-    appendUniqueStatement(existingFile, generatedStatement.getText());
+  if (!generatedDeclarations.length) {
+    appendUniqueStatement(existingFile, generatedStatement);
     return;
   }
 
@@ -190,7 +187,7 @@ function upsertVariableStatement(existingFile: SourceFile, generatedStatement: S
   }
 
   if (!existingStatements.size) {
-    appendUniqueStatement(existingFile, generatedStatement.getText());
+    appendUniqueStatement(existingFile, generatedStatement);
     return;
   }
 
@@ -306,13 +303,13 @@ function upsertNamedStatement(
       : undefined;
 
   if (!statementName) {
-    appendUniqueStatement(existingFile, generatedStatement.getText());
+    appendUniqueStatement(existingFile, generatedStatement);
     return;
   }
 
   const existingStatement = finder(existingFile, statementName);
   if (!existingStatement) {
-    appendUniqueStatement(existingFile, generatedStatement.getText());
+    appendUniqueStatement(existingFile, generatedStatement);
     return;
   }
 
@@ -325,15 +322,11 @@ function appendUniqueStatement(existingFile: SourceFile, statementText: string) 
   const normalizedIncoming = normalizeStatementText(statementText);
   const hasExistingStatement = existingFile
     .getStatements()
-    .some((statement) => normalizeStatementText(statement.getText()) === normalizedIncoming);
+    .some((statement) => statement.getText() === statementText);
 
   if (!hasExistingStatement) {
     existingFile.addStatements([statementText]);
   }
-}
-
-function normalizeStatementText(value: string): string {
-  return value.trim().replaceAll(/\s+/g, ' ');
 }
 
 function buildReplacementStatementText(
@@ -689,7 +682,7 @@ function getObjectPropertyKey(property: Node): string | undefined {
   }
 
   if (Node.isSpreadAssignment(property)) {
-    return `...${normalizeStatementText(property.getExpression().getText())}`;
+    return `...${property.getExpression().getText()}`;
   }
   return;
 }
@@ -716,11 +709,11 @@ function getArrayElementSignature(node: Node): string {
   if (Node.isCallExpression(node)) {
     const expression = node.getExpression();
     if (Node.isPropertyAccessExpression(expression) && expression.getName() === 'with') {
-      return `with:${normalizeStatementText(expression.getExpression().getText())}`;
+      return `with:${expression.getExpression().getText()}`;
     }
   }
 
-  return normalizeStatementText(node.getText());
+  return node.getText();
 }
 
 function readStringLiteralObjectProperty(
