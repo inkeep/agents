@@ -34,13 +34,13 @@ function createSafeBatchProcessor(): SpanProcessor {
   }
 }
 
-const batchProcessor = createSafeBatchProcessor();
+const defaultBatchProcessor = createSafeBatchProcessor();
 
-const resource = resourceFromAttributes({
+const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-manage-ui',
 });
 
-const instrumentations: NonNullable<NodeSDKConfiguration['instrumentations']> = [
+const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrumentations']> = [
   getNodeAutoInstrumentations({
     '@opentelemetry/instrumentation-http': {
       enabled: true,
@@ -66,23 +66,23 @@ const instrumentations: NonNullable<NodeSDKConfiguration['instrumentations']> = 
   }),
 ];
 
-const spanProcessors: SpanProcessor[] = [
+const defaultSpanProcessors: SpanProcessor[] = [
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
-  batchProcessor,
+  defaultBatchProcessor,
 ];
 
-const contextManager = new AsyncLocalStorageContextManager();
+const defaultContextManager = new AsyncLocalStorageContextManager();
 
-const textMapPropagator = new CompositePropagator({
+const defaultTextMapPropagator = new CompositePropagator({
   propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
 });
 
 export const sdk = new NodeSDK({
-  resource,
-  contextManager,
-  textMapPropagator,
-  spanProcessors,
-  instrumentations,
+  resource: defaultResource,
+  contextManager: defaultContextManager,
+  textMapPropagator: defaultTextMapPropagator,
+  spanProcessors: defaultSpanProcessors,
+  instrumentations: defaultInstrumentations,
 });
 
 sdk.start();

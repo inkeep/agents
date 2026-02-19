@@ -207,7 +207,6 @@ class SigNozStatsAPI {
         },
       } as any
     );
-
     return response.data;
   }
 
@@ -421,6 +420,7 @@ class SigNozStatsAPI {
       };
     }
 
+    // Slow path: search or span filters require client-side processing (2 round-trips)
     const { conversationIds, total, aggregateStats } = await this.getPaginatedConversationIds(
       startTime,
       endTime,
@@ -448,7 +448,6 @@ class SigNozStatsAPI {
       conversationIds
     );
     const resp = await this.makeRequest(payload);
-
     const { orderedStats } = this.parseDetailResponse(resp, conversationIds);
 
     return {
@@ -978,10 +977,10 @@ class SigNozStatsAPI {
     projectId?: string
   ) {
     try {
+      // Fetch conversation activity directly — no need for a metadata pre-check
       const activityResp = await this.makeRequest(
         this.buildConversationActivityPayload(startTime, endTime, agentId, projectId)
       );
-
       const activitySeries = this.extractSeries(activityResp, 'lastActivity');
 
       const buckets = new Map<string, number>();
