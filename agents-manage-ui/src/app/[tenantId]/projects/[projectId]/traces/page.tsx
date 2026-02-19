@@ -45,6 +45,7 @@ export default function TracesOverview({
     setSpanFilter,
   } = useTracesQueryState();
 
+  // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -124,6 +125,8 @@ export default function TracesOverview({
   const aggregateLoading = loading;
   const aggregateError = error;
 
+  // Aggregate stats now come directly from server-side aggregation
+
   // Fetch conversations per day activity
   useEffect(() => {
     const fetchActivity = async () => {
@@ -131,7 +134,14 @@ export default function TracesOverview({
         setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId);
         const agentId = selectedAgent ? selectedAgent : undefined;
+        console.log('🔍 Fetching activity data:', {
+          startTime,
+          endTime,
+          agentId,
+          selectedAgent,
+        });
         const data = await client.getConversationsPerDay(startTime, endTime, agentId, projectId);
+        console.log('🔍 Activity data received:', data);
         setActivityData(data);
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);

@@ -212,6 +212,7 @@ app.post('/query-batch', async (c) => {
       headers: signozHeaders,
       timeout: 30000,
     });
+
     // Extract conversation IDs from the pageConversations result
     const pageResult = step1.data?.data?.result?.find(
       (r: any) => r?.queryName === 'pageConversations'
@@ -223,6 +224,7 @@ app.post('/query-batch', async (c) => {
     if (conversationIds.length === 0) {
       return c.json({ paginationResponse: step1.data, detailResponse: null });
     }
+
     // Step 2: Inject conversation IDs into the detail template and execute
     const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
     const securedDetail = enforceSecurityFilters(detailWithIds, tenantId, requestedProjectId);
