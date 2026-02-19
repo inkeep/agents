@@ -16,7 +16,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 **Before pushing**, run the full CI gate:
 ```bash
 pnpm format     # auto-fix formatting first
-pnpm check      # full CI gate: lint + typecheck + test + build + format:check + env-descriptions + knip
+pnpm check      # full CI gate: lint + typecheck + test + format:check + env-descriptions + knip
 ```
 
 **During development**, use individual commands for fast iteration:
@@ -257,7 +257,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
 **Before marking any feature complete, verify:**
-- [ ] `pnpm check` passes (full CI gate: lint + typecheck + test + build + format + env-descriptions + knip)
+- [ ] `pnpm check` passes (full CI gate: lint + typecheck + test + format:check + env-descriptions + knip)
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
@@ -274,7 +274,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 2. **Run the full CI gate** (see [Verification](#verification) above):
    ```bash
    pnpm format     # auto-fix formatting first
-   pnpm check      # full CI gate: lint + typecheck + test + build + format:check + env-descriptions + knip
+   pnpm check      # full CI gate: lint + typecheck + test + format:check + env-descriptions + knip
    ```
 
 3. **Commit your changes** with a descriptive message
