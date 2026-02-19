@@ -172,6 +172,48 @@ export class ArtifactParser {
   }
 
   /**
+   * Resolve artifact refs embedded in tool call arguments.
+   * Recursively walks the args object/array; any object of the shape
+   * { $artifact: "artifact-id", $tool: "tool-call-id" } is replaced with
+   * the full artifact data so the tool receives the real content.
+   */
+  async resolveArgs(args: any): Promise<any> {
+    if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
+      if (typeof args.$artifact === 'string' && typeof args.$tool === 'string') {
+        const fullData = await this.artifactService.getArtifactFull(args.$artifact, args.$tool);
+        if (fullData?.data) {
+          logger.debug(
+            { artifactId: args.$artifact, toolCallId: args.$tool },
+            'Resolved artifact ref in tool arg'
+          );
+          return fullData.data;
+        }
+        logger.warn(
+          { artifactId: args.$artifact, toolCallId: args.$tool },
+          'Artifact ref in tool arg could not be resolved'
+        );
+        return args;
+      }
+
+      const result: Record<string, any> = {};
+      for (const [key, value] of Object.entries(args)) {
+        result[key] = await this.resolveArgs(value);
+      }
+      return result;
+    }
+
+    if (Array.isArray(args)) {
+      const resolved = [];
+      for (const item of args) {
+        resolved.push(await this.resolveArgs(item));
+      }
+      return resolved;
+    }
+
+    return args;
+  }
+
+  /**
    * Parse attributes from the artifact:create tag
    */
   private parseCreateAttributes(attrString: string): ArtifactCreateAnnotation | null {

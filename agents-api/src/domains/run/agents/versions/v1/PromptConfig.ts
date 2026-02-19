@@ -495,6 +495,23 @@ REFERENCING ARTIFACTS (WHEN CITING AGAIN):
 Only use artifact:ref when you need to cite the SAME artifact again for a different statement or context.
 Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
 
+🚨 PASSING ARTIFACTS TO TOOLS — MANDATORY, NO EXCEPTIONS 🚨
+When passing a saved artifact as a tool argument, you MUST use the artifact reference object.
+NEVER write the artifact's data inline as an argument value.
+
+The ONLY correct way to pass an artifact as a tool argument:
+{ "$artifact": "artifact-id", "$tool": "tool_call_id" }
+
+The system automatically resolves this to the full artifact data before the tool executes.
+
+❌ FORBIDDEN — writing artifact data inline as a tool argument:
+{ "data": { "field1": "...", "field2": "..." }, "term": "search term" }
+
+✅ REQUIRED — always use the reference object:
+{ "data": { "$artifact": "my-artifact-id", "$tool": "toolu_abc123" }, "term": "search term" }
+
+Use the exact artifactId and toolCallId from when the artifact was created. Never reconstruct or transcribe the artifact data.
+
 EXAMPLE TEXT RESPONSE:
 "I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
@@ -526,6 +543,23 @@ You can reference existing artifacts but cannot create new ones.
 HOW TO REFERENCE ARTIFACTS:
 Use the artifact:ref annotation to reference existing artifacts.
 Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
+
+🚨 PASSING ARTIFACTS TO TOOLS — MANDATORY, NO EXCEPTIONS 🚨
+When passing a saved artifact as a tool argument, you MUST use the artifact reference object.
+NEVER write the artifact's data inline as an argument value.
+
+The ONLY correct way to pass an artifact as a tool argument:
+{ "$artifact": "artifact-id", "$tool": "tool_call_id" }
+
+The system automatically resolves this to the full artifact data before the tool executes.
+
+❌ FORBIDDEN — writing artifact data inline as a tool argument:
+{ "data": { "field1": "...", "field2": "..." }, "term": "search term" }
+
+✅ REQUIRED — always use the reference object:
+{ "data": { "$artifact": "my-artifact-id", "$tool": "toolu_abc123" }, "term": "search term" }
+
+Use the exact artifactId and toolCallId from when the artifact was created. Never reconstruct or transcribe the artifact data.
 
 EXAMPLE TEXT RESPONSE:
 "Based on the authentication guide <artifact:ref id='existing-auth-guide' tool='call_previous456' /> that was previously collected, the API uses OAuth 2.0.

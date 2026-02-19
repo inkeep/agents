@@ -658,7 +658,11 @@ export class Agent {
         }
 
         try {
-          const result = await originalExecute(args, context);
+          const artifactParser = streamRequestId
+            ? agentSessionManager.getArtifactParser(streamRequestId)
+            : null;
+          const resolvedArgs = artifactParser ? await artifactParser.resolveArgs(args) : args;
+          const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
           // Store tool result in conversation history
