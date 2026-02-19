@@ -50,7 +50,6 @@ vi.mock('../../slack/services/blocks', () => ({
   createJwtLinkMessage: vi.fn().mockReturnValue({ text: 'Link account' }),
   createContextBlock: vi.fn().mockReturnValue({ type: 'context' }),
   createNotLinkedMessage: vi.fn().mockReturnValue({ text: 'Not linked' }),
-  createAgentListMessage: vi.fn().mockReturnValue({ text: 'Agent list' }),
   createAlreadyLinkedMessage: vi.fn().mockReturnValue({ text: 'Already linked' }),
   createStatusMessage: vi.fn().mockReturnValue({ text: 'Status' }),
   createUnlinkSuccessMessage: vi.fn().mockReturnValue({ text: 'Unlinked' }),
