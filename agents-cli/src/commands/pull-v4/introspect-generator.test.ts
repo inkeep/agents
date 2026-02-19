@@ -313,6 +313,45 @@ export const supportAgent = agent({
     );
   });
 
+  it('preserves comment above object field', async () => {
+    const project = createProjectFixture();
+    const indexFilePath = join(testDir, 'index.ts');
+    const before = `import { project } from '@inkeep/agents-sdk';
+import { supportAgent } from './agents/support-agent';
+
+export const supportProject = project({
+  id: 'support-project',
+  name: 'Legacy support project',
+  models: {
+    /**
+     * Keep this comment above the base model field.
+     */
+    base: {
+      model: 'gpt-4o-mini'
+    }
+  },
+  agents: () => [supportAgent]
+});
+`;
+    fs.writeFileSync(indexFilePath, before);
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedIndexFile } = await import(`${indexFilePath}?raw`);
+    expect(mergedIndexFile).toContain('Keep this comment above the base model field.');
+    expect(mergedIndexFile).toContain('/**');
+    expect(mergedIndexFile).toContain('base: {');
+
+    await expect(mergedIndexFile).toMatchFileSnapshot(
+      `__snapshots__/introspect/${expect.getState().currentTestName}.ts`
+    );
+
+    const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
+    await expect(indexDiff).toMatchFileSnapshot(
+      `__snapshots__/introspect/${expect.getState().currentTestName}.diff`
+    );
+  });
+
   it('preserve single line comment when merging existing statements', async () => {
     const project = createProjectFixture();
     const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
