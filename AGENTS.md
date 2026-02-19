@@ -13,21 +13,13 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 
 ### Verification
 
-**Before pushing**, run the full CI gate:
+**Pre-push** (run both, in order):
 ```bash
-pnpm format     # auto-fix formatting first
-pnpm check      # full CI gate: lint + typecheck + test + format:check + env-descriptions + knip
+pnpm format     # auto-fix formatting
+pnpm check      # lint + typecheck + test + format:check + env-descriptions + knip
 ```
 
-**During development**, use individual commands for fast iteration:
-
-| Command | What it checks | When to use |
-|---|---|---|
-| `pnpm typecheck` | Type errors | Fixing type issues |
-| `pnpm lint` | Lint rules | Fixing lint warnings (`pnpm lint:fix` to auto-fix) |
-| `pnpm test` | Unit + integration tests | After changing logic |
-| `pnpm format` | Code formatting | Before committing (`pnpm format:check` to verify only) |
-| `cd <pkg> && pnpm test --run <file>` | Single test file | Targeted test iteration (use `--run` to avoid watch mode) |
+**Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -257,36 +249,18 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
 **Before marking any feature complete, verify:**
-- [ ] `pnpm check` passes (full CI gate: lint + typecheck + test + format:check + env-descriptions + knip)
+- [ ] `pnpm check` passes
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
 
 ### 📋 Standard Development Workflow
 
-**After completing a feature and ensuring all tests, typecheck, and build are passing:**
+1. Create a branch: `git checkout -b feature/your-feature-name`
+2. Run [Verification](#verification) before pushing
+3. Commit, then `gh pr create`
 
-1. **Create a new branch** (if not already on one):
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Run the full CI gate** (see [Verification](#verification) above):
-   ```bash
-   pnpm format     # auto-fix formatting first
-   pnpm check      # full CI gate: lint + typecheck + test + format:check + env-descriptions + knip
-   ```
-
-3. **Commit your changes** with a descriptive message
-
-4. **Open a GitHub Pull Request** once all checks pass:
-   ```bash
-   gh pr create --title "feat: Your feature description" --body "Description of changes"
-   ```
-   
-   This is the standard development procedure to ensure code review and CI/CD processes.
-   
-   **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
+The user may override this workflow (e.g., work directly on main).
 
 ### PR Review Agents
 
