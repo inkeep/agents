@@ -9,8 +9,7 @@ Index: agents/support-agent.ts
  import { weatherMcpTool } from '../tools/weather-mcp';
 +import { githubWebhook } from './triggers/github-webhook';
  
--const weatherForecasterCustom = subAgent({
-+export const weatherForecasterCustom = subAgent({
+ const weatherForecasterCustom = subAgent({
    id: 'weather-forecaster',
 -  name: 'Legacy weather forecaster',
 +  name: 'Weather forecaster',

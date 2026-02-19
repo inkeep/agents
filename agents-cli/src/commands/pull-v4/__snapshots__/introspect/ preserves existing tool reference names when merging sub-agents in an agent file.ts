@@ -4,7 +4,7 @@ import { toolSummary } from '../status-components/tool-summary';
 import { weatherMcpTool } from '../tools/weather-mcp';
 import { githubWebhook } from './triggers/github-webhook';
 
-export const weatherForecasterCustom = subAgent({
+const weatherForecasterCustom = subAgent({
   id: 'weather-forecaster',
   name: 'Weather forecaster',
   canUse: () => [weatherMcpTool.with({ selectedTools: ['get_weather_forecast'] })]
