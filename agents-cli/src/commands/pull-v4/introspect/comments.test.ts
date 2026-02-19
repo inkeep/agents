@@ -54,7 +54,7 @@ export const supportAgent = agent({
     expect(mergedAgentFile).toContain('/**');
     expect(mergedAgentFile).toContain('Keeps routing instructions for tier one support.');
     expect(mergedAgentFile).toContain('Keeps top-level documentation for this agent.');
-    expect(mergedAgentFile).toContain('export const tierOneCustom = subAgent({');
+    expect(mergedAgentFile).toContain('const tierOneCustom = subAgent({');
 
     await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     const agentDiff = await createUnifiedDiff('agents/support-agent.ts', before, mergedAgentFile);
@@ -166,7 +166,7 @@ export const supportAgent = agent({
     await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
-  it('preserves single line comment above sub-agent when merge exports it', async () => {
+  it('preserves single line comment above sub-agent without adding export keyword', async () => {
     const project = createProjectFixture();
     const agentFilePath = join(testDir, 'agents', 'support-agent.ts');
     fs.mkdirSync(join(testDir, 'agents'), { recursive: true });
@@ -195,5 +195,7 @@ export const supportAgent = agent({
     const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
     await expect(mergedAgentFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
     expect(mergedAgentFile).toContain('// Knowledge Base Q&A Agent');
+    expect(mergedAgentFile).toContain('const tierOneCustom = subAgent({');
+    expect(mergedAgentFile).not.toContain('export const tierOneCustom = subAgent({');
   });
 });

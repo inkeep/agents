@@ -359,6 +359,7 @@ function alignVariableStatementOrdering(
   existingStatement: ReturnType<SourceFile['getVariableStatements']>[number],
   generatedStatement: ReturnType<SourceFile['getVariableStatements']>[number]
 ): string {
+  generatedStatement.setIsExported(existingStatement.isExported());
   const generatedText = generatedStatement.getText();
   const generatedStatementStart = generatedStatement.getStart();
   const existingDeclarationsByName = new Map(
