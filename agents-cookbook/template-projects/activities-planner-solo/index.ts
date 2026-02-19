@@ -1,7 +1,5 @@
 import { project } from '@inkeep/agents-sdk';
 import { activitiesPlannerSoloAgent } from './agents/activities-planner-solo';
-import { getCoordinates } from './tools/get-coordinates';
-import { getWeatherForecast } from './tools/get-weather-forecast';
 
 export const activitiesPlannerSolo = project({
   id: 'activities-planner-solo',
@@ -11,5 +9,4 @@ export const activitiesPlannerSolo = project({
     base: { model: 'anthropic/claude-sonnet-4-5' },
   },
   agents: () => [activitiesPlannerSoloAgent],
-  tools: () => [getCoordinates, getWeatherForecast],
 });
