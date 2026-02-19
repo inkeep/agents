@@ -25,7 +25,7 @@ import {
   profileUseCommand,
 } from './commands/profile';
 import { pullV3Command } from './commands/pull-v3';
-import { pullV4Command } from './commands/pull-v4';
+import { pullV4Command } from './commands/pull-v4/introspect';
 import { pushCommand } from './commands/push';
 import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';

@@ -19,12 +19,12 @@ import chalk from 'chalk';
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
 EventEmitter.defaultMaxListeners = 20;
 
-import { ManagementApiClient } from '../../api';
-import { performBackgroundVersionCheck } from '../../utils/background-version-check';
-import { initializeCommand } from '../../utils/cli-pipeline';
-import { loadProject } from '../../utils/project-loader';
-import { extractSubAgents } from '../pull-v3/utils/component-registry';
-import { introspectGenerate } from './introspect-generator';
+import { ManagementApiClient } from '../../../api';
+import { performBackgroundVersionCheck } from '../../../utils/background-version-check';
+import { initializeCommand } from '../../../utils/cli-pipeline';
+import { loadProject } from '../../../utils/project-loader';
+import { extractSubAgents } from '../../pull-v3/utils/component-registry';
+import { introspectGenerate } from '../introspect-generator';
 
 export interface PullV3Options {
   project?: string;
@@ -381,7 +381,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     const paths = createProjectStructure(projectDir);
 
     if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
-      const { generateSkills } = await import('../pull-v3/components/skill-generator');
+      const { generateSkills } = await import('../../pull-v3/components/skill-generator');
       await generateSkills(remoteProject.skills, paths.skillsDir);
     }
 
