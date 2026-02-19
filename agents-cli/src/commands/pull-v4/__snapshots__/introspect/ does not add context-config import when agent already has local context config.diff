@@ -2,7 +2,7 @@ Index: agents/support-agent.ts
 ===================================================================
 --- agents/support-agent.ts	before
 +++ agents/support-agent.ts	after
-@@ -1,19 +1,45 @@
+@@ -1,19 +1,46 @@
 -import { contextConfig } from '@inkeep/agents-core';
 +import { contextConfig, headers, fetchDefinition } from '@inkeep/agents-core';
  import { agent, subAgent } from '@inkeep/agents-sdk';
@@ -10,6 +10,21 @@ Index: agents/support-agent.ts
 +import { githubWebhook } from './triggers/github-webhook';
 +import { toolSummary } from '../status-components/tool-summary';
  
++const supportContextHeaders = headers({
++  schema: z.object({ "user_id": z.string().optional() })
++});
++const userInfo = fetchDefinition({
++  id: 'user-info',
++  name: 'User Information',
++  trigger: 'initialization',
++  fetchConfig: {
++    url: `https://api.example.com/users/${headersSchema.toTemplate("user_id")}`,
++    method: 'GET'
++  },
++  defaultValue: 'Unable to fetch user information',
++  responseSchema: z.object({ "name": z.string().optional() })
++});
++
  const supportContextCustom = contextConfig({
 -  id: 'support-context'
 +  id: 'support-context',
@@ -39,17 +54,3 @@ Index: agents/support-agent.ts
 +    statusComponents: [toolSummary.config]
 +  }
  });
-+const supportContextHeaders = headers({
-+  schema: z.object({ "user_id": z.string().optional() })
-+});
-+const userInfo = fetchDefinition({
-+  id: 'user-info',
-+  name: 'User Information',
-+  trigger: 'initialization',
-+  fetchConfig: {
-+    url: `https://api.example.com/users/${headersSchema.toTemplate("user_id")}`,
-+    method: 'GET'
-+  },
-+  defaultValue: 'Unable to fetch user information',
-+  responseSchema: z.object({ "name": z.string().optional() })
-+});

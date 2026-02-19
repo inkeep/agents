@@ -14,6 +14,9 @@ const userInfo = fetchDefinition({
   defaultValue: 'Unable to fetch user information',
   credentialReference: inkeepApiKey
 });
+const supportContextHeaders = headers({
+  schema: z.object({ "user_id": z.string().optional() })
+});
 
 export const supportContext = contextConfig({
   id: 'support-context',
@@ -21,7 +24,4 @@ export const supportContext = contextConfig({
     userInfo
   },
   headers: supportContextHeaders
-});
-const supportContextHeaders = headers({
-  schema: z.object({ "user_id": z.string().optional() })
 });

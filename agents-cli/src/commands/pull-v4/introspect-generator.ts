@@ -1143,7 +1143,10 @@ function writeTypeScriptFile(
       ? mergeSafely(readFileSync(filePath, 'utf8'), content)
       : content;
 
-  writeFileSync(filePath, `${normalizeGeneratedCode(processedContent)}\n`);
+  const normalizedContent = moveVariableDeclarationsBeforeUsage(
+    applyObjectShorthand(processedContent)
+  );
+  writeFileSync(filePath, `${normalizedContent}\n`);
 }
 
 function mergeSafely(existingContent: string, generatedContent: string): string {
@@ -1154,7 +1157,7 @@ function mergeSafely(existingContent: string, generatedContent: string): string 
   }
 }
 
-function normalizeGeneratedCode(content: string): string {
+function applyObjectShorthand(content: string): string {
   const sourceFile = createInMemoryProject().createSourceFile('generated.ts', content, {
     overwrite: true,
   });
@@ -1177,4 +1180,90 @@ function normalizeGeneratedCode(content: string): string {
   }
 
   return sourceFile.getFullText().trimEnd();
+}
+
+function moveVariableDeclarationsBeforeUsage(content: string): string {
+  const sourceFile = createInMemoryProject().createSourceFile('generated.ts', content, {
+    overwrite: true,
+  });
+
+  let moved = true;
+  while (moved) {
+    moved = false;
+    const variableStatements = sourceFile.getVariableStatements();
+    for (const variableStatement of variableStatements) {
+      const statementStart = variableStatement.getStart();
+      const sourceStatements = sourceFile.getStatements();
+      const statementIndex = sourceStatements.indexOf(variableStatement);
+      if (statementIndex <= 0) {
+        continue;
+      }
+
+      let targetIndex: number | undefined;
+      for (const declaration of variableStatement.getDeclarations()) {
+        for (const referenceNode of declaration.findReferencesAsNodes()) {
+          if (referenceNode.getSourceFile() !== sourceFile) {
+            continue;
+          }
+
+          const parentNode = referenceNode.getParent();
+          if (parentNode === declaration) {
+            continue;
+          }
+
+          if (referenceNode.getStart() >= statementStart) {
+            continue;
+          }
+
+          if (isReferenceInsideFunctionLike(referenceNode)) {
+            continue;
+          }
+
+          const topLevelStatement = referenceNode.getFirstAncestor((ancestor) => {
+            return Node.isStatement(ancestor) && ancestor.getParentIfKind(SyntaxKind.SourceFile);
+          });
+          if (!topLevelStatement) {
+            continue;
+          }
+
+          const topLevelStatementIndex = sourceStatements.indexOf(topLevelStatement);
+          if (topLevelStatementIndex === -1 || topLevelStatementIndex >= statementIndex) {
+            continue;
+          }
+
+          targetIndex =
+            targetIndex === undefined
+              ? topLevelStatementIndex
+              : Math.min(targetIndex, topLevelStatementIndex);
+        }
+      }
+
+      if (targetIndex === undefined) {
+        continue;
+      }
+
+      const statementText = variableStatement.getText();
+      variableStatement.remove();
+      sourceFile.insertStatements(targetIndex, [statementText]);
+      moved = true;
+      break;
+    }
+  }
+
+  return sourceFile.getFullText().trimEnd();
+}
+
+function isReferenceInsideFunctionLike(referenceNode: Node): boolean {
+  return Boolean(
+    referenceNode.getFirstAncestor((ancestor) => {
+      return (
+        Node.isArrowFunction(ancestor) ||
+        Node.isFunctionDeclaration(ancestor) ||
+        Node.isFunctionExpression(ancestor) ||
+        Node.isMethodDeclaration(ancestor) ||
+        Node.isGetAccessorDeclaration(ancestor) ||
+        Node.isSetAccessorDeclaration(ancestor)
+      );
+    })
+  );
 }

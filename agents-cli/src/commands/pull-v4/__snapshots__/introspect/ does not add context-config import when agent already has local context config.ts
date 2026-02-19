@@ -4,6 +4,21 @@ import { z } from 'zod';
 import { githubWebhook } from './triggers/github-webhook';
 import { toolSummary } from '../status-components/tool-summary';
 
+const supportContextHeaders = headers({
+  schema: z.object({ "user_id": z.string().optional() })
+});
+const userInfo = fetchDefinition({
+  id: 'user-info',
+  name: 'User Information',
+  trigger: 'initialization',
+  fetchConfig: {
+    url: `https://api.example.com/users/${headersSchema.toTemplate("user_id")}`,
+    method: 'GET'
+  },
+  defaultValue: 'Unable to fetch user information',
+  responseSchema: z.object({ "name": z.string().optional() })
+});
+
 const supportContextCustom = contextConfig({
   id: 'support-context',
   headers: supportContextHeaders,
@@ -28,18 +43,4 @@ export const supportAgent = agent({
     numEvents: 1,
     statusComponents: [toolSummary.config]
   }
-});
-const supportContextHeaders = headers({
-  schema: z.object({ "user_id": z.string().optional() })
-});
-const userInfo = fetchDefinition({
-  id: 'user-info',
-  name: 'User Information',
-  trigger: 'initialization',
-  fetchConfig: {
-    url: `https://api.example.com/users/${headersSchema.toTemplate("user_id")}`,
-    method: 'GET'
-  },
-  defaultValue: 'Unable to fetch user information',
-  responseSchema: z.object({ "name": z.string().optional() })
 });
