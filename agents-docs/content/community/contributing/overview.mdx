@@ -42,7 +42,7 @@ This will:
 - Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml`
 - Run database migrations (manage + runtime)
 - Initialize the default organization and admin user
-- Push a sample project (weather-project) so the UI is pre-seeded
+- Push a sample project (activities-planner) so the UI is pre-seeded
 
 <Tip>
 Safe to re-run at any time. Each step is additive — it won't drop tables, delete projects, or reset credentials. Migrations apply only what's new, and existing data is preserved. If Docker containers are already running, setup skips startup and proceeds to migrations.
@@ -83,7 +83,7 @@ pnpm add -g @inkeep/agents-cli
 ### Step 2: Push the project
 
 ```bash
-cd agents-cookbook/template-projects/weather-project
+cd agents-cookbook/template-projects/activities-planner
 inkeep push
 ```
 
@@ -191,7 +191,7 @@ pnpm build
 
 ```bash
 # From repository root
-node agents-cli/dist/index.js push agents-cookbook/template-projects/weather-project
+node agents-cli/dist/index.js push agents-cookbook/template-projects/activities-planner
 node agents-cli/dist/index.js --help
 ```
 
