@@ -109,12 +109,12 @@ export const supportAgent = agent({
 
     const { default: mergedAgentFile } = await import(`${agentFilePath}?raw`);
     expect(mergedAgentFile).toContain("import { agent, subAgent } from '@inkeep/agents-sdk';");
-    expect(mergedAgentFile).not.toContain("from './sub-agents/tier-one'");
-    expect(mergedAgentFile).toContain('const tierOneCustom = subAgent({');
-    expect(mergedAgentFile).toContain("id: 'tier-one'");
+    expect(mergedAgentFile).not.toContain(" from './sub-agents/tier-one';");
+    expect(mergedAgentFile).toContain('export const tierOneCustom = subAgent({');
+    expect(mergedAgentFile).toContain("id: 'tier-one',");
     expect(mergedAgentFile).toContain("name: 'Tier One'");
-    expect(mergedAgentFile).toContain('defaultSubAgent: tierOneCustom');
-    expect(mergedAgentFile).toContain('subAgents: () => [tierOneCustom]');
+    expect(mergedAgentFile).toContain('defaultSubAgent: tierOneCustom,');
+    expect(mergedAgentFile).toContain('subAgents: () => [tierOneCustom],');
 
     const credentialDiff = await createUnifiedDiff(
       'credentials/api-credentials.ts',
