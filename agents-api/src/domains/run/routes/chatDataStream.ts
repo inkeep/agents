@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   commonGetErrorResponses,
@@ -14,6 +14,7 @@ import {
   PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
@@ -38,13 +39,14 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('chatDataStream');
 
-const chatDataStreamRoute = createRoute({
+const chatDataStreamRoute = createProtectedRoute({
   method: 'post',
   path: '/chat',
   tags: ['Chat'],
   summary: 'Chat (Vercel Streaming Protocol)',
   description: 'Chat completion endpoint streaming with Vercel data stream protocol.',
   security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
   request: {
     body: {
       content: {
@@ -552,13 +554,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
 });
 
 // Tool approval endpoint
-const toolApprovalRoute = createRoute({
+const toolApprovalRoute = createProtectedRoute({
   method: 'post',
   path: '/tool-approvals',
   tags: ['Chat'],
   summary: 'Approve or deny tool execution',
   description: 'Handle user approval/denial of tool execution requests during conversations',
   security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
   request: {
     body: {
       content: {

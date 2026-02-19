@@ -12,7 +12,7 @@ export const SlackStrings = {
     send: 'Send',
     followUp: 'Follow Up',
     cancel: 'Cancel',
-    openDashboard: '⚙️ Open Dashboard',
+    openDashboard: 'Open Dashboard',
   },
 
   // Modal titles
@@ -55,11 +55,11 @@ export const SlackStrings = {
   // Usage hints
   usage: {
     mentionEmpty:
-      '*To use your Inkeep agent, include a message:*\n\n' +
-      '• `@Inkeep <message>` — Send a message to the default agent for the channel (reply appears in a thread)\n' +
-      '• `@Inkeep <message>` in a thread — Includes the thread as context for your agent\n' +
-      '• `@Inkeep` in a thread — Triggers your agent using the full thread as context\n\n' +
-      '💡 Use `/inkeep help` for all available commands.',
+      '*Include a message to use your Inkeep agent:*\n\n' +
+      '• `@Inkeep <message>` — Message the default agent (reply appears in a thread)\n' +
+      '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
+      '• `@Inkeep` in a thread — Uses the full thread as context\n\n' +
+      'Use `/inkeep help` for all available commands.',
   },
 
   // Status messages
@@ -67,33 +67,33 @@ export const SlackStrings = {
     thinking: (agentName: string) => `_${agentName} is thinking..._`,
     readingThread: (agentName: string) => `_${agentName} is reading this thread..._`,
     noAgentsAvailable: 'No agents available',
-    noProjectsConfigured: '⚙️ No projects configured. Please set up projects in the dashboard.',
+    noProjectsConfigured: 'No projects configured. Set up projects in the dashboard.',
   },
 
   // Error messages
   errors: {
-    generic: 'Sorry, something went wrong. Please try again.',
-    failedToOpenSelector: '❌ Failed to open agent selector. Please try again.',
+    generic: 'Something went wrong. Please try again.',
+    failedToOpenSelector: 'Failed to open agent selector. Please try again.',
   },
 
   // Help message
   help: {
     title: 'Inkeep — How to Use',
     publicSection:
-      '🔊 *Public* — everyone in the channel can see the response\n\n' +
-      '• `@Inkeep <message>` — message the default agent in this channel\n' +
+      '*Public* — visible to everyone in the channel\n\n' +
+      '• `@Inkeep <message>` — Message the default agent in this channel\n' +
       '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
       '• `@Inkeep` in a thread — Uses the full thread as context',
     privateSection:
-      '🔒 *Private* — only you can see the response\n\n' +
-      '• `/inkeep <message>` — message the default agent in this channel\n' +
+      '*Private* — only visible to you\n\n' +
+      '• `/inkeep <message>` — Message the default agent in this channel\n' +
       '• `/inkeep` — Open the agent picker to choose an agent and write a prompt',
     otherCommands:
-      '⚙️ *Other Commands*\n\n' +
+      '*Other Commands*\n\n' +
       '• `/inkeep status` — Check your connection and agent config\n' +
       '• `/inkeep link` / `/inkeep unlink` — Manage account connection\n' +
       '• `/inkeep help` — Show this message',
-    docsLink: '📖 <https://docs.inkeep.com/talk-to-your-agents/slack/overview|Learn more>',
+    docsLink: '<https://docs.inkeep.com/talk-to-your-agents/slack/overview|Learn more>',
   },
 
   // Message context (for message shortcut modal)

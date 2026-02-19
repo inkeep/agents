@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonCreateErrorResponses,
   commonDeleteErrorResponses,
@@ -16,6 +16,7 @@ import {
   WorkAppGitHubRepositorySelectSchema,
   WorkAppGithubInstallationApiSelectSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import {
   createAppJwt,
   fetchInstallationRepositories,
@@ -61,7 +62,7 @@ async function signStateToken(tenantId: string): Promise<string> {
 }
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/install-url',
     summary: 'Get GitHub App installation URL',
@@ -71,6 +72,7 @@ app.openapi(
       'Generates a URL to install the GitHub App on an organization or user account. ' +
       'The URL includes a signed state parameter that encodes the tenant ID and expires after 10 minutes. ' +
       'After installation, GitHub will redirect back to our callback endpoint with this state.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema,
     },
@@ -138,7 +140,7 @@ const ListInstallationsQuerySchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/installations',
     summary: 'List GitHub App installations',
@@ -148,6 +150,7 @@ app.openapi(
       'Returns a list of GitHub App installations connected to this tenant. ' +
       'By default, deleted installations are filtered out. ' +
       'Use the includeDisconnected query parameter to include them.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema,
       query: ListInstallationsQuerySchema,
@@ -212,7 +215,7 @@ const InstallationDetailResponseSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/installations/{installationId}',
     summary: 'Get GitHub App installation details',
@@ -221,6 +224,7 @@ app.openapi(
     description:
       'Returns detailed information about a specific GitHub App installation, ' +
       'including the full list of repositories.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema.merge(InstallationIdParamSchema),
     },
@@ -286,7 +290,7 @@ const DisconnectInstallationResponseSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/installations/{installationId}/disconnect',
     summary: 'Disconnect a GitHub App installation',
@@ -297,6 +301,7 @@ app.openapi(
       'This soft deletes the installation (sets status to "disconnected") and removes all project repository access entries. ' +
       'The installation record is preserved for audit purposes. ' +
       'Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema.merge(InstallationIdParamSchema),
     },
@@ -411,7 +416,7 @@ const serviceUnavailableSchema = {
 };
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/installations/{installationId}/reconnect',
     summary: 'Reconnect a disconnected GitHub App installation',
@@ -421,6 +426,7 @@ app.openapi(
       'Reconnects a previously disconnected GitHub App installation by setting its status back to "active" ' +
       'and syncing the available repositories from GitHub. ' +
       'This can only be used on installations with "disconnected" status.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema.merge(InstallationIdParamSchema),
     },
@@ -538,7 +544,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/installations/{installationId}',
     summary: 'Delete a GitHub App installation permanently',
@@ -549,6 +555,7 @@ app.openapi(
       'This hard deletes the installation record, all associated repositories, and project repository access entries. ' +
       'This action cannot be undone. Use POST /disconnect for soft delete instead. ' +
       'Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema.merge(InstallationIdParamSchema),
     },
@@ -601,7 +608,7 @@ const SyncRepositoriesResponseSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/installations/{installationId}/sync',
     summary: 'Sync repositories for a GitHub App installation',
@@ -610,6 +617,7 @@ app.openapi(
     description:
       'Manually refreshes the repository list for a GitHub App installation by fetching the current list from GitHub API. ' +
       'This is useful if webhooks were missed or to ensure the local data is in sync with GitHub.',
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema.merge(InstallationIdParamSchema),
     },

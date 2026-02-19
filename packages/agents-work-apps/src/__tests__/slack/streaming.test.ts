@@ -9,7 +9,18 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { streamAgentResponse } from '../../slack/services/events/streaming';
+
+const { mockFetch } = vi.hoisted(() => ({
+  mockFetch: vi.fn(),
+}));
+
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...original,
+    getInProcessFetch: vi.fn(() => mockFetch),
+  };
+});
 
 vi.mock('../../env', () => ({
   env: {
@@ -25,6 +36,9 @@ vi.mock('../../logger', () => ({
     error: vi.fn(),
   }),
 }));
+
+import { getInProcessFetch } from '@inkeep/agents-core';
+import { streamAgentResponse } from '../../slack/services/events/streaming';
 
 const mockPostMessage = vi.fn().mockResolvedValue({ ok: true });
 const mockPostEphemeral = vi.fn().mockResolvedValue({ ok: true });
@@ -66,12 +80,11 @@ describe('streamAgentResponse', () => {
   });
 
   it('should handle non-ok API response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response('Internal Server Error', { status: 500 })
-    );
+    mockFetch.mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
 
     const result = await streamAgentResponse(baseParams);
 
+    expect(getInProcessFetch).toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(result.errorType).toBeDefined();
     expect(mockPostMessage).toHaveBeenCalledWith(
@@ -83,9 +96,9 @@ describe('streamAgentResponse', () => {
   });
 
   it('should handle missing response body', async () => {
-    const mockResponse = new Response(null, { status: 200 });
-    Object.defineProperty(mockResponse, 'body', { value: null });
-    vi.spyOn(global, 'fetch').mockResolvedValue(mockResponse);
+    const response = new Response(null, { status: 200 });
+    Object.defineProperty(response, 'body', { value: null });
+    mockFetch.mockResolvedValue(response);
 
     const result = await streamAgentResponse(baseParams);
 
@@ -94,7 +107,7 @@ describe('streamAgentResponse', () => {
   });
 
   it('should clean up thinking message on error', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('Bad Request', { status: 400 }));
+    mockFetch.mockResolvedValue(new Response('Bad Request', { status: 400 }));
 
     await streamAgentResponse(baseParams);
 
@@ -126,7 +139,7 @@ describe('streamAgentResponse', () => {
       stop: localStop,
     });
 
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+    mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
     const result = await streamAgentResponse(baseParams);
 
@@ -137,13 +150,11 @@ describe('streamAgentResponse', () => {
   });
 
   it('should pass conversationId in API request body', async () => {
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response('Error', { status: 500 }));
+    mockFetch.mockResolvedValue(new Response('Error', { status: 500 }));
 
     await streamAgentResponse(baseParams);
 
-    const fetchCall = fetchSpy.mock.calls[0];
+    const fetchCall = mockFetch.mock.calls[0];
     const body = JSON.parse(fetchCall[1]?.body as string);
     expect(body.conversationId).toBe('conv-123');
     expect(body.stream).toBe(true);
@@ -162,7 +173,7 @@ describe('streamAgentResponse', () => {
         },
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       await streamAgentResponse(baseParams);
 
@@ -188,7 +199,7 @@ describe('streamAgentResponse', () => {
         },
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       await streamAgentResponse(baseParams);
 
@@ -211,7 +222,7 @@ describe('streamAgentResponse', () => {
         },
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       await streamAgentResponse(baseParams);
 
@@ -235,7 +246,7 @@ describe('streamAgentResponse', () => {
         },
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       await streamAgentResponse({ ...baseParams, conversationId: '' });
 
@@ -266,7 +277,7 @@ describe('streamAgentResponse', () => {
         stop: localStop,
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       const result = await streamAgentResponse(baseParams);
 
@@ -294,7 +305,7 @@ describe('streamAgentResponse', () => {
         stop: localStop,
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       const result = await streamAgentResponse(baseParams);
 
@@ -332,7 +343,7 @@ describe('streamAgentResponse', () => {
         stop: localStop,
       });
 
-      vi.spyOn(global, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
 
       const result = await streamAgentResponse(baseParams);
 

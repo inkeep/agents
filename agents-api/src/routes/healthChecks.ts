@@ -1,4 +1,5 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import manageDbPool from '../data/db/manageDbPool';
 import runDbClient from '../data/db/runDbClient';
 import type { AppVariables } from '../types';
@@ -9,13 +10,14 @@ export const healthChecksHandler = new OpenAPIHono<{ Variables: AppVariables }>(
 
 // Health check endpoint
 healthChecksHandler.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/health',
     operationId: 'health',
     tags: ['Health'],
     summary: 'Health check',
     description: 'Check if the management service is healthy',
+    permission: noAuth(),
     responses: {
       204: {
         description: 'Service is healthy',
@@ -55,7 +57,7 @@ const ReadyErrorResponseSchema = z
 
 // Readiness check endpoint - verifies database connectivity
 healthChecksHandler.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/ready',
     operationId: 'ready',
@@ -63,6 +65,7 @@ healthChecksHandler.openapi(
     summary: 'Readiness check',
     description:
       'Check if the service is ready to serve traffic by verifying database connectivity',
+    permission: noAuth(),
     responses: {
       200: {
         description: 'Service is ready - all health checks passed',

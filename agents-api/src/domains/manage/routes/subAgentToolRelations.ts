@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createAgentToolRelation,
@@ -20,36 +20,21 @@ import {
   TenantProjectAgentParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List SubAgent Tool Relations',
     operationId: 'list-subagent-tool-relations',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -125,12 +110,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get SubAgent Tool Relation',
     operationId: 'get-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -166,12 +152,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/tool/{toolId}/sub-agents',
     summary: 'Get SubAgents for Tool',
     operationId: 'get-subagents-for-tool',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         toolId: z.string(),
@@ -206,12 +193,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create SubAgent Tool Relation',
     operationId: 'create-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -275,12 +263,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
     summary: 'Update SubAgent Tool Relation',
     operationId: 'update-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -333,12 +322,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete SubAgent Tool Relation',
     operationId: 'delete-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

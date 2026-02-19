@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   commonGetErrorResponses,
@@ -16,6 +16,7 @@ import {
   WorkAppGitHubAccessSetResponseSchema,
   WorkAppGitHubRepositorySelectSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -95,10 +96,8 @@ async function validateGitHubWorkappTool(
 }
 
 // All operations on this route require 'edit' permission
-app.use('/', requireProjectPermission<{ Variables: ManageAppVariables }>('edit'));
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'Get MCP tool GitHub repository access',
@@ -108,6 +107,7 @@ app.openapi(
       'Returns the current GitHub repository access configuration for an MCP tool. ' +
       'If mode is "all", the tool has access to all repositories the project can access. ' +
       'If mode is "selected", the tool is scoped to specific repositories. ',
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectToolParamsSchema,
     },
@@ -178,7 +178,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/',
     summary: 'Set MCP tool GitHub repository access',
@@ -190,6 +190,7 @@ app.openapi(
       'When mode is "selected", the tool is scoped to specific repositories (repositoryIds required). ' +
       'This replaces any existing access configuration. ' +
       'This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).',
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectToolParamsSchema,
       body: {

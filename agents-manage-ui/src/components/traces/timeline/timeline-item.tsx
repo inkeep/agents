@@ -426,6 +426,20 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
             <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
               <div className="flex flex-col gap-2 text-sm text-emerald-900 dark:text-emerald-300">
+                {/* Oversized artifact warning */}
+                {activity.artifactIsOversized && (
+                  <div className="flex items-center gap-2 p-2 bg-amber-100 border border-amber-300 dark:bg-amber-900/30 dark:border-amber-700 rounded text-amber-900 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                    <div className="flex-1 text-xs font-medium">
+                      Oversized artifact
+                      {activity.artifactOriginalTokenSize && (
+                        <span className="ml-1 font-normal">
+                          (~{Math.floor(activity.artifactOriginalTokenSize / 1000)}K tokens)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Basic artifact info */}
                 <div className="space-y-1">
                   {activity.artifactType && TagRow('Type', activity.artifactType, 'emerald')}

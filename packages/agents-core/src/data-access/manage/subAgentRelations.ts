@@ -321,6 +321,7 @@ export const deleteAgentRelationsByAgent =
       .where(
         and(
           eq(subAgentRelations.tenantId, params.scopes.tenantId),
+          eq(subAgentRelations.projectId, params.scopes.projectId),
           eq(subAgentRelations.agentId, params.scopes.agentId)
         )
       )
@@ -451,6 +452,7 @@ export const getAgentToolRelationByAgent =
           and(
             eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
             eq(subAgentToolRelations.projectId, params.scopes.projectId),
+            eq(subAgentToolRelations.agentId, params.scopes.agentId),
             eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
           )
         )
@@ -464,6 +466,7 @@ export const getAgentToolRelationByAgent =
           and(
             eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
             eq(subAgentToolRelations.projectId, params.scopes.projectId),
+            eq(subAgentToolRelations.agentId, params.scopes.agentId),
             eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
           )
         ),

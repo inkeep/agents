@@ -1,5 +1,24 @@
 # @inkeep/agents-work-apps
 
+## 0.50.2
+
+### Patch Changes
+
+- becf184: standardize permission checks in routes
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+
 ## 0.50.0
 
 ### Minor Changes

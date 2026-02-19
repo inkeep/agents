@@ -619,7 +619,47 @@ Use parentheses folders like `(docker)` to group pages without changing the URL.
 
 ## Images and Media
 
-### Image Usage
+### When to use screenshots
+
+Screenshots earn their place when the reader needs **spatial context** — where to find something in a UI, what a result looks like, or what state to expect. Not every step needs an image.
+
+| Situation | Screenshot? | Why |
+|---|---|---|
+| User must locate a button, menu, or setting in the UI | **Yes** | Spatial context is the fastest way to orient |
+| Step produces a visible result the user should verify | **Yes** | "You should see this" builds confidence |
+| Before/after comparison for a configuration change | **Yes** | Visual diff is clearer than description |
+| Step is a CLI command or code-only action | **No** | Code blocks are sufficient |
+| UI is self-explanatory (single prominent button, obvious form) | **No** | Screenshot adds noise, not signal |
+| Content changes frequently (dashboard metrics, timestamps) | **Avoid** | Screenshots go stale fast — describe the pattern instead |
+
+**Rule of thumb:** If you can describe the action in one sentence without the reader getting lost, skip the screenshot.
+
+### Screenshot quality standards
+
+- **Viewport**: Capture at 1280x720 with 2x device scale for retina clarity
+- **Format**: PNG for UI screenshots; keep under 200KB (crop tightly)
+- **Crop**: Show only the relevant panel or section — never a full browser window with empty space
+- **Sensitive data**: Mask API keys, emails, and user-specific data before capture. Use realistic but clearly fake values (e.g., `sk-test-...`, `user@example.com`)
+- **Browser chrome**: Exclude browser toolbars, tabs, and OS chrome — capture the page content only
+- **Consistent state**: Use a clean, predictable UI state (default theme, no notification badges, standard viewport)
+
+### Screenshot composition
+
+- **Text before image**: Always describe what the screenshot shows before displaying it. The reader should know what to look for.
+- **One concept per screenshot**: Don't try to show two unrelated things in one image. If a step involves two parts of the UI, use two screenshots.
+- **Max 3-4 annotations**: If you need callouts (arrows, circles, numbered markers), keep them minimal. Over-annotated screenshots are harder to parse than un-annotated ones.
+- **Never two screenshots consecutively**: Put explanatory text between images. Back-to-back screenshots without context are a wall of images.
+- **Caption via alt text, not `<figcaption>`**: The `<Image>` component handles display; write meaningful alt text.
+
+### Image file conventions
+
+- **Storage**: `agents-docs/public/images/` — use kebab-case filenames
+- **Naming**: `{feature}-{what-it-shows}.png` (e.g., `traces-live-debugger.png`, `project-settings-api-keys.png`)
+- **Alt text**: Describe what's shown with key details, not what it "is." Under 125 characters when possible.
+  - Good: `"Project settings page with API keys section highlighted"`
+  - Avoid: `"Image of the settings page"` or `"Screenshot"`
+
+### Image component
 
 ```mdx
 <Image
@@ -628,7 +668,7 @@ Use parentheses folders like `(docker)` to group pages without changing the URL.
 />
 ```
 
-**Alt text**: Describe what the image shows; include key details; don't start with "Image of..."
+The `<Image>` component renders full-width with rounded corners and click-to-zoom. No extra styling needed.
 
 ### Videos
 
@@ -638,6 +678,8 @@ Use parentheses folders like `(docker)` to group pages without changing the URL.
   title="What the user will learn"
 />
 ```
+
+Use video (`<BigVideo>` for MP4, `<Video>` for YouTube) when the interaction involves multi-step flows where timing and transitions matter — e.g., drag-and-drop, real-time streaming responses, or complex UI sequences that screenshots can't convey.
 
 ---
 

@@ -10,7 +10,7 @@ jobs:
     name: Generate agents-mcp SDK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate SDK
         uses: speakeasy-api/sdk-generation-action@v15

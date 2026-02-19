@@ -2,7 +2,7 @@
 
 describe('Validation', () => {
   it('should not allow save invalid JSON', () => {
-    cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+    cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
     cy.typeInMonaco('contextVariables.json', 'foo bar');
     cy.contains('Save changes').click();
     cy.get('[data-sonner-toast][data-type=error]').should('be.visible');
@@ -12,7 +12,7 @@ describe('Validation', () => {
 
   it('should not allow save empty id', () => {
     cy.visit(
-      '/default/projects/my-weather-project/agents/weather-agent?pane=node&nodeId=weather-assistant'
+      '/default/projects/activities-planner/agents/activities-planner?pane=node&nodeId=activities-planner'
     );
     cy.get('[name=id]').clear();
     cy.contains('Save changes').click();

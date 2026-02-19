@@ -1,5 +1,5 @@
 import { subAgent } from '@inkeep/agents-sdk';
-import { exaMcpTool } from '../../tools/exa-mcp.js';
+import { exaMcpTool } from '../../tools/exa-mcp';
 
 export const companyResearch = subAgent({
   id: 'company-research',

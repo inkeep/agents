@@ -1,5 +1,5 @@
 import type { z } from '@hono/zod-openapi';
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import type { PrebuiltMCPServerSchema } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
@@ -8,6 +8,8 @@ import {
   MCPTransportType,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 type PrebuiltMCPServer = z.infer<typeof PrebuiltMCPServerSchema>;
@@ -443,7 +445,7 @@ const PREBUILT_MCP_SERVERS: PrebuiltMCPServer[] = [
 ];
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List MCP Server Catalog',
@@ -451,6 +453,7 @@ app.openapi(
     tags: ['MCP Catalog'],
     description:
       'Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured, also includes Composio servers for the tenant/project.',
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },

@@ -5,6 +5,7 @@
  * Streams responses incrementally to Slack using chatStream API.
  */
 
+import { getInProcessFetch } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
@@ -97,7 +98,7 @@ export async function streamAgentResponse(params: {
 
     let response: Response;
     try {
-      response = await fetch(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

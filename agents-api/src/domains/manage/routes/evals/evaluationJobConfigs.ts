@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -20,6 +20,7 @@ import {
   SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
@@ -30,20 +31,6 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigs');
 
 // Require edit permission for write operations
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:configId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 /**
  * Extract plain filter criteria from a potential Filter wrapper.
  * Returns null if the filter is a complex and/or combinator.
@@ -60,12 +47,13 @@ function getPlainJobFilters<T extends Record<string, unknown>>(
 }
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Evaluation Job Configs',
     operationId: 'list-evaluation-job-configs',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -112,12 +100,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{configId}',
     summary: 'Get Evaluation Job Config by ID',
     operationId: 'get-evaluation-job-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
     },
@@ -164,12 +153,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Evaluation Job Config',
     operationId: 'create-evaluation-job-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -278,12 +268,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{configId}',
     summary: 'Delete Evaluation Job Config',
     operationId: 'delete-evaluation-job-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
     },
@@ -329,12 +320,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{configId}/results',
     summary: 'Get Evaluation Results by Job Config ID',
     operationId: 'get-evaluation-job-config-results',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
     },

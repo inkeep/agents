@@ -59,10 +59,11 @@ describe('Slack Block Builders', () => {
       expect(JSON.stringify(result)).toContain(errorText);
     });
 
-    it('should include error emoji', () => {
+    it('should include the error text directly without emoji prefix', () => {
       const result = createErrorMessage('Error occurred');
 
-      expect(JSON.stringify(result)).toContain('❌');
+      expect(JSON.stringify(result)).toContain('Error occurred');
+      expect(JSON.stringify(result)).not.toContain('❌');
     });
   });
 
@@ -88,7 +89,7 @@ describe('Slack Block Builders', () => {
       const result = createAlreadyLinkedMessage(email, linkedAt, dashboardUrl);
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Already Linked');
+      expect(JSON.stringify(result)).toContain('Already linked');
       expect(JSON.stringify(result)).toContain(email);
       expect(JSON.stringify(result)).toContain('/inkeep unlink');
     });
@@ -99,7 +100,7 @@ describe('Slack Block Builders', () => {
       const result = createUnlinkSuccessMessage();
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Account Unlinked');
+      expect(JSON.stringify(result)).toContain('Account unlinked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
     });
   });
@@ -109,7 +110,7 @@ describe('Slack Block Builders', () => {
       const result = createNotLinkedMessage();
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Not Linked');
+      expect(JSON.stringify(result)).toContain('Not linked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
     });
   });

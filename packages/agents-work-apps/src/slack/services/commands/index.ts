@@ -3,6 +3,7 @@ import {
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingBySlackUser,
   flushTraces,
+  getInProcessFetch,
   getWaitUntil,
   signSlackLinkToken,
   signSlackUserToken,
@@ -373,7 +374,7 @@ async function executeAgentInBackground(
 
     let response: Response;
     try {
-      response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

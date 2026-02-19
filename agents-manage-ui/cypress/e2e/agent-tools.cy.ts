@@ -20,7 +20,7 @@ function connectEdge(selector: string) {
 
 describe('Agent Tools', () => {
   it('Editing sub-agent ID should not removes linked tools', () => {
-    cy.visit('/default/projects/my-weather-project');
+    cy.visit('/default/projects/activities-planner');
     cy.contains('Create agent').click();
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
@@ -32,7 +32,7 @@ describe('Agent Tools', () => {
     cy.typeInMonaco('code.jsx', 'function () {}');
     dragNode('[aria-label="Drag MCP node"]');
     cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 3);
-    cy.contains('Geocode address').click();
+    cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
     saveAndAssert();
     cy.get('.react-flow__node-agent').click();
@@ -53,7 +53,7 @@ describe('Agent Tools', () => {
     it('JSON', () => {
       const uri = 'contextVariables.json';
 
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+      cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       cy.typeInMonaco(uri, '{"foo":123}');
       cy.contains('Format').click();
       cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
@@ -61,7 +61,7 @@ describe('Agent Tools', () => {
     it('JavaScript', () => {
       const uri = 'code.jsx';
 
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+      cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       dragNode('[aria-label="Drag Function Tool node"]');
       cy.typeInMonaco(uri, 'function(){return"foo"}');
       cy.contains('Format').click();

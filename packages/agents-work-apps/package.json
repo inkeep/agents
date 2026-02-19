@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-work-apps",
-  "version": "0.50.0",
+  "version": "0.50.2",
   "description": "First party integrations for Inkeep Agents",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -50,6 +50,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@slack/socket-mode": "^2.0.5",
     "@types/node": "^20.11.24",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

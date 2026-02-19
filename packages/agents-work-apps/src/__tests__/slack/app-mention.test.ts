@@ -105,10 +105,6 @@ vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),
 }));
 
-vi.mock('../../slack/services/workspace-tokens', () => ({
-  getBotTokenForTeam: vi.fn(),
-}));
-
 vi.mock('../../slack/services/events/streaming', () => ({
   streamAgentResponse: vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -145,10 +141,8 @@ describe('handleAppMention', () => {
 
   it('should return silently when no bot token is available', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { getBotTokenForTeam } = await import('../../slack/services/workspace-tokens');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue(null);
-    vi.mocked(getBotTokenForTeam).mockReturnValue(null);
 
     await handleAppMention(baseParams);
 

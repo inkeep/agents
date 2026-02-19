@@ -23,6 +23,13 @@ import { Nango } from '@nangohq/node';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
+import type { SlackDevConfig } from './dev-config';
+import {
+  getDevDefaultAgent,
+  isSlackDevMode,
+  loadSlackDevConfig,
+  saveSlackDevConfig,
+} from './dev-config';
 
 const MAX_WORKSPACE_CACHE_SIZE = 1000;
 const workspaceConnectionCache = new Map<
@@ -101,6 +108,11 @@ export async function createConnectSession(params: {
   userName?: string;
   tenantId: string;
 }): Promise<{ sessionToken: string } | null> {
+  if (isSlackDevMode()) {
+    logger.debug({}, 'Skipping Nango connect session in dev mode');
+    return null;
+  }
+
   try {
     const nango = getSlackNango();
     const integrationId = getSlackIntegrationId();
@@ -135,6 +147,11 @@ export async function createConnectSession(params: {
 }
 
 export async function getConnectionAccessToken(connectionId: string): Promise<string | null> {
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    return devConfig?.botToken ?? null;
+  }
+
   try {
     const nango = getSlackNango();
     const integrationId = getSlackIntegrationId();
@@ -164,9 +181,33 @@ export interface SlackWorkspaceConnection {
   defaultAgent?: DefaultAgentConfig;
 }
 
+function buildDevWorkspaceConnection(
+  devConfig: SlackDevConfig,
+  teamId: string
+): SlackWorkspaceConnection {
+  const connection: SlackWorkspaceConnection = {
+    connectionId: `dev:${teamId}`,
+    teamId,
+    teamName: devConfig.teamName || 'dev',
+    botToken: devConfig.botToken,
+    tenantId: 'default',
+    defaultAgent: getDevDefaultAgent(devConfig) ?? undefined,
+  };
+
+  evictWorkspaceCache();
+  workspaceConnectionCache.set(teamId, {
+    connection,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+
+  return connection;
+}
+
 /**
  * Find a workspace connection by Slack team ID.
  * Uses PostgreSQL first (O(1)) with in-memory caching, then falls back to Nango.
+ * In development mode with .slack-dev.json present, returns a local connection
+ * built from the dev config file instead of hitting Nango.
  *
  * Performance: This function is called on every @mention and command.
  * The PostgreSQL-first approach with caching provides O(1) lookups.
@@ -178,6 +219,16 @@ export async function findWorkspaceConnectionByTeamId(
   if (cached && cached.expiresAt > Date.now()) {
     logger.debug({ teamId }, 'Workspace connection cache hit');
     return cached.connection;
+  }
+
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    if (devConfig) {
+      logger.debug({ teamId }, 'Using .slack-dev.json for workspace connection');
+      return buildDevWorkspaceConnection(devConfig, teamId);
+    }
+    logger.debug({ teamId }, 'No .slack-dev.json found returning null');
+    return null;
   }
 
   try {
@@ -215,7 +266,7 @@ export async function findWorkspaceConnectionByTeamId(
     }
 
     logger.debug({ teamId }, 'PostgreSQL lookup failed, falling back to Nango iteration');
-    return findWorkspaceConnectionByTeamIdFromNango(teamId);
+    return await findWorkspaceConnectionByTeamIdFromNango(teamId);
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to find workspace connection by team ID');
     return findWorkspaceConnectionByTeamIdFromNango(teamId);
@@ -225,6 +276,10 @@ export async function findWorkspaceConnectionByTeamId(
 async function getWorkspaceDefaultAgentFromNangoByConnectionId(
   connectionId: string
 ): Promise<DefaultAgentConfig | null> {
+  if (isSlackDevMode()) {
+    return getDevDefaultAgent(loadSlackDevConfig());
+  }
+
   try {
     const nango = getSlackNango();
     const integrationId = getSlackIntegrationId();
@@ -323,10 +378,21 @@ export async function updateConnectionMetadata(
   connectionId: string,
   metadata: Record<string, string>
 ): Promise<boolean> {
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    if (!devConfig) return false;
+    devConfig.metadata = { ...devConfig.metadata, ...metadata };
+    return saveSlackDevConfig(devConfig);
+  }
+
   try {
     const nango = getSlackNango();
     const integrationId = getSlackIntegrationId();
-    await nango.updateMetadata(integrationId, connectionId, metadata);
+    const lastUpdatedAt = new Date().toISOString();
+    await nango.updateMetadata(integrationId, connectionId, {
+      ...metadata,
+      last_updated_at: lastUpdatedAt,
+    });
     return true;
   } catch (error) {
     logger.error({ error, connectionId }, 'Failed to update connection metadata');
@@ -338,6 +404,18 @@ export async function setWorkspaceDefaultAgent(
   teamId: string,
   defaultAgent: DefaultAgentConfig | null
 ): Promise<boolean> {
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    if (!devConfig) return false;
+    devConfig.metadata = {
+      ...devConfig.metadata,
+      default_agent: defaultAgent ? JSON.stringify(defaultAgent) : '',
+    };
+    const saved = saveSlackDevConfig(devConfig);
+    if (saved) clearWorkspaceConnectionCache(teamId);
+    return saved;
+  }
+
   try {
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace) {
@@ -363,6 +441,10 @@ export async function setWorkspaceDefaultAgent(
 export async function getWorkspaceDefaultAgentFromNango(
   teamId: string
 ): Promise<DefaultAgentConfig | null> {
+  if (isSlackDevMode()) {
+    return getDevDefaultAgent(loadSlackDevConfig());
+  }
+
   try {
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     return workspace?.defaultAgent || null;
@@ -417,6 +499,11 @@ export async function storeWorkspaceInstallation(
     teamId: data.teamId,
     enterpriseId: data.enterpriseId,
   });
+
+  if (isSlackDevMode()) {
+    logger.debug({ connectionId }, 'Skipping Nango store in dev mode');
+    return { connectionId: `dev:${data.teamId}`, success: true };
+  }
 
   try {
     const integrationId = getSlackIntegrationId();
@@ -545,6 +632,22 @@ export async function storeWorkspaceInstallation(
  * List all workspace installations from Nango.
  */
 export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnection[]> {
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    if (!devConfig) return [];
+
+    return [
+      {
+        connectionId: `dev:${devConfig.teamId}`,
+        teamId: devConfig.teamId,
+        teamName: devConfig.teamName,
+        botToken: devConfig.botToken,
+        tenantId: 'default',
+        defaultAgent: getDevDefaultAgent(devConfig) ?? undefined,
+      },
+    ];
+  }
+
   try {
     const nango = getSlackNango();
     const integrationId = getSlackIntegrationId();
@@ -598,6 +701,11 @@ export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnec
  * Delete a workspace installation from Nango.
  */
 export async function deleteWorkspaceInstallation(connectionId: string): Promise<boolean> {
+  if (isSlackDevMode()) {
+    logger.debug({ connectionId }, 'Skipping Nango delete in dev mode');
+    return true;
+  }
+
   try {
     const nango = getSlackNango();
     const integrationId = getSlackIntegrationId();
