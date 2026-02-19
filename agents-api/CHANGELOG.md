@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.50.2
+
+### Patch Changes
+
+- fa71905: Added Oversized Artifact Handling and Context Window Size Management at Provider Options
+- becf184: standardize permission checks in routes
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+  - @inkeep/agents-work-apps@0.50.2
+  - @inkeep/agents-mcp@0.50.2
+
 ## 0.50.1
 
 ### Patch Changes
