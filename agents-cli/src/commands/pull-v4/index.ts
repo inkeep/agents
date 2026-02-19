@@ -459,7 +459,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     const projects = await apiClient.listAllProjects();
     s.stop(`Found ${projects.length} project(s)`);
 
-    if (projects.length === 0) {
+    if (!projects.length) {
       console.log(chalk.yellow('No projects found for this tenant.'));
       process.exit(0);
     }

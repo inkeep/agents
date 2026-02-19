@@ -182,7 +182,7 @@ function addCredentialsProperty(
   credentials: unknown,
   hasCredentialStoreType: boolean
 ): void {
-  if (!isPlainObject(credentials) || Object.keys(credentials).length === 0) {
+  if (!isPlainObject(credentials) || !Object.keys(credentials).length) {
     configObject.addPropertyAssignment({
       name: 'credentials',
       initializer: '{}',
@@ -287,7 +287,7 @@ function addRetrievalParams(
     });
   }
 
-  if (retrievalParamsObject.getProperties().length === 0) {
+  if (!retrievalParamsObject.getProperties().length) {
     retrievalParamsProperty.remove();
   }
 }

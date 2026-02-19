@@ -106,7 +106,7 @@ export function formatInlineLiteral(value: unknown): string {
   }
   if (isPlainObject(value)) {
     const entries = Object.entries(value).filter(([, entryValue]) => entryValue !== undefined);
-    if (entries.length === 0) {
+    if (!entries.length) {
       return '{}';
     }
     return `{ ${entries

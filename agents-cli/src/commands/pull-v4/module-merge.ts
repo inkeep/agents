@@ -217,7 +217,7 @@ function findExistingDeclarationByEntitySignature(
       (declaration) => getVariableDeclarationEntitySignature(declaration) === generatedSignature
     );
 
-  if (matchingDeclarations.length === 0) {
+  if (!matchingDeclarations.length) {
     return;
   }
 
@@ -242,7 +242,7 @@ function getVariableDeclarationEntitySignature(
   }
 
   const args = initializer.getArguments();
-  if (args.length === 0 || !Node.isObjectLiteralExpression(args[0])) {
+  if (!args.length || !Node.isObjectLiteralExpression(args[0])) {
     return;
   }
 
@@ -615,7 +615,7 @@ function withPreservedNodeLeadingComments(
 function getNodeLeadingCommentsText(node: Node): string | undefined {
   const commentTexts = node.getLeadingCommentRanges().map((commentRange) => commentRange.getText());
 
-  if (commentTexts.length === 0) {
+  if (!commentTexts.length) {
     return;
   }
 
@@ -794,7 +794,7 @@ function formatCollectionLiteralText(
   openToken: '{' | '[',
   closeToken: '}' | ']'
 ): string {
-  if (itemTexts.length === 0) {
+  if (!itemTexts.length) {
     return `${openToken}${closeToken}`;
   }
 
@@ -865,7 +865,7 @@ interface TextReplacement {
 }
 
 function applyTextReplacements(sourceText: string, replacements: TextReplacement[]): string {
-  if (replacements.length === 0) {
+  if (!replacements.length) {
     return sourceText;
   }
 
@@ -893,7 +893,7 @@ function withPreservedLeadingComments(
 
 function getLeadingCommentsText(statement: Statement): string | undefined {
   const leadingCommentRanges = statement.getLeadingCommentRanges();
-  if (leadingCommentRanges.length === 0) {
+  if (!leadingCommentRanges.length) {
     return;
   }
 

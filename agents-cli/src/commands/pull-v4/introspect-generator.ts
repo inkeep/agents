@@ -555,7 +555,7 @@ function isAgentComplete(
   if (!data.defaultSubAgentId || typeof data.defaultSubAgentId !== 'string') {
     return { complete: false, reason: 'missing defaultSubAgentId' };
   }
-  if (!asRecord(data.subAgents) || Object.keys(data.subAgents).length === 0) {
+  if (!asRecord(data.subAgents) || !Object.keys(data.subAgents).length) {
     return { complete: false, reason: 'no sub-agents defined' };
   }
   return { complete: true };
@@ -631,7 +631,7 @@ function collectSubAgentReferenceOverrides(
     subAgentIds.add(agentData.defaultSubAgentId);
   }
 
-  if (subAgentIds.size === 0) {
+  if (!subAgentIds.size) {
     return {};
   }
 
