@@ -88,6 +88,14 @@ export function getDevDefaultAgent(config: SlackDevConfig | null): DefaultAgentC
   }
 }
 
+export function resetDevConfigCache(): void {
+  cachedConfig = null;
+  cacheExpiresAt = 0;
+  resolvedConfigPath = undefined;
+  devModeChecked = false;
+  devModeResult = false;
+}
+
 export function saveSlackDevConfig(config: SlackDevConfig): boolean {
   const configPath = getDevConfigPath();
   if (!configPath) return false;
