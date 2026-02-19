@@ -119,6 +119,7 @@ export function AgentConfigurationCard() {
       agentName: agent.name || agent.id,
       projectId: agent.projectId,
       projectName: agent.projectName || 'Unknown Project',
+      grantAccessToMembers: true,
     };
 
     setDefaultAgent(config);
@@ -138,6 +139,34 @@ export function AgentConfigurationCard() {
       toast.error('Failed to save default agent');
     } finally {
       setSavingDefault(false);
+    }
+  };
+
+  const handleToggleWorkspaceGrantAccess = async (grantAccess: boolean) => {
+    if (!teamId || !defaultAgent) return;
+
+    const updatedConfig: DefaultAgentConfig = {
+      ...defaultAgent,
+      grantAccessToMembers: grantAccess,
+    };
+
+    setDefaultAgent(updatedConfig);
+
+    try {
+      await slackApi.setWorkspaceDefaultAgent({
+        teamId,
+        defaultAgent: updatedConfig,
+      });
+
+      toast.success(
+        grantAccess
+          ? 'Workspace members can now use this agent'
+          : 'Workspace members need explicit project access'
+      );
+    } catch (error) {
+      console.error('Failed to toggle workspace grant access:', error);
+      setDefaultAgent(defaultAgent);
+      toast.error('Failed to update access setting');
     }
   };
 
@@ -424,6 +453,7 @@ export function AgentConfigurationCard() {
             savingDefault={savingDefault}
             canEdit={canEditWorkspaceDefault}
             onSetDefaultAgent={handleSetDefaultAgent}
+            onToggleGrantAccess={handleToggleWorkspaceGrantAccess}
             onFetchAgents={fetchAgents}
             open={defaultOpen}
             onOpenChange={setDefaultOpen}

@@ -25,6 +25,7 @@ import {
 } from '../blocks';
 import { getSlackClient } from '../client';
 import {
+  extractApiErrorMessage,
   fetchAgentsForProject,
   fetchProjectsForTenant,
   getChannelAgentConfig,
@@ -430,9 +431,13 @@ async function executeAgentInBackground(
         },
         'Run API call failed'
       );
+      const apiMessage = extractApiErrorMessage(errorText);
+      const errorMessage = apiMessage
+        ? `*Error.* ${apiMessage}`
+        : `Failed to run agent: ${response.status} ${response.statusText}`;
       await sendResponseUrlMessage(payload.responseUrl, {
         response_type: 'ephemeral',
-        text: `Failed to run agent: ${response.status} ${response.statusText}`,
+        text: errorMessage,
       });
     } else {
       const result = await response.json();

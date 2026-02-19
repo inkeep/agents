@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, ChevronDown, Loader2 } from 'lucide-react';
+import { Check, ChevronDown, Loader2, ShieldCheck, SlackIcon } from 'lucide-react';
+import { InkeepIconMono } from '@/components/icons/inkeep';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -11,6 +12,8 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { DefaultAgentConfig, SlackAgentOption } from './types';
 
@@ -21,6 +24,7 @@ interface WorkspaceDefaultSectionProps {
   savingDefault: boolean;
   canEdit: boolean;
   onSetDefaultAgent: (agent: SlackAgentOption) => void;
+  onToggleGrantAccess: (grantAccess: boolean) => void;
   onFetchAgents: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,12 +37,15 @@ export function WorkspaceDefaultSection({
   savingDefault,
   canEdit,
   onSetDefaultAgent,
+  onToggleGrantAccess,
   onFetchAgents,
   open,
   onOpenChange,
 }: WorkspaceDefaultSectionProps) {
+  const grantAccess = defaultAgent?.grantAccessToMembers ?? true;
+
   return (
-    <div>
+    <div className="space-y-3">
       {canEdit ? (
         <Popover open={open} onOpenChange={onOpenChange}>
           <PopoverTrigger asChild>
@@ -120,6 +127,36 @@ export function WorkspaceDefaultSection({
           ) : (
             <span className="text-muted-foreground">No default agent configured.</span>
           )}
+        </div>
+      )}
+      {defaultAgent && canEdit && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <label
+                htmlFor="workspace-grant-access"
+                className="flex items-center gap-2 text-sm cursor-pointer"
+              >
+                <span className="inline-flex items-center gap-0.5 text-muted-foreground">
+                  {grantAccess ? (
+                    <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                  ) : (
+                    <InkeepIconMono aria-hidden="true" className="h-3.5 w-3.5" />
+                  )}
+                  <ShieldCheck aria-hidden="true" className="h-3 w-3" />
+                </span>
+                <span>Grant access to members</span>
+              </label>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[240px]">
+              When enabled, workspace members can use this agent without explicit project access.
+            </TooltipContent>
+          </Tooltip>
+          <Switch
+            id="workspace-grant-access"
+            checked={grantAccess}
+            onCheckedChange={onToggleGrantAccess}
+          />
         </div>
       )}
     </div>

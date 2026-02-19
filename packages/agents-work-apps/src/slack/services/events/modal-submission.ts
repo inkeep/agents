@@ -16,6 +16,7 @@ import type { FollowUpModalMetadata, ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import {
   classifyError,
+  extractApiErrorMessage,
   findCachedUserMapping,
   generateSlackConversationId,
   getThreadContext,
@@ -464,10 +465,14 @@ async function callAgentApi(params: {
       return { text: markdownToMrkdwn(rawContent), isError: false };
     }
 
+    const errorBody = await response.text().catch(() => '');
+    const apiMessage = extractApiErrorMessage(errorBody);
     const errorType = classifyError(null, response.status);
-    const errorText = getUserFriendlyErrorMessage(errorType, agentId);
+    const errorText = apiMessage
+      ? `*Error.* ${apiMessage}`
+      : getUserFriendlyErrorMessage(errorType, agentId);
     logger.warn(
-      { status: response.status, statusText: response.statusText, agentId },
+      { status: response.status, statusText: response.statusText, agentId, errorBody },
       'Agent API returned error'
     );
     apiSpan.end();
