@@ -1,0 +1,160 @@
+---
+title: Local Development with Slack
+sidebarTitle: Local Development
+description: Set up a personal Slack app for local development using Socket Mode — no tunneling required.
+---
+
+# Local Development with Slack
+
+The `setup-slack-dev` script creates a personal Slack app and wires up all the credentials you need to run the Slack integration locally. It uses **Socket Mode**, so you don't need ngrok or any other tunneling tool — events arrive over a WebSocket connection directly to your machine.
+
+<Note>
+This is a **developer-only** setup. For production or team-wide Slack installation, see the [Installation guide](/talk-to-your-agents/slack/installation).
+</Note>
+
+## Why each developer needs their own app
+
+Socket Mode distributes incoming Slack events to one connected client at a time (round-robin), not to all listeners simultaneously. If multiple developers shared a single app, only one of them would receive any given event. A personal dev app ensures you reliably receive the events you're testing.
+
+## Prerequisites
+
+- Node.js and `pnpm` installed
+- Access to the Inkeep repository with the Slack integration code
+- A Slack account with permission to create apps in your workspace
+
+## Run the setup script
+
+```bash
+pnpm setup-slack-dev
+```
+
+The script is fully automated. **The first run** requires two manual steps — pasting a config refresh token and an app-level token. **Subsequent runs** are zero-paste: the script refreshes credentials automatically using the saved configuration.
+
+## First-run walkthrough
+
+<Steps>
+  <Step>
+    ### Generate a unique dev identifier
+
+    The script generates a random name suffix (e.g., `frost-ember`) and creates your app as **"Inkeep Dev frost-ember"**. Random naming prevents collisions when multiple developers are working simultaneously.
+  </Step>
+  <Step>
+    ### Obtain a Slack configuration token
+
+    The script opens a URL for you to log in to your Slack account and retrieve a **configuration refresh token**. Paste the token when prompted.
+
+    ```
+    Open this URL in your browser to get a config token:
+    https://app.slack.com/apps-api/...
+
+    Paste the config refresh token here: █
+    ```
+
+    This token lets the script create and update your Slack app via the API. It's stored in `.slack-dev.json` and refreshed automatically on future runs.
+  </Step>
+  <Step>
+    ### Create the Slack app
+
+    Using the config token, the script calls the Slack API to create your app with a pre-built manifest that configures:
+
+    - Socket Mode (WebSocket events)
+    - Bot scopes and permissions
+    - Slash commands
+    - Event subscriptions
+  </Step>
+  <Step>
+    ### Obtain an app-level token
+
+    The script prompts you to create an **app-level token** (`xapp-`) in your new Slack app's settings page. This token is what opens the WebSocket connection for Socket Mode.
+
+    ```
+    Open your app settings and create an app-level token:
+    https://api.slack.com/apps/<your-app-id>/general
+
+    Paste the app-level token (xapp-...): █
+    ```
+
+    <Tip>
+    When creating the token in Slack, give it the `connections:write` scope. Save the token — Slack only shows it once.
+    </Tip>
+  </Step>
+  <Step>
+    ### Run the OAuth flow
+
+    The script starts a temporary local server and launches the Slack OAuth flow in your browser. After you authorize the app to your workspace, Slack redirects back to the local server, which captures the **bot token** (`xoxb-`) automatically.
+
+    No manual pasting required for this step.
+  </Step>
+  <Step>
+    ### Write credentials to `.env`
+
+    All credentials are written to your `.env` file automatically:
+
+    ```dotenv
+    SLACK_APP_TOKEN=xapp-1-...
+    SLACK_BOT_TOKEN=xoxb-...
+    SLACK_CLIENT_ID=1234567890.123456789
+    SLACK_CLIENT_SECRET=abc123...
+    SLACK_SIGNING_SECRET=def456...
+    ```
+
+    Configuration (including the refresh token) is also saved to `.slack-dev.json`, which is git-ignored.
+  </Step>
+</Steps>
+
+## Subsequent runs
+
+On re-runs, the script reads `.slack-dev.json` and refreshes the configuration token automatically. You'll see:
+
+```bash
+pnpm setup-slack-dev
+
+✓ Loaded existing dev config (frost-ember)
+✓ Refreshed config token
+✓ Updated app manifest
+✓ Wrote credentials to .env
+```
+
+No manual input needed unless `.slack-dev.json` is deleted.
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `SLACK_APP_TOKEN` | App-level token (`xapp-`) — opens the WebSocket connection for Socket Mode |
+| `SLACK_BOT_TOKEN` | Bot token (`xoxb-`) — used for all Slack API calls |
+| `SLACK_CLIENT_ID` | OAuth app client ID |
+| `SLACK_CLIENT_SECRET` | OAuth app client secret |
+| `SLACK_SIGNING_SECRET` | Verifies incoming Slack request signatures |
+
+## Persistent configuration
+
+The script stores state in `.slack-dev.json` at the repository root:
+
+```json
+{
+  "devIdentifier": "frost-ember",
+  "appId": "A012ABCDE34",
+  "configRefreshToken": "...",
+  "clientId": "...",
+  "clientSecret": "...",
+  "signingSecret": "..."
+}
+```
+
+<Warning>
+`.slack-dev.json` contains sensitive credentials. It's git-ignored by default — never commit it.
+</Warning>
+
+If you need to start fresh (e.g., your app was deleted from Slack), delete `.slack-dev.json` and run `pnpm setup-slack-dev` again.
+
+## Next steps
+
+<Cards>
+  <Card title="Slack Overview" icon="LuMessageSquare" href="/talk-to-your-agents/slack/overview">
+    Learn how the Slack integration works
+  </Card>
+  <Card title="Configuration" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">
+    Configure agents and channel defaults
+  </Card>
+</Cards>
