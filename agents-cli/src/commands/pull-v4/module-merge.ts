@@ -1,4 +1,5 @@
-import { Node, type SourceFile, type Statement, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile, Statement } from 'ts-morph';
+import { Node, SyntaxKind } from 'ts-morph';
 import { createInMemoryProject } from './utils';
 
 export function mergeGeneratedModule(existingContent: string, generatedContent: string): string {
@@ -158,17 +159,25 @@ function upsertVariableStatement(existingFile: SourceFile, generatedStatement: S
     return;
   }
 
-  const declarationNames = generatedStatement
-    .getDeclarations()
-    .map((declaration) => declaration.getName());
-  if (declarationNames.length === 0) {
+  const generatedDeclarations = generatedStatement.getDeclarations();
+  if (generatedDeclarations.length === 0) {
     appendUniqueStatement(existingFile, generatedStatement.getText());
     return;
   }
 
   const existingStatements = new Set<Statement>();
-  for (const declarationName of declarationNames) {
-    const existingDeclaration = existingFile.getVariableDeclaration(declarationName);
+  for (const generatedDeclaration of generatedDeclarations) {
+    let existingDeclaration = existingFile.getVariableDeclaration(generatedDeclaration.getName());
+    if (!existingDeclaration) {
+      existingDeclaration = findExistingDeclarationByEntitySignature(
+        existingFile,
+        generatedDeclaration
+      );
+      if (existingDeclaration) {
+        generatedDeclaration.rename(existingDeclaration.getName());
+      }
+    }
+
     if (!existingDeclaration) {
       continue;
     }
@@ -190,6 +199,94 @@ function upsertVariableStatement(existingFile: SourceFile, generatedStatement: S
   for (const statement of remainingStatements) {
     statement.remove();
   }
+}
+
+function findExistingDeclarationByEntitySignature(
+  existingFile: SourceFile,
+  generatedDeclaration: ReturnType<SourceFile['getVariableDeclarations']>[number]
+) {
+  const generatedSignature = getVariableDeclarationEntitySignature(generatedDeclaration);
+  if (!generatedSignature) {
+    return;
+  }
+
+  const matchingDeclarations = existingFile
+    .getVariableDeclarations()
+    .filter(
+      (declaration) => getVariableDeclarationEntitySignature(declaration) === generatedSignature
+    );
+
+  if (matchingDeclarations.length === 0) {
+    return;
+  }
+
+  const exportedDeclaration = matchingDeclarations.find((declaration) =>
+    declaration.getFirstAncestorByKind(SyntaxKind.VariableStatement)?.hasExportKeyword()
+  );
+
+  return exportedDeclaration ?? matchingDeclarations[0];
+}
+
+function getVariableDeclarationEntitySignature(
+  declaration: ReturnType<SourceFile['getVariableDeclarations']>[number]
+): string | undefined {
+  const initializer = declaration.getInitializer();
+  if (!initializer || !Node.isCallExpression(initializer)) {
+    return;
+  }
+
+  const expression = initializer.getExpression();
+  if (!Node.isIdentifier(expression)) {
+    return;
+  }
+
+  const args = initializer.getArguments();
+  if (args.length === 0 || !Node.isObjectLiteralExpression(args[0])) {
+    return;
+  }
+
+  const factoryName = expression.getText();
+  const entityId = readEntityId(args[0], factoryName);
+  if (!entityId) {
+    return;
+  }
+
+  return `${factoryName}:${entityId}`;
+}
+
+function readEntityId(
+  configObject: ObjectLiteralExpression,
+  factoryName: string
+): string | undefined {
+  const idProperty = configObject.getProperty('id');
+  if (idProperty && Node.isPropertyAssignment(idProperty)) {
+    const idInitializer = idProperty.getInitializer();
+    if (idInitializer && Node.isStringLiteral(idInitializer)) {
+      return idInitializer.getLiteralValue();
+    }
+  }
+
+  if (factoryName === 'statusComponent') {
+    const typeProperty = configObject.getProperty('type');
+    if (typeProperty && Node.isPropertyAssignment(typeProperty)) {
+      const typeInitializer = typeProperty.getInitializer();
+      if (typeInitializer && Node.isStringLiteral(typeInitializer)) {
+        return typeInitializer.getLiteralValue();
+      }
+    }
+  }
+
+  if (factoryName === 'functionTool') {
+    const nameProperty = configObject.getProperty('name');
+    if (nameProperty && Node.isPropertyAssignment(nameProperty)) {
+      const nameInitializer = nameProperty.getInitializer();
+      if (nameInitializer && Node.isStringLiteral(nameInitializer)) {
+        return nameInitializer.getLiteralValue();
+      }
+    }
+  }
+
+  return;
 }
 
 function upsertNamedStatement(

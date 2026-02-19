@@ -15,7 +15,12 @@ import {
   toCamelCase,
 } from './utils';
 
-const AgentSchema = z.looseObject({
+const SubAgentReferenceSchema = z.object({
+  name: z.string().nonempty(),
+  local: z.boolean().optional(),
+});
+
+const AgentSchema: z.ZodType<any> = z.looseObject({
   agentId: z.string().nonempty(),
   name: z.string().nonempty(),
   description: z.string().optional(),
@@ -50,10 +55,20 @@ const AgentSchema = z.looseObject({
     .optional(),
   credentials: z.array(z.union([z.string(), z.strictObject({ id: z.string() })])).optional(),
   triggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
+  agentVariableName: z.string().nonempty().optional(),
+  subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
 });
 
 type AgentDefinitionData = z.input<typeof AgentSchema>;
 type ParsedAgentDefinitionData = z.infer<typeof AgentSchema>;
+type ReferenceNameMap = Map<string, string>;
+
+interface AgentReferenceNames {
+  subAgents: ReferenceNameMap;
+  contextConfig?: string;
+  triggers: ReferenceNameMap;
+  statusComponents: ReferenceNameMap;
+}
 
 export function generateAgentDefinition(data: AgentDefinitionData): string {
   const result = AgentSchema.safeParse(data);
@@ -72,16 +87,43 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
 
   const subAgentIds = new Set(extractIds(parsed.subAgents));
   subAgentIds.add(parsed.defaultSubAgentId);
-  addSubAgentImports(sourceFile, subAgentIds);
-  const contextConfigId = extractContextConfigId(parsed.contextConfig);
-  if (contextConfigId) {
-    addContextConfigImport(sourceFile, contextConfigId);
-  }
-  const triggerIds = parsed.triggers ? extractIds(parsed.triggers) : [];
-  addTriggerImports(sourceFile, triggerIds);
-  addStatusComponentImports(sourceFile, extractStatusComponentIds(parsed.statusUpdates));
+  const agentVarName = parsed.agentVariableName || toCamelCase(parsed.agentId);
+  const reservedReferenceNames = new Set<string>([agentVarName]);
+  const { referenceNames: subAgentReferenceNames, importNames: subAgentImportNames } =
+    createSubAgentReferenceMaps(
+      subAgentIds,
+      reservedReferenceNames,
+      'SubAgent',
+      parsed.subAgentReferences
+    );
+  addSubAgentImports(sourceFile, subAgentReferenceNames, subAgentImportNames);
 
-  const agentVarName = toCamelCase(parsed.agentId);
+  const contextConfigId = extractContextConfigId(parsed.contextConfig);
+  let contextConfigReferenceName: string | undefined;
+  if (contextConfigId) {
+    contextConfigReferenceName = createUniqueReferenceName(
+      toCamelCase(contextConfigId),
+      reservedReferenceNames,
+      'ContextConfig'
+    );
+    addContextConfigImport(sourceFile, contextConfigId, contextConfigReferenceName);
+  }
+
+  const triggerIds = parsed.triggers ? extractIds(parsed.triggers) : [];
+  const triggerReferenceNames = createReferenceNameMap(
+    triggerIds,
+    reservedReferenceNames,
+    'Trigger'
+  );
+  addTriggerImports(sourceFile, triggerReferenceNames);
+
+  const statusComponentReferenceNames = createReferenceNameMap(
+    extractStatusComponentIds(parsed.statusUpdates),
+    reservedReferenceNames,
+    'StatusComponent'
+  );
+  addStatusComponentImports(sourceFile, statusComponentReferenceNames);
+
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
@@ -103,12 +145,21 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
     .getArguments()[0]
     ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  writeAgentConfig(configObject, parsed);
+  writeAgentConfig(configObject, parsed, {
+    subAgents: subAgentReferenceNames,
+    contextConfig: contextConfigReferenceName,
+    triggers: triggerReferenceNames,
+    statusComponents: statusComponentReferenceNames,
+  });
 
   return sourceFile.getFullText();
 }
 
-function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAgentDefinitionData) {
+function writeAgentConfig(
+  configObject: ObjectLiteralExpression,
+  data: ParsedAgentDefinitionData,
+  referenceNames: AgentReferenceNames
+) {
   addStringProperty(configObject, 'id', data.agentId);
   addStringProperty(configObject, 'name', data.name);
 
@@ -133,21 +184,22 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
 
   configObject.addPropertyAssignment({
     name: 'defaultSubAgent',
-    initializer: toCamelCase(data.defaultSubAgentId),
+    initializer:
+      referenceNames.subAgents.get(data.defaultSubAgentId) ?? toCamelCase(data.defaultSubAgentId),
   });
 
   const subAgentIds = extractIds(data.subAgents);
   addReferenceGetterProperty(
     configObject,
     'subAgents',
-    subAgentIds.map((id) => toCamelCase(id))
+    subAgentIds.map((id) => referenceNames.subAgents.get(id) ?? toCamelCase(id))
   );
 
   const contextConfigId = extractContextConfigId(data.contextConfig);
-  if (contextConfigId) {
+  if (contextConfigId && referenceNames.contextConfig) {
     configObject.addPropertyAssignment({
       name: 'contextConfig',
-      initializer: toCamelCase(contextConfigId),
+      initializer: referenceNames.contextConfig,
     });
   }
 
@@ -175,7 +227,7 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
     addReferenceGetterProperty(
       configObject,
       'triggers',
-      triggerIds.map((id) => toCamelCase(id))
+      triggerIds.map((id) => referenceNames.triggers.get(id) ?? toCamelCase(id))
     );
   }
 
@@ -218,7 +270,8 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
 
     if (data.statusUpdates.statusComponents && data.statusUpdates.statusComponents.length > 0) {
       const statusComponentRefs = data.statusUpdates.statusComponents.map(
-        (statusComponent) => `${toCamelCase(resolveStatusComponentId(statusComponent))}.config`
+        (statusComponent) =>
+          `${referenceNames.statusComponents.get(resolveStatusComponentId(statusComponent)) ?? toCamelCase(resolveStatusComponentId(statusComponent))}.config`
       );
 
       if (statusComponentRefs.length > 0) {
@@ -269,27 +322,47 @@ function extractContextConfigId(contextConfig?: string | { id?: string }): strin
   return contextConfig.id;
 }
 
-function addSubAgentImports(sourceFile: SourceFile, subAgentIds: Set<string>): void {
-  for (const subAgentId of subAgentIds) {
+function addSubAgentImports(
+  sourceFile: SourceFile,
+  referenceNames: ReferenceNameMap,
+  importNames: ReferenceNameMap
+): void {
+  for (const [subAgentId, referenceName] of referenceNames) {
+    const importName = importNames.get(subAgentId);
+    if (!importName) {
+      continue;
+    }
+
     sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(subAgentId)],
+      namedImports: [
+        importName === referenceName ? importName : { name: importName, alias: referenceName },
+      ],
       moduleSpecifier: `./sub-agents/${subAgentId}`,
     });
   }
 }
 
-function addContextConfigImport(sourceFile: SourceFile, contextConfigId: string): void {
+function addContextConfigImport(
+  sourceFile: SourceFile,
+  contextConfigId: string,
+  referenceName: string
+): void {
+  const importName = toCamelCase(contextConfigId);
   sourceFile.addImportDeclaration({
-    namedImports: [toCamelCase(contextConfigId)],
+    namedImports: [
+      importName === referenceName ? importName : { name: importName, alias: referenceName },
+    ],
     moduleSpecifier: `../context-configs/${contextConfigId}`,
   });
 }
 
-function addTriggerImports(sourceFile: SourceFile, triggerIds: string[]): void {
-  const uniqueTriggerIds = new Set(triggerIds);
-  for (const triggerId of uniqueTriggerIds) {
+function addTriggerImports(sourceFile: SourceFile, referenceNames: ReferenceNameMap): void {
+  for (const [triggerId, referenceName] of referenceNames) {
+    const importName = toCamelCase(triggerId);
     sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(triggerId)],
+      namedImports: [
+        importName === referenceName ? importName : { name: importName, alias: referenceName },
+      ],
       moduleSpecifier: `./triggers/${triggerId}`,
     });
   }
@@ -321,12 +394,91 @@ function resolveStatusComponentId(
   return id;
 }
 
-function addStatusComponentImports(sourceFile: SourceFile, statusComponentIds: string[]): void {
-  const uniqueStatusComponentIds = new Set(statusComponentIds);
-  for (const statusComponentId of uniqueStatusComponentIds) {
+function addStatusComponentImports(sourceFile: SourceFile, referenceNames: ReferenceNameMap): void {
+  for (const [statusComponentId, referenceName] of referenceNames) {
+    const importName = toCamelCase(statusComponentId);
     sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(statusComponentId)],
+      namedImports: [
+        importName === referenceName ? importName : { name: importName, alias: referenceName },
+      ],
       moduleSpecifier: `../status-components/${statusComponentId}`,
     });
   }
+}
+
+function createSubAgentReferenceMaps(
+  ids: Iterable<string>,
+  reservedNames: Set<string>,
+  conflictSuffix: string,
+  overrides?: ParsedAgentDefinitionData['subAgentReferences']
+): {
+  referenceNames: ReferenceNameMap;
+  importNames: ReferenceNameMap;
+} {
+  const referenceNames: ReferenceNameMap = new Map();
+  const importNames: ReferenceNameMap = new Map();
+
+  for (const id of ids) {
+    if (referenceNames.has(id)) {
+      continue;
+    }
+
+    const override = overrides?.[id];
+    const importName = override?.name ?? toCamelCase(id);
+    const isLocal = override?.local === true;
+    const referenceName = isLocal
+      ? importName
+      : createUniqueReferenceName(importName, reservedNames, conflictSuffix);
+
+    if (isLocal) {
+      reservedNames.add(referenceName);
+    } else {
+      importNames.set(id, importName);
+    }
+
+    referenceNames.set(id, referenceName);
+  }
+
+  return { referenceNames, importNames };
+}
+
+function createReferenceNameMap(
+  ids: Iterable<string>,
+  reservedNames: Set<string>,
+  conflictSuffix: string
+): ReferenceNameMap {
+  const map: ReferenceNameMap = new Map();
+  for (const id of ids) {
+    if (map.has(id)) {
+      continue;
+    }
+    map.set(id, createUniqueReferenceName(toCamelCase(id), reservedNames, conflictSuffix));
+  }
+  return map;
+}
+
+function createUniqueReferenceName(
+  baseName: string,
+  reservedNames: Set<string>,
+  conflictSuffix: string
+): string {
+  if (!reservedNames.has(baseName)) {
+    reservedNames.add(baseName);
+    return baseName;
+  }
+
+  const baseCandidate = `${baseName}${conflictSuffix}`;
+  if (!reservedNames.has(baseCandidate)) {
+    reservedNames.add(baseCandidate);
+    return baseCandidate;
+  }
+
+  let index = 2;
+  while (reservedNames.has(`${baseCandidate}${index}`)) {
+    index += 1;
+  }
+
+  const uniqueName = `${baseCandidate}${index}`;
+  reservedNames.add(uniqueName);
+  return uniqueName;
 }

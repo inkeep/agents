@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { buildComponentRegistryFromParsing } from '../pull-v3/component-parser';
+import type { ComponentRegistry, ComponentType } from '../pull-v3/utils/component-registry';
 import { generateAgentDefinition } from './agent-generator';
 import { generateArtifactComponentDefinition } from './artifact-component-generator';
 import { generateContextConfigDefinition } from './context-config-generator';
@@ -36,6 +38,7 @@ interface GenerationContext {
   project: FullProjectDefinition;
   paths: ProjectPaths;
   completeAgentIds: Set<string>;
+  existingComponentRegistry?: ComponentRegistry;
 }
 
 interface GenerationRecord<TPayload> {
@@ -73,7 +76,14 @@ export async function introspectGenerate(
 
   const skippedAgents: SkippedAgent[] = [];
   const completeAgentIds = collectCompleteAgentIds(project, skippedAgents);
-  const context: GenerationContext = { project, paths, completeAgentIds };
+  const existingComponentRegistry =
+    writeMode === 'merge' ? buildComponentRegistryFromParsing(paths.projectRoot, debug) : undefined;
+  const context: GenerationContext = {
+    project,
+    paths,
+    completeAgentIds,
+    existingComponentRegistry,
+  };
   const tasks = createGenerationTasks();
   const failures: string[] = [];
   const generatedFiles: string[] = [];
@@ -177,7 +187,12 @@ function collectCredentialRecords(
   return Object.entries(context.project.credentialReferences).map(
     ([credentialId, credentialData]) => ({
       id: credentialId,
-      filePath: join(context.paths.credentialsDir, `${credentialId}.ts`),
+      filePath: resolveRecordFilePath(
+        context,
+        'credentials',
+        credentialId,
+        join(context.paths.credentialsDir, `${credentialId}.ts`)
+      ),
       payload: {
         credentialId,
         ...credentialData,
@@ -196,7 +211,12 @@ function collectArtifactComponentRecords(
   return Object.entries(context.project.artifactComponents).map(
     ([artifactComponentId, artifactComponentData]) => ({
       id: artifactComponentId,
-      filePath: join(context.paths.artifactComponentsDir, `${artifactComponentId}.ts`),
+      filePath: resolveRecordFilePath(
+        context,
+        'artifactComponents',
+        artifactComponentId,
+        join(context.paths.artifactComponentsDir, `${artifactComponentId}.ts`)
+      ),
       payload: {
         artifactComponentId,
         ...artifactComponentData,
@@ -214,7 +234,12 @@ function collectDataComponentRecords(
 
   return Object.entries(context.project.dataComponents).map(([dataComponentId, dataComponent]) => ({
     id: dataComponentId,
-    filePath: join(context.paths.dataComponentsDir, `${dataComponentId}.ts`),
+    filePath: resolveRecordFilePath(
+      context,
+      'dataComponents',
+      dataComponentId,
+      join(context.paths.dataComponentsDir, `${dataComponentId}.ts`)
+    ),
     payload: {
       dataComponentId,
       ...dataComponent,
@@ -249,7 +274,12 @@ function collectContextConfigRecords(
     if (!contextConfigRecordsById.has(contextConfigId)) {
       contextConfigRecordsById.set(contextConfigId, {
         id: contextConfigId,
-        filePath: join(context.paths.contextConfigsDir, `${contextConfigId}.ts`),
+        filePath: resolveRecordFilePath(
+          context,
+          'contextConfigs',
+          contextConfigId,
+          join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+        ),
         payload: {
           contextConfigId,
           ...contextConfig,
@@ -278,7 +308,12 @@ function collectTriggerRecords(
     for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
       records.push({
         id: triggerId,
-        filePath: join(context.paths.agentsDir, 'triggers', `${triggerId}.ts`),
+        filePath: resolveRecordFilePath(
+          context,
+          'triggers',
+          triggerId,
+          join(context.paths.agentsDir, 'triggers', `${triggerId}.ts`)
+        ),
         payload: {
           triggerId,
           ...triggerData,
@@ -303,12 +338,24 @@ function collectAgentRecords(
     if (!agentData) {
       continue;
     }
+
+    const agentFilePath = resolveRecordFilePath(
+      context,
+      'agents',
+      agentId,
+      join(context.paths.agentsDir, `${agentId}.ts`)
+    );
+    const existingAgent = context.existingComponentRegistry?.get(agentId, 'agents');
+    const subAgentReferences = collectSubAgentReferenceOverrides(context, agentData, agentFilePath);
+
     records.push({
       id: agentId,
-      filePath: join(context.paths.agentsDir, `${agentId}.ts`),
+      filePath: agentFilePath,
       payload: {
         agentId,
         ...agentData,
+        ...(existingAgent?.name?.length && { agentVariableName: existingAgent.name }),
+        ...(Object.keys(subAgentReferences).length > 0 ? { subAgentReferences } : {}),
       } as Parameters<typeof generateAgentDefinition>[0],
     });
   }
@@ -338,7 +385,12 @@ function collectSubAgentRecords(
 
       records.push({
         id: subAgentId,
-        filePath: join(context.paths.agentsDir, 'sub-agents', `${subAgentId}.ts`),
+        filePath: resolveRecordFilePath(
+          context,
+          'subAgents',
+          subAgentId,
+          join(context.paths.agentsDir, 'sub-agents', `${subAgentId}.ts`)
+        ),
         payload: {
           subAgentId,
           ...payload,
@@ -382,7 +434,12 @@ function collectStatusComponentRecords(
 
       statusComponentRecordsById.set(statusComponentId, {
         id: statusComponentId,
-        filePath: join(context.paths.statusComponentsDir, `${statusComponentId}.ts`),
+        filePath: resolveRecordFilePath(
+          context,
+          'statusComponents',
+          statusComponentId,
+          join(context.paths.statusComponentsDir, `${statusComponentId}.ts`)
+        ),
         payload: {
           statusComponentId,
           ...payload,
@@ -400,7 +457,12 @@ function collectProjectRecord(
   return [
     {
       id: context.project.id,
-      filePath: join(context.paths.projectRoot, 'index.ts'),
+      filePath: resolveRecordFilePath(
+        context,
+        'project',
+        context.project.id,
+        join(context.paths.projectRoot, 'index.ts')
+      ),
       payload: {
         projectId: context.project.id,
         name: context.project.name,
@@ -523,6 +585,90 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     return;
   }
   return value as Record<string, unknown>;
+}
+
+function collectSubAgentReferenceOverrides(
+  context: GenerationContext,
+  agentData: Record<string, unknown>,
+  agentFilePath: string
+): Record<string, { name: string; local?: boolean }> {
+  const subAgentIds = new Set<string>(extractReferenceIds(agentData.subAgents));
+  if (typeof agentData.defaultSubAgentId === 'string' && agentData.defaultSubAgentId.length > 0) {
+    subAgentIds.add(agentData.defaultSubAgentId);
+  }
+
+  if (subAgentIds.size === 0) {
+    return {};
+  }
+
+  const overrides: Record<string, { name: string; local?: boolean }> = {};
+  for (const subAgentId of subAgentIds) {
+    const existingSubAgent = context.existingComponentRegistry?.get(subAgentId, 'subAgents');
+    if (!existingSubAgent?.name) {
+      continue;
+    }
+
+    const existingSubAgentFilePath = resolveProjectFilePath(
+      context.paths.projectRoot,
+      existingSubAgent.filePath
+    );
+    const isLocal =
+      normalizeFilePath(existingSubAgentFilePath) === normalizeFilePath(agentFilePath);
+    overrides[subAgentId] = isLocal
+      ? { name: existingSubAgent.name, local: true }
+      : { name: existingSubAgent.name };
+  }
+
+  return overrides;
+}
+
+function extractReferenceIds(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+        const record = asRecord(item);
+        if (record && typeof record.id === 'string') {
+          return record.id;
+        }
+        return undefined;
+      })
+      .filter((id) => !!id);
+  }
+
+  const record = asRecord(value);
+  if (!record) {
+    return [];
+  }
+
+  return Object.keys(record);
+}
+
+function resolveRecordFilePath(
+  context: GenerationContext,
+  componentType: ComponentType,
+  componentId: string,
+  fallbackFilePath: string
+): string {
+  const existingComponent = context.existingComponentRegistry?.get(componentId, componentType);
+  if (!existingComponent?.filePath) {
+    return fallbackFilePath;
+  }
+
+  return resolveProjectFilePath(context.paths.projectRoot, existingComponent.filePath);
+}
+
+function resolveProjectFilePath(projectRoot: string, filePath: string): string {
+  if (filePath.startsWith('/')) {
+    return filePath;
+  }
+  return join(projectRoot, filePath);
+}
+
+function normalizeFilePath(filePath: string): string {
+  return filePath.replaceAll('\\', '/');
 }
 
 function writeTypeScriptFile(
