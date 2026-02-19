@@ -348,6 +348,13 @@ function generateDevManifest(devId: string): Record<string, unknown> {
   return manifest;
 }
 
+function getEnvVar(envPath: string, key: string): string | undefined {
+  if (!existsSync(envPath)) return undefined;
+  const content = readFileSync(envPath, 'utf-8');
+  const match = content.match(new RegExp(`^${key}=(.*)$`, 'm'));
+  return match?.[1]?.trim();
+}
+
 function setEnvVar(envPath: string, key: string, value: string): void {
   if (!existsSync(envPath)) {
     writeFileSync(envPath, `${key}=${value}\n`);
@@ -576,6 +583,16 @@ async function main(): Promise<void> {
   console.log(
     `  ${fmt.dim('All credentials are saved to')} ${fmt.info('.slack-dev.json')} ${fmt.dim('(git-ignored) so re-runs skip completed steps.')}\n`
   );
+
+  const environment = getEnvVar(ENV_PATH, 'ENVIRONMENT');
+  if (environment && environment !== 'development') {
+    console.log(
+      `  ${fmt.warn(`ENVIRONMENT is set to "${environment}". Socket Mode only runs when ENVIRONMENT=development.`)}`
+    );
+    console.log(
+      `  ${fmt.warn('Set ENVIRONMENT=development in .env or Socket Mode will not start.')}\n`
+    );
+  }
 
   if (!existsSync(MANIFEST_PATH)) {
     console.error(fmt.err(`Manifest not found at: ${MANIFEST_PATH}`));
