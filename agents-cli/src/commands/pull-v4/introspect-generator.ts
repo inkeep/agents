@@ -137,7 +137,7 @@ export async function introspectGenerate({
   }
 
   if (failures.length > 0) {
-    throw new Error(`Introspect v4 generation failed:\n${failures.join('\n')}`);
+    throw new Error(`Inkeep Pull failed:\n${failures.join('\n')}`);
   }
 
   if (debug) {
