@@ -13,7 +13,7 @@
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build --filter='!agents-cookbook-templates'",
     "knip": "turbo knip",
-    "dev": "turbo dev --filter='!@inkeep/create-agents' --filter='!@inkeep/agents-work-apps'",
+    "dev": "turbo dev --filter=@inkeep/agents-api --filter=@inkeep/agents-manage-ui --filter=@inkeep/agents-docs --filter=@inkeep/agents-core --filter=@inkeep/agents-sdk",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
@@ -33,7 +33,7 @@
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
     "typecheck:watch": "turbo typecheck:watch",
     "precheck": "pnpm install --frozen-lockfile",
-    "check": "turbo check --filter='!agents-cookbook-templates'",
+    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm knip",
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
@@ -68,7 +68,7 @@
     "workflow:profile": "node scripts/workflows/profile.mjs",
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "profile:prepush": "node scripts/profile-prepush.mjs",
-    "setup-dev": "sh scripts/setup.sh",
+    "setup-dev": "node scripts/setup-dev.js",
     "setup-dev:optional": "sh scripts/setup-optional.sh",
     "optional:stop": "sh scripts/setup-optional.sh --stop",
     "optional:status": "sh scripts/setup-optional.sh --status",
@@ -79,7 +79,8 @@
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
     "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
-    "check:env-descriptions": "node scripts/check-env-descriptions.mjs"
+    "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
+    "setup-slack-dev": "tsx scripts/setup-slack-dev.ts"
   },
   "version": "0.1.0",
   "dependencies": {

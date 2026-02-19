@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -6,7 +6,9 @@ import {
   getConversationHistory,
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 
 const app = new OpenAPIHono();
 
@@ -27,12 +29,13 @@ const ConversationWithFormattedMessagesResponse = z
   .openapi('ConversationWithFormattedMessagesResponse');
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Conversation',
     operationId: 'get-conversation',
     tags: ['Conversations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
       query: ConversationQueryParamsSchema,

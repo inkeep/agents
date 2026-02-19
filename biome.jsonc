@@ -59,7 +59,14 @@
           "level": "error",
           "options": {
             "paths": {
-              "react": { "importNames": ["useContext"], "message": "Use the `use()` hook instead." }
+              "react": {
+                "importNames": ["useContext"],
+                "message": "Use the `use()` hook instead."
+              },
+              "@hono/zod-openapi": {
+                "importNames": ["createRoute"],
+                "message": "Use createProtectedRoute from @inkeep/agents-core/middleware instead. For intentionally public routes, use createProtectedRoute with noAuth() as the permission. If neither applies, add a biome-ignore comment explaining why."
+              }
             }
           }
         },

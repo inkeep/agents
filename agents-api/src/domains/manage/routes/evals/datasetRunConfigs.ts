@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -24,21 +24,24 @@ import {
   TenantProjectParamsSchema,
   updateDatasetRunConfig,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { queueDatasetRunItems } from 'src/domains/evals/services/datasetRun';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/by-dataset/{datasetId}',
     summary: 'List Dataset Run Configs by Dataset ID',
     operationId: 'list-dataset-run-configs',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
     },
@@ -86,12 +89,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{runConfigId}',
     summary: 'Get Dataset Run Config by ID',
     operationId: 'get-dataset-run-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
     },
@@ -140,12 +144,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Dataset Run Config',
     operationId: 'create-dataset-run-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -400,12 +405,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{runConfigId}',
     summary: 'Update Dataset Run Config',
     operationId: 'update-dataset-run-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
       body: {
@@ -507,12 +513,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{runConfigId}',
     summary: 'Delete Dataset Run Config',
     operationId: 'delete-dataset-run-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
     },

@@ -1,7 +1,7 @@
 import { project } from '@inkeep/agents-sdk';
-import { customerSupport } from './agents/customer-support.js';
-import { knowledgeBaseMcpTool } from './tools/knowledge-base-mcp.js';
-import { zendeskMcpTool } from './tools/zendesk-mcp.js';
+import { customerSupport } from './agents/customer-support';
+import { knowledgeBaseMcpTool } from './tools/knowledge-base-mcp';
+import { zendeskMcpTool } from './tools/zendesk-mcp';
 
 export const myProject = project({
   id: 'customer-support',

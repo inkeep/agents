@@ -118,7 +118,7 @@ export async function handleAppMention(params: {
         .postEphemeral({
           channel,
           user: slackUserId,
-          text: '⚠️ This workspace is not properly configured. Please reinstall the Slack app from the Inkeep dashboard.',
+          text: 'This workspace is not properly configured. Please reinstall the Slack app from the Inkeep dashboard.',
         })
         .catch((e) =>
           logger.warn({ error: e, channel }, 'Failed to send ephemeral workspace config error')
@@ -156,7 +156,7 @@ export async function handleAppMention(params: {
           channel,
           user: slackUserId,
           thread_ts: isInThread ? threadTs : undefined,
-          text: `⚙️ No agents configured for this workspace.\n\n👉 *<${dashboardUrl}|Set up agents in the dashboard>*`,
+          text: `No agents configured for this workspace. *<${dashboardUrl}|Set up agents in the dashboard>*`,
         });
         span.end();
         return;
@@ -173,9 +173,8 @@ export async function handleAppMention(params: {
           user: slackUserId,
           thread_ts: isInThread ? threadTs : undefined,
           text:
-            `🔗 *Link your account to use @Inkeep*\n\n` +
-            `Run \`/inkeep link\` to connect your Slack and Inkeep accounts.\n\n` +
-            `This workspace uses: *${agentDisplayName}*`,
+            `*Link your account to use @Inkeep*\n\n` +
+            `Run \`/inkeep link\` to connect your Slack and Inkeep accounts.`,
         });
         span.end();
         return;
@@ -214,10 +213,9 @@ export async function handleAppMention(params: {
             user: slackUserId,
             thread_ts: threadTs,
             text:
-              `💬 *Continue the conversation*\n\n` +
-              `Just type your follow-up — no need to mention me in this thread.\n` +
-              `Or use \`@Inkeep <prompt>\` to run a new prompt.\n\n` +
-              `_Using: ${agentDisplayName}_`,
+              `*Continue the conversation*\n\n` +
+              `Type your follow-up directly in this thread — no need to mention me.\n` +
+              `Or use \`@Inkeep <prompt>\` to start a new prompt.`,
           });
           span.end();
           return;

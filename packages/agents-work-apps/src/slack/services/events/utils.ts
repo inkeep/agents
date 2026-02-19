@@ -183,19 +183,19 @@ export function getUserFriendlyErrorMessage(errorType: SlackErrorType, agentName
 
   switch (errorType) {
     case SlackErrorType.TIMEOUT:
-      return `⏱️ *Request timed out*\n\n${agent} took too long to respond. This can happen with complex queries.\n\n*Try:*\n• Simplifying your question\n• Breaking it into smaller parts\n• Trying again in a moment`;
+      return `*Request timed out.* ${agent} took too long to respond. Try again with a simpler question.`;
 
     case SlackErrorType.RATE_LIMIT:
-      return `⚠️ *Too many requests*\n\nYou've hit the rate limit. Please wait a moment before trying again.\n\n*Tip:* Space out your requests to avoid this.`;
+      return '*Rate limited.* Wait a moment and try again.';
 
     case SlackErrorType.AUTH_ERROR:
-      return `🔐 *Authentication issue*\n\nThere was a problem with your account connection.\n\n*Try:*\n• Running \`/inkeep link\` to re-link your account\n• Contacting your workspace admin if the issue persists`;
+      return '*Authentication error.* Run `/inkeep link` to reconnect your account.';
 
     case SlackErrorType.API_ERROR:
-      return `❌ *Something went wrong*\n\n${agent} encountered an error processing your request.\n\n*Try:*\n• Rephrasing your question\n• Trying again in a moment\n• Using \`/inkeep help\` for more options`;
+      return `*Something went wrong.* ${agent} encountered an error. Try again in a moment.`;
 
     default:
-      return `❌ *Unexpected error*\n\nSomething went wrong while processing your request.\n\n*Try:*\n• Trying again in a moment\n• Using \`/inkeep help\` for more options`;
+      return '*Unexpected error.* Something went wrong. Try again in a moment.';
   }
 }
 

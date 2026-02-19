@@ -37,7 +37,7 @@
         "!**/__tests__/**",
         ".env.example"
       ],
-      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
     },
     "dev": {
       "dependsOn": ["^build"],
