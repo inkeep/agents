@@ -21,7 +21,6 @@ export function mergeGeneratedModule(existingContent: string, generatedContent: 
     upsertStatement(existingSourceFile, statement);
   }
 
-  existingSourceFile.organizeImports();
   return dedupeConsecutiveIdenticalSingleLineComments(existingSourceFile.getFullText().trimEnd());
 }
 

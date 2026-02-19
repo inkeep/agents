@@ -1,7 +1,7 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
 import { supportContext } from '../context-configs/support-context';
-import { toolSummary } from '../status-components/tool-summary';
 import { githubWebhook } from './triggers/github-webhook';
+import { toolSummary } from '../status-components/tool-summary';
 
 /**
  * Keeps routing instructions for tier one support.
