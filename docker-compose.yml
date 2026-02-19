@@ -4,7 +4,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-http://inkeep-agents-api:3002}
+      - INKEEP_AGENTS_API_URL=http://inkeep-agents-api:3002
       - PUBLIC_INKEEP_AGENTS_API_URL=${PUBLIC_INKEEP_AGENTS_API_URL:-http://localhost:3002}
       - PUBLIC_NANGO_CONNECT_BASE_URL=${PUBLIC_NANGO_CONNECT_BASE_URL:-http://localhost:3051}
       - PUBLIC_NANGO_SERVER_URL=${PUBLIC_NANGO_SERVER_URL:-http://localhost:3050}
@@ -29,7 +29,7 @@ services:
       - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-http://localhost:3002}
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
+      - SPICEDB_ENDPOINT=inkeep-agents-spicedb:50051
       - SPICEDB_PRESHARED_KEY
       - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
       - ANTHROPIC_API_KEY
@@ -66,7 +66,7 @@ services:
       - LOG_LEVEL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
+      - SPICEDB_ENDPOINT=inkeep-agents-spicedb:50051
       - SPICEDB_PRESHARED_KEY
       - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
       - INKEEP_AGENTS_MANAGE_UI_USERNAME
