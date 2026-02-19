@@ -1,6 +1,6 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
 import { citationArtifact } from '../artifacts/citation-artifact';
-import { inkeepFactsTool } from '../tools/inkeep-facts';
+import { inkeepFacts } from '../tools/inkeep-facts';
 
 // Inkeep QA Agent for documentation and support
 const qaAgent = subAgent({
@@ -205,12 +205,12 @@ const qaAgent = subAgent({
         - "ARTIFACT CITATIONS: Every piece of information must have a supporting artifact citation"
         - "COMPLETION: Stop when you have enough information for a comprehensive answer"
       `,
-  canUse: () => [inkeepFactsTool],
+  canUse: () => [inkeepFacts],
   artifactComponents: () => [citationArtifact],
 });
 
 // Inkeep agent
-export const inkeepAgent = agent({
+const inkeepAgent = agent({
   id: 'inkeep-agent',
   name: 'Inkeep Assistant',
   description:
