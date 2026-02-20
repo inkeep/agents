@@ -494,8 +494,8 @@ export const createAgents = async (
         `   pnpm setup-dev\n` +
         `   pnpm dev\n\n` +
         `${color.yellow('2. Explore:')}\n` +
-        `   • Dashboard:  http://127.0.0.1:3000\n` +
-        `   • Agents API: http://127.0.0.1:3002\n\n` +
+        `   • Dashboard:  http://localhost:3000\n` +
+        `   • Agents API: http://localhost:3002\n\n` +
         `${color.yellow('3. Customize:')}\n` +
         `   • Edit your agents in src/projects/\n` +
         `   • Use 'inkeep push' to apply`,
@@ -550,8 +550,7 @@ async function createInkeepConfig(config: FileConfig) {
 const config = defineConfig({
   tenantId: "${config.tenantId}",
   agentsApi: {
-    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
-    url: 'http://127.0.0.1:3002',
+    url: 'http://localhost:3002',
   },
 });
     

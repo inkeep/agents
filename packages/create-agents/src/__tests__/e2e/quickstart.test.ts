@@ -87,13 +87,15 @@ describe('create-agents quickstart e2e', () => {
     console.log('Directory structure verified');
 
     // Verify .env file has required variables
+    // After createEnvironmentFiles(), .env is a copy of .env.example with CLI-prompted
+    // values injected. Secrets (JWT keys, signing secret, etc.) remain as placeholders
+    // until setup-dev runs generateSecrets().
     console.log('Verifying .env file...');
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
       /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
-      /INKEEP_AGENTS_API_URL="http:\/\/127\.0\.0\.1:3002"/,
-      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/,
+      /INKEEP_AGENTS_API_URL=http:\/\/localhost:3002/,
     ]);
     console.log('.env file verified');
 
