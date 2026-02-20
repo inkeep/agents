@@ -326,128 +326,129 @@ describe('streamAgentResponse', () => {
 
       expect(mockChatUpdate).not.toHaveBeenCalled();
     });
-  it('should surface API error message from response body instead of generic message', async () => {
-    const errorBody = JSON.stringify({ message: 'Access denied: insufficient permissions' });
-    mockFetch.mockResolvedValue(new Response(errorBody, { status: 403 }));
-
-    const result = await streamAgentResponse(baseParams);
-
-    expect(result.success).toBe(false);
-    expect(result.errorMessage).toBe('*Error.* Access denied: insufficient permissions');
-    expect(mockPostMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: '*Error.* Access denied: insufficient permissions',
-      })
-    );
-  });
-
-  it('should fall back to classified error when response body has no message', async () => {
-    mockFetch.mockResolvedValue(new Response('plain text error', { status: 403 }));
-
-    const result = await streamAgentResponse(baseParams);
-
-    expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain('Authentication error');
-  });
-
-  describe('contentAlreadyDelivered error suppression', () => {
-    it('should return success and suppress error message when content was already streamed', async () => {
-      // Simulate a stream that delivers content then throws on the next read
-      const sseData = 'data: {"type":"text-delta","delta":"Hello world"}\n';
-      let readCount = 0;
-      const stream = new ReadableStream({
-        pull(controller) {
-          if (readCount === 0) {
-            controller.enqueue(new TextEncoder().encode(sseData));
-            readCount++;
-          } else {
-            controller.error(new Error('streamer.append timed out after 10000ms'));
-          }
-        },
-      });
-
-      const localAppend = vi.fn().mockResolvedValue(undefined);
-      const localStop = vi.fn().mockResolvedValue(undefined);
-      mockSlackClient.chatStream.mockReturnValue({
-        append: localAppend,
-        stop: localStop,
-      });
-
-      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
-
-      const result = await streamAgentResponse(baseParams);
-
-      expect(result.success).toBe(true);
-      // Should NOT post any error message to the user
-      expect(mockPostMessage).not.toHaveBeenCalled();
-      // Should still clean up thinking message
-      expect(mockChatDelete).toHaveBeenCalledWith(
-        expect.objectContaining({ channel: 'C456', ts: '1234.9999' })
-      );
-    });
-
-    it('should post error message when no content was delivered', async () => {
-      // Stream that errors immediately before any content
-      const stream = new ReadableStream({
-        pull(controller) {
-          controller.error(new Error('connection reset'));
-        },
-      });
-
-      const localAppend = vi.fn().mockResolvedValue(undefined);
-      const localStop = vi.fn().mockResolvedValue(undefined);
-      mockSlackClient.chatStream.mockReturnValue({
-        append: localAppend,
-        stop: localStop,
-      });
-
-      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+    it('should surface API error message from response body instead of generic message', async () => {
+      const errorBody = JSON.stringify({ message: 'Access denied: insufficient permissions' });
+      mockFetch.mockResolvedValue(new Response(errorBody, { status: 403 }));
 
       const result = await streamAgentResponse(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.errorType).toBeDefined();
-      // Should post error message since no content was delivered
+      expect(result.errorMessage).toBe('*Error.* Access denied: insufficient permissions');
       expect(mockPostMessage).toHaveBeenCalledWith(
         expect.objectContaining({
-          channel: 'C456',
-          thread_ts: '1234.5678',
+          text: '*Error.* Access denied: insufficient permissions',
         })
       );
     });
 
-    it('should return success when streamer.stop() finalization times out after content delivery', async () => {
-      const sseData =
-        'data: {"type":"text-delta","delta":"Hello "}\n' +
-        'data: {"type":"text-delta","delta":"world"}\n' +
-        'data: [DONE]\n';
-
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode(sseData));
-          controller.close();
-        },
-      });
-
-      const localAppend = vi.fn().mockResolvedValue(undefined);
-      // streamer.stop() rejects to simulate finalization timeout
-      const localStop = vi
-        .fn()
-        .mockRejectedValue(new Error('streamer.stop timed out after 10000ms'));
-      mockSlackClient.chatStream.mockReturnValue({
-        append: localAppend,
-        stop: localStop,
-      });
-
-      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+    it('should fall back to classified error when response body has no message', async () => {
+      mockFetch.mockResolvedValue(new Response('plain text error', { status: 403 }));
 
       const result = await streamAgentResponse(baseParams);
 
-      expect(result.success).toBe(true);
-      // Should NOT post any error message to the user
-      expect(mockPostMessage).not.toHaveBeenCalled();
-      // Should still clean up thinking message
-      expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '1234.9999' }));
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toContain('Authentication error');
+    });
+
+    describe('contentAlreadyDelivered error suppression', () => {
+      it('should return success and suppress error message when content was already streamed', async () => {
+        // Simulate a stream that delivers content then throws on the next read
+        const sseData = 'data: {"type":"text-delta","delta":"Hello world"}\n';
+        let readCount = 0;
+        const stream = new ReadableStream({
+          pull(controller) {
+            if (readCount === 0) {
+              controller.enqueue(new TextEncoder().encode(sseData));
+              readCount++;
+            } else {
+              controller.error(new Error('streamer.append timed out after 10000ms'));
+            }
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        const result = await streamAgentResponse(baseParams);
+
+        expect(result.success).toBe(true);
+        // Should NOT post any error message to the user
+        expect(mockPostMessage).not.toHaveBeenCalled();
+        // Should still clean up thinking message
+        expect(mockChatDelete).toHaveBeenCalledWith(
+          expect.objectContaining({ channel: 'C456', ts: '1234.9999' })
+        );
+      });
+
+      it('should post error message when no content was delivered', async () => {
+        // Stream that errors immediately before any content
+        const stream = new ReadableStream({
+          pull(controller) {
+            controller.error(new Error('connection reset'));
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        const result = await streamAgentResponse(baseParams);
+
+        expect(result.success).toBe(false);
+        expect(result.errorType).toBeDefined();
+        // Should post error message since no content was delivered
+        expect(mockPostMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            thread_ts: '1234.5678',
+          })
+        );
+      });
+
+      it('should return success when streamer.stop() finalization times out after content delivery', async () => {
+        const sseData =
+          'data: {"type":"text-delta","delta":"Hello "}\n' +
+          'data: {"type":"text-delta","delta":"world"}\n' +
+          'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        // streamer.stop() rejects to simulate finalization timeout
+        const localStop = vi
+          .fn()
+          .mockRejectedValue(new Error('streamer.stop timed out after 10000ms'));
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        const result = await streamAgentResponse(baseParams);
+
+        expect(result.success).toBe(true);
+        // Should NOT post any error message to the user
+        expect(mockPostMessage).not.toHaveBeenCalled();
+        // Should still clean up thinking message
+        expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '1234.9999' }));
+      });
     });
   });
 });
