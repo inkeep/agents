@@ -62,18 +62,10 @@ function writeFunctionToolConfig(
   configObject: ObjectLiteralExpression,
   { functionToolId, executeCode, inputSchema, schema, ...rest }: ParsedFunctionToolDefinitionData
 ): void {
-  for (const [k, v] of Object.entries(rest)) {
+  for (const [k, v] of Object.entries({
+    ...rest,
+    inputShema: inputSchema ?? schema
+  })) {
     addValueToObject(configObject, k, v);
-  }
-  const $inputSchema = inputSchema ?? schema;
-  if ($inputSchema) {
-    addValueToObject(configObject, 'inputSchema', $inputSchema);
-  }
-
-  if (executeCode) {
-    configObject.addPropertyAssignment({
-      name: 'execute',
-      initializer: executeCode,
-    });
   }
 }
