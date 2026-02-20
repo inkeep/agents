@@ -102,6 +102,7 @@ export const inkeepApiKey = credential({
     expect(mergedContextConfigFile).not.toContain("credentialReferenceId: 'inkeep-api-key'");
     expect(mergedContextConfigFile).toContain('headers: supportContextHeaders');
     expect(mergedContextConfigFile).toContain(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: test assert
       'url: `https://api.example.com/users/${supportContextHeaders.toTemplate("user_id")}`'
     );
     expect(mergedContextConfigFile).not.toContain('userInfo: userInfo');
