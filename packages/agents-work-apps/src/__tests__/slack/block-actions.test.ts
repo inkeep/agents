@@ -16,12 +16,14 @@ const {
   mockFindWorkspaceConnectionByTeamId,
   mockFindCachedUserMapping,
   mockSendResponseUrlMessage,
+  mockPostEphemeral,
 } = vi.hoisted(() => ({
   mockFetch: vi.fn(),
   mockSignSlackUserToken: vi.fn(),
   mockFindWorkspaceConnectionByTeamId: vi.fn(),
   mockFindCachedUserMapping: vi.fn(),
   mockSendResponseUrlMessage: vi.fn(),
+  mockPostEphemeral: vi.fn(),
 }));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -59,6 +61,14 @@ vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: mockFindWorkspaceConnectionByTeamId,
 }));
 
+vi.mock('../../slack/services/client', () => ({
+  getSlackClient: vi.fn(() => ({
+    chat: {
+      postEphemeral: mockPostEphemeral,
+    },
+  })),
+}));
+
 import { handleToolApproval } from '../../slack/services/events/block-actions';
 
 const INITIATING_USER = 'U-initiator';
@@ -93,6 +103,7 @@ describe('handleToolApproval', () => {
     mockFindCachedUserMapping.mockResolvedValue(userMapping);
     mockSignSlackUserToken.mockResolvedValue('mock-jwt');
     mockSendResponseUrlMessage.mockResolvedValue(undefined);
+    mockPostEphemeral.mockResolvedValue({ ok: true });
     mockFetch.mockResolvedValue(new Response('{}', { status: 200 }));
   });
 
@@ -106,17 +117,17 @@ describe('handleToolApproval', () => {
         responseUrl: RESPONSE_URL,
       });
 
-      expect(mockSendResponseUrlMessage).toHaveBeenCalledWith(
-        RESPONSE_URL,
+      expect(mockPostEphemeral).toHaveBeenCalledWith(
         expect.objectContaining({
+          channel: 'C-channel',
+          user: OTHER_USER,
           text: expect.stringContaining('Only the user who started this conversation'),
-          response_type: 'ephemeral',
         })
       );
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should not send any message when ownership check fails and responseUrl is absent', async () => {
+    it('should send ephemeral rejection even when responseUrl is absent', async () => {
       await handleToolApproval({
         actionValue: buttonValue,
         approved: true,
@@ -124,7 +135,7 @@ describe('handleToolApproval', () => {
         slackUserId: OTHER_USER,
       });
 
-      expect(mockSendResponseUrlMessage).not.toHaveBeenCalled();
+      expect(mockPostEphemeral).toHaveBeenCalled();
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -153,11 +164,11 @@ describe('handleToolApproval', () => {
         responseUrl: RESPONSE_URL,
       });
 
-      expect(mockSendResponseUrlMessage).toHaveBeenCalledWith(
-        RESPONSE_URL,
+      expect(mockPostEphemeral).toHaveBeenCalledWith(
         expect.objectContaining({
+          channel: 'C-channel',
+          user: INITIATING_USER,
           text: expect.stringContaining('/inkeep link'),
-          response_type: 'ephemeral',
         })
       );
       expect(mockFetch).not.toHaveBeenCalled();
@@ -176,11 +187,11 @@ describe('handleToolApproval', () => {
         responseUrl: RESPONSE_URL,
       });
 
-      expect(mockSendResponseUrlMessage).toHaveBeenCalledWith(
-        RESPONSE_URL,
+      expect(mockPostEphemeral).toHaveBeenCalledWith(
         expect.objectContaining({
+          channel: 'C-channel',
+          user: INITIATING_USER,
           text: expect.stringContaining('search_web'),
-          response_type: 'ephemeral',
         })
       );
     });

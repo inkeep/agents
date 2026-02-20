@@ -50,17 +50,6 @@ export async function handleToolApproval(params: {
       const { toolCallId, conversationId, projectId, agentId, toolName } = buttonValue;
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
 
-      if (slackUserId !== buttonValue.slackUserId) {
-        if (responseUrl) {
-          await sendResponseUrlMessage(responseUrl, {
-            text: 'Only the user who started this conversation can approve or deny this action.',
-            response_type: 'ephemeral',
-          }).catch((e) => logger.warn({ error: e }, 'Failed to send ownership error notification'));
-        }
-        span.end();
-        return;
-      }
-
       const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
       if (!workspaceConnection?.botToken) {
         logger.error({ teamId }, 'No bot token for tool approval');
@@ -69,15 +58,31 @@ export async function handleToolApproval(params: {
       }
 
       const tenantId = workspaceConnection.tenantId;
+      const slackClient = getSlackClient(workspaceConnection.botToken);
+
+      if (slackUserId !== buttonValue.slackUserId) {
+        await slackClient.chat
+          .postEphemeral({
+            channel: buttonValue.channel,
+            user: slackUserId,
+            thread_ts: buttonValue.threadTs,
+            text: 'Only the user who started this conversation can approve or deny this action.',
+          })
+          .catch((e) => logger.warn({ error: e }, 'Failed to send ownership error notification'));
+        span.end();
+        return;
+      }
 
       const existingLink = await findCachedUserMapping(tenantId, slackUserId, teamId);
       if (!existingLink) {
-        if (responseUrl) {
-          await sendResponseUrlMessage(responseUrl, {
+        await slackClient.chat
+          .postEphemeral({
+            channel: buttonValue.channel,
+            user: slackUserId,
+            thread_ts: buttonValue.threadTs,
             text: 'You need to link your Inkeep account first. Use `/inkeep link`.',
-            response_type: 'ephemeral',
-          }).catch((e) => logger.warn({ error: e }, 'Failed to send not-linked notification'));
-        }
+          })
+          .catch((e) => logger.warn({ error: e }, 'Failed to send not-linked notification'));
         span.end();
         return;
       }
@@ -123,12 +128,14 @@ export async function handleToolApproval(params: {
           { status: approvalResponse.status, errorBody, toolCallId, conversationId },
           'Tool approval API call failed'
         );
-        if (responseUrl) {
-          await sendResponseUrlMessage(responseUrl, {
+        await slackClient.chat
+          .postEphemeral({
+            channel: buttonValue.channel,
+            user: slackUserId,
+            thread_ts: buttonValue.threadTs,
             text: `Failed to ${approved ? 'approve' : 'deny'} \`${toolName}\`. Please try again.`,
-            response_type: 'ephemeral',
-          }).catch((e) => logger.warn({ error: e }, 'Failed to send approval error notification'));
-        }
+          })
+          .catch((e) => logger.warn({ error: e }, 'Failed to send approval error notification'));
         span.end();
         return;
       }
