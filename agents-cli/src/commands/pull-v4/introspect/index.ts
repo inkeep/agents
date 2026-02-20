@@ -410,7 +410,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     console.log(
       styleText(
         'yellow',
-        '  ⚠️ If you encounter broken code after running `inkeep pull`, please report it at https://github.com/inkeep/agents/issues'
+        '⚠️  If you encounter broken code after running `inkeep pull`, please report it at https://github.com/inkeep/agents/issues.'
       )
     );
 
