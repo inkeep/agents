@@ -1,4 +1,4 @@
-import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import { addStringProperty, createFactoryDefinition, toCamelCase } from './utils';
 
@@ -35,7 +35,7 @@ const ExternalAgentSchema = z.looseObject({
 
 type ParsedExternalAgentDefinitionData = z.infer<typeof ExternalAgentSchema>;
 
-export function generateExternalAgentDefinition(data: ExternalAgentDefinitionData): string {
+export function generateExternalAgentDefinition(data: ExternalAgentDefinitionData): SourceFile {
   const result = ExternalAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for external agent:\n${z.prettifyError(result.error)}`);
@@ -55,8 +55,7 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
   }
 
   writeExternalAgentConfig(configObject, parsed);
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeExternalAgentConfig(

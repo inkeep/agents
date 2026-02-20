@@ -1,4 +1,4 @@
-import type { ObjectLiteralExpression } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
 
@@ -42,7 +42,7 @@ const FunctionToolSchema = z
 
 type ParsedFunctionToolDefinitionData = z.infer<typeof FunctionToolSchema>;
 
-export function generateFunctionToolDefinition(data: FunctionToolDefinitionData): string {
+export function generateFunctionToolDefinition(data: FunctionToolDefinitionData): SourceFile {
   const result = FunctionToolSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for function tool:\n${z.prettifyError(result.error)}`);
@@ -55,8 +55,7 @@ export function generateFunctionToolDefinition(data: FunctionToolDefinitionData)
   });
 
   writeFunctionToolConfig(configObject, parsed);
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeFunctionToolConfig(

@@ -1,4 +1,4 @@
-import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addStringProperty,
@@ -53,7 +53,7 @@ export function generateEnvironmentIndexImports(environments: string[]): string[
 export function generateEnvironmentSettingsDefinition(
   environmentName: string,
   environmentData: EnvironmentSettingsData
-): string {
+): SourceFile {
   const environmentNameSchema = z.string().nonempty();
   const environmentNameResult = environmentNameSchema.safeParse(environmentName);
   if (!environmentNameResult.success) {
@@ -85,10 +85,10 @@ export function generateEnvironmentSettingsDefinition(
 
   addCredentialsProperty(configObject, parsed.credentials, hasCredentialStoreType);
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
-export function generateEnvironmentIndexDefinition(environments: string[]): string {
+export function generateEnvironmentIndexDefinition(environments: string[]): SourceFile {
   const result = EnvironmentIndexSchema.safeParse(environments);
   if (!result.success) {
     throw new Error(`Validation failed for environments index:\n${z.prettifyError(result.error)}`);
@@ -112,17 +112,17 @@ export function generateEnvironmentIndexDefinition(environments: string[]): stri
     });
   }
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 export function generateEnvironmentSettingsFile(
   environmentName: string,
   environmentData: EnvironmentSettingsData
-): string {
+): SourceFile {
   return generateEnvironmentSettingsDefinition(environmentName, environmentData);
 }
 
-export function generateEnvironmentIndexFile(environments: string[]): string {
+export function generateEnvironmentIndexFile(environments: string[]): SourceFile {
   return generateEnvironmentIndexDefinition(environments);
 }
 

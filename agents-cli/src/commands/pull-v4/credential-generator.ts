@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SourceFile } from 'ts-morph';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
 
 interface CredentialDefinitionData {
@@ -19,7 +20,7 @@ const CredentialSchema = z.object({
   retrievalParams: z.unknown().optional(),
 });
 
-export function generateCredentialDefinition(data: CredentialDefinitionData): string {
+export function generateCredentialDefinition(data: CredentialDefinitionData): SourceFile {
   const result = CredentialSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for credential:\n${z.prettifyError(result.error)}`);
@@ -37,6 +38,5 @@ export function generateCredentialDefinition(data: CredentialDefinitionData): st
   for (const [k, v] of Object.entries({ id: credentialId, ...rest })) {
     addValueToObject(configObject, k, v);
   }
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }

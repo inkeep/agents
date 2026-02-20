@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
-import { SyntaxKind } from 'ts-morph';
 
 type TriggerDefinitionData = {
   triggerId: string;
@@ -85,7 +85,7 @@ const TriggerSchema = z.looseObject({
     .optional(),
 });
 
-export function generateTriggerDefinition(data: TriggerDefinitionData): string {
+export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFile {
   const result = TriggerSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for trigger:\n${z.prettifyError(result.error)}`);
@@ -119,5 +119,5 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
     });
   }
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }

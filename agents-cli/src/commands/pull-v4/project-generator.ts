@@ -75,7 +75,7 @@ const ProjectSchema = z.looseObject({
   referenceOverrides: ReferenceOverridesSchema.optional(),
 });
 
-export function generateProjectDefinition(data: ProjectDefinitionData): string {
+export function generateProjectDefinition(data: ProjectDefinitionData): SourceFile {
   const result = ProjectSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for project:
@@ -196,7 +196,7 @@ ${z.prettifyError(result.error)}`);
     );
   }
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function addReferenceImports(

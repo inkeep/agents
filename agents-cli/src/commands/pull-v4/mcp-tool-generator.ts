@@ -1,4 +1,4 @@
-import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
@@ -64,7 +64,7 @@ const McpToolSchema = z
 
 type ParsedMcpToolDefinitionData = z.infer<typeof McpToolSchema>;
 
-export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
+export function generateMcpToolDefinition(data: McpToolDefinitionData): SourceFile {
   const result = McpToolSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for MCP tool:\n${z.prettifyError(result.error)}`);
@@ -84,8 +84,7 @@ export function generateMcpToolDefinition(data: McpToolDefinitionData): string {
   }
 
   writeMcpToolConfig(configObject, parsed);
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeMcpToolConfig(

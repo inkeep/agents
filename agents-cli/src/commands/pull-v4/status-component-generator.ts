@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SourceFile } from 'ts-morph';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
@@ -22,7 +23,7 @@ const StatusComponentSchema = z.looseObject({
   schema: z.unknown().optional(),
 });
 
-export function generateStatusComponentDefinition(data: StatusComponentDefinitionData): string {
+export function generateStatusComponentDefinition(data: StatusComponentDefinitionData): SourceFile {
   const result = StatusComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for status component:\n${z.prettifyError(result.error)}`);
@@ -54,5 +55,5 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
     });
   }
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }

@@ -1,5 +1,5 @@
 import { FullAgentAgentInsertSchema } from '@inkeep/agents-core';
-import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addReferenceGetterProperty,
@@ -45,7 +45,7 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
 type SubAgentInput = z.input<typeof SubAgentSchema>;
 type SubAgentOutput = z.output<typeof SubAgentSchema>;
 
-export function generateSubAgentDefinition(data: SubAgentInput): string {
+export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);
@@ -59,7 +59,7 @@ export function generateSubAgentDefinition(data: SubAgentInput): string {
 
   writeSubAgentConfig(configObject, parsed);
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeSubAgentConfig(

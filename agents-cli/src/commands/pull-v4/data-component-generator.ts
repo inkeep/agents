@@ -1,10 +1,10 @@
-import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
   addStringProperty,
-  convertJsonSchemaToZodSafe,
   createFactoryDefinition,
+  convertJsonSchemaToZodSafe,
   isPlainObject,
   toCamelCase,
 } from './utils';
@@ -38,7 +38,7 @@ const DataComponentSchema = z.object({
 
 type ParsedDataComponentDefinitionData = z.infer<typeof DataComponentSchema>;
 
-export function generateDataComponentDefinition(data: DataComponentDefinitionData): string {
+export function generateDataComponentDefinition(data: DataComponentDefinitionData): SourceFile {
   const result = DataComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);
@@ -60,7 +60,7 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
 
   writeDataComponentConfig(configObject, parsed, props);
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeDataComponentConfig(
