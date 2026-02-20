@@ -33,6 +33,7 @@ export { streamAgentResponse } from './streaming';
 export {
   checkIfBotThread,
   classifyError,
+  extractApiErrorMessage,
   fetchAgentsForProject,
   fetchProjectsForTenant,
   findCachedUserMapping,

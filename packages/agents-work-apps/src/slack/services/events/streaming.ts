@@ -16,7 +16,12 @@ import {
   type ToolApprovalButtonValue,
 } from '../blocks';
 import type { getSlackClient } from '../client';
-import { classifyError, getUserFriendlyErrorMessage, SlackErrorType } from './utils';
+import {
+  classifyError,
+  extractApiErrorMessage,
+  getUserFriendlyErrorMessage,
+  SlackErrorType,
+} from './utils';
 
 const logger = getLogger('slack-streaming');
 
@@ -175,8 +180,11 @@ export async function streamAgentResponse(params: {
       const errorBody = await response.text().catch(() => 'Unknown error');
       logger.error({ status: response.status, errorBody }, 'Agent streaming request failed');
 
+      const apiMessage = extractApiErrorMessage(errorBody);
       const errorType = classifyError(null, response.status);
-      const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
+      const errorMessage = apiMessage
+        ? `*Error.* ${apiMessage}`
+        : getUserFriendlyErrorMessage(errorType, agentName);
 
       await slackClient.chat.postMessage({
         channel,

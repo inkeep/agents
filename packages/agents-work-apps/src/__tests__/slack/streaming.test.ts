@@ -326,6 +326,28 @@ describe('streamAgentResponse', () => {
 
       expect(mockChatUpdate).not.toHaveBeenCalled();
     });
+  it('should surface API error message from response body instead of generic message', async () => {
+    const errorBody = JSON.stringify({ message: 'Access denied: insufficient permissions' });
+    mockFetch.mockResolvedValue(new Response(errorBody, { status: 403 }));
+
+    const result = await streamAgentResponse(baseParams);
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe('*Error.* Access denied: insufficient permissions');
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: '*Error.* Access denied: insufficient permissions',
+      })
+    );
+  });
+
+  it('should fall back to classified error when response body has no message', async () => {
+    mockFetch.mockResolvedValue(new Response('plain text error', { status: 403 }));
+
+    const result = await streamAgentResponse(baseParams);
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain('Authentication error');
   });
 
   describe('contentAlreadyDelivered error suppression', () => {
