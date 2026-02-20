@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v6
 
       # 2. Setup flyctl
-      - uses: superfly/flyctl-actions/setup-flyctl@1.6
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
 
       # 3. Generate per-PR credentials (random, ephemeral)
       - name: Generate credentials
@@ -368,7 +368,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@1.6
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
 
       - name: Destroy Fly app
         run: flyctl apps destroy "pr-${{ github.event.number }}-agents" --yes

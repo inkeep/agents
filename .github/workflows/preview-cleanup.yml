@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: superfly/flyctl-actions/setup-flyctl@1.6
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
 
       - name: Cleanup orphaned preview apps
         run: |
