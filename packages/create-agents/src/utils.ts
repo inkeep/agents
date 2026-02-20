@@ -520,7 +520,7 @@ async function createEnvironmentFiles(config: FileConfig) {
     envExampleContent = await fs.readFile('.env.example', 'utf-8');
   } catch {
     throw new Error(
-      'Could not read .env.example from the template. The template may be corrupted — try running the command again.',
+      'Could not read .env.example from the template. The template may be corrupted — try running the command again.'
     );
   }
   const lines = envExampleContent.split('\n');
