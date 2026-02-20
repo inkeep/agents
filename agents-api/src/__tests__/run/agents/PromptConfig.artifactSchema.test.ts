@@ -83,8 +83,8 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     const result = builder.buildSystemPrompt(config);
     const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
     expect(typeSchemaMatch).not.toBeNull();
-    expect(typeSchemaMatch![1]).toContain('PREVIEW');
-    expect(typeSchemaMatch![1]).toContain('FULL');
+    expect(typeSchemaMatch?.[1]).toContain('PREVIEW');
+    expect(typeSchemaMatch?.[1]).toContain('FULL');
   });
 
   test('type_schema preview contains only inPreview fields', () => {
@@ -98,7 +98,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
 
     const result = builder.buildSystemPrompt(config);
     const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
-    const typeSchemaContent = typeSchemaMatch![1];
+    const typeSchemaContent = typeSchemaMatch?.[1] ?? '';
     const previewIndex = typeSchemaContent.indexOf('PREVIEW');
     const fullIndex = typeSchemaContent.indexOf('FULL');
     const previewSection = typeSchemaContent.slice(previewIndex, fullIndex);
@@ -119,7 +119,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
 
     const result = builder.buildSystemPrompt(config);
     const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
-    const typeSchemaContent = typeSchemaMatch![1];
+    const typeSchemaContent = typeSchemaMatch?.[1] ?? '';
     const fullIndex = typeSchemaContent.indexOf('FULL');
     const fullSection = typeSchemaContent.slice(fullIndex);
     expect(fullSection).toContain('"title"');
