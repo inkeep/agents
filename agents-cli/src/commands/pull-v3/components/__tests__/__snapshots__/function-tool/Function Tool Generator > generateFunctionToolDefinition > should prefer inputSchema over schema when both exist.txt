@@ -1,0 +1,16 @@
+export const test = functionTool({
+  name: 'test-tool',
+  description: 'Test tool',
+  inputSchema: {
+    "type": "object",
+    "properties": {
+      "input": {
+        "type": "string",
+        "description": "Input field"
+      }
+    }
+  },
+  execute: async ({}) => {
+    return { success: true };
+  }
+});

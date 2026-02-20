@@ -1,0 +1,26 @@
+Index: context-configs/support-context.ts
+===================================================================
+--- context-configs/support-context.ts	before
++++ context-configs/support-context.ts	after
+@@ -2,9 +2,7 @@
+ import { z } from 'zod';
+ 
+ const headersSchema = headers({
+-  schema: z.object({
+-    user_id: z.string().optional()
+-  })
++  schema: z.object({ "user_id": z.string().optional() })
+ });
+ 
+ const userInfo = fetchDefinition({
+@@ -16,9 +14,7 @@
+     method: 'GET'
+   },
+   defaultValue: 'Unable to fetch user information',
+-  responseSchema: z.object({
+-    name: z.string().optional()
+-  })
++  responseSchema: z.object({ "name": z.string().optional() })
+ });
+ 
+ const _supportContext = contextConfig({

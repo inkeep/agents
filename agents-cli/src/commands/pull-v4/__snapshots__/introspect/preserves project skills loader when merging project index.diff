@@ -1,0 +1,13 @@
+Index: index.ts
+===================================================================
+--- index.ts	before
++++ index.ts	after
+@@ -7,7 +7,7 @@
+ 
+ export const supportProject = project({
+   id: 'support-project',
+-  name: 'Legacy support project',
++  name: 'Support Project',
+   description: 'Support project for introspect v4 tests',
+   agents: () => [supportAgent],
+   skills: () => loadSkills(path.join('support-project', 'skills')),

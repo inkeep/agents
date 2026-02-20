@@ -1,0 +1,13 @@
+import { agent } from '@inkeep/agents-sdk';
+import { personalAssistant } from './sub-agents/personalAssistant';
+import { coordinatesAgent } from './sub-agents/coordinatesAgent';
+import { personalAgentContext } from '../context-configs/personalAgentContext';
+
+export const myComplexAgentV2 = agent({
+  id: 'my-complex-agent_v2',
+  name: 'Personal Assistant Agent',
+  description: 'A personalized AI assistant for managing tasks and information',
+  defaultSubAgent: personalAssistant,
+  subAgents: () => [personalAssistant, coordinatesAgent],
+  contextConfig: personalAgentContext,
+});

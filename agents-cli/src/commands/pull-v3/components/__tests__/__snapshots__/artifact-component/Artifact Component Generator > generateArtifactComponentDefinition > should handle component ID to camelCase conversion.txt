@@ -1,0 +1,8 @@
+export const documentTemplate = artifactComponent({
+  id: 'document-template',
+  name: 'Template',
+  description: 'Document template component',
+  props: z.object({
+    title: z.string(),
+  })
+});

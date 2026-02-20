@@ -1,0 +1,10 @@
+export const badExecute = functionTool({
+  name: 'bad-execute-tool',
+  inputSchema: {
+    "type": "object",
+    "properties": {}
+  },
+  execute: async ({}) => {
+    not a valid function
+  }
+});

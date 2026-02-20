@@ -1,0 +1,12 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const personalAssistant = subAgent({
+  id: 'personal-assistant',
+  description: 'A personalized AI assistant.',
+  prompt: "Hello! I'm your personal assistant.",
+  name: 'Personal Assistant',
+  canUse: () => [calculateBMI, weatherTool],
+  canDelegateTo: () => [coordinatesAgent, teamAgent],
+  dataComponents: () => [taskList],
+  artifactComponents: () => [citation],
+});

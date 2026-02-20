@@ -1,0 +1,16 @@
+export const testSubAgent = subAgent({
+  id: 'test-sub-agent',
+  name: 'Personal Assistant',
+  description: 'A personalized AI assistant.',
+  prompt: 'Hello! I\'m your personal assistant.',
+  canUse: () => [
+      calculateBMI,
+      weatherTool
+  ],
+  canDelegateTo: () => [
+      coordinatesAgent,
+      teamAgent
+  ],
+  dataComponents: () => [taskList],
+  artifactComponents: () => [citation]
+});

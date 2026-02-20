@@ -1,0 +1,48 @@
+export const enterprisePlatform = project({
+  id: 'enterprise-platform',
+  name: 'Enterprise AI Platform',
+  description: `Comprehensive enterprise AI platform with multiple specialized agents and shared resources`,
+  models: {
+    base: {
+      model: 'gpt-4o',
+      temperature: 0.7
+    },
+    structuredOutput: {
+      model: 'gpt-4o',
+      temperature: 0.3
+    },
+    summarizer: {
+      model: 'gpt-4o-mini',
+      temperature: 0.5
+    }
+  },
+  stopWhen: {
+    transferCountIs: 15, // Max transfers for agents
+    stepCountIs: 100 // Max steps for sub-agents
+  },
+  agents: () => [
+    primaryAgent,
+    analyticsAgent,
+    reportingAgent
+  ],
+  tools: () => [
+    dataAnalysisTool,
+    reportGeneratorTool
+  ],
+  externalAgents: () => [
+    legacySystemAgent,
+    partnerApiAgent
+  ],
+  dataComponents: () => [
+    userProfile,
+    transactionHistory
+  ],
+  artifactComponents: () => [
+    dashboardComponent,
+    reportComponent
+  ],
+  credentialReferences: () => [
+    databaseCredentials,
+    apiKeyCredentials
+  ]
+});

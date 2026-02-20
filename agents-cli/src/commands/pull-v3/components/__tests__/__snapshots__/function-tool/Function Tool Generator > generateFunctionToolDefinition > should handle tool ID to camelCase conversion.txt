@@ -1,0 +1,11 @@
+export const emailSenderTool = functionTool({
+  name: 'email-sender',
+  description: 'Send emails',
+  inputSchema: {
+    "type": "object",
+    "properties": {}
+  },
+  execute: async ({}) => {
+    return { sent: true };
+  }
+});

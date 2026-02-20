@@ -1,0 +1,18 @@
+export const complexModelsProject = project({
+  id: 'complex-models-project',
+  name: 'Complex Models Project',
+  models: {
+    base: {
+      model: 'gpt-4o',
+      temperature: 0.7,
+      maxTokens: 4096
+    },
+    structuredOutput: {
+      model: 'gpt-4o',
+      temperature: 0.3
+    },
+    summarizer: {
+      model: 'gpt-4o-mini'
+    }
+  }
+});

@@ -1,0 +1,10 @@
+export const simple = functionTool({
+  name: 'simple-tool',
+  inputSchema: {
+    "type": "object",
+    "properties": {}
+  },
+  execute: async ({}) => {
+    return { message: "Hello World" };
+  }
+});

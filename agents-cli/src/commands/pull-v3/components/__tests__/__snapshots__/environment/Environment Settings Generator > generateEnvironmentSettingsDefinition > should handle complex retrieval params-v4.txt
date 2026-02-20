@@ -1,0 +1,19 @@
+import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
+import { CredentialStoreType } from '@inkeep/agents-core';
+
+export const complex = registerEnvironmentSettings({
+  credentials: {
+    complex_cred: {
+      id: 'complex-cred',
+      type: CredentialStoreType.keychain,
+      credentialStoreId: 'keychain-main',
+      retrievalParams: {
+        service: 'oauth-service',
+        account: 'user@example.com',
+        timeout: 5000,
+        retries: 3,
+        enabled: true,
+      },
+    },
+  },
+});

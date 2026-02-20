@@ -1,0 +1,11 @@
+export const testAgent = agent({
+  id: 'test-agent',
+  name: 'Personal Assistant Agent',
+  description: 'A personalized AI assistant for managing tasks and information',
+  defaultSubAgent: personalAssistant,
+  subAgents: () => [
+    personalAssistant,
+    coordinatesAgent
+  ],
+  contextConfig: personalAgentContext
+});

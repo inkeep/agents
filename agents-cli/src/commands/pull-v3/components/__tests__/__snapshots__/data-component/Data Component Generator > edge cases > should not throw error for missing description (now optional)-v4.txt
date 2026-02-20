@@ -1,0 +1,8 @@
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const missingDesc = dataComponent({
+  id: 'missing-desc',
+  name: 'Test Component',
+  props: z.object({}),
+});
