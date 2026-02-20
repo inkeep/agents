@@ -74,9 +74,9 @@ describe('Agent Generator', () => {
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 3,');
       expect(definition).toContain('timeInSeconds: 15,');
-      expect(definition).toContain('statusComponents: [');
-      expect(definition).toContain('toolSummary.config,');
-      expect(definition).toContain('progressUpdate.config,');
+      expect(definition).toContain(
+        'statusComponents: [toolSummary.config, progressUpdate.config],'
+      );
       expect(definition).toContain(
         "prompt: 'Provide status updates on task progress and tool usage'"
       );
@@ -89,7 +89,7 @@ describe('Agent Generator', () => {
       const definition = generateAgentDefinition({ agentId, ...complexAgentData });
 
       expect(definition).toContain('stopWhen: {');
-      expect(definition).toContain('transferCountIs: 5 // Max transfers in one conversation');
+      expect(definition).toContain('transferCountIs: 5,');
       expect(definition).toContain('},');
       await expectSnapshots(definition);
     });
@@ -137,7 +137,9 @@ describe('Agent Generator', () => {
       const agentId = 'multiline-agent';
       const definition = generateAgentDefinition({ agentId, ...multilineData });
 
-      expect(definition).toContain('description: `This is a very long description');
+      expect(definition).toContain(
+        "description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings',"
+      );
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
       await expectSnapshots(definition);
