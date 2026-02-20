@@ -556,58 +556,47 @@ function alignArrayLiteralText(
 }
 
 function orderObjectProperties(existingProperties: Node[], generatedProperties: Node[]) {
-  const generatedEntries = generatedProperties.map((generatedProperty) => ({
-    generatedProperty,
-    key: getObjectPropertyKey(generatedProperty),
+  return orderNodesBySignature(
+    existingProperties,
+    generatedProperties,
+    getObjectPropertyKey,
+    getObjectPropertyKey
+  ).map(({ existingNode, generatedNode }) => ({
+    existingProperty: existingNode,
+    generatedProperty: generatedNode,
   }));
-  const usedGeneratedIndexes = new Set<number>();
-  const ordered: Array<{ existingProperty?: Node; generatedProperty: Node }> = [];
-
-  for (const existingProperty of existingProperties) {
-    const existingKey = getObjectPropertyKey(existingProperty);
-    if (!existingKey) {
-      continue;
-    }
-
-    const generatedIndex = generatedEntries.findIndex(
-      (entry, index) => !usedGeneratedIndexes.has(index) && entry.key === existingKey
-    );
-    if (generatedIndex === -1) {
-      continue;
-    }
-
-    const generatedEntry = generatedEntries[generatedIndex];
-    if (!generatedEntry) {
-      continue;
-    }
-
-    usedGeneratedIndexes.add(generatedIndex);
-    ordered.push({
-      existingProperty,
-      generatedProperty: generatedEntry.generatedProperty,
-    });
-  }
-
-  for (const [index, generatedEntry] of generatedEntries.entries()) {
-    if (usedGeneratedIndexes.has(index)) {
-      continue;
-    }
-    ordered.push({ generatedProperty: generatedEntry.generatedProperty });
-  }
-
-  return ordered;
 }
 
 function orderArrayElements(existingElements: Node[], generatedElements: Node[]) {
-  const generatedEntries = generatedElements.map((generatedElement) => ({
-    generatedElement,
-    signature: getArrayElementSignature(generatedElement),
+  return orderNodesBySignature(
+    existingElements,
+    generatedElements,
+    getArrayElementSignature,
+    getArrayElementSignature
+  ).map(({ existingNode, generatedNode }) => ({
+    existingElement: existingNode,
+    generatedElement: generatedNode,
+  }));
+}
+
+function orderNodesBySignature<TExisting extends Node, TGenerated extends Node>(
+  existingNodes: TExisting[],
+  generatedNodes: TGenerated[],
+  getExistingSignature: (node: TExisting) => string | undefined,
+  getGeneratedSignature: (node: TGenerated) => string | undefined
+) {
+  const generatedEntries = generatedNodes.map((generatedNode) => ({
+    generatedNode,
+    signature: getGeneratedSignature(generatedNode),
   }));
   const usedGeneratedIndexes = new Set<number>();
-  const ordered: Array<{ existingElement?: Node; generatedElement: Node }> = [];
+  const ordered: Array<{ existingNode?: TExisting; generatedNode: TGenerated }> = [];
 
-  for (const existingElement of existingElements) {
-    const existingSignature = getArrayElementSignature(existingElement);
+  for (const existingNode of existingNodes) {
+    const existingSignature = getExistingSignature(existingNode);
+    if (!existingSignature) {
+      continue;
+    }
     const generatedIndex = generatedEntries.findIndex(
       (entry, index) => !usedGeneratedIndexes.has(index) && entry.signature === existingSignature
     );
@@ -622,8 +611,8 @@ function orderArrayElements(existingElements: Node[], generatedElements: Node[])
 
     usedGeneratedIndexes.add(generatedIndex);
     ordered.push({
-      existingElement,
-      generatedElement: generatedEntry.generatedElement,
+      existingNode,
+      generatedNode: generatedEntry.generatedNode,
     });
   }
 
@@ -631,7 +620,7 @@ function orderArrayElements(existingElements: Node[], generatedElements: Node[])
     if (usedGeneratedIndexes.has(index)) {
       continue;
     }
-    ordered.push({ generatedElement: generatedEntry.generatedElement });
+    ordered.push({ generatedNode: generatedEntry.generatedNode });
   }
 
   return ordered;
