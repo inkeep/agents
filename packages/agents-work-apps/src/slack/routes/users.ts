@@ -258,11 +258,19 @@ app.openapi(
         tenantId,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isUniqueViolation =
+        (error instanceof Error &&
+          (error.message.includes('duplicate key') ||
+            error.message.includes('unique constraint'))) ||
+        (typeof error === 'object' &&
+          error !== null &&
+          'cause' in error &&
+          typeof (error as any).cause === 'object' &&
+          (error as any).cause?.code === '23505');
 
-      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
-        logger.warn({ userId: body.userId }, 'Slack user already linked');
-        return c.json({ error: 'This Slack account is already linked to an Inkeep account.' }, 409);
+      if (isUniqueViolation) {
+        logger.info({ userId: body.userId }, 'Concurrent link resolved — mapping already exists');
+        return c.json({ success: true });
       }
 
       logger.error({ error, userId: body.userId }, 'Failed to verify link token');
