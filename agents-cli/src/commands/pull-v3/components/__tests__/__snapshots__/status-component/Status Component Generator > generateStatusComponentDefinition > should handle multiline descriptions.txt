@@ -1,0 +1,4 @@
+export const test = statusComponent({
+  type: 'detailed_status',
+  description: `This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information`
+});

@@ -1,0 +1,31 @@
+import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';
+import { z } from 'zod';
+
+const personalAgentHeaders = headers({
+  schema: z.object({ "user_id": z.string(), "api_key": z.string() })
+});
+
+const user = fetchDefinition({
+  id: 'user-info',
+  name: 'User Information',
+  trigger: 'initialization',
+  fetchConfig: {
+    url: 'https://api.example.com/users/${headersSchema.toTemplate("user_id")}',
+    method: 'GET',
+    headers: {
+    Authorization: 'Bearer ${headersSchema.toTemplate("api_key")}'
+  },
+    transform: 'user'
+  },
+  responseSchema: z.object({ "name": z.string().optional(), "email": z.string().optional() }),
+  defaultValue: 'Unable to fetch user information'
+});
+
+const personalAgentContext = contextConfig({
+  headers: personalAgentHeaders,
+  contextVariables: {
+    user
+  }
+});
+
+export { personalAgentContext, personalAgentHeaders, user };

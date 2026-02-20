@@ -1,0 +1,6 @@
+export const userProfileData = dataComponent({
+  id: 'user-profile-data',
+  name: 'Profile',
+  description: 'User profile data',
+  props: z.object({ "name": z.string().optional() })
+});

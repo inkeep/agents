@@ -1,0 +1,8 @@
+export const mixedTypesSubAgent = subAgent({
+  id: 'mixed-types-sub-agent',
+  name: 'Mixed Types Agent',
+  description: 'Agent with mixed reference types',
+  prompt: 'I work with mixed types.',
+  canUse: () => [stringTool],
+  dataComponents: () => [stringComponent]
+});

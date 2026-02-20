@@ -1,0 +1,6 @@
+const simpleContext = contextConfig({
+  contextVariables: {
+    config: someConfig,
+    data: someData
+  }
+});

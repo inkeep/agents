@@ -1,0 +1,8 @@
+export const test = artifactComponent({
+  id: 'test',
+  name: 'Test',
+  description: 'Component with both props and schema',
+  props: z.object({
+    prop: preview(z.string()),
+  })
+});

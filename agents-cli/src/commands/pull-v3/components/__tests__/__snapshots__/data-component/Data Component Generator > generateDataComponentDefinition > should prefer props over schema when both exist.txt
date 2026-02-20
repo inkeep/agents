@@ -1,0 +1,6 @@
+export const test = dataComponent({
+  id: 'test',
+  name: 'Test',
+  description: 'Test component with both props and schema',
+  props: z.object({ "prop": z.string().optional() })
+});

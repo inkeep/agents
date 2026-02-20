@@ -1,0 +1,9 @@
+export const componentOnly = dataComponent({
+  id: 'component-only',
+  name: 'Component Only',
+  description: 'Component with render but no mock data',
+  props: z.object({ "message": z.string().optional() }),
+  render: {
+    component: "function SimpleComponent({ message }) { return <div>{message}</div>; }",
+  }
+});

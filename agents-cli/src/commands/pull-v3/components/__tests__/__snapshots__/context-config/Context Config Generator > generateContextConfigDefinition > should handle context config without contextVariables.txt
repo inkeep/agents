@@ -1,0 +1,3 @@
+const headerOnlyContext = contextConfig({
+  headers: myHeaders
+});

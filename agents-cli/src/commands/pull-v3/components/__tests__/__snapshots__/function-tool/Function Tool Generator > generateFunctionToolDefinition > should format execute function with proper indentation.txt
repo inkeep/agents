@@ -1,0 +1,14 @@
+export const multiply = functionTool({
+  name: 'multiply-tool',
+  inputSchema: {
+    "type": "object",
+    "properties": {
+      "value": {
+        "type": "number"
+      }
+    }
+  },
+  execute: async ({ value }) => {
+    return { result: value * 2 };
+  }
+});
