@@ -63,11 +63,11 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
               className="inline-flex shrink-0 items-center gap-0.5 text-muted-foreground"
             >
               {grantAccess ? (
-                <SlackIcon className="h-3.5 w-3.5" />
+                <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
               ) : (
-                <InkeepIconMono className="h-3.5 w-3.5" />
+                <InkeepIconMono aria-hidden="true" className="h-3.5 w-3.5" />
               )}
-              <ShieldCheck className="h-3 w-3" />
+              <ShieldCheck aria-hidden="true" className="h-3 w-3" />
             </span>
           </TooltipTrigger>
           <TooltipContent side="left" className="max-w-[240px]">
