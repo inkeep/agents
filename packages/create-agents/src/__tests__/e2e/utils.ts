@@ -273,12 +273,20 @@ export async function startDashboardServer(
     projectDir,
     'node_modules/@inkeep/agents-manage-ui/package.json'
   );
-  const manageUiRoot = path.dirname(manageUiPkgJson);
+  // Resolve symlinks so linked packages (link:) point to the actual monorepo directory
+  const manageUiRoot = await fs.realpath(path.dirname(manageUiPkgJson));
   const standaloneDir = path.join(manageUiRoot, '.next/standalone/agents-manage-ui');
   const serverEntry = path.join(standaloneDir, 'server.js');
 
   if (!(await fs.pathExists(serverEntry))) {
-    throw new Error(`Dashboard standalone server not found at ${serverEntry}`);
+    const originalPath = path.dirname(manageUiPkgJson);
+    throw new Error(
+      `Dashboard standalone server not found at ${serverEntry}` +
+        (originalPath !== manageUiRoot
+          ? ` (symlink resolved from ${originalPath})`
+          : '') +
+        `. Ensure the package is built with 'output: standalone' (run turbo build).`
+    );
   }
 
   const child = fork(serverEntry, [], {

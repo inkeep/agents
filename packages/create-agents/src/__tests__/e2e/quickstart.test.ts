@@ -207,7 +207,7 @@ describe('create-agents quickstart e2e', () => {
       try {
         const signupRes = await fetch(`${manageApiUrl}/api/auth/sign-up/email`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Origin: manageApiUrl },
+          headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
             password: 'adminADMIN!@12',
@@ -261,7 +261,7 @@ describe('create-agents quickstart e2e', () => {
       try {
         const loginTestRes = await fetch(`${manageApiUrl}/api/auth/sign-in/email`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Origin: manageApiUrl },
+          headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
             password: 'adminADMIN!@12',
