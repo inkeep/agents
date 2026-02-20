@@ -32,6 +32,9 @@ function mergeImports(existingFile: SourceFile, generatedFile: SourceFile) {
       .filter((existingImport) => existingImport.getModuleSpecifierValue() === moduleSpecifier);
 
     if (!matchingImports.length) {
+      if (areGeneratedImportBindingsAlreadyPresent(existingFile, generatedImport)) {
+        continue;
+      }
       existingFile.addImportDeclaration(generatedImport.getStructure());
       continue;
     }
@@ -104,6 +107,60 @@ function findBestImportTarget(
 
 function hasImportWithText(imports: ReturnType<SourceFile['getImportDeclarations']>, text: string) {
   return imports.some((importDeclaration) => importDeclaration.getText() === text);
+}
+
+function areGeneratedImportBindingsAlreadyPresent(
+  existingFile: SourceFile,
+  generatedImport: ReturnType<SourceFile['getImportDeclarations']>[number]
+): boolean {
+  const generatedBindings = getImportBindingNames(generatedImport);
+  if (!generatedBindings.length) {
+    return false;
+  }
+
+  const existingImports = existingFile.getImportDeclarations();
+  return generatedBindings.every((binding) =>
+    existingImports.some((existingImport) => importHasBinding(existingImport, binding))
+  );
+}
+
+function getImportBindingNames(
+  importDeclaration: ReturnType<SourceFile['getImportDeclarations']>[number]
+): string[] {
+  const bindings: string[] = [];
+
+  const defaultImport = importDeclaration.getDefaultImport();
+  if (defaultImport) {
+    bindings.push(defaultImport.getText());
+  }
+
+  const namespaceImport = importDeclaration.getNamespaceImport();
+  if (namespaceImport) {
+    bindings.push(namespaceImport.getText());
+  }
+
+  for (const namedImport of importDeclaration.getNamedImports()) {
+    bindings.push(namedImport.getAliasNode()?.getText() ?? namedImport.getName());
+  }
+
+  return bindings;
+}
+
+function importHasBinding(
+  importDeclaration: ReturnType<SourceFile['getImportDeclarations']>[number],
+  bindingName: string
+): boolean {
+  if (importDeclaration.getDefaultImport()?.getText() === bindingName) {
+    return true;
+  }
+
+  if (importDeclaration.getNamespaceImport()?.getText() === bindingName) {
+    return true;
+  }
+
+  return importDeclaration.getNamedImports().some((namedImport) => {
+    return (namedImport.getAliasNode()?.getText() ?? namedImport.getName()) === bindingName;
+  });
 }
 
 function upsertStatement(existingFile: SourceFile, generatedStatement: Statement) {

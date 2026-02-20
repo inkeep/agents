@@ -155,6 +155,69 @@ export const exaMcpTool = mcpTool({
     await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
+  it('does not add duplicate tool import when matching variable already exists', async () => {
+    const project = createProjectFixture();
+    project.id = 'deep-research';
+    project.name = 'Deep Research';
+    project.description = 'Deep research project template';
+    project.tools = {
+      'ad1dRlGjxH7FgdTcRn-qr': {
+        id: 'ad1dRlGjxH7FgdTcRn-qr',
+      },
+    };
+
+    fs.mkdirSync(join(testDir, 'tools'), { recursive: true });
+
+    const indexFilePath = join(testDir, 'index.ts');
+    const before = `import { project } from '@inkeep/agents-sdk';
+import { deepResearchAgent } from './agents/deep-research';
+import { firecrawlMcpTool } from './tools/firecrawl-mcp';
+
+export const myProject = project({
+  id: 'deep-research',
+  name: 'Deep Research',
+  description: 'Deep research project template',
+  agents: () => [deepResearchAgent],
+  tools: () => [firecrawlMcpTool],
+  models: {
+    base: {
+      model: 'openai/gpt-4o-mini'
+    }
+  }
+});
+`;
+    fs.writeFileSync(indexFilePath, before);
+
+    fs.writeFileSync(
+      join(testDir, 'tools', 'firecrawl-mcp.ts'),
+      `import { mcpTool } from '@inkeep/agents-sdk';
+
+export const firecrawlMcpTool = mcpTool({
+  id: 'ad1dRlGjxH7FgdTcRn-qr',
+  name: 'Firecrawl',
+  serverUrl: 'https://mcp.firecrawl.dev/{FIRECRAWL_API_KEY}/v2/mcp',
+  transport: {
+    type: 'streamable_http'
+  }
+});
+`
+    );
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const { default: mergedIndexFile } = await import(`${indexFilePath}?raw`);
+    expect(mergedIndexFile).toContain("import { firecrawlMcpTool } from './tools/firecrawl-mcp';");
+    expect(mergedIndexFile).not.toContain("from './tools/ad1dRlGjxH7FgdTcRn-qr';");
+    expect(mergedIndexFile).toContain('tools: () => [firecrawlMcpTool],');
+    const firecrawlImportCount =
+      mergedIndexFile.match(/import \{ firecrawlMcpTool \} from/g)?.length ?? 0;
+    expect(firecrawlImportCount).toBe(1);
+
+    await expect(mergedIndexFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
+    const indexDiff = await createUnifiedDiff('index.ts', before, mergedIndexFile);
+    await expect(indexDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
+  });
+
   it('preserves project skills loader when merging project index', async () => {
     const project = createProjectFixture();
     project.skills = {
