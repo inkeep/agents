@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.50.5
+
+### Patch Changes
+
+- 56fd821: Fix multi-tenant unique constraint on sub_agent_skills table to scope by tenant, project, and agent
+
 ## 0.50.4
 
 ### Patch Changes
