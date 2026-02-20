@@ -12,7 +12,7 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from 'ai';
-import { asyncExitHook, gracefulExit } from 'exit-hook';
+import { asyncExitHook } from 'exit-hook';
 import { match } from 'ts-pattern';
 import {
   MCP_TOOL_CONNECTION_TIMEOUT_MS,
@@ -22,6 +22,22 @@ import {
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
 } from '../constants/execution-limits-shared';
 import { MCPTransportType } from '../types/utility';
+
+export const activeMcpClients = new Set<McpClient>();
+
+let exitHookRegistered = false;
+
+function ensureExitHook() {
+  if (exitHookRegistered) return;
+  exitHookRegistered = true;
+  asyncExitHook(
+    async () => {
+      const clients = Array.from(activeMcpClients);
+      await Promise.allSettled(clients.map((c) => c.disconnect()));
+    },
+    { wait: 5000 }
+  );
+}
 
 interface SharedServerConfig {
   timeout?: number;
@@ -99,8 +115,8 @@ export class McpClient {
       }
     };
 
-    asyncExitHook(() => this.disconnect(), { wait: 5000 });
-    process.on('SIGTERM', () => gracefulExit());
+    ensureExitHook();
+    activeMcpClients.add(this);
   }
 
   private async connectSSE(config: McpSSEConfig) {
@@ -172,6 +188,7 @@ export class McpClient {
   }
 
   async disconnect() {
+    activeMcpClients.delete(this);
     if (!this.transport) {
       return;
     }

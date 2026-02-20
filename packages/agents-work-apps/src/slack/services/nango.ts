@@ -90,12 +90,16 @@ function evictWorkspaceCache() {
   }
 }
 
+let cachedNango: Nango | undefined;
+
 export function getSlackNango(): Nango {
+  if (cachedNango) return cachedNango;
   const secretKey = env.NANGO_SLACK_SECRET_KEY || env.NANGO_SECRET_KEY;
   if (!secretKey) {
     throw new Error('NANGO_SLACK_SECRET_KEY or NANGO_SECRET_KEY is required for Slack integration');
   }
-  return new Nango({ secretKey, host: env.NANGO_SERVER_URL });
+  cachedNango = new Nango({ secretKey, host: env.NANGO_SERVER_URL });
+  return cachedNango;
 }
 
 export function getSlackIntegrationId(): string {

@@ -124,6 +124,19 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
+async function limitConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+  const results: T[] = [];
+  let index = 0;
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+    while (index < tasks.length) {
+      const i = index++;
+      results[i] = await tasks[i]();
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 /**
  * Shape of a generation response after all Promise-based getters have been resolved.
  *
@@ -816,7 +829,11 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const MCP_CONCURRENCY_LIMIT = 5;
+    const tools = await limitConcurrency(
+      mcpTools.map((tool) => () => this.getMcpTool(tool)),
+      MCP_CONCURRENCY_LIMIT
+    );
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const toolSet of tools) {
@@ -3782,6 +3799,21 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    const clients = Array.from(this.mcpClientCache.values());
+    if (clients.length > 0) {
+      const results = await Promise.allSettled(clients.map((client) => client.disconnect()));
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          logger.warn({ error: result.reason }, 'Failed to disconnect MCP client during cleanup');
+        }
+      }
+    }
+    this.mcpClientCache.clear();
+    this.mcpConnectionLocks.clear();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(
