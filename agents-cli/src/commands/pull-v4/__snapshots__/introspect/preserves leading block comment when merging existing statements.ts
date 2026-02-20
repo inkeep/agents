@@ -23,6 +23,6 @@ export const supportAgent = agent({
   triggers: () => [githubWebhook],
   statusUpdates: {
     numEvents: 1,
-    statusComponents: [toolSummary.config]
+    statusComponents: [toolSummary.config],
   }
 });

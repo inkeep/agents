@@ -19,7 +19,7 @@ export function createInMemoryProject(): Project {
       indentationText: IndentationText.TwoSpaces,
       quoteKind: QuoteKind.Single,
       newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
+      useTrailingCommas: true,
     },
   });
 }
