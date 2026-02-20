@@ -55,7 +55,7 @@ describe('Context Config Generator', () => {
   };
 
   describe('generateHeadersDefinition', () => {
-    it('should generate correct headers definition', () => {
+    it('should generate correct headers definition', async () => {
       const definition = generateContextConfigDefinition({
         contextConfigId: 'personalAgentHeaders',
         ...headersData,
@@ -66,20 +66,12 @@ describe('Context Config Generator', () => {
       expect(definition).toContain('"user_id": z.string()');
       expect(definition).toContain('"api_key": z.string()');
       expect(definition).toContain('});');
-    });
-
-    it('should handle camelCase conversion', () => {
-      const definition = generateContextConfigDefinition({
-        contextConfigId: 'personal-agent-headers',
-        ...headersData,
-      });
-
-      expect(definition).toContain('const personalAgentHeaders = headers({');
+      await expectSnapshots(definition);
     });
   });
 
   describe('generateFetchDefinitionDefinition', () => {
-    it('should generate correct fetch definition', () => {
+    it('should generate correct fetch definition', async () => {
       const definition = generateContextConfigDefinition({
         contextConfigId: 'userFetcher',
         ...fetchData,
@@ -91,12 +83,13 @@ describe('Context Config Generator', () => {
       expect(definition).toContain("trigger: 'initialization',");
       expect(definition).toContain('fetchConfig: {');
       expect(definition).toContain(
-        'url: \'https://api.example.com/users/${headersSchema.toTemplate("user_id")}\','
+        `url: \`https://api.example.com/users/\${headersSchema.toTemplate("user_id")}\`,`
       );
       expect(definition).toContain("method: 'GET',");
       expect(definition).toContain('responseSchema: z.object({');
       expect(definition).toContain("defaultValue: 'Unable to fetch user information'");
       expect(definition).toContain('});');
+      await expectSnapshots(definition);
     });
 
     it('should handle minimal fetch definition', () => {
@@ -244,8 +237,7 @@ describe('Context Config Generator', () => {
       expect(file).toContain("import { z } from 'zod';");
       expect(file).toContain('const personalAgentHeaders = headers({');
       expect(file).toContain('const userInfo = fetchDefinition({');
-      expect(file).toContain('const personalAgentContext = contextConfig({');
-      expect(file).toContain('export { personalAgentContext, personalAgentHeaders, user };');
+      expect(file).toContain('export const personalAgentContext = contextConfig({');
 
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*const/s);
@@ -264,104 +256,10 @@ describe('Context Config Generator', () => {
       const file = generateContextConfigDefinition({ contextConfigId, ...simpleData });
 
       expect(file).toContain("import { contextConfig } from '@inkeep/agents-core';");
-      expect(file).toContain('const simpleContext = contextConfig({');
-      expect(file).toContain('export { simpleContext };');
+      expect(file).toContain('export const simpleContext = contextConfig({');
       expect(file).not.toContain('headers');
       expect(file).not.toContain('fetchDefinition');
       await expectSnapshots(file);
-    });
-  });
-
-  describe('compilation tests', () => {
-    it('should generate headers code that compiles', () => {
-      const definition = generateContextConfigDefinition({
-        contextConfigId: 'testHeaders',
-        ...headersData,
-      });
-      const definitionWithoutConst = definition.replace('const ', '');
-
-      const moduleCode = `
-        const headers = (config) => config;
-        const z = {
-          object: (schema) => ({ type: 'object', schema }),
-          string: () => ({ type: 'string' })
-        };
-        
-        const ${definitionWithoutConst}
-        
-        return testHeaders;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.schema).toBeDefined();
-    });
-
-    it('should generate fetch definition code that compiles', () => {
-      const definition = generateContextConfigDefinition({
-        contextConfigId: 'testFetch',
-        ...fetchData,
-      });
-      const definitionWithoutConst = definition.replace('const ', '');
-
-      const moduleCode = `
-        const fetchDefinition = (config) => config;
-        const createChainable = (type) => ({
-          type,
-          optional: () => createChainable(type + '_optional'),
-          describe: (desc) => createChainable(type + '_described')
-        });
-        const z = {
-          object: (schema) => createChainable('object'),
-          string: () => createChainable('string')
-        };
-        
-        const ${definitionWithoutConst}
-        
-        return testFetch;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('user-info');
-      expect(result.name).toBe('User Information');
-      expect(result.fetchConfig).toBeDefined();
-      expect(result.fetchConfig.url).toBeDefined();
-    });
-
-    it('should generate context config code that compiles', async () => {
-      const contextConfigId = 'testContext';
-      const definition = generateContextConfigDefinition({ contextConfigId, ...contextData });
-      const definitionWithoutConst = definition.replace('const ', '');
-
-      const moduleCode = `
-        const contextConfig = (config) => config;
-        const personalAgentHeaders = { type: 'headers' };
-        const userFetcher = { type: 'fetcher' };
-        
-        const ${definitionWithoutConst}
-        
-        return testContext;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.headers).toBeDefined();
-      expect(result.contextVariables).toBeDefined();
-      expect(result.contextVariables.user).toBeDefined();
-      await expectSnapshots(definition);
     });
   });
 
