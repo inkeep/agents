@@ -8,16 +8,21 @@ concurrency:
   group: preview-${{ github.event.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   deploy:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       # 1. Checkout
       - uses: actions/checkout@v6
 
       # 2. Setup flyctl
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@1.6
 
       # 3. Generate per-PR credentials (random, ephemeral)
       - name: Generate credentials
@@ -26,8 +31,13 @@ jobs:
           PG_PASSWORD=$(openssl rand -hex 16)
           SPICEDB_KEY=$(openssl rand -hex 16)
           AUTH_SECRET=$(openssl rand -hex 32)
-          BYPASS_SECRET="preview-bypass-${{ github.event.number }}"
+          BYPASS_SECRET=$(openssl rand -hex 16)
           ADMIN_PASSWORD=$(openssl rand -hex 12)
+          echo "::add-mask::$PG_PASSWORD"
+          echo "::add-mask::$SPICEDB_KEY"
+          echo "::add-mask::$AUTH_SECRET"
+          echo "::add-mask::$BYPASS_SECRET"
+          echo "::add-mask::$ADMIN_PASSWORD"
           echo "PG_PASSWORD=$PG_PASSWORD" >> $GITHUB_OUTPUT
           echo "SPICEDB_KEY=$SPICEDB_KEY" >> $GITHUB_OUTPUT
           echo "AUTH_SECRET=$AUTH_SECRET" >> $GITHUB_OUTPUT
@@ -117,6 +127,7 @@ jobs:
               break
             fi
             echo "Waiting... (state: $STATE, attempt $i/30)"
+            if [ "$i" = "30" ]; then echo "ERROR: Machine not started after 150s"; exit 1; fi
             sleep 5
           done
         env:
@@ -171,15 +182,15 @@ jobs:
       - name: Run migrations
         run: pnpm db:migrate
         env:
-          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=no-verify"
-          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=no-verify"
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=require"
+          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=require"
 
       # 13. Init auth (admin user + SpiceDB schema)
       - name: Init auth
         run: pnpm db:auth:init
         env:
-          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=no-verify"
-          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=no-verify"
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=require"
+          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=require"
           SPICEDB_ENDPOINT: "${{ env.APP_NAME }}.fly.dev:50051"
           SPICEDB_PRESHARED_KEY: ${{ steps.creds.outputs.SPICEDB_KEY }}
           SPICEDB_TLS_ENABLED: "false"
@@ -205,10 +216,10 @@ jobs:
           }
 
           upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_MANAGE_DATABASE_URL" \
-            "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${APP_NAME}.fly.dev:5432/inkeep_agents?sslmode=no-verify" \
+            "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${APP_NAME}.fly.dev:5432/inkeep_agents?sslmode=require" \
             "preview" "$BRANCH"
           upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_RUN_DATABASE_URL" \
-            "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${APP_NAME}.fly.dev:5433/inkeep_agents?sslmode=no-verify" \
+            "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${APP_NAME}.fly.dev:5433/inkeep_agents?sslmode=require" \
             "preview" "$BRANCH"
           upsert_env "$API_PROJECT_ID" "SPICEDB_ENDPOINT" "${APP_NAME}.fly.dev:50051" "preview" "$BRANCH"
           upsert_env "$API_PROJECT_ID" "SPICEDB_PRESHARED_KEY" "${{ steps.creds.outputs.SPICEDB_KEY }}" "preview" "$BRANCH"
@@ -277,12 +288,12 @@ jobs:
 
           cd agents-api
           VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }} \
-          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes 2>/dev/null || true
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes || echo "WARNING: agents-api Vercel deploy may have failed"
           cd ..
 
           cd agents-manage-ui
           VERCEL_PROJECT_ID=${{ secrets.VERCEL_UI_PROJECT_ID }} \
-          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes 2>/dev/null || true
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes || echo "WARNING: manage-ui Vercel deploy may have failed"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
@@ -355,8 +366,9 @@ jobs:
   teardown:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@1.6
 
       - name: Destroy Fly app
         run: flyctl apps destroy "pr-${{ github.event.number }}-agents" --yes

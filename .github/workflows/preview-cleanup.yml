@@ -5,11 +5,18 @@ on:
     - cron: "0 6 * * 1" # Monday 6am UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/checkout@v6
+
+      - uses: superfly/flyctl-actions/setup-flyctl@1.6
 
       - name: Cleanup orphaned preview apps
         run: |
