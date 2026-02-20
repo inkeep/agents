@@ -15,7 +15,7 @@ function resolveIcon(iconName?: string): ReactNode {
     if (BrandIcon) return createElement(BrandIcon);
   } else if (iconName.startsWith('Lu')) {
     // @ts-expect-error lucide icons are keyed by unprefixed name
-    const LuIcon: FC | undefined = luIcons[iconName.slice(2)];
+    const LuIcon: FC<{ className?: string }> | undefined = luIcons[iconName.slice(2)];
     if (LuIcon) return createElement(LuIcon, { className: 'h-6 w-6' });
   }
 

@@ -1,7 +1,7 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Cloud } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 import { Inter } from 'next/font/google';
 import { Suspense, ViewTransition } from 'react';
 import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
@@ -137,7 +137,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <Cloud />
+                        <Rocket />
                         Get Demo
                       </a>
                     </Button>
