@@ -15,6 +15,8 @@ import {
 export function createInMemoryProject(): Project {
   return new Project({
     useInMemoryFileSystem: true,
+    // we don't need them, this improves performance and makes tests fast
+    skipLoadingLibFiles: true,
     manipulationSettings: {
       indentationText: IndentationText.TwoSpaces,
       quoteKind: QuoteKind.Single,
