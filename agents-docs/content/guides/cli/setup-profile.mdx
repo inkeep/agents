@@ -1,19 +1,19 @@
 ---
 title: Set up a CLI profile
 sidebarTitle: Set Up Profile
-description: Create a CLI profile and authenticate with Inkeep Cloud
+description: Create a CLI profile and authenticate with remote Inkeep instance
 icon: LuUserCog
 ---
 
 <Note>
-Profile setup is only required when pushing or pulling to a **remote** deployment (Inkeep Cloud or a self-hosted instance). If you're pushing or pulling locally, you can skip this step.
+Profile setup is only required when pushing or pulling to a remote deployment (e.g. [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav) or a [self-hosted deployment](/deployment/vercel)). If you're pushing or pulling locally, you can skip this step.
 </Note>
 
 A CLI profile tells the CLI where to connect and how to authenticate with a remote deployment. This tutorial walks you through creating a profile and logging in.
 
 ## Prerequisites
 
-- Access to [Inkeep Cloud](https://inkeep.com/cloud-waitlist) or a [self-hosted deployment](/deployment/vercel)
+- Access to a remote Inkeep instance (e.g. [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav) or a [self-hosted deployment](/deployment/vercel))
 - The Inkeep CLI installed globally:
 
 ```bash
@@ -22,7 +22,7 @@ npm install -g @inkeep/agents-cli
 
 ## Step 1: Create a profile
 
-Profiles let you manage multiple environments (cloud, local, staging) from the same CLI. Create a profile for Inkeep Cloud:
+Profiles let you manage multiple environments (remote, local, staging) from the same CLI. Create a profile for remote Inkeep instance:
 
 ```bash
 inkeep profile add <profile-name>
@@ -31,11 +31,11 @@ inkeep profile add <profile-name>
 The CLI prompts you to configure the profile:
 
 1. **Remote type**:
-   - Select **Inkeep Cloud** if you have an Inkeep Cloud account (URLs are configured automatically)
+   - Select **Inkeep Cloud** if you have an Inkeep Enterprise account (URLs are configured automatically)
    - Select **Local** for local development (localhost defaults, no authentication required)
    - Select **Custom** for self-hosted deployments, then enter your API and Manage UI URLs
 2. **Environment name**: Enter `production` (or your preferred name)
-3. **Credential reference** (Cloud and Custom only): Enter a name for your credential (defaults to `inkeep-<profile-name>`)
+3. **Credential reference**: Enter a name for your credential (defaults to `inkeep-<profile-name>`)
 
 <Tip>
 You can verify the profile was created by running `inkeep profile list`.
@@ -107,10 +107,10 @@ For a full list of profile commands, see the [CLI Reference](/typescript-sdk/cli
 ## What's next
 
 <Cards>
-  <Card title="Push to Cloud" icon="LuCloudUpload" href="/guides/cli/push-to-cloud">
-    Push local agent configurations to Inkeep Cloud
+  <Card title="Push to Remote" icon="LuCloudUpload" href="/guides/cli/push-to-remote">
+    Push local agent configurations to remote Inkeep instance
   </Card>
-  <Card title="Pull from Cloud" icon="LuCloudDownload" href="/guides/cli/pull-from-cloud">
-    Pull agent configurations from Inkeep Cloud to your local project
+  <Card title="Pull from Remote" icon="LuCloudDownload" href="/guides/cli/pull-from-remote">
+    Pull agent configurations from remote Inkeep instance to your local project
   </Card>
 </Cards>

@@ -133,12 +133,12 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                       asChild
                     >
                       <a
-                        href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
+                        href="https://inkeep.com/demo?cta_id=docs_nav"
                         target="_blank"
                         rel="noreferrer"
                       >
                         <Cloud />
-                        Inkeep Cloud
+                        Get Demo
                       </a>
                     </Button>
                     <GithubStars />
