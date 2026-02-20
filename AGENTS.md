@@ -409,14 +409,12 @@ Any code in `agents-api` or `agents-work-apps` that makes **internal A2A calls o
 - This bug only manifests under load in multi-instance deployments and is extremely difficult to diagnose.
 
 **When to use:**
-| Scenario | Use |
-|---|---|
-| Internal A2A delegation/transfer (same service) | `getInProcessFetch()` |
-| Eval service calling the chat API on itself | `getInProcessFetch()` |
-| Forwarding requests to internal workflow routes | `getInProcessFetch()` |
-| Slack/work-app calls to `/run/api/chat` or `/manage/` routes | `getInProcessFetch()` |
-| Calling an **external** service or third-party API | Global `fetch` |
-| Test environments (falls back automatically) | Either (auto-fallback) |
+- Internal A2A delegation/transfer (same service) — `getInProcessFetch()`
+- Eval service calling the chat API on itself — `getInProcessFetch()`
+- Forwarding requests to internal workflow routes — `getInProcessFetch()`
+- Slack/work-app calls to `/run/api/chat` or `/manage/` routes — `getInProcessFetch()`
+- Calling an external service or third-party API — global `fetch`
+- Test environments — either (auto-fallback)
 
 ### Route Authorization Pattern (`createProtectedRoute`)
 All API routes in `agents-api` **must** use `createProtectedRoute()` from `@inkeep/agents-core/middleware` instead of the plain `createRoute()` from `@hono/zod-openapi`. This is enforced by Biome lint rules and ensures every route has explicit authorization metadata (`x-authz`) in the OpenAPI spec.
@@ -465,15 +463,13 @@ app.openapi(
 ```
 
 **Key helpers:**
-| Helper | When to use |
-|---|---|
-| `requireProjectPermission('view' \| 'edit')` | Routes scoped to a project |
-| `requirePermission({ project: 'create' })` | Org-level permission checks (admin) |
-| `noAuth()` | Truly public endpoints (webhooks, OAuth callbacks) |
-| `inheritedAuth(meta)` | Auth enforced by parent/global middleware |
-| `inheritedRunApiKeyAuth()` | Run-domain routes behind API key middleware |
-| `inheritedManageTenantAuth()` | Manage-domain routes behind session/API key middleware |
-| `inheritedWorkAppsAuth()` | Work-apps routes behind OIDC/Slack middleware |
+- `requireProjectPermission('view' | 'edit')` — routes scoped to a project
+- `requirePermission({ project: 'create' })` — org-level permission checks (admin)
+- `noAuth()` — truly public endpoints (webhooks, OAuth callbacks)
+- `inheritedAuth(meta)` — auth enforced by parent/global middleware
+- `inheritedRunApiKeyAuth()` — run-domain routes behind API key middleware
+- `inheritedManageTenantAuth()` — manage-domain routes behind session/API key middleware
+- `inheritedWorkAppsAuth()` — work-apps routes behind OIDC/Slack middleware
 
 ### Common Gotchas
 - **Empty Task Messages**: Ensure task messages contain actual text content
