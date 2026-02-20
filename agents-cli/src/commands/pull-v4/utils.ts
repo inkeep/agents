@@ -24,14 +24,12 @@ export function createInMemoryProject(): Project {
   });
 }
 
-interface CreateFactoryDefinitionOptions {
-  importName: string;
-  variableName: string;
+interface CreateFactoryDefinitionOptions
+  extends Pick<AddFactoryConfigVariableOptions, 'syntaxKind' | 'importName' | 'variableName'> {
   /** @default "definition.ts" */
   fileName?: string;
   /** @default "@inkeep/agents-sdk" */
   moduleSpecifier?: string;
-  syntaxKind?: SyntaxKind.CallExpression | SyntaxKind.NewExpression;
 }
 
 interface AddFactoryConfigVariableOptions {
