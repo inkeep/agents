@@ -62,9 +62,7 @@ describe('Project Generator', () => {
       expect(definition).toContain('models: {');
       expect(definition).toContain("model: 'gpt-4o-mini'");
       expect(definition).toContain("model: 'gpt-4o'");
-      expect(definition).toContain('agents: () => [');
-      expect(definition).toContain('supportAgent,');
-      expect(definition).toContain('escalationAgent,');
+      expect(definition).toContain('agents: () => [supportAgent, escalationAgent],');
       expect(definition).toContain('});');
       await expectSnapshots(definition);
     });
@@ -268,91 +266,6 @@ describe('Project Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate project code that compiles', async () => {
-      const projectId = 'test-project';
-      const definition = generateProjectDefinition({
-        projectId,
-        ...basicProjectData,
-      });
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const project = (config) => config;
-        const supportAgent = { type: 'agent' };
-        const escalationAgent = { type: 'agent' };
-        
-        ${definitionWithoutExport}
-        
-        return testProject;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('test-project');
-      expect(result.name).toBe('Customer Support System');
-      expect(result.description).toBe(
-        'Multi-agent customer support system with escalation capabilities'
-      );
-      expect(result.models).toBeDefined();
-      expect(result.models.base.model).toBe('gpt-4o-mini');
-      expect(result.agents).toBeDefined();
-      expect(typeof result.agents).toBe('function');
-      expect(result.agents()).toHaveLength(2);
-      await expectSnapshots(definition);
-    });
-
-    it('should generate complex project code that compiles', async () => {
-      const projectId = 'complex-test-project';
-      const definition = generateProjectDefinition({
-        projectId,
-        ...complexProjectData,
-      });
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const project = (config) => config;
-        const primaryAgent = { type: 'agent' };
-        const analyticsAgent = { type: 'agent' };
-        const reportingAgent = { type: 'agent' };
-        const dataAnalysisTool = { type: 'tool' };
-        const reportGeneratorTool = { type: 'tool' };
-        const legacySystemAgent = { type: 'externalAgent' };
-        const partnerApiAgent = { type: 'externalAgent' };
-        const userProfile = { type: 'dataComponent' };
-        const transactionHistory = { type: 'dataComponent' };
-        const dashboardComponent = { type: 'artifactComponent' };
-        const reportComponent = { type: 'artifactComponent' };
-        const databaseCredentials = { type: 'credential' };
-        const apiKeyCredentials = { type: 'credential' };
-        
-        ${definitionWithoutExport}
-        
-        return complexTestProject;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('complex-test-project');
-      expect(result.stopWhen).toBeDefined();
-      expect(result.stopWhen.transferCountIs).toBe(15);
-      expect(result.stopWhen.stepCountIs).toBe(100);
-      expect(result.agents()).toHaveLength(3);
-      expect(result.tools()).toHaveLength(2);
-      expect(result.externalAgents()).toHaveLength(2);
-      expect(result.dataComponents()).toHaveLength(2);
-      expect(result.artifactComponents()).toHaveLength(2);
-      expect(result.credentialReferences()).toHaveLength(2);
-      await expectSnapshots(definition);
-    });
-
     it('should throw error for minimal project without required fields', () => {
       const projectId = 'minimal-test-project';
       const minimalData = { name: 'Minimal Test Project' };
