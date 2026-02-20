@@ -100,6 +100,10 @@ export const inkeepApiKey = credential({
     );
     expect(mergedContextConfigFile).toContain('credentialReference: inkeepApiKey');
     expect(mergedContextConfigFile).not.toContain("credentialReferenceId: 'inkeep-api-key'");
+    expect(mergedContextConfigFile).toContain('headers: supportContextHeaders');
+    expect(mergedContextConfigFile).toContain(
+      'url: `https://api.example.com/users/${supportContextHeaders.toTemplate("user_id")}`'
+    );
     expect(mergedContextConfigFile).not.toContain('userInfo: userInfo');
 
     await expect(mergedContextConfigFile).toMatchFileSnapshot(`${getTestPath()}.ts`);

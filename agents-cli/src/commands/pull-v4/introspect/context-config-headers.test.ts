@@ -132,4 +132,61 @@ const _supportContext = contextConfig({
     );
     await expect(contextConfigDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
+
+  it('injects headers schema when fetch config uses headers template variables', async () => {
+    const project: FullProjectDefinition = {
+      id: 'headers-template-project',
+      name: 'Headers Template Project',
+      description: 'Project used for headers template variable coverage',
+      models: {
+        base: {
+          model: 'gpt-4o-mini',
+        },
+      },
+      agents: {
+        'support-agent': {
+          id: 'support-agent',
+          name: 'Support Agent',
+          defaultSubAgentId: 'tier-one',
+          contextConfig: {
+            id: 'support-context',
+            contextVariables: {
+              timeInfo: {
+                id: 'time-info',
+                name: 'Time Information',
+                trigger: 'invocation',
+                fetchConfig: {
+                  url: 'https://world-time-api3.p.rapidapi.com/timezone/{{headers.tz}}',
+                  method: 'GET',
+                },
+                defaultValue: 'Unable to fetch timezone information',
+              },
+            },
+          },
+          subAgents: {
+            'tier-one': {
+              id: 'tier-one',
+              name: 'Tier One',
+            },
+          },
+        },
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'overwrite' });
+
+    const contextConfigFilePath = join(testDir, 'context-configs', 'support-context.ts');
+    const { default: generatedContextConfigFile } = await import(`${contextConfigFilePath}?raw`);
+    expect(generatedContextConfigFile).toContain("import { headers, fetchDefinition, contextConfig }");
+    expect(generatedContextConfigFile).toContain('const supportContextHeaders = headers({');
+    expect(generatedContextConfigFile).toContain('schema: z.object({ "tz": z.string() }).strict()');
+    expect(generatedContextConfigFile).toContain(
+      'url: `https://world-time-api3.p.rapidapi.com/timezone/${supportContextHeaders.toTemplate("tz")}`'
+    );
+    expect(generatedContextConfigFile).toContain('headers: supportContextHeaders');
+
+    await expect(generatedContextConfigFile).toMatchFileSnapshot(`${getTestPath()}.ts`);
+  });
 });
