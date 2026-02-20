@@ -46,9 +46,13 @@ const execAsync = promisify(exec);
 const agentsApiPort = '3002';
 
 function getCliVersion(): string {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const pkgJson = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
-  return pkgJson.version;
+  try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const pkgJson = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+    return pkgJson.version;
+  } catch {
+    return '';
+  }
 }
 
 export async function syncTemplateDependencies(templatePath: string): Promise<void> {
@@ -57,6 +61,7 @@ export async function syncTemplateDependencies(templatePath: string): Promise<vo
 
   const pkg = await fs.readJson(pkgPath);
   const cliVersion = getCliVersion();
+  if (!cliVersion) return;
 
   for (const depType of ['dependencies', 'devDependencies'] as const) {
     const deps = pkg[depType];
