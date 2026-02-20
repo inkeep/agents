@@ -1,0 +1,82 @@
+{
+  "containers": [
+    {
+      "name": "sidecar",
+      "healthchecks": []
+    },
+    {
+      "name": "doltgres",
+      "image": "dolthub/doltgresql:0.54.10",
+      "env": {
+        "DOLTGRES_USER": "appuser",
+        "DOLTGRES_PASSWORD": "__PG_PASSWORD__",
+        "DOLTGRES_DB": "inkeep_agents"
+      },
+      "healthchecks": [
+        {
+          "name": "doltgres-check",
+          "exec": {
+            "command": [
+              "sh",
+              "-c",
+              "PGPASSWORD=$DOLTGRES_PASSWORD psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1'"
+            ]
+          },
+          "interval": 10,
+          "timeout": 5,
+          "grace_period": 30,
+          "success_threshold": 1,
+          "failure_threshold": 5
+        }
+      ]
+    },
+    {
+      "name": "postgres",
+      "image": "postgres:18",
+      "env": {
+        "POSTGRES_USER": "appuser",
+        "POSTGRES_PASSWORD": "__PG_PASSWORD__",
+        "POSTGRES_DB": "inkeep_agents",
+        "PGPORT": "5433"
+      },
+      "healthchecks": [
+        {
+          "name": "pg-ready",
+          "exec": {
+            "command": ["sh", "-c", "pg_isready -U appuser -d inkeep_agents -p 5433"]
+          },
+          "interval": 5,
+          "timeout": 3,
+          "grace_period": 15,
+          "success_threshold": 1,
+          "failure_threshold": 10
+        }
+      ]
+    },
+    {
+      "name": "spicedb",
+      "image": "authzed/spicedb:v1.49.1",
+      "cmd": ["serve"],
+      "env": {
+        "SPICEDB_DATASTORE_ENGINE": "memory",
+        "SPICEDB_GRPC_PRESHARED_KEY": "__SPICEDB_KEY__",
+        "SPICEDB_HTTP_ENABLED": "true",
+        "SPICEDB_TELEMETRY_ENDPOINT": "",
+        "SPICEDB_METRICS_ENABLED": "false"
+      },
+      "healthchecks": [
+        {
+          "name": "spicedb-grpc",
+          "exec": {
+            "command": ["grpc_health_probe", "-addr=:50051"]
+          },
+          "interval": 5,
+          "timeout": 5,
+          "grace_period": 10,
+          "success_threshold": 1,
+          "failure_threshold": 5
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+app = "test-preview-agents"
+primary_region = "iad"
+
+[build]
+  dockerfile = ".fly/Dockerfile"
+  ignorefile = ".fly/.dockerignore"
+
+[experimental]
+  machine_config = "machine-config.json"
+  container = "sidecar"
+
+[[vm]]
+  min_machines_running = 0

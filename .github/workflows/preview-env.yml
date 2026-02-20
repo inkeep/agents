@@ -1,0 +1,380 @@
+name: Preview Environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout
+      - uses: actions/checkout@v6
+
+      # 2. Setup flyctl
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # 3. Generate per-PR credentials (random, ephemeral)
+      - name: Generate credentials
+        id: creds
+        run: |
+          PG_PASSWORD=$(openssl rand -hex 16)
+          SPICEDB_KEY=$(openssl rand -hex 16)
+          AUTH_SECRET=$(openssl rand -hex 32)
+          BYPASS_SECRET="preview-bypass-${{ github.event.number }}"
+          ADMIN_PASSWORD=$(openssl rand -hex 12)
+          echo "PG_PASSWORD=$PG_PASSWORD" >> $GITHUB_OUTPUT
+          echo "SPICEDB_KEY=$SPICEDB_KEY" >> $GITHUB_OUTPUT
+          echo "AUTH_SECRET=$AUTH_SECRET" >> $GITHUB_OUTPUT
+          echo "BYPASS_SECRET=$BYPASS_SECRET" >> $GITHUB_OUTPUT
+          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_OUTPUT
+
+      # 4. Create Fly app (idempotent)
+      - name: Create Fly app
+        run: |
+          APP_NAME="pr-${{ github.event.number }}-agents"
+          flyctl apps create "$APP_NAME" --org inkeep-46 2>/dev/null || true
+          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # 5. Allocate dedicated IPv4 (required for raw TCP routing — ~$2/month)
+      #    Shared IPv4 uses SNI routing which only works for HTTP/TLS.
+      #    Raw TCP (PostgreSQL, gRPC) requires a dedicated IPv4.
+      - name: Allocate dedicated IPv4
+        run: |
+          EXISTING=$(flyctl ips list -a "$APP_NAME" --json 2>/dev/null | jq -r '.[].Type' 2>/dev/null || true)
+          if ! echo "$EXISTING" | grep -q "v4"; then
+            echo "Allocating dedicated IPv4..."
+            flyctl ips allocate-v4 -a "$APP_NAME" --yes
+          else
+            echo "Dedicated IPv4 already allocated"
+          fi
+          flyctl ips allocate-v6 -a "$APP_NAME" 2>/dev/null || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # 6. Template machine-config.json with real credentials
+      - name: Prepare config
+        run: |
+          sed -i "s/__PG_PASSWORD__/${{ steps.creds.outputs.PG_PASSWORD }}/g" .fly/machine-config.json
+          sed -i "s/__SPICEDB_KEY__/${{ steps.creds.outputs.SPICEDB_KEY }}/g" .fly/machine-config.json
+
+      # 7. Deploy Fly Machine (builds sidecar image + deploys multi-container)
+      #    This creates the Machine with containers from machine-config.json.
+      #    TCP services (routing rules) are added in the NEXT step via Machines API.
+      - name: Deploy to Fly
+        run: |
+          flyctl deploy . \
+            --config .fly/fly.toml \
+            --app "$APP_NAME" \
+            --wait-timeout 300 \
+            --strategy immediate
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # 8. Add TCP services via Machines API (post-deploy)
+      #
+      #    fly deploy creates the Machine with containers but does NOT reliably
+      #    apply TCP services. Services are added via the Machines REST API:
+      #
+      #    Port 5432  → Doltgres     (pg_tls — PostgreSQL STARTTLS)
+      #    Port 5433  → Postgres     (pg_tls — same)
+      #    Port 50051 → SpiceDB gRPC ([] raw passthrough — gRPC needs ALPN)
+      #    Port 8443  → SpiceDB HTTP (tls — standard HTTPS)
+      - name: Configure TCP services
+        run: |
+          MACHINE_ID=$(flyctl machines list -a "$APP_NAME" --json | jq -r '.[0].id')
+          echo "Machine ID: $MACHINE_ID"
+
+          CURRENT_CONFIG=$(curl -sf \
+            -H "Authorization: Bearer $FLY_API_TOKEN" \
+            "https://api.machines.dev/v1/apps/$APP_NAME/machines/$MACHINE_ID")
+
+          UPDATED=$(echo "$CURRENT_CONFIG" | jq '.config.services = [
+            {"protocol":"tcp","internal_port":5432,"ports":[{"port":5432,"handlers":["pg_tls"]}]},
+            {"protocol":"tcp","internal_port":5433,"ports":[{"port":5433,"handlers":["pg_tls"]}]},
+            {"protocol":"tcp","internal_port":50051,"ports":[{"port":50051,"handlers":[]}]},
+            {"protocol":"tcp","internal_port":8443,"ports":[{"port":8443,"handlers":["tls"]}]}
+          ] | {config: .config}')
+
+          curl -sf -X POST \
+            -H "Authorization: Bearer $FLY_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$UPDATED" \
+            "https://api.machines.dev/v1/apps/$APP_NAME/machines/$MACHINE_ID"
+
+          echo "TCP services configured. Waiting for machine restart..."
+          for i in $(seq 1 30); do
+            STATE=$(flyctl machines list -a "$APP_NAME" --json | jq -r '.[0].state')
+            if [ "$STATE" = "started" ]; then
+              echo "Machine running (state: $STATE)"
+              break
+            fi
+            echo "Waiting... (state: $STATE, attempt $i/30)"
+            sleep 5
+          done
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # 9. Wait for databases to be healthy via TCP
+      #    IMPORTANT: Use sslmode=require (not prefer) — pg_tls handler breaks sslmode=prefer.
+      - name: Wait for databases
+        run: |
+          echo "Waiting for Doltgres (port 5432)..."
+          for i in $(seq 1 60); do
+            if PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+              "host=${APP_NAME}.fly.dev port=5432 user=appuser dbname=inkeep_agents sslmode=require" \
+              -c "SELECT 1" > /dev/null 2>&1; then
+              echo "Doltgres ready"
+              break
+            fi
+            if [ "$i" = "60" ]; then echo "ERROR: Doltgres not ready after 5 min"; exit 1; fi
+            sleep 5
+          done
+
+          echo "Waiting for Postgres (port 5433)..."
+          for i in $(seq 1 60); do
+            if PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+              "host=${APP_NAME}.fly.dev port=5433 user=appuser dbname=inkeep_agents sslmode=require" \
+              -c "SELECT 1" > /dev/null 2>&1; then
+              echo "Postgres ready"
+              break
+            fi
+            if [ "$i" = "60" ]; then echo "ERROR: Postgres not ready after 5 min"; exit 1; fi
+            sleep 5
+          done
+
+          echo "Waiting for SpiceDB (HTTP health on port 8443)..."
+          for i in $(seq 1 60); do
+            if curl -sf -k "https://${APP_NAME}.fly.dev:8443/healthz" > /dev/null 2>&1; then
+              echo "SpiceDB ready"
+              break
+            fi
+            if [ "$i" = "60" ]; then echo "ERROR: SpiceDB not ready after 5 min"; exit 1; fi
+            sleep 5
+          done
+
+      # 10. Setup Node.js + pnpm (for migrations + seeding)
+      - uses: ./.github/composite-actions/install
+
+      # 11. Build agents-core + CLI + SDK (needed for migrations + seeding)
+      - name: Build for migrations and seeding
+        run: pnpm exec turbo build --filter=@inkeep/agents-core --filter=@inkeep/agents-cli --filter=@inkeep/agents-sdk
+
+      # 12. Run migrations (direct TCP to Fly DBs)
+      - name: Run migrations
+        run: pnpm db:migrate
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=no-verify"
+          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=no-verify"
+
+      # 13. Init auth (admin user + SpiceDB schema)
+      - name: Init auth
+        run: pnpm db:auth:init
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=no-verify"
+          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=no-verify"
+          SPICEDB_ENDPOINT: "${{ env.APP_NAME }}.fly.dev:50051"
+          SPICEDB_PRESHARED_KEY: ${{ steps.creds.outputs.SPICEDB_KEY }}
+          SPICEDB_TLS_ENABLED: "false"
+          BETTER_AUTH_SECRET: ${{ steps.creds.outputs.AUTH_SECRET }}
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: admin
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ steps.creds.outputs.ADMIN_PASSWORD }}
+
+      # 14. Set Vercel env vars for agents-api (branch-scoped, REST API upsert)
+      - name: Set agents-api env vars
+        run: |
+          PR_NUM="${{ github.event.number }}"
+          BRANCH="${{ github.head_ref }}"
+          API_PROJECT_ID="${{ secrets.VERCEL_API_PROJECT_ID }}"
+          API_DOMAIN="pr-${PR_NUM}-api.preview.inkeep.com"
+
+          upsert_env() {
+            local PROJECT_ID="$1" KEY="$2" VALUE="$3" TARGET="$4" BRANCH_NAME="$5"
+            curl -sf -X POST \
+              "https://api.vercel.com/v10/projects/${PROJECT_ID}/env?upsert=true&teamId=${{ secrets.VERCEL_ORG_ID }}" \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${KEY}\",\"value\":\"${VALUE}\",\"target\":[\"${TARGET}\"],\"type\":\"encrypted\",\"gitBranch\":\"${BRANCH_NAME}\"}"
+          }
+
+          upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_MANAGE_DATABASE_URL" \
+            "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${APP_NAME}.fly.dev:5432/inkeep_agents?sslmode=no-verify" \
+            "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_RUN_DATABASE_URL" \
+            "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${APP_NAME}.fly.dev:5433/inkeep_agents?sslmode=no-verify" \
+            "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "SPICEDB_ENDPOINT" "${APP_NAME}.fly.dev:50051" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "SPICEDB_PRESHARED_KEY" "${{ steps.creds.outputs.SPICEDB_KEY }}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "SPICEDB_TLS_ENABLED" "false" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "BETTER_AUTH_SECRET" "${{ steps.creds.outputs.AUTH_SECRET }}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "BETTER_AUTH_URL" "https://${API_DOMAIN}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET" "${{ steps.creds.outputs.BYPASS_SECRET }}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_API_URL" "https://${API_DOMAIN}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_MANAGE_UI_USERNAME" "admin" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "INKEEP_AGENTS_MANAGE_UI_PASSWORD" "${{ steps.creds.outputs.ADMIN_PASSWORD }}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "ANTHROPIC_API_KEY" "${{ secrets.ANTHROPIC_API_KEY }}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "OPENAI_API_KEY" "${{ secrets.OPENAI_API_KEY }}" "preview" "$BRANCH"
+          upsert_env "$API_PROJECT_ID" "WORKFLOW_TARGET_WORLD" "local" "preview" "$BRANCH"
+
+      # 15. Set Vercel env vars for manage-ui (branch-scoped, REST API upsert)
+      - name: Set manage-ui env vars
+        run: |
+          PR_NUM="${{ github.event.number }}"
+          BRANCH="${{ github.head_ref }}"
+          UI_PROJECT_ID="${{ secrets.VERCEL_UI_PROJECT_ID }}"
+          API_DOMAIN="pr-${PR_NUM}-api.preview.inkeep.com"
+
+          upsert_env() {
+            local PROJECT_ID="$1" KEY="$2" VALUE="$3" TARGET="$4" BRANCH_NAME="$5"
+            curl -sf -X POST \
+              "https://api.vercel.com/v10/projects/${PROJECT_ID}/env?upsert=true&teamId=${{ secrets.VERCEL_ORG_ID }}" \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${KEY}\",\"value\":\"${VALUE}\",\"target\":[\"${TARGET}\"],\"type\":\"encrypted\",\"gitBranch\":\"${BRANCH_NAME}\"}"
+          }
+
+          upsert_env "$UI_PROJECT_ID" "INKEEP_AGENTS_API_URL" "https://${API_DOMAIN}" "preview" "$BRANCH"
+          upsert_env "$UI_PROJECT_ID" "NEXT_PUBLIC_INKEEP_AGENTS_API_URL" "https://${API_DOMAIN}" "preview" "$BRANCH"
+          upsert_env "$UI_PROJECT_ID" "PUBLIC_INKEEP_AGENTS_API_URL" "https://${API_DOMAIN}" "preview" "$BRANCH"
+          upsert_env "$UI_PROJECT_ID" "INKEEP_AGENTS_MANAGE_UI_USERNAME" "admin" "preview" "$BRANCH"
+          upsert_env "$UI_PROJECT_ID" "INKEEP_AGENTS_MANAGE_UI_PASSWORD" "${{ steps.creds.outputs.ADMIN_PASSWORD }}" "preview" "$BRANCH"
+
+      # 16. Add custom preview domains to Vercel projects
+      #     Wildcard *.preview.inkeep.com already points to Vercel via DNS.
+      #     Specific per-PR subdomains are added to each project via REST API.
+      - name: Add preview domains
+        run: |
+          PR_NUM="${{ github.event.number }}"
+          API_DOMAIN="pr-${PR_NUM}-api.preview.inkeep.com"
+          UI_DOMAIN="pr-${PR_NUM}-ui.preview.inkeep.com"
+
+          curl -sf -X POST \
+            "https://api.vercel.com/v10/projects/${{ secrets.VERCEL_API_PROJECT_ID }}/domains?teamId=${{ secrets.VERCEL_ORG_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"${API_DOMAIN}\"}" || true
+
+          curl -sf -X POST \
+            "https://api.vercel.com/v10/projects/${{ secrets.VERCEL_UI_PROJECT_ID }}/domains?teamId=${{ secrets.VERCEL_ORG_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"${UI_DOMAIN}\"}" || true
+
+          echo "API_DOMAIN=$API_DOMAIN" >> $GITHUB_ENV
+          echo "UI_DOMAIN=$UI_DOMAIN" >> $GITHUB_ENV
+
+      # 17. Trigger Vercel redeploy (picks up new env vars + domain aliases)
+      - name: Redeploy Vercel previews
+        run: |
+          npm install -g vercel
+
+          cd agents-api
+          VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }} \
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes 2>/dev/null || true
+          cd ..
+
+          cd agents-manage-ui
+          VERCEL_PROJECT_ID=${{ secrets.VERCEL_UI_PROJECT_ID }} \
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes 2>/dev/null || true
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
+      # 18. Seed test data via inkeep push (same mechanism as setup-dev + Cypress E2E)
+      - name: Seed project
+        run: |
+          echo "Waiting for agents-api Vercel deployment..."
+          for i in $(seq 1 60); do
+            if curl -sf "https://${API_DOMAIN}/health" > /dev/null 2>&1; then
+              echo "agents-api is reachable at ${API_DOMAIN}"
+              break
+            fi
+            if [ "$i" = "60" ]; then echo "WARNING: agents-api not reachable — skipping seed"; exit 0; fi
+            sleep 5
+          done
+
+          cd agents-cookbook/template-projects
+          npx inkeep push --project activities-planner
+        env:
+          INKEEP_API_KEY: ${{ steps.creds.outputs.BYPASS_SECRET }}
+          INKEEP_API_URL: "https://${{ env.API_DOMAIN }}"
+          INKEEP_TENANT_ID: default
+          INKEEP_CI: "true"
+        continue-on-error: true
+
+      # 19. Comment on PR with preview URLs
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNum = context.issue.number;
+            const appName = process.env.APP_NAME;
+            const apiDomain = `pr-${prNum}-api.preview.inkeep.com`;
+            const uiDomain = `pr-${prNum}-ui.preview.inkeep.com`;
+            const body = [
+              `## Preview Environment Ready`,
+              ``,
+              `| Service | URL |`,
+              `|---------|-----|`,
+              `| manage-ui | https://${uiDomain} |`,
+              `| agents-api | https://${apiDomain} |`,
+              `| API Health | https://${apiDomain}/health |`,
+              `| Fly DBs | \`${appName}.fly.dev\` (TCP ports 5432, 5433, 50051) |`,
+              ``,
+              `**Login:** \`admin\` / check workflow logs`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const existing = comments.find(c => c.body.includes('Preview Environment'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
+
+  teardown:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Destroy Fly app
+        run: flyctl apps destroy "pr-${{ github.event.number }}-agents" --yes
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: true
+
+      - name: Remove preview domains
+        run: |
+          PR_NUM="${{ github.event.number }}"
+          API_DOMAIN="pr-${PR_NUM}-api.preview.inkeep.com"
+          UI_DOMAIN="pr-${PR_NUM}-ui.preview.inkeep.com"
+
+          curl -sf -X DELETE \
+            "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_API_PROJECT_ID }}/domains/${API_DOMAIN}?teamId=${{ secrets.VERCEL_ORG_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" || true
+
+          curl -sf -X DELETE \
+            "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_UI_PROJECT_ID }}/domains/${UI_DOMAIN}?teamId=${{ secrets.VERCEL_ORG_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" || true
+        continue-on-error: true

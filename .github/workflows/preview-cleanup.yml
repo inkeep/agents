@@ -1,0 +1,28 @@
+name: Preview Cleanup
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Monday 6am UTC
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Cleanup orphaned preview apps
+        run: |
+          flyctl apps list --org inkeep-46 --json | \
+            jq -r '.[] | select(.Name | startswith("pr-")) | .Name' | \
+          while read APP; do
+            PR_NUM=$(echo "$APP" | sed 's/pr-\([0-9]*\)-agents/\1/')
+            STATE=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM" --jq '.state' 2>/dev/null || echo "unknown")
+            if [ "$STATE" = "closed" ]; then
+              echo "Destroying orphaned app: $APP (PR #$PR_NUM is closed)"
+              flyctl apps destroy "$APP" --yes || true
+            fi
+          done
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

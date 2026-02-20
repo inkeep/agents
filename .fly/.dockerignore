@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# Node modules (rebuilt in Docker)
+node_modules
+**/node_modules
+
+# Build outputs (rebuilt in Docker)
+**/dist
+**/.next
+**/build
+**/.turbo
+
+# Development / IDE
+.vscode
+.cursor
+.claude
+.codex
+.agents
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+
+# Large non-essential directories (source only — package.json still included)
+agents-docs/content
+agents-manage-ui/src
+agents-manage-ui/.next
+agents-manage-ui/public
+agents-ui/src
+agents-cookbook/recipes
+test-agents/src
+
+# CI / tooling
+coverage
+.changeset
+.husky
+docs-legacy
+.fly
