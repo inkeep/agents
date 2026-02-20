@@ -290,13 +290,7 @@ export const subAgentSkills = pgTable(
       foreignColumns: [skills.tenantId, skills.projectId, skills.id],
       name: 'sub_agent_skills_skill_fk',
     }).onDelete('cascade'),
-    unique('sub_agent_skills_sub_agent_skill_unique').on(
-      table.tenantId,
-      table.projectId,
-      table.agentId,
-      table.subAgentId,
-      table.skillId
-    ),
+    unique('sub_agent_skills_sub_agent_skill_unique').on(table.subAgentId, table.skillId),
     index('sub_agent_skills_skill_idx').on(table.skillId),
   ]
 );
