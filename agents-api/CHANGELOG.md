@@ -1,5 +1,14 @@
 # @inkeep/agents-api
 
+## 0.50.6
+
+### Patch Changes
+
+- 51bb2f6: remove noisy instrumentation in agents api
+  - @inkeep/agents-core@0.50.6
+  - @inkeep/agents-mcp@0.50.6
+  - @inkeep/agents-work-apps@0.50.6
+
 ## 0.50.5
 
 ### Patch Changes
