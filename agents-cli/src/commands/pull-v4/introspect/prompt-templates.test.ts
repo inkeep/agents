@@ -90,7 +90,7 @@ describe('pull-v4 introspect generator', () => {
       "import { activitiesPlannerContext, activitiesPlannerContextHeaders } from '../context-configs/activities-planner-context';"
     );
 
-    expect(contextConfigFile).toContain('export const activitiesPlannerContextHeaders = headers({');
+    expect(contextConfigFile).toContain('const activitiesPlannerContextHeaders = headers({');
 
     await expect(agentFile).toMatchFileSnapshot(`${getTestPath()}-agent.ts`);
     await expect(subAgentFile).toMatchFileSnapshot(`${getTestPath()}-sub-agent.ts`);

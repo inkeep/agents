@@ -64,8 +64,14 @@ function writeFunctionToolConfig(
 ): void {
   for (const [k, v] of Object.entries({
     ...rest,
-    inputShema: inputSchema ?? schema
+    inputSchema: inputSchema ?? schema,
   })) {
     addValueToObject(configObject, k, v);
+  }
+  if (executeCode) {
+    configObject.addPropertyAssignment({
+      name: 'execute',
+      initializer: executeCode,
+    });
   }
 }
