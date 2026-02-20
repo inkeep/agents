@@ -4,8 +4,10 @@ import {
   addObjectEntries,
   addReferenceGetterProperty,
   addStringProperty,
+  collectTemplateVariableNames as collectTemplateVariableNamesFromString,
   createFactoryDefinition,
   formatStringLiteral,
+  formatTemplate,
   isPlainObject,
   toCamelCase,
 } from './utils';
@@ -53,6 +55,7 @@ const AgentSchema = z.looseObject({
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),
+  contextConfigHeadersReference: SubAgentReferenceSchema.optional(),
 });
 
 type AgentDefinitionData = z.input<typeof AgentSchema>;
@@ -62,6 +65,7 @@ type ReferenceNameMap = Map<string, string>;
 interface AgentReferenceNames {
   subAgents: ReferenceNameMap;
   contextConfig?: string;
+  contextHeaders?: string;
   triggers: ReferenceNameMap;
   statusComponents: ReferenceNameMap;
 }
@@ -93,6 +97,14 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
 
   const contextConfigId = extractContextConfigId(parsed.contextConfig);
   let contextConfigReferenceName: string | undefined;
+  let contextHeadersReferenceName: string | undefined;
+  const promptTemplateVariables = collectTemplateVariableNamesFromFields([
+    parsed.prompt,
+    parsed.statusUpdates?.prompt,
+  ]);
+  const hasHeadersTemplateVariables = promptTemplateVariables.some((variableName) =>
+    variableName.startsWith('headers.')
+  );
   if (contextConfigId) {
     const contextConfigImportName =
       parsed.contextConfigReference?.name ?? toCamelCase(contextConfigId);
@@ -101,14 +113,39 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
       reservedReferenceNames,
       'ContextConfig'
     );
+    const contextHeadersImportName =
+      parsed.contextConfigHeadersReference?.name ?? `${toCamelCase(contextConfigId)}Headers`;
+    if (hasHeadersTemplateVariables) {
+      contextHeadersReferenceName = createUniqueReferenceName(
+        contextHeadersImportName,
+        reservedReferenceNames,
+        'Headers'
+      );
+    }
 
+    const namedImports: Array<string | { name: string; alias: string }> = [];
     if (parsed.contextConfigReference?.local !== true) {
+      namedImports.push(
+        contextConfigImportName === contextConfigReferenceName
+          ? contextConfigImportName
+          : { name: contextConfigImportName, alias: contextConfigReferenceName }
+      );
+    }
+    if (
+      hasHeadersTemplateVariables &&
+      contextHeadersReferenceName &&
+      parsed.contextConfigHeadersReference?.local !== true
+    ) {
+      namedImports.push(
+        contextHeadersImportName === contextHeadersReferenceName
+          ? contextHeadersImportName
+          : { name: contextHeadersImportName, alias: contextHeadersReferenceName }
+      );
+    }
+
+    if (namedImports.length > 0) {
       sourceFile.addImportDeclaration({
-        namedImports: [
-          contextConfigImportName === contextConfigReferenceName
-            ? contextConfigImportName
-            : { name: contextConfigImportName, alias: contextConfigReferenceName },
-        ],
+        namedImports,
         moduleSpecifier: `../context-configs/${contextConfigId}`,
       });
     }
@@ -132,6 +169,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
   writeAgentConfig(configObject, parsed, {
     subAgents: subAgentReferenceNames,
     contextConfig: contextConfigReferenceName,
+    contextHeaders: contextHeadersReferenceName,
     triggers: triggerReferenceNames,
     statusComponents: statusComponentReferenceNames,
   });
@@ -151,7 +189,14 @@ function writeAgentConfig(
   }
 
   if (data.prompt !== undefined) {
-    addStringProperty(configObject, 'prompt', data.prompt);
+    const template = formatTemplate(data.prompt, {
+      contextReference: referenceNames.contextConfig,
+      headersReference: referenceNames.contextHeaders,
+    });
+    configObject.addPropertyAssignment({
+      name: 'prompt',
+      initializer: formatStringLiteral(template),
+    });
   }
 
   if (data.models && Object.keys(data.models).length > 0) {
@@ -270,12 +315,27 @@ function writeAgentConfig(
     }
 
     if (data.statusUpdates.prompt !== undefined) {
+      const template = formatTemplate(data.statusUpdates.prompt, {
+        contextReference: referenceNames.contextConfig,
+        headersReference: referenceNames.contextHeaders,
+      });
       statusUpdatesObject.addPropertyAssignment({
         name: 'prompt',
-        initializer: formatStringLiteral(data.statusUpdates.prompt),
+        initializer: formatStringLiteral(template),
       });
     }
   }
+}
+
+function collectTemplateVariableNamesFromFields(values: Array<string | undefined>): string[] {
+  const variables: string[] = [];
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    variables.push(...collectTemplateVariableNamesFromString(value));
+  }
+  return variables;
 }
 
 function extractIds(value: string[] | Record<string, unknown>): string[] {
