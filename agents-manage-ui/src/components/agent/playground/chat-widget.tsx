@@ -9,7 +9,6 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { css } from '@/lib/utils';
-import { generateId } from '@/lib/utils/id-utils';
 import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
@@ -17,7 +16,7 @@ interface ChatWidgetProps {
   projectId: string;
   tenantId: string;
   conversationId: string;
-  setConversationId: (conversationId: string) => void;
+  resetPlaygroundConversationId: () => void;
   startPolling: () => void;
   stopPolling: () => void;
   customHeaders?: Record<string, string>;
@@ -69,7 +68,7 @@ export function ChatWidget({
   projectId,
   tenantId,
   conversationId,
-  setConversationId,
+  resetPlaygroundConversationId,
   startPolling,
   stopPolling,
   customHeaders,
@@ -171,7 +170,7 @@ export function ChatWidget({
                   stopPollingTimeoutRef.current = null;
                 }
                 stopPolling();
-                setConversationId(generateId());
+                resetPlaygroundConversationId();
               }
             },
             primaryBrandColor: INKEEP_BRAND_COLOR,
