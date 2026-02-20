@@ -1,7 +1,7 @@
 import {
   collectTemplateVariableNames,
   formatStringLiteral,
-  formatTemplateStringLiteral,
+  formatTemplate,
   toCamelCase,
 } from './utils';
 
@@ -45,12 +45,12 @@ describe('template variable replacement', () => {
 
   test('should replace context and headers template variables with toTemplate calls', () => {
     expect(
-      formatTemplateStringLiteral('Time: {{time}}, TZ: {{headers.tz}}', {
+      formatTemplate('Time: {{time}}, TZ: {{headers.tz}}', {
         contextReference: 'supportContext',
         headersReference: 'supportContextHeaders',
       })
     ).toBe(
-      '`Time: ${supportContext.toTemplate("time")}, TZ: ${supportContextHeaders.toTemplate("tz")}`'
+      'Time: ${supportContext.toTemplate("time")}, TZ: ${supportContextHeaders.toTemplate("tz")}'
     );
   });
 });

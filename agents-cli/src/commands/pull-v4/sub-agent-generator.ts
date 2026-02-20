@@ -5,9 +5,11 @@ import {
   addReferenceGetterProperty,
   addStringProperty,
   addValueToObject,
+  collectTemplateVariableNames,
   convertNullToUndefined,
   createFactoryDefinition,
   formatInlineLiteral,
+  formatTemplate,
   hasReferences,
   isPlainObject,
   resolveReferenceName,
@@ -25,6 +27,11 @@ const ReferenceOverridesSchema = z.object({
   artifactComponents: ReferenceNameByIdSchema.optional(),
 });
 
+const ContextTemplateReferenceSchema = z.object({
+  name: z.string().nonempty(),
+  local: z.boolean().optional(),
+});
+
 const SubAgentSchema = FullAgentAgentInsertSchema.pick({
   id: true,
   description: true,
@@ -40,6 +47,9 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   referenceOverrides: ReferenceOverridesSchema.optional(),
+  contextConfigId: z.string().nonempty().optional(),
+  contextConfigReference: ContextTemplateReferenceSchema.optional(),
+  contextConfigHeadersReference: ContextTemplateReferenceSchema.optional(),
 });
 
 type SubAgentInput = z.input<typeof SubAgentSchema>;
@@ -57,13 +67,56 @@ export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
     variableName: toCamelCase(parsed.id),
   });
 
-  writeSubAgentConfig(configObject, parsed);
+  const promptTemplateVariables =
+    typeof parsed.prompt === 'string' ? collectTemplateVariableNames(parsed.prompt) : [];
+  const hasContextTemplateVariables = promptTemplateVariables.some(
+    (variableName) => !variableName.startsWith('headers.')
+  );
+  const hasHeadersTemplateVariables = promptTemplateVariables.some((variableName) =>
+    variableName.startsWith('headers.')
+  );
+  const namedImports: string[] = [];
+  if (
+    hasContextTemplateVariables &&
+    parsed.contextConfigId &&
+    parsed.contextConfigReference &&
+    parsed.contextConfigReference.local !== true
+  ) {
+    namedImports.push(parsed.contextConfigReference.name);
+  }
+  if (
+    hasHeadersTemplateVariables &&
+    parsed.contextConfigId &&
+    parsed.contextConfigHeadersReference &&
+    parsed.contextConfigHeadersReference.local !== true
+  ) {
+    namedImports.push(parsed.contextConfigHeadersReference.name);
+  }
+  if (namedImports.length > 0 && parsed.contextConfigId) {
+    sourceFile.addImportDeclaration({
+      namedImports: [...new Set(namedImports)],
+      moduleSpecifier: `../context-configs/${parsed.contextConfigId}`,
+    });
+  }
+
+  writeSubAgentConfig(
+    configObject,
+    {
+      contextReference: parsed.contextConfigReference?.name,
+      headersReference: parsed.contextConfigHeadersReference?.name,
+    },
+    parsed
+  );
 
   return sourceFile;
 }
 
 function writeSubAgentConfig(
   configObject: ObjectLiteralExpression,
+  templateReferences: {
+    contextReference?: string;
+    headersReference?: string;
+  },
   {
     dataComponents,
     name,
@@ -73,9 +126,14 @@ function writeSubAgentConfig(
     artifactComponents,
     canUse,
     referenceOverrides,
+    contextConfigId: _contextConfigId,
+    contextConfigReference: _contextConfigReference,
+    contextConfigHeadersReference: _contextConfigHeadersReference,
     ...rest
   }: SubAgentOutput
 ) {
+  rest = { ...rest };
+  rest.prompt &&= formatTemplate(rest.prompt, templateReferences);
   for (const [k, v] of Object.entries(rest)) {
     addValueToObject(configObject, k, v);
   }

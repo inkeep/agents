@@ -181,12 +181,9 @@ export function collectTemplateVariableNames(value: string): string[] {
   return variables;
 }
 
-export function formatTemplateStringLiteral(
-  value: string,
-  references: TemplateReplacementReferences
-): string {
+export function formatTemplate(value: string, references: TemplateReplacementReferences): string {
   if (!value.length) {
-    return formatStringLiteral(value);
+    return value;
   }
 
   let didReplace = false;
@@ -221,7 +218,7 @@ export function formatTemplateStringLiteral(
     }
   );
 
-  return didReplace ? formatStringLiteral(rewrittenValue) : formatStringLiteral(value);
+  return didReplace ? rewrittenValue : value;
 }
 
 function escapeStringLiteral(value: string, quote: Quote): string {
