@@ -1151,11 +1151,10 @@ function writeTypeScriptFile(
     overwrite: true,
   });
 
-  sourceFile.formatText();
-
   const normalizedSourceFile = moveVariableDeclarationsBeforeUsage(
     applyObjectShorthand(sourceFile)
   );
+  sourceFile.formatText();
   writeFileSync(filePath, `${normalizedSourceFile.getFullText().trimEnd()}\n`);
 }
 
