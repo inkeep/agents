@@ -12,6 +12,7 @@
     "declaration": true,
     "outDir": "./dist",
     "types": ["vitest/globals"],
+    "resolveJsonModule": true,
     "baseUrl": "."
   },
   "include": ["src/**/*"],
