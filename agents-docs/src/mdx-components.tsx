@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/performance/noImgElement: n/a */
+
 import {
   Accordion,
   Accordions,
@@ -30,6 +31,8 @@ import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-table';
 import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card';
+import { FeatureTable } from '@/components/mdx/feature-table';
+import { PricingCards } from '@/components/mdx/pricing-cards';
 import { SkillRule } from '@/components/mdx/skill-rule';
 import { openapi } from '@/lib/openapi';
 
@@ -114,6 +117,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Video,
     Snippet,
     ComparisonTable,
+    FeatureTable,
+    PricingCards,
     SkillRule,
   };
 }
