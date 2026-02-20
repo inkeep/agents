@@ -220,6 +220,12 @@ app.openapi(
           },
           'Slack user already linked, updating to new user'
         );
+        await deleteWorkAppSlackUserMapping(runDbClient)(
+          tenantId,
+          slackUserId,
+          teamId,
+          'work-apps-slack'
+        );
       }
 
       const slackUserMapping = await createWorkAppSlackUserMapping(runDbClient)({

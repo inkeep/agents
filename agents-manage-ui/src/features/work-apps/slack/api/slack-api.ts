@@ -7,6 +7,7 @@ interface SlackWorkspaceInstallation {
   tenantId: string;
   hasDefaultAgent: boolean;
   defaultAgentName?: string;
+  shouldAllowJoinFromWorkspace?: boolean;
 }
 
 interface DefaultAgentConfig {
@@ -344,5 +345,25 @@ export const slackApi = {
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
     return csvContent;
+  },
+
+  async updateJoinFromWorkspaceSetting(
+    teamId: string,
+    shouldAllowJoinFromWorkspace: boolean
+  ): Promise<{ success: boolean }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/join-from-workspace`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ shouldAllowJoinFromWorkspace }),
+      }
+    );
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Failed to update join from workspace setting');
+    }
+    return response.json();
   },
 };

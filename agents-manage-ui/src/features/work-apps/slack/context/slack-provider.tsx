@@ -19,6 +19,7 @@ interface SlackContextValue {
       tenantId: string;
       hasDefaultAgent: boolean;
       defaultAgentName?: string;
+      shouldAllowJoinFromWorkspace?: boolean;
     }>;
     isLoading: boolean;
     error: Error | null;

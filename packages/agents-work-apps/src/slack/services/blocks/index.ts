@@ -197,3 +197,18 @@ export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) 
     )
     .buildToObject();
 }
+
+export function createCreateInkeepAccountMessage(acceptUrl: string, expiresInMinutes: number) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        `${Md.bold('Create your Inkeep account')}\n\n` +
+          "You've been invited to join Inkeep. Create an account to start using Inkeep agents in Slack."
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('Create Account').url(acceptUrl).actionId('create_account').primary()
+      ),
+      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes.`)
+    )
+    .buildToObject();
+}
