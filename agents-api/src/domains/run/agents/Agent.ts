@@ -1849,6 +1849,32 @@ export class Agent {
     }
   }
 
+  private collectProjectArtifactComponents(): any[] {
+    const project = this.executionContext.project;
+    try {
+      const agentDefinition = project.agents[this.config.agentId];
+      if (!agentDefinition) {
+        return this.artifactComponents;
+      }
+
+      const seen = new Set<string>();
+      const all: any[] = [];
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          for (const ac of subAgent.artifactComponents as any[]) {
+            if (ac.name && !seen.has(ac.name)) {
+              seen.add(ac.name);
+              all.push(ac);
+            }
+          }
+        }
+      }
+      return all.length > 0 ? all : this.artifactComponents;
+    } catch {
+      return this.artifactComponents;
+    }
+  }
+
   /**
    * Get the client's current time formatted in their timezone
    */
@@ -2024,6 +2050,7 @@ export class Agent {
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
       artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
+      allProjectArtifactComponents: this.collectProjectArtifactComponents(),
       hasAgentArtifactComponents,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -2036,7 +2063,7 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Retrieves the complete data of an existing artifact. NOTE: To pass an artifact to a tool you do NOT need to call this — use the { "$artifact": "id", "$tool": "toolCallId" } sentinel and the system resolves the full data automatically. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),

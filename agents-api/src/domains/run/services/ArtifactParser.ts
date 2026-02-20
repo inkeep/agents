@@ -1,6 +1,12 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import {
+  buildSchemaShape,
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../utils/schema-validation';
+import {
   type ArtifactCreateRequest,
   ArtifactService,
   type ArtifactServiceContext,
@@ -70,6 +76,10 @@ export class ArtifactParser {
 
   private artifactService: ArtifactService;
   private contextWindowSize?: number;
+  private typeSchemaMap: Record<
+    string,
+    { previewShape: Record<string, unknown>; fullShape: Record<string, unknown> }
+  > = {};
 
   constructor(
     executionContext: FullExecutionContext,
@@ -95,6 +105,20 @@ export class ArtifactParser {
       };
       this.artifactService = new ArtifactService(context);
     }
+    if (options?.artifactComponents) {
+      for (const ac of options.artifactComponents) {
+        if (ac.name && (ac.props as any)?.properties) {
+          const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
+          const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
+          this.typeSchemaMap[ac.name] = {
+            previewShape: previewSchema.properties
+              ? buildSchemaShape(previewSchema.properties)
+              : {},
+            fullShape: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
+          };
+        }
+      }
+    }
   }
 
   /**
@@ -102,6 +126,22 @@ export class ArtifactParser {
    */
   setContextWindowSize(size: number): void {
     this.contextWindowSize = size;
+  }
+
+  private buildArtifactDataPart(artifactData: ArtifactSummaryData): StreamPart {
+    const schemas = this.typeSchemaMap[artifactData.type ?? ''];
+    return {
+      kind: 'data',
+      data: {
+        artifactId: artifactData.artifactId,
+        toolCallId: artifactData.toolCallId,
+        name: artifactData.name,
+        description: artifactData.description,
+        type: artifactData.type,
+        artifactSummary: artifactData.data,
+        ...(schemas && { typeSchema: schemas }),
+      },
+    };
   }
 
   /**
@@ -382,17 +422,7 @@ export class ArtifactParser {
       }
 
       if (artifactData) {
-        parts.push({
-          kind: 'data',
-          data: {
-            artifactId: artifactData.artifactId,
-            toolCallId: artifactData.toolCallId,
-            name: artifactData.name,
-            description: artifactData.description,
-            type: artifactData.type,
-            artifactSummary: artifactData.data,
-          },
-        });
+        parts.push(this.buildArtifactDataPart(artifactData));
       }
 
       lastIndex = matchStart + fullMatch.length;
@@ -427,32 +457,12 @@ export class ArtifactParser {
             artifactMap
           );
           if (artifactData) {
-            parts.push({
-              kind: 'data',
-              data: {
-                artifactId: artifactData.artifactId,
-                toolCallId: artifactData.toolCallId,
-                name: artifactData.name,
-                description: artifactData.description,
-                type: artifactData.type,
-                artifactSummary: artifactData.data,
-              },
-            });
+            parts.push(this.buildArtifactDataPart(artifactData));
           }
         } else if (this.isArtifactCreateComponent(component)) {
           const createData = await this.extractFromArtifactCreateComponent(component, subAgentId);
           if (createData) {
-            parts.push({
-              kind: 'data',
-              data: {
-                artifactId: createData.artifactId,
-                toolCallId: createData.toolCallId,
-                name: createData.name,
-                description: createData.description,
-                type: createData.type,
-                artifactSummary: createData.data,
-              },
-            });
+            parts.push(this.buildArtifactDataPart(createData));
           }
         } else {
           parts.push({ kind: 'data', data: component });
@@ -468,40 +478,12 @@ export class ArtifactParser {
         obj.props.tool_call_id,
         artifactMap
       );
-      return artifactData
-        ? [
-            {
-              kind: 'data',
-              data: {
-                artifactId: artifactData.artifactId,
-                toolCallId: artifactData.toolCallId,
-                name: artifactData.name,
-                description: artifactData.description,
-                type: artifactData.type,
-                artifactSummary: artifactData.data,
-              },
-            },
-          ]
-        : [];
+      return artifactData ? [this.buildArtifactDataPart(artifactData)] : [];
     }
 
     if (this.isArtifactCreateComponent(obj)) {
       const createData = await this.extractFromArtifactCreateComponent(obj, subAgentId);
-      return createData
-        ? [
-            {
-              kind: 'data',
-              data: {
-                artifactId: createData.artifactId,
-                toolCallId: createData.toolCallId,
-                name: createData.name,
-                description: createData.description,
-                type: createData.type,
-                artifactSummary: createData.data,
-              },
-            },
-          ]
-        : [];
+      return createData ? [this.buildArtifactDataPart(createData)] : [];
     }
 
     return [{ kind: 'data', data: obj }];
