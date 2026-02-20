@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import type { SourceFile } from 'ts-morph';
+import { z } from 'zod';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
 
 interface CredentialDefinitionData {

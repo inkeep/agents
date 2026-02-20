@@ -306,10 +306,7 @@ function addValueToArray(arr: ArrayLiteralExpression, value: unknown) {
   arr.addElement(formatInlineLiteral(value));
 }
 
-export async function expectSnapshots(
-  definition: string,
-  definitionV4: SourceFile
-): Promise<void> {
+export async function expectSnapshots(definition: string, definitionV4: SourceFile): Promise<void> {
   const { currentTestName, snapshotState } = expect.getState();
 
   const snapshotDir = path.basename(snapshotState.testFilePath).replace('-generator.test.ts', '');

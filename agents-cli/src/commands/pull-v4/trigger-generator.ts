@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { type SourceFile, SyntaxKind } from 'ts-morph';
+import { z } from 'zod';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
 
 type TriggerDefinitionData = {

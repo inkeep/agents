@@ -1,8 +1,4 @@
-import {
-  type ObjectLiteralExpression,
-  type SourceFile,
-  SyntaxKind,
-} from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addFactoryConfigVariable,

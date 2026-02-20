@@ -3,8 +3,8 @@ import { z } from 'zod';
 import {
   addObjectEntries,
   addStringProperty,
-  createFactoryDefinition,
   convertJsonSchemaToZodSafe,
+  createFactoryDefinition,
   isPlainObject,
   toCamelCase,
 } from './utils';
