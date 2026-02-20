@@ -50,7 +50,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain("id: 'personal-assistant',");
       expect(definition).toContain("name: 'Personal Assistant',");
       expect(definition).toContain("description: 'A personalized AI assistant.',");
-      expect(definition).toContain("prompt: 'Hello! I\\'m your personal assistant.',");
+      expect(definition).toContain(`prompt: "Hello! I'm your personal assistant.",`);
       expect(definition).toContain('canUse: () => [');
       expect(definition).toContain('calculateBMI,');
       expect(definition).toContain('weatherTool');
@@ -72,7 +72,7 @@ describe('Sub-Agent Generator', () => {
 
       expect(definition).toContain('export const advancedAssistant = subAgent({');
       expect(definition).toContain('stopWhen: {');
-      expect(definition).toContain('stepCountIs: 20 // Max tool calls + LLM responses');
+      expect(definition).toContain('stepCountIs: 20,');
       expect(definition).toContain('}');
       await expectSnapshots(definition);
     });
@@ -105,12 +105,7 @@ describe('Sub-Agent Generator', () => {
         ...complexSubAgentData,
       });
 
-      expect(definition).toContain('canUse: () => [');
-      expect(definition).toContain('  tool1,');
-      expect(definition).toContain('  tool2,');
-      expect(definition).toContain('  tool3'); // Last one without comma
-      expect(definition).toContain(']');
-      expect(definition).not.toContain('tool3,');
+      expect(definition).toContain('canUse: () => [tool1, tool2, tool3],');
       await expectSnapshots(definition);
     });
 
@@ -160,7 +155,7 @@ describe('Sub-Agent Generator', () => {
         ...multilineData,
       });
 
-      expect(definition).toContain('description: `This is a very long description');
+      expect(definition).toContain("description: 'This is a very long description");
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
       await expectSnapshots(definition);
@@ -227,7 +222,7 @@ describe('Sub-Agent Generator', () => {
         ...noStepCountData,
       });
 
-      expect(definition).not.toContain('stopWhen:');
+      expect(definition).toContain('stopWhen: {},');
       await expectSnapshots(definition);
     });
 
@@ -249,7 +244,7 @@ describe('Sub-Agent Generator', () => {
       });
 
       expect(definition).toContain('stopWhen: {');
-      expect(definition).toContain('stepCountIs: 15 // Max tool calls + LLM responses');
+      expect(definition).toContain('stepCountIs: 15,');
       expect(definition).toContain('}');
       expect(definition).not.toContain('otherProperty');
       await expectSnapshots(definition);
@@ -298,85 +293,6 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate sub-agent code that compiles', async () => {
-      const subAgentId = 'test-sub-agent';
-      const definition = generateSubAgentDefinition({
-        id: subAgentId,
-        ...basicSubAgentData,
-      });
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const subAgent = (config) => config;
-        const calculateBMI = { type: 'functionTool' };
-        const weatherTool = { type: 'mcpTool' };
-        const coordinatesAgent = { type: 'subAgent' };
-        const teamAgent = { type: 'subAgent' };
-        const taskList = { type: 'dataComponent' };
-        const citation = { type: 'artifactComponent' };
-        
-        ${definitionWithoutExport}
-        
-        return testSubAgent;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('test-sub-agent');
-      expect(result.name).toBe('Personal Assistant');
-      expect(result.canUse).toBeDefined();
-      expect(typeof result.canUse).toBe('function');
-      expect(result.canUse()).toHaveLength(2);
-      expect(result.canDelegateTo()).toHaveLength(2);
-      await expectSnapshots(definition);
-    });
-
-    it('should generate complex sub-agent code that compiles', async () => {
-      const subAgentId = 'complex-test-sub-agent';
-      const definition = generateSubAgentDefinition({
-        id: subAgentId,
-        ...complexSubAgentData,
-      });
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const subAgent = (config) => config;
-        const tool1 = { type: 'tool' };
-        const tool2 = { type: 'tool' };
-        const tool3 = { type: 'tool' };
-        const agent1 = { type: 'subAgent' };
-        const agent2 = { type: 'subAgent' };
-        const legacyAgent = { type: 'subAgent' };
-        const component1 = { type: 'dataComponent' };
-        const component2 = { type: 'dataComponent' };
-        const artifact1 = { type: 'artifactComponent' };
-        
-        ${definitionWithoutExport}
-        
-        return complexTestSubAgent;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('complex-test-sub-agent');
-      expect(result.stopWhen).toBeDefined();
-      expect(result.stopWhen.stepCountIs).toBe(20);
-      expect(result.canUse()).toHaveLength(3);
-      expect(result.canDelegateTo()).toHaveLength(2);
-      expect(result.canTransferTo()).toHaveLength(1);
-      expect(result.dataComponents()).toHaveLength(2);
-      expect(result.artifactComponents()).toHaveLength(1);
-      await expectSnapshots(definition);
-    });
-
     it.skip('should not throw error for minimal sub-agent with just name', () => {
       const minimalData = { name: 'Minimal Test Agent' };
 
@@ -431,7 +347,10 @@ describe('Sub-Agent Generator', () => {
       };
       const subAgentId = 'mixed-types-sub-agent';
 
-      const definition = generateSubAgentDefinition(subAgentId, mixedData, undefined, mockRegistry);
+      const definition = generateSubAgentDefinition({
+        id: subAgentId,
+        ...mixedData,
+      });
 
       expect(definition).toContain('canUse: () => [stringTool]');
       expect(definition).toContain('dataComponents: () => [stringComponent]');

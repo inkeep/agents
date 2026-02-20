@@ -1,5 +1,0 @@
-export const fallbackAgent = subAgent({
-  id: 'fallback-agent',
-  name: 'Fallback Agent',
-  description: ''
-});
