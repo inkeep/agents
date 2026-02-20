@@ -502,23 +502,25 @@ function alignObjectLiteralText(
   );
 
   const propertyTexts = orderedProperties.map(({ existingProperty, generatedProperty }) =>
-    alignObjectPropertyText(existingProperty, generatedProperty)
+      existingProperty ? alignObjectPropertyText(existingProperty, generatedProperty) : generatedProperty.getText()
   );
 
   return formatCollectionLiteralText(generatedObject.getText(), propertyTexts, '{', '}');
 }
 
 function alignObjectPropertyText(
-  existingProperty: Node | undefined,
+  existingProperty: Node,
   generatedProperty: Node
 ): string {
+  const text = generatedProperty.getText()
+
   if (!Node.isPropertyAssignment(generatedProperty)) {
-    return withPreservedNodeLeadingComments(existingProperty, generatedProperty.getText());
+    return withPreservedNodeLeadingComments(existingProperty, text);
   }
 
   const generatedInitializer = generatedProperty.getInitializer();
   if (!generatedInitializer) {
-    return withPreservedNodeLeadingComments(existingProperty, generatedProperty.getText());
+    return withPreservedNodeLeadingComments(existingProperty, text);
   }
 
   const existingInitializer =
@@ -528,40 +530,22 @@ function alignObjectPropertyText(
   const alignedInitializerText = alignExpressionText(existingInitializer, generatedInitializer);
   const propertyText =
     alignedInitializerText === generatedInitializer.getText()
-      ? generatedProperty.getText()
+      ? text
       : `${generatedProperty.getNameNode().getText()}: ${alignedInitializerText}`;
 
   return withPreservedNodeLeadingComments(existingProperty, propertyText);
 }
 
 function withPreservedNodeLeadingComments(
-  existingNode: Node | undefined,
+  existingNode: Node,
   replacementText: string
 ): string {
-  if (!existingNode) {
-    return replacementText;
-  }
-
-  const leadingComments = getNodeLeadingCommentsText(existingNode);
+  const leadingComments = getLeadingCommentsText(existingNode.getLeadingCommentRanges());
   if (!leadingComments) {
     return replacementText;
   }
 
-  if (replacementText.trimStart().startsWith(leadingComments.trimStart())) {
-    return replacementText;
-  }
-
   return `${leadingComments}\n${replacementText}`;
-}
-
-function getNodeLeadingCommentsText(node: Node): string | undefined {
-  const commentTexts = node.getLeadingCommentRanges().map((commentRange) => commentRange.getText());
-
-  if (!commentTexts.length) {
-    return;
-  }
-
-  return [...new Set(commentTexts)].join('\n');
 }
 
 function alignArrayLiteralText(
