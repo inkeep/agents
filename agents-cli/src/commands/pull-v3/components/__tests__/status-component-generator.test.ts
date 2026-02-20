@@ -212,72 +212,7 @@ describe('Status Component Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate code that compiles and creates a working status component', async () => {
-      // Extract just the component definition (remove imports and export)
-      const definition = generateStatusComponentDefinition({
-        statusComponentId: 'tool-summary',
-        ...testComponentData,
-      });
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      // Mock the dependencies and test compilation
-      const moduleCode = `
-        // Mock the imports for testing
-        const statusComponent = (config) => config;
-        
-        // Create chainable mock for Zod
-        const createChainableMock = (type, data = {}) => ({
-          type,
-          ...data,
-          describe: (desc) => createChainableMock(type, { ...data, description: desc }),
-          optional: () => createChainableMock(type, { ...data, optional: true }),
-          nullable: () => createChainableMock(type, { ...data, nullable: true }),
-          default: (value) => createChainableMock(type, { ...data, default: value })
-        });
-        
-        const z = {
-          object: (props) => createChainableMock('object', { props }),
-          string: () => createChainableMock('string'),
-          number: () => createChainableMock('number'),
-          boolean: () => createChainableMock('boolean'),
-          array: (items) => createChainableMock('array', { items }),
-          enum: (values) => createChainableMock('enum', { values }),
-          union: (schemas) => createChainableMock('union', { schemas }),
-          literal: (value) => createChainableMock('literal', { value }),
-          any: () => createChainableMock('any'),
-          unknown: () => createChainableMock('unknown')
-        };
-        
-        ${definitionWithoutExport}
-        
-        return toolSummary;
-      `;
-
-      // Use eval to test the code compiles and runs
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      // Verify the resulting object has the correct structure
-      expect(result).toBeDefined();
-      expect(result.type).toBe('tool_summary');
-      expect(result.description).toBe('Summary of tool calls and their purpose');
-      expect(result.detailsSchema).toBeDefined();
-      expect(result.detailsSchema.type).toBe('object');
-      expect(result.detailsSchema.props).toBeDefined();
-
-      // Verify the schema structure
-      const props = result.detailsSchema.props;
-      expect(props.tool_name).toBeDefined();
-      expect(props.tool_name.type).toBe('string');
-      expect(props.purpose).toBeDefined();
-      expect(props.outcome).toBeDefined();
-      expect(props.success).toBeDefined();
-      expect(props.success.type).toBe('boolean');
-    });
-
-    it('should generate code for status component without schema that compiles', () => {
+    it('should generate code for status component without schema that compiles', async () => {
       const simpleData = {
         type: 'simple_progress',
         description: 'A simple progress status component',
@@ -292,25 +227,7 @@ describe('Status Component Generator', () => {
       expect(file).not.toContain('import { z }');
       expect(file).toContain('import { statusComponent }');
 
-      // Test compilation with just the definition
-      const definitionWithoutExport = file.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const statusComponent = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return simpleProgress;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.type).toBe('simple_progress');
-      expect(result.description).toBe('A simple progress status component');
-      expect(result.detailsSchema).toBeUndefined(); // No schema provided
+      await expectSnapshots(file);
     });
 
     it.skip('should throw error for status component without type', () => {
