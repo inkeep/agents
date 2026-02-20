@@ -1,6 +1,6 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addStringProperty, createInMemoryProject, toCamelCase } from './utils';
+import { addStringProperty, createFactoryDefinition, toCamelCase } from './utils';
 
 interface ExternalAgentDefinitionData {
   externalAgentId: string;
@@ -42,14 +42,9 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
   }
 
   const parsed = result.data;
-  const project = createInMemoryProject();
-  const sourceFile = project.createSourceFile('external-agent-definition.ts', '', {
-    overwrite: true,
-  });
-  const importName = 'externalAgent';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'externalAgent',
+    variableName: toCamelCase(parsed.externalAgentId),
   });
 
   if (typeof parsed.credentialReference === 'string') {
@@ -58,19 +53,6 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
       moduleSpecifier: `../credentials/${parsed.credentialReference}`,
     });
   }
-
-  const externalAgentVarName = toCamelCase(parsed.externalAgentId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: externalAgentVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   writeExternalAgentConfig(configObject, parsed);
 

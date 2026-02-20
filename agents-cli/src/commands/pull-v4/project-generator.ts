@@ -1,11 +1,11 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
-import { type SourceFile, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
   addReferenceGetterProperty,
   addValueToObject,
   convertNullToUndefined,
-  createInMemoryProject,
+  createFactoryDefinition,
   formatStringLiteral,
   toCamelCase,
 } from './utils';
@@ -80,35 +80,18 @@ export function generateProjectDefinition(data: ProjectDefinitionData): string {
 ${z.prettifyError(result.error)}`);
   }
 
-  const project = createInMemoryProject();
-
   const parsed = result.data;
-  const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
-  const importName = 'project';
-  const sdkImports = hasReferences(parsed.skills) ? ['loadSkills', importName] : [importName];
-  sourceFile.addImportDeclaration({
-    namedImports: sdkImports,
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'project',
+    variableName: toCamelCase(parsed.projectId),
   });
   if (hasReferences(parsed.skills)) {
+    sourceFile.getImportDeclarationOrThrow('@inkeep/agents-sdk').addNamedImport('loadSkills');
     sourceFile.addImportDeclaration({
       defaultImport: 'path',
       moduleSpecifier: 'node:path',
     });
   }
-
-  const projectVarName = toCamelCase(parsed.projectId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: projectVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   const {
     projectId,

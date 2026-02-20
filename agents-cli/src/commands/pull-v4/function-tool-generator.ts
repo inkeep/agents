@@ -1,6 +1,6 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import type { ObjectLiteralExpression } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createInMemoryProject, toCamelCase } from './utils';
+import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
 
 interface FunctionToolDefinitionData {
   functionToolId: string;
@@ -49,28 +49,10 @@ export function generateFunctionToolDefinition(data: FunctionToolDefinitionData)
   }
 
   const parsed = result.data;
-  const project = createInMemoryProject();
-  const sourceFile = project.createSourceFile('function-tool-definition.ts', '', {
-    overwrite: true,
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'functionTool',
+    variableName: toCamelCase(parsed.functionToolId),
   });
-  const importName = 'functionTool';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
-  });
-
-  const functionToolVarName = toCamelCase(parsed.functionToolId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: functionToolVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   writeFunctionToolConfig(configObject, parsed);
 

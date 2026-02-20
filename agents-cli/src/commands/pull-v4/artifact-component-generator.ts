@@ -1,10 +1,9 @@
-import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
   convertNullToUndefined,
-  createInMemoryProject,
+  createFactoryDefinition,
   formatPropertyName,
   formatStringLiteral,
   isPlainObject,
@@ -52,10 +51,9 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
 
   const parsed = result.data;
   const schema = parsed.props ?? parsed.schema;
-  const project = createInMemoryProject();
-
-  const sourceFile = project.createSourceFile('artifact-component-definition.ts', '', {
-    overwrite: true,
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'artifactComponent',
+    variableName: toCamelCase(parsed.artifactComponentId),
   });
 
   if (hasInPreviewFields(schema)) {
@@ -64,32 +62,12 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
       moduleSpecifier: '@inkeep/agents-core',
     });
   }
-  const importName = 'artifactComponent';
-
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
-  });
-
   if (schema) {
     sourceFile.addImportDeclaration({
       namedImports: ['z'],
       moduleSpecifier: 'zod',
     });
   }
-
-  const artifactComponentVarName = toCamelCase(parsed.artifactComponentId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: artifactComponentVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   const { artifactComponentId, schema: _, props: _2, ...rest } = parsed;
 

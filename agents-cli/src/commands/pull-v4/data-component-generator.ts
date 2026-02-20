@@ -1,10 +1,10 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
   addStringProperty,
   convertJsonSchemaToZodSafe,
-  createInMemoryProject,
+  createFactoryDefinition,
   isPlainObject,
   toCamelCase,
 } from './utils';
@@ -46,14 +46,9 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
 
   const parsed = result.data;
   const props = parsed.props !== undefined ? parsed.props : parsed.schema;
-  const project = createInMemoryProject();
-  const sourceFile = project.createSourceFile('data-component-definition.ts', '', {
-    overwrite: true,
-  });
-  const importName = 'dataComponent';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'dataComponent',
+    variableName: toCamelCase(parsed.dataComponentId),
   });
 
   if (props !== undefined) {
@@ -62,19 +57,6 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
       moduleSpecifier: 'zod',
     });
   }
-
-  const dataComponentVarName = toCamelCase(parsed.dataComponentId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: dataComponentVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   writeDataComponentConfig(configObject, parsed, props);
 

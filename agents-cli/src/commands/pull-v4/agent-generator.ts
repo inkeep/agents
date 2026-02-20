@@ -1,15 +1,10 @@
-import {
-  type ObjectLiteralExpression,
-  type SourceFile,
-  SyntaxKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addObjectEntries,
   addReferenceGetterProperty,
   addStringProperty,
-  createInMemoryProject,
+  createFactoryDefinition,
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
@@ -77,20 +72,16 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
     throw new Error(`Validation failed for agent:\n${z.prettifyError(result.error)}`);
   }
 
-  const project = createInMemoryProject();
-
   const parsed = result.data;
-  const sourceFile = project.createSourceFile('agent-definition.ts', '', { overwrite: true });
-  const importName = 'agent';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
-  });
 
   const subAgentIds = new Set(extractIds(parsed.subAgents));
   subAgentIds.add(parsed.defaultSubAgentId);
   const agentVarName = parsed.agentVariableName || toCamelCase(parsed.agentId);
-  const reservedReferenceNames = new Set<string>([agentVarName]);
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'agent',
+    variableName: agentVarName,
+  });
+  const reservedReferenceNames = new Set([agentVarName]);
   const { referenceNames: subAgentReferenceNames, importNames: subAgentImportNames } =
     createSubAgentReferenceMaps(
       subAgentIds,
@@ -137,18 +128,6 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
     'StatusComponent'
   );
   addStatusComponentImports(sourceFile, statusComponentReferenceNames);
-
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: agentVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   writeAgentConfig(configObject, parsed, {
     subAgents: subAgentReferenceNames,

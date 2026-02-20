@@ -1,6 +1,5 @@
-import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createInMemoryProject, toCamelCase } from './utils';
+import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
 
 type TriggerDefinitionData = {
   triggerId: string;
@@ -91,27 +90,12 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
     throw new Error(`Validation failed for trigger:\n${z.prettifyError(result.error)}`);
   }
 
-  const project = createInMemoryProject();
-
   const parsed = result.data;
-  const sourceFile = project.createSourceFile('trigger-definition.ts', '', { overwrite: true });
-  const importName = 'Trigger';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'Trigger',
+    variableName: toCamelCase(parsed.triggerId),
+    initializerKind: 'new',
   });
-
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: toCamelCase(parsed.triggerId), initializer: `new ${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.NewExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    .asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   const { triggerId, signingSecretCredentialReferenceId, ...rest } = parsed;
 

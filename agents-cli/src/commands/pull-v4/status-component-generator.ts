@@ -1,9 +1,8 @@
-import { SyntaxKind, VariableDeclarationKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
-  createInMemoryProject,
+  createFactoryDefinition,
   toCamelCase,
 } from './utils';
 
@@ -31,16 +30,9 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
 
   const parsed = result.data;
   const detailsSchema = parsed.detailsSchema !== undefined ? parsed.detailsSchema : parsed.schema;
-
-  const project = createInMemoryProject();
-  const sourceFile = project.createSourceFile('status-component-definition.ts', '', {
-    overwrite: true,
-  });
-  const importName = 'statusComponent';
-
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'statusComponent',
+    variableName: toCamelCase(parsed.statusComponentId),
   });
 
   if (detailsSchema !== undefined) {
@@ -49,19 +41,6 @@ export function generateStatusComponentDefinition(data: StatusComponentDefinitio
       moduleSpecifier: 'zod',
     });
   }
-
-  const statusComponentVarName = toCamelCase(parsed.statusComponentId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: statusComponentVarName, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   const { statusComponentId, id, detailsSchema: _, schema: _2, ...rest } = parsed;
 

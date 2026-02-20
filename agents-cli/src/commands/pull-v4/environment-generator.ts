@@ -1,8 +1,8 @@
-import { type ObjectLiteralExpression, SyntaxKind, VariableDeclarationKind } from 'ts-morph';
+import { type ObjectLiteralExpression, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addStringProperty,
-  createInMemoryProject,
+  createFactoryDefinition,
   formatInlineLiteral,
   formatPropertyName,
   isPlainObject,
@@ -70,14 +70,9 @@ export function generateEnvironmentSettingsDefinition(
   }
 
   const parsed = result.data;
-  const project = createInMemoryProject();
-  const sourceFile = project.createSourceFile('environment-settings-definition.ts', '', {
-    overwrite: true,
-  });
-  const importName = 'registerEnvironmentSettings';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'registerEnvironmentSettings',
+    variableName: environmentNameResult.data,
   });
 
   const hasCredentialStoreType = needsCredentialStoreType(parsed);
@@ -87,18 +82,6 @@ export function generateEnvironmentSettingsDefinition(
       moduleSpecifier: '@inkeep/agents-core',
     });
   }
-
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: environmentNameResult.data, initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   addCredentialsProperty(configObject, parsed.credentials, hasCredentialStoreType);
 
@@ -111,14 +94,9 @@ export function generateEnvironmentIndexDefinition(environments: string[]): stri
     throw new Error(`Validation failed for environments index:\n${z.prettifyError(result.error)}`);
   }
 
-  const project = createInMemoryProject();
-  const sourceFile = project.createSourceFile('environment-index-definition.ts', '', {
-    overwrite: true,
-  });
-  const importName = 'createEnvironmentSettings';
-  sourceFile.addImportDeclaration({
-    namedImports: [importName],
-    moduleSpecifier: '@inkeep/agents-sdk',
+  const { sourceFile, configObject } = createFactoryDefinition({
+    importName: 'createEnvironmentSettings',
+    variableName: 'envSettings',
   });
 
   for (const environmentName of result.data) {
@@ -127,22 +105,6 @@ export function generateEnvironmentIndexDefinition(environments: string[]): stri
       moduleSpecifier: `./${environmentName}.env`,
     });
   }
-
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [{ name: 'envSettings', initializer: `${importName}({})` }],
-  });
-
-  const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error('Failed to create environment index declaration');
-  }
-
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   for (const environmentName of result.data) {
     configObject.addShorthandPropertyAssignment({
