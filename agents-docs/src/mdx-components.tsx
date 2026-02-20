@@ -32,7 +32,7 @@ import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-t
 import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card';
 import { FeatureTable } from '@/components/mdx/feature-table';
-import { PricingCards } from '@/components/mdx/pricing-cards';
+import { OptionCard, OptionCards } from '@/components/mdx/option-cards';
 import { SkillRule } from '@/components/mdx/skill-rule';
 import { openapi } from '@/lib/openapi';
 
@@ -118,7 +118,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Snippet,
     ComparisonTable,
     FeatureTable,
-    PricingCards,
+    OptionCard,
+    OptionCards,
     SkillRule,
   };
 }
