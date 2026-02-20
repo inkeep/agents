@@ -77,8 +77,6 @@ vi.mock('node:fs', () => ({
   writeFileSync: vi.fn(),
 }));
 
-const MOCK_PRIVATE_KEY = 'mock-private-key-base64';
-const MOCK_PUBLIC_KEY = 'mock-public-key-base64';
 const MOCK_HEX_32 = 'a'.repeat(64);
 const MOCK_BASE64URL_6 = 'YQAAAA';
 
