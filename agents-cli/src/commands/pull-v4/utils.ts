@@ -7,7 +7,9 @@ import {
   type ObjectLiteralExpression,
   Project,
   QuoteKind,
+  type SourceFile,
   SyntaxKind,
+  VariableDeclarationKind,
 } from 'ts-morph';
 
 export function createInMemoryProject(): Project {
@@ -20,6 +22,49 @@ export function createInMemoryProject(): Project {
       useTrailingCommas: false,
     },
   });
+}
+
+interface CreateFactoryDefinitionOptions {
+  importName: string;
+  variableName: string;
+  /** @default "definition.ts" */
+  fileName?: string;
+  /** @default "@inkeep/agents-sdk" */
+  moduleSpecifier?: string;
+  /** @default "call" */
+  initializerKind?: 'call' | 'new';
+}
+
+export function createFactoryDefinition({
+  importName,
+  variableName: name,
+  fileName = 'definition.ts',
+  moduleSpecifier = '@inkeep/agents-sdk',
+  initializerKind = 'call',
+}: CreateFactoryDefinitionOptions): {
+  sourceFile: SourceFile;
+  configObject: ObjectLiteralExpression;
+} {
+  const sourceFile = createInMemoryProject().createSourceFile(fileName, '', {
+    overwrite: true,
+  });
+  sourceFile.addImportDeclaration({ namedImports: [importName], moduleSpecifier });
+  const initializer = `${initializerKind === 'new' ? 'new ' : ''}${importName}({})`;
+  const variableStatement = sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    isExported: true,
+    declarations: [{ name, initializer }],
+  });
+
+  const [declaration] = variableStatement.getDeclarations();
+  const kind = initializerKind === 'new' ? SyntaxKind.NewExpression : SyntaxKind.CallExpression;
+  const invocation = declaration.getInitializerIfKindOrThrow(kind);
+  const [configArg] = invocation.getArguments();
+
+  return {
+    sourceFile,
+    configObject: configArg.asKindOrThrow(SyntaxKind.ObjectLiteralExpression),
+  };
 }
 
 export function toCamelCase(input: string): string {
