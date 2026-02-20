@@ -133,7 +133,10 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       expect(dataPart).toBeDefined();
       expect(dataPart?.data?.typeSchema).toBeDefined();
 
-      expect(dataPart?.data?.typeSchema?.previewShape).toEqual({ title: 'string', summary: 'string' });
+      expect(dataPart?.data?.typeSchema?.previewShape).toEqual({
+        title: 'string',
+        summary: 'string',
+      });
       expect(dataPart?.data?.typeSchema?.fullShape).toEqual({
         title: 'string',
         summary: 'string',
