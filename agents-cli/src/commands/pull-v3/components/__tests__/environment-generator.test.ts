@@ -86,7 +86,7 @@ describe('Environment Settings Generator', () => {
 
       expect(definition).toContain('export const development = registerEnvironmentSettings({');
       expect(definition).toContain('credentials: {');
-      expect(definition).toContain("'stripe_api_key': {");
+      expect(definition).toContain('stripe_api_key: {');
       expect(definition).toContain("id: 'stripe-api-key',");
       expect(definition).toContain("name: 'Stripe API Key',");
       expect(definition).toContain('type: CredentialStoreType.memory,');
@@ -101,8 +101,8 @@ describe('Environment Settings Generator', () => {
       const environmentName = 'development';
       const definition = generateEnvironmentSettingsDefinition(environmentName, developmentData);
 
-      expect(definition).toContain("'stripe_api_key': {");
-      expect(definition).toContain("'database_url': {");
+      expect(definition).toContain('stripe_api_key: {');
+      expect(definition).toContain('database_url: {');
       expect(definition).toContain('type: CredentialStoreType.memory,');
       expect(definition).toContain('type: CredentialStoreType.env,');
       expect(definition).toContain("description: 'Database connection string',");
@@ -161,7 +161,7 @@ describe('Environment Settings Generator', () => {
 
       const definition = generateEnvironmentSettingsDefinition(environmentName, minimalCredData);
 
-      expect(definition).toContain("'api_key': {");
+      expect(definition).toContain('api_key: {');
       expect(definition).toContain("id: 'api-key',");
       expect(definition).toContain('type: CredentialStoreType.memory,');
       expect(definition).not.toContain('name:');
@@ -284,90 +284,16 @@ describe('Environment Settings Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate environment settings code that compiles', async () => {
-      generateEnvironmentSettingsFile('development', developmentData);
-
-      // Extract just the definition (remove imports and export)
-      const definition = generateEnvironmentSettingsDefinition('development', developmentData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      // Mock the dependencies and test compilation
-      const moduleCode = `
-        // Mock the imports for testing
-        const registerEnvironmentSettings = (config) => config;
-        const CredentialStoreType = {
-          memory: 'memory',
-          env: 'env', 
-          keychain: 'keychain'
-        };
-        
-        ${definitionWithoutExport}
-        
-        return development;
-      `;
-
-      // Use eval to test the code compiles and runs
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      // Verify the resulting object has the correct structure
-      expect(result).toBeDefined();
-      expect(result.credentials).toBeDefined();
-      expect(result.credentials.stripe_api_key).toBeDefined();
-      expect(result.credentials.stripe_api_key.id).toBe('stripe-api-key');
-      expect(result.credentials.stripe_api_key.type).toBe('memory');
-      expect(result.credentials.database_url).toBeDefined();
-      expect(result.credentials.database_url.type).toBe('env');
-    });
-
-    it('should generate environment index code that compiles', () => {
-      generateEnvironmentIndexFile(['development', 'production']);
-
+    it('should generate environment index code that compiles', async () => {
       // Extract just the definition
       const definition = generateEnvironmentIndexDefinition(['development', 'production']);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const createEnvironmentSettings = (config) => config;
-        const development = { name: 'development', credentials: {} };
-        const production = { name: 'production', credentials: {} };
-        
-        ${definitionWithoutExport}
-        
-        return envSettings;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.development).toBeDefined();
-      expect(result.production).toBeDefined();
+      await expectSnapshots(definition);
     });
 
-    it('should generate minimal environment settings that compile', () => {
+    it('should generate minimal environment settings that compile', async () => {
       const minimalData = { credentials: {} };
       const definition = generateEnvironmentSettingsDefinition('minimal', minimalData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const registerEnvironmentSettings = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return minimal;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.credentials).toEqual({});
+      await expectSnapshots(definition);
     });
   });
 
