@@ -282,9 +282,7 @@ export async function startDashboardServer(
     const originalPath = path.dirname(manageUiPkgJson);
     throw new Error(
       `Dashboard standalone server not found at ${serverEntry}` +
-        (originalPath !== manageUiRoot
-          ? ` (symlink resolved from ${originalPath})`
-          : '') +
+        (originalPath !== manageUiRoot ? ` (symlink resolved from ${originalPath})` : '') +
         `. Ensure the package is built with 'output: standalone' (run turbo build).`
     );
   }
