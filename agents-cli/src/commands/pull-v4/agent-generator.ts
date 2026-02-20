@@ -184,7 +184,7 @@ function writeAgentConfig(
   addStringProperty(configObject, 'id', data.agentId);
   addStringProperty(configObject, 'name', data.name);
 
-  if (data.description !== undefined) {
+  if (data.description != null) {
     addStringProperty(configObject, 'description', data.description);
   }
 
