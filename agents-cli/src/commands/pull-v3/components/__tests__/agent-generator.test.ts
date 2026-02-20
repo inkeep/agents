@@ -518,8 +518,6 @@ describe('Agent Generator', () => {
         generateAgentDefinitionV4({ agentId, ...nullData });
       }).toThrow(
         new Error(`Validation failed for agent:
-✖ Invalid input: expected string, received null
-  → at description
 ✖ Invalid input: expected string, received undefined
   → at defaultSubAgentId
 ✖ Invalid input
