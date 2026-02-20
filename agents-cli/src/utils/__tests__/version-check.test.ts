@@ -74,7 +74,7 @@ describe('version-check', () => {
     });
 
     it('should indicate no update needed when versions are equal', async () => {
-      const currentVersion = PACKAGE_CHANGELOG;
+      const currentVersion = PACKAGE_VERSION;
 
       // Mock fetch to return same version
       global.fetch = vi.fn().mockResolvedValue({
