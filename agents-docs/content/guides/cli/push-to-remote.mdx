@@ -1,15 +1,15 @@
 ---
-title: Push to Inkeep Cloud
-sidebarTitle: Push to Cloud
-description: Push your local agent configurations to Inkeep Cloud
+title: Push to remote Inkeep instance
+sidebarTitle: Push to Remote
+description: Push your local agent configurations to remote Inkeep instance
 icon: LuCloudUpload
 ---
 
-This tutorial walks you through pushing agent configurations to Inkeep Cloud.
+This tutorial walks you through pushing agent configurations to a remote Inkeep instance.
 
 ## Prerequisites
 
-- Access to [Inkeep Cloud](https://inkeep.com/cloud-waitlist) or a [self-hosted deployment](/deployment/vercel)
+- Access to a remote Inkeep instance (e.g. [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav) or a [self-hosted deployment](/deployment/vercel))
 - The Inkeep CLI installed globally:
 
 ```bash
@@ -30,7 +30,7 @@ cd my-project
 Run `inkeep push` from the directory that contains your `inkeep.config.ts`, or from any subdirectory below it.
 </Note>
 
-## Step 2: Push to Inkeep Cloud
+## Step 2: Push to remote Inkeep instance
 
 Run the push command:
 
@@ -41,7 +41,7 @@ inkeep push
 The CLI will:
 1. Detect the project from your `index.ts` file
 2. Resolve configuration — your active [CLI profile](/guides/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
-3. Push all agents, tools, and configurations to Inkeep Cloud
+3. Push all agents, tools, and configurations to remote Inkeep instance
 
 ## Step 3: Verify the push
 
@@ -58,8 +58,8 @@ inkeep push --all
 ## What's next
 
 <Cards>
-  <Card title="Pull from Cloud" icon="LuCloudDownload" href="/guides/cli/pull-from-cloud">
-    Pull agent configurations from Inkeep Cloud to your local project
+  <Card title="Pull from Remote" icon="LuCloudDownload" href="/guides/cli/pull-from-remote">
+    Pull agent configurations from remote Inkeep instance to your local project
   </Card>
   <Card title="CLI Reference" icon="LuTerminal" href="/typescript-sdk/cli-reference">
     Full reference for all CLI commands and options

@@ -1,0 +1,1 @@
+ALTER TABLE "work_app_slack_channel_agent_configs" ADD COLUMN "grant_access_to_members" boolean DEFAULT true NOT NULL;

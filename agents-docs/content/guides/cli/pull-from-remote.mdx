@@ -1,15 +1,15 @@
 ---
-title: Pull from Inkeep Cloud
-sidebarTitle: Pull from Cloud
-description: Pull agent configurations from Inkeep Cloud to your local TypeScript project
+title: Pull from remote Inkeep instance
+sidebarTitle: Pull from Remote
+description: Pull agent configurations from remote Inkeep instance to your local TypeScript project
 icon: LuCloudDownload
 ---
 
-This tutorial walks you through pulling agent configurations from Inkeep Cloud to your local project. Use pull to bootstrap a local project from the [Visual Builder](/visual-builder), sync remote changes made by teammates, or set up a new development environment.
+This tutorial walks you through pulling agent configurations from an remote Inkeep instance to your local project. Use pull to bootstrap a local project from the [Visual Builder](/visual-builder), sync remote changes made by teammates, or set up a new development environment.
 
 ## Prerequisites
 
-- Access to [Inkeep Cloud](https://inkeep.com/cloud-waitlist) or a [self-hosted deployment](/deployment/vercel)
+- Access to a remote Inkeep instance (e.g. [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav) or a [self-hosted deployment](/deployment/vercel))
 - The Inkeep CLI installed globally:
 
 ```bash
@@ -37,7 +37,7 @@ If you already have a local project directory with an `index.ts` file, navigate 
 cd my-project
 ```
 
-### Option B: Pull a new project from the cloud
+### Option B: Pull a new project from the remote instance
 
 If you don't have the project locally yet, you'll specify the project ID in the next step. The CLI creates a new directory for it automatically.
 
@@ -58,7 +58,7 @@ inkeep pull
 The CLI will:
 1. Detect the project from your `index.ts` file
 2. Resolve configuration — your active [CLI profile](/guides/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
-3. Fetch the latest configuration from Inkeep Cloud
+3. Fetch the latest configuration from the remote instance
 4. Compare remote changes against your local files
 5. Generate updated TypeScript files, preserving your local code structure
 
@@ -143,7 +143,7 @@ To regenerate all files from scratch, ignoring local changes:
 inkeep pull --introspect
 ```
 
-This bypasses the smart comparison and rebuilds every TypeScript file from the remote configuration. Use this when your local files are in a broken state or you want a clean slate that matches the cloud exactly.
+This bypasses the smart comparison and rebuilds every TypeScript file from the remote configuration. Use this when your local files are in a broken state or you want a clean slate that matches the remote instance exactly.
 
 <Note>
 The `--introspect` flag overwrites all local files. Commit or back up any local changes you want to keep before using it.
@@ -172,8 +172,8 @@ This outputs the project configuration as JSON, which is useful for debugging or
 ## What's next
 
 <Cards>
-  <Card title="Push to Cloud" icon="LuCloudUpload" href="/guides/cli/push-to-cloud">
-    Push local changes back to Inkeep Cloud
+  <Card title="Push to Remote" icon="LuCloudUpload" href="/guides/cli/push-to-remote">
+    Push local changes back to remote instance
   </Card>
   <Card title="CLI Reference" icon="LuTerminal" href="/typescript-sdk/cli-reference">
     Full reference for all CLI commands and options

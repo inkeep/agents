@@ -72,6 +72,7 @@ interface ChannelDefaultsSectionProps {
   onSetChannelAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
   onResetChannelToDefault: (channelId: string, channelName: string) => void;
   onBulkSetAgent: (agent: SlackAgentOption) => void;
+  onToggleGrantAccess: (channelId: string, grantAccess: boolean) => void;
   onBulkResetToDefault: () => void;
   onClearFilters: () => void;
 }
@@ -95,6 +96,7 @@ export function ChannelDefaultsSection({
   onClearSelection,
   onSetChannelAgent,
   onResetChannelToDefault,
+  onToggleGrantAccess,
   onBulkSetAgent,
   onBulkResetToDefault,
   onClearFilters,
@@ -299,6 +301,7 @@ export function ChannelDefaultsSection({
                         savingChannel={savingChannel}
                         onSetAgent={onSetChannelAgent}
                         onResetToDefault={onResetChannelToDefault}
+                        onToggleGrantAccess={onToggleGrantAccess}
                       />
                     </TableCell>
                   </TableRow>

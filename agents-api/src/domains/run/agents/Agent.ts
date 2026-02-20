@@ -938,6 +938,8 @@ export class Agent {
                 await streamHelper.writeToolApprovalRequest({
                   approvalId: `aitxt-${toolCallId}`,
                   toolCallId,
+                  toolName,
+                  input: finalArgs as Record<string, unknown>,
                 });
               } else if (this.isDelegatedAgent) {
                 const streamRequestId = this.getStreamRequestId();
@@ -1566,6 +1568,8 @@ export class Agent {
                 await streamHelper.writeToolApprovalRequest({
                   approvalId: `aitxt-${toolCallId}`,
                   toolCallId,
+                  toolName: functionToolDef.name,
+                  input: finalArgs as Record<string, unknown>,
                 });
               } else if (this.isDelegatedAgent) {
                 const streamRequestId = this.getStreamRequestId();

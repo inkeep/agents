@@ -12,14 +12,31 @@ import appPackageJson from '../package.json' with { type: 'json' };
 
 const NODE_MODULES_PATH = '.next/node_modules';
 
+async function readPkgJson(pkgPath: string): Promise<{ name: string; version: string } | null> {
+  try {
+    const raw = await fs.readFile(path.join(pkgPath, 'package.json'), 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 fs.readdir(NODE_MODULES_PATH).then(async (dirs) => {
   const newAppPkgJson = structuredClone(appPackageJson);
   for (const dir of dirs) {
-    const pkgJsonPath = path.join('..', NODE_MODULES_PATH, dir, 'package.json');
-    // @ts-expect-error -- ignore type error
-    const { default: pkgJson } = await import(pkgJsonPath, { with: { type: 'json' } });
-    // Add dependency with hash
-    newAppPkgJson.dependencies[dir] = `npm:${pkgJson.name}@${pkgJson.version}`;
+    const pkgJson = await readPkgJson(path.join(NODE_MODULES_PATH, dir));
+    if (pkgJson) {
+      newAppPkgJson.dependencies[dir] = `npm:${pkgJson.name}@${pkgJson.version}`;
+      continue;
+    }
+    const subDirs = await fs.readdir(path.join(NODE_MODULES_PATH, dir));
+    for (const subDir of subDirs) {
+      const subPkgJson = await readPkgJson(path.join(NODE_MODULES_PATH, dir, subDir));
+      if (subPkgJson) {
+        newAppPkgJson.dependencies[`${dir}/${subDir}`] =
+          `npm:${subPkgJson.name}@${subPkgJson.version}`;
+      }
+    }
   }
   const content = JSON.stringify(newAppPkgJson, null, 2);
   await fs.writeFile('package.json', `${content}\n`, 'utf8');

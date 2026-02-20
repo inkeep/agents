@@ -5,17 +5,28 @@
  * Streams responses incrementally to Slack using chatStream API.
  */
 
+import { getInProcessFetch } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { createContextBlock } from '../blocks';
+import {
+  buildToolApprovalBlocks,
+  buildToolApprovalExpiredBlocks,
+  createContextBlock,
+  type ToolApprovalButtonValue,
+} from '../blocks';
 import type { getSlackClient } from '../client';
-import { classifyError, getUserFriendlyErrorMessage, SlackErrorType } from './utils';
+import {
+  classifyError,
+  extractApiErrorMessage,
+  getUserFriendlyErrorMessage,
+  SlackErrorType,
+} from './utils';
 
 const logger = getLogger('slack-streaming');
 
-const STREAM_TIMEOUT_MS = 120_000;
-const CHATSTREAM_OP_TIMEOUT_MS = 10_000;
+const STREAM_TIMEOUT_MS = 600_000;
+const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;
 
@@ -52,7 +63,7 @@ export async function streamAgentResponse(params: {
   agentId: string;
   question: string;
   agentName: string;
-  conversationId?: string;
+  conversationId: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -86,6 +97,15 @@ export async function streamAgentResponse(params: {
     );
 
     const abortController = new AbortController();
+    // Resolved when the abort fires — used in Promise.race so that a blocked
+    // reader.read() is unblocked immediately even when the in-process Hono
+    // ReadableStream does not propagate the AbortSignal through its pipeline.
+    const abortPromise = new Promise<never>((_, reject) => {
+      abortController.signal.addEventListener('abort', () => reject(new Error('Stream timeout')), {
+        once: true,
+      });
+    });
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     const timeoutId = setTimeout(() => {
       logger.warn({ channel, threadTs, timeoutMs: STREAM_TIMEOUT_MS }, 'Stream timeout reached');
       abortController.abort();
@@ -93,7 +113,7 @@ export async function streamAgentResponse(params: {
 
     let response: Response;
     try {
-      response = await fetch(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,8 +180,11 @@ export async function streamAgentResponse(params: {
       const errorBody = await response.text().catch(() => 'Unknown error');
       logger.error({ status: response.status, errorBody }, 'Agent streaming request failed');
 
+      const apiMessage = extractApiErrorMessage(errorBody);
       const errorType = classifyError(null, response.status);
-      const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
+      const errorMessage = apiMessage
+        ? `*Error.* ${apiMessage}`
+        : getUserFriendlyErrorMessage(errorType, agentName);
 
       await slackClient.chat.postMessage({
         channel,
@@ -208,7 +231,7 @@ export async function streamAgentResponse(params: {
       return { success: false, errorType, errorMessage };
     }
 
-    const reader = response.body.getReader();
+    reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     let fullText = '';
@@ -220,11 +243,13 @@ export async function streamAgentResponse(params: {
       thread_ts: threadTs,
     });
 
+    const pendingApprovalMessages: Array<{ messageTs: string; toolName: string }> = [];
+
     try {
       let agentCompleted = false;
 
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await Promise.race([reader.read(), abortPromise]);
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -244,6 +269,47 @@ export async function streamAgentResponse(params: {
                 agentCompleted = true;
                 break;
               }
+              continue;
+            }
+
+            if (data.type === 'tool-approval-request' && conversationId) {
+              const toolName: string = data.toolName || 'Tool';
+              const toolCallId: string = data.toolCallId;
+              const input: Record<string, unknown> | undefined = data.input;
+
+              const buttonValue: ToolApprovalButtonValue = {
+                toolCallId,
+                conversationId,
+                projectId,
+                agentId,
+                slackUserId,
+                channel,
+                threadTs,
+                toolName,
+              };
+
+              const approvalPost = await slackClient.chat
+                .postMessage({
+                  channel,
+                  thread_ts: threadTs,
+                  text: `Tool approval required: \`${toolName}\``,
+                  blocks: buildToolApprovalBlocks({
+                    toolName,
+                    input,
+                    buttonValue: JSON.stringify(buttonValue),
+                  }),
+                })
+                .catch((e) => {
+                  logger.warn({ error: e, toolCallId }, 'Failed to post tool approval message');
+                  return null;
+                });
+              if (approvalPost?.ts) {
+                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName });
+              }
+              // Clear the stream timeout — we're now waiting for human approval which
+              // can take minutes. The backend has its own APPROVAL_TIMEOUT_MS and will
+              // close the stream when that expires, triggering the expiry path in catch.
+              clearTimeout(timeoutId);
               continue;
             }
 
@@ -325,7 +391,19 @@ export async function streamAgentResponse(params: {
       return { success: true };
     } catch (streamError) {
       clearTimeout(timeoutId);
+      reader?.cancel().catch(() => {});
       if (streamError instanceof Error) setSpanWithError(span, streamError);
+
+      for (const { messageTs, toolName } of pendingApprovalMessages) {
+        await slackClient.chat
+          .update({
+            channel,
+            ts: messageTs,
+            text: `⏱️ Expired · \`${toolName}\``,
+            blocks: buildToolApprovalExpiredBlocks({ toolName }),
+          })
+          .catch((e) => logger.warn({ error: e, messageTs }, 'Failed to expire approval message'));
+      }
 
       const contentAlreadyDelivered = fullText.length > 0;
 
@@ -349,6 +427,35 @@ export async function streamAgentResponse(params: {
           }
         }
 
+        span.end();
+        return { success: true };
+      }
+
+      // Approval(s) expired — the stream ended while waiting for tool approval.
+      // The approval block is already updated to "Expired"; post a concise follow-up
+      // instead of the generic timeout error.
+      if (pendingApprovalMessages.length > 0) {
+        for (const { toolName } of pendingApprovalMessages) {
+          await slackClient.chat
+            .postMessage({
+              channel,
+              thread_ts: threadTs,
+              text: `Approval for \`${toolName}\` has expired.`,
+            })
+            .catch((e) =>
+              logger.warn({ error: e }, 'Failed to send approval expired notification')
+            );
+        }
+        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
+          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+        );
+        if (thinkingMessageTs) {
+          try {
+            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
+          } catch {
+            // Ignore
+          }
+        }
         span.end();
         return { success: true };
       }

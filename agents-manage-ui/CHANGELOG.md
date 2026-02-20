@@ -1,5 +1,36 @@
 # @inkeep/agents-manage-ui
 
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- d50fa44: Released Gemini 3.1-pro
+- 13197d8: improve trace performance
+- 0aea45a: Add OpenTelemetry instrumentation for server-side tracing
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
 ## 0.50.2
 
 ### Patch Changes

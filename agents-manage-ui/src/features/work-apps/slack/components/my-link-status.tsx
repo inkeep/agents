@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Link2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Link2, Loader2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSlackLinkedUsersQuery } from '../api/queries';
@@ -59,6 +59,20 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
                 Linked as{' '}
                 <span className="font-medium">{myLink.slackUsername || myLink.slackEmail}</span>
                 {myLink.linkedAt && <> on {formatDate(myLink.linkedAt)}</>}
+                {myLink.slackUserId && (
+                  <>
+                    {' \u00b7 '}
+                    <a
+                      href={`https://app.slack.com/team/${myLink.slackUserId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                    >
+                      View in Slack
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </div>

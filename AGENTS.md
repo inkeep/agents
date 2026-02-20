@@ -338,7 +338,7 @@ git worktree prune
 - **Implement cleanup mechanisms** for debug files and logs to prevent memory leaks
 
 ### Internal Self-Calls: `getInProcessFetch()` vs `fetch`
-Any code in `agents-api` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `agents-api/src/utils/in-process-fetch.ts` instead of the global `fetch`.
+Any code in `agents-api` or `agents-work-apps` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `@inkeep/agents-core` instead of the global `fetch`.
 
 - `getInProcessFetch()` routes the request through the Hono app's middleware stack **in-process**, guaranteeing it stays on the same instance.
 - Global `fetch` sends the request over the network, where a load balancer may route it to a **different** instance — breaking features that depend on process-local state (e.g. the stream helper registry for SSE streaming).
@@ -350,6 +350,7 @@ Any code in `agents-api` that makes **internal A2A calls or self-referencing API
 | Internal A2A delegation/transfer (same service) | `getInProcessFetch()` |
 | Eval service calling the chat API on itself | `getInProcessFetch()` |
 | Forwarding requests to internal workflow routes | `getInProcessFetch()` |
+| Slack/work-app calls to `/run/api/chat` or `/manage/` routes | `getInProcessFetch()` |
 | Calling an **external** service or third-party API | Global `fetch` |
 | Test environments (falls back automatically) | Either (auto-fallback) |
 
