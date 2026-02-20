@@ -62,7 +62,7 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('credentialReference: {');
       expect(definition).toContain("id: 'weather-api-credentials',");
       expect(definition).toContain("name: 'Weather API Credentials',");
-      expect(definition).toContain("description: 'API credentials for weather service'");
+      expect(definition).toContain("description: 'API credentials for weather service',");
       expect(definition).toContain('}');
 
       await expectSnapshots(definition);
@@ -77,10 +77,7 @@ describe('External Agent Generator', () => {
 
       const definition = generateExternalAgentDefinition({
         externalAgentId,
-        dataWithCredRef,
-        undefined,
-        mockRegistry
-      );
+        ...dataWithCredRef,
       });
 
       expect(definition).toContain('export const credRefAgent = externalAgent({');
@@ -170,7 +167,7 @@ describe('External Agent Generator', () => {
       });
 
       expect(definition).toContain('credentialReference: {');
-      expect(definition).toContain("id: 'partial-cred'");
+      expect(definition).toContain("id: 'partial-cred',");
       expect(definition).not.toContain("name: 'Full API Credentials'"); // Should not contain credential name
       expect(definition).not.toContain("description: 'Complete API credentials'"); // Should not contain credential description
 
