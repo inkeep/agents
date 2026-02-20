@@ -5,17 +5,23 @@
  * Streams responses incrementally to Slack using chatStream API.
  */
 
+import { getInProcessFetch } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import { createContextBlock } from '../blocks';
 import type { getSlackClient } from '../client';
-import { classifyError, getUserFriendlyErrorMessage, SlackErrorType } from './utils';
+import {
+  classifyError,
+  extractApiErrorMessage,
+  getUserFriendlyErrorMessage,
+  SlackErrorType,
+} from './utils';
 
 const logger = getLogger('slack-streaming');
 
-const STREAM_TIMEOUT_MS = 120_000;
-const CHATSTREAM_OP_TIMEOUT_MS = 10_000;
+const STREAM_TIMEOUT_MS = 600_000;
+const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;
 
@@ -93,7 +99,7 @@ export async function streamAgentResponse(params: {
 
     let response: Response;
     try {
-      response = await fetch(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,8 +166,11 @@ export async function streamAgentResponse(params: {
       const errorBody = await response.text().catch(() => 'Unknown error');
       logger.error({ status: response.status, errorBody }, 'Agent streaming request failed');
 
+      const apiMessage = extractApiErrorMessage(errorBody);
       const errorType = classifyError(null, response.status);
-      const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
+      const errorMessage = apiMessage
+        ? `*Error.* ${apiMessage}`
+        : getUserFriendlyErrorMessage(errorType, agentName);
 
       await slackClient.chat.postMessage({
         channel,

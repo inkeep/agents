@@ -18,6 +18,7 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
+import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   getSlackChannelInfo,
   getSlackClient,
@@ -25,7 +26,6 @@ import {
   postMessageInThread,
 } from '../client';
 import { findWorkspaceConnectionByTeamId } from '../nango';
-import { getBotTokenForTeam } from '../workspace-tokens';
 import { streamAgentResponse } from './streaming';
 import {
   checkIfBotThread,
@@ -35,7 +35,6 @@ import {
   generateSlackConversationId,
   getThreadContext,
   getUserFriendlyErrorMessage,
-  resolveChannelAgentConfig,
   timedOp,
 } from './utils';
 
@@ -99,15 +98,13 @@ export async function handleAppMention(params: {
       context: { teamId },
     });
 
-    const botToken =
-      workspaceConnection?.botToken || getBotTokenForTeam(teamId) || env.SLACK_BOT_TOKEN;
-    if (!botToken) {
+    if (!workspaceConnection?.botToken) {
       logger.error({ teamId }, 'No bot token available — cannot respond to @mention');
       span.end();
       return;
     }
 
-    const tenantId = workspaceConnection?.tenantId;
+    const { botToken, tenantId } = workspaceConnection;
     if (!tenantId) {
       logger.error(
         { teamId },
@@ -141,7 +138,7 @@ export async function handleAppMention(params: {
         result: [agentConfig, existingLink],
       } = await timedOp(
         Promise.all([
-          resolveChannelAgentConfig(teamId, channel, workspaceConnection),
+          resolveEffectiveAgent({ tenantId, teamId, channelId: channel }),
           findCachedUserMapping(tenantId, slackUserId, teamId),
         ]),
         {
@@ -164,6 +161,8 @@ export async function handleAppMention(params: {
 
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentConfig.agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, agentConfig.projectId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, agentConfig.grantAccessToMembers);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTH_SOURCE, agentConfig.source);
       const agentDisplayName = agentConfig.agentName || agentConfig.agentId;
 
       if (!existingLink) {
@@ -237,12 +236,16 @@ export async function handleAppMention(params: {
           return;
         }
 
-        // Sign JWT token for authentication
+        // Sign JWT token for authentication with channel auth context
         const slackUserToken = await signSlackUserToken({
           inkeepUserId: existingLink.inkeepUserId,
           tenantId,
           slackTeamId: teamId,
           slackUserId,
+          slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
+          slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
+          slackChannelId: channel,
+          slackAuthorizedProjectId: agentConfig?.projectId,
         });
 
         // Post acknowledgement message
@@ -335,12 +338,16 @@ Respond naturally as if you're joining the conversation to help.`;
         queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
       }
 
-      // Sign JWT token for authentication
+      // Sign JWT token for authentication with channel auth context
       const slackUserToken = await signSlackUserToken({
         inkeepUserId: existingLink.inkeepUserId,
         tenantId,
         slackTeamId: teamId,
         slackUserId,
+        slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
+        slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
+        slackChannelId: channel,
+        slackAuthorizedProjectId: agentConfig?.projectId,
       });
 
       // Post acknowledgement message

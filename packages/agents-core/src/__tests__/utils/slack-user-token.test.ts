@@ -43,6 +43,59 @@ describe('slack-user-token', () => {
       expect(result.valid).toBe(true);
       expect(result.payload?.slack.enterpriseId).toBeUndefined();
     });
+
+    it('should include channel auth claims when provided', async () => {
+      const token = await signSlackUserToken({
+        ...validParams,
+        slackAuthorized: true,
+        slackAuthSource: 'channel',
+        slackChannelId: 'C12345678',
+        slackAuthorizedProjectId: 'proj_abc',
+      });
+      const result = await verifySlackUserToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.slack.authorized).toBe(true);
+      expect(result.payload?.slack.authSource).toBe('channel');
+      expect(result.payload?.slack.channelId).toBe('C12345678');
+      expect(result.payload?.slack.authorizedProjectId).toBe('proj_abc');
+    });
+
+    it('should include workspace auth source when provided', async () => {
+      const token = await signSlackUserToken({
+        ...validParams,
+        slackAuthorized: true,
+        slackAuthSource: 'workspace',
+        slackChannelId: 'C12345678',
+        slackAuthorizedProjectId: 'proj_abc',
+      });
+      const result = await verifySlackUserToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.slack.authSource).toBe('workspace');
+    });
+
+    it('should not include channel auth claims when not provided', async () => {
+      const token = await signSlackUserToken(validParams);
+      const result = await verifySlackUserToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.slack.authorized).toBeUndefined();
+      expect(result.payload?.slack.authSource).toBeUndefined();
+      expect(result.payload?.slack.channelId).toBeUndefined();
+      expect(result.payload?.slack.authorizedProjectId).toBeUndefined();
+    });
+
+    it('should include slackAuthorized: false when explicitly set', async () => {
+      const token = await signSlackUserToken({
+        ...validParams,
+        slackAuthorized: false,
+      });
+      const result = await verifySlackUserToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.slack.authorized).toBe(false);
+    });
   });
 
   describe('verifySlackUserToken', () => {
@@ -189,6 +242,116 @@ describe('slack-user-token', () => {
         slack: {
           teamId: 'T12345678',
           userId: 'U87654321',
+        },
+      };
+
+      const result = SlackAccessTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+
+    it('should validate payload with channel auth claims', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'inkeep-api',
+        sub: 'user_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+        tokenUse: 'slackUser',
+        act: { sub: 'inkeep-work-app-slack' },
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+          authorized: true,
+          authSource: 'channel',
+          channelId: 'C12345678',
+          authorizedProjectId: 'proj_abc',
+        },
+      };
+
+      const result = SlackAccessTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate payload without channel auth claims (backward compat)', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'inkeep-api',
+        sub: 'user_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+        tokenUse: 'slackUser',
+        act: { sub: 'inkeep-work-app-slack' },
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+        },
+      };
+
+      const result = SlackAccessTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject payload with invalid authSource', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'inkeep-api',
+        sub: 'user_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+        tokenUse: 'slackUser',
+        act: { sub: 'inkeep-work-app-slack' },
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+          authorized: true,
+          authSource: 'invalid_source',
+        },
+      };
+
+      const result = SlackAccessTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject payload with authorized true but missing authorizedProjectId', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'inkeep-api',
+        sub: 'user_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+        tokenUse: 'slackUser',
+        act: { sub: 'inkeep-work-app-slack' },
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+          authorized: true,
+          authSource: 'channel',
+        },
+      };
+
+      const result = SlackAccessTokenPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject payload with authorized true but missing authSource', () => {
+      const payload = {
+        iss: 'inkeep-auth',
+        aud: 'inkeep-api',
+        sub: 'user_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+        tokenUse: 'slackUser',
+        act: { sub: 'inkeep-work-app-slack' },
+        tenantId: 'tenant_456',
+        slack: {
+          teamId: 'T12345678',
+          userId: 'U87654321',
+          authorized: true,
+          authorizedProjectId: 'proj_abc',
         },
       };
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { Check, ChevronDown, Loader2, RotateCcw } from 'lucide-react';
+import { Check, ChevronDown, Loader2, RotateCcw, ShieldCheck, SlackIcon } from 'lucide-react';
 import { memo, useState } from 'react';
+import { InkeepIconMono } from '@/components/icons/inkeep';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -13,6 +14,8 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Channel, SlackAgentOption } from './types';
 
@@ -22,6 +25,7 @@ interface ChannelAgentCellProps {
   savingChannel: string | null;
   onSetAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
   onResetToDefault: (channelId: string, channelName: string) => void;
+  onToggleGrantAccess: (channelId: string, grantAccess: boolean) => void;
 }
 
 export const ChannelAgentCell = memo(function ChannelAgentCell({
@@ -30,6 +34,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
   savingChannel,
   onSetAgent,
   onResetToDefault,
+  onToggleGrantAccess,
 }: ChannelAgentCellProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -41,8 +46,37 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
     );
   }
 
+  const grantAccess = channel.agentConfig?.grantAccessToMembers ?? true;
+
   return (
-    <div className="flex min-w-0 items-center justify-end gap-2">
+    <div className="flex min-w-0 items-center justify-end gap-1">
+      {channel.hasAgentConfig && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              role="img"
+              aria-label={
+                grantAccess
+                  ? 'Authenticated via Slack channel membership'
+                  : 'Explicit Inkeep project access required'
+              }
+              className="inline-flex shrink-0 items-center gap-0.5 text-muted-foreground"
+            >
+              {grantAccess ? (
+                <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
+              ) : (
+                <InkeepIconMono aria-hidden="true" className="h-3.5 w-3.5" />
+              )}
+              <ShieldCheck aria-hidden="true" className="h-3 w-3" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-[240px]">
+            {grantAccess
+              ? 'Slack channel membership grants access — no explicit project invite needed.'
+              : 'Only users with explicit Inkeep project access can use this agent.'}
+          </TooltipContent>
+        </Tooltip>
+      )}
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className={cn('h-8 min-w-0 max-w-full text-xs')}>
@@ -75,6 +109,32 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                       Reset to workspace default
                     </CommandItem>
                   </CommandGroup>
+                  <CommandSeparator />
+                  <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label
+                          htmlFor={`grant-access-${channel.id}`}
+                          className="flex items-center gap-2 text-xs cursor-pointer"
+                        >
+                          <span className="inline-flex items-center gap-0.5 text-muted-foreground">
+                            <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                            <ShieldCheck aria-hidden="true" className="h-3 w-3" />
+                          </span>
+                          <span>Grant access to members</span>
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[220px]">
+                        When enabled, channel members can use this agent without explicit project
+                        access.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Switch
+                      id={`grant-access-${channel.id}`}
+                      checked={channel.agentConfig?.grantAccessToMembers ?? true}
+                      onCheckedChange={(checked) => onToggleGrantAccess(channel.id, checked)}
+                    />
+                  </div>
                   <CommandSeparator />
                 </>
               )}

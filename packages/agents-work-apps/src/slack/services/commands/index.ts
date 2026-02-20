@@ -3,6 +3,7 @@ import {
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingBySlackUser,
   flushTraces,
+  getInProcessFetch,
   getWaitUntil,
   signSlackLinkToken,
   signSlackUserToken,
@@ -24,6 +25,7 @@ import {
 } from '../blocks';
 import { getSlackClient } from '../client';
 import {
+  extractApiErrorMessage,
   fetchAgentsForProject,
   fetchProjectsForTenant,
   getChannelAgentConfig,
@@ -336,7 +338,13 @@ export async function handleQuestionCommand(
     existingLink,
     targetAgent,
     question,
-    userTenantId
+    userTenantId,
+    {
+      slackAuthorized: resolvedAgent.grantAccessToMembers,
+      slackAuthSource: resolvedAgent.source === 'none' ? undefined : resolvedAgent.source,
+      slackChannelId: payload.channelId,
+      slackAuthorizedProjectId: resolvedAgent.projectId,
+    }
   )
     .catch((error) => {
       logger.error({ error }, 'Background execution promise rejected');
@@ -355,7 +363,13 @@ async function executeAgentInBackground(
   existingLink: { inkeepUserId: string },
   targetAgent: { id: string; name: string | null; projectId: string },
   question: string,
-  tenantId: string
+  tenantId: string,
+  channelAuth?: {
+    slackAuthorized?: boolean;
+    slackAuthSource?: 'channel' | 'workspace';
+    slackChannelId?: string;
+    slackAuthorizedProjectId?: string;
+  }
 ): Promise<void> {
   try {
     const slackUserToken = await signSlackUserToken({
@@ -364,6 +378,7 @@ async function executeAgentInBackground(
       slackTeamId: payload.teamId,
       slackUserId: payload.userId,
       slackEnterpriseId: payload.enterpriseId,
+      ...channelAuth,
     });
 
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
@@ -373,7 +388,7 @@ async function executeAgentInBackground(
 
     let response: Response;
     try {
-      response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -416,9 +431,13 @@ async function executeAgentInBackground(
         },
         'Run API call failed'
       );
+      const apiMessage = extractApiErrorMessage(errorText);
+      const errorMessage = apiMessage
+        ? `*Error.* ${apiMessage}`
+        : `Failed to run agent: ${response.status} ${response.statusText}`;
       await sendResponseUrlMessage(payload.responseUrl, {
         response_type: 'ephemeral',
-        text: `Failed to run agent: ${response.status} ${response.statusText}`,
+        text: errorMessage,
       });
     } else {
       const result = await response.json();

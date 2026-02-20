@@ -6,6 +6,7 @@ import {
   generateId,
   generateServiceToken,
   getActiveAgentForConversation,
+  getInProcessFetch,
   getTask,
   type ModelSettings,
   type Part,
@@ -17,7 +18,6 @@ import {
 import runDbClient from '../../../data/db/runDbClient.js';
 import { flushBatchProcessor } from '../../../instrumentation.js';
 import { getLogger } from '../../../logger.js';
-import { getInProcessFetch } from '../../../utils/in-process-fetch.js';
 import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';

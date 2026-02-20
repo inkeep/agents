@@ -38491,6 +38491,9 @@
                         "agentName": {
                           "type": "string"
                         },
+                        "grantAccessToMembers": {
+                          "type": "boolean"
+                        },
                         "projectId": {
                           "type": "string"
                         },
@@ -38596,6 +38599,9 @@
                               },
                               "agentName": {
                                 "type": "string"
+                              },
+                              "grantAccessToMembers": {
+                                "type": "boolean"
                               },
                               "projectId": {
                                 "type": "string"
@@ -38764,6 +38770,9 @@
                       },
                       "agentName": {
                         "type": "string"
+                      },
+                      "grantAccessToMembers": {
+                        "type": "boolean"
                       },
                       "projectId": {
                         "type": "string"
@@ -38947,6 +38956,9 @@
                         "agentName": {
                           "type": "string"
                         },
+                        "grantAccessToMembers": {
+                          "type": "boolean"
+                        },
                         "projectId": {
                           "type": "string"
                         },
@@ -39017,6 +39029,9 @@
                       },
                       "agentName": {
                         "type": "string"
+                      },
+                      "grantAccessToMembers": {
+                        "type": "boolean"
                       },
                       "projectId": {
                         "type": "string"
@@ -39192,6 +39207,9 @@
                         "agentName": {
                           "type": "string"
                         },
+                        "grantAccessToMembers": {
+                          "type": "boolean"
+                        },
                         "projectId": {
                           "type": "string"
                         },
@@ -39248,6 +39266,9 @@
                       },
                       "agentName": {
                         "type": "string"
+                      },
+                      "grantAccessToMembers": {
+                        "type": "boolean"
                       },
                       "projectId": {
                         "type": "string"

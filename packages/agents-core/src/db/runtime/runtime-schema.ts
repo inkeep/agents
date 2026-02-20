@@ -280,6 +280,7 @@ export const workAppSlackChannelAgentConfigs = pgTable(
       onDelete: 'set null',
     }),
     enabled: boolean('enabled').notNull().default(true),
+    grantAccessToMembers: boolean('grant_access_to_members').notNull().default(true),
     ...timestamps,
   },
   (table) => [

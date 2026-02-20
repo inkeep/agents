@@ -120,7 +120,18 @@ export function LinkedUsersSection() {
       </Avatar>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">
-          {user.slackUsername || user.slackEmail || 'Unknown User'}
+          {user.slackUserId ? (
+            <a
+              href={`https://app.slack.com/team/${user.slackUserId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {user.slackUsername || user.slackEmail || 'Unknown User'}
+            </a>
+          ) : (
+            user.slackUsername || user.slackEmail || 'Unknown User'
+          )}
         </p>
         <p className="text-xs text-muted-foreground">Linked {formatDateAgo(user.linkedAt)}</p>
       </div>

@@ -70,6 +70,7 @@ const ChannelAgentConfigSchema = z.object({
   agentId: z.string(),
   agentName: z.string().optional(),
   projectName: z.string().optional(),
+  grantAccessToMembers: z.boolean().optional(),
 });
 
 const WorkspaceSettingsSchema = z.object({
@@ -535,6 +536,7 @@ app.openapi(
                 projectId: config.projectId,
                 agentId: config.agentId,
                 agentName: config.agentName || undefined,
+                grantAccessToMembers: config.grantAccessToMembers,
               }
             : undefined,
         };
@@ -603,6 +605,7 @@ app.openapi(
             projectId: config.projectId,
             agentId: config.agentId,
             agentName: config.agentName || undefined,
+            grantAccessToMembers: config.grantAccessToMembers,
           }
         : undefined,
     });
@@ -669,6 +672,7 @@ app.openapi(
       projectId: body.agentConfig.projectId,
       agentId: body.agentConfig.agentId,
       agentName: body.agentConfig.agentName,
+      grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
       enabled: true,
     });
 
@@ -769,6 +773,7 @@ app.openapi(
             projectId: body.agentConfig.projectId,
             agentId: body.agentConfig.agentId,
             agentName: body.agentConfig.agentName,
+            grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
             enabled: true,
           });
           updated++;

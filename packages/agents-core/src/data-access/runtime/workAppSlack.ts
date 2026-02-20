@@ -375,6 +375,7 @@ export const upsertWorkAppSlackChannelAgentConfig =
           slackChannelName: data.slackChannelName,
           slackChannelType: data.slackChannelType,
           enabled: data.enabled,
+          grantAccessToMembers: data.grantAccessToMembers,
           configuredByUserId: data.configuredByUserId,
           updatedAt: now,
         },

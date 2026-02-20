@@ -242,7 +242,7 @@ export function createAuth(config: BetterAuthConfig) {
       updateAge: 60 * 60 * 24,
       cookieCache: {
         enabled: true,
-        maxAge: 5 * 60,
+        maxAge: 30,
         strategy: 'compact',
       },
     },
@@ -363,18 +363,26 @@ export function createAuth(config: BetterAuthConfig) {
               );
             }
           },
-          afterRemoveMember: async ({ member, organization: org }) => {
+          beforeRemoveMember: async ({ member, organization: org }) => {
             try {
-              const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
-              await syncOrgMemberToSpiceDb({
+              const { revokeAllUserRelationships } = await import('./authz/sync');
+
+              // Remove all SpiceDB relationships for this user within the organization
+              // This includes both organization-level and project-level relationships
+              await revokeAllUserRelationships({
                 tenantId: org.id,
                 userId: member.userId,
-                role: member.role as OrgRole,
-                action: 'remove',
               });
-              console.log(`🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`);
+
+              console.log(
+                `🔐 SpiceDB: Preparing to remove member ${member.userId} - revoked all relationships in org ${org.name}`
+              );
             } catch (error) {
-              console.error('❌ SpiceDB sync failed for member removal:', error);
+              console.error('❌ SpiceDB cleanup failed before member removal:', error);
+              // Re-throw to prevent member removal if SpiceDB cleanup fails
+              throw new Error(
+                `Failed to clean up user permissions: ${error instanceof Error ? error.message : 'Unknown error'}`
+              );
             }
           },
         },
