@@ -31,8 +31,45 @@ interface CreateFactoryDefinitionOptions {
   fileName?: string;
   /** @default "@inkeep/agents-sdk" */
   moduleSpecifier?: string;
+  syntaxKind?: SyntaxKind.CallExpression | SyntaxKind.NewExpression;
+}
+
+interface AddFactoryConfigVariableOptions {
+  sourceFile: SourceFile;
+  importName: string;
+  variableName: string;
+  isExported?: boolean;
   /** @default SyntaxKind.CallExpression */
   syntaxKind?: SyntaxKind.CallExpression | SyntaxKind.NewExpression;
+}
+
+/**
+ * Create variable in following pattern
+ *
+ * (export)? const VARIABLE_NAME = (new)?IMPORT_NAME({})
+ */
+export function addFactoryConfigVariable({
+  sourceFile,
+  importName,
+  variableName,
+  isExported,
+  syntaxKind = SyntaxKind.CallExpression,
+}: AddFactoryConfigVariableOptions): {
+  configObject: ObjectLiteralExpression;
+} {
+  const initializer = `${syntaxKind === SyntaxKind.NewExpression ? 'new ' : ''}${importName}({})`;
+  const variableStatement = sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    isExported,
+    declarations: [{ name: variableName, initializer }],
+  });
+  const [declaration] = variableStatement.getDeclarations();
+  const invocation = declaration.getInitializerIfKindOrThrow(syntaxKind);
+  const [configArg] = invocation.getArguments();
+
+  return {
+    configObject: configArg.asKindOrThrow(SyntaxKind.ObjectLiteralExpression),
+  };
 }
 
 export function createFactoryDefinition({
@@ -40,7 +77,7 @@ export function createFactoryDefinition({
   variableName: name,
   fileName = 'definition.ts',
   moduleSpecifier = '@inkeep/agents-sdk',
-  syntaxKind = SyntaxKind.CallExpression,
+  syntaxKind,
 }: CreateFactoryDefinitionOptions): {
   sourceFile: SourceFile;
   configObject: ObjectLiteralExpression;
@@ -49,24 +86,17 @@ export function createFactoryDefinition({
     overwrite: true,
   });
   sourceFile.addImportDeclaration({ namedImports: [importName], moduleSpecifier });
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
+  const { configObject } = addFactoryConfigVariable({
+    sourceFile,
+    importName,
+    variableName: name,
     isExported: true,
-    declarations: [
-      {
-        name,
-        initializer: `${syntaxKind === SyntaxKind.NewExpression ? 'new ' : ''}${importName}({})`,
-      },
-    ],
+    syntaxKind,
   });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const invocation = declaration.getInitializerIfKindOrThrow(syntaxKind);
-  const [configArg] = invocation.getArguments();
 
   return {
     sourceFile,
-    configObject: configArg.asKindOrThrow(SyntaxKind.ObjectLiteralExpression),
+    configObject,
   };
 }
 

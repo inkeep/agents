@@ -2,10 +2,10 @@ import {
   type ObjectLiteralExpression,
   type SourceFile,
   SyntaxKind,
-  VariableDeclarationKind,
 } from 'ts-morph';
 import { z } from 'zod';
 import {
+  addFactoryConfigVariable,
   addStringProperty,
   addValueToObject,
   convertJsonSchemaToZodSafe,
@@ -109,28 +109,11 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   }
   // @ts-expect-error -- fixme
   if (headersReference && isPlainObject(parsed.headersSchema)) {
-    const headersVariableStatement = sourceFile.addVariableStatement({
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          name: headersReference,
-          initializer: 'headers({})',
-        },
-      ],
+    const { configObject: headersObject } = addFactoryConfigVariable({
+      sourceFile,
+      importName: 'headers',
+      variableName: headersReference,
     });
-
-    const [headersDeclaration] = headersVariableStatement.getDeclarations();
-    if (!headersDeclaration) {
-      // @ts-expect-error -- fixme
-      throw new Error(`Failed to create headers declaration for '${parsed.contextConfigId}'`);
-    }
-
-    const headersCallExpression = headersDeclaration.getInitializerIfKindOrThrow(
-      SyntaxKind.CallExpression
-    );
-    const headersObject = headersCallExpression
-      .getArguments()[0]
-      ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
     headersObject.addPropertyAssignment({
       name: 'schema',
@@ -140,50 +123,22 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   }
 
   for (const fetchDefinition of fetchDefinitions) {
-    const fetchVariableStatement = sourceFile.addVariableStatement({
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          name: fetchDefinition.variableName,
-          initializer: 'fetchDefinition({})',
-        },
-      ],
+    const { configObject: fetchConfigObject } = addFactoryConfigVariable({
+      sourceFile,
+      importName: 'fetchDefinition',
+      variableName: fetchDefinition.variableName,
     });
-
-    const [fetchDeclaration] = fetchVariableStatement.getDeclarations();
-    if (!fetchDeclaration) {
-      throw new Error(
-        `Failed to create fetch definition declaration '${fetchDefinition.variableName}'`
-      );
-    }
-
-    const fetchCallExpression = fetchDeclaration.getInitializerIfKindOrThrow(
-      SyntaxKind.CallExpression
-    );
-    const fetchConfigObject = fetchCallExpression
-      .getArguments()[0]
-      ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
     // @ts-expect-error -- fixme
     writeFetchDefinition(fetchConfigObject, fetchDefinition.data, credentialReferenceNames);
   }
   // @ts-expect-error -- fixme
   const contextConfigVarName = toContextConfigVariableName(parsed.contextConfigId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
+  const { configObject } = addFactoryConfigVariable({
+    sourceFile,
+    importName: 'contextConfig',
+    variableName: contextConfigVarName,
     isExported: true,
-    declarations: [
-      {
-        name: contextConfigVarName,
-        initializer: 'contextConfig({})',
-      },
-    ],
   });
-
-  const [declaration] = variableStatement.getDeclarations();
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   writeContextConfig(configObject, parsed, headersReference);
 
@@ -336,20 +291,11 @@ function generateStandaloneHeadersDefinition(
   });
 
   const headersVarName = toContextConfigVariableName(data.contextConfigId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    declarations: [{ name: headersVarName, initializer: `${importName}({})` }],
+  const { configObject } = addFactoryConfigVariable({
+    sourceFile,
+    importName,
+    variableName: headersVarName,
   });
-
-  const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create headers declaration '${headersVarName}'`);
-  }
-
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   configObject.addPropertyAssignment({
     name: 'schema',
@@ -397,20 +343,11 @@ function generateStandaloneFetchDefinition(
   }
 
   const fetchVarName = toContextConfigVariableName(data.contextConfigId);
-  const variableStatement = sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    declarations: [{ name: fetchVarName, initializer: `${importName}({})` }],
+  const { configObject } = addFactoryConfigVariable({
+    sourceFile,
+    importName,
+    variableName: fetchVarName,
   });
-
-  const [declaration] = variableStatement.getDeclarations();
-  if (!declaration) {
-    throw new Error(`Failed to create fetch definition declaration '${fetchVarName}'`);
-  }
-
-  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
-  const configObject = callExpression
-    .getArguments()[0]
-    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
   writeFetchDefinition(configObject, data, credentialReferenceNames);
 
