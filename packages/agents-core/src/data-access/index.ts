@@ -26,9 +26,9 @@ export * from './manage/subAgents';
 export * from './manage/subAgentTeamAgentRelations';
 export * from './manage/tools';
 export * from './manage/triggers';
-
-// Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
+// Runtime data access (Postgres - not versioned)
+export * from './runtime/auth';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
