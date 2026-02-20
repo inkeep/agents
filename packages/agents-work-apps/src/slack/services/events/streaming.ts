@@ -298,6 +298,10 @@ export async function streamAgentResponse(params: {
               if (approvalPost?.ts) {
                 pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName });
               }
+              // Clear the stream timeout — we're now waiting for human approval which
+              // can take minutes. The backend has its own APPROVAL_TIMEOUT_MS and will
+              // close the stream when that expires, triggering the expiry path in catch.
+              clearTimeout(timeoutId);
               continue;
             }
 
