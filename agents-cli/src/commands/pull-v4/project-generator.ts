@@ -218,5 +218,5 @@ function toReferenceNames(
   references: string[],
   referenceOverrides?: Record<string, string>
 ): string[] {
-  return references.map((reference) => resolveReferenceName(reference, referenceOverrides));
+  return references.map((reference) => resolveReferenceName(reference, [referenceOverrides]));
 }
