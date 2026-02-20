@@ -80,8 +80,15 @@ export function JoinFromWorkspaceToggle() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Allow workspace members to join</Label>
-          <Switch checked={isEnabled} onCheckedChange={handleToggle} disabled={isUpdating} />
+          <Label htmlFor="join-from-workspace-switch" className="text-sm font-medium">
+            Allow workspace members to join
+          </Label>
+          <Switch
+            id="join-from-workspace-switch"
+            checked={isEnabled}
+            onCheckedChange={handleToggle}
+            disabled={isUpdating}
+          />
         </div>
 
         {isEnabled && (

@@ -368,7 +368,7 @@ app.openapi(
 
     const sessionTenantId = c.get('tenantId') as string | undefined;
     if (!sessionTenantId) {
-      return c.text('Unauthorized', 401);
+      return c.json({ error: 'Unauthorized' }, 401);
     }
 
     const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
@@ -430,13 +430,13 @@ app.openapi(
     // Get the session tenant ID for authorization
     const sessionTenantId = c.get('tenantId') as string | undefined;
     if (!sessionTenantId) {
-      return c.text('Unauthorized', 401);
+      return c.json({ error: 'Unauthorized' }, 401);
     }
 
     // Find the workspace in the database
     const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
     if (!workspace) {
-      return c.text('Workspace not found', 404);
+      return c.json({ error: 'Workspace not found' }, 404);
     }
 
     try {
@@ -450,7 +450,7 @@ app.openapi(
           { teamId, shouldAllowJoinFromWorkspace },
           'Failed to update join from workspace setting'
         );
-        return c.text('Failed to update setting', 500);
+        return c.json({ error: 'Failed to update setting' }, 500);
       }
 
       logger.info(
@@ -464,7 +464,7 @@ app.openapi(
         { teamId, shouldAllowJoinFromWorkspace, error },
         'Failed to update join from workspace setting'
       );
-      return c.text('Failed to update setting', 500);
+      return c.json({ error: 'Failed to update setting' }, 500);
     }
   }
 );
