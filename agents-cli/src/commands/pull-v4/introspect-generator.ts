@@ -1151,11 +1151,7 @@ function writeTypeScriptFile(
     overwrite: true,
   });
 
-  sourceFile.formatText({
-    // indentSize: 2,
-    // convertTabsToSpaces: true,
-    // semicolons: ts.SemicolonPreference.Insert,
-  });
+  sourceFile.formatText();
 
   const normalizedSourceFile = moveVariableDeclarationsBeforeUsage(
     applyObjectShorthand(sourceFile)

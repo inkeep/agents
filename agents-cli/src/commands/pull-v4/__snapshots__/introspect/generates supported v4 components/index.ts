@@ -10,11 +10,11 @@ export const supportProject = project({
   description: 'Support project for introspect v4 tests',
   models: {
     base: {
-      model: 'gpt-4o-mini'
-    }
+      model: 'gpt-4o-mini',
+    },
   },
   agents: () => [supportAgent],
   dataComponents: () => [customerProfile],
   artifactComponents: () => [ticketSummary],
-  credentialReferences: () => [apiCredentials]
+  credentialReferences: () => [apiCredentials],
 });

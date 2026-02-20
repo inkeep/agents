@@ -10,7 +10,7 @@ Index: agents/weather-agent.ts
 +  id: 'weather-assistant',
 +  description: 'Main weather assistant',
 +  name: 'Weather assistant',
-+  canDelegateTo: () => [weatherForecaster, geocoderAgent]
++  canDelegateTo: () => [weatherForecaster, geocoderAgent],
 +});
  
  export const weatherAgent = agent({

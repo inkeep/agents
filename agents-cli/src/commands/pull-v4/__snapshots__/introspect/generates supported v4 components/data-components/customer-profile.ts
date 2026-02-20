@@ -10,7 +10,7 @@ export const customerProfile = dataComponent({
     component: '<img src="{{avatarUrl}}" alt="{{fullName}}" />',
     mockData: {
       fullName: 'Ada Lovelace',
-      avatarUrl: 'https://example.com/avatar.png'
-    }
-  }
+      avatarUrl: 'https://example.com/avatar.png',
+    },
+  },
 });

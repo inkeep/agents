@@ -6,6 +6,6 @@ export const apiCredentials = credential({
   type: 'bearer',
   credentialStoreId: 'main-store',
   retrievalParams: {
-    key: 'token'
-  }
+    key: 'token',
+  },
 });

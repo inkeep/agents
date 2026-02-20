@@ -12,6 +12,6 @@ Index: credentials/api-credentials.ts
 -  credentialStoreId: 'main-store'
 +  credentialStoreId: 'main-store',
 +  retrievalParams: {
-+    key: 'token'
++    key: 'token',
 +  }
  });

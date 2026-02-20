@@ -6,5 +6,5 @@ export const ticketSummary = artifactComponent({
   name: 'Ticket Summary',
   props: z.object({
     title: z.string(),
-  })
+  }),
 });
