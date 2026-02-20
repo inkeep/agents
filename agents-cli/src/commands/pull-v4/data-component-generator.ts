@@ -1,11 +1,10 @@
-import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addObjectEntries,
   addStringProperty,
+  addValueToObject,
   convertJsonSchemaToZodSafe,
   createFactoryDefinition,
-  isPlainObject,
   toCamelCase,
 } from './utils';
 
@@ -91,26 +90,8 @@ function addRenderProperty(
   configObject: ObjectLiteralExpression,
   render: NonNullable<ParsedDataComponentDefinitionData['render']>
 ): void {
-  const renderProperty = configObject.addPropertyAssignment({
-    name: 'render',
-    initializer: '{}',
+  addValueToObject(configObject, 'render', {
+    component: render.component,
+    mockData: render.mockData,
   });
-  const renderObject = renderProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  if (render.component !== undefined) {
-    addStringProperty(renderObject, 'component', render.component);
-  }
-
-  if (render.mockData && isPlainObject(render.mockData)) {
-    const mockDataProperty = renderObject.addPropertyAssignment({
-      name: 'mockData',
-      initializer: '{}',
-    });
-    const mockDataObject = mockDataProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    addObjectEntries(mockDataObject, render.mockData);
-  }
 }
