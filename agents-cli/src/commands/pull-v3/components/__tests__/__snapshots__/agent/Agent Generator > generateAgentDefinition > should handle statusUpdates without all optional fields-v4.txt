@@ -10,6 +10,6 @@ export const partialStatusAgent = agent({
   subAgents: () => [subAgent1],
   statusUpdates: {
     numEvents: 5,
-    statusComponents: [summary.config]
-  }
+    statusComponents: [summary.config],
+  },
 });

@@ -6,5 +6,5 @@ export const noTransferAgent = agent({
   id: 'no-transfer-agent',
   name: 'No Transfer Count Agent',
   defaultSubAgent: defaultSubAgent,
-  subAgents: () => [subAgent1]
+  subAgents: () => [subAgent1],
 });

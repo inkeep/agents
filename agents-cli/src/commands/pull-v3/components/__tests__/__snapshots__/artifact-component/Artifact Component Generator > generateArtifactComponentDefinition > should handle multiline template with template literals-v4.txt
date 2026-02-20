@@ -14,5 +14,5 @@ export const test = artifactComponent({
       title: z.string(),
       url: z.string(),
       content: z.string(),
-    })
+    }),
 });

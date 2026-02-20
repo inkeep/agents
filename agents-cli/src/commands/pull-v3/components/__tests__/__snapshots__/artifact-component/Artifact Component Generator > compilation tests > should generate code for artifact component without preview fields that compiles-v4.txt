@@ -7,5 +7,5 @@ export const simpleArtifact = artifactComponent({
   description: 'A simple artifact component',
   props: z.object({
       value: z.string().describe("Simple value"),
-    })
+    }),
 });

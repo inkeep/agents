@@ -7,5 +7,5 @@ export const nested = artifactComponent({
   description: 'Component with nested objects',
   props: z.object({
       metadata: z.object({ "title": z.string().optional(), "internal": z.string().optional() }),
-    })
+    }),
 });

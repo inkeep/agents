@@ -8,5 +8,5 @@ export const test = artifactComponent({
   contentType: 'text/html',
   props: z.object({
       content: z.string(),
-    })
+    }),
 });

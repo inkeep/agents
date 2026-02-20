@@ -12,11 +12,11 @@ export const emptyStatusAgent = agent({
   subAgents: () => [mainAssistant, helperAgent, coordinatorAgent],
   contextConfig: complexAgentContext,
   stopWhen: {
-    transferCountIs: 5
+    transferCountIs: 5,
   },
   statusUpdates: {
     numEvents: 3,
     timeInSeconds: 15,
-    prompt: 'Test prompt'
-  }
+    prompt: 'Test prompt',
+  },
 });

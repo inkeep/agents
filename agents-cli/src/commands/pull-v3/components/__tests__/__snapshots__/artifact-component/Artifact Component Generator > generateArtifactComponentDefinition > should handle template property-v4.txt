@@ -8,5 +8,5 @@ export const test = artifactComponent({
   template: '<div>{{title}}</div>',
   props: z.object({
       title: z.string(),
-    })
+    }),
 });

@@ -1,5 +1,5 @@
 import { contextConfig } from '@inkeep/agents-core';
 
 export const headerOnlyContext = contextConfig({
-  headers: myHeaders
+  headers: myHeaders,
 });

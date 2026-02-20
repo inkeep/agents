@@ -15,6 +15,6 @@ export const multilineAgent = agent({
     timeInSeconds: 10,
     statusComponents: [statusConfig.config],
     prompt: `This is a very long prompt that should be handled as a multiline string
-It even contains newlines which should trigger multiline formatting`
-  }
+It even contains newlines which should trigger multiline formatting`,
+  },
 });

@@ -7,5 +7,5 @@ export const documentTemplate = artifactComponent({
   description: 'Document template component',
   props: z.object({
       title: z.string(),
-    })
+    }),
 });

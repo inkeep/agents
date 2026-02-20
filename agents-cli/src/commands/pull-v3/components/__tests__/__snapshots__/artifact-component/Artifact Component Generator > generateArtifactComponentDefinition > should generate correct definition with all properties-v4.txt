@@ -11,5 +11,5 @@ export const citation = artifactComponent({
       url: preview(z.string().describe("URL of the source document")),
       record_type: preview(z.string().describe("Type of record (documentation, blog, guide, etc.)")),
       content: z.array(z.object({ "type": z.string().describe("Type of content (text, image, video, etc.)"), "text": z.string().describe("The actual text content") })).describe("Array of structured content blocks extracted from the document"),
-    })
+    }),
 });

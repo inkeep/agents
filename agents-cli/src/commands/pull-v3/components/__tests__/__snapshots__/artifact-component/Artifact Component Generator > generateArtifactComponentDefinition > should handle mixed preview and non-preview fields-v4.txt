@@ -9,5 +9,5 @@ export const mixed = artifactComponent({
   props: z.object({
       previewField: preview(z.string().describe("This is shown in preview")),
       regularField: z.string().describe("This is not shown in preview"),
-    })
+    }),
 });
