@@ -66,7 +66,7 @@ interface AgentReferenceNames {
   statusComponents: ReferenceNameMap;
 }
 
-export function generateAgentDefinition(data: AgentDefinitionData): string {
+export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
   const result = AgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for agent:\n${z.prettifyError(result.error)}`);
@@ -135,8 +135,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): string {
     triggers: triggerReferenceNames,
     statusComponents: statusComponentReferenceNames,
   });
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeAgentConfig(

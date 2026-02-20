@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SourceFile } from 'ts-morph';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
@@ -43,7 +44,7 @@ const ArtifactComponentSchema = z.object({
   ),
 });
 
-export function generateArtifactComponentDefinition(data: ArtifactComponentDefinitionData): string {
+export function generateArtifactComponentDefinition(data: ArtifactComponentDefinitionData): SourceFile {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
@@ -83,8 +84,7 @@ export function generateArtifactComponentDefinition(data: ArtifactComponentDefin
       initializer: formatArtifactSchema(schema),
     });
   }
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function hasInPreviewFields(schema: unknown): boolean {
