@@ -3,33 +3,17 @@ import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
-import { eq } from 'drizzle-orm';
+import {
+  createSSOProvider,
+  getInitialOrganizationForUser,
+  getSSOProviderByProviderId,
+} from '../data-access/runtime/auth';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
-import * as authSchema from './auth-schema';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
-
-/**
- * Get the user's initial organization for a new session.
- * Returns the oldest organization the user is a member of.
- * See: https://www.better-auth.com/docs/plugins/organization#active-organization
- */
-async function getInitialOrganization(
-  dbClient: AgentsRunDatabaseClient,
-  userId: string
-): Promise<{ id: string } | null> {
-  const [membership] = await dbClient
-    .select({ organizationId: authSchema.member.organizationId })
-    .from(authSchema.member)
-    .where(eq(authSchema.member.userId, userId))
-    .orderBy(authSchema.member.createdAt)
-    .limit(1);
-
-  return membership ? { id: membership.organizationId } : null;
-}
 
 export interface OIDCProviderConfig {
   clientId: string;
@@ -155,13 +139,9 @@ async function registerSSOProvider(
   provider: SSOProviderConfig
 ): Promise<void> {
   try {
-    const existing = await dbClient
-      .select()
-      .from(authSchema.ssoProvider)
-      .where(eq(authSchema.ssoProvider.providerId, provider.providerId))
-      .limit(1);
+    const existing = await getSSOProviderByProviderId(dbClient)(provider.providerId);
 
-    if (existing.length > 0) {
+    if (existing) {
       return;
     }
 
@@ -169,14 +149,13 @@ async function registerSSOProvider(
       throw new Error(`SSO provider '${provider.providerId}' must have a domain`);
     }
 
-    await dbClient.insert(authSchema.ssoProvider).values({
+    await createSSOProvider(dbClient)({
       id: generateId(),
       providerId: provider.providerId,
       issuer: provider.issuer,
       domain: provider.domain,
       oidcConfig: provider.oidcConfig ? JSON.stringify(provider.oidcConfig) : null,
       samlConfig: provider.samlConfig ? JSON.stringify(provider.samlConfig) : null,
-      userId: null,
       organizationId: provider.organizationId || null,
     });
   } catch (error) {
@@ -217,11 +196,11 @@ export function createAuth(config: BetterAuthConfig) {
       session: {
         create: {
           before: async (session) => {
-            const organization = await getInitialOrganization(config.dbClient, session.userId);
+            const membership = await getInitialOrganizationForUser(config.dbClient)(session.userId);
             return {
               data: {
                 ...session,
-                activeOrganizationId: organization?.id ?? null,
+                activeOrganizationId: membership?.organizationId ?? null,
               },
             };
           },
