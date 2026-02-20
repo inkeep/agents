@@ -170,6 +170,27 @@ export function AgentConfigurationCard() {
     }
   };
 
+  const handleRemoveDefaultAgent = async () => {
+    if (!teamId) return;
+
+    const previousAgent = defaultAgent;
+    setDefaultAgent(null);
+    setDefaultOpen(false);
+    setSavingDefault(true);
+
+    try {
+      await slackApi.removeWorkspaceDefaultAgent(teamId);
+      installedWorkspaces.refetch();
+      toast.success('Default agent removed');
+    } catch (error) {
+      console.error('Failed to remove default agent:', error);
+      setDefaultAgent(previousAgent);
+      toast.error('Failed to remove default agent');
+    } finally {
+      setSavingDefault(false);
+    }
+  };
+
   const handleSetChannelAgent = async (
     channelId: string,
     channelName: string,
@@ -454,6 +475,7 @@ export function AgentConfigurationCard() {
             canEdit={canEditWorkspaceDefault}
             onSetDefaultAgent={handleSetDefaultAgent}
             onToggleGrantAccess={handleToggleWorkspaceGrantAccess}
+            onRemoveDefaultAgent={handleRemoveDefaultAgent}
             onFetchAgents={fetchAgents}
             open={defaultOpen}
             onOpenChange={setDefaultOpen}

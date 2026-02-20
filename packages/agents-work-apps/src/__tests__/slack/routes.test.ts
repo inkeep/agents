@@ -78,6 +78,8 @@ vi.mock('../../slack/services/nango', () => ({
   storeWorkspaceInstallation: vi.fn(async () => ({ connectionId: 'test', success: true })),
   deleteWorkspaceInstallation: vi.fn(async () => true),
   getWorkspaceDefaultAgentFromNango: vi.fn(async () => null),
+  setWorkspaceDefaultAgent: vi.fn(async () => true),
+  clearWorkspaceConnectionCache: vi.fn(),
   createConnectSession: vi.fn(async () => ({ url: 'https://nango.dev/connect' })),
   computeWorkspaceConnectionId: vi.fn(() => 'E:E123:T:T123'),
 }));
@@ -216,6 +218,86 @@ describe('Slack Work App Routes', () => {
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json).toBeDefined();
+    });
+  });
+
+  describe('PUT /workspaces/:teamId/settings', () => {
+    it('should set a default agent', async () => {
+      const authedApp = createTestApp({ userId: 'user_admin' });
+      const { setWorkspaceDefaultAgent } = await import('../../slack/services/nango');
+      vi.mocked(setWorkspaceDefaultAgent).mockResolvedValueOnce(true);
+
+      const response = await authedApp.request('/workspaces/T123/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-test-bypass-auth': 'true',
+        },
+        body: JSON.stringify({
+          defaultAgent: {
+            agentId: 'agent_123',
+            agentName: 'Test Agent',
+            projectId: 'proj_123',
+            projectName: 'Test Project',
+            grantAccessToMembers: true,
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(setWorkspaceDefaultAgent).toHaveBeenCalledWith('T123', {
+        agentId: 'agent_123',
+        agentName: 'Test Agent',
+        projectId: 'proj_123',
+        projectName: 'Test Project',
+        grantAccessToMembers: true,
+      });
+    });
+
+    it('should clear the default agent when no defaultAgent is provided', async () => {
+      const authedApp = createTestApp({ userId: 'user_admin' });
+      const { setWorkspaceDefaultAgent } = await import('../../slack/services/nango');
+      vi.mocked(setWorkspaceDefaultAgent).mockResolvedValueOnce(true);
+
+      const response = await authedApp.request('/workspaces/T123/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-test-bypass-auth': 'true',
+        },
+        body: JSON.stringify({}),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(setWorkspaceDefaultAgent).toHaveBeenCalledWith('T123', null);
+    });
+
+    it('should return 500 when Nango persistence fails', async () => {
+      const authedApp = createTestApp({ userId: 'user_admin' });
+      const { setWorkspaceDefaultAgent } = await import('../../slack/services/nango');
+      vi.mocked(setWorkspaceDefaultAgent).mockResolvedValueOnce(false);
+
+      const response = await authedApp.request('/workspaces/T123/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-test-bypass-auth': 'true',
+        },
+        body: JSON.stringify({
+          defaultAgent: {
+            agentId: 'agent_123',
+            projectId: 'proj_123',
+          },
+        }),
+      });
+
+      expect(response.status).toBe(500);
+      const json = await response.json();
+      expect(json.success).toBe(false);
     });
   });
 

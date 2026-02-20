@@ -76,6 +76,23 @@ export const slackApi = {
     return response.json();
   },
 
+  async removeWorkspaceDefaultAgent(teamId: string): Promise<{ success: boolean }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/settings`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      }
+    );
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Failed to remove workspace default agent');
+    }
+    return response.json();
+  },
+
   async getWorkspaceSettings(teamId: string): Promise<{
     defaultAgent?: DefaultAgentConfig;
   }> {
