@@ -162,7 +162,7 @@ describe('streamAgentResponse', () => {
 
   it('should surface API error message from response body instead of generic message', async () => {
     const errorBody = JSON.stringify({ message: 'Access denied: insufficient permissions' });
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(errorBody, { status: 403 }));
+    mockFetch.mockResolvedValue(new Response(errorBody, { status: 403 }));
 
     const result = await streamAgentResponse(baseParams);
 
@@ -176,7 +176,7 @@ describe('streamAgentResponse', () => {
   });
 
   it('should fall back to classified error when response body has no message', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('plain text error', { status: 403 }));
+    mockFetch.mockResolvedValue(new Response('plain text error', { status: 403 }));
 
     const result = await streamAgentResponse(baseParams);
 
