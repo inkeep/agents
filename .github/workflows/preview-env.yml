@@ -134,74 +134,99 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      # 9. Wait for databases to be healthy via TCP
-      #    IMPORTANT: Use sslmode=require (not prefer) — pg_tls handler breaks sslmode=prefer.
+      # 9. Start flyctl proxy tunnels for DB access
+      #    Ubuntu's psql doesn't support the ALPN negotiation required by Fly's
+      #    pg_tls handler ("SSL error: no application protocol"). flyctl proxy
+      #    creates a local WireGuard tunnel, bypassing the edge proxy entirely.
+      #    All GH runner → Fly DB connections use these tunnels.
+      #    Vercel serverless functions use public Fly URLs (Node.js pg handles ALPN fine).
+      - name: Start DB proxies
+        run: |
+          flyctl proxy 5432:5432 -a "$APP_NAME" &
+          echo "PROXY_PID_5432=$!" >> $GITHUB_ENV
+          flyctl proxy 15433:5433 -a "$APP_NAME" &
+          echo "PROXY_PID_5433=$!" >> $GITHUB_ENV
+          flyctl proxy 50051:50051 -a "$APP_NAME" &
+          echo "PROXY_PID_50051=$!" >> $GITHUB_ENV
+          sleep 3
+          echo "Proxy tunnels started (Doltgres:5432, Postgres:15433, SpiceDB:50051)"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # 10. Wait for databases to be healthy via proxy tunnels
       - name: Wait for databases
         run: |
-          wait_for_pg() {
-            local NAME="$1" PORT="$2"
-            echo "Waiting for ${NAME} (port ${PORT})..."
-            for i in $(seq 1 60); do
-              # Show errors on attempts 1, every 10th, and last
-              if [ "$i" = "1" ] || [ "$((i % 10))" = "0" ] || [ "$i" = "60" ]; then
-                PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
-                  "host=${APP_NAME}.fly.dev port=${PORT} user=appuser dbname=inkeep_agents sslmode=require" \
-                  -c "SELECT 1" 2>&1 && echo "${NAME} ready" && return 0
-                echo "  (attempt $i/60 — see error above)"
-              else
-                PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
-                  "host=${APP_NAME}.fly.dev port=${PORT} user=appuser dbname=inkeep_agents sslmode=require" \
-                  -c "SELECT 1" > /dev/null 2>&1 && echo "${NAME} ready" && return 0
-              fi
-              sleep 5
-            done
-            echo "ERROR: ${NAME} not ready after 5 min"
-            return 1
-          }
-
-          wait_for_pg "Doltgres" 5432
-          wait_for_pg "Postgres" 5433
-
-          echo "Waiting for SpiceDB (HTTP health on port 8443)..."
+          echo "Waiting for Doltgres (via proxy localhost:5432)..."
           for i in $(seq 1 60); do
-            if [ "$i" = "1" ] || [ "$((i % 10))" = "0" ] || [ "$i" = "60" ]; then
-              curl -vk "https://${APP_NAME}.fly.dev:8443/healthz" 2>&1 && echo "SpiceDB ready" && break
+            if PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+              "host=localhost port=5432 user=appuser dbname=inkeep_agents sslmode=disable" \
+              -c "SELECT 1" > /dev/null 2>&1; then
+              echo "Doltgres ready"
+              break
+            fi
+            if [ "$i" = "1" ] || [ "$((i % 10))" = "0" ]; then
+              PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+                "host=localhost port=5432 user=appuser dbname=inkeep_agents sslmode=disable" \
+                -c "SELECT 1" 2>&1 || true
               echo "  (attempt $i/60)"
-            else
-              curl -sf -k "https://${APP_NAME}.fly.dev:8443/healthz" > /dev/null 2>&1 && echo "SpiceDB ready" && break
+            fi
+            if [ "$i" = "60" ]; then echo "ERROR: Doltgres not ready after 5 min"; exit 1; fi
+            sleep 5
+          done
+
+          echo "Waiting for Postgres (via proxy localhost:15433)..."
+          for i in $(seq 1 60); do
+            if PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+              "host=localhost port=15433 user=appuser dbname=inkeep_agents sslmode=disable" \
+              -c "SELECT 1" > /dev/null 2>&1; then
+              echo "Postgres ready"
+              break
+            fi
+            if [ "$i" = "60" ]; then echo "ERROR: Postgres not ready after 5 min"; exit 1; fi
+            sleep 5
+          done
+
+          echo "Waiting for SpiceDB gRPC (via proxy localhost:50051)..."
+          for i in $(seq 1 60); do
+            if nc -z localhost 50051 2>/dev/null; then
+              echo "SpiceDB gRPC port reachable"
+              break
+            fi
+            if [ "$i" = "1" ] || [ "$((i % 10))" = "0" ]; then
+              echo "  (attempt $i/60, port not yet reachable)"
             fi
             if [ "$i" = "60" ]; then echo "ERROR: SpiceDB not ready after 5 min"; exit 1; fi
             sleep 5
           done
 
-      # 10. Setup Node.js + pnpm (for migrations + seeding)
+      # 11. Setup Node.js + pnpm (for migrations + seeding)
       - uses: ./.github/composite-actions/install
 
-      # 11. Build agents-core + CLI + SDK (needed for migrations + seeding)
+      # 12. Build agents-core + CLI + SDK (needed for migrations + seeding)
       - name: Build for migrations and seeding
         run: pnpm exec turbo build --filter=@inkeep/agents-core --filter=@inkeep/agents-cli --filter=@inkeep/agents-sdk
 
-      # 12. Run migrations (direct TCP to Fly DBs)
+      # 13. Run migrations (via flyctl proxy tunnels — localhost, no SSL)
       - name: Run migrations
         run: pnpm db:migrate
         env:
-          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=require"
-          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=require"
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@localhost:5432/inkeep_agents?sslmode=disable"
+          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@localhost:15433/inkeep_agents?sslmode=disable"
 
-      # 13. Init auth (admin user + SpiceDB schema)
+      # 14. Init auth (admin user + SpiceDB schema, via proxy tunnels)
       - name: Init auth
         run: pnpm db:auth:init
         env:
-          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5432/inkeep_agents?sslmode=require"
-          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@${{ env.APP_NAME }}.fly.dev:5433/inkeep_agents?sslmode=require"
-          SPICEDB_ENDPOINT: "${{ env.APP_NAME }}.fly.dev:50051"
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@localhost:5432/inkeep_agents?sslmode=disable"
+          INKEEP_AGENTS_RUN_DATABASE_URL: "postgresql://appuser:${{ steps.creds.outputs.PG_PASSWORD }}@localhost:15433/inkeep_agents?sslmode=disable"
+          SPICEDB_ENDPOINT: "localhost:50051"
           SPICEDB_PRESHARED_KEY: ${{ steps.creds.outputs.SPICEDB_KEY }}
           SPICEDB_TLS_ENABLED: "false"
           BETTER_AUTH_SECRET: ${{ steps.creds.outputs.AUTH_SECRET }}
           INKEEP_AGENTS_MANAGE_UI_USERNAME: admin
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ steps.creds.outputs.ADMIN_PASSWORD }}
 
-      # 14. Set Vercel env vars for agents-api (branch-scoped, REST API upsert)
+      # 15. Set Vercel env vars for agents-api (branch-scoped, REST API upsert)
       - name: Set agents-api env vars
         run: |
           PR_NUM="${{ github.event.number }}"
@@ -237,7 +262,7 @@ jobs:
           upsert_env "$API_PROJECT_ID" "OPENAI_API_KEY" "${{ secrets.OPENAI_API_KEY }}" "preview" "$BRANCH"
           upsert_env "$API_PROJECT_ID" "WORKFLOW_TARGET_WORLD" "local" "preview" "$BRANCH"
 
-      # 15. Set Vercel env vars for manage-ui (branch-scoped, REST API upsert)
+      # 16. Set Vercel env vars for manage-ui (branch-scoped, REST API upsert)
       - name: Set manage-ui env vars
         run: |
           PR_NUM="${{ github.event.number }}"
@@ -260,7 +285,7 @@ jobs:
           upsert_env "$UI_PROJECT_ID" "INKEEP_AGENTS_MANAGE_UI_USERNAME" "admin" "preview" "$BRANCH"
           upsert_env "$UI_PROJECT_ID" "INKEEP_AGENTS_MANAGE_UI_PASSWORD" "${{ steps.creds.outputs.ADMIN_PASSWORD }}" "preview" "$BRANCH"
 
-      # 16. Add custom preview domains to Vercel projects
+      # 17. Add custom preview domains to Vercel projects
       #     Wildcard *.preview.inkeep.com already points to Vercel via DNS.
       #     Specific per-PR subdomains are added to each project via REST API.
       - name: Add preview domains
@@ -284,7 +309,7 @@ jobs:
           echo "API_DOMAIN=$API_DOMAIN" >> $GITHUB_ENV
           echo "UI_DOMAIN=$UI_DOMAIN" >> $GITHUB_ENV
 
-      # 17. Trigger Vercel redeploy (picks up new env vars + domain aliases)
+      # 18. Trigger Vercel redeploy (picks up new env vars + domain aliases)
       - name: Redeploy Vercel previews
         run: |
           npm install -g vercel
@@ -300,7 +325,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
-      # 18. Seed test data via inkeep push (same mechanism as setup-dev + Cypress E2E)
+      # 19. Seed test data via inkeep push (same mechanism as setup-dev + Cypress E2E)
       - name: Seed project
         run: |
           echo "Waiting for agents-api Vercel deployment..."
@@ -322,7 +347,7 @@ jobs:
           INKEEP_CI: "true"
         continue-on-error: true
 
-      # 19. Comment on PR with preview URLs
+      # 20. Comment on PR with preview URLs
       - name: Comment PR
         uses: actions/github-script@v7
         with:
