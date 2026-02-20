@@ -80,8 +80,8 @@ jobs:
       #    TCP services (routing rules) are added in the NEXT step via Machines API.
       - name: Deploy to Fly
         run: |
-          flyctl deploy . \
-            --config .fly/fly.toml \
+          cd .fly && flyctl deploy . \
+            --config fly.toml \
             --app "$APP_NAME" \
             --wait-timeout 300 \
             --strategy immediate
