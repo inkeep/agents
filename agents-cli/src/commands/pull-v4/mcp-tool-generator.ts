@@ -1,12 +1,10 @@
-import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
-  addObjectEntries,
-  addStringProperty,
+  addValueToObject,
   createFactoryDefinition,
   formatInlineLiteral,
   formatStringLiteral,
-  isPlainObject,
   toCamelCase,
 } from './utils';
 
@@ -45,7 +43,7 @@ const McpToolSchema = z
       })
       .optional(),
     serverUrl: z.string().optional(),
-    transport: z.unknown().optional(),
+    transport: z.object({ type: z.string() }).optional(),
     activeTools: z.array(z.unknown()).optional(),
     imageUrl: z.string().optional(),
     headers: z.unknown().optional(),
@@ -55,7 +53,7 @@ const McpToolSchema = z
   .superRefine((value, context) => {
     if (!resolveServerUrl(value)) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'serverUrl is required (from config.mcp.server.url or serverUrl)',
         path: ['serverUrl'],
       });
@@ -89,113 +87,64 @@ export function generateMcpToolDefinition(data: McpToolDefinitionData): SourceFi
 
 function writeMcpToolConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedMcpToolDefinitionData
+  {
+    mcpToolId,
+    description,
+    serverUrl,
+    config,
+    transport,
+    activeTools,
+    credential,
+    credentialReferenceId,
+    ...rest
+  }: ParsedMcpToolDefinitionData
 ): void {
-  addStringProperty(configObject, 'id', data.mcpToolId);
-  addStringProperty(configObject, 'name', data.name);
-  addStringProperty(configObject, 'serverUrl', resolveServerUrl(data));
-
-  const transport = resolveTransport(data);
-  if (transport !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'transport',
-      initializer: formatInlineLiteral(transport),
-    });
+  for (const [k, v] of Object.entries({
+    id: mcpToolId,
+    ...rest,
+    description: description ?? undefined,
+    serverUrl: resolveServerUrl({ config, serverUrl }),
+    transport: resolveTransport({ config, transport }),
+    activeTools: resolveActiveTools({ config, activeTools }),
+  })) {
+    addValueToObject(configObject, k, v);
   }
-
-  const activeTools = resolveActiveTools(data);
-  if (activeTools?.length) {
-    configObject.addPropertyAssignment({
-      name: 'activeTools',
-      initializer: formatInlineLiteral(activeTools),
-    });
-  }
-
-  if (data.description !== undefined && data.description !== null) {
-    addStringProperty(configObject, 'description', data.description);
-  }
-
-  if (data.imageUrl !== undefined) {
-    addStringProperty(configObject, 'imageUrl', data.imageUrl);
-  }
-
-  if (isPlainObject(data.headers) && Object.keys(data.headers).length > 0) {
-    const headersProperty = configObject.addPropertyAssignment({
-      name: 'headers',
-      initializer: '{}',
-    });
-    const headersObject = headersProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
-    );
-    addObjectEntries(headersObject, data.headers);
-  }
-
-  if (data.credential !== undefined && data.credential !== null) {
-    if (typeof data.credential === 'string') {
+  if (credential !== undefined && credential !== null) {
+    if (typeof credential === 'string') {
       configObject.addPropertyAssignment({
         name: 'credential',
-        initializer: data.credential,
+        initializer: credential,
       });
       return;
     }
 
     configObject.addPropertyAssignment({
       name: 'credential',
-      initializer: formatInlineLiteral(data.credential),
+      initializer: formatInlineLiteral(credential),
     });
     return;
   }
 
-  if (data.credentialReferenceId) {
+  if (credentialReferenceId) {
     configObject.addPropertyAssignment({
       name: 'credential',
-      initializer: `envSettings.getEnvironmentCredential(${formatStringLiteral(data.credentialReferenceId)})`,
+      initializer: `envSettings.getEnvironmentCredential(${formatStringLiteral(credentialReferenceId)})`,
     });
   }
 }
 
-function resolveServerUrl(data: ParsedMcpToolDefinitionData): string {
-  const urlFromConfig =
-    isPlainObject(data.config) &&
-    isPlainObject(data.config.mcp) &&
-    isPlainObject(data.config.mcp.server) &&
-    typeof data.config.mcp.server.url === 'string'
-      ? data.config.mcp.server.url
-      : undefined;
-
-  if (urlFromConfig) {
-    return urlFromConfig;
-  }
-
-  return data.serverUrl ?? '';
+function resolveServerUrl(data: Pick<ParsedMcpToolDefinitionData, 'config' | 'serverUrl'>): string | undefined {
+  return data.config?.mcp?.server?.url ?? data.serverUrl;
 }
 
-function resolveTransport(data: ParsedMcpToolDefinitionData): unknown {
-  const transportFromConfig =
-    isPlainObject(data.config) && isPlainObject(data.config.mcp)
-      ? data.config.mcp.transport
-      : undefined;
-
-  if (transportFromConfig !== undefined) {
-    return transportFromConfig;
-  }
-
-  return data.transport;
+function resolveTransport(
+  data: Pick<ParsedMcpToolDefinitionData, 'transport' | 'config'>
+): unknown {
+  return data.config?.mcp?.transport ?? data.transport;
 }
 
-function resolveActiveTools(data: ParsedMcpToolDefinitionData): unknown[] | undefined {
-  const activeToolsFromConfig =
-    isPlainObject(data.config) && isPlainObject(data.config.mcp)
-      ? data.config.mcp.activeTools
-      : undefined;
-
-  if (Array.isArray(activeToolsFromConfig)) {
-    return activeToolsFromConfig;
-  }
-
-  if (Array.isArray(data.activeTools)) {
-    return data.activeTools;
-  }
-
-  return undefined;
+function resolveActiveTools(
+  data: Pick<ParsedMcpToolDefinitionData, 'config' | 'activeTools'>
+): unknown[] | undefined {
+  return data.config?.mcp?.activeTools ?? data.activeTools;
 }

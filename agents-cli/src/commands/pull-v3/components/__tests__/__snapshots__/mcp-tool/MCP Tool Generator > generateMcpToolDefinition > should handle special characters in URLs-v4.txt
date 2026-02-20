@@ -3,7 +3,9 @@ import { mcpTool } from '@inkeep/agents-sdk';
 export const special = mcpTool({
   id: 'special',
   name: 'Special Tool',
-  serverUrl: 'https://api.example.com/mcp?key=value&param=test',
-  transport: { type: 'streamable_http' },
   imageUrl: 'https://images.example.com/icon.png?size=256&format=webp',
+  serverUrl: 'https://api.example.com/mcp?key=value&param=test',
+  transport: {
+    type: 'streamable_http',
+  },
 });
