@@ -5,20 +5,38 @@
  */
 
 import {
-  generateEnvironmentIndexDefinition as generateEnvironmentIndexDefinitionV4,
-  generateEnvironmentIndexFile as generateEnvironmentIndexFileV4,
-  generateEnvironmentSettingsDefinition as generateEnvironmentSettingsDefinitionV4,
-  generateEnvironmentSettingsFile as generateEnvironmentSettingsFileV4,
+  generateEnvironmentIndexImports as generateEnvironmentIndexImports,
+  generateEnvironmentSettingsImports as generateEnvironmentSettingsImports,
+  generateEnvironmentIndexDefinition as originalGenerateEnvironmentIndexDefinition,
+  generateEnvironmentIndexFile as originalGenerateEnvironmentIndexFile,
+  generateEnvironmentSettingsDefinition as originalGenerateEnvironmentSettingsDefinition,
+  generateEnvironmentSettingsFile as originalGenerateEnvironmentSettingsFile,
 } from '../../../pull-v4/environment-generator';
 import { expectSnapshots } from '../../../pull-v4/utils';
-import {
-  generateEnvironmentIndexDefinition,
-  generateEnvironmentIndexFile,
-  generateEnvironmentIndexImports,
-  generateEnvironmentSettingsDefinition,
-  generateEnvironmentSettingsFile,
-  generateEnvironmentSettingsImports,
-} from '../environment-generator';
+
+function generateEnvironmentSettingsDefinition(
+  ...args: Parameters<typeof originalGenerateEnvironmentSettingsDefinition>
+): string {
+  return originalGenerateEnvironmentSettingsDefinition(...args).getFullText();
+}
+
+function generateEnvironmentIndexDefinition(
+  ...args: Parameters<typeof originalGenerateEnvironmentIndexDefinition>
+): string {
+  return originalGenerateEnvironmentIndexDefinition(...args).getFullText();
+}
+
+function generateEnvironmentSettingsFile(
+  ...args: Parameters<typeof originalGenerateEnvironmentSettingsFile>
+): string {
+  return originalGenerateEnvironmentSettingsFile(...args).getFullText();
+}
+
+function generateEnvironmentIndexFile(
+  ...args: Parameters<typeof originalGenerateEnvironmentIndexFile>
+): string {
+  return originalGenerateEnvironmentIndexFile(...args).getFullText();
+}
 
 describe('Environment Settings Generator', () => {
   const developmentData = {
