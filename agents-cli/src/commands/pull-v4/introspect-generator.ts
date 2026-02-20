@@ -14,7 +14,12 @@ import { generateProjectDefinition } from './project-generator';
 import { generateStatusComponentDefinition } from './status-component-generator';
 import { generateSubAgentDefinition } from './sub-agent-generator';
 import { generateTriggerDefinition } from './trigger-generator';
-import { createInMemoryProject } from './utils';
+import {
+  collectTemplateVariableNames,
+  createInMemoryProject,
+  isPlainObject,
+  toCamelCase,
+} from './utils';
 
 export interface ProjectPaths {
   projectRoot: string;
@@ -94,6 +99,17 @@ type ProjectReferenceOverrideType =
 type ProjectReferenceOverrides = Partial<
   Record<ProjectReferenceOverrideType, Record<string, string>>
 >;
+
+interface TemplateReferenceOverride {
+  name: string;
+  local?: boolean;
+}
+
+interface ContextTemplateReferences {
+  contextConfigId: string;
+  contextConfigReference: TemplateReferenceOverride;
+  contextConfigHeadersReference?: TemplateReferenceOverride;
+}
 
 export async function introspectGenerate({
   project,
@@ -296,7 +312,13 @@ function collectContextConfigRecords(
       continue;
     }
 
-    const contextConfigId = typeof contextConfig.id === 'string' ? contextConfig.id : '';
+    const normalizedContextConfig = applyPromptHeaderTemplateSchema(
+      contextConfig,
+      collectHeaderTemplateVariablesFromAgentPrompts(agentData)
+    );
+
+    const contextConfigId =
+      typeof normalizedContextConfig.id === 'string' ? normalizedContextConfig.id : '';
     if (!contextConfigId) {
       continue;
     }
@@ -310,7 +332,7 @@ function collectContextConfigRecords(
       );
       const credentialReferenceOverrides = collectContextConfigCredentialReferenceOverrides(
         context,
-        contextConfig
+        normalizedContextConfig
       );
       const headersReferenceOverride = collectContextConfigHeadersReferenceOverride(
         context,
@@ -322,7 +344,7 @@ function collectContextConfigRecords(
         filePath: contextConfigFilePath,
         payload: {
           contextConfigId,
-          ...contextConfig,
+          ...normalizedContextConfig,
           ...(headersReferenceOverride && {
             headers: headersReferenceOverride,
           }),
@@ -507,10 +529,15 @@ function collectAgentRecords(
     );
     const existingAgent = context.existingComponentRegistry?.get(agentId, 'agents');
     const subAgentReferences = collectSubAgentReferenceOverrides(context, agentData, agentFilePath);
-    const contextConfigReference = collectAgentContextConfigReferenceOverride(
+    const statusUpdates = asRecord(agentData.statusUpdates);
+    const contextTemplateReferences = collectContextTemplateReferences(
       context,
       agentData,
-      agentFilePath
+      agentFilePath,
+      [
+        typeof agentData.prompt === 'string' ? agentData.prompt : undefined,
+        typeof statusUpdates?.prompt === 'string' ? statusUpdates.prompt : undefined,
+      ]
     );
 
     records.push({
@@ -521,7 +548,12 @@ function collectAgentRecords(
         ...agentData,
         ...(existingAgent?.name?.length && { agentVariableName: existingAgent.name }),
         ...(Object.keys(subAgentReferences).length > 0 ? { subAgentReferences } : {}),
-        ...(contextConfigReference && { contextConfigReference }),
+        ...(contextTemplateReferences && {
+          contextConfigReference: contextTemplateReferences.contextConfigReference,
+        }),
+        ...(contextTemplateReferences?.contextConfigHeadersReference && {
+          contextConfigHeadersReference: contextTemplateReferences.contextConfigHeadersReference,
+        }),
       } as Parameters<typeof generateAgentDefinition>[0],
     });
   }
@@ -550,19 +582,33 @@ function collectSubAgentRecords(
       }
 
       const referenceOverrides = collectSubAgentDependencyReferenceOverrides(context, payload);
+      const subAgentFilePath = resolveRecordFilePath(
+        context,
+        'subAgents',
+        subAgentId,
+        join(context.paths.agentsDir, 'sub-agents', `${subAgentId}.ts`)
+      );
+      const contextTemplateReferences = collectContextTemplateReferences(
+        context,
+        agentData,
+        subAgentFilePath,
+        [typeof payload.prompt === 'string' ? payload.prompt : undefined]
+      );
 
       records.push({
         id: subAgentId,
-        filePath: resolveRecordFilePath(
-          context,
-          'subAgents',
-          subAgentId,
-          join(context.paths.agentsDir, 'sub-agents', `${subAgentId}.ts`)
-        ), // @ts-expect-error -- fixme
+        filePath: subAgentFilePath, // @ts-expect-error -- fixme
         payload: {
           subAgentId,
           ...payload,
           ...(referenceOverrides && { referenceOverrides }),
+          ...(contextTemplateReferences && {
+            contextConfigId: contextTemplateReferences.contextConfigId,
+            contextConfigReference: contextTemplateReferences.contextConfigReference,
+          }),
+          ...(contextTemplateReferences?.contextConfigHeadersReference && {
+            contextConfigHeadersReference: contextTemplateReferences.contextConfigHeadersReference,
+          }),
         } as Parameters<typeof generateSubAgentDefinition>[0],
       });
     }
@@ -804,12 +850,8 @@ function collectAgentContextConfigReferenceOverride(
   agentData: Record<string, unknown>,
   agentFilePath: string
 ): { name: string; local?: boolean } | undefined {
-  const contextConfig =
-    typeof agentData.contextConfig === 'string'
-      ? { id: agentData.contextConfig }
-      : asRecord(agentData.contextConfig);
-  const contextConfigId =
-    contextConfig && typeof contextConfig.id === 'string' ? contextConfig.id : undefined;
+  const contextConfig = extractContextConfigData(agentData);
+  const contextConfigId = contextConfig?.id;
   if (!contextConfigId) {
     return;
   }
@@ -831,6 +873,192 @@ function collectAgentContextConfigReferenceOverride(
   return isLocal
     ? { name: existingContextConfig.name, local: true }
     : { name: existingContextConfig.name };
+}
+
+function collectContextTemplateReferences(
+  context: GenerationContext,
+  agentData: Record<string, unknown>,
+  targetFilePath: string,
+  promptValues: Array<string | undefined>
+): ContextTemplateReferences | undefined {
+  const contextConfig = extractContextConfigData(agentData);
+  const contextConfigId = contextConfig?.id;
+  if (!contextConfigId) {
+    return;
+  }
+
+  const contextConfigFilePath = resolveRecordFilePath(
+    context,
+    'contextConfigs',
+    contextConfigId,
+    join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+  );
+  const isLocal =
+    normalizeFilePath(contextConfigFilePath) === normalizeFilePath(targetFilePath);
+
+  const contextConfigReference =
+    collectAgentContextConfigReferenceOverride(context, agentData, targetFilePath) ??
+    (isLocal
+      ? { name: toCamelCase(contextConfigId), local: true }
+      : { name: toCamelCase(contextConfigId) });
+
+  const templateVariables = collectTemplateVariablesFromValues(promptValues);
+  const hasHeadersTemplateVariables = templateVariables.some((variableName) =>
+    variableName.startsWith('headers.')
+  );
+  let headersReferenceName =
+    collectContextConfigHeadersReferenceOverride(context, contextConfigId, contextConfigFilePath) ??
+    inferHeadersReferenceFromContextConfig(contextConfig, contextConfigId);
+
+  if (!headersReferenceName && hasHeadersTemplateVariables) {
+    headersReferenceName = `${toCamelCase(contextConfigId)}Headers`;
+  }
+
+  return {
+    contextConfigId,
+    contextConfigReference,
+    ...(headersReferenceName && {
+      contextConfigHeadersReference: isLocal
+        ? { name: headersReferenceName, local: true }
+        : { name: headersReferenceName },
+    }),
+  };
+}
+
+function extractContextConfigData(
+  agentData: Record<string, unknown>
+): { id: string; value: Record<string, unknown> } | undefined {
+  const contextConfig =
+    typeof agentData.contextConfig === 'string'
+      ? { id: agentData.contextConfig }
+      : asRecord(agentData.contextConfig);
+  const contextConfigId =
+    contextConfig && typeof contextConfig.id === 'string' ? contextConfig.id : undefined;
+  if (!contextConfigId || !contextConfig) {
+    return;
+  }
+
+  return {
+    id: contextConfigId,
+    value: contextConfig,
+  };
+}
+
+function inferHeadersReferenceFromContextConfig(
+  contextConfig: { id: string; value: Record<string, unknown> },
+  contextConfigId: string
+): string | undefined {
+  const headers = contextConfig.value.headers;
+  if (typeof headers === 'string' && headers.length > 0) {
+    return toCamelCase(headers);
+  }
+
+  const headersRecord = asRecord(headers);
+  if (headersRecord) {
+    if (typeof headersRecord.id === 'string' && headersRecord.id.length > 0) {
+      return toCamelCase(headersRecord.id);
+    }
+    if (typeof headersRecord.name === 'string' && headersRecord.name.length > 0) {
+      return toCamelCase(headersRecord.name);
+    }
+  }
+
+  if (isPlainObject(contextConfig.value.headersSchema)) {
+    return `${toCamelCase(contextConfigId)}Headers`;
+  }
+
+  return;
+}
+
+function collectTemplateVariablesFromValues(values: Array<string | undefined>): string[] {
+  const variables: string[] = [];
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    variables.push(...collectTemplateVariableNames(value));
+  }
+  return variables;
+}
+
+function collectHeaderTemplateVariablesFromAgentPrompts(
+  agentData: Record<string, unknown>
+): Set<string> {
+  const variables = new Set<string>();
+  addHeaderTemplateVariablesFromString(
+    typeof agentData.prompt === 'string' ? agentData.prompt : undefined,
+    variables
+  );
+
+  const statusUpdates = asRecord(agentData.statusUpdates);
+  addHeaderTemplateVariablesFromString(
+    typeof statusUpdates?.prompt === 'string' ? statusUpdates.prompt : undefined,
+    variables
+  );
+
+  const subAgents = asRecord(agentData.subAgents);
+  if (!subAgents) {
+    return variables;
+  }
+
+  for (const subAgentData of Object.values(subAgents)) {
+    const subAgent = asRecord(subAgentData);
+    addHeaderTemplateVariablesFromString(
+      typeof subAgent?.prompt === 'string' ? subAgent.prompt : undefined,
+      variables
+    );
+  }
+
+  return variables;
+}
+
+function addHeaderTemplateVariablesFromString(
+  value: string | undefined,
+  variables: Set<string>
+): void {
+  if (typeof value !== 'string') {
+    return;
+  }
+
+  for (const variableName of collectTemplateVariableNames(value)) {
+    if (!variableName.startsWith('headers.')) {
+      continue;
+    }
+    const headerPath = variableName.slice('headers.'.length);
+    if (headerPath) {
+      variables.add(headerPath);
+    }
+  }
+}
+
+function applyPromptHeaderTemplateSchema(
+  contextConfig: Record<string, unknown>,
+  headerTemplateVariables: Set<string>
+): Record<string, unknown> {
+  if (!headerTemplateVariables.size) {
+    return contextConfig;
+  }
+
+  const hasExplicitHeadersReference =
+    typeof contextConfig.headers === 'string' || isPlainObject(contextConfig.headers);
+  if (hasExplicitHeadersReference || isPlainObject(contextConfig.headersSchema)) {
+    return contextConfig;
+  }
+
+  const variableNames = [...headerTemplateVariables].sort();
+  const properties = Object.fromEntries(
+    variableNames.map((variableName) => [variableName, { type: 'string' }])
+  );
+
+  return {
+    ...contextConfig,
+    headersSchema: {
+      type: 'object',
+      properties,
+      required: variableNames,
+      additionalProperties: false,
+    },
+  };
 }
 
 function collectSubAgentDependencyReferenceOverrides(
