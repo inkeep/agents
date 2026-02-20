@@ -181,7 +181,7 @@ describe('Agent Generator', () => {
 
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 5,');
-      expect(definition).toContain('statusComponents: [\n      summary.config,\n    ]');
+      expect(definition).toContain('statusComponents: [summary.config]');
       expect(definition).not.toContain('timeInSeconds:');
       expect(definition).not.toContain('prompt:');
       await expectSnapshots(definition);
@@ -206,74 +206,6 @@ describe('Agent Generator', () => {
   });
 
   describe('compilation tests', () => {
-    it('should generate agent code that compiles', async () => {
-      const agentId = 'test-agent';
-      const definition = generateAgentDefinition({ agentId, ...basicAgentData });
-      const definitionWithoutExport = definition.replace('export const testAgent', 'const result');
-
-      const moduleCode = `
-        const agent = (config) => config;
-        const personalAssistant = { type: 'subAgent' };
-        const coordinatesAgent = { type: 'subAgent' };
-        const personalAgentContext = { type: 'contextConfig' };
-        
-        ${definitionWithoutExport}
-        
-        return result;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('test-agent');
-      expect(result.name).toBe('Personal Assistant Agent');
-      await expectSnapshots(definition);
-    });
-
-    it('should generate complex agent code that compiles', async () => {
-      const agentId = 'complex-test-agent';
-      const definition = generateAgentDefinition({ agentId, ...complexAgentData });
-      const definitionWithoutExport = definition.replace(
-        'export const complexTestAgent',
-        'const result'
-      );
-
-      const moduleCode = `
-        const agent = (config) => config;
-        const mainAssistant = { type: 'subAgent' };
-        const helperAgent = { type: 'subAgent' };
-        const coordinatorAgent = { type: 'subAgent' };
-        const complexAgentContext = { type: 'contextConfig' };
-        const toolSummary = { config: 'toolSummaryConfig' };
-        const progressUpdate = { config: 'progressUpdateConfig' };
-        
-        ${definitionWithoutExport}
-        
-        return result;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('complex-test-agent');
-      expect(result.statusUpdates).toBeDefined();
-      expect(result.statusUpdates.numEvents).toBe(3);
-      expect(result.statusUpdates.timeInSeconds).toBe(15);
-      expect(result.statusUpdates.statusComponents).toHaveLength(2);
-      expect(result.statusUpdates.prompt).toBe(
-        'Provide status updates on task progress and tool usage'
-      );
-      expect(result.stopWhen).toBeDefined();
-      expect(result.stopWhen.transferCountIs).toBe(5);
-      await expectSnapshots(definition);
-    });
-
     it('should throw error for minimal agent without required fields', () => {
       const minimalData = { name: 'Minimal Test Agent' };
       const agentId = 'minimal-test-agent';

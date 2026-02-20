@@ -362,12 +362,11 @@ function addValueToArray(arr: ArrayLiteralExpression, value: unknown) {
   arr.addElement(formatInlineLiteral(value));
 }
 
-export async function expectSnapshots(definitionV4: SourceFile): Promise<void> {
+export async function expectSnapshots(definitionV4: string): Promise<void> {
   const { currentTestName, snapshotState } = expect.getState();
 
   const snapshotDir = path.basename(snapshotState.testFilePath).replace('-generator.test.ts', '');
-  const definitionV4Content = definitionV4.getFullText();
-  await expect(definitionV4Content).toMatchFileSnapshot(
+  await expect(definitionV4).toMatchFileSnapshot(
     `__snapshots__/${snapshotDir}/${currentTestName}-v4.txt`
   );
 }
