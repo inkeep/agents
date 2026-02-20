@@ -1,5 +1,16 @@
 # @inkeep/agents-core
 
+## 0.50.4
+
+### Patch Changes
+
+- e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
+
+  - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
+  - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
+  - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
+  - Add `resolveEffectiveAgent` with `grantAccessToMembers` propagation from channel/workspace config
+
 ## 0.50.3
 
 ### Patch Changes

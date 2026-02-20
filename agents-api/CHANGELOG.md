@@ -1,5 +1,14 @@
 # @inkeep/agents-api
 
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-work-apps@0.50.4
+  - @inkeep/agents-mcp@0.50.4
+
 ## 0.50.3
 
 ### Patch Changes
