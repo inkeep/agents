@@ -33,7 +33,16 @@ function ensureExitHook() {
   asyncExitHook(
     async () => {
       const clients = Array.from(activeMcpClients);
-      await Promise.allSettled(clients.map((c) => c.disconnect()));
+      const results = await Promise.allSettled(clients.map((c) => c.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          console.error(
+            `[MCP] Failed to disconnect client "${clients[i]?.name}" during exit:`,
+            result.reason
+          );
+        }
+      }
     },
     { wait: 5000 }
   );
@@ -195,7 +204,7 @@ export class McpClient {
     try {
       await this.transport.close();
     } catch (e) {
-      console.error(e);
+      console.error(`[MCP] Error disconnecting client "${this.name}":`, e);
       throw e;
     } finally {
       this.transport = undefined;

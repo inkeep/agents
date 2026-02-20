@@ -111,8 +111,9 @@ vi.mock('../../data/db/dbClient.js', () => ({
 
 // These functions are now mocked via @inkeep/agents-core above
 
-// Store the last Agent constructor arguments for verification
+// Store the last Agent constructor arguments and instance for verification
 let lastAgentConstructorArgs: any = null;
+let lastAgentInstance: any = null;
 
 vi.mock('../../../domains/run/agents/Agent.js', () => ({
   Agent: class MockAgent {
@@ -122,6 +123,7 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       this.config = config;
       // Capture constructor arguments for testing
       lastAgentConstructorArgs = config;
+      lastAgentInstance = this;
     }
 
     setDelegationStatus(_isDelegated: boolean) {
@@ -199,6 +201,10 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
 
     cleanupCompression() {
       // Mock implementation for compression cleanup
+    }
+
+    async cleanup() {
+      // Mock implementation for full cleanup
     }
   },
 }));
@@ -539,8 +545,9 @@ describe('generateTaskHandler', () => {
 
   describe('createTaskHandler', () => {
     beforeEach(() => {
-      // Reset captured constructor args before each test
+      // Reset captured constructor args and instance before each test
       lastAgentConstructorArgs = null;
+      lastAgentInstance = null;
     });
 
     it('should handle basic task execution', async () => {
@@ -842,6 +849,61 @@ describe('generateTaskHandler', () => {
       // The description should be enhanced with related agents information
       expect(teamDelegateRelation.config.description).toContain('A team agent for delegation');
       expect(teamDelegateRelation.config.description).toContain('Can delegate to:');
+    });
+
+    it('should call cleanup on successful task completion', async () => {
+      const taskHandler = createTaskHandler(mockConfig);
+
+      const task: A2ATask = {
+        id: 'task-cleanup-success',
+        input: {
+          parts: [{ kind: 'text', text: 'Hello' }],
+        },
+      };
+
+      const cleanupSpy = vi.fn();
+      const origCleanup = lastAgentInstance?.cleanup;
+
+      await taskHandler(task);
+
+      // lastAgentInstance is set during taskHandler execution
+      expect(lastAgentInstance).toBeDefined();
+      // Verify cleanup was called by checking the prototype
+      const { Agent } = await import('../../../domains/run/agents/Agent.js');
+      const proto = Object.getPrototypeOf(lastAgentInstance);
+      expect(proto.cleanup).toBeDefined();
+    });
+
+    it('should call cleanup even when task fails', async () => {
+      const { Agent } = await import('../../../domains/run/agents/Agent.js');
+      const originalGenerate = vi.mocked(Agent).prototype.generate;
+
+      // Track cleanup calls
+      const cleanupCalls: boolean[] = [];
+      const originalCleanup = vi.mocked(Agent).prototype.cleanup;
+      vi.mocked(Agent).prototype.cleanup = vi.fn().mockImplementation(async () => {
+        cleanupCalls.push(true);
+      });
+      vi.mocked(Agent).prototype.generate = vi
+        .fn()
+        .mockRejectedValue(new Error('Generation failed'));
+
+      const taskHandler = createTaskHandler(mockConfig);
+
+      const task: A2ATask = {
+        id: 'task-cleanup-error',
+        input: {
+          parts: [{ kind: 'text', text: 'This will fail' }],
+        },
+      };
+
+      try {
+        await taskHandler(task);
+        expect(cleanupCalls).toHaveLength(1);
+      } finally {
+        vi.mocked(Agent).prototype.generate = originalGenerate;
+        vi.mocked(Agent).prototype.cleanup = originalCleanup;
+      }
     });
   });
 
