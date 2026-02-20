@@ -124,19 +124,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
-async function limitConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
-  const results: T[] = [];
-  let index = 0;
-  const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
-    while (index < tasks.length) {
-      const i = index++;
-      results[i] = await tasks[i]();
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
-
 /**
  * Shape of a generation response after all Promise-based getters have been resolved.
  *
@@ -829,11 +816,7 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const MCP_CONCURRENCY_LIMIT = 5;
-    const tools = await limitConcurrency(
-      mcpTools.map((tool) => () => this.getMcpTool(tool)),
-      MCP_CONCURRENCY_LIMIT
-    );
+    const tools = await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)));
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const toolSet of tools) {
