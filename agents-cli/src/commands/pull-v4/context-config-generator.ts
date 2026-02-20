@@ -46,7 +46,7 @@ const ContextConfigSchema = z.looseObject({
 
 type ParsedContextConfigDefinitionData = z.infer<typeof ContextConfigSchema>;
 
-export function generateContextConfigDefinition(data: ContextConfigDefinitionData): string {
+export function generateContextConfigDefinition(data: ContextConfigDefinitionData): SourceFile {
   const result = ContextConfigSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for context config:\n${z.prettifyError(result.error)}`);
@@ -142,7 +142,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
 
   writeContextConfig(configObject, parsed, headersReference);
 
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function writeContextConfig(
@@ -279,7 +279,7 @@ function writeFetchDefinition(
 function generateStandaloneHeadersDefinition(
   sourceFile: SourceFile,
   data: ParsedContextConfigDefinitionData
-): string {
+): SourceFile {
   const importName = 'headers';
   sourceFile.addImportDeclaration({
     namedImports: [importName],
@@ -302,8 +302,7 @@ function generateStandaloneHeadersDefinition(
     // @ts-expect-error -- fixme
     initializer: convertJsonSchemaToZod(data.schema),
   });
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function isHeadersDefinitionData(
@@ -315,7 +314,7 @@ function isHeadersDefinitionData(
 function generateStandaloneFetchDefinition(
   sourceFile: SourceFile,
   data: ParsedContextConfigDefinitionData
-): string {
+): SourceFile {
   const importName = 'fetchDefinition';
   sourceFile.addImportDeclaration({
     namedImports: [importName],
@@ -350,8 +349,7 @@ function generateStandaloneFetchDefinition(
   });
 
   writeFetchDefinition(configObject, data, credentialReferenceNames);
-
-  return sourceFile.getFullText();
+  return sourceFile;
 }
 
 function convertJsonSchemaToZod(schema: Record<string, unknown>): string {

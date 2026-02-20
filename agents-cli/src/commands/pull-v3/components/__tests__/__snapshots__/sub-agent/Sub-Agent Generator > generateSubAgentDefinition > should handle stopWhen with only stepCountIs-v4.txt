@@ -5,7 +5,7 @@ export const stepCountAgent = subAgent({
   description: 'Agent with step count limit',
   prompt: 'I have a step count limit.',
   stopWhen: {
-    stepCountIs: 15
+    stepCountIs: 15,
   },
-  name: 'Step Count Only Agent'
+  name: 'Step Count Only Agent',
 });

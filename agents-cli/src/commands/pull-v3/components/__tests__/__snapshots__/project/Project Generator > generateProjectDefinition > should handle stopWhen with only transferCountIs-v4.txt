@@ -5,10 +5,10 @@ export const transferOnlyProject = project({
   name: 'Transfer Only Project',
   models: {
     base: {
-      model: 'gpt-4o-mini'
-    }
+      model: 'gpt-4o-mini',
+    },
   },
   stopWhen: {
-    transferCountIs: 5
-  }
+    transferCountIs: 5,
+  },
 });

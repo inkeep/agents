@@ -11,32 +11,32 @@ export const slackWebhook = new Trigger({
     signature: {
       source: 'header',
       key: 'x-slack-signature',
-      prefix: 'v0='
+      prefix: 'v0=',
     },
     signedComponents: [{
       source: 'literal',
       value: 'v0',
-      required: true
+      required: true,
     },
       {
         source: 'header',
         key: 'x-slack-request-timestamp',
-        required: true
+        required: true,
       },
       {
         source: 'body',
-        required: true
-      }
+        required: true,
+      },
     ],
     componentJoin: {
       strategy: 'concatenate',
-      separator: ':'
+      separator: ':',
     },
     validation: {
       headerCaseSensitive: false,
       allowEmptyBody: false,
-      normalizeUnicode: false
-    }
+      normalizeUnicode: false,
+    },
   },
-  signingSecretCredentialReference: slackSigningSecret
+  signingSecretCredentialReference: slackSigningSecret,
 });

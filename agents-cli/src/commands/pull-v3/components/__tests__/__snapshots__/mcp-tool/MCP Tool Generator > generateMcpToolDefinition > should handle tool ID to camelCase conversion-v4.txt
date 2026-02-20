@@ -4,5 +4,5 @@ export const stripePaymentTool = mcpTool({
   id: 'stripe-payment-tool',
   name: 'Stripe Payment',
   serverUrl: 'https://stripe.example.com/mcp',
-  transport: { type: 'streamable_http' }
+  transport: { type: 'streamable_http' },
 });

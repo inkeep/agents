@@ -5,5 +5,5 @@ export const special = mcpTool({
   name: 'Special Tool',
   serverUrl: 'https://api.example.com/mcp?key=value&param=test',
   transport: { type: 'streamable_http' },
-  imageUrl: 'https://images.example.com/icon.png?size=256&format=webp'
+  imageUrl: 'https://images.example.com/icon.png?size=256&format=webp',
 });

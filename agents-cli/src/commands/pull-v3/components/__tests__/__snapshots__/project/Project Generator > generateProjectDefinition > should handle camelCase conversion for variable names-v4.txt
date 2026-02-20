@@ -8,14 +8,14 @@ export const myComplexProjectV2 = project({
   description: 'Multi-agent customer support system with escalation capabilities',
   models: {
     base: {
-      model: 'gpt-4o-mini'
+      model: 'gpt-4o-mini',
     },
     structuredOutput: {
-      model: 'gpt-4o'
+      model: 'gpt-4o',
     },
     summarizer: {
-      model: 'gpt-4o-mini'
-    }
+      model: 'gpt-4o-mini',
+    },
   },
-  agents: () => [supportAgent, escalationAgent]
+  agents: () => [supportAgent, escalationAgent],
 });

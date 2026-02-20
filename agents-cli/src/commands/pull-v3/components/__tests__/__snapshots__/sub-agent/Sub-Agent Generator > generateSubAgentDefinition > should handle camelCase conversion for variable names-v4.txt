@@ -8,5 +8,5 @@ export const myComplexSubAgentV2 = subAgent({
   canUse: () => [calculateBMI, weatherTool],
   canDelegateTo: () => [coordinatesAgent, teamAgent],
   dataComponents: () => [taskList],
-  artifactComponents: () => [citation]
+  artifactComponents: () => [citation],
 });

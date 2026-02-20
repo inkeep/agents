@@ -6,5 +6,5 @@ export const mixedTypesSubAgent = subAgent({
   prompt: 'I work with mixed types.',
   name: 'Mixed Types Agent',
   canUse: () => [stringTool],
-  dataComponents: () => [stringComponent]
+  dataComponents: () => [stringComponent],
 });

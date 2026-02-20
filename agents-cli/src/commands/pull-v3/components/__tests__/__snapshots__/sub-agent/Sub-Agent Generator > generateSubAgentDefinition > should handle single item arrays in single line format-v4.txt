@@ -6,5 +6,5 @@ export const singleItemAgent = subAgent({
   prompt: 'I am a single item agent.',
   name: 'Single Item Agent',
   canUse: () => [onlyTool],
-  dataComponents: () => [onlyComponent]
+  dataComponents: () => [onlyComponent],
 });

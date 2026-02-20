@@ -11,16 +11,16 @@ export const githubWebhook = new Trigger({
     signature: {
       source: 'header',
       key: 'x-hub-signature-256',
-      prefix: 'sha256='
+      prefix: 'sha256=',
     },
     signedComponents: [{
       source: 'body',
-      required: true
+      required: true,
     }],
     componentJoin: {
       strategy: 'concatenate',
-      separator: ''
-    }
+      separator: '',
+    },
   },
-  signingSecretCredentialReference: githubWebhookSecret
+  signingSecretCredentialReference: githubWebhookSecret,
 });

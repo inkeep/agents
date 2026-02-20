@@ -6,8 +6,8 @@ export const singleAgentProject = project({
   name: 'Single Agent Project',
   models: {
     base: {
-      model: 'gpt-4o-mini'
-    }
+      model: 'gpt-4o-mini',
+    },
   },
-  agents: () => [onlyAgent]
+  agents: () => [onlyAgent],
 });

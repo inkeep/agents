@@ -11,16 +11,16 @@ export const webhookRegex = new Trigger({
     signature: {
       source: 'header',
       key: 'x-stripe-signature',
-      regex: 't=([^,]+)'
+      regex: 't=([^,]+)',
     },
     signedComponents: [{
       source: 'body',
-      required: true
+      required: true,
     }],
     componentJoin: {
       strategy: 'concatenate',
-      separator: ''
-    }
+      separator: '',
+    },
   },
-  signingSecretCredentialReference: githubWebhookSecret
+  signingSecretCredentialReference: githubWebhookSecret,
 });

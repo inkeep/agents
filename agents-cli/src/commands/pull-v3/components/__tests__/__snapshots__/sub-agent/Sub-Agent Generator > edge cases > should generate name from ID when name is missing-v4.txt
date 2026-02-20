@@ -4,5 +4,5 @@ export const missingName = subAgent({
   id: 'missing-name',
   description: 'Test description',
   prompt: 'Test prompt',
-  name: 'Missing Name'
+  name: 'Missing Name',
 });

@@ -6,5 +6,5 @@ export const weatherMcp = mcpTool({
   serverUrl: 'https://mcp.cloud.inkeep.com/weather/mcp',
   transport: { type: 'streamable_http' },
   description: 'Get weather information from external API',
-  imageUrl: 'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp'
+  imageUrl: 'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp',
 });

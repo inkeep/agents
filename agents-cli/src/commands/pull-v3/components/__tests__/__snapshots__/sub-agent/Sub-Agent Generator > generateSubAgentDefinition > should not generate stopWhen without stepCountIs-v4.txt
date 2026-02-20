@@ -5,5 +5,5 @@ export const noStepAgent = subAgent({
   description: 'Agent without step count',
   prompt: 'I do not have step count.',
   stopWhen: {},
-  name: 'No Step Count Agent'
+  name: 'No Step Count Agent',
 });

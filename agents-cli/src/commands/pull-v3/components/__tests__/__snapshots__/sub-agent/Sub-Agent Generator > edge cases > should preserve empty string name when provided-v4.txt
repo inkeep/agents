@@ -4,5 +4,5 @@ export const emptyStringsSubAgent = subAgent({
   id: 'empty-strings-sub-agent',
   description: '',
   prompt: '',
-  name: ''
+  name: '',
 });

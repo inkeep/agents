@@ -8,5 +8,5 @@ export const testSubAgent = subAgent({
   canUse: () => [calculateBMI, weatherTool],
   canDelegateTo: () => [coordinatesAgent, teamAgent],
   dataComponents: () => [taskList],
-  artifactComponents: () => [citation]
+  artifactComponents: () => [citation],
 });

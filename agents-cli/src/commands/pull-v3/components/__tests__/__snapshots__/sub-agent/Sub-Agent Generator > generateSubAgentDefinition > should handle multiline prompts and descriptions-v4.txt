@@ -5,5 +5,5 @@ export const multilineAgent = subAgent({
   description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings',
   prompt: `This is a very long prompt that should be handled as a multiline string
 It even contains newlines which should trigger multiline formatting`,
-  name: 'Multiline Agent'
+  name: 'Multiline Agent',
 });
