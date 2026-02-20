@@ -137,15 +137,9 @@ export async function introspectGenerate({
   for (const task of tasks) {
     const records = task.collect(context);
     for (const record of records) {
-      try {
-        const sourceFile = task.generate(record.payload);
-        writeTypeScriptFile(record.filePath, sourceFile.getFullText(), writeMode);
-        generatedFiles.push(record.filePath);
-      } catch (error) {
-        failures.push(
-          `${task.type}:${record.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
-      }
+      const sourceFile = task.generate(record.payload);
+      writeTypeScriptFile(record.filePath, sourceFile.getFullText(), writeMode);
+      generatedFiles.push(record.filePath);
     }
   }
 
@@ -893,8 +887,7 @@ function collectContextTemplateReferences(
     contextConfigId,
     join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
   );
-  const isLocal =
-    normalizeFilePath(contextConfigFilePath) === normalizeFilePath(targetFilePath);
+  const isLocal = normalizeFilePath(contextConfigFilePath) === normalizeFilePath(targetFilePath);
 
   const contextConfigReference =
     collectAgentContextConfigReferenceOverride(context, agentData, targetFilePath) ??

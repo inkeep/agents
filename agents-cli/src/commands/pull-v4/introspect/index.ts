@@ -420,7 +420,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     }
     process.exit(0);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message + '\n' + error.stack : String(error);
     s.stop();
     console.error(styleText('red', `\nError: ${message}`));
     if (options.debug && error instanceof Error) {

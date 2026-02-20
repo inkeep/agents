@@ -20,7 +20,7 @@ const SubAgentReferenceSchema = z.object({
 const AgentSchema = z.looseObject({
   agentId: z.string().nonempty(),
   name: z.string().nonempty(),
-  description: z.string().optional(),
+  description: z.string().nullish(),
   prompt: z.string().optional(),
   models: z.looseObject({}).optional(),
   defaultSubAgentId: z.string().nonempty(),
