@@ -1,4 +1,4 @@
-import type { CommentRange, ObjectLiteralExpression, SourceFile, Statement } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile, Statement } from 'ts-morph';
 import { Node, SyntaxKind } from 'ts-morph';
 import { createInMemoryProject } from './utils';
 
@@ -705,68 +705,21 @@ function formatCollectionLiteralText(
   openToken: '{' | '[',
   closeToken: '}' | ']'
 ): string {
-  if (!itemTexts.length) {
-    return `${openToken}${closeToken}`;
+  if (originalText.includes('\n')) {
+    return `${openToken}\n${itemTexts
+      .map((line) => {
+        const trimmedLine = line.replaceAll(/^\s+\*/gm, ' *');
+        return trimmedLine;
+      })
+      .join(',\n')}${closeToken}`;
   }
 
-  if (!originalText.includes('\n')) {
-    const openingWithSpacing = originalText.startsWith(`${openToken} `)
-      ? `${openToken} `
-      : openToken;
-    const closingWithSpacing = originalText.endsWith(` ${closeToken}`)
-      ? ` ${closeToken}`
-      : closeToken;
+  const openingWithSpacing = originalText.startsWith(`${openToken} `) ? `${openToken} ` : openToken;
+  const closingWithSpacing = originalText.endsWith(` ${closeToken}`)
+    ? ` ${closeToken}`
+    : closeToken;
 
-    return `${openingWithSpacing}${itemTexts.join(', ')}${closingWithSpacing}`;
-  }
-
-  const escapedOpenToken = openToken === '{' ? '\\{' : '\\[';
-  const escapedCloseToken = closeToken === '}' ? '\\}' : '\\]';
-  const innerIndent =
-    originalText.match(new RegExp(`${escapedOpenToken}\\r?\\n([ \\t]+)\\S`))?.[1] || '  ';
-  const closingIndent =
-    originalText.match(new RegExp(`\\r?\\n([ \\t]*)${escapedCloseToken}\\s*$`))?.[1] || '';
-
-  const indentedItems = itemTexts.map((itemText) => indentMultilineText(itemText, innerIndent));
-
-  return `${openToken}\n${indentedItems.join(',\n')}\n${closingIndent}${closeToken}`;
-}
-
-function indentMultilineText(text: string, indent: string): string {
-  const lines = text.split('\n');
-  const nonEmptyLines = lines.filter((line) => line.trim().length > 0);
-  const firstNonEmptyLine = nonEmptyLines[0];
-  const stripCandidates = nonEmptyLines
-    .map((line) => {
-      const trimmedLine = line.trimStart();
-      const lineIndent = line.match(/^[ \t]*/)?.[0].length ?? 0;
-      return { lineIndent, trimmedLine };
-    })
-    .filter(({ lineIndent, trimmedLine }) => lineIndent > 0 && !trimmedLine.startsWith('*'))
-    .map(({ lineIndent }) => lineIndent);
-  const stripIndent =
-    stripCandidates.length > 0
-      ? Math.min(...stripCandidates)
-      : (firstNonEmptyLine?.match(/^[ \t]*/)?.[0].length ?? 0);
-
-  const normalizedLines = lines.map((line) => {
-    if (!line.trim()) {
-      return '';
-    }
-    if (stripIndent === 0) {
-      return line;
-    }
-
-    const lineIndent = line.match(/^[ \t]*/)?.[0].length ?? 0;
-    const trimmedLine = line.trimStart();
-    if (trimmedLine.startsWith('*') && lineIndent < stripIndent) {
-      return line;
-    }
-
-    return line.slice(Math.min(stripIndent, lineIndent));
-  });
-
-  return normalizedLines.map((line) => `${indent}${line}`).join('\n');
+  return `${openingWithSpacing}${itemTexts.join(', ')}${closingWithSpacing}`;
 }
 
 interface TextReplacement {
