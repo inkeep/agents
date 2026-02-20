@@ -50,6 +50,7 @@ describe('template variable replacement', () => {
         headersReference: 'supportContextHeaders',
       })
     ).toBe(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: test assert
       'Time: ${supportContext.toTemplate("time")}, TZ: ${supportContextHeaders.toTemplate("tz")}'
     );
   });

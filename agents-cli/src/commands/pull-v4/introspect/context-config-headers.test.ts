@@ -185,6 +185,7 @@ const _supportContext = contextConfig({
     expect(generatedContextConfigFile).toContain('const supportContextHeaders = headers({');
     expect(generatedContextConfigFile).toContain('schema: z.object({ "tz": z.string() }).strict()');
     expect(generatedContextConfigFile).toContain(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: test assert
       'url: `https://world-time-api3.p.rapidapi.com/timezone/${supportContextHeaders.toTemplate("tz")}`'
     );
     expect(generatedContextConfigFile).toContain('headers: supportContextHeaders');

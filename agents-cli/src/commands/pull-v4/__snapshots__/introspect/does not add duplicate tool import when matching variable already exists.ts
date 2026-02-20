@@ -1,4 +1,5 @@
 import { project } from '@inkeep/agents-sdk';
+// biome-ignore lint/correctness/noUnusedImports: TODO: we can remove unused imports after code merging
 import { deepResearchAgent } from './agents/deep-research';
 import { firecrawlMcpTool } from './tools/firecrawl-mcp';
 import { supportAgent } from './agents/support-agent';
