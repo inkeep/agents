@@ -1,5 +1,4 @@
 import { exec } from 'node:child_process';
-import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -516,85 +515,26 @@ async function createWorkspaceStructure() {
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
-  // Convert to forward slashes for cross-platform SQLite URI compatibility
+  const envExampleContent = await fs.readFile('.env.example', 'utf-8');
+  const lines = envExampleContent.split('\n');
 
-  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+  const injections: Record<string, string> = {
+    ANTHROPIC_API_KEY: config.anthropicKey || '',
+    OPENAI_API_KEY: config.openAiKey || '',
+    GOOGLE_GENERATIVE_AI_API_KEY: config.googleKey || '',
+    AZURE_API_KEY: config.azureKey || '',
+    DEFAULT_PROJECT_ID: config.projectId,
+  };
 
-  const betterAuthSecret = crypto.randomBytes(32).toString('hex');
-
-  const manageUiPassword = crypto.randomBytes(6).toString('base64url');
-
-  // Generate RSA key pair for temporary JWT tokens
-  let tempJwtPrivateKey = '';
-  let tempJwtPublicKey = '';
-  try {
-    const { generateKeyPairSync } = await import('node:crypto');
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
-    tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
-  } catch {
-    console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
-    console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
+  for (let i = 0; i < lines.length; i++) {
+    for (const [varName, value] of Object.entries(injections)) {
+      if (lines[i].startsWith(`${varName}=`)) {
+        lines[i] = `${varName}=${value}`;
+      }
+    }
   }
 
-  const envContent = `# Environment
-ENVIRONMENT=development
-
-# Database Configuration (Split Database Setup)
-# Management entities database uses DoltgreSQL on port 5432 for version control features
-INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
-# Runtime entities database uses PostgreSQL on port 5433 for runtime operations
-INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
-
-# AI Provider Keys  
-ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
-OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
-AZURE_API_KEY=${config.azureKey || 'your-azure-key-here'}
-
-# Inkeep API URLs
-# Internal URLs (server-side, Docker internal networking)
-# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
-INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
-
-# Public URLs (client-side, browser accessible)
-PUBLIC_INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
-
-# SigNoz Configuration
-SIGNOZ_URL=your-signoz-url-here
-SIGNOZ_API_KEY=your-signoz-api-key-here
-
-# OTEL Configuration
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
-OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
-
-# Nango Configuration
-NANGO_SECRET_KEY=
-
-# JWT Signing Secret
-INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
-
-# Temporary JWT Keys for Playground
-INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${tempJwtPrivateKey}
-INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${tempJwtPublicKey}
-
-# initial project information
-DEFAULT_PROJECT_ID=${config.projectId}
-
-# Auth Configuration
-INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-INKEEP_AGENTS_MANAGE_UI_PASSWORD=${manageUiPassword}
-BETTER_AUTH_SECRET=${betterAuthSecret}
-SPICEDB_ENDPOINT=localhost:50051
-SPICEDB_PRESHARED_KEY=dev-secret-key
-
-`;
-
-  await fs.writeFile('.env', envContent);
+  await fs.writeFile('.env', lines.join('\n'));
 }
 
 async function createInkeepConfig(config: FileConfig) {
