@@ -31,8 +31,8 @@ interface CreateFactoryDefinitionOptions {
   fileName?: string;
   /** @default "@inkeep/agents-sdk" */
   moduleSpecifier?: string;
-  /** @default "call" */
-  initializerKind?: 'call' | 'new';
+  /** @default SyntaxKind.CallExpression */
+  syntaxKind?: SyntaxKind.CallExpression | SyntaxKind.NewExpression;
 }
 
 export function createFactoryDefinition({
@@ -40,7 +40,7 @@ export function createFactoryDefinition({
   variableName: name,
   fileName = 'definition.ts',
   moduleSpecifier = '@inkeep/agents-sdk',
-  initializerKind = 'call',
+  syntaxKind = SyntaxKind.CallExpression,
 }: CreateFactoryDefinitionOptions): {
   sourceFile: SourceFile;
   configObject: ObjectLiteralExpression;
@@ -49,16 +49,19 @@ export function createFactoryDefinition({
     overwrite: true,
   });
   sourceFile.addImportDeclaration({ namedImports: [importName], moduleSpecifier });
-  const initializer = `${initializerKind === 'new' ? 'new ' : ''}${importName}({})`;
   const variableStatement = sourceFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     isExported: true,
-    declarations: [{ name, initializer }],
+    declarations: [
+      {
+        name,
+        initializer: `${syntaxKind === SyntaxKind.NewExpression ? 'new ' : ''}${importName}({})`,
+      },
+    ],
   });
 
   const [declaration] = variableStatement.getDeclarations();
-  const kind = initializerKind === 'new' ? SyntaxKind.NewExpression : SyntaxKind.CallExpression;
-  const invocation = declaration.getInitializerIfKindOrThrow(kind);
+  const invocation = declaration.getInitializerIfKindOrThrow(syntaxKind);
   const [configArg] = invocation.getArguments();
 
   return {
@@ -272,4 +275,8 @@ export async function expectSnapshots(definition: string, definitionV4: string):
 
 export function convertNullToUndefined(v: unknown) {
   return v == null ? undefined : v;
+}
+
+export function hasReferences<T>(references?: T[]): references is T[] {
+  return Array.isArray(references) && references.length > 0;
 }

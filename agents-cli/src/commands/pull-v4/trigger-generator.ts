@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
+import { SyntaxKind } from 'ts-morph';
 
 type TriggerDefinitionData = {
   triggerId: string;
@@ -94,7 +95,7 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): string {
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'Trigger',
     variableName: toCamelCase(parsed.triggerId),
-    initializerKind: 'new',
+    syntaxKind: SyntaxKind.NewExpression,
   });
 
   const { triggerId, signingSecretCredentialReferenceId, ...rest } = parsed;

@@ -8,6 +8,7 @@ import {
   convertNullToUndefined,
   createFactoryDefinition,
   formatInlineLiteral,
+  hasReferences,
   isPlainObject,
   toCamelCase,
 } from './utils';
@@ -317,8 +318,4 @@ function collectSkills(skills?: unknown[]): string[] {
   }
 
   return formattedSkills;
-}
-
-function hasReferences(references?: string[]): references is string[] {
-  return Array.isArray(references) && references.length > 0;
 }

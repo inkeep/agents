@@ -7,6 +7,7 @@ import {
   convertNullToUndefined,
   createFactoryDefinition,
   formatStringLiteral,
+  hasReferences,
   toCamelCase,
 } from './utils';
 
@@ -195,10 +196,6 @@ ${z.prettifyError(result.error)}`);
   }
 
   return sourceFile.getFullText();
-}
-
-function hasReferences(references?: string[]): references is string[] {
-  return Array.isArray(references) && references.length > 0;
 }
 
 function addReferenceImports(
