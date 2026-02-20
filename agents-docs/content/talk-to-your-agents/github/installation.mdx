@@ -1,0 +1,101 @@
+---
+title: Install and Set Up the GitHub App
+sidebarTitle: How to Install
+description: Admin guide — install the Inkeep GitHub App, connect your repositories, and configure access.
+---
+
+# Install and Set Up the GitHub App
+
+This guide is for **organization administrators**. It walks you through installing the Inkeep GitHub App, connecting your repositories, and setting up access for your agents.
+
+<Note>
+The GitHub integration is a **cloud-only** feature. On Inkeep Cloud, all required environment variables are pre-configured — you don't need to set anything up on the infrastructure side.
+</Note>
+
+## Prerequisites
+
+- An Inkeep Cloud account with at least one project configured
+- **GitHub organization admin** access (or user account owner for personal repositories)
+
+## Install the app
+
+<Steps>
+  <Step>
+    ### Open the Work Apps dashboard
+
+    Navigate to your Inkeep dashboard and select **Work Apps** from the sidebar. You'll see the GitHub integration card.
+  </Step>
+  <Step>
+    ### Install to GitHub
+
+    Click **Install** on the GitHub card. This redirects you to GitHub's authorization screen where you select which organization or user account to install the app on.
+
+    The app requests the following permissions:
+    - Read access to repository contents and metadata
+    - Write access to create branches, commits, and pull requests
+    - Read and write access to issues and comments
+    - Access to organization/account information
+  </Step>
+  <Step>
+    ### Select repositories
+
+    Choose whether to give the app access to all repositories or select specific ones. You can change this later in GitHub's app settings.
+  </Step>
+  <Step>
+    ### Verify the installation
+
+    After authorizing, you're redirected back to the dashboard. The GitHub card shows your installation as **Active** with the organization or account name.
+
+    You should see your repositories listed in the installation details.
+  </Step>
+</Steps>
+
+## Configure repository access
+
+After installing, configure which repositories your agents can access. See the full [Configuration guide](/talk-to-your-agents/github/configuration) for details.
+
+**Quick overview:**
+
+- By default, new installations give all projects access to all synced repositories
+- You can restrict access at the project level (all repos vs. specific repos)
+- You can further restrict access at the MCP tool level
+
+## Managing installations
+
+### Sync repositories
+
+If you add or remove repositories from the GitHub App in GitHub's settings, click **Sync** in the Inkeep dashboard to refresh the repository list.
+
+### Disconnect vs. Delete
+
+- **Disconnect** — Soft-deletes the installation. The record is preserved, and you can reconnect later.
+- **Delete** — Permanently removes the installation and all associated repository access. This cannot be undone.
+
+<Warning>
+Disconnecting or deleting from Inkeep does **not** uninstall the GitHub App from GitHub. To fully remove the integration, also uninstall the app from GitHub's settings.
+</Warning>
+
+## Troubleshooting
+
+### Installation link expired
+
+The installation link expires after 10 minutes. If you see an error, return to the dashboard and click **Install** again.
+
+### Missing repositories
+
+If repositories aren't showing up:
+
+1. Check the GitHub App settings to ensure the app has access
+2. Click **Sync** in the Inkeep dashboard
+3. Verify the repositories aren't private with restricted visibility settings
+
+## Next steps
+
+<Cards>
+  <Card title="Configure Repository Access" icon="LuSettings" href="/talk-to-your-agents/github/configuration">
+    Set up which repositories each project and tool can access
+  </Card>
+  <Card title="GitHub MCP Tools" icon="LuWrench" href="/talk-to-your-agents/github/overview#available-mcp-tools">
+    Explore the tools agents can use with GitHub
+  </Card>
+</Cards>
