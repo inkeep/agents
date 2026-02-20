@@ -263,6 +263,15 @@ export function buildToolApprovalDoneBlocks(params: {
   return [{ type: 'context', elements: [{ type: 'mrkdwn', text: statusText }] }];
 }
 
+export function buildToolApprovalExpiredBlocks(params: { toolName: string }) {
+  return [
+    {
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `⏱️ Expired · \`${params.toolName}\`` }],
+    },
+  ];
+}
+
 export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {
   return Message()
     .blocks(

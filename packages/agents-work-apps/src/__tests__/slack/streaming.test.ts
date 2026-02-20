@@ -43,6 +43,7 @@ import { streamAgentResponse } from '../../slack/services/events/streaming';
 const mockPostMessage = vi.fn().mockResolvedValue({ ok: true });
 const mockPostEphemeral = vi.fn().mockResolvedValue({ ok: true });
 const mockChatDelete = vi.fn().mockResolvedValue({ ok: true });
+const mockChatUpdate = vi.fn().mockResolvedValue({ ok: true });
 const mockStreamAppend = vi.fn().mockResolvedValue(undefined);
 const mockStreamStop = vi.fn().mockResolvedValue(undefined);
 
@@ -51,6 +52,7 @@ const mockSlackClient = {
     postMessage: mockPostMessage,
     postEphemeral: mockPostEphemeral,
     delete: mockChatDelete,
+    update: mockChatUpdate,
   },
   chatStream: vi.fn().mockReturnValue({
     append: mockStreamAppend,
@@ -77,6 +79,16 @@ describe('streamAgentResponse', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
+    mockPostMessage.mockResolvedValue({ ok: true });
+    mockPostEphemeral.mockResolvedValue({ ok: true });
+    mockChatDelete.mockResolvedValue({ ok: true });
+    mockChatUpdate.mockResolvedValue({ ok: true });
+    mockStreamAppend.mockResolvedValue(undefined);
+    mockStreamStop.mockResolvedValue(undefined);
+    mockSlackClient.chatStream.mockReturnValue({
+      append: mockStreamAppend,
+      stop: mockStreamStop,
+    });
   });
 
   it('should handle non-ok API response', async () => {
@@ -251,6 +263,68 @@ describe('streamAgentResponse', () => {
       await streamAgentResponse({ ...baseParams, conversationId: '' });
 
       expect(mockPostMessage).not.toHaveBeenCalled();
+    });
+
+    it('should update approval message to expired when stream errors after posting it', async () => {
+      const approvalTs = '9999.1111';
+      mockPostMessage.mockResolvedValue({ ok: true, ts: approvalTs });
+
+      const localAppend = vi.fn().mockResolvedValue(undefined);
+      const localStop = vi.fn().mockResolvedValue(undefined);
+      mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+
+      const sseData =
+        'data: {"type":"tool-approval-request","toolCallId":"tc-5","toolName":"run_code"}\n';
+
+      let readCount = 0;
+      const stream = new ReadableStream({
+        pull(controller) {
+          if (readCount === 0) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            readCount++;
+          } else {
+            controller.error(new Error('stream closed'));
+          }
+        },
+      });
+
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+      await streamAgentResponse(baseParams);
+
+      expect(mockChatUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channel: 'C456',
+          ts: approvalTs,
+          text: expect.stringContaining('Expired'),
+          blocks: expect.arrayContaining([expect.objectContaining({ type: 'context' })]),
+        })
+      );
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channel: 'C456',
+          thread_ts: '1234.5678',
+          text: expect.stringContaining('run_code'),
+        })
+      );
+    });
+
+    it('should not call chat.update when no approval message was posted', async () => {
+      const localAppend = vi.fn().mockResolvedValue(undefined);
+      const localStop = vi.fn().mockResolvedValue(undefined);
+      mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+
+      const stream = new ReadableStream({
+        pull(controller) {
+          controller.error(new Error('immediate error'));
+        },
+      });
+
+      mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+      await streamAgentResponse(baseParams);
+
+      expect(mockChatUpdate).not.toHaveBeenCalled();
     });
   });
 
