@@ -50,7 +50,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
 
   const project = createInMemoryProject();
 
-  const parsed = result.data;
+  const parsed = result.data as ParsedContextConfigDefinitionData;
   const sourceFile = project.createSourceFile('context-config-definition.ts', '', {
     overwrite: true,
   });
@@ -63,17 +63,27 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     return generateStandaloneFetchDefinition(sourceFile, parsed);
   }
 
-  const headersReference = resolveHeadersReference(parsed);
-  // @ts-expect-error -- fixme
-  const fetchDefinitions = collectFetchDefinitionEntries(parsed.contextVariables);
+  const parsedContextConfig = result.data as ParsedContextConfigDefinitionData;
+  const explicitHeadersReference = extractHeadersReference(parsedContextConfig.headers);
+  const templateHeaderVariables = collectTemplateHeaderVariables(
+    parsedContextConfig.contextVariables
+  );
+  const inferredHeadersSchema =
+    !isPlainObject(parsedContextConfig.headersSchema) && !explicitHeadersReference
+      ? inferHeadersSchemaFromTemplateHeaderVariables(templateHeaderVariables)
+      : undefined;
+  const headersSchema = isPlainObject(parsedContextConfig.headersSchema)
+    ? parsedContextConfig.headersSchema
+    : inferredHeadersSchema;
+  const headersReference = resolveHeadersReference(parsedContextConfig, Boolean(headersSchema));
+  const shouldDefineHeadersInFile = Boolean(headersReference) && isPlainObject(headersSchema);
+  const fetchDefinitions = collectFetchDefinitionEntries(parsedContextConfig.contextVariables);
   const credentialReferenceNames = collectCredentialReferenceNames(
     fetchDefinitions,
-    // @ts-expect-error -- fixme
-    parsed.referenceOverrides?.credentialReferences
+    parsedContextConfig.referenceOverrides?.credentialReferences
   );
   const coreImports = ['contextConfig'];
-  // @ts-expect-error -- fixme
-  if (headersReference && isPlainObject(parsed.headersSchema)) {
+  if (shouldDefineHeadersInFile) {
     coreImports.unshift('headers');
   }
   if (fetchDefinitions.length > 0) {
@@ -89,8 +99,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     // @ts-expect-error -- fixme
     isPlainObject(definition.data.responseSchema)
   );
-  // @ts-expect-error -- fixme
-  if (isPlainObject(parsed.headersSchema) || hasResponseSchemas) {
+  if (shouldDefineHeadersInFile || hasResponseSchemas) {
     sourceFile.addImportDeclaration({
       namedImports: ['z'],
       moduleSpecifier: 'zod',
@@ -103,8 +112,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
       moduleSpecifier: `../credentials/${credentialId}`,
     });
   }
-  // @ts-expect-error -- fixme
-  if (headersReference && isPlainObject(parsed.headersSchema)) {
+  if (shouldDefineHeadersInFile && headersReference && headersSchema) {
     const { configObject: headersObject } = addFactoryConfigVariable({
       sourceFile,
       importName: 'headers',
@@ -113,8 +121,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
 
     headersObject.addPropertyAssignment({
       name: 'schema',
-      // @ts-expect-error -- fixme
-      initializer: convertJsonSchemaToZod(parsed.headersSchema),
+      initializer: convertJsonSchemaToZod(headersSchema),
     });
   }
 
@@ -124,11 +131,14 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
       importName: 'fetchDefinition',
       variableName: fetchDefinition.variableName,
     });
-    // @ts-expect-error -- fixme
-    writeFetchDefinition(fetchConfigObject, fetchDefinition.data, credentialReferenceNames);
+    writeFetchDefinition(
+      fetchConfigObject,
+      fetchDefinition.data,
+      credentialReferenceNames,
+      headersReference
+    );
   }
-  // @ts-expect-error -- fixme
-  const contextConfigVarName = toContextConfigVariableName(parsed.contextConfigId);
+  const contextConfigVarName = toContextConfigVariableName(parsedContextConfig.contextConfigId);
   const { configObject } = addFactoryConfigVariable({
     sourceFile,
     importName: 'contextConfig',
@@ -136,7 +146,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     isExported: true,
   });
 
-  writeContextConfig(configObject, parsed, headersReference);
+  writeContextConfig(configObject, parsedContextConfig, headersReference);
 
   return sourceFile;
 }
@@ -196,13 +206,16 @@ function extractHeadersReference(headers?: string | { id?: string; name?: string
   return undefined;
 }
 
-function resolveHeadersReference(data: ParsedContextConfigDefinitionData): string | undefined {
+function resolveHeadersReference(
+  data: ParsedContextConfigDefinitionData,
+  hasHeadersSchema: boolean
+): string | undefined {
   const headersRef = extractHeadersReference(data.headers);
   if (headersRef) {
     return toReferenceIdentifier(headersRef);
   }
 
-  if (isPlainObject(data.headersSchema)) {
+  if (hasHeadersSchema) {
     return `${toContextConfigVariableName(data.contextConfigId)}Headers`;
   }
 
@@ -237,12 +250,19 @@ function collectFetchDefinitionEntries(contextVariables?: Record<string, unknown
 
 function writeFetchDefinition(
   configObject: ObjectLiteralExpression,
-  { contextConfigId, responseSchema, credentialReferenceId, ...rest }: Record<string, unknown>,
-  credentialReferenceNames?: Map<string, string>
+  fetchDefinitionData: unknown,
+  credentialReferenceNames?: Map<string, string>,
+  headersReference?: string
 ) {
+  const { contextConfigId, responseSchema, credentialReferenceId, ...rest } = isPlainObject(
+    fetchDefinitionData
+  )
+    ? fetchDefinitionData
+    : {};
+  const normalizedRest = rewriteHeaderTemplates(rest, headersReference);
   for (const [k, v] of Object.entries({
     id: contextConfigId,
-    ...rest,
+    ...normalizedRest,
   })) {
     if (v !== null) {
       addValueToObject(configObject, k, v);
@@ -270,6 +290,46 @@ function writeFetchDefinition(
   if (typeof credentialReferenceId === 'string') {
     addStringProperty(configObject, 'credentialReferenceId', credentialReferenceId);
   }
+}
+
+const HEADER_TEMPLATE_REGEX = /\{\{headers\.([^}]+)\}\}/g;
+const HEADER_TO_TEMPLATE_CALL_REGEX =
+  /\$\{\s*(headersSchema|headers)\.toTemplate\((['"])([^'"`]+)\2\)\s*\}/g;
+
+function rewriteHeaderTemplates<T>(value: T, headersReference?: string): T {
+  if (!headersReference) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const withHeaderTokensReplaced = value.replace(
+      HEADER_TEMPLATE_REGEX,
+      (_, variableName: string) => {
+        return `\${${headersReference}.toTemplate(${JSON.stringify(variableName)})}`;
+      }
+    );
+    return withHeaderTokensReplaced.replace(
+      HEADER_TO_TEMPLATE_CALL_REGEX,
+      (_, __: string, ___: string, variableName: string) => {
+        return `\${${headersReference}.toTemplate(${JSON.stringify(variableName)})}`;
+      }
+    ) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => rewriteHeaderTemplates(entry, headersReference)) as T;
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entryValue]) => [
+        key,
+        rewriteHeaderTemplates(entryValue, headersReference),
+      ])
+    ) as T;
+  }
+
+  return value;
 }
 
 function generateStandaloneHeadersDefinition(
@@ -412,4 +472,59 @@ function collectCredentialReferenceNames(
   }
 
   return credentialReferenceNames;
+}
+
+function collectTemplateHeaderVariables(contextVariables?: Record<string, unknown>): Set<string> {
+  const variables = new Set<string>();
+  collectTemplateHeaderVariablesFromValue(contextVariables, variables);
+  return variables;
+}
+
+function collectTemplateHeaderVariablesFromValue(value: unknown, variables: Set<string>): void {
+  if (typeof value === 'string') {
+    for (const match of value.matchAll(HEADER_TEMPLATE_REGEX)) {
+      if (match[1]) {
+        variables.add(match[1]);
+      }
+    }
+    for (const match of value.matchAll(HEADER_TO_TEMPLATE_CALL_REGEX)) {
+      if (match[3]) {
+        variables.add(match[3]);
+      }
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      collectTemplateHeaderVariablesFromValue(entry, variables);
+    }
+    return;
+  }
+
+  if (isPlainObject(value)) {
+    for (const entryValue of Object.values(value)) {
+      collectTemplateHeaderVariablesFromValue(entryValue, variables);
+    }
+  }
+}
+
+function inferHeadersSchemaFromTemplateHeaderVariables(
+  variables: Set<string>
+): Record<string, unknown> | undefined {
+  if (!variables.size) {
+    return;
+  }
+
+  const properties: Record<string, unknown> = {};
+  for (const variable of [...variables].sort()) {
+    properties[variable] = { type: 'string' };
+  }
+
+  return {
+    type: 'object',
+    properties,
+    required: [...variables].sort(),
+    additionalProperties: false,
+  };
 }
