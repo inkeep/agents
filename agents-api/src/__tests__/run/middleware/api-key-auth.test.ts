@@ -721,6 +721,7 @@ describe('API Key Authentication Middleware', () => {
       expect(body.metadata.slack).toBeUndefined();
       expect(canUseProjectStrictMock).toHaveBeenCalledWith({
         userId: 'user_123',
+        tenantId: 'tenant_456',
         projectId: 'project_789',
       });
     });
@@ -816,6 +817,7 @@ describe('API Key Authentication Middleware', () => {
       // SpiceDB SHOULD be called because project doesn't match
       expect(canUseProjectStrictMock).toHaveBeenCalledWith({
         userId: 'user_123',
+        tenantId: 'tenant_456',
         projectId: 'project_789',
       });
       // metadata.slack should NOT be set (bypass didn't apply)
