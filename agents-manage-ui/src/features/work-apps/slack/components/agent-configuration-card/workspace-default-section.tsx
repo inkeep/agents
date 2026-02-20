@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, Loader2, RotateCcw, ShieldCheck, SlackIcon } from 'lucide-react';
+import { Check, ChevronDown, Loader2, ShieldCheck, SlackIcon, X } from 'lucide-react';
 import { InkeepIconMono } from '@/components/icons/inkeep';
 import { Button } from '@/components/ui/button';
 import {
@@ -99,7 +99,7 @@ export function WorkspaceDefaultSection({
                         value="Remove default agent"
                         onSelect={() => onRemoveDefaultAgent()}
                       >
-                        <RotateCcw className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                         Remove default agent
                       </CommandItem>
                     </CommandGroup>
