@@ -4,30 +4,93 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 
 ## Essential Commands - Quick Reference
 
-### Build & Development
-- **Build**: `pnpm build` (root) or `turbo build`
-- **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
-- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+### Development
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user. **Can run safely any time to bootstrap services**.
 - **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
-- **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
+- **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
 
-### Verification
+### Quality checks
+**Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test <file>`
 
-**Pre-push** (run both, in order):
+### Pre-push checks (run in order):
 ```bash
-pnpm format     # auto-fix formatting
-pnpm check      # lint + typecheck + test + format:check + env-descriptions + knip
+pnpm format     # auto-fix formatting (mutates files)
+pnpm check      # build + lint + typecheck + test + format:check + env-descriptions + knip
 ```
 
-**Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
+### Command Timing Guide
+
+`pnpm check` transitively triggers `build` (via turbo task graph: `typecheck` and `test` both depend on `build`). Running `pnpm build` before `pnpm check` is redundant.
+
+#### When to run what
+
+| Situation | Command | Time |
+|---|---|---|
+| Edited 1-3 files in one package | `pnpm typecheck` and/or `cd <pkg> && pnpm test <file>` | < 30s |
+| Changed shared types/interfaces | `pnpm typecheck` (cross-package) | ~30-60s |
+| Ready to commit | Nothing extra — pre-commit hook runs `lint-staged` automatically | ~5s |
+| About to push / create PR | `pnpm format && pnpm check` | 3-5 min |
+| Changed DB schema | `pnpm db:generate` -> review SQL -> `pnpm db:migrate` -> `pnpm typecheck` | varies |
+| Added/removed dependency | `pnpm install --frozen-lockfile` then `pnpm check` before push | 3-5 min |
+| Added/removed/renamed env var | `pnpm check:env-descriptions` (already part of `pnpm check`) | < 10s |
+| Writing tests iteratively | `cd <pkg> && pnpm test <file>` repeatedly; `pnpm test` once before push | < 30s each |
+
+#### Recommended iteration flow
+
+```
+Edit code -> targeted check (typecheck / single test) -> repeat
+  -> commit (hook runs lint-staged)
+  -> when ready to push: pnpm format && pnpm check
+  -> push / create PR
+```
+
+#### Do not
+
+- Run `pnpm check` after every edit — it takes 3-5 min. Run it once before push.
+- Run `pnpm build` separately before `pnpm check` — build is already included.
+- Run `pnpm format` after `pnpm check` — run format *first* so check does not fail on fixable formatting.
+- Run `pnpm lint` + `pnpm typecheck` + `pnpm test` separately after `pnpm check` — they are all inside check.
+
+#### Hooks (automatic, do not invoke manually)
+
+| Hook | Trigger | Action |
+|---|---|---|
+| pre-commit | `git commit` | `lint-staged`: biome on staged files, agents-api tests if agents-api touched, OpenAPI snapshot if routes changed, AI artifact validation if `.claude/agents/` or `.agents/skills/` changed, script sync to create-agents-template if setup scripts changed |
+| pre-push | `git push` | `pnpm format` (auto-fix) |
+
+#### What only CI can catch
+
+The `create-agents-e2e` job runs real DB migrations against Doltgres + Postgres containers. This catches Doltgres DDL incompatibilities that local `pnpm check` (uses pglite) cannot. Pay extra attention to E2E job status after pushing manage schema migrations.
+
+#### Changeset / release responsibilities
+
+| Task | Agent's job? |
+|---|---|
+| Create changeset (`pnpm bump ...`) for user-facing changes | Yes |
+| Run `pnpm check` before PR | Yes |
+| `changeset version` / `changeset publish` / npm publish | No — automated by release pipeline |
 
 ### Database Operations (run from monorepo root)
-- **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
-- **Apply migrations**: `pnpm db:migrate` - Apply generated migrations to database
-- **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
-- **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
-- **Check schema**: `pnpm db:check`
-- **Initialize auth**: `pnpm db:auth:init` - Create default organization and admin user for local development
+
+Migrations are split across two directories: `packages/agents-core/drizzle/manage/` (Doltgres) and `packages/agents-core/drizzle/runtime/` (PostgreSQL). Compound commands run both; per-database commands target one.
+
+| Command | Scope | Notes |
+|---|---|---|
+| `pnpm db:generate` | both | Runs `db:manage:generate` + `db:run:generate` |
+| `pnpm db:migrate` | both | Runs `db:manage:migrate` + `db:run:migrate` |
+| `pnpm db:drop` | both | Use this to remove migrations — never delete files manually |
+| `pnpm db:check` | both | Runs `db:manage:check` + `db:run:check` |
+| `pnpm db:manage:generate` | manage only | Outputs to `drizzle/manage/` |
+| `pnpm db:manage:migrate` | manage only | Uses custom `migrate-dolt.ts`; auto-commits to Dolt after applying |
+| `pnpm db:manage:drop` | manage only | |
+| `pnpm db:manage:studio` | manage only | |
+| `pnpm db:run:generate` | runtime only | Outputs to `drizzle/runtime/` |
+| `pnpm db:run:migrate` | runtime only | Standard drizzle-kit migrate |
+| `pnpm db:run:drop` | runtime only | |
+| `pnpm db:run:studio` | runtime only | |
+| `pnpm db:auth:init` | — | Create default org and admin user for local development |
+
+> `pnpm db:studio` has no compound form — use `db:manage:studio` or `db:run:studio` directly.
 
 ### Creating Changelog Entries (Changesets)
 
@@ -107,7 +170,7 @@ pnpm build           # Build documentation for production
 - Place tests in `__tests__/` directories adjacent to code
 - Name: `*.test.ts` or `*.spec.ts`
 - Pattern: `import { describe, it, expect, beforeEach, vi } from 'vitest'`
-- Run with `--run` flag to avoid watch mode
+- All package `test` scripts include `--run` (non-watch mode) — do not pass `--run` again via CLI
 - 60-second timeouts for A2A interactions
 - Each test worker uses an embedded Postgres (pglite) database with manage/run Drizzle migrations applied in setup
 
@@ -116,7 +179,39 @@ pnpm build           # Build documentation for production
 
 ## Architecture Overview
 
-This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
+This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent, based on [Google's A2A specification](https://google.github.io/A2A/) — JSON-RPC 2.0 over HTTP with SSE streaming) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
+
+### Web Framework (Hono v4)
+
+The API is built on [Hono](https://hono.dev/) v4 with `@hono/zod-openapi` for typed routes. A single `OpenAPIHono` app is created in `agents-api/src/createApp.ts`, and each domain is mounted as a sub-router:
+
+```
+app.route('/manage', manageRoutes)
+app.route('/run', runRoutes)
+app.route('/evals', evalRoutes)
+app.route('/.well-known', workflowRoutes)
+app.route('/work-apps', workAppsRoutes)
+app.route('/mcp', mcpRoutes)
+```
+
+Middleware is path-scoped and order-dependent — middleware registered before `app.route()` applies to that domain's routes. See `createApp.ts` for the full middleware stack.
+
+### Package Dependency Graph
+
+| Package | Depends on (internal) | Purpose |
+|---|---|---|
+| `agents-core` | — | Foundation: DB schemas, data-access, validation, middleware, env |
+| `agents-sdk` | `agents-core` | Builder functions (`agent()`, `subAgent()`, `tool()`) for SDK/CLI use |
+| `agents-api` | `agents-core`, `agents-work-apps`, `agents-mcp` | Unified API service (manage + run + evals domains) |
+| `agents-work-apps` | `agents-core` | Slack and GitHub integration handlers |
+| `agents-cli` | `agents-sdk`, `agents-core` | CLI for agent config sync and local dev |
+| `agents-mcp` | — | MCP server for agent tooling (Speakeasy-generated, no internal deps) |
+| `ai-sdk-provider` | `agents-core` | Vercel AI SDK provider |
+| `agents-manage-ui` | `agents-core` | Next.js agent builder UI |
+| `agents-docs` | `agents-cli`, `agents-core` | Public documentation site (Next.js/Fumadocs) |
+| `create-agents` | `agents-core`, `agents-sdk`, `agents-cli`, `agents-manage-ui` | Project scaffolding template |
+
+**Key facts:** `agents-core` is the dependency root — everything depends on it. `agents-api` does **not** depend on `agents-sdk`; they share `agents-core` but serve different contexts (server vs CLI). Build order is managed by Turborepo via `dependsOn` in `turbo.json`.
 
 ### Core Components
 
@@ -128,29 +223,58 @@ The `agents-api` package contains all API domains under a single service:
 
 #### Multi-Agent Framework
 
-#### Database Schema (PostgreSQL + Drizzle ORM)
-- [manage-schema.ts](./packages/agents-core/src/db/manage/manage-schema.ts) - Config tables (Doltgres)
-- [runtime-schema.ts](./packages/agents-core/src/db/runtime/runtime-schema.ts) - Runtime tables (Postgres)
+The runtime agent execution is driven by `ExecutionHandler` (`agents-api/src/domains/run/handlers/executionHandler.ts`), a state-machine loop that: looks up the target agent, makes an A2A JSON-RPC call, inspects the result, and either completes or follows a transfer/delegation. Agents relate to each other in three ways:
+
+| Relation type | Behavior | Where defined |
+|---|---|---|
+| **Transfer** | Switches the active sub-agent for the conversation (like a handoff) | `sub_agent_relations` table with `relationType = 'transfer'` |
+| **Delegation** | Spawns a sub-task (internal, external, or team) and returns the result | `sub_agent_relations` table with `relationType = 'delegate'` |
+| **Tool** | Exposed as a regular tool call to the LLM | Tool definitions in manage DB |
+
+Builder functions (`agent()`, `subAgent()` from `@inkeep/agents-sdk`) are for SDK/CLI/cookbook use. Inside `agents-api`, use data-access functions directly (see "When Working with Agents" below). Load the `multi-agent-framework` skill for the full execution model, A2A protocol details, and agent card format.
+
+#### Database Architecture (Two Databases)
+
+The framework uses **two separate PostgreSQL-compatible databases** with different engines:
+
+| Database | Engine | Schema File | Purpose |
+|----------|--------|-------------|---------|
+| **Manage** | **Doltgres** (port 5432) | [manage-schema.ts](./packages/agents-core/src/db/manage/manage-schema.ts) | Versioned config: projects, agents, tools, triggers, evaluators, skills |
+| **Runtime** | **PostgreSQL** (port 5433) | [runtime-schema.ts](./packages/agents-core/src/db/runtime/runtime-schema.ts) | Transactional data: conversations, messages, tasks, API keys |
+
+> ⚠️ **Doltgres is NOT fully PostgreSQL-compatible.** The manage database runs on [Doltgres](https://github.com/dolthub/doltgresql), a Git-like versioned database that supports most but not all PostgreSQL DDL. This means `drizzle-kit generate` can produce migration SQL that works on standard PostgreSQL but **fails on Doltgres**. Before designing schemas or generating migrations for the manage database, load the `data-model-changes` skill which documents Doltgres DDL constraints, safe patterns, and workarounds.
+
+**Key distinctions:**
+- **Manage DB (Doltgres)**: Configuration that changes infrequently. Supports Dolt branch/commit versioning — every project has its own branch (`{tenantId}_{projectId}_main`). All reads/writes **must** be scoped to the correct branch via `withRef()` or the `branchScopedDbMiddleware`; load the `manage-database-usage` skill before writing any manage DB query. Has DDL limitations — no `ALTER TYPE`, no `DROP TABLE CASCADE`, no advanced indexes.
+- **Runtime DB (PostgreSQL)**: High-frequency transactional data. Standard PostgreSQL with no DDL restrictions. No cross-DB foreign keys to manage tables.
+
+### Skills System
+
+Skills are on-demand expertise documents (SKILL.md files) in `.agents/skills/<name>/`. They provide deep guidance for specific tasks (e.g., `data-model-changes`, `manage-database-usage`, `product-surface-areas`). Skills follow the [Agent Skills open standard](https://agentskills.io) and are auto-discovered by all major agents (Claude Code, Cursor, Codex, Amp, OpenHands) via symlinks (`.claude/skills/`, `.cursor/skills/`, `.codex/skills/` all point to `.agents/skills/`). When this document says "load the X skill", your agent will auto-discover it — just reference the skill by name. Skills can include `references/`, `scripts/`, and `assets/` subdirectories.
 
 ## Key Implementation Details
 
 ### Database Migration Workflow
 
+> **Before making any schema change**, load the `data-model-changes` skill. It covers multi-tenancy scoping patterns, Doltgres DDL constraints, migration review checklists, and the table recreation workaround for operations Doltgres doesn't support.
+
 #### Standard Workflow
 1. Edit `packages/agents-core/src/db/manage/manage-schema.ts` or `packages/agents-core/src/db/runtime/runtime-schema.ts`
 2. Run `pnpm db:generate` to create migration files in `drizzle/`
-3. (Optional) Make minor edits to the newly generated SQL file if needed due to drizzle-kit limitations
-4. Run `pnpm db:migrate` to apply the migration to the database
+3. **Review generated SQL** — especially for manage migrations, check for Doltgres-incompatible patterns (see `data-model-changes` skill)
+4. (Optional) Make minor edits to the newly generated SQL file if needed
+5. Run `pnpm db:migrate` to apply the migration to the database
 
 #### Important Rules
 - ⚠️ **NEVER manually edit files in `drizzle/meta/`** - these are managed by drizzle-kit
 - ⚠️ **NEVER edit existing migration SQL files after they've been applied** - create new migrations instead
 - ⚠️ **To remove migrations, use `pnpm db:drop`** - don't manually delete migration files
 - ✅ **Only edit newly generated migrations** before first application (if drizzle-kit has limitations)
+- ⚠️ **Manage migrations are validated against real Doltgres in CI** (`Create Agents E2E Tests` job) - this is a required check and will block merge if the SQL is incompatible
 
 ### Testing Patterns (MANDATORY for all new features)
 - **Vitest**: Test framework with 60-second timeouts for A2A interactions
-- **Isolated Databases**: Each test worker gets in-memory SQLite database
+- **Isolated Databases**: Each test worker gets an in-memory PGlite (PostgreSQL-compatible) database
 - **Integration Tests**: End-to-end A2A communication testing
 - **Test Structure**: Tests must be in `__tests__` directories, named `*.test.ts`
 - **Coverage Requirements**: All new code paths must have test coverage
@@ -225,39 +349,57 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 ## Development Guidelines
 
-### ⚠️ MANDATORY: Required for All New Features
+### ⚠️ MANDATORY: Delivery Requirements by Change Type
 
-**ALL new work MUST include these three components - NO EXCEPTIONS:**
+Not every change requires the same artifacts. Use the table below to determine what is required before marking work complete. When in doubt, apply the most conservative row that fits.
 
-✅ **1. Unit Tests**
+| Change type | Unit tests | UI components | Docs |
+|---|---|---|---|
+| New user-facing feature (API, config, behavior) | Required | Required if configurable via manage UI | Required |
+| New internal feature (no customer surface) | Required | Not required | Not required |
+| Bug fix | Required for the fixed path | Only if UI was broken or misleading | Only if docs were wrong |
+| Refactor / internal restructure | Required (verify existing tests still pass) | Not required | Not required |
+| Performance optimization | Required (benchmark or regression test) | Not required | Not required |
+| Test-only or tooling-only change | Not required | Not required | Not required |
+
+**Definitions:**
+- **User-facing**: the change affects anything a customer (developer or no-code admin) directly observes or configures — API shape, SDK behavior, CLI output, UI, event payloads, public docs, agent behavior.
+- **Configurable via manage UI**: the new capability has a corresponding setting, toggle, or input that belongs in the agent builder (e.g., a new agent config field, a new tool parameter, a new project setting).
+
+**Component requirements when applicable:**
+
+**Unit Tests** (applies per table above)
 - Write comprehensive unit tests using Vitest
 - Place tests in `__tests__` directories adjacent to the code
 - Follow naming convention: `*.test.ts`
-- Minimum coverage for new code paths
 - Test both success and error cases
 
-✅ **2. Agent Builder UI Components** 
+**Agent Builder UI Components** (applies per table above)
 - Add corresponding UI components in `/agents-manage-ui/src/components/`
 - Include form validation schemas
 - Update relevant pages in `/agents-manage-ui/src/app/`
 - Follow existing Next.js and React patterns
 - Use the existing UI component library
 
-✅ **3. Documentation**
-- Create or update documentation in `/agents-docs/content/docs/` (public-facing docs)
+**Documentation** (applies per table above)
+- Create or update documentation in `/agents-docs/content/` (public-facing docs)
 - Documentation should be in MDX format (`.mdx` files)
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
-**Before marking any feature complete, verify:**
+**Before marking any work complete, verify:**
 - [ ] `pnpm check` passes
-- [ ] UI components implemented in agents-manage-ui
-- [ ] Documentation added to `/agents-docs/`
-- [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
+- [ ] UI components implemented in agents-manage-ui (if required per table)
+- [ ] Documentation added to `/agents-docs/` (if required per table)
+- [ ] Surface area and breaking changes have been addressed as agreed with the user (see "Clarify scope and surface area before implementing").
+
+### Commit Messages
+
+No strict format is enforced. Use sentence case with an action verb (e.g., "Fix race condition in task handler", "Add streaming support to delegation flow"). Keep the first line under 72 characters. The pre-commit hook checks formatting and lint only — not commit message format.
 
 ### 📋 Standard Development Workflow
 
 1. Create a branch: `git checkout -b feature/your-feature-name`
-2. Run [Verification](#verification) before pushing
+2. Run pre-push checks before pushing: `pnpm format && pnpm check`
 3. Commit, then `gh pr create`
 
 The user may override this workflow (e.g., work directly on main).
@@ -325,12 +467,11 @@ git worktree prune
 **Reference**: [git-worktree documentation](https://git-scm.com/docs/git-worktree)
 
 ### When Working with Agents
-1. **Always call `graph.init()`** after creating agent relationships to persist to database
-2. **Use builder patterns** (`agent()`, `subAgent()`, `tool()`) instead of direct database manipulation
-3. **Preserve contextId** when implementing transfer/delegation logic - extract from task IDs if needed
-4. **Validate tool results** with proper type guards instead of unsafe casting
-5. **Test A2A communication end-to-end** when adding new agent relationships
-6. **Follow the mandatory requirements above** for all new features
+1. **Use the correct persistence layer for your context**: In `agents-api`, create and manage agent relationships using data-access functions (e.g., `createSubAgentRelation()` from `packages/agents-core/src/data-access/`). In SDK/CLI/cookbook contexts, use builder functions (`agent()`, `subAgent()`, `mcpTool()`, etc. from `@inkeep/agents-sdk`) which handle persistence through the CLI sync workflow. Do not import `agents-sdk` builders inside `agents-api`.
+2. **Preserve contextId** when implementing transfer/delegation logic - extract from task IDs if needed. The pattern `task.id.match(/^task_([^-]+-[^-]+-\d+)-/)` is used in `generateTaskHandler.ts` for cases where `task.context.conversationId` is absent or `'default'` (e.g., `task_math-demo-123456-chatcmpl-789` yields `math-demo-123456`).
+3. **Validate tool results** with proper type guards instead of unsafe casting
+4. **Test A2A communication end-to-end** when adding new agent relationships
+5. **Follow the mandatory requirements above** for all new features
 
 ### Performance Considerations
 - **Parallelize database operations** using `Promise.all()` instead of sequential `await` calls
@@ -431,6 +572,7 @@ app.openapi(
 - **UI Pages**: `agents-manage-ui/src/app/` (Next.js pages and routing)
 - **Documentation**: `agents-docs/` (Next.js/Fumadocs public documentation site)
 - **Legacy Documentation**: `docs-legacy/` (internal/development notes)
+- **Work Apps**: `packages/agents-work-apps/src/` (Slack and GitHub integration handlers), `agents-api/src/domains/work-apps/` (API domain entry point)
 - **Examples**: `agents-cookbook/` for reference implementations
 
 ## Feature Development Examples
@@ -491,7 +633,7 @@ export function NewFeatureForm() {
 
 #### 3. Documentation Example
 ```mdx
-// agents-docs/content/docs/features/new-feature.mdx
+// agents-docs/content/guides/new-feature.mdx
 ---
 title: New Feature
 description: Brief description of what the feature does
