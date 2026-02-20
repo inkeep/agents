@@ -861,26 +861,18 @@ describe('generateTaskHandler', () => {
         },
       };
 
-      const cleanupSpy = vi.fn();
-      const origCleanup = lastAgentInstance?.cleanup;
-
       await taskHandler(task);
 
-      // lastAgentInstance is set during taskHandler execution
       expect(lastAgentInstance).toBeDefined();
-      // Verify cleanup was called by checking the prototype
-      const { Agent } = await import('../../../domains/run/agents/Agent.js');
-      const proto = Object.getPrototypeOf(lastAgentInstance);
-      expect(proto.cleanup).toBeDefined();
+      expect(lastAgentInstance.cleanup).toBeDefined();
     });
 
     it('should call cleanup even when task fails', async () => {
       const { Agent } = await import('../../../domains/run/agents/Agent.js');
-      const originalGenerate = vi.mocked(Agent).prototype.generate;
+      const origGenerate = vi.mocked(Agent).prototype.generate;
+      const origCleanup = vi.mocked(Agent).prototype.cleanup;
 
-      // Track cleanup calls
       const cleanupCalls: boolean[] = [];
-      const originalCleanup = vi.mocked(Agent).prototype.cleanup;
       vi.mocked(Agent).prototype.cleanup = vi.fn().mockImplementation(async () => {
         cleanupCalls.push(true);
       });
@@ -901,8 +893,8 @@ describe('generateTaskHandler', () => {
         await taskHandler(task);
         expect(cleanupCalls).toHaveLength(1);
       } finally {
-        vi.mocked(Agent).prototype.generate = originalGenerate;
-        vi.mocked(Agent).prototype.cleanup = originalCleanup;
+        vi.mocked(Agent).prototype.generate = origGenerate;
+        vi.mocked(Agent).prototype.cleanup = origCleanup;
       }
     });
   });
