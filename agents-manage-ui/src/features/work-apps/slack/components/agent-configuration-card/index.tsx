@@ -160,8 +160,8 @@ export function AgentConfigurationCard() {
 
       toast.success(
         grantAccess
-          ? 'Workspace members can now use this agent'
-          : 'Workspace members need explicit project access'
+          ? 'Any Slack workspace member can now use this agent'
+          : 'Only users with an Inkeep project invite can use this agent'
       );
     } catch (error) {
       console.error('Failed to toggle workspace grant access:', error);

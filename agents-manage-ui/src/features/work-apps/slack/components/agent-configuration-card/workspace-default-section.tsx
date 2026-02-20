@@ -145,11 +145,13 @@ export function WorkspaceDefaultSection({
                   )}
                   <ShieldCheck aria-hidden="true" className="h-3 w-3" />
                 </span>
-                <span>Grant access to members</span>
+                <span>Authorize via Slack</span>
               </label>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[240px]">
-              When enabled, workspace members can use this agent without explicit project access.
+            <TooltipContent side="bottom" className="max-w-[280px]">
+              When enabled, any member of this Slack workspace can use this agent without an
+              explicit Inkeep project invite. When disabled, only users with direct project access
+              can use it.
             </TooltipContent>
           </Tooltip>
           <Switch
