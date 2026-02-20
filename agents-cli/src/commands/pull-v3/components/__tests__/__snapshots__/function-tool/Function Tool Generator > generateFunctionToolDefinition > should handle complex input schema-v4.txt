@@ -11,22 +11,22 @@ export const complex = functionTool({
         properties: {
           id: {
             type: 'string',
-            description: 'User ID'
+            description: 'User ID',
           },
           preferences: {
             type: 'object',
             properties: {
               theme: {
                 type: 'string',
-                enum: ['light', 'dark']
+                enum: ['light', 'dark'],
               },
               notifications: {
-                type: 'boolean'
-              }
-            }
-          }
+                type: 'boolean',
+              },
+            },
+          },
         },
-        required: ['id']
+        required: ['id'],
       },
       items: {
         type: 'array',
@@ -34,16 +34,16 @@ export const complex = functionTool({
           type: 'object',
           properties: {
             name: {
-              type: 'string'
+              type: 'string',
             },
             value: {
-              type: 'number'
-            }
-          }
-        }
-      }
+              type: 'number',
+            },
+          },
+        },
+      },
     },
-    required: ['user']
+    required: ['user'],
   },
-  execute: return { processed: true };
+  execute: return { processed: true };,
 });

@@ -7,6 +7,6 @@ export const componentOnly = dataComponent({
   description: 'Component with render but no mock data',
   props: z.object({ "message": z.string().optional() }),
   render: {
-    component: 'function SimpleComponent({ message }) { return <div>{message}</div>; }'
-  }
+    component: 'function SimpleComponent({ message }) { return <div>{message}</div>; }',
+  },
 });

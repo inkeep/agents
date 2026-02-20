@@ -5,5 +5,5 @@ export const simpleData = dataComponent({
   id: 'simple-data',
   name: 'Simple Data',
   description: 'Simple data without render',
-  props: z.object({ "value": z.string().optional() })
+  props: z.object({ "value": z.string().optional() }),
 });

@@ -8,7 +8,7 @@ export const invalidRender = dataComponent({
   props: z.object({ "data": z.string().optional() }),
   render: {
     mockData: {
-      data: 'test'
-    }
-  }
+      data: 'test',
+    },
+  },
 });

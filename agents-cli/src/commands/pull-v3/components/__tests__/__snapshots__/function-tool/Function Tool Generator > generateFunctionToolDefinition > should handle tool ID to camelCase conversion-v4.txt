@@ -5,7 +5,7 @@ export const emailSenderTool = functionTool({
   description: 'Send emails',
   inputSchema: {
     type: 'object',
-    properties: {}
+    properties: {},
   },
-  execute: return { sent: true };
+  execute: return { sent: true };,
 });

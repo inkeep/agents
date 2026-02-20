@@ -5,7 +5,7 @@ export const test = functionTool({
   description: 'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the function tool',
   inputSchema: {
     type: 'object',
-    properties: {}
+    properties: {},
   },
-  execute: return { processed: true };
+  execute: return { processed: true };,
 });

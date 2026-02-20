@@ -6,11 +6,11 @@ export const multiply = functionTool({
     type: 'object',
     properties: {
       value: {
-        type: 'number'
-      }
-    }
+        type: 'number',
+      },
+    },
   },
   execute: async ({ value }) => {
       return { result: value * 2 };
-    }
+    },
 });

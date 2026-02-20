@@ -5,5 +5,5 @@ export const complexData = dataComponent({
   id: 'complex-data',
   name: 'Complex Data',
   description: 'A data component with nested objects and arrays',
-  props: z.object({ "user": z.object({ "id": z.string().optional(), "name": z.string().optional() }).optional(), "items": z.array(z.string()).optional() })
+  props: z.object({ "user": z.object({ "id": z.string().optional(), "name": z.string().optional() }).optional(), "items": z.array(z.string()).optional() }),
 });

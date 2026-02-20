@@ -4,5 +4,5 @@ export const weatherAgent = externalAgent({
   id: 'weather-agent',
   name: 'Weather API Agent',
   description: 'External agent for weather information and forecasting',
-  baseUrl: 'https://api.weather.com/v1/agents/weather'
+  baseUrl: 'https://api.weather.com/v1/agents/weather',
 });

@@ -4,7 +4,7 @@ export const badExecute = functionTool({
   name: 'bad-execute-tool',
   inputSchema: {
     type: 'object',
-    properties: {}
+    properties: {},
   },
-  execute: not a valid function
+  execute: not a valid function,
 });

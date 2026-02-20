@@ -11,7 +11,7 @@ export const userProfileCard = dataComponent({
     mockData: {
       name: 'John Doe',
       email: 'john@example.com',
-      role: 'Developer'
-    }
-  }
+      role: 'Developer',
+    },
+  },
 });

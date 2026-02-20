@@ -4,7 +4,7 @@ export const simple = functionTool({
   name: 'simple-tool',
   inputSchema: {
     type: 'object',
-    properties: {}
+    properties: {},
   },
-  execute: return { message: "Hello World" };
+  execute: return { message: "Hello World" };,
 });

@@ -8,9 +8,9 @@ export const test = functionTool({
     properties: {
       input: {
         type: 'string',
-        description: 'Input field'
-      }
-    }
+        description: 'Input field',
+      },
+    },
   },
-  execute: return { success: true };
+  execute: return { success: true };,
 });

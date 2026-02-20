@@ -12,8 +12,8 @@ export const complex = registerEnvironmentSettings({
         account: 'user@example.com',
         timeout: 5000,
         retries: 3,
-        enabled: true
-      }
-    }
-  }
+        enabled: true,
+      },
+    },
+  },
 });

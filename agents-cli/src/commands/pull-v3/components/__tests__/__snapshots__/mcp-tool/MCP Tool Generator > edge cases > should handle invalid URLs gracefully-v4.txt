@@ -5,5 +5,5 @@ export const invalid = mcpTool({
   name: 'Invalid URL Tool',
   serverUrl: 'not-a-valid-url',
   transport: { type: 'streamable_http' },
-  imageUrl: 'also-not-valid'
+  imageUrl: 'also-not-valid',
 });

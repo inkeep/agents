@@ -8,9 +8,9 @@ export const test = functionTool({
     properties: {
       value: {
         type: 'string',
-        description: 'Input value'
-      }
-    }
+        description: 'Input value',
+      },
+    },
   },
-  execute: return { result: "test" };
+  execute: return { result: "test" };,
 });

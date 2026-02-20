@@ -4,5 +4,5 @@ import { production } from './production.env';
 
 export const envSettings = createEnvironmentSettings({
   development,
-  production
+  production,
 });
