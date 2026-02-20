@@ -37902,6 +37902,7 @@
             "description": "Redirect to Slack OAuth"
           }
         },
+        "security": [],
         "summary": "Install Slack App",
         "tags": [
           "Work Apps",
@@ -37945,6 +37946,7 @@
             "description": "Redirect to dashboard with workspace data"
           }
         },
+        "security": [],
         "summary": "Slack OAuth Callback",
         "tags": [
           "Work Apps",
@@ -38018,7 +38020,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/disconnect": {
@@ -38086,7 +38091,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/link-status": {
@@ -38154,7 +38162,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/link/verify-token": {
@@ -38231,7 +38242,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/users/status": {
@@ -38322,7 +38336,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/workspaces": {
@@ -38383,7 +38400,10 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}": {
@@ -38434,7 +38454,12 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       },
       "get": {
         "description": "Get details of a specific Slack workspace",
@@ -38509,7 +38534,10 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/channels": {
@@ -38634,7 +38662,10 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/channels/bulk": {
@@ -38701,7 +38732,12 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       },
       "put": {
         "description": "Apply the same agent configuration to multiple channels at once",
@@ -38816,7 +38852,12 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/channels/{channelId}/settings": {
@@ -38866,7 +38907,10 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep organization admin role, or Slack channel membership to modify channel settings"
+        }
       },
       "get": {
         "description": "Get default agent configuration for a specific channel",
@@ -38935,7 +38979,10 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       },
       "put": {
         "description": "Set or update the default agent for a specific channel",
@@ -39028,7 +39075,10 @@
           "Work Apps",
           "Slack",
           "Channels"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep organization admin role, or Slack channel membership to modify channel settings"
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/health": {
@@ -39108,7 +39158,10 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/settings": {
@@ -39165,7 +39218,10 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       },
       "put": {
         "description": "Update workspace settings including default agent",
@@ -39255,7 +39311,12 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/test-message": {
@@ -39329,7 +39390,12 @@
           "Work Apps",
           "Slack",
           "Workspaces"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
       }
     },
     "/work-apps/slack/workspaces/{teamId}/users": {
@@ -39407,7 +39473,10 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
       }
     }
   },
