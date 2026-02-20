@@ -133,7 +133,9 @@ function writeMcpToolConfig(
   }
 }
 
-function resolveServerUrl(data: Pick<ParsedMcpToolDefinitionData, 'config' | 'serverUrl'>): string | undefined {
+function resolveServerUrl(
+  data: Pick<ParsedMcpToolDefinitionData, 'config' | 'serverUrl'>
+): string | undefined {
   return data.config?.mcp?.server?.url ?? data.serverUrl;
 }
 

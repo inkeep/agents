@@ -179,7 +179,9 @@ const _supportContext = contextConfig({
 
     const contextConfigFilePath = join(testDir, 'context-configs', 'support-context.ts');
     const { default: generatedContextConfigFile } = await import(`${contextConfigFilePath}?raw`);
-    expect(generatedContextConfigFile).toContain("import { headers, fetchDefinition, contextConfig }");
+    expect(generatedContextConfigFile).toContain(
+      'import { headers, fetchDefinition, contextConfig }'
+    );
     expect(generatedContextConfigFile).toContain('const supportContextHeaders = headers({');
     expect(generatedContextConfigFile).toContain('schema: z.object({ "tz": z.string() }).strict()');
     expect(generatedContextConfigFile).toContain(
