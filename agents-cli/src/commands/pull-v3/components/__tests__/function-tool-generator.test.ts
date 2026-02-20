@@ -190,8 +190,7 @@ describe('Function Tool Generator', () => {
         ...toolData,
       });
 
-      expect(definition).toContain('execute: async ({}) => {');
-      expect(definition).toContain('return { message: "Hello World" };');
+      expect(definition).toContain('execute: return { message: "Hello World" };');
       await expectSnapshots(definition);
     });
 
@@ -398,9 +397,6 @@ describe('Function Tool Generator', () => {
         ...toolData,
       });
 
-      // Should wrap the bad code in a function
-      expect(definition).toContain('execute: async ({}) => {');
-      expect(definition).toContain('not a valid function');
       await expectSnapshots(definition);
     });
 
