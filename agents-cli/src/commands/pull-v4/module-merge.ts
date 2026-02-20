@@ -506,7 +506,7 @@ function alignObjectLiteralText(
       return generatedProperty.getText();
     }
 
-    return withPreservedNodeLeadingComments(
+    return withPreservedLeadingComments(
       existingProperty,
       alignObjectPropertyText(existingProperty, generatedProperty)
     );
@@ -531,15 +531,6 @@ function alignObjectPropertyText(existingProperty: Node, generatedProperty: Node
     : undefined;
   const alignedInitializerText = alignExpressionText(existingInitializer, generatedInitializer);
   return `${generatedProperty.getNameNode().getText()}: ${alignedInitializerText}`;
-}
-
-function withPreservedNodeLeadingComments(existingNode: Node, replacementText: string): string {
-  const leadingComments = getLeadingCommentsText(existingNode.getLeadingCommentRanges());
-  if (!leadingComments) {
-    return replacementText;
-  }
-
-  return `${leadingComments}\n${replacementText}`;
 }
 
 function alignArrayLiteralText(
@@ -799,21 +790,16 @@ function applyTextReplacements(sourceText: string, replacements: TextReplacement
   return nextText;
 }
 
-function withPreservedLeadingComments(
-  existingStatement: Statement,
-  replacementText: string
-): string {
-  const leadingComments = getLeadingCommentsText(existingStatement.getLeadingCommentRanges());
+function withPreservedLeadingComments(existingStatement: Node, replacementText: string): string {
+  const leadingComments = existingStatement
+    .getLeadingCommentRanges()
+    .map((comment) => comment.getText())
+    .join('\n');
   if (!leadingComments) {
     return replacementText;
   }
 
   return `${leadingComments}\n${replacementText}`;
-}
-
-function getLeadingCommentsText(commentRanges: CommentRange[]): string | undefined {
-  const comments = commentRanges.map((comment) => comment.getText()).join('\n');
-  return comments;
 }
 
 function dedupeConsecutiveIdenticalSingleLineComments(content: string): string {
