@@ -170,6 +170,7 @@ export interface DefaultAgentConfig {
   agentName?: string;
   projectId: string;
   projectName?: string;
+  grantAccessToMembers?: boolean;
 }
 
 export interface SlackWorkspaceConnection {

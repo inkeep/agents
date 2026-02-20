@@ -22,7 +22,10 @@ const envSchema = z.object({
   // Database
   INKEEP_AGENTS_RUN_DATABASE_URL: z
     .string()
-    .describe('PostgreSQL connection URL for the runtime database'),
+    .optional()
+    .describe(
+      'PostgreSQL connection URL for the runtime database. Required in production; tests use PGlite.'
+    ),
   INKEEP_AGENTS_MANAGE_UI_URL: z
     .string()
     .optional()

@@ -16,6 +16,7 @@ import type { FollowUpModalMetadata, ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import {
   classifyError,
+  extractApiErrorMessage,
   findCachedUserMapping,
   generateSlackConversationId,
   getThreadContext,
@@ -91,6 +92,7 @@ export async function handleModalSubmission(view: {
       }
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, false);
 
       const tenantId = metadata.tenantId;
 
@@ -169,6 +171,7 @@ export async function handleModalSubmission(view: {
         tenantId,
         slackTeamId: metadata.teamId,
         slackUserId: metadata.slackUserId,
+        slackAuthorized: false,
       });
 
       const conversationId = generateSlackConversationId({
@@ -290,6 +293,7 @@ export async function handleFollowUpSubmission(view: {
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, false);
 
       // Parallel: workspace connection + user mapping
       const [workspaceConnection, existingLink] = await Promise.all([
@@ -324,6 +328,7 @@ export async function handleFollowUpSubmission(view: {
         tenantId,
         slackTeamId: teamId,
         slackUserId,
+        slackAuthorized: false,
       });
 
       const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
@@ -460,10 +465,14 @@ async function callAgentApi(params: {
       return { text: markdownToMrkdwn(rawContent), isError: false };
     }
 
+    const errorBody = await response.text().catch(() => '');
+    const apiMessage = extractApiErrorMessage(errorBody);
     const errorType = classifyError(null, response.status);
-    const errorText = getUserFriendlyErrorMessage(errorType, agentId);
+    const errorText = apiMessage
+      ? `*Error.* ${apiMessage}`
+      : getUserFriendlyErrorMessage(errorType, agentId);
     logger.warn(
-      { status: response.status, statusText: response.statusText, agentId },
+      { status: response.status, statusText: response.statusText, agentId, errorBody },
       'Agent API returned error'
     );
     apiSpan.end();

@@ -18,6 +18,7 @@ export interface ResolvedAgentConfig {
   agentId: string;
   agentName?: string;
   source: 'channel' | 'workspace' | 'none';
+  grantAccessToMembers: boolean;
 }
 
 export interface AgentResolutionParams {
@@ -59,6 +60,7 @@ export async function resolveEffectiveAgent(
         agentId: channelConfig.agentId,
         agentName: channelConfig.agentName || undefined,
         source: 'channel',
+        grantAccessToMembers: channelConfig.grantAccessToMembers,
       };
     }
   }
@@ -76,6 +78,7 @@ export async function resolveEffectiveAgent(
       agentId: workspaceConfig.agentId,
       agentName: workspaceConfig.agentName,
       source: 'workspace',
+      grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
     };
   }
 
@@ -111,6 +114,7 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
         agentId: config.agentId,
         agentName: config.agentName || undefined,
         source: 'channel',
+        grantAccessToMembers: config.grantAccessToMembers,
       };
     }
   }
@@ -122,6 +126,7 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
       agentId: wsConfig.agentId,
       agentName: wsConfig.agentName,
       source: 'workspace',
+      grantAccessToMembers: wsConfig.grantAccessToMembers ?? true,
     };
   }
 

@@ -179,6 +179,18 @@ export function classifyError(error: unknown, httpStatus?: number): SlackErrorTy
 /**
  * Get a user-friendly error message based on error type
  */
+export function extractApiErrorMessage(responseBody: string): string | null {
+  try {
+    const parsed = JSON.parse(responseBody);
+    if (typeof parsed.message === 'string' && parsed.message.length > 0) {
+      return parsed.message;
+    }
+  } catch {
+    // Body is not valid JSON
+  }
+  return null;
+}
+
 export function getUserFriendlyErrorMessage(errorType: SlackErrorType, agentName?: string): string {
   const agent = agentName || 'The agent';
 
