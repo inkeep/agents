@@ -11,9 +11,9 @@
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { styleText } from 'node:util';
 import * as p from '@clack/prompts';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import { styleText } from 'node:util';
 
 // Increase max listeners to prevent warnings during complex CLI flows
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
@@ -177,11 +177,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     performBackgroundVersionCheck();
   }
 
-  console.log(styleText("blue", '\nInkeep Pull:'));
+  console.log(styleText('blue', '\nInkeep Pull:'));
   if (options.introspect) {
-    console.log(styleText("gray", '  Introspect mode • Complete regeneration • No comparison needed'));
+    console.log(
+      styleText('gray', '  Introspect mode • Complete regeneration • No comparison needed')
+    );
   } else {
-    console.log(styleText("gray", '  Smart comparison • Detect all changes • Targeted updates'));
+    console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
   }
 
   const s = p.spinner();
@@ -221,10 +223,16 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           if (localProjectId !== options.project) {
             s.stop('Project ID mismatch');
             console.error(
-              styleText("red", `Local project ID "${localProjectId}" doesn't match --project "${options.project}"`)
+              styleText(
+                'red',
+                `Local project ID "${localProjectId}" doesn't match --project "${options.project}"`
+              )
             );
             console.error(
-              styleText("yellow", 'Either remove --project flag or ensure it matches the local project ID')
+              styleText(
+                'yellow',
+                'Either remove --project flag or ensure it matches the local project ID'
+              )
             );
             if (batchMode) {
               return { success: false, error: 'Project ID mismatch' };
@@ -246,7 +254,10 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       if (!options.project) {
         s.stop('No index.ts found in current directory');
         console.error(
-          styleText("yellow", 'Please run this command from a directory containing index.ts or use --project <project-id>')
+          styleText(
+            'yellow',
+            'Please run this command from a directory containing index.ts or use --project <project-id>'
+          )
         );
         if (batchMode) {
           return { success: false, error: 'No index.ts found and no --project specified' };
@@ -296,12 +307,15 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
 
     if (options.debug && remoteProject.functions) {
       console.log(
-        styleText("gray", '   📋 Project-level functions from API:'),
+        styleText('gray', '   📋 Project-level functions from API:'),
         Object.keys(remoteProject.functions)
       );
       Object.entries(remoteProject.functions).forEach(([id, data]: [string, any]) => {
         console.log(
-          styleText("gray", `      ${id}: has name=${!!data.name}, has description=${!!data.description}`)
+          styleText(
+            'gray',
+            `      ${id}: has name=${!!data.name}, has description=${!!data.description}`
+          )
         );
       });
     }
@@ -314,7 +328,10 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           Object.assign(remoteProject.functionTools, agentData.functionTools);
           if (options.debug) {
             console.log(
-              styleText("gray", `   Hoisted functionTools from agent ${agentId}: ${Object.keys(agentData.functionTools).join(', ')}`)
+              styleText(
+                'gray',
+                `   Hoisted functionTools from agent ${agentId}: ${Object.keys(agentData.functionTools).join(', ')}`
+              )
             );
           }
         }
@@ -387,11 +404,14 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     });
     s.stop('All files generated');
 
-    console.log(styleText("green", '\nProject synced successfully!'));
-    console.log(styleText("gray", `   Location: ${paths.projectRoot}`));
-    console.log(styleText("gray", `   Environment: ${options.env || 'development'}`));
+    console.log(styleText('green', '\nProject synced successfully!'));
+    console.log(styleText('gray', `   Location: ${paths.projectRoot}`));
+    console.log(styleText('gray', `   Environment: ${options.env || 'development'}`));
     console.log(
-      styleText("yellow", '  ⚠️ If you encounter broken code after running `inkeep pull`, please report it at https://github.com/inkeep/agents/issues')
+      styleText(
+        'yellow',
+        '  ⚠️ If you encounter broken code after running `inkeep pull`, please report it at https://github.com/inkeep/agents/issues'
+      )
     );
 
     restoreLogLevel();
@@ -402,9 +422,9 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     s.stop();
-    console.error(styleText("red", `\nError: ${message}`));
+    console.error(styleText('red', `\nError: ${message}`));
     if (options.debug && error instanceof Error) {
-      console.error(styleText("red", error.stack || ''));
+      console.error(styleText('red', error.stack || ''));
     }
     restoreLogLevel();
     if (batchMode) {
@@ -419,11 +439,14 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
  * Uses smart comparison with LLM merging for existing projects, introspect for new projects
  */
 async function pullAllProjects(options: PullV3Options): Promise<void> {
-  console.log(styleText("blue", '\n🔄 Batch Pull: Sequential processing with smart comparison\n'));
+  console.log(styleText('blue', '\n🔄 Batch Pull: Sequential processing with smart comparison\n'));
   console.log(
-    styleText("gray", '  • Existing projects: Smart comparison + LLM merging + confirmation prompts')
+    styleText(
+      'gray',
+      '  • Existing projects: Smart comparison + LLM merging + confirmation prompts'
+    )
   );
-  console.log(styleText("gray", '  • New projects: Fresh generation with introspect mode\n'));
+  console.log(styleText('gray', '  • New projects: Fresh generation with introspect mode\n'));
 
   // Background version check (only once for batch)
   performBackgroundVersionCheck();
@@ -457,7 +480,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     s.stop(`Found ${projects.length} project(s)`);
 
     if (!projects.length) {
-      console.log(styleText("yellow", 'No projects found for this tenant.'));
+      console.log(styleText('yellow', 'No projects found for this tenant.'));
       process.exit(0);
     }
 
@@ -474,17 +497,17 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
       }
     }
 
-    console.log(styleText("gray", '\nProjects to pull:\n'));
+    console.log(styleText('gray', '\nProjects to pull:\n'));
     if (existingProjects.length > 0) {
-      console.log(styleText("cyan", '  Existing (smart comparison):'));
+      console.log(styleText('cyan', '  Existing (smart comparison):'));
       for (const project of existingProjects) {
-        console.log(styleText("gray", `    • ${project.name || project.id} (${project.id})`));
+        console.log(styleText('gray', `    • ${project.name || project.id} (${project.id})`));
       }
     }
     if (newProjects.length > 0) {
-      console.log(styleText("cyan", '  New (introspect):'));
+      console.log(styleText('cyan', '  New (introspect):'));
       for (const project of newProjects) {
-        console.log(styleText("gray", `    • ${project.name || project.id} (${project.id})`));
+        console.log(styleText('gray', `    • ${project.name || project.id} (${project.id})`));
       }
     }
     console.log();
@@ -496,18 +519,23 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
       const project = projects[i];
       const progress = `[${i + 1}/${total}]`;
 
-      console.log(styleText("cyan", `\n${'─'.repeat(60)}`));
-      console.log(styleText("cyan", `${progress} Pulling ${project.name || project.id}...`));
+      console.log(styleText('cyan', `\n${'─'.repeat(60)}`));
+      console.log(styleText('cyan', `${progress} Pulling ${project.name || project.id}...`));
 
       const result = await pullSingleProject(project.id, project.name, options, config, isCI);
       results.push(result);
 
       if (result.success) {
         console.log(
-          styleText("green", `\n  ✓ ${result.projectName || result.projectId} → ${result.targetDir}`)
+          styleText(
+            'green',
+            `\n  ✓ ${result.projectName || result.projectId} → ${result.targetDir}`
+          )
         );
       } else {
-        console.log(styleText("red", `\n  ✗ ${result.projectName || result.projectId}: ${result.error}`));
+        console.log(
+          styleText('red', `\n  ✗ ${result.projectName || result.projectId}: ${result.error}`)
+        );
       }
     }
 
@@ -515,16 +543,16 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
 
-    console.log(styleText("cyan", `\n${'═'.repeat(60)}`));
-    console.log(styleText("cyan", '📊 Batch Pull Summary:'));
-    console.log(styleText("green", `  ✓ Succeeded: ${succeeded}`));
+    console.log(styleText('cyan', `\n${'═'.repeat(60)}`));
+    console.log(styleText('cyan', '📊 Batch Pull Summary:'));
+    console.log(styleText('green', `  ✓ Succeeded: ${succeeded}`));
     if (failed > 0) {
-      console.log(styleText("red", `  ✗ Failed: ${failed}`));
+      console.log(styleText('red', `  ✗ Failed: ${failed}`));
 
-      console.log(styleText("red", '\nFailed projects:'));
+      console.log(styleText('red', '\nFailed projects:'));
       for (const result of results) {
         if (!result.success) {
-          console.log(styleText("red", `  • ${result.projectId}: ${result.error}`));
+          console.log(styleText('red', `  • ${result.projectId}: ${result.error}`));
         }
       }
     }
@@ -532,7 +560,9 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     process.exit(failed > 0 ? 1 : 0);
   } catch (error) {
     s.stop();
-    console.error(styleText("red", `\nError: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(
+      styleText('red', `\nError: ${error instanceof Error ? error.message : String(error)}`)
+    );
     process.exit(1);
   }
 }
@@ -554,7 +584,7 @@ async function pullSingleProject(
   try {
     if (hasExistingProject) {
       // Project exists locally - use smart comparison flow with LLM merging and user prompts
-      console.log(styleText("gray", `   📂 Existing project found - using smart comparison mode`));
+      console.log(styleText('gray', `   📂 Existing project found - using smart comparison mode`));
 
       // Save current directory and change to project directory
       const originalDir = process.cwd();
@@ -596,7 +626,7 @@ async function pullSingleProject(
     }
 
     // No existing project - use introspect mode to generate fresh
-    console.log(styleText("gray", `   🆕 New project - using introspect mode`));
+    console.log(styleText('gray', `   🆕 New project - using introspect mode`));
 
     // Suppress SDK logging
     const originalLogLevel = process.env.LOG_LEVEL;
