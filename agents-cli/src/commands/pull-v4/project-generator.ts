@@ -8,6 +8,7 @@ import {
   createFactoryDefinition,
   formatStringLiteral,
   hasReferences,
+  resolveReferenceName,
   toCamelCase,
 } from './utils';
 
@@ -205,7 +206,7 @@ function addReferenceImports(
   referenceOverrides?: Record<string, string>
 ): void {
   for (const reference of references) {
-    const referenceName = resolveReferenceName(reference, referenceOverrides);
+    const referenceName = resolveReferenceName(reference, [referenceOverrides]);
     sourceFile.addImportDeclaration({
       namedImports: [referenceName],
       moduleSpecifier: `${basePath}/${reference}`,
@@ -218,11 +219,4 @@ function toReferenceNames(
   referenceOverrides?: Record<string, string>
 ): string[] {
   return references.map((reference) => resolveReferenceName(reference, referenceOverrides));
-}
-
-function resolveReferenceName(
-  referenceId: string,
-  referenceOverrides?: Record<string, string>
-): string {
-  return referenceOverrides?.[referenceId] ?? toCamelCase(referenceId);
 }

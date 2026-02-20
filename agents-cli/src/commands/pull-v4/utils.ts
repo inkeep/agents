@@ -78,6 +78,22 @@ export function toCamelCase(input: string): string {
   return result.charAt(0).toLowerCase() + result.slice(1);
 }
 
+type ReferenceOverrideMap = Record<string, string>;
+
+export function resolveReferenceName(
+  referenceId: string,
+  referenceOverrides: Array<ReferenceOverrideMap | undefined>
+): string {
+  for (const overrideMap of referenceOverrides) {
+    const overrideName = overrideMap?.[referenceId];
+    if (overrideName) {
+      return overrideName;
+    }
+  }
+
+  return toCamelCase(referenceId);
+}
+
 export function convertJsonSchemaToZodSafe(
   schema: unknown,
   options?: {

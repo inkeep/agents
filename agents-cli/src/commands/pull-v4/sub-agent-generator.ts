@@ -10,6 +10,7 @@ import {
   formatInlineLiteral,
   hasReferences,
   isPlainObject,
+  resolveReferenceName,
   toCamelCase,
 } from './utils';
 
@@ -265,19 +266,6 @@ function collectCanDelegateToReferences(
   }
 
   return references;
-}
-
-function resolveReferenceName(
-  id: string,
-  overrideMaps: Array<Record<string, string> | undefined>
-): string {
-  for (const overrideMap of overrideMaps) {
-    const overrideName = overrideMap?.[id];
-    if (overrideName) {
-      return overrideName;
-    }
-  }
-  return toCamelCase(id);
 }
 
 function collectSkills(skills?: unknown[]): string[] {
