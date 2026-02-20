@@ -515,7 +515,14 @@ async function createWorkspaceStructure() {
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
-  const envExampleContent = await fs.readFile('.env.example', 'utf-8');
+  let envExampleContent: string;
+  try {
+    envExampleContent = await fs.readFile('.env.example', 'utf-8');
+  } catch {
+    throw new Error(
+      'Could not read .env.example from the template. The template may be corrupted — try running the command again.',
+    );
+  }
   const lines = envExampleContent.split('\n');
 
   const injections: Record<string, string> = {
