@@ -16,17 +16,25 @@ export function JoinFromWorkspaceToggle() {
   const workspace = installedWorkspaces.data?.[0];
 
   const [isEnabled, setIsEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Update local state when workspace data changes
+  // Fetch the setting from the dedicated endpoint
   useEffect(() => {
-    if (workspace?.shouldAllowJoinFromWorkspace !== undefined) {
-      setIsEnabled(workspace.shouldAllowJoinFromWorkspace);
-    }
-  }, [workspace?.shouldAllowJoinFromWorkspace]);
+    if (!workspace?.teamId) return;
+
+    slackApi
+      .getJoinFromWorkspaceSetting(workspace.teamId)
+      .then((result) => {
+        setIsEnabled(result.shouldAllowJoinFromWorkspace);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [workspace?.teamId]);
 
   // Don't render if no workspace data available
-  if (!workspace) {
+  if (!workspace || isLoading) {
     return null;
   }
 

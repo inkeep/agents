@@ -12,6 +12,11 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import slackRoutes from '../../slack/routes/index';
 
+const mockFindWorkAppSlackWorkspaceByTeamId = vi.fn(
+  async () => null as Record<string, unknown> | null
+);
+const mockUpdateWorkAppSlackWorkspace = vi.fn(async () => null as Record<string, unknown> | null);
+
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
@@ -49,6 +54,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       keyPrefix: 'iak_',
       key: 'iak_test_key_123',
     })),
+    findWorkAppSlackWorkspaceByTeamId: vi.fn(() => mockFindWorkAppSlackWorkspaceByTeamId),
+    updateWorkAppSlackWorkspace: vi.fn(() => mockUpdateWorkAppSlackWorkspace),
   };
 });
 
@@ -387,6 +394,117 @@ describe('Slack Work App Routes', () => {
       const json = await response.json();
       expect(json).toHaveProperty('channelId');
       expect(json.channelId).toBe('C123');
+    });
+  });
+
+  describe('GET /workspaces/:teamId/join-from-workspace', () => {
+    it('should return false when no workspace in DB', async () => {
+      const authedApp = createTestApp({ tenantId: 'default' });
+      mockFindWorkAppSlackWorkspaceByTeamId.mockResolvedValueOnce(null);
+
+      const response = await authedApp.request('/workspaces/T123/join-from-workspace', {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.shouldAllowJoinFromWorkspace).toBe(false);
+    });
+
+    it('should return true when workspace has setting enabled', async () => {
+      const authedApp = createTestApp({ tenantId: 'default' });
+      mockFindWorkAppSlackWorkspaceByTeamId.mockResolvedValueOnce({
+        id: 'wsw_123',
+        slackTeamId: 'T123',
+        shouldAllowJoinFromWorkspace: true,
+      });
+
+      const response = await authedApp.request('/workspaces/T123/join-from-workspace', {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.shouldAllowJoinFromWorkspace).toBe(true);
+    });
+
+    it('should return 401 when no tenantId in session', async () => {
+      const response = await app.request('/workspaces/T123/join-from-workspace', {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('PUT /workspaces/:teamId/join-from-workspace', () => {
+    const bypassHeaders = {
+      'Content-Type': 'application/json',
+      'x-test-bypass-auth': 'true',
+    };
+
+    it('should return 401 when no tenantId in session (even with bypass)', async () => {
+      const response = await app.request('/workspaces/T123/join-from-workspace', {
+        method: 'PUT',
+        headers: bypassHeaders,
+        body: JSON.stringify({ shouldAllowJoinFromWorkspace: true }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 404 when workspace not found in DB', async () => {
+      const authedApp = createTestApp({ tenantId: 'default', userId: 'user_admin' });
+      mockFindWorkAppSlackWorkspaceByTeamId.mockResolvedValueOnce(null);
+
+      const response = await authedApp.request('/workspaces/T123/join-from-workspace', {
+        method: 'PUT',
+        headers: bypassHeaders,
+        body: JSON.stringify({ shouldAllowJoinFromWorkspace: true }),
+      });
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should update setting and return success', async () => {
+      const authedApp = createTestApp({ tenantId: 'default', userId: 'user_admin' });
+      mockFindWorkAppSlackWorkspaceByTeamId.mockResolvedValueOnce({
+        id: 'wsw_123',
+        slackTeamId: 'T123',
+        tenantId: 'default',
+      });
+      mockUpdateWorkAppSlackWorkspace.mockResolvedValueOnce({
+        id: 'wsw_123',
+        shouldAllowJoinFromWorkspace: true,
+      });
+
+      const response = await authedApp.request('/workspaces/T123/join-from-workspace', {
+        method: 'PUT',
+        headers: bypassHeaders,
+        body: JSON.stringify({ shouldAllowJoinFromWorkspace: true }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+    });
+
+    it('should return 500 when update fails', async () => {
+      const authedApp = createTestApp({ tenantId: 'default', userId: 'user_admin' });
+      mockFindWorkAppSlackWorkspaceByTeamId.mockResolvedValueOnce({
+        id: 'wsw_123',
+        slackTeamId: 'T123',
+        tenantId: 'default',
+      });
+      mockUpdateWorkAppSlackWorkspace.mockResolvedValueOnce(null);
+
+      const response = await authedApp.request('/workspaces/T123/join-from-workspace', {
+        method: 'PUT',
+        headers: bypassHeaders,
+        body: JSON.stringify({ shouldAllowJoinFromWorkspace: false }),
+      });
+
+      expect(response.status).toBe(500);
     });
   });
 });

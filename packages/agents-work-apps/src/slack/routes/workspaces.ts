@@ -337,6 +337,53 @@ app.openapi(
 
 app.openapi(
   createProtectedRoute({
+    method: 'get',
+    path: '/{teamId}/join-from-workspace',
+    summary: 'Get Join From Workspace Setting',
+    description: 'Get the join from workspace setting for the workspace',
+    operationId: 'slack-get-join-from-workspace',
+    tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
+    request: {
+      params: z.object({
+        teamId: z.string(),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Join from workspace setting',
+        content: {
+          'application/json': {
+            schema: JoinFromWorkspaceSettingsSchema,
+          },
+        },
+      },
+      404: {
+        description: 'Workspace not found',
+      },
+    },
+  }),
+  async (c) => {
+    const { teamId } = c.req.valid('param');
+
+    const sessionTenantId = c.get('tenantId') as string | undefined;
+    if (!sessionTenantId) {
+      return c.text('Unauthorized', 401);
+    }
+
+    const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
+    if (!workspace) {
+      return c.json({ shouldAllowJoinFromWorkspace: false });
+    }
+
+    return c.json({
+      shouldAllowJoinFromWorkspace: workspace.shouldAllowJoinFromWorkspace ?? false,
+    });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/join-from-workspace',
     summary: 'Update Join From Workspace Setting',

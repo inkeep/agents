@@ -7,7 +7,6 @@ interface SlackWorkspaceInstallation {
   tenantId: string;
   hasDefaultAgent: boolean;
   defaultAgentName?: string;
-  shouldAllowJoinFromWorkspace?: boolean;
 }
 
 interface DefaultAgentConfig {
@@ -345,6 +344,19 @@ export const slackApi = {
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
     return csvContent;
+  },
+
+  async getJoinFromWorkspaceSetting(
+    teamId: string
+  ): Promise<{ shouldAllowJoinFromWorkspace: boolean }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/join-from-workspace`,
+      { credentials: 'include' }
+    );
+    if (!response.ok) {
+      return { shouldAllowJoinFromWorkspace: false };
+    }
+    return response.json();
   },
 
   async updateJoinFromWorkspaceSetting(
