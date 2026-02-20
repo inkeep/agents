@@ -1,6 +1,7 @@
 import { and, count, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { ledgerArtifacts } from '../../db/runtime/runtime-schema';
+import { withRetry } from '../../retry';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../../types/index';
 import { generateId } from '../../utils/conversations';
 
@@ -83,11 +84,7 @@ function sanitizeArtifactForDatabase(artifact: Artifact): Artifact {
 /**
  * Fallback insert strategy for when normal insert fails
  */
-async function tryFallbackInsert(
-  db: AgentsRunDatabaseClient,
-  rows: any[],
-  _originalError: any
-): Promise<void> {
+async function tryFallbackInsert(db: AgentsRunDatabaseClient, rows: any[]): Promise<void> {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
@@ -257,61 +254,18 @@ export const addLedgerArtifacts =
       };
     });
 
-    const maxRetries = 3;
-    let lastError: any = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await db.insert(ledgerArtifacts).values(rows);
-
-        return;
-      } catch (error: any) {
-        lastError = error;
-
-        const isRetryable =
-          error.cause.code === '40P01' ||
-          error.cause.code === '40001' ||
-          error.cause.code === '55P03' ||
-          error.message?.includes('database is locked') ||
-          error.message?.includes('busy') ||
-          error.message?.includes('timeout') ||
-          error.message?.includes('deadlock') ||
-          error.message?.includes('serialization failure');
-
-        if (!isRetryable || attempt === maxRetries) {
-          await tryFallbackInsert(db, rows, error);
-          return;
+    try {
+      await withRetry(
+        async () => {
+          await db.insert(ledgerArtifacts).values(rows);
+        },
+        {
+          context: 'addLedgerArtifacts',
         }
-
-        const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 5000);
-        await new Promise((resolve) => setTimeout(resolve, backoffMs));
-      }
+      );
+    } catch {
+      await tryFallbackInsert(db, rows);
     }
-
-    // Create a cleaner error message without exposing massive artifact data
-    const sanitizedError = new Error(
-      `Failed to insert ${rows.length} artifacts after ${maxRetries} attempts: ${lastError?.message?.split('\nparams:')[0] || lastError?.message}`
-    );
-    sanitizedError.name = lastError?.name;
-    sanitizedError.cause = lastError?.code || lastError?.errno;
-
-    // TEMPORARY DEBUG: Log full error for debugging compression artifacts
-    const hasCompressionArtifacts = rows.some((row) => row.id?.includes('compress_'));
-    if (hasCompressionArtifacts) {
-      console.error('COMPRESSION ARTIFACTS BULK INSERT FULL ERROR:', {
-        artifactCount: rows.length,
-        compressionArtifacts: rows
-          .filter((row) => row.id?.includes('compress_'))
-          .map((row) => row.id),
-        errorMessage: lastError?.message,
-        errorCode: lastError?.code,
-        errorName: lastError?.name,
-        errorStack: lastError?.stack,
-        fullError: lastError,
-      });
-    }
-
-    throw sanitizedError;
   };
 
 /**
