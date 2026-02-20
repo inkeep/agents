@@ -3,33 +3,14 @@
  * Unit tests for trigger generator
  */
 
-import { describe, expect, it } from 'vitest';
-import { generateTriggerDefinition as generateTriggerDefinitionV4 } from '../../../pull-v4/trigger-generator';
+import { generateTriggerDefinition as originalGenerateTriggerDefinition } from '../../../pull-v4/trigger-generator';
 import { expectSnapshots } from '../../../pull-v4/utils';
-import type { ComponentRegistry } from '../../utils/component-registry';
-import { generateTriggerDefinition } from '../trigger-generator';
 
-// Mock registry for tests
-const mockRegistry = {
-  getVariableName(id, _type) {
-    // If already camelCase, return as-is, otherwise convert
-    if (!/[-_]/.test(id)) {
-      return id;
-    }
-    // Convert kebab-case or snake_case to camelCase
-    return id
-      .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .replace(/^[0-9]/, '_$&');
-  },
-  getImportsForFile(_filePath, components) {
-    // Mock implementation returns imports for all components
-    return components.map((comp) => {
-      const varName = this.getVariableName?.(comp.id, comp.type);
-      return `import { ${varName || comp.id} } from '../../credentials/${comp.id}';`;
-    });
-  },
-} satisfies Partial<ComponentRegistry>;
+function generateTriggerDefinition(
+  ...args: Parameters<typeof originalGenerateTriggerDefinition>
+): string {
+  return originalGenerateTriggerDefinition(...args).getFullText();
+}
 
 describe('Trigger Generator', () => {
   const basicTriggerData = {
@@ -102,42 +83,10 @@ describe('Trigger Generator', () => {
     signingSecretCredentialReferenceId: 'slack-signing-secret',
   };
 
-  // describe('generateTriggerImports', () => {
-  // it('should generate basic imports without credential reference', () => {
-  //   const imports = generateTriggerImports('github-webhook', basicTriggerData);
-  //
-  //   expect(imports).toHaveLength(1);
-  //   expect(imports[0]).toBe("import { Trigger } from '@inkeep/agents-sdk';");
-  // });
-
-  // it('should generate imports with credential reference', () => {
-  //   const imports = generateTriggerImports(
-  //     'github-webhook',
-  //     triggerWithSignatureVerification,
-  //     { quotes: 'single', semicolons: true, indentation: '  ' },
-  //     mockRegistry
-  //   );
-  //
-  //   expect(imports.length).toBeGreaterThan(1);
-  //   expect(imports[0]).toBe("import { Trigger } from '@inkeep/agents-sdk';");
-  //   expect(imports[1]).toContain('github-webhook-secret');
-  // });
-
-  // it('should handle different code styles', () => {
-  //   const imports = generateTriggerImports('test-trigger', basicTriggerData, {
-  //     quotes: 'double',
-  //     semicolons: false,
-  //     indentation: '    ',
-  //   });
-  //
-  //   expect(imports[0]).toBe('import { Trigger } from "@inkeep/agents-sdk"');
-  // });
-  // });
-
   describe('generateTriggerDefinition', () => {
     it('should generate basic trigger definition', async () => {
       const triggerId = 'github-webhook';
-      const definition = generateTriggerDefinition(triggerId, basicTriggerData);
+      const definition = generateTriggerDefinition({ triggerId, ...basicTriggerData });
 
       expect(definition).toContain('export const githubWebhook = new Trigger({');
       expect(definition).toContain("id: 'github-webhook',");
@@ -146,18 +95,15 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('signatureVerification:');
       expect(definition).not.toContain('signingSecretCredentialReference:');
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...basicTriggerData });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should generate trigger with GitHub signature verification', async () => {
       const triggerId = 'github-webhook';
-      const definition = generateTriggerDefinition(
+      const definition = generateTriggerDefinition({
         triggerId,
-        triggerWithSignatureVerification,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
+        ...triggerWithSignatureVerification,
+      });
 
       expect(definition).toContain('export const githubWebhook = new Trigger({');
       expect(definition).toContain('signatureVerification: {');
@@ -175,21 +121,15 @@ describe('Trigger Generator', () => {
       expect(definition).toContain("separator: ''");
       expect(definition).toContain('signingSecretCredentialReference: githubWebhookSecret');
       expect(definition).toContain('});');
-      const definitionV4 = generateTriggerDefinitionV4({
-        triggerId,
-        ...triggerWithSignatureVerification,
-      });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should generate trigger with Slack signature verification', async () => {
       const triggerId = 'slack-webhook';
-      const definition = generateTriggerDefinition(
+      const definition = generateTriggerDefinition({
         triggerId,
-        triggerWithSlackSignature,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
+        ...triggerWithSlackSignature,
+      });
 
       expect(definition).toContain('signatureVerification: {');
       expect(definition).toContain("key: 'x-slack-signature',");
@@ -204,8 +144,7 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('allowEmptyBody: false,');
       expect(definition).toContain('normalizeUnicode: false');
       expect(definition).toContain('signingSecretCredentialReference: slackSigningSecret');
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerWithSlackSignature });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should generate trigger with multiple algorithms', async () => {
@@ -218,16 +157,13 @@ describe('Trigger Generator', () => {
       };
 
       const triggerId = 'webhook-sha512';
-      const definition = generateTriggerDefinition(
+      const definition = generateTriggerDefinition({
         triggerId,
-        triggerDataSha512,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
+        ...triggerDataSha512,
+      });
 
       expect(definition).toContain("algorithm: 'sha512',");
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataSha512 });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should generate trigger with base64 encoding', async () => {
@@ -240,16 +176,13 @@ describe('Trigger Generator', () => {
       };
 
       const triggerId = 'webhook-base64';
-      const definition = generateTriggerDefinition(
+      const definition = generateTriggerDefinition({
         triggerId,
-        triggerDataBase64,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
+        ...triggerDataBase64,
+      });
 
       expect(definition).toContain("encoding: 'base64',");
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataBase64 });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should generate trigger with regex in signature source', async () => {
@@ -266,16 +199,13 @@ describe('Trigger Generator', () => {
       };
 
       const triggerId = 'webhook-regex';
-      const definition = generateTriggerDefinition(
+      const definition = generateTriggerDefinition({
         triggerId,
-        triggerDataWithRegex,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
+        ...triggerDataWithRegex,
+      });
 
       expect(definition).toContain("regex: 't=([^,]+)'");
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataWithRegex });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle optional signed components', async () => {
@@ -298,54 +228,25 @@ describe('Trigger Generator', () => {
       };
 
       const triggerId = 'webhook-optional';
-      const definition = generateTriggerDefinition(
+      const definition = generateTriggerDefinition({
         triggerId,
-        triggerDataOptional,
-        { quotes: 'single', semicolons: true, indentation: '  ' },
-        mockRegistry
-      );
+        ...triggerDataOptional,
+      });
 
       expect(definition).toContain('required: false');
       expect(definition).toContain('required: true');
-      const definitionV4 = generateTriggerDefinitionV4({ triggerId, ...triggerDataOptional });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
     // TODO
     it.skip('should throw error if registry missing for credential reference', () => {
       const triggerId = 'github-webhook';
       expect(() => {
-        generateTriggerDefinition(
+        generateTriggerDefinition({
           triggerId,
-          triggerWithSignatureVerification,
-          { quotes: 'single', semicolons: true, indentation: '  ' }
+          ...triggerWithSignatureVerification,
           // No registry provided
-        );
+        });
       }).toThrow('Registry is required for signingSecretCredentialReferenceId generation');
-      expect(() => {
-        generateTriggerDefinitionV4({ triggerId, ...triggerWithSignatureVerification });
-      }).toThrow(``);
     });
-
-    // it('should handle double quotes style', () => {
-    //   const definition = generateTriggerDefinition('test-trigger', basicTriggerData, {
-    //     quotes: 'double',
-    //     semicolons: true,
-    //     indentation: '  ',
-    //   });
-    //
-    //   expect(definition).toContain('id: "test-trigger",');
-    //   expect(definition).toContain('name: "GitHub Webhook",');
-    // });
-
-    // it('should handle no semicolons style', () => {
-    //   const definition = generateTriggerDefinition('test-trigger', basicTriggerData, {
-    //     quotes: 'single',
-    //     semicolons: false,
-    //     indentation: '  ',
-    //   });
-    //
-    //   expect(definition).toMatch(/\}\)$/);
-    //   expect(definition).not.toMatch(/\}\);$/);
-    // });
   });
 });
