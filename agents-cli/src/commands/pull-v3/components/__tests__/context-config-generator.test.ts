@@ -507,7 +507,7 @@ describe('Context Config Generator', () => {
       expect(definition).not.toContain('trigger:');
       expect(definition).not.toContain('defaultValue:');
       const definitionV4 = generateContextConfigDefinitionV4({ contextConfigId, ...dataWithNulls });
-      expect(definitionV4).toContain('fetchConfig: {');
+      expect(definitionV4.getFullText()).toContain('fetchConfig: {');
       await expectSnapshots(definition, definitionV4);
     });
   });

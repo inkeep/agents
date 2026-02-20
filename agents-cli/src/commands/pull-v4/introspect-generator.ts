@@ -56,7 +56,7 @@ interface GenerationRecord<TPayload> {
 interface GenerationTask<TPayload> {
   type: string;
   collect: (context: GenerationContext) => GenerationRecord<TPayload>[];
-  generate: (payload: TPayload) => string;
+  generate: (payload: TPayload) => SourceFile;
 }
 
 interface SkippedAgent {
@@ -122,8 +122,8 @@ export async function introspectGenerate({
     const records = task.collect(context);
     for (const record of records) {
       try {
-        const content = task.generate(record.payload);
-        writeTypeScriptFile(record.filePath, content, writeMode);
+        const sourceFile = task.generate(record.payload);
+        writeTypeScriptFile(record.filePath, sourceFile.getFullText(), writeMode);
         generatedFiles.push(record.filePath);
       } catch (error) {
         failures.push(
