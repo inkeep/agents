@@ -147,9 +147,69 @@ jobs:
             echo "Run \`pnpm check\` locally to reproduce the CI checks." >> $GITHUB_STEP_SUMMARY
           fi
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      non-docs: ${{ steps.filter.outputs.non-docs }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            non-docs:
+              - '**'
+              - '!agents-docs/**'
+            docs:
+              - 'agents-docs/**'
+
+  docs-build:
+    runs-on: ubuntu-latest
+    name: Docs Build
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.docs == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
+
+      - name: Build docs
+        run: pnpm exec turbo run build --filter=@inkeep/agents-docs
+        env:
+          CI: true
+
   create-agents-e2e:
     runs-on: ubuntu-32gb
     name: Create Agents E2E Tests
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.non-docs == 'true'
 
     services:
       doltgres:
