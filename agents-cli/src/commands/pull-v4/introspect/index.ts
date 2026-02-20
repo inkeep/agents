@@ -393,10 +393,9 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     });
     s.stop('All files generated');
 
-    console.log(chalk.green('\n✅ Project synced successfully!'));
-    console.log(chalk.gray(`   📁 Location: ${paths.projectRoot}`));
-    console.log(chalk.gray(`   🌍 Environment: ${options.env || 'development'}`));
-    console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
+    console.log(chalk.green('\nProject synced successfully!'));
+    console.log(chalk.gray(`   Location: ${paths.projectRoot}`));
+    console.log(chalk.gray(`   Environment: ${options.env || 'development'}`));
 
     restoreLogLevel();
     if (batchMode) {
@@ -404,14 +403,15 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     }
     process.exit(0);
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     s.stop();
-    console.error(chalk.red(`\nError: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(chalk.red(`\nError: ${message}`));
     if (options.debug && error instanceof Error) {
       console.error(chalk.red(error.stack || ''));
     }
     restoreLogLevel();
     if (batchMode) {
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
+      return { success: false, error: message };
     }
     process.exit(1);
   }

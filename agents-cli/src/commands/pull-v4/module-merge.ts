@@ -501,45 +501,39 @@ function alignObjectLiteralText(
     generatedObject.getProperties()
   );
 
-  const propertyTexts = orderedProperties.map(({ existingProperty, generatedProperty }) =>
-      existingProperty ? alignObjectPropertyText(existingProperty, generatedProperty) : generatedProperty.getText()
-  );
+  const propertyTexts = orderedProperties.map(({ existingProperty, generatedProperty }) => {
+    if (!existingProperty) {
+      return generatedProperty.getText();
+    }
+
+    return withPreservedNodeLeadingComments(
+      existingProperty,
+      alignObjectPropertyText(existingProperty, generatedProperty)
+    );
+  });
 
   return formatCollectionLiteralText(generatedObject.getText(), propertyTexts, '{', '}');
 }
 
-function alignObjectPropertyText(
-  existingProperty: Node,
-  generatedProperty: Node
-): string {
-  const text = generatedProperty.getText()
+function alignObjectPropertyText(existingProperty: Node, generatedProperty: Node): string {
+  const text = generatedProperty.getText();
 
   if (!Node.isPropertyAssignment(generatedProperty)) {
-    return withPreservedNodeLeadingComments(existingProperty, text);
+    return text;
   }
 
   const generatedInitializer = generatedProperty.getInitializer();
   if (!generatedInitializer) {
-    return withPreservedNodeLeadingComments(existingProperty, text);
+    return text;
   }
-
-  const existingInitializer =
-    existingProperty && Node.isPropertyAssignment(existingProperty)
-      ? existingProperty.getInitializer()
-      : undefined;
+  const existingInitializer = Node.isPropertyAssignment(existingProperty)
+    ? existingProperty.getInitializer()
+    : undefined;
   const alignedInitializerText = alignExpressionText(existingInitializer, generatedInitializer);
-  const propertyText =
-    alignedInitializerText === generatedInitializer.getText()
-      ? text
-      : `${generatedProperty.getNameNode().getText()}: ${alignedInitializerText}`;
-
-  return withPreservedNodeLeadingComments(existingProperty, propertyText);
+  return `${generatedProperty.getNameNode().getText()}: ${alignedInitializerText}`;
 }
 
-function withPreservedNodeLeadingComments(
-  existingNode: Node,
-  replacementText: string
-): string {
+function withPreservedNodeLeadingComments(existingNode: Node, replacementText: string): string {
   const leadingComments = getLeadingCommentsText(existingNode.getLeadingCommentRanges());
   if (!leadingComments) {
     return replacementText;
