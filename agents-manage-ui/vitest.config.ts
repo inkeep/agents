@@ -130,7 +130,7 @@ export default defineConfig({
                         ? (actual.data as Uint8Array)
                         : cropRgba(actual.data, aW, w, h);
 
-                    const diffBuf = createDiff ? new Uint8Array(w * h * 4) : null;
+                    const diffBuf = createDiff ? new Uint8Array(w * h * 4) : undefined;
                     const mismatched = pixelmatch(refData, actData, diffBuf, w, h, { threshold });
 
                     const total = w * h;
@@ -138,7 +138,7 @@ export default defineConfig({
 
                     return {
                       pass: ratio <= allowedMismatchedPixelRatio,
-                      diff: diffBuf,
+                      diff: diffBuf ?? null,
                       message:
                         ratio > allowedMismatchedPixelRatio
                           ? `${mismatched} pixels (${(ratio * 100).toFixed(2)}%) mismatched, allowed: ${(allowedMismatchedPixelRatio * 100).toFixed(2)}%`
