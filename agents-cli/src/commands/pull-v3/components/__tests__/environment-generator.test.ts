@@ -77,17 +77,6 @@ describe('Environment Settings Generator', () => {
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
     });
-
-    // it('should handle different code styles', () => {
-    //   const imports = generateEnvironmentSettingsImports(developmentData, {
-    //     quotes: 'double',
-    //     semicolons: false,
-    //     indentation: '    ',
-    //   });
-    //
-    //   expect(imports[0]).toBe('import { registerEnvironmentSettings } from "@inkeep/agents-sdk"');
-    //   expect(imports[1]).toBe('import { CredentialStoreType } from "@inkeep/agents-core"');
-    // });
   });
 
   describe('generateEnvironmentSettingsDefinition', () => {
@@ -105,12 +94,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'STRIPE_API_KEY_DEV'");
       expect(definition).toContain('});');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(
-        environmentName,
-        developmentData
-      );
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle multiple credentials', async () => {
@@ -123,12 +107,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('type: CredentialStoreType.env,');
       expect(definition).toContain("description: 'Database connection string',");
       expect(definition).toContain("fallback: 'postgresql://localhost:5432/dev'");
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(
-        environmentName,
-        developmentData
-      );
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle production environment with keychain credentials', async () => {
@@ -140,9 +119,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain("credentialStoreId: 'keychain-main',");
       expect(definition).toContain("service: 'stripe-api',");
       expect(definition).toContain("account: 'production'");
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, productionData);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle empty credentials', async () => {
@@ -153,9 +130,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('export const test = registerEnvironmentSettings({');
       expect(definition).toContain('credentials: {}');
       expect(definition).toContain('});');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, emptyData);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle environment with no credentials field', async () => {
@@ -166,9 +141,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('export const minimal = registerEnvironmentSettings({');
       expect(definition).toContain('credentials: {}');
       expect(definition).toContain('});');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, data);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle credentials without optional fields', async () => {
@@ -193,12 +166,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('type: CredentialStoreType.memory,');
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('description:');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(
-        environmentName,
-        minimalCredData
-      );
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle complex retrieval params', async () => {
@@ -227,9 +195,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('timeout: 5000,');
       expect(definition).toContain('retries: 3,');
       expect(definition).toContain('enabled: true');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, complexData);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
   });
 
@@ -250,17 +216,6 @@ describe('Environment Settings Generator', () => {
       expect(imports[0]).toBe("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(imports[1]).toBe("import { development } from './development.env';");
     });
-
-    // it('should handle different code styles', () => {
-    //   const imports = generateEnvironmentIndexImports(['development'], {
-    //     quotes: 'double',
-    //     semicolons: false,
-    //     indentation: '    ',
-    //   });
-    //
-    //   expect(imports[0]).toBe('import { createEnvironmentSettings } from "@inkeep/agents-sdk"');
-    //   expect(imports[1]).toBe('import { development } from "./development.env"');
-    // });
   });
 
   describe('generateEnvironmentIndexDefinition', () => {
@@ -270,12 +225,9 @@ describe('Environment Settings Generator', () => {
 
       expect(definition).toContain('export const envSettings = createEnvironmentSettings({');
       expect(definition).toContain('  development,');
-      expect(definition).toContain('  production');
+      expect(definition).toContain('  production,');
       expect(definition).toContain('});');
-      expect(definition).not.toContain('production,'); // No trailing comma on last item
-
-      const definitionV4 = generateEnvironmentIndexDefinitionV4(environments);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should generate index definition for single environment', async () => {
@@ -283,22 +235,17 @@ describe('Environment Settings Generator', () => {
       const definition = generateEnvironmentIndexDefinition(environments);
 
       expect(definition).toContain('export const envSettings = createEnvironmentSettings({');
-      expect(definition).toContain('  development');
+      expect(definition).toContain('  development,');
       expect(definition).toContain('});');
-      expect(definition).not.toContain('development,'); // No trailing comma
-
-      const definitionV4 = generateEnvironmentIndexDefinitionV4(environments);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle empty environments array', async () => {
       const environments: string[] = [];
       const definition = generateEnvironmentIndexDefinition(environments);
 
-      expect(definition).toBe('export const envSettings = createEnvironmentSettings({\n});');
-
-      const definitionV4 = generateEnvironmentIndexDefinitionV4(environments);
-      await expectSnapshots(definition, definitionV4);
+      expect(definition).toContain('export const envSettings = createEnvironmentSettings({});');
+      await expectSnapshots(definition);
     });
   });
 
@@ -315,9 +262,7 @@ describe('Environment Settings Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
-
-      const definitionV4 = generateEnvironmentSettingsFileV4(environmentName, developmentData);
-      await expectSnapshots(file, definitionV4);
+      await expectSnapshots(file);
     });
   });
 
@@ -334,9 +279,7 @@ describe('Environment Settings Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
-
-      const definitionV4 = generateEnvironmentIndexFileV4(environments);
-      await expectSnapshots(file, definitionV4);
+      await expectSnapshots(file);
     });
   });
 
@@ -435,9 +378,7 @@ describe('Environment Settings Generator', () => {
       const definition = generateEnvironmentSettingsDefinition(environmentName, data);
 
       expect(definition).toContain('credentials: {}');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, data);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle undefined credentials', async () => {
@@ -446,9 +387,7 @@ describe('Environment Settings Generator', () => {
       const definition = generateEnvironmentSettingsDefinition(environmentName, data);
 
       expect(definition).toContain('credentials: {}');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, data);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle credential with null properties', async () => {
@@ -477,9 +416,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('description:');
       expect(definition).not.toContain('fallback:');
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, dataWithNulls);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle special characters in credential keys', async () => {
@@ -501,9 +438,7 @@ describe('Environment Settings Generator', () => {
 
       expect(definition).toContain("'api-key_v2': {");
       expect(definition).toContain("id: 'api-key-v2',");
-
-      const definitionV4 = generateEnvironmentSettingsDefinitionV4(environmentName, specialData);
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle empty environments array for index', async () => {
@@ -513,9 +448,7 @@ describe('Environment Settings Generator', () => {
       expect(file).toContain("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const envSettings = createEnvironmentSettings({');
       expect(file).toContain('});');
-
-      const definitionV4 = generateEnvironmentIndexFileV4(environments);
-      await expectSnapshots(file, definitionV4);
+      await expectSnapshots(file);
     });
   });
 });
