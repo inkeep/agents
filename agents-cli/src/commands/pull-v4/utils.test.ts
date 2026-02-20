@@ -1,4 +1,9 @@
-import { formatStringLiteral, toCamelCase } from './utils';
+import {
+  collectTemplateVariableNames,
+  formatStringLiteral,
+  formatTemplateStringLiteral,
+  toCamelCase,
+} from './utils';
 
 describe('camelCase', () => {
   test('should handle special characters', () => {
@@ -26,6 +31,26 @@ describe('formatStringLiteral', () => {
   test('should use a template literal when value contains both single and double quotes', () => {
     expect(formatStringLiteral(`find 3 URLs relevant to the user's "question".`)).toBe(
       '`find 3 URLs relevant to the user\'s "question".`'
+    );
+  });
+});
+
+describe('template variable replacement', () => {
+  test('should collect template variable names using double-brace syntax', () => {
+    expect(collectTemplateVariableNames('Time: {{time}}, TZ: {{headers.tz}}')).toEqual([
+      'time',
+      'headers.tz',
+    ]);
+  });
+
+  test('should replace context and headers template variables with toTemplate calls', () => {
+    expect(
+      formatTemplateStringLiteral('Time: {{time}}, TZ: {{headers.tz}}', {
+        contextReference: 'supportContext',
+        headersReference: 'supportContextHeaders',
+      })
+    ).toBe(
+      '`Time: ${supportContext.toTemplate("time")}, TZ: ${supportContextHeaders.toTemplate("tz")}`'
     );
   });
 });
