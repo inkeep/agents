@@ -138,35 +138,37 @@ jobs:
       #    IMPORTANT: Use sslmode=require (not prefer) — pg_tls handler breaks sslmode=prefer.
       - name: Wait for databases
         run: |
-          echo "Waiting for Doltgres (port 5432)..."
-          for i in $(seq 1 60); do
-            if PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
-              "host=${APP_NAME}.fly.dev port=5432 user=appuser dbname=inkeep_agents sslmode=require" \
-              -c "SELECT 1" > /dev/null 2>&1; then
-              echo "Doltgres ready"
-              break
-            fi
-            if [ "$i" = "60" ]; then echo "ERROR: Doltgres not ready after 5 min"; exit 1; fi
-            sleep 5
-          done
+          wait_for_pg() {
+            local NAME="$1" PORT="$2"
+            echo "Waiting for ${NAME} (port ${PORT})..."
+            for i in $(seq 1 60); do
+              # Show errors on attempts 1, every 10th, and last
+              if [ "$i" = "1" ] || [ "$((i % 10))" = "0" ] || [ "$i" = "60" ]; then
+                PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+                  "host=${APP_NAME}.fly.dev port=${PORT} user=appuser dbname=inkeep_agents sslmode=require" \
+                  -c "SELECT 1" 2>&1 && echo "${NAME} ready" && return 0
+                echo "  (attempt $i/60 — see error above)"
+              else
+                PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
+                  "host=${APP_NAME}.fly.dev port=${PORT} user=appuser dbname=inkeep_agents sslmode=require" \
+                  -c "SELECT 1" > /dev/null 2>&1 && echo "${NAME} ready" && return 0
+              fi
+              sleep 5
+            done
+            echo "ERROR: ${NAME} not ready after 5 min"
+            return 1
+          }
 
-          echo "Waiting for Postgres (port 5433)..."
-          for i in $(seq 1 60); do
-            if PGPASSWORD="${{ steps.creds.outputs.PG_PASSWORD }}" psql \
-              "host=${APP_NAME}.fly.dev port=5433 user=appuser dbname=inkeep_agents sslmode=require" \
-              -c "SELECT 1" > /dev/null 2>&1; then
-              echo "Postgres ready"
-              break
-            fi
-            if [ "$i" = "60" ]; then echo "ERROR: Postgres not ready after 5 min"; exit 1; fi
-            sleep 5
-          done
+          wait_for_pg "Doltgres" 5432
+          wait_for_pg "Postgres" 5433
 
           echo "Waiting for SpiceDB (HTTP health on port 8443)..."
           for i in $(seq 1 60); do
-            if curl -sf -k "https://${APP_NAME}.fly.dev:8443/healthz" > /dev/null 2>&1; then
-              echo "SpiceDB ready"
-              break
+            if [ "$i" = "1" ] || [ "$((i % 10))" = "0" ] || [ "$i" = "60" ]; then
+              curl -vk "https://${APP_NAME}.fly.dev:8443/healthz" 2>&1 && echo "SpiceDB ready" && break
+              echo "  (attempt $i/60)"
+            else
+              curl -sf -k "https://${APP_NAME}.fly.dev:8443/healthz" > /dev/null 2>&1 && echo "SpiceDB ready" && break
             fi
             if [ "$i" = "60" ]; then echo "ERROR: SpiceDB not ready after 5 min"; exit 1; fi
             sleep 5
