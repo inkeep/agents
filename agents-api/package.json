@@ -79,7 +79,7 @@
     "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.11.7",
+    "hono": "^4.11.10",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
