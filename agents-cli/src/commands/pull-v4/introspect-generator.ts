@@ -1385,6 +1385,15 @@ function mergeSafely(existingContent: string, generatedContent: string): string 
   } catch {
     return generatedContent;
   }
+function mergeSafely(existingContent: string, generatedContent: string): string {
+	try {
+		return mergeGeneratedModule(existingContent, generatedContent);
+	} catch (error) {
+		console.warn(
+			`Warning: Failed to merge file, using generated content. Manual changes may be lost. Reason: ${error instanceof Error ? error.message : String(error)}`
+		);
+		return generatedContent;
+	}
 }
 
 function applyObjectShorthand(sourceFile: SourceFile): SourceFile {
