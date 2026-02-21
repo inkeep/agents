@@ -60,7 +60,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-migrate:
-    image: inkeep/agents-migrate:0.50.1
+    image: inkeep/agents-migrate:0.50.3
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
