@@ -52,6 +52,23 @@ vim .env
 pnpm dev
 ```
 
+### 2. Slack Local Development with Socket Mode
+
+Socket Mode lets you receive Slack events over WebSocket without ngrok or tunneling. Run the automated setup:
+
+```bash
+# Creates a Slack dev app and configures .env
+pnpm setup-slack-dev
+```
+
+The script adds `SLACK_APP_TOKEN` to your `.env`. Socket Mode activates automatically when both conditions are met:
+- `ENVIRONMENT=development`
+- `SLACK_APP_TOKEN` is set
+
+<Note>
+Each developer needs their own Slack app—Socket Mode events are distributed randomly across connections, not broadcast.
+</Note>
+
 ## Troubleshooting
 
 ### Auto-login not working
