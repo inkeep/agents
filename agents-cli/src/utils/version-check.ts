@@ -1,14 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import pkgJson from '../../package.json' with { type: 'json' };
 
 /**
  * The default package name for version checks and updates
  */
-export const DEFAULT_PACKAGE_NAME = '@inkeep/agents-cli';
+export const DEFAULT_PACKAGE_NAME = pkgJson.name;
 
 export interface VersionInfo {
   current: string;
@@ -19,18 +14,7 @@ export interface VersionInfo {
 /**
  * Get the current installed version from package.json
  */
-export function getCurrentVersion(): string {
-  // Try going up one level first (for bundled dist/index.js)
-  let packageJsonPath = join(__dirname, '..', 'package.json');
-
-  // If not found, try going up two levels (for source files in src/utils/)
-  if (!existsSync(packageJsonPath)) {
-    packageJsonPath = join(__dirname, '..', '..', 'package.json');
-  }
-
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  return packageJson.version;
-}
+export const PACKAGE_VERSION = pkgJson.version;
 
 /**
  * Fetch the latest version from npm registry
@@ -96,7 +80,7 @@ export function compareVersions(v1: string, v2: string): number {
  * Check if an update is available
  */
 export async function checkForUpdate(): Promise<VersionInfo> {
-  const current = getCurrentVersion();
+  const current = PACKAGE_VERSION;
   const latest = await getLatestVersion();
   const needsUpdate = compareVersions(current, latest) < 0;
 
@@ -110,6 +94,5 @@ export async function checkForUpdate(): Promise<VersionInfo> {
 /**
  * Get the changelog URL for the package
  */
-export function getChangelogUrl(): string {
-  return `https://github.com/inkeep/agents/blob/main/agents-cli/CHANGELOG.md`;
-}
+export const PACKAGE_CHANGELOG =
+  'https://github.com/inkeep/agents/blob/main/agents-cli/CHANGELOG.md';

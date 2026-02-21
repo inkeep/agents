@@ -2367,6 +2367,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
       ])
     )
     .optional(),
+  stopWhen: SubAgentStopWhenSchema.optional(),
 }).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({

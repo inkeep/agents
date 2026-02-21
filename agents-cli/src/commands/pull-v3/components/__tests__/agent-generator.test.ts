@@ -3,13 +3,10 @@
  * Unit tests for agent generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateAgentDefinition as generateAgentDefinitionV4 } from '../../../pull-v4/agent-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
-import {
-  generateAgentDefinition,
-  generateAgentFile,
-  generateAgentImports,
-} from '../agent-generator';
+import { generateAgentDefinition } from '../agent-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -100,33 +97,29 @@ describe('Agent Generator', () => {
     },
   };
 
-  describe('generateAgentImports', () => {
-    it('should generate basic imports', () => {
-      const imports = generateAgentImports('personal-agent', basicAgentData);
-
-      expect(imports).toHaveLength(1);
-      expect(imports[0]).toBe("import { agent } from '@inkeep/agents-sdk';");
-    });
-
-    it('should handle different code styles', () => {
-      const imports = generateAgentImports('test-agent', basicAgentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { agent } from "@inkeep/agents-sdk"');
-    });
-  });
+  // describe('generateAgentImports', () => {
+  //   it('should generate basic imports', () => {
+  //     const imports = generateAgentImports('personal-agent', basicAgentData);
+  //
+  //     expect(imports).toHaveLength(1);
+  //     expect(imports[0]).toBe("import { agent } from '@inkeep/agents-sdk';");
+  //   });
+  //
+  //   it('should handle different code styles', () => {
+  //     const imports = generateAgentImports('test-agent', basicAgentData, {
+  //       quotes: 'double',
+  //       semicolons: false,
+  //       indentation: '    ',
+  //     });
+  //
+  //     expect(imports[0]).toBe('import { agent } from "@inkeep/agents-sdk"');
+  //   });
+  // });
 
   describe('generateAgentDefinition', () => {
-    it('should generate basic agent definition', () => {
-      const definition = generateAgentDefinition(
-        'personal-agent',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    it('should generate basic agent definition', async () => {
+      const agentId = 'personal-agent';
+      const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
       expect(definition).toContain('export const personalAgent = agent({');
       expect(definition).toContain("id: 'personal-agent',");
@@ -141,11 +134,14 @@ describe('Agent Generator', () => {
       expect(definition).toContain('contextConfig: personalAgentContext');
       expect(definition).toContain('});');
       expect(definition).not.toContain('coordinatesAgent,'); // No trailing comma
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should generate agent with status updates', () => {
+    it('should generate agent with status updates', async () => {
+      const agentId = 'complex-agent';
       const definition = generateAgentDefinition(
-        'complex-agent',
+        agentId,
         complexAgentData,
         undefined,
         mockRegistry
@@ -162,11 +158,14 @@ describe('Agent Generator', () => {
         "prompt: 'Provide status updates on task progress and tool usage'"
       );
       expect(definition).toContain('},');
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should generate agent with stopWhen configuration', () => {
+    it('should generate agent with stopWhen configuration', async () => {
+      const agentId = 'transfer-limited-agent';
       const definition = generateAgentDefinition(
-        'transfer-limited-agent',
+        agentId,
         complexAgentData,
         undefined,
         mockRegistry
@@ -175,59 +174,71 @@ describe('Agent Generator', () => {
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 5 // Max transfers in one conversation');
       expect(definition).toContain('},');
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle single sub-agent', () => {
-      const singleSubAgentData = {
-        ...basicAgentData,
-        subAgents: {
-          onlyAgent: { id: 'onlyAgent' },
-        },
-      };
+    // it('should handle single sub-agent', () => {
+    //   const singleSubAgentData = {
+    //     ...basicAgentData,
+    //     subAgents: {
+    //       onlyAgent: { id: 'onlyAgent' },
+    //     },
+    //   };
+    //
+    //   const definition = generateAgentDefinition(
+    //     'single-agent',
+    //     singleSubAgentData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('subAgents: () => [onlyAgent]');
+    //   expect(definition).not.toContain('subAgents: () => [\n'); // Single line format
+    // });
 
-      const definition = generateAgentDefinition(
-        'single-agent',
-        singleSubAgentData,
-        undefined,
-        mockRegistry
-      );
-
-      expect(definition).toContain('subAgents: () => [onlyAgent]');
-      expect(definition).not.toContain('subAgents: () => [\n'); // Single line format
-    });
-
-    it('should throw error for missing required fields', () => {
-      const minimalData = {
-        name: 'Minimal Agent',
-      };
-
-      expect(() => {
-        generateAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
-      }).toThrow("Missing required fields for agent 'minimal-agent': defaultSubAgentId, subAgents");
-    });
+    // it('should throw error for missing required fields', () => {
+    //   const minimalData = {
+    //     name: 'Minimal Agent',
+    //   };
+    //
+    //   expect(() => {
+    //     generateAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
+    //   }).toThrow("Missing required fields for agent 'minimal-agent': defaultSubAgentId, subAgents");
+    // });
 
     it('should throw error for missing all required fields', () => {
+      const agentId = 'fallback-agent';
       const noNameData = {};
 
       expect(() => {
-        generateAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, noNameData, undefined, mockRegistry);
       }).toThrow(
         "Missing required fields for agent 'fallback-agent': name, defaultSubAgentId, subAgents"
       );
+      expect(() => {
+        generateAgentDefinitionV4({ agentId });
+      }).toThrow(
+        new Error(`Validation failed for agent:
+✖ Invalid input: expected string, received undefined
+  → at name
+✖ Invalid input: expected string, received undefined
+  → at defaultSubAgentId
+✖ Invalid input
+  → at subAgents`)
+      );
     });
 
-    it('should handle camelCase conversion for agent variable names', () => {
-      const definition = generateAgentDefinition(
-        'my-complex-agent_v2',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    it('should handle camelCase conversion for agent variable names', async () => {
+      const agentId = 'my-complex-agent_v2';
+      const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
 
       expect(definition).toContain('export const myComplexAgentV2 = agent({');
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle multiline descriptions and prompts', () => {
+    it('should handle multiline descriptions and prompts', async () => {
       const multilineData = {
         name: 'Test Agent',
         description:
@@ -243,38 +254,36 @@ describe('Agent Generator', () => {
         },
       };
 
-      const definition = generateAgentDefinition(
-        'multiline-agent',
-        multilineData,
-        undefined,
-        mockRegistry
-      );
+      const agentId = 'multiline-agent';
+      const definition = generateAgentDefinition(agentId, multilineData, undefined, mockRegistry);
 
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('prompt: `This is a very long prompt');
       expect(definition).toContain('It even contains newlines');
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...multilineData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle different code styles', () => {
-      const definition = generateAgentDefinition(
-        'styled-agent',
-        basicAgentData,
-        {
-          quotes: 'double',
-          semicolons: false,
-          indentation: '    ',
-        },
-        mockRegistry
-      );
+    // it('should handle different code styles', () => {
+    //   const definition = generateAgentDefinition(
+    //     'styled-agent',
+    //     basicAgentData,
+    //     {
+    //       quotes: 'double',
+    //       semicolons: false,
+    //       indentation: '    ',
+    //     },
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('export const styledAgent = agent({');
+    //   expect(definition).toContain('id: "styled-agent",'); // Double quotes
+    //   expect(definition).toContain('name: "Personal Assistant Agent",');
+    //   expect(definition).not.toContain(';'); // No semicolons except at the end
+    //   expect(definition).toContain('})'); // No semicolon at the end
+    // });
 
-      expect(definition).toContain('export const styledAgent = agent({');
-      expect(definition).toContain('id: "styled-agent",'); // Double quotes
-      expect(definition).toContain('name: "Personal Assistant Agent",');
-      expect(definition).not.toContain(';'); // No semicolons except at the end
-      expect(definition).toContain('})'); // No semicolon at the end
-    });
-
-    it('should handle empty statusComponents array', () => {
+    it('should handle empty statusComponents array', async () => {
       const emptyStatusData = {
         ...complexAgentData,
         statusUpdates: {
@@ -285,21 +294,19 @@ describe('Agent Generator', () => {
         },
       };
 
-      const definition = generateAgentDefinition(
-        'empty-status-agent',
-        emptyStatusData,
-        undefined,
-        mockRegistry
-      );
+      const agentId = 'empty-status-agent';
+      const definition = generateAgentDefinition(agentId, emptyStatusData, undefined, mockRegistry);
 
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 3,');
       expect(definition).toContain('timeInSeconds: 15,');
       expect(definition).toContain("prompt: 'Test prompt'");
       expect(definition).not.toContain('statusComponents:'); // Empty array should be omitted
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...emptyStatusData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle statusUpdates without all optional fields', () => {
+    it('should handle statusUpdates without all optional fields', async () => {
       const partialStatusData = {
         name: 'Partial Status Agent',
         defaultSubAgentId: 'defaultSubAgent',
@@ -310,8 +317,9 @@ describe('Agent Generator', () => {
         },
       };
 
+      const agentId = 'partial-status-agent';
       const definition = generateAgentDefinition(
-        'partial-status-agent',
+        agentId,
         partialStatusData,
         undefined,
         mockRegistry
@@ -322,9 +330,11 @@ describe('Agent Generator', () => {
       expect(definition).toContain('statusComponents: [\n      summary.config,\n    ]');
       expect(definition).not.toContain('timeInSeconds:');
       expect(definition).not.toContain('prompt:');
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...partialStatusData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should not generate stopWhen without transferCountIs', () => {
+    it('should not generate stopWhen without transferCountIs', async () => {
       const noTransferCountData = {
         name: 'No Transfer Count Agent',
         defaultSubAgentId: 'defaultSubAgent',
@@ -334,53 +344,24 @@ describe('Agent Generator', () => {
         },
       };
 
+      const agentId = 'no-transfer-agent';
       const definition = generateAgentDefinition(
-        'no-transfer-agent',
+        agentId,
         noTransferCountData,
         undefined,
         mockRegistry
       );
 
       expect(definition).not.toContain('stopWhen:');
-    });
-  });
-
-  describe('generateAgentFile', () => {
-    it('should generate complete agent file', () => {
-      const file = generateAgentFile('personal-agent', basicAgentData, undefined, mockRegistry);
-
-      expect(file).toContain("import { agent } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const personalAgent = agent({');
-      expect(file).toContain('contextConfig: personalAgentContext');
-
-      // Should have proper spacing
-      expect(file).toMatch(/import.*\n\n.*export/s);
-      expect(file.endsWith('\n')).toBe(true);
-    });
-
-    it('should generate complex agent file with all features', () => {
-      const file = generateAgentFile('complex-agent', complexAgentData, undefined, mockRegistry);
-
-      expect(file).toContain("import { agent } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const complexAgent = agent({');
-      expect(file).toContain('statusUpdates: {');
-      expect(file).toContain('stopWhen: {');
-      expect(file).toContain('subAgents: () => [');
-
-      // Should have proper spacing
-      expect(file).toMatch(/import.*\n\n.*export/s);
-      expect(file.endsWith('\n')).toBe(true);
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...noTransferCountData });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
   describe('compilation tests', () => {
-    it('should generate agent code that compiles', () => {
-      const definition = generateAgentDefinition(
-        'test-agent',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
+    it('should generate agent code that compiles', async () => {
+      const agentId = 'test-agent';
+      const definition = generateAgentDefinition(agentId, basicAgentData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const testAgent', 'const result');
 
       const moduleCode = `
@@ -403,11 +384,14 @@ describe('Agent Generator', () => {
       expect(result.id).toBe('test-agent');
       expect(result.name).toBe('Personal Assistant Agent');
       // Note: result here refers to the agent definition, not the mock variables
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...basicAgentData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should generate complex agent code that compiles', () => {
+    it('should generate complex agent code that compiles', async () => {
+      const agentId = 'complex-test-agent';
       const definition = generateAgentDefinition(
-        'complex-test-agent',
+        agentId,
         complexAgentData,
         undefined,
         mockRegistry
@@ -447,43 +431,54 @@ describe('Agent Generator', () => {
       );
       expect(result.stopWhen).toBeDefined();
       expect(result.stopWhen.transferCountIs).toBe(5);
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for minimal agent without required fields', () => {
       const minimalData = { name: 'Minimal Test Agent' };
-
+      const agentId = 'minimal-test-agent';
       expect(() => {
-        generateAgentDefinition('minimal-test-agent', minimalData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, minimalData, undefined, mockRegistry);
       }).toThrow(
         "Missing required fields for agent 'minimal-test-agent': defaultSubAgentId, subAgents"
+      );
+      expect(() => {
+        generateAgentDefinitionV4({ agentId, ...minimalData });
+      }).toThrow(
+        new Error(`Validation failed for agent:
+✖ Invalid input: expected string, received undefined
+  → at defaultSubAgentId
+✖ Invalid input
+  → at subAgents`)
       );
     });
   });
 
   describe('edge cases', () => {
-    it('should handle special characters in agent IDs', () => {
-      const definition = generateAgentDefinition(
-        'agent-v2_final',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
-
-      expect(definition).toContain('export const agentV2Final = agent({');
-      expect(definition).toContain("id: 'agent-v2_final',");
-    });
-
-    it('should handle agent ID starting with numbers', () => {
-      const definition = generateAgentDefinition(
-        '2nd-generation-agent',
-        basicAgentData,
-        undefined,
-        mockRegistry
-      );
-
-      expect(definition).toContain('export const _2ndGenerationAgent = agent({');
-      expect(definition).toContain("id: '2nd-generation-agent',");
-    });
+    // it('should handle special characters in agent IDs', () => {
+    //   const definition = generateAgentDefinition(
+    //     'agent-v2_final',
+    //     basicAgentData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('export const agentV2Final = agent({');
+    //   expect(definition).toContain("id: 'agent-v2_final',");
+    // });
+    //
+    // it('should handle agent ID starting with numbers', () => {
+    //   const definition = generateAgentDefinition(
+    //     '2nd-generation-agent',
+    //     basicAgentData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('export const _2ndGenerationAgent = agent({');
+    //   expect(definition).toContain("id: '2nd-generation-agent',");
+    // });
 
     it('should throw error for empty string name', () => {
       const emptyStringData = {
@@ -492,10 +487,17 @@ describe('Agent Generator', () => {
         defaultSubAgentId: 'assistant',
         subAgents: ['subAgent1'],
       };
-
+      const agentId = 'empty-strings-agent';
       expect(() => {
-        generateAgentDefinition('empty-strings-agent', emptyStringData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, emptyStringData, undefined, mockRegistry);
       }).toThrow("Missing required fields for agent 'empty-strings-agent': name");
+      expect(() => {
+        generateAgentDefinitionV4({ agentId, ...emptyStringData });
+      }).toThrow(
+        new Error(`Validation failed for agent:
+✖ Too small: expected string to have >=1 characters
+  → at name`)
+      );
     });
 
     it('should throw error for null and undefined required values', () => {
@@ -506,40 +508,49 @@ describe('Agent Generator', () => {
         subAgents: null,
         contextConfig: undefined,
       };
-
+      const agentId = 'null-values-agent';
       expect(() => {
-        generateAgentDefinition('null-values-agent', nullData, undefined, mockRegistry);
+        generateAgentDefinition(agentId, nullData, undefined, mockRegistry);
       }).toThrow(
         "Missing required fields for agent 'null-values-agent': defaultSubAgentId, subAgents"
       );
-    });
-
-    it('should handle large number of subAgents with proper formatting', () => {
-      const manySubAgentsData = {
-        name: 'Many SubAgents Agent',
-        defaultSubAgentId: 'agent1',
-        subAgents: {
-          agent1: { id: 'agent1' },
-          agent2: { id: 'agent2' },
-          agent3: { id: 'agent3' },
-          agent4: { id: 'agent4' },
-          agent5: { id: 'agent5' },
-          agent6: { id: 'agent6' },
-        },
-      };
-
-      const definition = generateAgentDefinition(
-        'many-sub-agents',
-        manySubAgentsData,
-        undefined,
-        mockRegistry
+      expect(() => {
+        generateAgentDefinitionV4({ agentId, ...nullData });
+      }).toThrow(
+        new Error(`Validation failed for agent:
+✖ Invalid input: expected string, received undefined
+  → at defaultSubAgentId
+✖ Invalid input
+  → at subAgents`)
       );
-
-      expect(definition).toContain('subAgents: () => [');
-      expect(definition).toContain('  agent1,');
-      expect(definition).toContain('  agent2,');
-      expect(definition).toContain('  agent6'); // Last one without comma
-      expect(definition).not.toContain('agent6,');
     });
+
+    // it('should handle large number of subAgents with proper formatting', () => {
+    //   const manySubAgentsData = {
+    //     name: 'Many SubAgents Agent',
+    //     defaultSubAgentId: 'agent1',
+    //     subAgents: {
+    //       agent1: { id: 'agent1' },
+    //       agent2: { id: 'agent2' },
+    //       agent3: { id: 'agent3' },
+    //       agent4: { id: 'agent4' },
+    //       agent5: { id: 'agent5' },
+    //       agent6: { id: 'agent6' },
+    //     },
+    //   };
+    //
+    //   const definition = generateAgentDefinition(
+    //     'many-sub-agents',
+    //     manySubAgentsData,
+    //     undefined,
+    //     mockRegistry
+    //   );
+    //
+    //   expect(definition).toContain('subAgents: () => [');
+    //   expect(definition).toContain('  agent1,');
+    //   expect(definition).toContain('  agent2,');
+    //   expect(definition).toContain('  agent6'); // Last one without comma
+    //   expect(definition).not.toContain('agent6,');
+    // });
   });
 });

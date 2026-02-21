@@ -1,9 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkForUpdate,
   compareVersions,
-  getChangelogUrl,
-  getCurrentVersion,
+  PACKAGE_CHANGELOG,
+  PACKAGE_VERSION,
 } from '../version-check';
 
 describe('version-check', () => {
@@ -49,10 +48,9 @@ describe('version-check', () => {
     });
   });
 
-  describe('getCurrentVersion', () => {
+  describe('PACKAGE_VERSION', () => {
     it('should return a valid semver string', () => {
-      const version = getCurrentVersion();
-      expect(version).toMatch(/^\d+\.\d+\.\d+/);
+      expect(PACKAGE_VERSION).toMatch(/^\d+\.\d+\.\d+/);
     });
   });
 
@@ -76,7 +74,7 @@ describe('version-check', () => {
     });
 
     it('should indicate no update needed when versions are equal', async () => {
-      const currentVersion = getCurrentVersion();
+      const currentVersion = PACKAGE_CHANGELOG;
 
       // Mock fetch to return same version
       global.fetch = vi.fn().mockResolvedValue({
@@ -118,9 +116,9 @@ describe('version-check', () => {
     });
   });
 
-  describe('getChangelogUrl', () => {
+  describe('PACKAGE_CHANGELOG', () => {
     it('should return the changelog URL', () => {
-      const url = getChangelogUrl();
+      const url = PACKAGE_CHANGELOG;
       expect(url).toContain('github.com');
       expect(url).toContain('agents-cli');
       expect(url).toContain('CHANGELOG.md');

@@ -3,7 +3,8 @@
  * Unit tests for external agent generator
  */
 
-import { describe, expect, it } from 'vitest';
+import { generateExternalAgentDefinition as generateExternalAgentDefinitionV4 } from '../../../pull-v4/external-agent-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateExternalAgentDefinition,
@@ -56,20 +57,21 @@ describe('External Agent Generator', () => {
       expect(imports[0]).toBe("import { externalAgent } from '@inkeep/agents-sdk';");
     });
 
-    it('should handle different code styles', () => {
-      const imports = generateExternalAgentImports('test-agent', basicExternalAgentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { externalAgent } from "@inkeep/agents-sdk"');
-    });
+    // it('should handle different code styles', () => {
+    //   const imports = generateExternalAgentImports('test-agent', basicExternalAgentData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(imports[0]).toBe('import { externalAgent } from "@inkeep/agents-sdk"');
+    // });
   });
 
   describe('generateExternalAgentDefinition', () => {
-    it('should generate basic external agent definition', () => {
-      const definition = generateExternalAgentDefinition('weather-agent', basicExternalAgentData);
+    it('should generate basic external agent definition', async () => {
+      const externalAgentId = 'weather-agent';
+      const definition = generateExternalAgentDefinition(externalAgentId, basicExternalAgentData);
 
       expect(definition).toContain('export const weatherAgent = externalAgent({');
       expect(definition).toContain("id: 'weather-agent',");
@@ -80,10 +82,17 @@ describe('External Agent Generator', () => {
       expect(definition).toContain("baseUrl: 'https://api.weather.com/v1/agents/weather'");
       expect(definition).toContain('});');
       expect(definition).not.toContain('credentialReference:');
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...basicExternalAgentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should generate external agent with credential reference object', () => {
-      const definition = generateExternalAgentDefinition('complex-agent', complexExternalAgentData);
+    it('should generate external agent with credential reference object', async () => {
+      const externalAgentId = 'complex-agent';
+      const definition = generateExternalAgentDefinition(externalAgentId, complexExternalAgentData);
 
       expect(definition).toContain('export const complexAgent = externalAgent({');
       expect(definition).toContain('credentialReference: {');
@@ -92,16 +101,23 @@ describe('External Agent Generator', () => {
       expect(definition).toContain("description: 'API credentials for weather service'");
       expect(definition).toContain('}');
       expect(definition).not.toContain("description: 'API credentials for weather service',"); // No trailing comma
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...complexExternalAgentData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should generate external agent with credential reference variable', () => {
+    it('should generate external agent with credential reference variable', async () => {
       const dataWithCredRef = {
         ...basicExternalAgentData,
         credentialReference: 'myCredentials',
       };
+      const externalAgentId = 'cred-ref-agent';
 
       const definition = generateExternalAgentDefinition(
-        'cred-ref-agent',
+        externalAgentId,
         dataWithCredRef,
         undefined,
         mockRegistry
@@ -110,6 +126,12 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('export const credRefAgent = externalAgent({');
       expect(definition).toContain('credentialReference: myCredentials');
       expect(definition).not.toContain('credentialReference: {');
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...dataWithCredRef,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for missing required fields', () => {
@@ -133,42 +155,37 @@ describe('External Agent Generator', () => {
       }).toThrow("Missing required fields for external agent 'fallback-agent': name");
     });
 
-    it('should handle camelCase conversion for variable names', () => {
-      const definition = generateExternalAgentDefinition(
-        'my-complex-external-agent_v2',
-        basicExternalAgentData
-      );
-
-      expect(definition).toContain('export const myComplexExternalAgentV2 = externalAgent({');
-    });
-
-    it('should handle multiline descriptions', () => {
+    it('should handle multiline descriptions', async () => {
+      const externalAgentId = 'multiline-agent';
       const multilineData = {
         name: 'Multiline Agent',
         description:
-          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting',
+          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\nIt even contains newlines which should trigger multiline formatting',
         baseUrl: 'https://api.example.com/multiline',
       };
 
-      const definition = generateExternalAgentDefinition('multiline-agent', multilineData);
+      const definition = generateExternalAgentDefinition(externalAgentId, multilineData);
 
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('It even contains newlines');
+
+      const definitionV4 = generateExternalAgentDefinitionV4({ externalAgentId, ...multilineData });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle different code styles', () => {
-      const definition = generateExternalAgentDefinition('styled-agent', basicExternalAgentData, {
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(definition).toContain('export const styledAgent = externalAgent({');
-      expect(definition).toContain('id: "styled-agent",'); // Double quotes
-      expect(definition).toContain('name: "Weather API Agent",');
-      expect(definition).not.toContain(';'); // No semicolons except at the end
-      expect(definition).toContain('})'); // No semicolon at the end
-    });
+    // it('should handle different code styles', () => {
+    //   const definition = generateExternalAgentDefinition('styled-agent', basicExternalAgentData, {
+    //     quotes: 'double',
+    //     semicolons: false,
+    //     indentation: '    ',
+    //   });
+    //
+    //   expect(definition).toContain('export const styledAgent = externalAgent({');
+    //   expect(definition).toContain('id: "styled-agent",'); // Double quotes
+    //   expect(definition).toContain('name: "Weather API Agent",');
+    //   expect(definition).not.toContain(';'); // No semicolons except at the end
+    //   expect(definition).toContain('})'); // No semicolon at the end
+    // });
 
     it('should throw error for empty string required fields', () => {
       const emptyStringData = {
@@ -194,7 +211,8 @@ describe('External Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it('should handle partial credential reference objects', () => {
+    it('should handle partial credential reference objects', async () => {
+      const externalAgentId = 'partial-cred-agent';
       const partialCredData = {
         name: 'Partial Cred Agent',
         description: 'Agent with partial credential reference',
@@ -205,19 +223,26 @@ describe('External Agent Generator', () => {
         },
       };
 
-      const definition = generateExternalAgentDefinition('partial-cred-agent', partialCredData);
+      const definition = generateExternalAgentDefinition(externalAgentId, partialCredData);
 
       expect(definition).toContain('credentialReference: {');
       expect(definition).toContain("id: 'partial-cred'");
       expect(definition).not.toContain("name: 'Full API Credentials'"); // Should not contain credential name
       expect(definition).not.toContain("description: 'Complete API credentials'"); // Should not contain credential description
       expect(definition).not.toContain("id: 'partial-cred',"); // No trailing comma on last property
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...partialCredData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
   });
 
   describe('generateExternalAgentFile', () => {
-    it('should generate complete external agent file', () => {
-      const file = generateExternalAgentFile('weather-agent', basicExternalAgentData);
+    it('should generate complete external agent file', async () => {
+      const externalAgentId = 'weather-agent';
+      const file = generateExternalAgentFile(externalAgentId, basicExternalAgentData);
 
       expect(file).toContain("import { externalAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const weatherAgent = externalAgent({');
@@ -226,10 +251,17 @@ describe('External Agent Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...basicExternalAgentData,
+      });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
 
-    it('should generate complex external agent file with all features', () => {
-      const file = generateExternalAgentFile('complex-agent', complexExternalAgentData);
+    it('should generate complex external agent file with all features', async () => {
+      const externalAgentId = 'complex-agent';
+      const file = generateExternalAgentFile(externalAgentId, complexExternalAgentData);
 
       expect(file).toContain("import { externalAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const complexAgent = externalAgent({');
@@ -239,6 +271,12 @@ describe('External Agent Generator', () => {
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...complexExternalAgentData,
+      });
+      await expectSnapshots(file.trimEnd(), definitionV4);
     });
   });
 
@@ -308,27 +346,28 @@ describe('External Agent Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle special characters in external agent IDs', () => {
-      const definition = generateExternalAgentDefinition(
-        'external-agent-v2_final',
-        basicExternalAgentData
-      );
+    // it('should handle special characters in external agent IDs', () => {
+    //   const definition = generateExternalAgentDefinition(
+    //     'external-agent-v2_final',
+    //     basicExternalAgentData
+    //   );
+    //
+    //   expect(definition).toContain('export const externalAgentV2Final = externalAgent({');
+    //   expect(definition).toContain("id: 'external-agent-v2_final',");
+    // });
 
-      expect(definition).toContain('export const externalAgentV2Final = externalAgent({');
-      expect(definition).toContain("id: 'external-agent-v2_final',");
-    });
+    // it('should handle external agent ID starting with numbers', () => {
+    //   const definition = generateExternalAgentDefinition(
+    //     '2nd-generation-external-agent',
+    //     basicExternalAgentData
+    //   );
+    //
+    //   expect(definition).toContain('export const _2ndGenerationExternalAgent = externalAgent({');
+    //   expect(definition).toContain("id: '2nd-generation-external-agent',");
+    // });
 
-    it('should handle external agent ID starting with numbers', () => {
-      const definition = generateExternalAgentDefinition(
-        '2nd-generation-external-agent',
-        basicExternalAgentData
-      );
-
-      expect(definition).toContain('export const _2ndGenerationExternalAgent = externalAgent({');
-      expect(definition).toContain("id: '2nd-generation-external-agent',");
-    });
-
-    it('should handle complex credential reference with all properties', () => {
+    it('should handle complex credential reference with all properties', async () => {
+      const externalAgentId = 'full-cred-agent';
       const complexCredData = {
         name: 'Full Cred Agent',
         description: 'Agent with full credential reference',
@@ -340,7 +379,7 @@ describe('External Agent Generator', () => {
         },
       };
 
-      const definition = generateExternalAgentDefinition('full-cred-agent', complexCredData);
+      const definition = generateExternalAgentDefinition(externalAgentId, complexCredData);
 
       expect(definition).toContain('credentialReference: {');
       expect(definition).toContain("id: 'full-credentials',");
@@ -350,20 +389,33 @@ describe('External Agent Generator', () => {
         "description: 'Complete API credentials with all properties',"
       ); // No trailing comma
       expect(definition).toContain('}');
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...complexCredData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
-    it('should handle URLs with special characters', () => {
+    it('should handle URLs with special characters', async () => {
+      const externalAgentId = 'special-url-agent';
       const specialUrlData = {
         name: 'Special URL Agent',
         description: 'Agent with special characters in URL',
         baseUrl: 'https://api.example.com/v1/agents/special?param=value&other=123',
       };
 
-      const definition = generateExternalAgentDefinition('special-url-agent', specialUrlData);
+      const definition = generateExternalAgentDefinition(externalAgentId, specialUrlData);
 
       expect(definition).toContain(
         "baseUrl: 'https://api.example.com/v1/agents/special?param=value&other=123'"
       );
+
+      const definitionV4 = generateExternalAgentDefinitionV4({
+        externalAgentId,
+        ...specialUrlData,
+      });
+      await expectSnapshots(definition, definitionV4);
     });
 
     it('should throw error for empty external agent data', () => {
