@@ -31,6 +31,28 @@ The workspace default agent responds to all `@Inkeep` mentions and `/inkeep` com
   </Step>
 </Steps>
 
+## Join from Workspace
+
+When **Join from Workspace** is enabled, Slack users who don't yet have an Inkeep account are automatically invited when they run `/inkeep link`. Instead of requiring a separate admin invitation, the system creates one on the fly and sends the user a **Create Account** message directly in Slack.
+
+The flow works as follows:
+
+1. A Slack user runs `/inkeep link`
+2. Inkeep checks whether the workspace has Join from Workspace enabled and verifies the user doesn't already have an account
+3. If eligible, a pending invitation is created (or an existing one is reused)
+4. The user receives a **Create Account** button in Slack that links to the signup page
+5. After creating their account, Slack linking completes automatically
+
+If the user already has an Inkeep account, the standard link flow is used instead.
+
+### Enable Join from Workspace
+
+In the Slack dashboard, locate the **Join from Workspace** card and toggle **Allow workspace members to join** on.
+
+<Note>
+Join from Workspace requires your organization to have a **service account user** and **preferred auth method** configured. These are set up during enterprise onboarding — contact your Inkeep solutions engineer if the toggle is unavailable.
+</Note>
+
 ## Channel defaults
 
 Channel defaults let you assign a specific agent to individual channels. This is useful when different channels need different expertise — for example, a support agent for `#support` and a technical agent for `#engineering`.
@@ -113,6 +135,7 @@ If the health check shows issues, try reinstalling the Slack app from the dashbo
 | Set workspace default agent | Organization admin or owner |
 | Set channel defaults | Organization admin, or channel member |
 | View configuration | Any authenticated user in the organization |
+| Enable / disable Join from Workspace | Organization admin or owner |
 
 ## Next steps
 
