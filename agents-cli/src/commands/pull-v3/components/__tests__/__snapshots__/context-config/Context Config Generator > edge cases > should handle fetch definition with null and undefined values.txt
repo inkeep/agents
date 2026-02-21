@@ -1,7 +1,0 @@
-const test = fetchDefinition({
-  id: 'test',
-  fetchConfig: {
-    url: 'test',
-    method: 'GET'
-  }
-});

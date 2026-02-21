@@ -1,6 +1,0 @@
-export const missingDesc = dataComponent({
-  id: 'missing-desc',
-  name: 'Test Component',
-  description: '',
-  props: z.object({})
-});

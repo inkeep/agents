@@ -4250,6 +4250,9 @@
                 },
                 "type": "array"
               },
+              "stopWhen": {
+                "$ref": "#/components/schemas/SubAgentStopWhen"
+              },
               "type": {
                 "enum": [
                   "internal"
@@ -7797,6 +7800,17 @@
         "required": [
           "data"
         ],
+        "type": "object"
+      },
+      "SubAgentStopWhen": {
+        "properties": {
+          "stepCountIs": {
+            "description": "The maximum number of steps to trigger the stop condition.",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
         "type": "object"
       },
       "SubAgentTeamAgentRelation": {

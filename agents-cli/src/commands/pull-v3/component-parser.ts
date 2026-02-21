@@ -8,7 +8,8 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
-import { type CallExpression, Node, type ObjectLiteralExpression, Project } from 'ts-morph';
+import { type CallExpression, Node, type ObjectLiteralExpression } from 'ts-morph';
+import { createInMemoryProject } from '../pull-v4/utils';
 import { ComponentRegistry, type ComponentType } from './utils/component-registry';
 
 interface ComponentMatch {
@@ -67,7 +68,7 @@ const FUNCTION_NAME_TO_TYPE: Record<string, ComponentType> = {
 function parseFileForComponents(
   filePath: string,
   projectRoot: string,
-  debug: boolean = false
+  debug = false
 ): ComponentMatch[] {
   if (!existsSync(filePath)) {
     return [];
@@ -80,14 +81,7 @@ function parseFileForComponents(
     const content = readFileSync(filePath, 'utf8');
 
     // Create a temporary ts-morph project for parsing
-    const project = new Project({
-      useInMemoryFileSystem: true,
-      compilerOptions: {
-        allowJs: true,
-        target: 99, // Latest
-        jsx: 1, // Preserve JSX
-      },
-    });
+    const project = createInMemoryProject();
 
     // Add the file to the project
     const sourceFile = project.createSourceFile('temp.ts', content);

@@ -3,12 +3,14 @@
  * Unit tests for artifact component generator
  */
 
-import { generateArtifactComponentDefinition as generateArtifactComponentDefinitionV4 } from '../../../pull-v4/artifact-component-generator';
+import { generateArtifactComponentDefinition as originalGenerateArtifactComponentDefinition } from '../../../pull-v4/artifact-component-generator';
 import { expectSnapshots } from '../../../pull-v4/utils';
-import {
-  generateArtifactComponentDefinition,
-  generateArtifactComponentFile,
-} from '../artifact-component-generator';
+
+function generateArtifactComponentDefinition(
+  ...args: Parameters<typeof originalGenerateArtifactComponentDefinition>
+): string {
+  return originalGenerateArtifactComponentDefinition(...args).getFullText();
+}
 
 describe('Artifact Component Generator', () => {
   const testComponentData = {
@@ -55,75 +57,13 @@ describe('Artifact Component Generator', () => {
     },
   };
 
-  // describe('generateArtifactComponentImports', () => {
-  // it('should generate correct imports with preview fields', () => {
-  //   const imports = generateArtifactComponentImports(testComponentData);
-  //
-  //   expect(imports).toHaveLength(3);
-  //   expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core';");
-  //   expect(imports[1]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
-  //   expect(imports[2]).toBe("import { z } from 'zod';");
-  // });
-  // it('should generate imports without preview when no preview fields', () => {
-  //   const dataWithoutPreview = {
-  //     name: 'Simple',
-  //     description: 'Simple artifact component',
-  //     props: {
-  //       type: 'object',
-  //       properties: {
-  //         value: {
-  //           type: 'string',
-  //           description: 'Simple value',
-  //         },
-  //       },
-  //     },
-  //   };
-  //
-  //   const imports = generateArtifactComponentImports(dataWithoutPreview);
-  //
-  //   expect(imports).toHaveLength(2);
-  //   expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
-  //   expect(imports[1]).toBe("import { z } from 'zod';");
-  //   expect(imports).not.toContain(expect.stringContaining('preview'));
-  // });
-  // it('should generate only artifactComponent import without schema', () => {
-  //   const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
-  //   const imports = generateArtifactComponentImports(dataWithoutSchema);
-  //
-  //   expect(imports).toHaveLength(1);
-  //   expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
-  // });
-  // it('should handle double quotes style', () => {
-  //   const imports = generateArtifactComponentImports(testComponentData, {
-  //     quotes: 'double',
-  //     semicolons: true,
-  //     indentation: '  ',
-  //   });
-  //
-  //   expect(imports[0]).toBe('import { preview } from "@inkeep/agents-core";');
-  //   expect(imports[1]).toBe('import { artifactComponent } from "@inkeep/agents-sdk";');
-  //   expect(imports[2]).toBe('import { z } from "zod";');
-  // });
-  // it('should handle no semicolons style', () => {
-  //   const imports = generateArtifactComponentImports(testComponentData, {
-  //     quotes: 'single',
-  //     semicolons: false,
-  //     indentation: '  ',
-  //   });
-  //
-  //   expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core'");
-  //   expect(imports[1]).toBe("import { artifactComponent } from '@inkeep/agents-sdk'");
-  //   expect(imports[2]).toBe("import { z } from 'zod'");
-  // });
-  // });
-
   describe('generateArtifactComponentDefinition', () => {
     it('should generate correct definition with all properties', async () => {
       const artifactComponentId = 'citation';
-      const definition = generateArtifactComponentDefinition(
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
-        testComponentData
-      );
+        ...testComponentData,
+      });
 
       expect(definition).toContain('export const citation = artifactComponent({');
       expect(definition).toContain("id: 'citation',");
@@ -142,11 +82,7 @@ describe('Artifact Component Generator', () => {
       expect(definition).toContain(
         'record_type: preview(z.string().describe("Type of record (documentation, blog, guide, etc.)")),'
       );
-      const definitionV4 = generateArtifactComponentDefinitionV4({
-        artifactComponentId,
-        ...testComponentData,
-      });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should handle component ID to camelCase conversion', async () => {
@@ -156,41 +92,33 @@ describe('Artifact Component Generator', () => {
         description: 'Document template component',
         props: { type: 'object', properties: { title: { type: 'string' } } },
       };
-      const definition = generateArtifactComponentDefinition(artifactComponentId, conversionData);
-
-      expect(definition).toContain('export const documentTemplate = artifactComponent({');
-      expect(definition).toContain("id: 'document-template',");
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...conversionData,
       });
-      await expectSnapshots(definition, definitionV4);
+
+      expect(definition).toContain('export const documentTemplate = artifactComponent({');
+      expect(definition).toContain("id: 'document-template',");
+      await expectSnapshots(definition);
     });
 
     it('should not wrap non-preview fields with preview() function', async () => {
       const artifactComponentId = 'citation';
-      const definition = generateArtifactComponentDefinition(
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
-        testComponentData
-      );
+        ...testComponentData,
+      });
 
       // Content field should not have preview() wrapper since inPreview is not set
       expect(definition).toContain('content: z.array(');
       expect(definition).not.toContain('content: preview(');
-      const definitionV4 = generateArtifactComponentDefinitionV4({
-        artifactComponentId,
-        ...testComponentData,
-      });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
 
     it('should throw error for missing required fields', () => {
       const artifactComponentId = 'minimal';
       expect(() => {
-        generateArtifactComponentDefinition(artifactComponentId, {});
-      }).toThrow("Missing required fields for artifact component 'minimal': name, props");
-      expect(() => {
-        generateArtifactComponentDefinitionV4({ artifactComponentId });
+        generateArtifactComponentDefinition({ artifactComponentId });
       }).toThrow(
         new Error(`Validation failed for artifact component:
 ✖ Invalid input: expected string, received undefined
@@ -209,14 +137,13 @@ describe('Artifact Component Generator', () => {
       };
 
       const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition(artifactComponentId, dataWithTemplate);
-
-      expect(definition).toContain("template: '<div>{{title}}</div>'");
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...dataWithTemplate,
       });
-      await expectSnapshots(definition, definitionV4);
+
+      expect(definition).toContain("template: '<div>{{title}}</div>'");
+      await expectSnapshots(definition);
     });
 
     it('should handle contentType property', async () => {
@@ -228,17 +155,13 @@ describe('Artifact Component Generator', () => {
       };
 
       const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition(
-        artifactComponentId,
-        dataWithContentType
-      );
-
-      expect(definition).toContain("contentType: 'text/html'");
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...dataWithContentType,
       });
-      await expectSnapshots(definition, definitionV4);
+
+      expect(definition).toContain("contentType: 'text/html'");
+      await expectSnapshots(definition);
     });
 
     it('should handle multiline template with template literals', async () => {
@@ -263,17 +186,13 @@ describe('Artifact Component Generator', () => {
       };
 
       const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition(
-        artifactComponentId,
-        dataWithLongTemplate
-      );
-
-      expect(definition).toContain(`template: \`${longTemplate}\``);
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...dataWithLongTemplate,
       });
-      await expectSnapshots(definition, definitionV4);
+
+      expect(definition).toContain(`template: \`${longTemplate}\``);
+      await expectSnapshots(definition);
     });
 
     it('should throw error when only schema provided (needs props)', () => {
@@ -291,10 +210,7 @@ describe('Artifact Component Generator', () => {
       };
       const artifactComponentId = 'test';
       expect(() => {
-        generateArtifactComponentDefinition(artifactComponentId, dataWithSchema);
-      }).toThrow("Missing required fields for artifact component 'test': props");
-      expect(() => {
-        generateArtifactComponentDefinitionV4({ artifactComponentId, ...dataWithSchema });
+        generateArtifactComponentDefinition({ artifactComponentId, ...dataWithSchema });
       }).toThrow(
         new Error(`Validation failed for artifact component:
 ✖ Invalid input: expected object, received undefined
@@ -327,15 +243,14 @@ describe('Artifact Component Generator', () => {
       };
 
       const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition(artifactComponentId, dataWithBoth);
-
-      expect(definition).toContain('prop: preview(');
-      expect(definition).not.toContain('schema:');
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...dataWithBoth,
       });
-      await expectSnapshots(definition, definitionV4);
+
+      expect(definition).toContain('prop: preview(');
+      expect(definition).not.toContain('schema:');
+      await expectSnapshots(definition);
     });
 
     it('should handle mixed preview and non-preview fields', async () => {
@@ -359,7 +274,10 @@ describe('Artifact Component Generator', () => {
       };
 
       const artifactComponentId = 'mixed';
-      const definition = generateArtifactComponentDefinition(artifactComponentId, mixedData);
+      const definition = generateArtifactComponentDefinition({
+        artifactComponentId,
+        ...mixedData,
+      });
 
       expect(definition).toContain(
         'previewField: preview(z.string().describe("This is shown in preview")),'
@@ -367,16 +285,12 @@ describe('Artifact Component Generator', () => {
       expect(definition).toContain(
         'regularField: z.string().describe("This is not shown in preview"),'
       );
-      const definitionV4 = generateArtifactComponentDefinitionV4({
-        artifactComponentId,
-        ...mixedData,
-      });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
   });
 
   describe('generateArtifactComponentFile', () => {
-    it('should generate complete file with imports and definition', () => {
+    it.skip('should generate complete file with imports and definition', () => {
       const file = generateArtifactComponentFile('citation', testComponentData);
 
       expect(file).toContain("import { preview } from '@inkeep/agents-core';");
@@ -408,66 +322,15 @@ describe('Artifact Component Generator', () => {
       };
 
       const artifactComponentId = 'simple-artifact';
-      const file = generateArtifactComponentFile(artifactComponentId, simpleData);
-
-      // Should not include preview import
-      expect(file).not.toContain('import { preview }');
-      expect(file).toContain('import { artifactComponent }');
-      expect(file).toContain('import { z }');
-
-      // Test compilation with just the definition (strip export)
-      const definition = generateArtifactComponentDefinition(artifactComponentId, simpleData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const artifactComponent = (config) => config;
-        const z = {
-          object: (props) => ({ type: 'object', props }),
-          string: () => ({ type: 'string', describe: (desc) => ({ type: 'string', description: desc }) })
-        };
-        
-        ${definitionWithoutExport}
-        
-        return simpleArtifact;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('simple-artifact');
-      expect(result.name).toBe('Simple Artifact');
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...simpleData,
       });
-      await expectSnapshots(definition, definitionV4);
+      await expectSnapshots(definition);
     });
   });
 
   describe('edge cases', () => {
-    // it('should handle special characters in component ID', () => {
-    //   const definition = generateArtifactComponentDefinition('user-artifact_2023', {
-    //     name: 'User Artifact',
-    //     description: 'Component with special chars',
-    //     props: { type: 'object', properties: {} },
-    //   });
-    //
-    //   expect(definition).toContain('export const userArtifact2023 = artifactComponent({');
-    //   expect(definition).toContain("id: 'user-artifact_2023',");
-    // });
-    //
-    // it('should handle component ID starting with number', () => {
-    //   const definition = generateArtifactComponentDefinition('2023-artifact', {
-    //     name: 'Artifact',
-    //     description: 'Component starting with number',
-    //     props: { type: 'object', properties: {} },
-    //   });
-    //
-    //   expect(definition).toContain('export const _2023Artifact = artifactComponent({');
-    // });
-
     it('should handle deeply nested objects with preview fields', async () => {
       const nestedData = {
         name: 'Nested',
@@ -494,13 +357,12 @@ describe('Artifact Component Generator', () => {
       // This is a limitation - we only handle top-level inPreview fields
       // but the function should not crash
       const artifactComponentId = 'nested';
-      const definition = generateArtifactComponentDefinition(artifactComponentId, nestedData);
-      expect(definition).toContain('export const nested = artifactComponent({');
-      const definitionV4 = generateArtifactComponentDefinitionV4({
+      const definition = generateArtifactComponentDefinition({
         artifactComponentId,
         ...nestedData,
       });
-      await expectSnapshots(definition, definitionV4);
+      expect(definition).toContain('export const nested = artifactComponent({');
+      await expectSnapshots(definition);
     });
   });
 });

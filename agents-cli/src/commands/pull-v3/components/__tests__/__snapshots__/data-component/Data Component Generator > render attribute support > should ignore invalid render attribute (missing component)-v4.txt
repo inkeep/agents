@@ -6,9 +6,4 @@ export const invalidRender = dataComponent({
   name: 'Invalid Render',
   description: 'Component with invalid render',
   props: z.object({ "data": z.string().optional() }),
-  render: {
-    mockData: {
-      data: 'test',
-    },
-  },
 });

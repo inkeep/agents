@@ -90,8 +90,10 @@ function addRenderProperty(
   configObject: ObjectLiteralExpression,
   render: NonNullable<ParsedDataComponentDefinitionData['render']>
 ): void {
-  addValueToObject(configObject, 'render', {
-    component: render.component,
-    mockData: render.mockData,
-  });
+  if (render.component) {
+    addValueToObject(configObject, 'render', {
+      component: render.component,
+      mockData: render.mockData,
+    });
+  }
 }
