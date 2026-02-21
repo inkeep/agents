@@ -64,7 +64,9 @@ INKEEP_AGENTS_API_URL=http://<vm_external_ip>:3002
 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=<REPLACE_WITH_INKEEP_AGENTS_RUN_API_BYPASS_SECRET>
 ```
 
-<Snippet file="self-hosting/runtime-limits-note.mdx" />
+<Tip>
+For long-running agents or custom deployment requirements, you can override runtime limits like execution timeouts, maximum transfers, and generation steps. See [Configure Runtime Limits](/typescript-sdk/configure-runtime-limits) for examples and the complete list of overridable settings.
+</Tip>
 
 Run with Docker:
 ```bash
