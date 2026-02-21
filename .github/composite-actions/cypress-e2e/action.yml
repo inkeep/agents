@@ -115,20 +115,22 @@ runs:
 
     - name: Run Cypress E2E Tests
       shell: bash
-      run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
+      run: timeout 600 pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: cypress-screenshots
         path: agents-manage-ui/cypress/screenshots
+        if-no-files-found: ignore
         retention-days: 7
 
     - name: Upload Cypress Videos
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
+        if-no-files-found: ignore
         retention-days: 7
