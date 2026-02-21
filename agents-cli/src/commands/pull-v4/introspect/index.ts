@@ -107,14 +107,20 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
   const enrichCanDelegateToArray = (canDelegateTo: any[]) => {
     if (!Array.isArray(canDelegateTo)) return;
 
-    for (let i = 0; i < canDelegateTo.length; i++) {
-      const item = canDelegateTo[i];
-
-      // Skip if it's already an object (already has type info)
-      if (typeof item !== 'string') continue;
-
-      const id = item as string;
-      let enrichedItem: any = null;
+function enrichCanDelegateToArray(
+	canDelegateTo: unknown[],
+	subAgentsIdSet: Set<string>,
+	agentsIdSet: Set<string>,
+	externalAgentsIdSet: Set<string>
+): unknown[] {
+	return canDelegateTo.map((item) => {
+		if (typeof item !== 'string') return item;
+		if (subAgentsIdSet.has(item)) return { subAgentId: item };
+		if (agentsIdSet.has(item)) return { agentId: item };
+		if (externalAgentsIdSet.has(item)) return { externalAgentId: item };
+		return item;
+	});
+}
 
       // Determine component type based on which collection contains this ID
       if (agentIds.has(id)) {
