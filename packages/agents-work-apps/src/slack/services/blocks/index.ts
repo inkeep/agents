@@ -207,39 +207,35 @@ export function buildToolApprovalBlocks(params: {
 
   const blocks: any[] = [
     {
-      type: 'header',
-      text: { type: 'plain_text', text: 'Tool Approval Required', emoji: false },
-    },
-    {
       type: 'section',
-      text: { type: 'mrkdwn', text: `The agent wants to use \`${toolName}\`.` },
+      text: { type: 'mrkdwn', text: `*Approval required - \`${toolName}\`*` },
     },
   ];
 
   if (input && Object.keys(input).length > 0) {
-    const jsonStr = JSON.stringify(input, null, 2);
-    const truncated = jsonStr.length > 2900 ? `${jsonStr.slice(0, 2900)}…` : jsonStr;
-    blocks.push({
-      type: 'section',
-      text: { type: 'mrkdwn', text: `\`\`\`json\n${truncated}\n\`\`\`` },
-    });
+    const fields = Object.entries(input)
+      .slice(0, 10)
+      .map(([k, v]) => {
+        const val = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+        const truncated = val.length > 80 ? `${val.slice(0, 80)}…` : val;
+        return { type: 'mrkdwn', text: `*${k}:*\n${truncated}` };
+      });
+    blocks.push({ type: 'section', fields });
   }
-
-  blocks.push({ type: 'divider' });
 
   blocks.push({
     type: 'actions',
     elements: [
       {
         type: 'button',
-        text: { type: 'plain_text', text: 'Approve', emoji: false },
+        text: { type: 'plain_text', text: 'Approve', emoji: true },
         style: 'primary',
         action_id: 'tool_approval_approve',
         value: buttonValue,
       },
       {
         type: 'button',
-        text: { type: 'plain_text', text: 'Deny', emoji: false },
+        text: { type: 'plain_text', text: 'Deny', emoji: true },
         style: 'danger',
         action_id: 'tool_approval_deny',
         value: buttonValue,
