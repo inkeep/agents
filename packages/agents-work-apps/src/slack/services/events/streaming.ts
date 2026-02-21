@@ -10,8 +10,13 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import {
+  buildCitationsBlock,
+  buildDataArtifactBlocks,
+  buildDataComponentBlocks,
+  buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
   buildToolApprovalExpiredBlocks,
+  buildToolOutputErrorBlock,
   createContextBlock,
   type ToolApprovalButtonValue,
 } from '../blocks';
@@ -243,7 +248,17 @@ export async function streamAgentResponse(params: {
       thread_ts: threadTs,
     });
 
-    const pendingApprovalMessages: Array<{ messageTs: string; toolName: string }> = [];
+    const pendingApprovalMessages: Array<{
+      messageTs: string;
+      toolName: string;
+      toolCallId: string;
+    }> = [];
+    const toolCallIdToName = new Map<string, string>();
+    const toolErrors: Array<{ toolName: string; errorText: string }> = [];
+    const citations: Array<{ title?: string; url?: string }> = [];
+    const summaryLabels: string[] = [];
+    let richMessageCount = 0;
+    const MAX_RICH_MESSAGES = 5;
 
     try {
       let agentCompleted = false;
@@ -304,12 +319,107 @@ export async function streamAgentResponse(params: {
                   return null;
                 });
               if (approvalPost?.ts) {
-                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName });
+                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName, toolCallId });
               }
               // Clear the stream timeout — we're now waiting for human approval which
               // can take minutes. The backend has its own APPROVAL_TIMEOUT_MS and will
               // close the stream when that expires, triggering the expiry path in catch.
               clearTimeout(timeoutId);
+              continue;
+            }
+
+            if (data.type === 'tool-input-available' && data.toolCallId && data.toolName) {
+              toolCallIdToName.set(String(data.toolCallId), String(data.toolName));
+              continue;
+            }
+
+            if (data.type === 'tool-output-denied' && data.toolCallId) {
+              const idx = pendingApprovalMessages.findIndex(
+                (m) => m.toolCallId === data.toolCallId
+              );
+              if (idx !== -1) pendingApprovalMessages.splice(idx, 1);
+              continue;
+            }
+
+            if (data.type === 'tool-output-error' && data.toolCallId) {
+              const toolName = toolCallIdToName.get(String(data.toolCallId)) || 'Tool';
+              toolErrors.push({ toolName, errorText: String(data.errorText || 'Unknown error') });
+              continue;
+            }
+
+            if (data.type === 'data-component' && data.data && typeof data.data === 'object') {
+              if (richMessageCount < MAX_RICH_MESSAGES) {
+                const { blocks, overflowJson, componentType } = buildDataComponentBlocks({
+                  id: String(data.id || ''),
+                  data: data.data as Record<string, unknown>,
+                });
+                if (overflowJson) {
+                  const label = componentType || 'data-component';
+                  await slackClient.files
+                    .uploadV2({
+                      channel_id: channel,
+                      thread_ts: threadTs,
+                      filename: `${label}.json`,
+                      content: overflowJson,
+                      initial_comment: `📊 ${label}`,
+                    })
+                    .catch((e) =>
+                      logger.warn({ error: e }, 'Failed to upload data component file')
+                    );
+                } else {
+                  await slackClient.chat
+                    .postMessage({
+                      channel,
+                      thread_ts: threadTs,
+                      text: '📊 Data component',
+                      blocks,
+                    })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to post data component'));
+                }
+                richMessageCount++;
+              }
+              continue;
+            }
+
+            if (data.type === 'data-artifact' && data.data && typeof data.data === 'object') {
+              const artifactData = data.data as Record<string, unknown>;
+              if (
+                typeof artifactData.type === 'string' &&
+                artifactData.type.toLowerCase() === 'citation'
+              ) {
+                const summary = artifactData.artifactSummary as
+                  | { title?: string; url?: string }
+                  | undefined;
+                if (summary?.url && !citations.some((c) => c.url === summary.url)) {
+                  citations.push({ title: summary.title, url: summary.url });
+                }
+              } else if (richMessageCount < MAX_RICH_MESSAGES) {
+                const { blocks, overflowContent, artifactName } = buildDataArtifactBlocks({
+                  data: artifactData,
+                });
+                if (overflowContent) {
+                  const label = artifactName || 'artifact';
+                  await slackClient.files
+                    .uploadV2({
+                      channel_id: channel,
+                      thread_ts: threadTs,
+                      filename: `${label}.md`,
+                      content: overflowContent,
+                      initial_comment: `📄 ${label}`,
+                    })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to upload artifact file'));
+                } else {
+                  await slackClient.chat
+                    .postMessage({ channel, thread_ts: threadTs, text: '📄 Data', blocks })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to post data artifact'));
+                }
+                richMessageCount++;
+              }
+              continue;
+            }
+
+            if (data.type === 'data-summary' && data.data?.label) {
+              summaryLabels.push(String(data.data.label));
               continue;
             }
 
@@ -354,10 +464,18 @@ export async function streamAgentResponse(params: {
 
       clearTimeout(timeoutId);
 
-      const contextBlock = createContextBlock({ agentName });
+      const stopBlocks: any[] = [];
+      for (const { toolName, errorText } of toolErrors) {
+        stopBlocks.push(buildToolOutputErrorBlock(toolName, errorText));
+      }
+      if (summaryLabels.length > 0) {
+        stopBlocks.push(buildSummaryBreadcrumbBlock(summaryLabels));
+      }
+      stopBlocks.push(createContextBlock({ agentName }));
+
       try {
         await withTimeout(
-          streamer.stop({ blocks: [contextBlock] }),
+          streamer.stop({ blocks: stopBlocks.slice(0, 50) }),
           CHATSTREAM_OP_TIMEOUT_MS,
           'streamer.stop'
         );
@@ -369,6 +487,20 @@ export async function streamAgentResponse(params: {
           { stopError, channel, threadTs, responseLength: fullText.length },
           'Failed to finalize chatStream — content was already delivered'
         );
+      }
+
+      if (citations.length > 0) {
+        const citationBlocks = buildCitationsBlock(citations);
+        if (citationBlocks.length > 0) {
+          await slackClient.chat
+            .postMessage({
+              channel,
+              thread_ts: threadTs,
+              text: '📚 Sources',
+              blocks: citationBlocks,
+            })
+            .catch((e) => logger.warn({ error: e }, 'Failed to post citations'));
+        }
       }
 
       if (thinkingMessageTs) {
@@ -383,7 +515,16 @@ export async function streamAgentResponse(params: {
       }
 
       logger.info(
-        { channel, threadTs, responseLength: fullText.length, agentId, conversationId },
+        {
+          channel,
+          threadTs,
+          responseLength: fullText.length,
+          agentId,
+          conversationId,
+          toolErrorCount: toolErrors.length,
+          citationCount: citations.length,
+          richMessageCount,
+        },
         'Streaming completed'
       );
 
