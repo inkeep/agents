@@ -132,11 +132,23 @@ export function convertJsonSchemaToZodSafe(
     return 'z.any()';
   }
 
-  try {
-    return jsonSchemaToZod(schema, options?.conversionOptions);
-  } catch {
-    return 'z.any()';
-  }
+export function convertJsonSchemaToZodSafe(
+	schema: unknown,
+	options?: { conversionOptions?: Parameters<typeof jsonSchemaToZod>[1] }
+): string {
+	if (!isPlainObject(schema)) {
+		console.warn('Schema conversion skipped: non-object schema provided, using z.any()');
+		return 'z.any()';
+	}
+	try {
+		return jsonSchemaToZod(schema, options?.conversionOptions);
+	} catch (error) {
+		console.warn(
+			`Schema conversion failed: ${error instanceof Error ? error.message : String(error)}. Falling back to z.any()`
+		);
+		return 'z.any()';
+	}
+}
 }
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
