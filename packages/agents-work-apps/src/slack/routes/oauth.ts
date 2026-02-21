@@ -13,6 +13,7 @@ import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
+import { requireOrgAdminForInstall } from '../middleware/permissions';
 import {
   clearWorkspaceConnectionCache,
   computeWorkspaceConnectionId,
@@ -115,12 +116,17 @@ const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 export { getBotTokenForTeam, setBotTokenForTeam };
 
+app.use('/install', async (c, next) => {
+  return requireOrgAdminForInstall()(c, next);
+});
+
 app.openapi(
   createProtectedRoute({
     method: 'get',
     path: '/install',
     summary: 'Install Slack App',
-    description: 'Redirects to Slack OAuth page for workspace installation',
+    description:
+      'Redirects to Slack OAuth page for workspace installation. Requires org admin or owner role.',
     operationId: 'slack-install',
     tags: ['Work Apps', 'Slack', 'OAuth'],
     permission: noAuth(),
@@ -136,7 +142,9 @@ app.openapi(
     },
   }),
   (c) => {
-    const { tenant_id: tenantId } = c.req.valid('query');
+    const sessionTenantId = c.get('tenantId') as string | undefined;
+    const { tenant_id: queryTenantId } = c.req.valid('query');
+    const tenantId = sessionTenantId || queryTenantId;
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
 
