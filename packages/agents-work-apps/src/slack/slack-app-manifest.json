@@ -52,6 +52,7 @@
         "chat:write",
         "chat:write.public",
         "commands",
+        "files:write",
         "groups:history",
         "groups:read",
         "team:read",
