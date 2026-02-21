@@ -46,7 +46,7 @@ pnpm bump patch --pkg agents-core "Fix race condition in agent message queue"
 pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
 ```
 
-**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
+**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-work-apps`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
 
 **Semver guidance:**
 - **Major**: Reserved - do not use without explicit approval
@@ -74,6 +74,10 @@ pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response suppo
 - "update dependencies" (not user-facing, doesn't need changeset)
 - "Refactored the agent connection handler to use async/await" (implementation detail, not user impact)
 - "changes" (meaningless)
+
+**When to create a changeset (MANDATORY):**
+- Any bug fix, feature, or behavior change to a published package — even if the package is "internal-facing" (e.g., `agents-work-apps`, `agents-api`). If the code ships to users or affects runtime behavior, it needs a changeset.
+- This includes work-app integrations (Slack, GitHub), API route changes, SDK changes, CLI changes, and core library changes.
 
 **When NOT to create a changeset:**
 - Documentation-only changes
