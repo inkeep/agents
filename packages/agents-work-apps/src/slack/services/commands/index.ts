@@ -521,6 +521,7 @@ async function executeAgentInBackground(
           Authorization: `Bearer ${slackUserToken}`,
           'x-inkeep-project-id': targetAgent.projectId,
           'x-inkeep-agent-id': targetAgent.id,
+          'x-inkeep-invocation-type': 'slack',
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],

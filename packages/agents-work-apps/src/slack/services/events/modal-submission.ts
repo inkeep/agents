@@ -435,6 +435,7 @@ async function callAgentApi(params: {
           Authorization: `Bearer ${slackUserToken}`,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
+          'x-inkeep-invocation-type': 'slack',
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],
