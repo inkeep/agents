@@ -1,6 +1,6 @@
 services:
   inkeep-agents-manage-ui:
-    image: inkeep/agents-manage-ui:0.50.1
+    image: inkeep/agents-manage-ui:0.50.3
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
