@@ -52,6 +52,17 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
+vi.mock('../../slack/services/events', () => ({
+  handleAppMention: vi.fn().mockResolvedValue(undefined),
+  handleFollowUpSubmission: vi.fn().mockResolvedValue(undefined),
+  handleMessageShortcut: vi.fn().mockResolvedValue(undefined),
+  handleModalSubmission: vi.fn().mockResolvedValue(undefined),
+  handleOpenAgentSelectorModal: vi.fn().mockResolvedValue(undefined),
+  handleOpenFollowUpModal: vi.fn().mockResolvedValue(undefined),
+  handleToolApproval: vi.fn().mockResolvedValue(undefined),
+  sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../slack/services/security', () => ({
   verifySlackRequest: vi.fn(() => true),
   parseSlackCommandBody: vi.fn(() => ({})),
@@ -159,6 +170,57 @@ describe('Slack Work App Routes', () => {
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toBe('test-challenge-from-retry-test');
+    });
+  });
+
+  describe('POST /events - view_submission', () => {
+    it('should return empty body for successful view_submission', async () => {
+      const response = await app.request('/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'view_submission',
+          view: {
+            callback_id: 'agent_selector_modal',
+            private_metadata: '{}',
+            state: {
+              values: {
+                agent_select_block: {
+                  agent_select: { selected_option: { value: '{"agentId":"a1","projectId":"p1"}' } },
+                },
+              },
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe('');
+    });
+
+    it('should return validation errors when no agent selected', async () => {
+      const response = await app.request('/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'view_submission',
+          view: {
+            callback_id: 'agent_selector_modal',
+            state: {
+              values: {
+                agent_select_block: {
+                  agent_select: { selected_option: { value: 'none' } },
+                },
+              },
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.response_action).toBe('errors');
+      expect(json.errors).toBeDefined();
     });
   });
 
