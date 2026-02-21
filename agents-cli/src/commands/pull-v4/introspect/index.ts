@@ -123,7 +123,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
       if (agentData.subAgents) {
         for (const subAgentData of Object.values(agentData.subAgents)) {
           if (subAgentData.canDelegateTo) {
-            enrichCanDelegateToArray(subAgentData.canDelegateTo);
+            subAgentData.canDelegateTo = enrichCanDelegateToArray(subAgentData.canDelegateTo);
           }
         }
       }
