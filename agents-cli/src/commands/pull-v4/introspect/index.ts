@@ -97,46 +97,24 @@ export function createProjectStructure(projectRoot: string): ProjectPaths {
  */
 export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): void {
   // Get all available component IDs by type
-  const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
-  const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
-  const externalAgentIds = new Set(
+  const agentsIdSet = new Set(project.agents ? Object.keys(project.agents) : []);
+  const subAgentsIdSet = new Set(Object.keys(extractSubAgents(project)));
+  const externalAgentsIdSet = new Set(
     project.externalAgents ? Object.keys(project.externalAgents) : []
   );
 
   // Function to enrich a canDelegateTo array
-  const enrichCanDelegateToArray = (canDelegateTo: any[]) => {
-    if (!Array.isArray(canDelegateTo)) return;
 
-function enrichCanDelegateToArray(
-	canDelegateTo: unknown[],
-	subAgentsIdSet: Set<string>,
-	agentsIdSet: Set<string>,
-	externalAgentsIdSet: Set<string>
-): unknown[] {
-	return canDelegateTo.map((item) => {
-		if (typeof item !== 'string') return item;
-		if (subAgentsIdSet.has(item)) return { subAgentId: item };
-		if (agentsIdSet.has(item)) return { agentId: item };
-		if (externalAgentsIdSet.has(item)) return { externalAgentId: item };
-		return item;
-	});
-}
-
-      // Determine component type based on which collection contains this ID
-      if (agentIds.has(id)) {
-        enrichedItem = { agentId: id };
-      } else if (subAgentIds.has(id)) {
-        enrichedItem = { subAgentId: id };
-      } else if (externalAgentIds.has(id)) {
-        enrichedItem = { externalAgentId: id };
-      } else {
-        continue; // Leave as string if we can't determine the type
-      }
-
-      // Replace the string with the enriched object
-      canDelegateTo[i] = enrichedItem;
-    }
-  };
+  function enrichCanDelegateToArray(canDelegateTo: unknown[]): unknown[] {
+    return canDelegateTo.map((item) => {
+      // Skip if it's already an object (already has type info)
+      if (typeof item !== 'string') return item;
+      if (agentsIdSet.has(item)) return { agentId: item };
+      if (subAgentsIdSet.has(item)) return { subAgentId: item };
+      if (externalAgentsIdSet.has(item)) return { externalAgentId: item };
+      return item;
+    });
+  }
 
   // Process all agents
   if (project.agents) {
