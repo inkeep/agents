@@ -36,6 +36,30 @@ const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 const CLEANUP_TIMEOUT_MS = 3_000;
 
 /**
+ * Retry a file upload on transient failures (5xx, AbortError) with exponential backoff.
+ */
+async function retryUpload<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isTimeout = (error as Error).name === 'AbortError';
+      const status = (error as { status?: number }).status;
+      const isRateLimit = status === 429;
+      const isServerError = typeof status === 'number' && status >= 500;
+      if ((!isTimeout && !isServerError && !isRateLimit) || attempt === maxAttempts) throw error;
+      const delay = Math.min(500 * 2 ** (attempt - 1), 4000) + Math.random() * 100;
+      logger.warn(
+        { attempt, maxAttempts, status, delay: Math.round(delay) },
+        'Retrying file upload after transient failure'
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Unreachable');
+}
+
+/**
  * Wrap a promise with a timeout to prevent indefinite blocking on Slack API calls.
  */
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -258,6 +282,7 @@ export async function streamAgentResponse(params: {
     const citations: Array<{ title?: string; url?: string }> = [];
     const summaryLabels: string[] = [];
     let richMessageCount = 0;
+    let richMessageCapWarned = false;
     const MAX_RICH_MESSAGES = 5;
 
     try {
@@ -355,17 +380,20 @@ export async function streamAgentResponse(params: {
                 });
                 if (overflowJson) {
                   const label = componentType || 'data-component';
-                  await slackClient.files
-                    .uploadV2({
+                  await retryUpload(() =>
+                    slackClient.files.uploadV2({
                       channel_id: channel,
                       thread_ts: threadTs,
                       filename: `${label}.json`,
                       content: overflowJson,
                       initial_comment: `📊 ${label}`,
                     })
-                    .catch((e) =>
-                      logger.warn({ error: e }, 'Failed to upload data component file')
-                    );
+                  ).catch((e) =>
+                    logger.warn(
+                      { error: e, channel, threadTs, agentId, componentType: label },
+                      'Failed to upload data component file'
+                    )
+                  );
                 } else {
                   await slackClient.chat
                     .postMessage({
@@ -377,6 +405,12 @@ export async function streamAgentResponse(params: {
                     .catch((e) => logger.warn({ error: e }, 'Failed to post data component'));
                 }
                 richMessageCount++;
+              } else if (!richMessageCapWarned) {
+                logger.warn(
+                  { channel, threadTs, agentId, eventType: 'data-component', MAX_RICH_MESSAGES },
+                  'MAX_RICH_MESSAGES cap reached — additional rich content will be dropped'
+                );
+                richMessageCapWarned = true;
               }
               continue;
             }
@@ -399,21 +433,32 @@ export async function streamAgentResponse(params: {
                 });
                 if (overflowContent) {
                   const label = artifactName || 'artifact';
-                  await slackClient.files
-                    .uploadV2({
+                  await retryUpload(() =>
+                    slackClient.files.uploadV2({
                       channel_id: channel,
                       thread_ts: threadTs,
                       filename: `${label}.md`,
                       content: overflowContent,
                       initial_comment: `📄 ${label}`,
                     })
-                    .catch((e) => logger.warn({ error: e }, 'Failed to upload artifact file'));
+                  ).catch((e) =>
+                    logger.warn(
+                      { error: e, channel, threadTs, agentId, artifactName: label },
+                      'Failed to upload artifact file'
+                    )
+                  );
                 } else {
                   await slackClient.chat
                     .postMessage({ channel, thread_ts: threadTs, text: '📄 Data', blocks })
                     .catch((e) => logger.warn({ error: e }, 'Failed to post data artifact'));
                 }
                 richMessageCount++;
+              } else if (!richMessageCapWarned) {
+                logger.warn(
+                  { channel, threadTs, agentId, eventType: 'data-artifact', MAX_RICH_MESSAGES },
+                  'MAX_RICH_MESSAGES cap reached — additional rich content will be dropped'
+                );
+                richMessageCapWarned = true;
               }
               continue;
             }
