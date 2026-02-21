@@ -125,8 +125,8 @@ describe('Slack Work App Routes', () => {
       });
 
       expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json).toEqual({ ok: true });
+      const text = await response.text();
+      expect(text).toBe('');
     });
 
     it('should acknowledge retries even with retry reason only', async () => {
@@ -140,8 +140,8 @@ describe('Slack Work App Routes', () => {
       });
 
       expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json).toEqual({ ok: true });
+      const text = await response.text();
+      expect(text).toBe('');
     });
 
     it('should process events normally when no retry headers are present', async () => {
