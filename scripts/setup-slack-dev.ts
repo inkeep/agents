@@ -261,6 +261,66 @@ const NOUNS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Dev config schema (.slack-dev.json)
+// ---------------------------------------------------------------------------
+
+interface SlackDevConfig {
+  /** Unique dev app identifier, e.g. "cedar-hawk" */
+  devId?: string;
+  /** Refresh token for Slack config API (rotated on each use) */
+  configRefreshToken?: string;
+  /** Slack app ID */
+  appId?: string;
+  /** OAuth client ID */
+  clientId?: string;
+  /** OAuth client secret */
+  clientSecret?: string;
+  /** Request signing secret */
+  signingSecret?: string;
+  /** App-level token (xapp-*) for Socket Mode */
+  appToken?: string;
+  /** Bot token (xoxb-*) from workspace OAuth install */
+  botToken?: string;
+  /** Installed workspace team ID */
+  teamId?: string;
+  /** Installed workspace name */
+  teamName?: string;
+  /** CSV of bot scopes from the last OAuth install */
+  installedBotScopes?: string;
+  /** Full dev manifest last sent to Slack via apps.manifest.create/update */
+  appliedManifest?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Manifest types (subset of Slack app manifest)
+// ---------------------------------------------------------------------------
+
+interface SlackManifest {
+  _readme?: unknown;
+  display_information?: Record<string, unknown>;
+  features?: {
+    app_home?: Record<string, unknown>;
+    bot_user?: Record<string, unknown>;
+    shortcuts?: Record<string, unknown>[];
+    slash_commands?: Record<string, unknown>[];
+  };
+  oauth_config?: {
+    redirect_urls?: string[];
+    scopes?: {
+      user?: string[];
+      bot?: string[];
+    };
+  };
+  settings?: {
+    event_subscriptions?: Record<string, unknown> & { request_url?: string };
+    interactivity?: Record<string, unknown> & { request_url?: string };
+    socket_mode_enabled?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -290,48 +350,55 @@ async function openBrowser(url: string): Promise<void> {
   exec(`${cmd} "${url}"`);
 }
 
-function generateDevManifest(devId: string): Record<string, unknown> {
+function loadManifest(): SlackManifest {
   const raw = readFileSync(MANIFEST_PATH, 'utf-8');
-  let manifest: Record<string, unknown>;
   try {
-    manifest = JSON.parse(raw);
+    return JSON.parse(raw) as SlackManifest;
   } catch (err) {
     throw new Error(
       `Failed to parse manifest: ${err instanceof Error ? err.message : String(err)}`
     );
   }
+}
 
-  delete manifest._readme;
+function getManifestBotScopes(manifest: SlackManifest): string[] {
+  return manifest.oauth_config?.scopes?.bot ?? [];
+}
 
-  manifest.display_information = {
-    ...manifest.display_information,
+function generateDevManifest(manifest: SlackManifest, devId: string): Record<string, unknown> {
+  const dev = JSON.parse(JSON.stringify(manifest)) as SlackManifest;
+
+  delete dev._readme;
+
+  dev.display_information = {
+    ...dev.display_information,
     name: `Inkeep Dev ${devId}`,
   };
 
-  if (manifest.features?.bot_user) {
-    manifest.features.bot_user = {
-      ...manifest.features.bot_user,
+  if (dev.features?.bot_user) {
+    dev.features.bot_user = {
+      ...dev.features.bot_user,
       display_name: `inkeep-${devId}`,
     };
   }
 
-  manifest.settings = {
-    ...manifest.settings,
+  dev.settings = {
+    ...dev.settings,
     socket_mode_enabled: true,
   };
 
-  if (manifest.settings.event_subscriptions) {
-    const { request_url: _eventUrl, ...rest } = manifest.settings.event_subscriptions;
-    manifest.settings.event_subscriptions = rest;
+  if (dev.settings?.event_subscriptions) {
+    const { request_url: _eventUrl, ...rest } = dev.settings.event_subscriptions;
+    dev.settings.event_subscriptions = rest;
   }
 
-  if (manifest.settings.interactivity) {
-    const { request_url: _interactivityUrl, ...rest } = manifest.settings.interactivity;
-    manifest.settings.interactivity = rest;
+  if (dev.settings?.interactivity) {
+    const { request_url: _interactivityUrl, ...rest } = dev.settings.interactivity;
+    dev.settings.interactivity = rest;
   }
 
-  if (manifest.features?.slash_commands) {
-    manifest.features.slash_commands = manifest.features.slash_commands.map(
+  if (dev.features?.slash_commands) {
+    dev.features.slash_commands = dev.features.slash_commands.map(
       (cmd: Record<string, unknown>) => {
         const { url: _url, ...rest } = cmd;
         return {
@@ -342,14 +409,11 @@ function generateDevManifest(devId: string): Record<string, unknown> {
     );
   }
 
-  if (manifest.oauth_config?.redirect_urls) {
-    manifest.oauth_config.redirect_urls = [
-      'https://api.nango.dev/oauth/callback',
-      OAUTH_REDIRECT_URI,
-    ];
+  if (dev.oauth_config?.redirect_urls) {
+    dev.oauth_config.redirect_urls = ['https://api.nango.dev/oauth/callback', OAUTH_REDIRECT_URI];
   }
 
-  return manifest;
+  return dev as Record<string, unknown>;
 }
 
 function getEnvVar(envPath: string, key: string): string | undefined {
@@ -387,17 +451,96 @@ function setEnvVar(envPath: string, key: string, value: string): void {
   }
 }
 
-function loadDevConfig(): Record<string, string> {
+function loadDevConfig(): SlackDevConfig {
   if (!existsSync(DEV_CONFIG_PATH)) return {};
   try {
-    return JSON.parse(readFileSync(DEV_CONFIG_PATH, 'utf-8'));
+    return JSON.parse(readFileSync(DEV_CONFIG_PATH, 'utf-8')) as SlackDevConfig;
   } catch {
+    console.log(fmt.warn('Warning: .slack-dev.json is corrupted, starting fresh.'));
     return {};
   }
 }
 
-function saveDevConfig(config: Record<string, string>): void {
+function saveDevConfig(config: SlackDevConfig): void {
   writeFileSync(DEV_CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
+}
+
+// ---------------------------------------------------------------------------
+// Manifest diff
+// ---------------------------------------------------------------------------
+
+interface ManifestDiff {
+  path: string;
+  type: 'added' | 'removed' | 'changed';
+  oldValue?: unknown;
+  newValue?: unknown;
+}
+
+function diffManifests(
+  prev: Record<string, unknown>,
+  next: Record<string, unknown>,
+  prefix = ''
+): ManifestDiff[] {
+  const diffs: ManifestDiff[] = [];
+
+  const allKeys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+
+  for (const key of allKeys) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    const oldVal = prev[key];
+    const newVal = next[key];
+
+    if (!(key in prev)) {
+      diffs.push({ path, type: 'added', newValue: newVal });
+    } else if (!(key in next)) {
+      diffs.push({ path, type: 'removed', oldValue: oldVal });
+    } else if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+      const oldJson = JSON.stringify(oldVal);
+      const newJson = JSON.stringify(newVal);
+      if (oldJson !== newJson) {
+        diffs.push({ path, type: 'changed', oldValue: oldVal, newValue: newVal });
+      }
+    } else if (
+      oldVal &&
+      newVal &&
+      typeof oldVal === 'object' &&
+      typeof newVal === 'object' &&
+      !Array.isArray(oldVal) &&
+      !Array.isArray(newVal)
+    ) {
+      diffs.push(
+        ...diffManifests(oldVal as Record<string, unknown>, newVal as Record<string, unknown>, path)
+      );
+    } else if (oldVal !== newVal) {
+      diffs.push({ path, type: 'changed', oldValue: oldVal, newValue: newVal });
+    }
+  }
+
+  return diffs;
+}
+
+function formatDiffValue(val: unknown): string {
+  if (typeof val === 'string') return `"${val}"`;
+  if (Array.isArray(val)) return JSON.stringify(val);
+  return String(val);
+}
+
+function printManifestDiff(diffs: ManifestDiff[]): void {
+  for (const diff of diffs) {
+    switch (diff.type) {
+      case 'added':
+        console.log(`    ${c.green}+ ${diff.path}: ${formatDiffValue(diff.newValue)}${c.reset}`);
+        break;
+      case 'removed':
+        console.log(`    ${c.red}- ${diff.path}: ${formatDiffValue(diff.oldValue)}${c.reset}`);
+        break;
+      case 'changed':
+        console.log(
+          `    ${c.yellow}~ ${diff.path}: ${formatDiffValue(diff.oldValue)} → ${formatDiffValue(diff.newValue)}${c.reset}`
+        );
+        break;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -508,7 +651,8 @@ async function exchangeOAuthCode(
  */
 function installViaOAuth(
   clientId: string,
-  clientSecret: string
+  clientSecret: string,
+  manifest: SlackManifest
 ): Promise<{ botToken: string; teamId: string; teamName: string }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -556,22 +700,7 @@ function installViaOAuth(
     });
 
     server.listen(OAUTH_REDIRECT_PORT, async () => {
-      const botScopes = [
-        'app_mentions:read',
-        'channels:history',
-        'channels:read',
-        'chat:write',
-        'chat:write.public',
-        'commands',
-        'groups:history',
-        'groups:read',
-        'im:history',
-        'im:read',
-        'im:write',
-        'team:read',
-        'users:read',
-        'users:read.email',
-      ].join(',');
+      const botScopes = getManifestBotScopes(manifest).join(',');
 
       const authUrl = new URL('https://slack.com/oauth/v2/authorize');
       authUrl.searchParams.set('client_id', clientId);
@@ -661,12 +790,30 @@ async function main(): Promise<void> {
   }
 
   // ---- Step 2: Create or update the Slack app ----------------------------
-  const devManifest = generateDevManifest(devId);
+  const manifest = loadManifest();
+  const devManifest = generateDevManifest(manifest, devId);
 
   if (devConfig.appId) {
-    process.stdout.write(`${fmt.info(`Updating app ${devConfig.appId}...`)} `);
+    const prev = devConfig.appliedManifest;
+    if (prev) {
+      const diffs = diffManifests(prev, devManifest);
+      if (diffs.length > 0) {
+        console.log(`  ${fmt.info(`Updating app ${devConfig.appId}...`)}`);
+        console.log(`    ${fmt.label('Changes detected:')}`);
+        printManifestDiff(diffs);
+      } else {
+        console.log(`  ${fmt.ok(`App ${devConfig.appId} is up to date (no manifest changes).`)}`);
+      }
+    } else {
+      console.log(`  ${fmt.info(`Updating app ${devConfig.appId}...`)}`);
+    }
     await updateApp(configToken, devConfig.appId, devManifest);
-    console.log(fmt.ok('ok'));
+    if (
+      !devConfig.appliedManifest ||
+      diffManifests(devConfig.appliedManifest, devManifest).length > 0
+    ) {
+      console.log(`  ${fmt.ok('Manifest updated.')}`);
+    }
   } else {
     console.log(`\n${fmt.step(2, 'Creating Slack app')}\n`);
     process.stdout.write(`  ${fmt.info('Calling apps.manifest.create...')} `);
@@ -681,6 +828,7 @@ async function main(): Promise<void> {
     console.log(`  ${fmt.ok('Credentials saved automatically — no copy-paste needed.')}`);
   }
 
+  devConfig.appliedManifest = devManifest;
   saveDevConfig(devConfig);
 
   setEnvVar(ENV_PATH, 'SLACK_CLIENT_ID', devConfig.clientId);
@@ -715,18 +863,42 @@ async function main(): Promise<void> {
   setEnvVar(ENV_PATH, 'SLACK_APP_TOKEN', devConfig.appToken);
 
   // ---- Step 4: OAuth install (automatic via temp server) -----------------
-  if (!devConfig.botToken) {
-    console.log(`\n${fmt.step(4, 'Install app to workspace')}\n`);
+  const currentBotScopes = getManifestBotScopes(manifest).slice().sort().join(',');
+  const installedBotScopes = (devConfig.installedBotScopes ?? '')
+    .split(',')
+    .filter(Boolean)
+    .sort()
+    .join(',');
+  const scopesChanged = currentBotScopes !== installedBotScopes;
+
+  if (!devConfig.botToken || scopesChanged) {
+    if (scopesChanged && devConfig.botToken) {
+      const currentSet = new Set(getManifestBotScopes(manifest));
+      const installedSet = new Set((devConfig.installedBotScopes ?? '').split(',').filter(Boolean));
+      const added = [...currentSet].filter((s) => !installedSet.has(s));
+      const removed = [...installedSet].filter((s) => !currentSet.has(s));
+
+      console.log(`\n${fmt.step(4, 'Re-install app (scopes changed)')}\n`);
+      console.log(`  ${fmt.warn('Bot scopes have changed since last install.')}`);
+      if (added.length) console.log(`  ${fmt.info('Added:')}   ${fmt.value(added.join(', '))}`);
+      if (removed.length) console.log(`  ${fmt.info('Removed:')} ${fmt.value(removed.join(', '))}`);
+      console.log(`  ${fmt.info('Re-installing to apply new scopes...')}`);
+    } else {
+      console.log(`\n${fmt.step(4, 'Install app to workspace')}\n`);
+    }
+
     console.log(`  ${fmt.info('Starting temporary OAuth server...')}`);
     const { botToken, teamId, teamName } = await installViaOAuth(
-      devConfig.clientId,
-      devConfig.clientSecret
+      devConfig.clientId!,
+      devConfig.clientSecret!,
+      manifest
     );
     console.log(`  ${fmt.ok(`Installed to "${teamName}" (${teamId})`)}`);
 
     devConfig.botToken = botToken;
     devConfig.teamId = teamId;
     devConfig.teamName = teamName;
+    devConfig.installedBotScopes = currentBotScopes;
     saveDevConfig(devConfig);
   }
 
