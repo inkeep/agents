@@ -1,5 +1,12 @@
 # @inkeep/agents-work-apps
 
+## 0.51.1
+
+### Patch Changes
+
+- f2d822b: Fix Slack modal showing 'We had some trouble connecting' error on form submission by returning empty ack body
+  - @inkeep/agents-core@0.51.1
+
 ## 0.51.0
 
 ### Patch Changes
