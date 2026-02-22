@@ -204,20 +204,12 @@ runs:
         if [ "$HTTP_STATUS" = "200" ]; then
           echo ""
           echo "--- Checking subAgents in response ---"
-          echo "$BODY" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    sub_agents = data.get('subAgents', {})
-    print(f'subAgents count: {len(sub_agents)}')
-    for key, val in sub_agents.items():
-        name = val.get('name', '<no name>') if isinstance(val, dict) else '<not a dict>'
-        print(f'  - {key}: {name}')
-    default_sub = data.get('defaultSubAgentId', '<not set>')
-    print(f'defaultSubAgentId: {default_sub}')
-except Exception as e:
-    print(f'Failed to parse JSON: {e}')
-" 2>&1 || echo "Failed to parse response JSON"
+          echo "$BODY" | jq '{
+            defaultSubAgentId: .defaultSubAgentId,
+            subAgentsCount: (.subAgents | length),
+            subAgentKeys: (.subAgents | keys),
+            subAgentNames: [.subAgents | to_entries[] | {key: .key, name: .value.name}]
+          }' 2>&1 || echo "Failed to parse response JSON with jq"
         fi
 
     - name: Run Cypress E2E Tests
