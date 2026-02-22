@@ -164,14 +164,14 @@ runs:
         echo ""
         echo "--- Try querying project branch for agents ---"
         PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
-          CALL dolt_checkout('default_activities-planner_main');
+          SELECT dolt_checkout('default_activities-planner_main');
           SELECT id, name, project_id FROM agents;
         " 2>&1 || echo "Failed to checkout project branch (may not exist)"
 
         echo ""
         echo "--- Try querying project branch for sub-agents ---"
         PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
-          CALL dolt_checkout('default_activities-planner_main');
+          SELECT dolt_checkout('default_activities-planner_main');
           SELECT id, name, agent_id, project_id FROM sub_agents;
         " 2>&1 || echo "Failed to query sub_agents on project branch"
 
@@ -197,7 +197,7 @@ runs:
         RESPONSE=$(curl -s -w "\n---HTTP_STATUS:%{http_code}---" \
           -H "Authorization: Bearer ${INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}" \
           http://localhost:3002/manage/tenants/default/projects/activities-planner/agent/activities-planner 2>&1)
-        HTTP_STATUS=$(echo "$RESPONSE" | grep -o '---HTTP_STATUS:[0-9]*---' | grep -o '[0-9]*')
+        HTTP_STATUS=$(echo "$RESPONSE" | grep -o -- '---HTTP_STATUS:[0-9]*---' | grep -o '[0-9]*')
         BODY=$(echo "$RESPONSE" | sed 's/---HTTP_STATUS:[0-9]*---//')
         echo "HTTP Status: $HTTP_STATUS"
         echo "Response body (first 2000 chars):"
