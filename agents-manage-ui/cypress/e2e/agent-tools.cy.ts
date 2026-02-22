@@ -41,21 +41,9 @@ describe('Agent Tools', () => {
     saveAndAssert();
 
     function saveAndAssert() {
-      cy.intercept('**/agent/*').as('saveAgent');
+      cy.intercept('POST', '**/agents/*').as('saveAgent');
       cy.contains('Save changes').click();
-      cy.wait('@saveAgent').then((interception) => {
-        const msg = `SAVE DIAGNOSTIC: ${interception.request.method} ${interception.request.url} -> ${interception.response?.statusCode}`;
-        cy.task('log', msg);
-        if (
-          interception.response?.statusCode !== 200 &&
-          interception.response?.statusCode !== 201
-        ) {
-          cy.task(
-            'log',
-            'SAVE ERROR BODY: ' + JSON.stringify(interception.response?.body)?.slice(0, 2000)
-          );
-        }
-      });
+      cy.wait('@saveAgent');
       cy.contains('Agent saved', { timeout: 20_000 }).should('exist');
       cy.reload();
       cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
