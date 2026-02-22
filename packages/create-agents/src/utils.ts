@@ -1,7 +1,9 @@
 import { exec } from 'node:child_process';
 import crypto from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
@@ -42,6 +44,37 @@ const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/te
 const execAsync = promisify(exec);
 
 const agentsApiPort = '3002';
+
+function getCliVersion(): string {
+  try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const pkgJson = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+    return pkgJson.version;
+  } catch {
+    return '';
+  }
+}
+
+export async function syncTemplateDependencies(templatePath: string): Promise<void> {
+  const pkgPath = path.join(templatePath, 'package.json');
+  if (!(await fs.pathExists(pkgPath))) return;
+
+  const pkg = await fs.readJson(pkgPath);
+  const cliVersion = getCliVersion();
+  if (!cliVersion) return;
+
+  for (const depType of ['dependencies', 'devDependencies'] as const) {
+    const deps = pkg[depType];
+    if (!deps) continue;
+    for (const name of Object.keys(deps)) {
+      if (name.startsWith('@inkeep/')) {
+        deps[name] = `^${cliVersion}`;
+      }
+    }
+  }
+
+  await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+}
 
 export const defaultGoogleModelConfigurations = {
   base: {
@@ -397,6 +430,8 @@ export const createAgents = async (
       localPrefix: localAgentsPrefix,
     });
 
+    await syncTemplateDependencies(directoryPath);
+
     process.chdir(directoryPath);
 
     const config = {
@@ -495,8 +530,8 @@ export const createAgents = async (
         `   pnpm setup-dev\n` +
         `   pnpm dev\n\n` +
         `${color.yellow('2. Explore:')}\n` +
-        `   • Dashboard:  http://127.0.0.1:3000\n` +
-        `   • Agents API: http://127.0.0.1:3002\n\n` +
+        `   • Dashboard:  http://localhost:3000\n` +
+        `   • Agents API: http://localhost:3002\n\n` +
         `${color.yellow('3. Customize:')}\n` +
         `   • Edit your agents in src/projects/\n` +
         `   • Use 'inkeep push' to apply`,
@@ -557,12 +592,11 @@ GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 AZURE_API_KEY=${config.azureKey || 'your-azure-key-here'}
 
 # Inkeep API URLs
-# Internal URLs (server-side, Docker internal networking)
-# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
-INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
+# Internal URLs (server-side)
+INKEEP_AGENTS_API_URL="http://localhost:3002"
 
 # Public URLs (client-side, browser accessible)
-PUBLIC_INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
+PUBLIC_INKEEP_AGENTS_API_URL="http://localhost:3002"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
@@ -599,12 +633,11 @@ SPICEDB_PRESHARED_KEY=dev-secret-key
 
 async function createInkeepConfig(config: FileConfig) {
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
-    
+
 const config = defineConfig({
   tenantId: "${config.tenantId}",
   agentsApi: {
-    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
-    url: 'http://127.0.0.1:3002',
+    url: 'http://localhost:3002',
   },
 });
     

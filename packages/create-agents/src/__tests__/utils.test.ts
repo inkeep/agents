@@ -2,7 +2,7 @@ import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
-import { createAgents, defaultMockModelConfigurations } from '../utils';
+import { createAgents, defaultMockModelConfigurations, syncTemplateDependencies } from '../utils';
 
 // Create the mock execAsync function that will be used by promisify - hoisted so it's available in mocks
 const { mockExecAsync } = vi.hoisted(() => ({
@@ -25,6 +25,24 @@ vi.mock('node:child_process', () => ({
 vi.mock('node:util', () => ({
   promisify: vi.fn(() => mockExecAsync),
 }));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      readFileSync: vi.fn(() => JSON.stringify({ version: '1.2.3' })),
+    },
+    readFileSync: vi.fn(() => JSON.stringify({ version: '1.2.3' })),
+  };
+});
+vi.mock('node:url', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:url')>();
+  return {
+    ...actual,
+    fileURLToPath: vi.fn(() => '/fake/dist/utils.js'),
+  };
+});
 
 // Setup default mocks
 const mockSpinner = {
@@ -546,6 +564,169 @@ describe('createAgents - Template and Project ID Logic', () => {
         })
       );
     });
+  });
+});
+
+describe('syncTemplateDependencies', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+  });
+
+  it('should update @inkeep/* dependencies to match CLI version', async () => {
+    vi.mocked(fs.readJson).mockResolvedValue({
+      name: 'test-template',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.1',
+        '@inkeep/agents-sdk': '^0.50.1',
+        zod: '^3.0.0',
+      },
+      devDependencies: {
+        '@inkeep/agents-cli': '^0.50.1',
+        typescript: '^5.0.0',
+      },
+    });
+
+    await syncTemplateDependencies('/fake/template');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/fake/template/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-sdk': '^1.2.3',
+          zod: '^3.0.0',
+        },
+        devDependencies: {
+          '@inkeep/agents-cli': '^1.2.3',
+          typescript: '^5.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should skip if template package.json does not exist', async () => {
+    vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+
+    await syncTemplateDependencies('/fake/template');
+
+    expect(fs.readJson).not.toHaveBeenCalled();
+    expect(fs.writeJson).not.toHaveBeenCalled();
+  });
+
+  it('should handle template with no @inkeep/* dependencies', async () => {
+    vi.mocked(fs.readJson).mockResolvedValue({
+      name: 'test-template',
+      dependencies: {
+        zod: '^3.0.0',
+      },
+    });
+
+    await syncTemplateDependencies('/fake/template');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/fake/template/package.json',
+      expect.objectContaining({
+        dependencies: {
+          zod: '^3.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should handle template with no devDependencies', async () => {
+    vi.mocked(fs.readJson).mockResolvedValue({
+      name: 'test-template',
+      dependencies: {
+        '@inkeep/agents-core': '^0.49.0',
+      },
+    });
+
+    await syncTemplateDependencies('/fake/template');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/fake/template/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+});
+
+describe('localhost in generated files', () => {
+  let processExitSpy: any;
+  let processChdirSpy: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
+    processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code) => {
+      if (code === 0) throw new Error('process.exit called');
+      return undefined as never;
+    });
+    processChdirSpy = vi.spyOn(process, 'chdir').mockImplementation(() => {});
+
+    vi.mocked(p.intro).mockImplementation(() => {});
+    vi.mocked(p.outro).mockImplementation(() => {});
+    vi.mocked(p.cancel).mockImplementation(() => {});
+    vi.mocked(p.note).mockImplementation(() => {});
+    vi.mocked(p.text).mockResolvedValue('test-dir');
+    vi.mocked(p.password).mockResolvedValue('test-api-key');
+    vi.mocked(p.select).mockResolvedValue('dual');
+    vi.mocked(p.confirm).mockResolvedValue(false as any);
+    vi.mocked(p.spinner).mockReturnValue(mockSpinner);
+    vi.mocked(p.isCancel).mockReturnValue(false);
+
+    vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+    vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    vi.mocked(fs.readJson).mockResolvedValue({});
+    vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+    vi.mocked(fs.remove).mockResolvedValue(undefined);
+
+    vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot']);
+    vi.mocked(cloneTemplate).mockResolvedValue(undefined);
+    vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    processExitSpy.mockRestore();
+    processChdirSpy.mockRestore();
+  });
+
+  it('should use localhost in .env file, not 127.0.0.1', async () => {
+    await createAgents({
+      dirName: 'test-dir',
+      skipProvider: true,
+    });
+
+    const writeFileCalls = vi.mocked(fs.writeFile).mock.calls;
+    const envCall = writeFileCalls.find((call) => call[0] === '.env');
+    expect(envCall).toBeDefined();
+    const envContent = envCall?.[1] as string;
+    expect(envContent).toContain('http://localhost:3002');
+    expect(envContent).not.toContain('127.0.0.1');
+  });
+
+  it('should use localhost in inkeep.config.ts, not 127.0.0.1', async () => {
+    await createAgents({
+      dirName: 'test-dir',
+      skipProvider: true,
+    });
+
+    const writeFileCalls = vi.mocked(fs.writeFile).mock.calls;
+    const configCall = writeFileCalls.find((call) => call[0] === 'src/inkeep.config.ts');
+    expect(configCall).toBeDefined();
+    const configContent = configCall?.[1] as string;
+    expect(configContent).toContain('http://localhost:3002');
+    expect(configContent).not.toContain('127.0.0.1');
   });
 });
 
