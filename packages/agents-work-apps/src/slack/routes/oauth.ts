@@ -24,6 +24,7 @@ import {
   setBotTokenForTeam,
   storeWorkspaceInstallation,
 } from '../services';
+import { BOT_SCOPES_CSV } from '../slack-scopes';
 import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-oauth');
@@ -140,28 +141,11 @@ app.openapi(
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
 
-    const botScopes = [
-      'app_mentions:read',
-      'channels:history',
-      'channels:read',
-      'chat:write',
-      'chat:write.public',
-      'commands',
-      'groups:history',
-      'groups:read',
-      'im:history',
-      'im:read',
-      'im:write',
-      'team:read',
-      'users:read',
-      'users:read.email',
-    ].join(',');
-
     const state = createOAuthState(tenantId);
 
     const slackAuthUrl = new URL('https://slack.com/oauth/v2/authorize');
     slackAuthUrl.searchParams.set('client_id', clientId || '');
-    slackAuthUrl.searchParams.set('scope', botScopes);
+    slackAuthUrl.searchParams.set('scope', BOT_SCOPES_CSV);
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
     slackAuthUrl.searchParams.set('state', state);
 
