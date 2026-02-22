@@ -16,7 +16,7 @@ describe('Components', () => {
     // Should redirect after successful creation
     cy.location('pathname', { timeout: 30_000 }).should(
       'eq',
-      '/default/projects/activities-planner/components',
+      '/default/projects/activities-planner/components'
     );
   });
 
