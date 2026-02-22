@@ -44,14 +44,16 @@ describe('Agent Tools', () => {
       cy.intercept('**/agent/*').as('saveAgent');
       cy.contains('Save changes').click();
       cy.wait('@saveAgent').then((interception) => {
-        cy.log(
-          `Save ${interception.request.method} ${interception.request.url} -> ${interception.response?.statusCode}`
-        );
+        const msg = `SAVE DIAGNOSTIC: ${interception.request.method} ${interception.request.url} -> ${interception.response?.statusCode}`;
+        cy.task('log', msg);
         if (
           interception.response?.statusCode !== 200 &&
           interception.response?.statusCode !== 201
         ) {
-          cy.log('Error response: ' + JSON.stringify(interception.response?.body)?.slice(0, 1000));
+          cy.task(
+            'log',
+            'SAVE ERROR BODY: ' + JSON.stringify(interception.response?.body)?.slice(0, 2000)
+          );
         }
       });
       cy.contains('Agent saved', { timeout: 20_000 }).should('exist');

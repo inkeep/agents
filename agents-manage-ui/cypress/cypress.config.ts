@@ -28,6 +28,13 @@ export default defineConfig({
     viewportHeight: 900,
     defaultCommandTimeout: 15_000,
     setupNodeEvents(on, _config) {
+      on('task', {
+        log(message: string) {
+          console.log(message);
+          return null;
+        },
+      });
+
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && browser.isHeadless) {
           launchOptions.args.push(
