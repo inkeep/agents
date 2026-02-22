@@ -394,7 +394,7 @@ jobs:
           # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
           # the last automated review was made against, then computes the delta.
           PR_HEAD="${{ steps.pr.outputs.head_sha }}"
-          # COUPLED: The regex below must match the heading in .claude/agents/pr-review.md Phase 6.2.
+          # COUPLED: The regex below must match the heading in team-skills ci/pr-review/agents/pr-review.md Phase 6.2.
           # The pr-review agent is constrained to always start its review body with "## PR Review Summary".
           LAST_REVIEW_SHA=$(echo "$REVIEWS" | jq -r '
             [.[] | select(
