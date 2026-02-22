@@ -1,6 +1,8 @@
 /**
- * Checks if a date string is in PostgreSQL timestamp format and normalizes it to ISO 8601
+ * Checks if a date string is in PostgreSQL/Doltgres timestamp format and normalizes it to ISO 8601
  * PostgreSQL format: "2025-11-07 21:48:24.858" or "2025-11-07 21:48:24"
+ * Doltgres may return microsecond precision: "2025-11-07 21:48:24.858000"
+ * May include timezone offset: "2025-11-07 21:48:24.858+00"
  * ISO 8601 format: "2025-11-07T21:48:24.858Z"
  */
 function normalizeDateString(dateString: string | Date): string | Date {
@@ -8,13 +10,24 @@ function normalizeDateString(dateString: string | Date): string | Date {
     return dateString;
   }
 
-  // PostgreSQL timestamp format pattern: YYYY-MM-DD HH:MM:SS[.mmm]
-  // Matches: "2025-11-07 21:48:24" or "2025-11-07 21:48:24.858"
-  const pgTimestampPattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,3})?$/;
+  // PostgreSQL/Doltgres timestamp format pattern: YYYY-MM-DD HH:MM:SS[.fractional][±TZ]
+  // Matches up to 9 fractional digits (microsecond/nanosecond precision)
+  // Optionally matches timezone offset like +00, -05, +05:30
+  const pgTimestampPattern =
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?)([+-]\d{2}(?::?\d{2})?)?$/;
 
-  if (pgTimestampPattern.test(dateString)) {
-    // Replace space with 'T' and add 'Z' for UTC
-    return `${dateString.replace(' ', 'T')}Z`;
+  const match = dateString.match(pgTimestampPattern);
+  if (match) {
+    const [, datePart, timePart, tz] = match;
+    // Truncate fractional seconds to 3 digits (milliseconds) for broad browser compatibility
+    const normalizedTime = timePart.replace(/(\.\d{3})\d+$/, '$1');
+    // If no timezone offset, treat as UTC
+    if (!tz) {
+      return `${datePart}T${normalizedTime}Z`;
+    }
+    // Normalize short offsets like +00 or -05 to full form +00:00 or -05:00
+    const normalizedTz = tz === '+00' || tz === '+00:00' ? 'Z' : tz.length === 3 ? `${tz}:00` : tz;
+    return `${datePart}T${normalizedTime}${normalizedTz}`;
   }
 
   return dateString;

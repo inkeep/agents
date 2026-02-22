@@ -1,33 +1,153 @@
-import { formatDate, formatDateAgo } from '../format-date';
+import { formatDate, formatDateAgo, formatDateTime, formatDateTimeTable } from '../format-date';
 
 // Mock console.warn to avoid noise in test output
 vi.spyOn(console, 'warn').mockImplementation(() => {});
+vi.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('formatDate', () => {
-  it('should format valid date strings correctly', () => {
-    const result = formatDate('2024-01-15T10:30:00Z');
-    expect(result).toBe('Jan 15, 2024');
+  describe('ISO 8601 format', () => {
+    it('should format valid ISO date strings correctly', () => {
+      expect(formatDate('2024-01-15T10:30:00Z')).toBe('Jan 15, 2024');
+    });
+
+    it('should format ISO date with milliseconds', () => {
+      expect(formatDate('2024-01-15T10:30:00.123Z')).toBe('Jan 15, 2024');
+    });
+
+    it('should format ISO date with timezone offset', () => {
+      expect(formatDate('2024-01-15T10:30:00+00:00')).toBe('Jan 15, 2024');
+    });
   });
 
-  it('should handle invalid date strings gracefully', () => {
-    const result = formatDate('invalid-date');
-    expect(result).toBe('Invalid date');
+  describe('PostgreSQL/Doltgres timestamp formats', () => {
+    it('should handle timestamp without fractional seconds', () => {
+      expect(formatDate('2025-11-07 21:48:24')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 1 fractional digit', () => {
+      expect(formatDate('2025-11-07 21:48:24.8')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 2 fractional digits', () => {
+      expect(formatDate('2025-11-07 21:48:24.85')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 3 fractional digits (milliseconds)', () => {
+      expect(formatDate('2025-11-07 21:48:24.858')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 4 fractional digits', () => {
+      expect(formatDate('2025-11-07 21:48:24.8581')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 6 fractional digits (microseconds)', () => {
+      expect(formatDate('2025-11-07 21:48:24.858000')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 6 non-zero fractional digits', () => {
+      expect(formatDate('2025-11-07 21:48:24.858123')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with 9 fractional digits (nanoseconds)', () => {
+      expect(formatDate('2025-11-07 21:48:24.858123456')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with +00 timezone offset', () => {
+      expect(formatDate('2025-11-07 21:48:24.858+00')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with +00:00 timezone offset', () => {
+      expect(formatDate('2025-11-07 21:48:24.858+00:00')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with microseconds and +00 offset', () => {
+      expect(formatDate('2025-11-07 21:48:24.858123+00')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp without fractional seconds but with timezone', () => {
+      expect(formatDate('2025-11-07 21:48:24+00')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with non-UTC timezone offset', () => {
+      // +05:30 is IST (India Standard Time)
+      // 21:48 UTC+05:30 = 16:18 UTC, which is still Nov 7
+      expect(formatDate('2025-11-07 21:48:24.858+05:30')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle timestamp with negative timezone offset', () => {
+      expect(formatDate('2025-11-07 21:48:24.858-05')).toBe('Nov 8, 2025');
+    });
   });
 
-  it('should handle empty string', () => {
-    const result = formatDate('');
-    expect(result).toBe('Invalid date');
+  describe('invalid inputs', () => {
+    it('should return Invalid date for non-date strings', () => {
+      expect(formatDate('invalid-date')).toBe('Invalid date');
+    });
+
+    it('should return Invalid date for empty string', () => {
+      expect(formatDate('')).toBe('Invalid date');
+    });
+
+    it('should return Invalid date for null-like inputs', () => {
+      expect(formatDate('null')).toBe('Invalid date');
+    });
+
+    it('should return Invalid date for undefined-like inputs', () => {
+      expect(formatDate('undefined')).toBe('Invalid date');
+    });
+
+    it('should return Invalid date for malformed date', () => {
+      expect(formatDate('2024-13-45T25:70:80Z')).toBe('Invalid date');
+    });
   });
 
-  it('should handle null-like inputs', () => {
-    const result = formatDate('null');
-    expect(result).toBe('Invalid date');
+  describe('local timezone option', () => {
+    it('should format in UTC by default', () => {
+      const result = formatDate('2024-01-15T23:30:00Z');
+      expect(result).toBe('Jan 15, 2024');
+    });
+
+    it('should accept local option without error', () => {
+      const result = formatDate('2024-01-15T10:30:00Z', { local: true });
+      expect(result).not.toBe('Invalid date');
+    });
+  });
+});
+
+describe('formatDateTime', () => {
+  it('should format ISO date with time', () => {
+    const result = formatDateTime('2024-08-28T17:42:30Z');
+    expect(result).toBe('Aug 28, 2024, 5:42:30 PM');
+  });
+
+  it('should handle PostgreSQL timestamp with microseconds', () => {
+    const result = formatDateTime('2024-08-28 17:42:30.123456');
+    expect(result).toBe('Aug 28, 2024, 5:42:30 PM');
+  });
+
+  it('should return Invalid date for invalid input', () => {
+    expect(formatDateTime('not-a-date')).toBe('Invalid date');
+  });
+});
+
+describe('formatDateTimeTable', () => {
+  it('should format ISO date with time (no seconds)', () => {
+    const result = formatDateTimeTable('2024-08-28T17:42:30Z');
+    expect(result).toBe('Aug 28, 2024, 5:42 PM');
+  });
+
+  it('should handle PostgreSQL timestamp with microseconds', () => {
+    const result = formatDateTimeTable('2024-08-28 17:42:30.123456');
+    expect(result).toBe('Aug 28, 2024, 5:42 PM');
+  });
+
+  it('should return Invalid date for invalid input', () => {
+    expect(formatDateTimeTable('not-a-date')).toBe('Invalid date');
   });
 });
 
 describe('formatDateAgo', () => {
   beforeEach(() => {
-    // Mock the current time to make tests deterministic
     vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
   });
 
@@ -58,18 +178,37 @@ describe('formatDateAgo', () => {
     });
 
     it('should return formatted date for dates more than 30 days ago (same year)', () => {
-      // Since current mock time is 2024-01-15, we need to use 2023 for dates older than 30 days
-      // Let's change this to test a same year scenario by using a date from later in 2024 as current time
       vi.setSystemTime(new Date('2024-12-15T12:00:00Z'));
       const twoMonthsAgo = new Date('2024-09-15T12:00:00Z').toISOString();
       expect(formatDateAgo(twoMonthsAgo)).toBe('Sep 15');
-      // Reset to original mock time for other tests
       vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
     });
 
     it('should return formatted date with year for dates in different year', () => {
       const lastYear = new Date('2023-01-15T12:00:00Z').toISOString();
       expect(formatDateAgo(lastYear)).toBe('Jan 15, 2023');
+    });
+  });
+
+  describe('PostgreSQL/Doltgres timestamp formats', () => {
+    it('should handle PostgreSQL timestamp with microseconds', () => {
+      const result = formatDateAgo('2024-01-15 09:00:00.000000');
+      expect(result).toBe('3h ago');
+    });
+
+    it('should handle PostgreSQL timestamp with 3 fractional digits', () => {
+      const result = formatDateAgo('2024-01-15 09:00:00.000');
+      expect(result).toBe('3h ago');
+    });
+
+    it('should handle PostgreSQL timestamp without fractional seconds', () => {
+      const result = formatDateAgo('2024-01-15 09:00:00');
+      expect(result).toBe('3h ago');
+    });
+
+    it('should handle PostgreSQL timestamp with timezone offset', () => {
+      const result = formatDateAgo('2024-01-15 09:00:00.000+00');
+      expect(result).toBe('3h ago');
     });
   });
 
@@ -81,7 +220,6 @@ describe('formatDateAgo', () => {
 
     it('should handle invalid date strings', () => {
       expect(formatDateAgo('invalid-date')).toBe('Invalid date');
-      // console.warn is not called for invalid dates since they're caught by NaN check, not catch block
     });
 
     it('should handle empty string', () => {
@@ -103,7 +241,6 @@ describe('formatDateAgo', () => {
     it('should handle very large timestamps', () => {
       const veryOldDate = new Date('1970-01-01T00:00:00Z').toISOString();
       const result = formatDateAgo(veryOldDate);
-      // The actual result depends on timezone - let's be more flexible
       expect(result).toMatch(/^(Dec 31, 1969|Jan 1, 1970)$/);
     });
   });
