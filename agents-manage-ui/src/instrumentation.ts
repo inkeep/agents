@@ -3,7 +3,7 @@ import type * as SentryNs from '@sentry/nextjs';
 export let onRequestError: typeof SentryNs.captureRequestError;
 
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
+  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.ENVIRONMENT !== 'test') {
     await import('./otel');
   }
 
