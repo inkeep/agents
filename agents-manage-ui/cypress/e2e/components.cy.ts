@@ -10,7 +10,7 @@ describe('Components', () => {
     cy.contains('Add property').click();
     cy.get('[placeholder="Property name"]').type('foo');
     cy.get('[placeholder="Add description"]').type('bar');
-    cy.contains('Save').click();
+    cy.get('button[type="submit"]').should('not.be.disabled').click();
     cy.get('[data-sonner-toast]').contains('Component created').should('exist');
     // Should redirect
     cy.location('pathname').should('eq', '/default/projects/activities-planner/components');

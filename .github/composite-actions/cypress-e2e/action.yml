@@ -66,7 +66,7 @@ runs:
         ENVIRONMENT: development
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
         BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
-      run: pnpm exec turbo dev --filter='@inkeep/agents-api' &
+      run: pnpm exec turbo dev --filter='@inkeep/agents-api' > /tmp/api-server.log 2>&1 &
 
     - name: Wait for API server to be ready
       shell: bash
@@ -176,6 +176,29 @@ runs:
         " 2>&1 || echo "Failed to query sub_agents on project branch"
 
         echo ""
+        echo "--- Check skills table exists on project branch ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT dolt_checkout('default_activities-planner_main');
+          SELECT table_name FROM information_schema.tables WHERE table_name = 'skills';
+        " 2>&1 || echo "Failed to check skills table"
+
+        echo ""
+        echo "--- Try inserting into skills table on project branch ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT dolt_checkout('default_activities-planner_main');
+          INSERT INTO skills (tenant_id, id, project_id, name, description, content, metadata, created_at, updated_at)
+          VALUES ('default', 'diag-test', 'activities-planner', 'diag-test', 'test', 'test', '{\"test\":\"value\"}', NOW(), NOW())
+          RETURNING id;
+        " 2>&1 || echo "Failed diagnostic INSERT into skills table"
+
+        echo ""
+        echo "--- Clean up diagnostic skill ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT dolt_checkout('default_activities-planner_main');
+          DELETE FROM skills WHERE id = 'diag-test' AND tenant_id = 'default';
+        " 2>&1 || echo "Failed to cleanup diagnostic skill"
+
+        echo ""
         echo "--- Dolt log (recent commits) ---"
         PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
           SELECT commit_hash, committer, message FROM dolt_log LIMIT 10;
@@ -242,5 +265,14 @@ runs:
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
+        if-no-files-found: ignore
+        retention-days: 7
+
+    - name: Upload API Server Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-server-logs
+        path: /tmp/api-server.log
         if-no-files-found: ignore
         retention-days: 7
