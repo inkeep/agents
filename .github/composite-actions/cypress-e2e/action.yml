@@ -225,28 +225,57 @@ runs:
           }' 2>&1 || echo "Failed to parse response JSON with jq"
         fi
 
-    - name: Diagnostic - Check Dolt branch state for skills
+    - name: Diagnostic - Skills INSERT test via psql
       shell: bash
       run: |
-        echo "=== Dolt Branch State Check ==="
+        echo "=== Skills INSERT Diagnostic ==="
+
         echo ""
-        echo "--- Check for uncommitted changes on project branch ---"
+        echo "--- Skills table schema on project branch ---"
         PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
           SELECT dolt_checkout('default_activities-planner_main');
-          SELECT * FROM dolt_status;
-        " 2>&1 || echo "Failed to check dolt_status"
+          SELECT column_name, data_type, is_nullable, column_default
+          FROM information_schema.columns
+          WHERE table_name = 'skills'
+          ORDER BY ordinal_position;
+        " 2>&1 || echo "Failed to get skills schema"
+
         echo ""
-        echo "--- Check skills table exists and FK target (projects) ---"
-        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+        echo "--- Test INSERT into skills via psql (read-only diagnostic) ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents 2>&1 <<'PSQL_EOF' || echo "psql session failed"
           SELECT dolt_checkout('default_activities-planner_main');
           SELECT tenant_id, id, name FROM projects;
-        " 2>&1 || echo "Failed to query projects"
-        echo ""
-        echo "--- List existing skills ---"
-        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
-          SELECT dolt_checkout('default_activities-planner_main');
           SELECT tenant_id, id, name FROM skills;
-        " 2>&1 || echo "Failed to query skills (table may not exist)"
+          INSERT INTO skills (tenant_id, id, project_id, name, description, content, metadata, created_at, updated_at)
+          VALUES ('default', 'diag-skill', 'activities-planner', 'diag-skill', 'diag', 'diag', '{"k":"v"}', NOW(), NOW());
+          SELECT tenant_id, id, name FROM skills;
+          -- Clean up: rollback so this doesn't affect tests
+          SELECT dolt_reset('--hard');
+        PSQL_EOF
+
+        echo ""
+        echo "--- Test INSERT without metadata column ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents 2>&1 <<'PSQL_EOF' || echo "psql session failed"
+          SELECT dolt_checkout('default_activities-planner_main');
+          INSERT INTO skills (tenant_id, id, project_id, name, description, content, created_at, updated_at)
+          VALUES ('default', 'diag-skill-2', 'activities-planner', 'diag-skill-2', 'diag', 'diag', NOW(), NOW());
+          SELECT tenant_id, id, name FROM skills;
+          SELECT dolt_reset('--hard');
+        PSQL_EOF
+
+        echo ""
+        echo "--- Test skills API via curl ---"
+        curl -v -X POST \
+          -H "Authorization: Bearer ${INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}" \
+          -H "Content-Type: application/json" \
+          -d '{"name":"diag-api-skill","description":"test","content":"test","metadata":{"k":"v"}}' \
+          http://localhost:3002/manage/tenants/default/projects/activities-planner/skills 2>&1 | head -50
+
+        echo ""
+        echo "--- Clean up API-created skill ---"
+        curl -s -X DELETE \
+          -H "Authorization: Bearer ${INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}" \
+          http://localhost:3002/manage/tenants/default/projects/activities-planner/skills/diag-api-skill 2>&1 || echo "Cleanup failed (expected if create failed)"
 
     - name: Fail if push was unsuccessful
       shell: bash
