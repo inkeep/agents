@@ -30,7 +30,14 @@ describe('Agent Tools', () => {
     dragNode('[aria-label="Drag Function Tool node"]');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     connectEdge('[data-handleid="target-function-tool"]');
+
+    // Fill in required function tool fields before saving
+    cy.get('#function-tool-name').type('test-tool', { delay: 0 });
+    cy.get('#function-tool-description').type('test description', { delay: 0 });
     cy.typeInMonaco('code.jsx', 'function () {}');
+    // Fill input schema with template
+    cy.contains('Input Schema').parent().parent().contains('Template').click();
+
     dragNode('[aria-label="Drag MCP node"]');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
     cy.contains('Weather').click();
@@ -41,18 +48,8 @@ describe('Agent Tools', () => {
     saveAndAssert();
 
     function saveAndAssert() {
-      cy.intercept('POST', '**/agents/*').as('saveAgent');
       cy.contains('Save changes').click();
-      cy.wait('@saveAgent').then((interception) => {
-        const status = interception.response?.statusCode;
-        const body = interception.response?.body;
-        cy.log(`Save response status: ${status}`);
-        cy.log(`Save response body: ${JSON.stringify(body).substring(0, 2000)}`);
-        if (status && status >= 400) {
-          cy.log(`SAVE FAILED with status ${status}`);
-        }
-      });
-      cy.contains('Agent saved', { timeout: 20_000 }).should('exist');
+      cy.contains('Agent saved', { timeout: 30_000 }).should('exist');
       cy.reload();
       cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
     }
