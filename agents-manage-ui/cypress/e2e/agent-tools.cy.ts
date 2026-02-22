@@ -51,9 +51,7 @@ describe('Agent Tools', () => {
           interception.response?.statusCode !== 200 &&
           interception.response?.statusCode !== 201
         ) {
-          cy.log(
-            'Error response: ' + JSON.stringify(interception.response?.body)?.slice(0, 1000)
-          );
+          cy.log('Error response: ' + JSON.stringify(interception.response?.body)?.slice(0, 1000));
         }
       });
       cy.contains('Agent saved', { timeout: 20_000 }).should('exist');
