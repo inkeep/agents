@@ -89,46 +89,158 @@ runs:
           elapsed=$((elapsed + 2))
         done
 
-    # --- Phase 5: Seed + test ---
+    # --- Phase 5: Diagnostics + Seed + test ---
+    - name: Diagnostic - Log environment variable presence
+      shell: bash
+      run: |
+        echo "=== Environment Variable Diagnostics ==="
+        echo "ENVIRONMENT=${ENVIRONMENT:-<unset>}"
+        echo "INKEEP_AGENTS_MANAGE_DATABASE_URL set: $([ -n "$INKEEP_AGENTS_MANAGE_DATABASE_URL" ] && echo "yes (${#INKEEP_AGENTS_MANAGE_DATABASE_URL} chars)" || echo "no")"
+        echo "INKEEP_AGENTS_RUN_DATABASE_URL set: $([ -n "$INKEEP_AGENTS_RUN_DATABASE_URL" ] && echo "yes (${#INKEEP_AGENTS_RUN_DATABASE_URL} chars)" || echo "no")"
+        echo "INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET set: $([ -n "$INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET" ] && echo "yes (${#INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET} chars, starts with '${INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET:0:4}...')" || echo "no")"
+        echo "BETTER_AUTH_SECRET set: $([ -n "$BETTER_AUTH_SECRET" ] && echo "yes (${#BETTER_AUTH_SECRET} chars)" || echo "no")"
+        echo "SPICEDB_PRESHARED_KEY set: $([ -n "$SPICEDB_PRESHARED_KEY" ] && echo "yes" || echo "no")"
+        echo "OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-<unset>}"
+        echo "NODE_OPTIONS=${NODE_OPTIONS:-<unset>}"
+        echo "INKEEP_API_KEY set: $([ -n "$INKEEP_API_KEY" ] && echo "yes" || echo "no")"
+
     - name: Push Activities Planner Project
       shell: bash
       env:
         INKEEP_API_KEY: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
       run: |
+        PUSH_SUCCESS=false
         max_attempts=3
         attempt=1
         while [ $attempt -le $max_attempts ]; do
           echo "Push attempt $attempt/$max_attempts..."
           if cd agents-cookbook/template-projects && npx inkeep push --project activities-planner; then
             echo "Push succeeded on attempt $attempt"
+            PUSH_SUCCESS=true
             break
           fi
           if [ $attempt -eq $max_attempts ]; then
-            echo "Push failed after $max_attempts attempts"
-            exit 1
+            echo "::error::Push failed after $max_attempts attempts"
           fi
           echo "Push failed, retrying in $((attempt * 5)) seconds..."
           sleep $((attempt * 5))
           cd "$GITHUB_WORKSPACE"
           attempt=$((attempt + 1))
         done
+        # Store result but don't fail yet - let diagnostics run first
+        echo "PUSH_SUCCESS=$PUSH_SUCCESS" >> "$GITHUB_ENV"
+
+    - name: Diagnostic - Verify seed data in DoltgreSQL
+      shell: bash
+      run: |
+        echo "=== DoltgreSQL Seed Data Verification ==="
+
+        echo ""
+        echo "--- Dolt branches ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "SELECT * FROM dolt_branches;" 2>&1 || echo "Failed to query dolt_branches"
+
+        echo ""
+        echo "--- Dolt status (uncommitted changes) ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "SELECT * FROM dolt_status;" 2>&1 || echo "Failed to query dolt_status"
+
+        echo ""
+        echo "--- Projects on default branch ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "SELECT id, name, tenant_id FROM projects;" 2>&1 || echo "Failed to query projects"
+
+        echo ""
+        echo "--- Agents on default branch ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "SELECT id, name, project_id, tenant_id FROM agents;" 2>&1 || echo "Failed to query agents"
+
+        echo ""
+        echo "--- Sub-agents on default branch ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "SELECT id, name, agent_id, project_id, tenant_id FROM sub_agents;" 2>&1 || echo "Failed to query sub_agents"
+
+        echo ""
+        echo "--- Check project-scoped branch ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT name FROM dolt_branches WHERE name LIKE '%activities%' OR name LIKE '%default%';
+        " 2>&1 || echo "Failed to query for project branches"
+
+        echo ""
+        echo "--- Try querying project branch for agents ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT dolt_checkout('default_activities-planner_main');
+          SELECT id, name, project_id FROM agents;
+        " 2>&1 || echo "Failed to checkout project branch (may not exist)"
+
+        echo ""
+        echo "--- Try querying project branch for sub-agents ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT dolt_checkout('default_activities-planner_main');
+          SELECT id, name, agent_id, project_id FROM sub_agents;
+        " 2>&1 || echo "Failed to query sub_agents on project branch"
+
+        echo ""
+        echo "--- Dolt log (recent commits) ---"
+        PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c "
+          SELECT commit_hash, committer, message FROM dolt_log LIMIT 10;
+        " 2>&1 || echo "Failed to query dolt_log"
+
+    - name: Diagnostic - Verify API returns full agent data
+      shell: bash
+      run: |
+        echo "=== API Full Agent Response Diagnostic ==="
+
+        echo ""
+        echo "--- GET /manage/tenants/default/projects ---"
+        curl -s -w "\nHTTP Status: %{http_code}\n" \
+          -H "Authorization: Bearer ${INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}" \
+          http://localhost:3002/manage/tenants/default/projects 2>&1 | head -100
+
+        echo ""
+        echo "--- GET full agent definition ---"
+        RESPONSE=$(curl -s -w "\n---HTTP_STATUS:%{http_code}---" \
+          -H "Authorization: Bearer ${INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}" \
+          http://localhost:3002/manage/tenants/default/projects/activities-planner/agent/activities-planner 2>&1)
+        HTTP_STATUS=$(echo "$RESPONSE" | grep -o -- '---HTTP_STATUS:[0-9]*---' | grep -o '[0-9]*')
+        BODY=$(echo "$RESPONSE" | sed 's/---HTTP_STATUS:[0-9]*---//')
+        echo "HTTP Status: $HTTP_STATUS"
+        echo "Response body (first 2000 chars):"
+        echo "$BODY" | head -c 2000
+        echo ""
+
+        if [ "$HTTP_STATUS" = "200" ]; then
+          echo ""
+          echo "--- Checking subAgents in response ---"
+          echo "$BODY" | jq '{
+            defaultSubAgentId: .defaultSubAgentId,
+            subAgentsCount: (.subAgents | length),
+            subAgentKeys: (.subAgents | keys),
+            subAgentNames: [.subAgents | to_entries[] | {key: .key, name: .value.name}]
+          }' 2>&1 || echo "Failed to parse response JSON with jq"
+        fi
+
+    - name: Fail if push was unsuccessful
+      shell: bash
+      run: |
+        if [ "$PUSH_SUCCESS" != "true" ]; then
+          echo "::error::Seed data push failed - cannot run Cypress tests"
+          exit 1
+        fi
 
     - name: Run Cypress E2E Tests
       shell: bash
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: cypress-screenshots
         path: agents-manage-ui/cypress/screenshots
+        if-no-files-found: ignore
         retention-days: 7
 
     - name: Upload Cypress Videos
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
+        if-no-files-found: ignore
         retention-days: 7
