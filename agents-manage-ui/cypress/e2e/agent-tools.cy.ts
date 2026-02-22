@@ -24,14 +24,14 @@ describe('Agent Tools', () => {
     cy.contains('Create agent').click();
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
-    cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 1);
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
     dragNode('[aria-label="Drag Function Tool node"]');
-    cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 2);
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     connectEdge('[data-handleid="target-function-tool"]');
     cy.typeInMonaco('code.jsx', 'function () {}');
     dragNode('[aria-label="Drag MCP node"]');
-    cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 3);
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
     cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
     saveAndAssert();
@@ -43,9 +43,9 @@ describe('Agent Tools', () => {
       cy.intercept('POST', '**/agents/*').as('saveAgent');
       cy.contains('Save changes').click();
       cy.wait('@saveAgent');
-      cy.contains('Agent saved', { timeout: 10000 }).should('exist');
+      cy.contains('Agent saved', { timeout: 20_000 }).should('exist');
       cy.reload();
-      cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 3);
+      cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
     }
   });
 

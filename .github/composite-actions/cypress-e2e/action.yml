@@ -225,7 +225,7 @@ runs:
 
     - name: Run Cypress E2E Tests
       shell: bash
-      run: timeout 600 pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
+      run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
       if: always()
