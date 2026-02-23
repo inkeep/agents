@@ -44,9 +44,13 @@ function ProviderSetupPage({
 
   useEffect(() => {
     if (!provider || !requiresCredentialForm(provider.auth_mode)) return;
-    fetchNangoIntegration(`${provider.name}-${tenantId}`).then((integration) => {
-      setIntegrationExists(integration?.areCredentialsSet ?? false);
-    });
+    fetchNangoIntegration(`${provider.name}-${tenantId}`)
+      .then((integration) => {
+        setIntegrationExists(integration?.areCredentialsSet ?? false);
+      })
+      .catch(() => {
+        setIntegrationExists(false);
+      });
   }, [provider, tenantId]);
 
   const handleNangoConnect = useCallback(
