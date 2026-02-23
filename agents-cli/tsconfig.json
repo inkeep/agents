@@ -1,10 +1,8 @@
 {
   "compilerOptions": {
-    // tsdown uses oxc-transform for .d.ts generation (very fast, recommended)
-    "isolatedDeclarations": true,
     "verbatimModuleSyntax": true,
     "target": "ES2022",
-    "module": "ES2022",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -13,6 +11,8 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
+    "types": ["vitest/globals"],
+    "resolveJsonModule": true,
     "baseUrl": "."
   },
   "include": ["src/**/*"],

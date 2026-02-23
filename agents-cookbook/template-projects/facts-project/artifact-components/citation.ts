@@ -12,11 +12,11 @@ export const citation = artifactComponent({
     content: z
       .array(
         z
-          .object({
+          .strictObject({
             text: z.string().describe('The actual text content'),
             type: z.string().describe('Type of content (text, image, video, etc.)'),
           })
-          .strict()
+          .describe('A structured content block extracted from the source document')
       )
       .describe('Array of structured content blocks extracted from the document'),
     record_type: preview(z.string().describe('Type of record (documentation, blog, guide, etc.)')),
