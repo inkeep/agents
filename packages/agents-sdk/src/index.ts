@@ -55,7 +55,7 @@ export {
   externalAgents,
 } from './external-agent';
 export { FunctionTool } from './function-tool';
-export { Project } from './project';
+export { Project, type ProjectConfig } from './project';
 export {
   createFullProjectViaAPI,
   deleteFullProjectViaAPI,

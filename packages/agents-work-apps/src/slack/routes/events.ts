@@ -93,7 +93,7 @@ app.post('/events', async (c) => {
       if (retryReason) span.setAttribute('slack.retry_reason', retryReason);
       logger.info({ retryNum, retryReason }, 'Acknowledging Slack retry without re-processing');
       span.end();
-      return c.json({ ok: true });
+      return c.body(null, 200);
     });
   }
 
@@ -170,7 +170,10 @@ app.post('/events', async (c) => {
       }
 
       span.end();
-      return c.json({ ok: true });
+      // Slack requires an empty body for view_submission ack (non-empty
+      // bodies without a response_action cause "We had some trouble
+      // connecting" errors). An empty 200 is valid for all interaction types.
+      return c.body(null, 200);
     } catch (error) {
       outcome = 'error';
       span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);

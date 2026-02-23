@@ -1,5 +1,5 @@
 {
   "icon": "LuMessageSquare",
-  "title": "AI Assistant for Slack",
-  "pages": ["overview", "installation", "commands", "configuration"]
+  "title": "Slack Work App",
+  "pages": ["overview", "installation", "configuration", "commands"]
 }

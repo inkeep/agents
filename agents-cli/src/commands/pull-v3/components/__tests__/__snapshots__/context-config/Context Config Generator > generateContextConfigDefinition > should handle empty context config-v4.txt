@@ -1,0 +1,3 @@
+import { contextConfig } from '@inkeep/agents-core';
+
+export const emptyContext = contextConfig({});

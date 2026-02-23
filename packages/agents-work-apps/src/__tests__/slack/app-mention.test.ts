@@ -86,6 +86,10 @@ vi.mock('../../logger', () => ({
 vi.mock('../../slack/i18n', () => ({
   SlackStrings: {
     usage: { mentionEmpty: 'Usage hint message' },
+    status: {
+      thinking: (name: string) => `${name} is thinking...`,
+      readingThread: (name: string) => `${name} is reading this thread...`,
+    },
   },
 }));
 
@@ -297,7 +301,7 @@ describe('handleAppMention', () => {
     );
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('preparing a response'),
+        text: expect.stringContaining('is thinking'),
       })
     );
     expect(streamAgentResponse).toHaveBeenCalledWith(
