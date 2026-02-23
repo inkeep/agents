@@ -1,0 +1,234 @@
+---
+title: Connect the GitHub Work App
+sidebarTitle: GitHub Work App
+description: Install the GitHub App on your organization and manage repository access for projects and MCP tools.
+icon: LuGithub
+---
+
+The GitHub Work App connects your GitHub organization or user account to Inkeep, making repositories available to your projects and MCP tools. Once installed, you control which repositories each project and MCP tool can access.
+
+## Prerequisites
+
+- An Inkeep tenant with admin access
+- A GitHub organization or user account you have permission to install apps on
+
+## Install the GitHub App
+
+<Steps>
+  <Step>
+    ### Get the installation URL
+
+    Call the install-url endpoint to generate a signed GitHub App installation link:
+
+    ```bash
+    curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/install-url" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+    The response returns a `url` that expires after 10 minutes.
+
+    ```json
+    {
+      "url": "https://github.com/apps/inkeep/installations/new?state=..."
+    }
+    ```
+  </Step>
+  <Step>
+    ### Complete the OAuth flow
+
+    Open the returned URL in your browser. GitHub will prompt you to select the organization or user account to install the app on and choose which repositories to grant access to (all repositories or specific ones).
+
+    After authorizing, GitHub redirects back to Inkeep and the installation is recorded automatically.
+
+    <Note>
+      Choosing "All repositories" on GitHub grants access to all current and future repositories in that organization. You can still restrict access at the project or MCP tool level within Inkeep.
+    </Note>
+  </Step>
+  <Step>
+    ### Verify the installation
+
+    List your installations to confirm it registered successfully:
+
+    ```bash
+    curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+    ```json
+    {
+      "installations": [
+        {
+          "id": "inst_abc123",
+          "accountLogin": "my-org",
+          "accountType": "Organization",
+          "repositoryCount": 42,
+          "status": "active"
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+## Manage project repository access
+
+Each project has an access mode that determines which repositories it can see across all its MCP tools. The default mode is `all`, meaning the project can access every repository available in the connected installation(s).
+
+### Access modes
+
+| Mode | Description |
+|------|-------------|
+| `all` | Project has access to all repositories across connected GitHub installations |
+| `selected` | Project is scoped to a specific list of repositories |
+
+### Set project access to all repositories
+
+```bash
+curl -X PUT "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/projects/YOUR_PROJECT_ID/github-access" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "all"}'
+```
+
+### Restrict project to selected repositories
+
+First, retrieve repository IDs from the installation details:
+
+```bash
+curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations/INSTALLATION_ID" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Then set the project access with the desired repository IDs:
+
+```bash
+curl -X PUT "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/projects/YOUR_PROJECT_ID/github-access" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "selected",
+    "repositoryIds": ["repo_id_1", "repo_id_2"]
+  }'
+```
+
+### Check current project access
+
+```bash
+curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/projects/YOUR_PROJECT_ID/github-access" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Manage MCP tool repository access
+
+Individual MCP tools within a project can be scoped even further. A tool's repository access is always bounded by the project's access — a tool cannot access repositories that its project cannot.
+
+### Access modes
+
+| Mode | Description |
+|------|-------------|
+| `all` | Tool has access to all repositories the project can access |
+| `selected` | Tool is scoped to a specific subset of the project's repositories |
+
+### Set MCP tool access to all project repositories
+
+```bash
+curl -X PUT "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/projects/YOUR_PROJECT_ID/tools/YOUR_TOOL_ID/github-access" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "all"}'
+```
+
+### Restrict an MCP tool to specific repositories
+
+```bash
+curl -X PUT "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/projects/YOUR_PROJECT_ID/tools/YOUR_TOOL_ID/github-access" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "selected",
+    "repositoryIds": ["repo_id_1"]
+  }'
+```
+
+### Check current MCP tool access
+
+```bash
+curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/projects/YOUR_PROJECT_ID/tools/YOUR_TOOL_ID/github-access" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+The response includes the current mode and the list of repositories the tool can access:
+
+```json
+{
+  "mode": "selected",
+  "repositories": [
+    {
+      "id": "repo_id_1",
+      "repositoryName": "my-repo",
+      "repositoryFullName": "my-org/my-repo",
+      "private": true
+    }
+  ]
+}
+```
+
+## Manage installations
+
+### Disconnect an installation
+
+Disconnecting soft-deletes the installation (sets status to `disconnected`) and removes all project repository access entries. The installation record is preserved for audit purposes. This does **not** uninstall the GitHub App from GitHub itself.
+
+```bash
+curl -X POST "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations/INSTALLATION_ID/disconnect" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Reconnect an installation
+
+Restore a previously disconnected installation and re-sync its repository list:
+
+```bash
+curl -X POST "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations/INSTALLATION_ID/reconnect" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Sync repositories
+
+If repositories were added or removed on GitHub and webhooks were missed, manually sync to update the local repository list:
+
+```bash
+curl -X POST "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations/INSTALLATION_ID/sync" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+The response includes a summary of changes:
+
+```json
+{
+  "syncResult": {
+    "added": 3,
+    "removed": 0,
+    "updated": 1
+  }
+}
+```
+
+### Permanently delete an installation
+
+Permanently deletes the installation record, all associated repositories, and all project repository access entries. **This action cannot be undone.** Use disconnect instead if you may want to reconnect later.
+
+<Warning>
+  Permanently deleting an installation removes all associated data and cannot be reversed. This does not uninstall the GitHub App from GitHub — do that separately from your GitHub organization settings if needed.
+</Warning>
+
+```bash
+curl -X DELETE "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations/INSTALLATION_ID" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Related
+
+- [GitHub API reference](/api-reference/github)
+- [MCP Servers](/visual-builder/tools/mcp-servers)
+- [Projects API reference](/api-reference/projects)
