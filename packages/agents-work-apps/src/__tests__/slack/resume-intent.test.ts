@@ -111,6 +111,7 @@ describe('resumeSmartLinkIntent', () => {
       projectId: 'project_456',
       agentName: 'Test Agent',
       source: 'workspace',
+      grantAccessToMembers: true,
     });
 
     const mockFetch = vi.fn().mockResolvedValue({
@@ -206,6 +207,7 @@ describe('resumeSmartLinkIntent', () => {
       projectId: 'project_456',
       agentName: 'Test Agent',
       source: 'workspace',
+      grantAccessToMembers: true,
     });
 
     const mockFetch = vi.fn().mockResolvedValue({
