@@ -11,8 +11,8 @@ import {
   generateEnvironmentIndexFile as originalGenerateEnvironmentIndexFile,
   generateEnvironmentSettingsDefinition as originalGenerateEnvironmentSettingsDefinition,
   generateEnvironmentSettingsFile as originalGenerateEnvironmentSettingsFile,
-} from '../../../pull-v4/environment-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+} from '../generators/environment-generator';
+import { expectSnapshots } from '../utils';
 
 function generateEnvironmentSettingsDefinition(
   ...args: Parameters<typeof originalGenerateEnvironmentSettingsDefinition>

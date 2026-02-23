@@ -2,8 +2,8 @@
 /**
  * Unit tests for project generator
  */
-import { generateProjectDefinition as originalGenerateProjectDefinition } from '../../../pull-v4/project-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateProjectDefinition as originalGenerateProjectDefinition } from '../generators/project-generator';
+import { expectSnapshots } from '../utils';
 
 function generateProjectDefinition(
   ...args: Parameters<typeof originalGenerateProjectDefinition>

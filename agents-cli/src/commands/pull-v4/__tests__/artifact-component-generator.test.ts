@@ -3,8 +3,8 @@
  * Unit tests for artifact component generator
  */
 
-import { generateArtifactComponentDefinition as originalGenerateArtifactComponentDefinition } from '../../../pull-v4/artifact-component-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateArtifactComponentDefinition as originalGenerateArtifactComponentDefinition } from '../generators/artifact-component-generator';
+import { expectSnapshots } from '../utils';
 
 function generateArtifactComponentDefinition(
   ...args: Parameters<typeof originalGenerateArtifactComponentDefinition>

@@ -3,8 +3,8 @@
  * Unit tests for external agent generator
  */
 
-import { generateExternalAgentDefinition as originalGenerateExternalAgentDefinition } from '../../../pull-v4/external-agent-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateExternalAgentDefinition as originalGenerateExternalAgentDefinition } from '../generators/external-agent-generator';
+import { expectSnapshots } from '../utils';
 
 function generateExternalAgentDefinition(
   ...args: Parameters<typeof originalGenerateExternalAgentDefinition>

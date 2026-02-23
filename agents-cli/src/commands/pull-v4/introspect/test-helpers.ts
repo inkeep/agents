@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { createTwoFilesPatch } from 'diff';
-import type { ProjectPaths } from '../generators/introspect-generator';
+import type { ProjectPaths } from '../introspect-generator';
 
 export const beforeCredentialContent = `import { credential } from '@inkeep/agents-sdk';
 

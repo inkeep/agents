@@ -3,8 +3,8 @@
  * Unit tests for credential generator
  */
 
-import { generateCredentialDefinition as originalGenerateCredentialDefinition } from '../../../pull-v4/credential-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateCredentialDefinition as originalGenerateCredentialDefinition } from '../generators/credential-generator';
+import { expectSnapshots } from '../utils';
 
 function generateCredentialDefinition(
   ...args: Parameters<typeof originalGenerateCredentialDefinition>

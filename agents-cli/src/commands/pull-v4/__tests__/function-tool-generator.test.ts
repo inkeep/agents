@@ -4,8 +4,8 @@
  * Unit tests for function tool generator
  */
 
-import { generateFunctionToolDefinition as originalGenerateFunctionToolDefinition } from '../../../pull-v4/function-tool-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateFunctionToolDefinition as originalGenerateFunctionToolDefinition } from '../generators/function-tool-generator';
+import { expectSnapshots } from '../utils';
 
 function generateFunctionToolDefinition(
   ...args: Parameters<typeof originalGenerateFunctionToolDefinition>

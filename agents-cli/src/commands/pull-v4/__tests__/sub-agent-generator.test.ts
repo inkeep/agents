@@ -3,8 +3,8 @@
  * Unit tests for sub-agent generator
  */
 
-import { generateSubAgentDefinition as originalGenerateSubAgentDefinition } from '../../../pull-v4/sub-agent-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateSubAgentDefinition as originalGenerateSubAgentDefinition } from '../generators/sub-agent-generator';
+import { expectSnapshots } from '../utils';
 
 function generateSubAgentDefinition(
   ...args: Parameters<typeof originalGenerateSubAgentDefinition>

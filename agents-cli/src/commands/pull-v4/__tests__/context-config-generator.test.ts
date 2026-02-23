@@ -4,8 +4,8 @@
  * Unit tests for context config generator
  */
 
-import { generateContextConfigDefinition as originalGenerateContextConfigDefinition } from '../../../pull-v4/context-config-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateContextConfigDefinition as originalGenerateContextConfigDefinition } from '../generators/context-config-generator';
+import { expectSnapshots } from '../utils';
 
 function generateContextConfigDefinition(
   ...args: Parameters<typeof originalGenerateContextConfigDefinition>

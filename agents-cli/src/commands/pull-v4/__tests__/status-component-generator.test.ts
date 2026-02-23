@@ -3,8 +3,8 @@
  * Unit tests for status component generator
  */
 
-import { generateStatusComponentDefinition as originalGenerateStatusComponentDefinition } from '../../../pull-v4/status-component-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateStatusComponentDefinition as originalGenerateStatusComponentDefinition } from '../generators/status-component-generator';
+import { expectSnapshots } from '../utils';
 
 function generateStatusComponentDefinition(
   ...args: Parameters<typeof originalGenerateStatusComponentDefinition>

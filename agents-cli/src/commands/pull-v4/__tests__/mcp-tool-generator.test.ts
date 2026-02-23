@@ -3,8 +3,8 @@
  * Unit tests for MCP tool generator
  */
 
-import { generateMcpToolDefinition as originalGenerateMcpToolDefinition } from '../../../pull-v4/mcp-tool-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateMcpToolDefinition as originalGenerateMcpToolDefinition } from '../generators/mcp-tool-generator';
+import { expectSnapshots } from '../utils';
 
 function generateMcpToolDefinition(
   ...args: Parameters<typeof originalGenerateMcpToolDefinition>

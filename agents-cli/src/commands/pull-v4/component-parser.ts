@@ -9,8 +9,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { type CallExpression, Node, type ObjectLiteralExpression } from 'ts-morph';
-import { createInMemoryProject } from '../pull-v4/utils';
-import { ComponentRegistry, type ComponentType } from './utils/component-registry';
+import { ComponentRegistry, type ComponentType } from './component-registry';
+import { createInMemoryProject } from './utils';
 
 interface ComponentMatch {
   id: string;

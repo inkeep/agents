@@ -3,8 +3,8 @@
  * Unit tests for agent generator
  */
 
-import { generateAgentDefinition as originalGenerateAgentDefinition } from '../../../pull-v4/agent-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateAgentDefinition as originalGenerateAgentDefinition } from '../generators/agent-generator';
+import { expectSnapshots } from '../utils';
 
 function generateAgentDefinition(
   ...args: Parameters<typeof originalGenerateAgentDefinition>

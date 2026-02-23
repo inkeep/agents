@@ -3,8 +3,8 @@
  * Unit tests for trigger generator
  */
 
-import { generateTriggerDefinition as originalGenerateTriggerDefinition } from '../../../pull-v4/trigger-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateTriggerDefinition as originalGenerateTriggerDefinition } from '../generators/trigger-generator';
+import { expectSnapshots } from '../utils';
 
 function generateTriggerDefinition(
   ...args: Parameters<typeof originalGenerateTriggerDefinition>

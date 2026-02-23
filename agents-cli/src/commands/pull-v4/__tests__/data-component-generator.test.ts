@@ -3,8 +3,8 @@
  * Unit tests for data component generator
  */
 
-import { generateDataComponentDefinition as originalGenerateDataComponentDefinition } from '../../../pull-v4/data-component-generator';
-import { expectSnapshots } from '../../../pull-v4/utils';
+import { generateDataComponentDefinition as originalGenerateDataComponentDefinition } from '../generators/data-component-generator';
+import { expectSnapshots } from '../utils';
 
 function generateDataComponentDefinition(
   ...args: Parameters<typeof originalGenerateDataComponentDefinition>
