@@ -470,7 +470,7 @@ const getServer = async (toolId: string) => {
   );
 
   server.tool(
-    'fetch-changed-files-for-branch',
+    'get-changed-files-for-branch',
     `Get the list of files changed on a branch compared to a base ref, without requiring a pull request. Returns file paths, status, additions/deletions, and optionally patches and full file contents. ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
