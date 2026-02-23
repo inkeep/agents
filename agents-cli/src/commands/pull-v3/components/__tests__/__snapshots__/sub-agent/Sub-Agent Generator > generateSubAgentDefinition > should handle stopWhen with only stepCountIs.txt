@@ -1,9 +1,0 @@
-export const stepCountAgent = subAgent({
-  id: 'step-count-agent',
-  name: 'Step Count Only Agent',
-  description: 'Agent with step count limit',
-  prompt: 'I have a step count limit.',
-  stopWhen: {
-    stepCountIs: 15 // Max tool calls + LLM responses
-  }
-});

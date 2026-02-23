@@ -10,7 +10,7 @@ Index: index.ts
 +import { customerProfile } from './data-components/customer-profile';
 +import { ticketSummary } from './artifact-components/ticket-summary';
 +import { apiCredentials } from './credentials/api-credentials';
-
+ 
  export const myProject = project({
    id: 'deep-research',
    name: 'Deep Research',

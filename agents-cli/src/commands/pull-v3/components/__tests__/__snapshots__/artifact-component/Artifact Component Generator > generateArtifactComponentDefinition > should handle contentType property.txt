@@ -1,9 +1,0 @@
-export const test = artifactComponent({
-  id: 'test',
-  name: 'Test',
-  description: 'Component with content type',
-  props: z.object({
-    content: z.string(),
-  }),
-  contentType: 'text/html'
-});

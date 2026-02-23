@@ -1,3 +1,0 @@
-const emptyHeaders = headers({
-  schema: z.any()
-});
