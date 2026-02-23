@@ -363,6 +363,7 @@ async function handleMessageSend(
             type: result.status.type || 'unknown',
           },
         },
+        id: request.id,
       } satisfies JsonRpcResponse);
     }
 
