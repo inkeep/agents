@@ -1,4 +1,6 @@
 import { subAgent } from '@inkeep/agents-sdk';
+import { calculateBMI } from '../../tools/calculateBMI';
+import { weatherTool } from '../../tools/weatherTool';
 
 export const personalAssistant = subAgent({
   id: 'personal-assistant',

@@ -1,4 +1,5 @@
 import { subAgent } from '@inkeep/agents-sdk';
+import { stringTool } from '../../tools/stringTool';
 
 export const mixedTypesSubAgent = subAgent({
   id: 'mixed-types-sub-agent',

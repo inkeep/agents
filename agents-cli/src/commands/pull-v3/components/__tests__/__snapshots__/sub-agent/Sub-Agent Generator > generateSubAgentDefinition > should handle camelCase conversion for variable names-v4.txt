@@ -1,4 +1,6 @@
 import { subAgent } from '@inkeep/agents-sdk';
+import { calculateBMI } from '../../tools/calculateBMI';
+import { weatherTool } from '../../tools/weatherTool';
 
 export const myComplexSubAgentV2 = subAgent({
   id: 'my-complex-sub-agent_v2',

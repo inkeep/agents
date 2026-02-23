@@ -1,4 +1,7 @@
 import { subAgent } from '@inkeep/agents-sdk';
+import { tool1 } from '../../tools/tool1';
+import { tool2 } from '../../tools/tool2';
+import { tool3 } from '../../tools/tool3';
 
 export const advancedAssistant = subAgent({
   id: 'advanced-assistant',
