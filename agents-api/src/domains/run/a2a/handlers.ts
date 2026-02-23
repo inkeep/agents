@@ -354,20 +354,16 @@ async function handleMessageSend(
       }
     }
     if (result.status.state === TaskState.Failed) {
-      const isConnectionRefused = result.status.type === 'connection_refused';
-
-      if (isConnectionRefused) {
-        return c.json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32603,
-            message: result.status.message || 'Agent execution failed',
-            data: {
-              type: 'connection_refused',
-            },
+      return c.json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: result.status.message || 'Agent execution failed',
+          data: {
+            type: result.status.type || 'unknown',
           },
-        } satisfies JsonRpcResponse);
-      }
+        },
+      } satisfies JsonRpcResponse);
     }
 
     const taskStatus = {
@@ -395,7 +391,7 @@ async function handleMessageSend(
       parts: result.artifacts?.[0]?.parts || [
         {
           kind: 'text',
-          text: 'Task completed successfully',
+          text: 'Task completed without an Agent response.',
         },
       ],
       role: 'agent',
@@ -553,7 +549,7 @@ async function handleMessageStream(
           parts: result.artifacts?.[0]?.parts || [
             {
               kind: 'text',
-              text: 'Task completed successfully',
+              text: 'Task completed without an Agent response.',
             },
           ],
           role: 'agent',
