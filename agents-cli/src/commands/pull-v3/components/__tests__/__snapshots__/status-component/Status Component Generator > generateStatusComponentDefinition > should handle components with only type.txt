@@ -1,3 +1,0 @@
-export const minimal = statusComponent({
-  type: 'minimal_status'
-});

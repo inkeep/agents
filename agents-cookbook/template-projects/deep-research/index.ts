@@ -8,4 +8,7 @@ export const myProject = project({
   description: 'Deep research project template',
   agents: () => [deepResearchAgent],
   tools: () => [firecrawlMcpTool],
+  models: {
+    base: { model: 'openai/gpt-4o-mini' },
+  },
 });

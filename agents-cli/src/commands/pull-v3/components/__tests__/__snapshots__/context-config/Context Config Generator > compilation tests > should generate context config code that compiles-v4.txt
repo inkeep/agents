@@ -1,8 +1,0 @@
-import { contextConfig } from '@inkeep/agents-core';
-
-export const testContext = contextConfig({
-  headers: personalAgentHeaders,
-  contextVariables: {
-    user: userFetcher,
-  },
-});
