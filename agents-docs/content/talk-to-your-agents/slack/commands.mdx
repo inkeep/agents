@@ -103,6 +103,24 @@ If you don't respond within a few minutes, the approval request expires. The mes
 If you frequently use agents that require tool approvals, make sure your account is linked (`/inkeep link`) beforehand to avoid interruptions.
 </Tip>
 
+
+## Rich responses
+
+Agent responses in Slack threads can include structured content beyond plain text, rendered as Slack Block Kit messages:
+
+- **Data components** — Structured data (tables, records) displayed as formatted sections in the thread
+- **Citations** — Sources appear as a single "📚 Sources" message after the response text, with deduplicated URLs (up to 10 shown)
+- **Artifacts** — Documents and other artifacts are displayed with titles and descriptions
+- **Summary breadcrumbs** — Progress indicators in the response footer showing the steps the agent took
+
+### Tool errors
+
+When a tool fails during execution, a ⚠️ indicator appears in the response footer with the tool name and error details.
+
+### Large payloads
+
+If structured content exceeds Slack's message size limit, it's automatically uploaded as a file attachment in the thread instead. This preserves the full data while keeping the thread readable.
+
 ## Troubleshooting
 
 ### "You need to link your account"
