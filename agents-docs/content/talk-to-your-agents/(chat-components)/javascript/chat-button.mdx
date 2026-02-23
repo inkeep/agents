@@ -36,6 +36,65 @@ The chat button component is a simple way to trigger the Inkeep chat bubble in y
   </Step>
 </Steps>
 
+## Custom Tool Component
+
+Customize how tool calls are rendered in the chat by providing a custom `IkpTool` function via `aiChatSettings.components`.
+
+The `IkpTool` function receives the following properties:
+- **`tool`** - A `ToolUIPart` object containing the tool's name, arguments, state, and result
+- **`approve`** - An async function to approve or reject tool calls that require user confirmation
+- **`renderMarkdown`** - A utility function to render markdown text as a DOM node
+
+### Example
+
+```js
+const config = {
+  aiChatSettings: {
+    agentUrl: "https://your-api.example.com/run/api/chat",
+    apiKey: "YOUR_API_KEY",
+    components: {
+      IkpTool({ tool, approve, renderMarkdown }) {
+        const container = document.createElement("div");
+
+        // Handle tools that require approval
+        if (tool.state === "requires-confirmation") {
+          container.className = "tool-approval";
+          container.innerHTML = `<p>Tool <strong>${tool.toolName}</strong> wants to execute.</p>`;
+
+          const approveBtn = document.createElement("button");
+          approveBtn.textContent = "Approve";
+          approveBtn.addEventListener("click", () => approve(true));
+
+          const rejectBtn = document.createElement("button");
+          rejectBtn.textContent = "Reject";
+          rejectBtn.addEventListener("click", () => approve(false));
+
+          container.appendChild(approveBtn);
+          container.appendChild(rejectBtn);
+          return container;
+        }
+
+        // Handle completed tools
+        if (tool.state === "result") {
+          container.className = "tool-result";
+          container.innerHTML = `<p>✓ ${tool.toolName} completed</p>`;
+          return container;
+        }
+
+        // Handle tools in progress
+        container.className = "tool-loading";
+        container.innerHTML = `<p>Running ${tool.toolName}...</p>`;
+        return container;
+      },
+    },
+  },
+};
+
+const chatButton = Inkeep.ChatButton(config);
+```
+
+Return `null` from the function to hide specific tool calls from the UI.
+
 ## Config
 
 <AutoTypeTable
