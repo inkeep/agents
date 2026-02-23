@@ -21,6 +21,7 @@ import {
   type ToolApprovalButtonValue,
 } from '../blocks';
 import type { getSlackClient } from '../client';
+import { retryWithBackoff } from '../retry';
 import {
   classifyError,
   extractApiErrorMessage,
@@ -34,30 +35,6 @@ const STREAM_TIMEOUT_MS = 600_000;
 const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;
-
-/**
- * Retry a file upload on transient failures (5xx, AbortError) with exponential backoff.
- */
-async function retryUpload<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      const isTimeout = (error as Error).name === 'AbortError';
-      const status = (error as { status?: number }).status;
-      const isRateLimit = status === 429;
-      const isServerError = typeof status === 'number' && status >= 500;
-      if ((!isTimeout && !isServerError && !isRateLimit) || attempt === maxAttempts) throw error;
-      const delay = Math.min(500 * 2 ** (attempt - 1), 4000) + Math.random() * 100;
-      logger.warn(
-        { attempt, maxAttempts, status, delay: Math.round(delay) },
-        'Retrying file upload after transient failure'
-      );
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Unreachable');
-}
 
 /**
  * Wrap a promise with a timeout to prevent indefinite blocking on Slack API calls.
@@ -283,7 +260,7 @@ export async function streamAgentResponse(params: {
     const summaryLabels: string[] = [];
     let richMessageCount = 0;
     let richMessageCapWarned = false;
-    const MAX_RICH_MESSAGES = 5;
+    const MAX_RICH_MESSAGES = 20;
 
     try {
       let agentCompleted = false;
@@ -380,7 +357,7 @@ export async function streamAgentResponse(params: {
                 });
                 if (overflowJson) {
                   const label = componentType || 'data-component';
-                  await retryUpload(() =>
+                  await retryWithBackoff(() =>
                     slackClient.files.uploadV2({
                       channel_id: channel,
                       thread_ts: threadTs,
@@ -433,7 +410,7 @@ export async function streamAgentResponse(params: {
                 });
                 if (overflowContent) {
                   const label = artifactName || 'artifact';
-                  await retryUpload(() =>
+                  await retryWithBackoff(() =>
                     slackClient.files.uploadV2({
                       channel_id: channel,
                       thread_ts: threadTs,

@@ -194,7 +194,7 @@ describe('streamAgentResponse', () => {
           channel: 'C456',
           thread_ts: '1234.5678',
           text: expect.stringContaining('search_web'),
-          blocks: expect.arrayContaining([expect.objectContaining({ type: 'header' })]),
+          blocks: expect.arrayContaining([expect.objectContaining({ type: 'section' })]),
         })
       );
     });
