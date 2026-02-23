@@ -24,7 +24,7 @@ export function ScheduledTabPanel({
   initialTriggers: ScheduledTriggerWithAgent[];
   agents: AgentSummary[];
 }) {
-  const [agentFilter, setAgentFilter] = useState<string>('');
+  const [agentFilter, setAgentFilter] = useState('');
   const [triggers, setTriggers] = useState(initialTriggers);
 
   useEffect(() => {
