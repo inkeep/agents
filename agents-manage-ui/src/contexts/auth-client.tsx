@@ -37,6 +37,16 @@ const createConfiguredAuthClient = (baseURL: string) =>
               },
             },
           },
+          organization: {
+            additionalFields: {
+              preferredAuthMethod: {
+                type: 'string',
+              },
+              serviceAccountUserId: {
+                type: 'string',
+              },
+            },
+          },
         }),
       }),
       deviceAuthorizationClient(),

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
+import { getSafeReturnUrl } from '@/lib/utils/auth-redirect';
 
 export default function AcceptInvitationPage({
   params,
@@ -20,6 +21,7 @@ export default function AcceptInvitationPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailFromUrl = searchParams.get('email');
+  const returnUrl = searchParams.get('returnUrl');
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
@@ -146,9 +148,8 @@ export default function AcceptInvitationPage({
 
       setSuccess(true);
 
-      // Redirect to the organization after a short delay
       setTimeout(() => {
-        router.push(orgId ? `/${orgId}/projects` : '/');
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
@@ -186,7 +187,7 @@ export default function AcceptInvitationPage({
       setSuccess(true);
 
       setTimeout(() => {
-        router.push(orgId ? `/${orgId}/projects` : '/');
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
