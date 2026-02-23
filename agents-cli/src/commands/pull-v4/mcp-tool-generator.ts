@@ -23,7 +23,7 @@ interface McpToolDefinitionData {
 }
 
 const McpToolSchema = z
-  .looseObject({
+  .object({
     mcpToolId: z.string().nonempty(),
     name: z.string().nonempty(),
     description: z.string().nullable().optional(),
@@ -48,7 +48,7 @@ const McpToolSchema = z
     imageUrl: z.string().optional(),
     headers: z.unknown().optional(),
     credential: z.unknown().optional(),
-    credentialReferenceId: z.string().optional(),
+    credentialReferenceId: z.string().nullish(),
   })
   .superRefine((value, context) => {
     if (!resolveServerUrl(value)) {
