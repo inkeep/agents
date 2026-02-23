@@ -2,6 +2,12 @@ import { subAgent } from '@inkeep/agents-sdk';
 import { tool1 } from '../../tools/tool1';
 import { tool2 } from '../../tools/tool2';
 import { tool3 } from '../../tools/tool3';
+import { component1 } from '../../data-components/component1';
+import { component2 } from '../../data-components/component2';
+import { artifact1 } from '../../artifact-components/artifact1';
+import { agent1 } from './agent1';
+import { agent2 } from './agent2';
+import { legacyAgent } from './legacyAgent';
 
 export const multiItemAgent = subAgent({
   id: 'multi-item-agent',
