@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import FullPageError from '@/components/errors/full-page-error';
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
-import { TriggersTabs } from '@/components/project-triggers';
+import { ScheduledTabContent } from '@/components/project-triggers/scheduled-tab-content';
+import { TriggersTabs } from '@/components/project-triggers/triggers-tabs';
+import { WebhooksTabContent } from '@/components/project-triggers/webhooks-tab-content';
+import { Skeleton } from '@/components/ui/skeleton';
 import { STATIC_LABELS } from '@/constants/theme';
-import { fetchAgents } from '@/lib/api/agent-full-client';
-import { fetchProjectScheduledTriggers, fetchProjectTriggers } from '@/lib/api/project-triggers';
-import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,31 +14,42 @@ export const metadata = {
   description: 'Configure webhook and scheduled triggers to invoke your agents.',
 } satisfies Metadata;
 
+function TabSkeleton() {
+  return (
+    <div className="space-y-4 mt-2">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-9 w-[200px]" />
+        <Skeleton className="h-9 w-[180px]" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </div>
+  );
+}
+
 async function TriggersPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/triggers'>) {
   const { tenantId, projectId } = await params;
 
-  try {
-    const [agents, webhookTriggers, scheduledTriggers] = await Promise.all([
-      fetchAgents(tenantId, projectId),
-      fetchProjectTriggers(tenantId, projectId),
-      fetchProjectScheduledTriggers(tenantId, projectId),
-    ]);
-
-    return (
-      <>
-        <PageHeader title={metadata.title} description={metadata.description} />
-        <TriggersTabs
-          tenantId={tenantId}
-          projectId={projectId}
-          webhookTriggers={webhookTriggers}
-          scheduledTriggers={scheduledTriggers}
-          agents={agents.data.map((a) => ({ id: a.id, name: a.name }))}
-        />
-      </>
-    );
-  } catch (error) {
-    return <FullPageError errorCode={getErrorCode(error)} context="triggers" />;
-  }
+  return (
+    <>
+      <PageHeader title={metadata.title} description={metadata.description} />
+      <TriggersTabs
+        scheduledContent={
+          <Suspense fallback={<TabSkeleton />}>
+            <ScheduledTabContent tenantId={tenantId} projectId={projectId} />
+          </Suspense>
+        }
+        webhooksContent={
+          <Suspense fallback={<TabSkeleton />}>
+            <WebhooksTabContent tenantId={tenantId} projectId={projectId} />
+          </Suspense>
+        }
+      />
+    </>
+  );
 }
 
 export default TriggersPage;
