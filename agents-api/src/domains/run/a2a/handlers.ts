@@ -503,6 +503,24 @@ async function handleMessageStream(
 
         const result = await agent.taskHandler(task);
 
+        // Check for failed state and stream error
+        if (result.status.state === TaskState.Failed) {
+          await stream.writeSSE({
+            data: JSON.stringify({
+              jsonrpc: '2.0',
+              error: {
+                code: -32603,
+                message: result.status.message || 'Agent execution failed',
+                data: {
+                  type: result.status.type || 'unknown',
+                },
+              },
+              id: request.id,
+            }),
+          });
+          return;
+        }
+
         const transferArtifact = result.artifacts?.find((artifact) =>
           artifact.parts?.some(
             (part) =>
