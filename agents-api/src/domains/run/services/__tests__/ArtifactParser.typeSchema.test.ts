@@ -1,3 +1,4 @@
+import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactParser } from '../ArtifactParser';
 
@@ -74,7 +75,7 @@ const mockExecutionContext = {
   },
 } as any;
 
-const testArtifactComponents = [
+const testArtifactComponents: ArtifactComponentApiInsert[] = [
   {
     id: 'comp-1',
     name: 'ResearchDoc',
@@ -85,7 +86,7 @@ const testArtifactComponents = [
         title: { type: 'string', description: 'Document title', inPreview: true },
         summary: { type: 'string', description: 'Short summary', inPreview: true },
         content: { type: 'string', description: 'Full content', inPreview: false },
-        tags: { type: 'array', items: { type: 'string' }, inPreview: false },
+        tags: { type: 'array', items: { type: 'string', description: 'Tag' }, description: 'Tags', inPreview: false },
       },
     },
   },

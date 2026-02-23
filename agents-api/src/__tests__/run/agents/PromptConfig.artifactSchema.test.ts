@@ -1,9 +1,10 @@
+import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
 import type { SystemPromptV1 } from '../../../domains/run/agents/types';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
-const testArtifactComponents = [
+const testArtifactComponents: ArtifactComponentApiInsert[] = [
   {
     id: 'comp-1',
     name: 'ResearchDoc',
@@ -16,7 +17,7 @@ const testArtifactComponents = [
         content: { type: 'string', description: 'Full content', inPreview: false },
         tags: {
           type: 'array',
-          items: { type: 'string' },
+          items: { type: 'string', description: 'Tag' },
           description: 'Tags',
           inPreview: false,
         },
@@ -142,7 +143,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
   });
 
   test('uses allProjectArtifactComponents for type schema map over artifactComponents', () => {
-    const differentComponents = [
+    const differentComponents: ArtifactComponentApiInsert[] = [
       {
         id: 'comp-2',
         name: 'SpecialDoc',
@@ -150,7 +151,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
         props: {
           type: 'object',
           properties: {
-            headline: { type: 'string', inPreview: true },
+            headline: { type: 'string', description: 'Headline', inPreview: true },
           },
         },
       },
