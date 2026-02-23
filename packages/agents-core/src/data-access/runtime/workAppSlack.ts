@@ -104,7 +104,9 @@ export const updateWorkAppSlackWorkspace =
   (db: AgentsRunDatabaseClient) =>
   async (
     id: string,
-    data: Partial<Pick<WorkAppSlackWorkspaceInsert, 'status' | 'slackTeamName'>>
+    data: Partial<
+      Pick<WorkAppSlackWorkspaceInsert, 'status' | 'slackTeamName' | 'shouldAllowJoinFromWorkspace'>
+    >
   ): Promise<WorkAppSlackWorkspaceSelect | null> => {
     const [result] = await db
       .update(workAppSlackWorkspaces)

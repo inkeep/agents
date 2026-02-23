@@ -20,7 +20,7 @@ jobs:
 
     services:
       doltgres:
-        image: dolthub/doltgresql:latest
+        image: dolthub/doltgresql:0.55.4
         env:
           DOLTGRES_USER: appuser
           DOLTGRES_PASSWORD: password
@@ -134,4 +134,5 @@ jobs:
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
           BETTER_AUTH_SECRET: test-secret-key-for-ci
           SPICEDB_PRESHARED_KEY: dev-secret-key
+          OTEL_SDK_DISABLED: true
           CYPRESS_NO_COMMAND_LOG: 1

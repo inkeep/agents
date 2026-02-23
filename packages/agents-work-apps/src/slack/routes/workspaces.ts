@@ -26,8 +26,10 @@ import {
   deleteWorkAppSlackChannelAgentConfig,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
   findWorkAppSlackChannelAgentConfig,
+  findWorkAppSlackWorkspaceByTeamId,
   listWorkAppSlackChannelAgentConfigsByTeam,
   listWorkAppSlackUserMappingsByTeam,
+  updateWorkAppSlackWorkspace,
   upsertWorkAppSlackChannelAgentConfig,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
@@ -75,6 +77,10 @@ const ChannelAgentConfigSchema = z.object({
 
 const WorkspaceSettingsSchema = z.object({
   defaultAgent: ChannelAgentConfigSchema.optional(),
+});
+
+const JoinFromWorkspaceSettingsSchema = z.object({
+  shouldAllowJoinFromWorkspace: z.boolean(),
 });
 
 app.openapi(
@@ -326,6 +332,140 @@ app.openapi(
     }
 
     return c.json({ success: true });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{teamId}/join-from-workspace',
+    summary: 'Get Join From Workspace Setting',
+    description: 'Get the join from workspace setting for the workspace',
+    operationId: 'slack-get-join-from-workspace',
+    tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
+    request: {
+      params: z.object({
+        teamId: z.string(),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Join from workspace setting',
+        content: {
+          'application/json': {
+            schema: JoinFromWorkspaceSettingsSchema,
+          },
+        },
+      },
+      404: {
+        description: 'Workspace not found',
+      },
+    },
+  }),
+  async (c) => {
+    const { teamId } = c.req.valid('param');
+
+    const sessionTenantId = c.get('tenantId') as string | undefined;
+    if (!sessionTenantId) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
+    if (!workspace) {
+      return c.json({ shouldAllowJoinFromWorkspace: false });
+    }
+
+    return c.json({
+      shouldAllowJoinFromWorkspace: workspace.shouldAllowJoinFromWorkspace ?? false,
+    });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{teamId}/join-from-workspace',
+    summary: 'Update Join From Workspace Setting',
+    description: 'Enable or disable join from workspace for the workspace',
+    operationId: 'slack-update-join-from-workspace',
+    tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
+    request: {
+      params: z.object({
+        teamId: z.string(),
+      }),
+      body: {
+        content: {
+          'application/json': {
+            schema: JoinFromWorkspaceSettingsSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Join from workspace setting updated',
+        content: {
+          'application/json': {
+            schema: z.object({ success: z.boolean() }),
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+      },
+      404: {
+        description: 'Workspace not found',
+      },
+      500: {
+        description: 'Failed to update setting',
+      },
+    },
+  }),
+  async (c) => {
+    const { teamId } = c.req.valid('param');
+    const { shouldAllowJoinFromWorkspace } = c.req.valid('json');
+
+    // Get the session tenant ID for authorization
+    const sessionTenantId = c.get('tenantId') as string | undefined;
+    if (!sessionTenantId) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    // Find the workspace in the database
+    const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
+    if (!workspace) {
+      return c.json({ error: 'Workspace not found' }, 404);
+    }
+
+    try {
+      // Update the join from workspace settings
+      const updated = await updateWorkAppSlackWorkspace(runDbClient)(workspace.id, {
+        shouldAllowJoinFromWorkspace,
+      });
+
+      if (!updated) {
+        logger.error(
+          { teamId, shouldAllowJoinFromWorkspace },
+          'Failed to update join from workspace setting'
+        );
+        return c.json({ error: 'Failed to update setting' }, 500);
+      }
+
+      logger.info(
+        { teamId, shouldAllowJoinFromWorkspace, workspaceId: workspace.id },
+        'Updated workspace join from workspace settings'
+      );
+
+      return c.json({ success: true });
+    } catch (error) {
+      logger.error(
+        { teamId, shouldAllowJoinFromWorkspace, error },
+        'Failed to update join from workspace setting'
+      );
+      return c.json({ error: 'Failed to update setting' }, 500);
+    }
   }
 );
 

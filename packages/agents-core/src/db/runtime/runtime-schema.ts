@@ -208,6 +208,9 @@ export const workAppSlackWorkspaces = pgTable(
     installedByUserId: text('installed_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
+    shouldAllowJoinFromWorkspace: boolean('should_allow_join_from_workspace')
+      .notNull()
+      .default(false),
     ...timestamps,
   },
   (table) => [

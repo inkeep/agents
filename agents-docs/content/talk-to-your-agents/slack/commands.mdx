@@ -1,10 +1,8 @@
 ---
 title: Using the Slack App
-sidebarTitle: Ask Questions
-description: How to interact with Inkeep agents in Slack — commands, mentions, and tips.
+sidebarTitle: Usage Guide
+description: How to talk to Inkeep agents in Slack — commands, mentions, and tips.
 ---
-
-# Using the Slack App
 
 This guide is for **all team members** using the Inkeep Slack app. You'll learn how to ask questions, understand which agent responds, and get the most out of the integration.
 
@@ -84,6 +82,25 @@ The agent that handles your request depends on how your admin configured the wor
 
 <Tip>
 Run `/inkeep status` to see exactly which agent is active in the current channel and whether it's a channel default or workspace default.
+</Tip>
+
+## Tool approvals
+
+Some agents use tools that require your approval before they run. When this happens, you'll see an interactive message in the thread with the tool name, its inputs, and **Approve** / **Deny** buttons.
+
+### Approving or denying
+
+- Click **Approve** to let the agent run the tool
+- Click **Deny** to block the tool — the agent will acknowledge and may suggest alternatives
+
+Only the person who started the conversation can approve or deny. If you're not the requester, you'll see an error if you try to click the buttons.
+
+### Approval timeout
+
+If you don't respond within a few minutes, the approval request expires. The message updates to show "Expired" and the agent is notified.
+
+<Tip>
+If you frequently use agents that require tool approvals, make sure your account is linked (`/inkeep link`) beforehand to avoid interruptions.
 </Tip>
 
 ## Troubleshooting

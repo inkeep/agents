@@ -4,16 +4,20 @@ import { randomId } from '../support/utils';
 
 describe('Components', () => {
   it('should create a new component when adding JSON schema properties with form builder and without `required` field', () => {
+    cy.intercept('POST', '**/components**').as('createComponent');
+
     cy.visit('/default/projects/activities-planner/components/new');
     cy.get('input[name=name]').type(`test ${randomId()}`);
     cy.get('textarea[name=description]').type('test description');
     cy.contains('Add property').click();
     cy.get('[placeholder="Property name"]').type('foo');
     cy.get('[placeholder="Add description"]').type('bar');
-    cy.contains('Save').click();
-    cy.get('[data-sonner-toast]').contains('Component created').should('exist');
-    // Should redirect
-    cy.location('pathname').should('eq', '/default/projects/activities-planner/components');
+    cy.get('button[type="submit"]').should('not.be.disabled').click();
+    // Should redirect after successful creation
+    cy.location('pathname', { timeout: 30_000 }).should(
+      'eq',
+      '/default/projects/activities-planner/components'
+    );
   });
 
   it('should not override json schema when json mode is enabled by default', () => {

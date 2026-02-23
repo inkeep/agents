@@ -4,8 +4,6 @@ sidebarTitle: Configuration
 description: Admin guide — set up workspace and channel default agents for the Slack integration.
 ---
 
-# Configure Slack Agents
-
 <Note>
 This page is for **workspace administrators**. Regular team members should see [Using the Slack App](/talk-to-your-agents/slack/commands) for usage instructions.
 </Note>
@@ -29,6 +27,11 @@ The workspace default agent responds to all `@Inkeep` mentions and `/inkeep` com
 
     This agent handles all requests in channels without a channel-specific default.
   </Step>
+  <Step>
+    ### Remove the default agent (optional)
+
+    To clear the workspace default, open the dropdown and select **Remove default agent**. Channels without a channel-specific agent will no longer have a fallback.
+  </Step>
 </Steps>
 
 ## Channel defaults
@@ -40,6 +43,10 @@ Channel defaults let you assign a specific agent to individual channels. This is
     ### Open channel defaults
 
     In the Slack dashboard, scroll to the **Channel Defaults** section. You'll see a list of all channels the bot has access to.
+
+    <Note>
+    Private channels only appear in this list after you add the Inkeep bot to them in Slack. Open the private channel in Slack, add `@Inkeep` as a member, and the channel will then be available for configuration in the dashboard.
+    </Note>
   </Step>
   <Step>
     ### Filter and select channels

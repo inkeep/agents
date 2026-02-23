@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { detectPackageManager, executeUpdate, type PackageManager } from '../utils/package-manager';
-import { checkForUpdate, getChangelogUrl } from '../utils/version-check';
+import { checkForUpdate, PACKAGE_CHANGELOG } from '../utils/version-check';
 
 export interface UpdateOptions {
   check?: boolean;
@@ -49,7 +49,7 @@ export async function updateCommand(options: UpdateOptions = {}): Promise<void> 
 
     // Display changelog link
     console.log(chalk.cyan('\n📖 Changelog:'));
-    console.log(chalk.gray(`  • ${getChangelogUrl()}`));
+    console.log(chalk.gray(`  • ${PACKAGE_CHANGELOG}`));
 
     // Detect package manager
     s.start('Detecting package manager...');

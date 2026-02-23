@@ -1,0 +1,7 @@
+import { contextConfig } from '@inkeep/agents-core';
+
+export const simpleContext = contextConfig({
+  contextVariables: {
+    config: someValue,
+  },
+});
