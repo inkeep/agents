@@ -16,6 +16,7 @@ export const SLACK_SPAN_NAMES = {
   OPEN_FOLLOW_UP_MODAL: 'slack.open_follow_up_modal',
   PROJECT_SELECT_UPDATE: 'slack.project_select_update',
   CALL_AGENT_API: 'slack.call_agent_api',
+  TOOL_APPROVAL: 'slack.tool_approval',
 } as const;
 
 export const SLACK_SPAN_KEYS = {
@@ -38,6 +39,8 @@ export const SLACK_SPAN_KEYS = {
   IS_IN_THREAD: 'slack.is_in_thread',
   STREAM_FINALIZATION_FAILED: 'slack.stream_finalization_failed',
   CONTENT_ALREADY_DELIVERED: 'slack.content_already_delivered',
+  AUTHORIZED: 'slack.authorized',
+  AUTH_SOURCE: 'slack.auth_source',
 } as const;
 
 export type SlackOutcome =

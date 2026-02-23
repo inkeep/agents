@@ -14,6 +14,7 @@ interface DefaultAgentConfig {
   agentName?: string;
   projectId: string;
   projectName?: string;
+  grantAccessToMembers?: boolean;
 }
 
 export const slackApi = {
@@ -139,6 +140,7 @@ export const slackApi = {
         projectId: string;
         agentId: string;
         agentName?: string;
+        grantAccessToMembers?: boolean;
       };
     }>;
   }> {
@@ -181,6 +183,7 @@ export const slackApi = {
       projectId: string;
       agentId: string;
       agentName?: string;
+      grantAccessToMembers?: boolean;
     };
     channelName?: string;
   }): Promise<{ success: boolean; configId: string }> {
@@ -218,7 +221,12 @@ export const slackApi = {
   async bulkSetChannelAgents(
     teamId: string,
     channelIds: string[],
-    agentConfig: { projectId: string; agentId: string; agentName?: string }
+    agentConfig: {
+      projectId: string;
+      agentId: string;
+      agentName?: string;
+      grantAccessToMembers?: boolean;
+    }
   ): Promise<{
     success: boolean;
     updated: number;
@@ -336,5 +344,38 @@ export const slackApi = {
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
     return csvContent;
+  },
+
+  async getJoinFromWorkspaceSetting(
+    teamId: string
+  ): Promise<{ shouldAllowJoinFromWorkspace: boolean }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/join-from-workspace`,
+      { credentials: 'include' }
+    );
+    if (!response.ok) {
+      return { shouldAllowJoinFromWorkspace: false };
+    }
+    return response.json();
+  },
+
+  async updateJoinFromWorkspaceSetting(
+    teamId: string,
+    shouldAllowJoinFromWorkspace: boolean
+  ): Promise<{ success: boolean }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/join-from-workspace`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ shouldAllowJoinFromWorkspace }),
+      }
+    );
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Failed to update join from workspace setting');
+    }
+    return response.json();
   },
 };

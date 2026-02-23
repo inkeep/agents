@@ -20,32 +20,34 @@ function connectEdge(selector: string) {
 
 describe('Agent Tools', () => {
   it('Editing sub-agent ID should not removes linked tools', () => {
-    cy.visit('/default/projects/my-weather-project');
+    cy.visit('/default/projects/activities-planner');
     cy.contains('Create agent').click();
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
-    cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 1);
+    cy.url({ timeout: 30_000 }).should('include', '/agents/');
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
     dragNode('[aria-label="Drag Function Tool node"]');
-    cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 2);
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     connectEdge('[data-handleid="target-function-tool"]');
+
+    // Fill in required function tool fields before saving
+    cy.get('#function-tool-name').type('test-tool', { delay: 0 });
+    cy.get('#function-tool-description').type('test description', { delay: 0 });
     cy.typeInMonaco('code.jsx', 'function () {}');
-    dragNode('[aria-label="Drag MCP node"]');
-    cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 3);
-    cy.contains('Geocode address').click();
-    connectEdge('[data-handleid="target-mcp"]');
+    // Fill input schema with template
+    cy.contains('Input Schema').parent().parent().contains('Template').click();
+
     saveAndAssert();
     cy.get('.react-flow__node-agent').click();
     cy.get('[name=id]').clear().type('TEST', { delay: 0 });
     saveAndAssert();
 
     function saveAndAssert() {
-      cy.intercept('POST', '**/agents/*').as('saveAgent');
       cy.contains('Save changes').click();
-      cy.wait('@saveAgent');
-      cy.contains('Agent saved', { timeout: 10000 }).should('exist');
+      cy.contains('Agent saved', { timeout: 30_000 }).should('exist');
       cy.reload();
-      cy.get('.react-flow__node', { timeout: 10000 }).should('have.length', 3);
+      cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     }
   });
 
@@ -53,7 +55,7 @@ describe('Agent Tools', () => {
     it('JSON', () => {
       const uri = 'contextVariables.json';
 
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+      cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       cy.typeInMonaco(uri, '{"foo":123}');
       cy.contains('Format').click();
       cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
@@ -61,7 +63,7 @@ describe('Agent Tools', () => {
     it('JavaScript', () => {
       const uri = 'code.jsx';
 
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+      cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       dragNode('[aria-label="Drag Function Tool node"]');
       cy.typeInMonaco(uri, 'function(){return"foo"}');
       cy.contains('Format').click();

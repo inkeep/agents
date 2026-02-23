@@ -1,10 +1,9 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
+import { z } from 'zod';
 import { SlackStrings } from '../../i18n';
 
 export function createErrorMessage(message: string) {
-  return Message()
-    .blocks(Blocks.Section().text(`❌ ${message}`))
-    .buildToObject();
+  return Message().blocks(Blocks.Section().text(message)).buildToObject();
 }
 
 export interface ContextBlockParams {
@@ -58,17 +57,9 @@ export function buildConversationResponseBlocks(params: {
   isError: boolean;
   followUpParams: FollowUpButtonParams;
 }) {
-  const { userMessage, responseText, agentName, isError, followUpParams } = params;
-
-  // Truncate user message for display (Slack section text max is 3000 chars)
-  const displayMessage = userMessage.length > 200 ? `${userMessage.slice(0, 200)}...` : userMessage;
+  const { responseText, agentName, isError, followUpParams } = params;
 
   const blocks: any[] = [
-    {
-      type: 'context',
-      elements: [{ type: 'mrkdwn', text: `💬 *You:* ${displayMessage}` }],
-    },
-    { type: 'divider' },
     {
       type: 'section',
       text: { type: 'mrkdwn', text: responseText },
@@ -87,14 +78,14 @@ export function buildConversationResponseBlocks(params: {
 export function createUpdatedHelpMessage() {
   return Message()
     .blocks(
-      Blocks.Section().text(`${Md.bold(SlackStrings.help.title)}`),
+      Blocks.Header().text(SlackStrings.help.title),
       Blocks.Section().text(SlackStrings.help.publicSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.privateSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.otherCommands),
       Blocks.Divider(),
-      Blocks.Section().text(SlackStrings.help.docsLink)
+      Blocks.Context().elements(SlackStrings.help.docsLink)
     )
     .buildToObject();
 }
@@ -103,9 +94,9 @@ export function createAlreadyLinkedMessage(email: string, linkedAt: string, dash
   return Message()
     .blocks(
       Blocks.Section().text(
-        Md.bold('✅ Already Linked!') +
-          '\n\nYour Slack account is already connected to Inkeep.\n\n' +
-          Md.bold('Inkeep Account:') +
+        Md.bold('Already linked') +
+          '\n\nYour Slack account is connected to Inkeep.\n\n' +
+          Md.bold('Account:') +
           ` ${email}\n` +
           Md.bold('Linked:') +
           ` ${new Date(linkedAt).toLocaleDateString()}\n\n` +
@@ -125,9 +116,9 @@ export function createUnlinkSuccessMessage() {
   return Message()
     .blocks(
       Blocks.Section().text(
-        Md.bold('✅ Account Unlinked') +
+        Md.bold('Account unlinked') +
           '\n\nYour Slack account has been disconnected from Inkeep.\n\n' +
-          'To use Inkeep agents again, run `/inkeep link` to connect a new account.'
+          'Run `/inkeep link` to connect a new account.'
       )
     )
     .buildToObject();
@@ -137,9 +128,8 @@ export function createNotLinkedMessage() {
   return Message()
     .blocks(
       Blocks.Section().text(
-        Md.bold('❌ Not Linked') +
-          '\n\nYour Slack account is not connected to Inkeep.\n\n' +
-          'Run `/inkeep link` to connect your account.'
+        Md.bold('Not linked') +
+          '\n\nYour Slack account is not connected to Inkeep. Run `/inkeep link` to connect.'
       )
     )
     .buildToObject();
@@ -171,7 +161,7 @@ export function createStatusMessage(
   return Message()
     .blocks(
       Blocks.Section().text(
-        Md.bold('✅ Connected to Inkeep') +
+        Md.bold('Connected to Inkeep') +
           `\n\n${Md.bold('Account:')} ${email}\n` +
           `${Md.bold('Linked:')} ${new Date(linkedAt).toLocaleDateString()}\n` +
           agentLine
@@ -198,31 +188,128 @@ export function createSmartLinkMessage(linkUrl: string) {
     .buildToObject();
 }
 
+export interface ToolApprovalButtonValue {
+  toolCallId: string;
+  conversationId: string;
+  projectId: string;
+  agentId: string;
+  slackUserId: string;
+  channel: string;
+  threadTs: string;
+  toolName: string;
+}
+
+export const ToolApprovalButtonValueSchema = z.object({
+  toolCallId: z.string(),
+  conversationId: z.string(),
+  projectId: z.string(),
+  agentId: z.string(),
+  slackUserId: z.string(),
+  channel: z.string(),
+  threadTs: z.string(),
+  toolName: z.string(),
+});
+
+export function buildToolApprovalBlocks(params: {
+  toolName: string;
+  input?: Record<string, unknown>;
+  buttonValue: string;
+}) {
+  const { toolName, input, buttonValue } = params;
+
+  const blocks: any[] = [
+    {
+      type: 'header',
+      text: { type: 'plain_text', text: 'Tool Approval Required', emoji: false },
+    },
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: `The agent wants to use \`${toolName}\`.` },
+    },
+  ];
+
+  if (input && Object.keys(input).length > 0) {
+    const jsonStr = JSON.stringify(input, null, 2);
+    const truncated = jsonStr.length > 2900 ? `${jsonStr.slice(0, 2900)}…` : jsonStr;
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `\`\`\`json\n${truncated}\n\`\`\`` },
+    });
+  }
+
+  blocks.push({ type: 'divider' });
+
+  blocks.push({
+    type: 'actions',
+    elements: [
+      {
+        type: 'button',
+        text: { type: 'plain_text', text: 'Approve', emoji: false },
+        style: 'primary',
+        action_id: 'tool_approval_approve',
+        value: buttonValue,
+      },
+      {
+        type: 'button',
+        text: { type: 'plain_text', text: 'Deny', emoji: false },
+        style: 'danger',
+        action_id: 'tool_approval_deny',
+        value: buttonValue,
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+export function buildToolApprovalDoneBlocks(params: {
+  toolName: string;
+  approved: boolean;
+  actorUserId: string;
+}) {
+  const { toolName, approved, actorUserId } = params;
+  const statusText = approved
+    ? `✅ Approved \`${toolName}\` · <@${actorUserId}>`
+    : `❌ Denied \`${toolName}\` · <@${actorUserId}>`;
+
+  return [{ type: 'context', elements: [{ type: 'mrkdwn', text: statusText }] }];
+}
+
+export function buildToolApprovalExpiredBlocks(params: { toolName: string }) {
+  return [
+    {
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `⏱️ Expired · \`${params.toolName}\`` }],
+    },
+  ];
+}
+
 export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {
   return Message()
     .blocks(
       Blocks.Section().text(
-        `${Md.bold('🔗 Link your Inkeep account')}\n\n` +
-          'Connect your Slack and Inkeep accounts to unlock AI-powered assistance:'
-      ),
-      Blocks.Section().text(
-        `${Md.bold('What you can do after linking:')}\n` +
-          '• Ask questions with `/inkeep [question]` or `@Inkeep`\n' +
-          '• Get personalized responses from AI agents\n' +
-          '• Set your own default agent preferences'
-      ),
-      Blocks.Section().text(
-        `${Md.bold('How to link:')}\n` +
-          '1. Click the button below\n' +
-          '2. Sign in to Inkeep (or create an account)\n' +
-          '3. Done! Come back here and start asking questions'
+        `${Md.bold('Link your Inkeep account')}\n\n` +
+          'Connect your Slack and Inkeep accounts to use Inkeep agents.'
       ),
       Blocks.Actions().elements(
-        Elements.Button().text('🔗 Link Account').url(linkUrl).actionId('link_account').primary()
+        Elements.Button().text('Link Account').url(linkUrl).actionId('link_account').primary()
       ),
-      Blocks.Context().elements(
-        `${Md.emoji('clock')} This link expires in ${expiresInMinutes} minutes`
-      )
+      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes.`)
+    )
+    .buildToObject();
+}
+
+export function createCreateInkeepAccountMessage(acceptUrl: string, expiresInMinutes: number) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        `${Md.bold('Create your Inkeep account')}\n\n` +
+          "You've been invited to join Inkeep. Create an account to start using Inkeep agents in Slack."
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('Create Account').url(acceptUrl).actionId('create_account').primary()
+      ),
+      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes.`)
     )
     .buildToObject();
 }

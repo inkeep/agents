@@ -9,7 +9,7 @@
  * - Redirects users back to frontend
  */
 
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   type CredentialReferenceApiInsert,
@@ -21,10 +21,10 @@ import {
   getProjectMainResolvedRef,
   getToolById,
   OAuthCallbackQuerySchema,
-  OAuthLoginQuerySchema,
   updateTool,
   withRef,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import manageDbClient from '../../../data/db/manageDbClient';
 import manageDbPool from '../../../data/db/manageDbPool';
 import { getLogger } from '../../../logger';
@@ -163,91 +163,19 @@ function generateOAuthCallbackPage(params: {
   `;
 }
 
-// OAuth login initiation endpoint (public - no API key required)
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/login',
-    summary: 'Initiate OAuth login for MCP tool',
-    description:
-      'Detects OAuth requirements and redirects to authorization server (public endpoint)',
-    operationId: 'initiate-oauth-login-public',
-    tags: ['OAuth'],
-    request: {
-      query: OAuthLoginQuerySchema,
-    },
-    responses: {
-      302: {
-        description: 'Redirect to OAuth authorization server',
-      },
-      400: {
-        description: 'OAuth not supported or configuration error',
-        content: {
-          'text/html': {
-            schema: z.string(),
-          },
-        },
-      },
-      404: {
-        description: 'Tool not found',
-        content: {
-          'text/html': {
-            schema: z.string(),
-          },
-        },
-      },
-      500: {
-        description: 'Internal server error',
-        content: {
-          'text/html': {
-            schema: z.string(),
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, toolId } = c.req.valid('query');
-    const db = c.get('db');
-
-    try {
-      const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
-
-      if (!tool) {
-        logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
-        return c.text('Tool not found', 404);
-      }
-
-      const baseUrl = getBaseUrlFromRequest(c);
-      const { redirectUrl } = await oauthService.initiateOAuthFlow({
-        tenantId,
-        projectId,
-        toolId,
-        mcpServerUrl: tool.config.mcp.server.url,
-        baseUrl,
-      });
-
-      return c.redirect(redirectUrl, 302);
-    } catch (error) {
-      logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
-
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to initiate OAuth login';
-      return c.text(`OAuth Error: ${errorMessage}`, 500);
-    }
-  }
-);
-
 // MCP OAuth callback endpoint (for direct MCP tool OAuth flows)
+// Secured via PKCE state parameter, not HTTP authentication (external redirect from OAuth provider)
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/callback',
     summary: 'MCP OAuth authorization callback',
     description:
-      'Handles OAuth authorization codes for MCP tools and completes the authentication flow',
+      'Handles OAuth authorization codes for MCP tools and completes the authentication flow. ' +
+      'Secured via PKCE state parameter (not HTTP authentication) since this is an external redirect from an OAuth provider.',
     operationId: 'mcp-oauth-callback',
     tags: ['OAuth'],
+    permission: noAuth(),
     request: {
       query: OAuthCallbackQuerySchema,
     },

@@ -2,7 +2,7 @@ import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
-import { createAgents } from '../utils';
+import { createAgents, defaultMockModelConfigurations } from '../utils';
 
 // Create the mock execAsync function that will be used by promisify - hoisted so it's available in mocks
 const { mockExecAsync } = vi.hoisted(() => ({
@@ -402,6 +402,83 @@ describe('createAgents - Template and Project ID Logic', () => {
       });
       expect(fs.ensureDir).toHaveBeenCalledWith('src');
       expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/custom');
+    });
+  });
+
+  describe('Skip provider option', () => {
+    it('should use mock model configuration when skipProvider is true', async () => {
+      await createAgents({
+        dirName: 'test-dir',
+        skipProvider: true,
+      });
+
+      expect(cloneTemplate).toHaveBeenCalledWith(
+        expect.stringContaining('activities-planner'),
+        'src/projects/activities-planner',
+        expect.arrayContaining([
+          expect.objectContaining({
+            filePath: 'index.ts',
+            replacements: expect.objectContaining({
+              models: defaultMockModelConfigurations,
+            }),
+          }),
+        ])
+      );
+
+      const selectCalls = vi.mocked(p.select).mock.calls;
+      const providerSelectCalls = selectCalls.filter(
+        (call) =>
+          call[0] &&
+          typeof call[0] === 'object' &&
+          'message' in call[0] &&
+          call[0].message.includes('AI provider')
+      );
+      expect(providerSelectCalls).toHaveLength(0);
+      expect(p.password).not.toHaveBeenCalled();
+    });
+
+    it('should use mock model configuration when skip is selected interactively', async () => {
+      vi.mocked(p.select).mockResolvedValueOnce('skip');
+
+      await createAgents({
+        dirName: 'test-dir',
+      });
+
+      expect(cloneTemplate).toHaveBeenCalledWith(
+        expect.stringContaining('activities-planner'),
+        'src/projects/activities-planner',
+        expect.arrayContaining([
+          expect.objectContaining({
+            filePath: 'index.ts',
+            replacements: expect.objectContaining({
+              models: defaultMockModelConfigurations,
+            }),
+          }),
+        ])
+      );
+
+      expect(p.password).not.toHaveBeenCalled();
+    });
+
+    it('should take precedence over API key flags when skipProvider is true', async () => {
+      await createAgents({
+        dirName: 'test-dir',
+        skipProvider: true,
+        openAiKey: 'test-key',
+      });
+
+      expect(cloneTemplate).toHaveBeenCalledWith(
+        expect.stringContaining('activities-planner'),
+        'src/projects/activities-planner',
+        expect.arrayContaining([
+          expect.objectContaining({
+            filePath: 'index.ts',
+            replacements: expect.objectContaining({
+              models: defaultMockModelConfigurations,
+            }),
+          }),
+        ])
+      );
     });
   });
 

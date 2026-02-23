@@ -325,19 +325,4 @@ describe('POST /api/auth/dev-session', () => {
 
     expect(res.status).toBe(404);
   });
-
-  it('returns 404 when auth is null', async () => {
-    const app = createAgentsHono({
-      serverConfig: defaultServerConfig,
-      credentialStores: defaultCredentialStores,
-      auth: null,
-    });
-
-    const res = await app.request('/api/auth/dev-session', {
-      method: 'POST',
-      headers: validHeaders(),
-    });
-
-    expect(res.status).toBe(404);
-  });
 });

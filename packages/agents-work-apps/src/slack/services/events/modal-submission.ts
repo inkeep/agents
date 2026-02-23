@@ -5,7 +5,7 @@
  * All responses are private (ephemeral) with a Follow Up button for multi-turn conversations.
  */
 
-import { signSlackUserToken } from '@inkeep/agents-core';
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
@@ -16,6 +16,7 @@ import type { FollowUpModalMetadata, ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import {
   classifyError,
+  extractApiErrorMessage,
   findCachedUserMapping,
   generateSlackConversationId,
   getThreadContext,
@@ -48,9 +49,9 @@ export async function handleModalSubmission(view: {
 
       const values = view.state?.values || {};
 
-      const agentSelectValue = values.agent_select_block?.agent_select as {
-        selected_option?: { value?: string };
-      };
+      const agentSelectValue = Object.values(values)
+        .map((block) => (block as Record<string, unknown>).agent_select)
+        .find(Boolean) as { selected_option?: { value?: string } } | undefined;
       const questionValue = values.question_block?.question_input as { value?: string };
       const includeContextValue = values.context_block?.include_context_checkbox as {
         selected_options?: Array<{ value?: string }>;
@@ -91,6 +92,7 @@ export async function handleModalSubmission(view: {
       }
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, false);
 
       const tenantId = metadata.tenantId;
 
@@ -158,7 +160,7 @@ export async function handleModalSubmission(view: {
         await slackClient.chat.postEphemeral({
           channel: metadata.channel,
           user: metadata.slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+          text: 'Link your account first. Run `/inkeep link` to connect.',
         });
         span.end();
         return;
@@ -169,6 +171,7 @@ export async function handleModalSubmission(view: {
         tenantId,
         slackTeamId: metadata.teamId,
         slackUserId: metadata.slackUserId,
+        slackAuthorized: false,
       });
 
       const conversationId = generateSlackConversationId({
@@ -290,6 +293,7 @@ export async function handleFollowUpSubmission(view: {
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, false);
 
       // Parallel: workspace connection + user mapping
       const [workspaceConnection, existingLink] = await Promise.all([
@@ -313,7 +317,7 @@ export async function handleFollowUpSubmission(view: {
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+          text: 'Link your account first. Run `/inkeep link` to connect.',
         });
         span.end();
         return;
@@ -324,6 +328,7 @@ export async function handleFollowUpSubmission(view: {
         tenantId,
         slackTeamId: teamId,
         slackUserId,
+        slackAuthorized: false,
       });
 
       const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
@@ -423,7 +428,7 @@ async function callAgentApi(params: {
 
     let response: Response;
     try {
-      response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -460,10 +465,14 @@ async function callAgentApi(params: {
       return { text: markdownToMrkdwn(rawContent), isError: false };
     }
 
+    const errorBody = await response.text().catch(() => '');
+    const apiMessage = extractApiErrorMessage(errorBody);
     const errorType = classifyError(null, response.status);
-    const errorText = getUserFriendlyErrorMessage(errorType, agentId);
+    const errorText = apiMessage
+      ? `*Error.* ${apiMessage}`
+      : getUserFriendlyErrorMessage(errorType, agentId);
     logger.warn(
-      { status: response.status, statusText: response.statusText, agentId },
+      { status: response.status, statusText: response.statusText, agentId, errorBody },
       'Agent API returned error'
     );
     apiSpan.end();

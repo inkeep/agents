@@ -40,6 +40,7 @@ export const OPENAI_MODELS = {
 } as const;
 
 export const GOOGLE_MODELS = {
+  GEMINI_3_1_PRO_PREVIEW: 'google/gemini-3.1-pro-preview',
   GEMINI_3_PRO_PREVIEW: 'google/gemini-3-pro-preview',
   GEMINI_3_FLASH_PREVIEW: 'google/gemini-3-flash-preview',
   GEMINI_2_5_PRO: 'google/gemini-2.5-pro',

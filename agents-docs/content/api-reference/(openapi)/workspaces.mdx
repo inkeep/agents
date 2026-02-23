@@ -18,6 +18,12 @@ _openapi:
       title: Check Workspace Health
       url: '#check-workspace-health'
     - depth: 2
+      title: Get Join From Workspace Setting
+      url: '#get-join-from-workspace-setting'
+    - depth: 2
+      title: Update Join From Workspace Setting
+      url: '#update-join-from-workspace-setting'
+    - depth: 2
       title: Get Workspace Settings
       url: '#get-workspace-settings'
     - depth: 2
@@ -36,6 +42,10 @@ _openapi:
         id: uninstall-workspace
       - content: Check Workspace Health
         id: check-workspace-health
+      - content: Get Join From Workspace Setting
+        id: get-join-from-workspace-setting
+      - content: Update Join From Workspace Setting
+        id: update-join-from-workspace-setting
       - content: Get Workspace Settings
         id: get-workspace-settings
       - content: Update Workspace Settings
@@ -55,6 +65,10 @@ _openapi:
           Verify the bot token is valid and check permissions. Returns bot info
           and permission status.
         heading: check-workspace-health
+      - content: Get the join from workspace setting for the workspace
+        heading: get-join-from-workspace-setting
+      - content: Enable or disable join from workspace for the workspace
+        heading: update-join-from-workspace-setting
       - content: Get settings for a Slack workspace including default agent
         heading: get-workspace-settings
       - content: Update workspace settings including default agent

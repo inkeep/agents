@@ -1,5 +1,91 @@
 # @inkeep/agents-api
 
+## 0.51.0
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-work-apps@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-mcp@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- 51bb2f6: remove noisy instrumentation in agents api
+  - @inkeep/agents-core@0.50.6
+  - @inkeep/agents-mcp@0.50.6
+  - @inkeep/agents-work-apps@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-work-apps@0.50.5
+  - @inkeep/agents-mcp@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-work-apps@0.50.4
+  - @inkeep/agents-mcp@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- 0aea45a: Add OpenTelemetry instrumentation for server-side tracing
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+- Updated dependencies [1be6def]
+- Updated dependencies [0011c4b]
+  - @inkeep/agents-work-apps@0.50.3
+  - @inkeep/agents-core@0.50.3
+  - @inkeep/agents-mcp@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- fa71905: Added Oversized Artifact Handling and Context Window Size Management at Provider Options
+- becf184: standardize permission checks in routes
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+  - @inkeep/agents-work-apps@0.50.2
+  - @inkeep/agents-mcp@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+  - @inkeep/agents-work-apps@0.50.1
+  - @inkeep/agents-mcp@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- Updated dependencies [5bd9461]
+  - @inkeep/agents-work-apps@0.50.0
+  - @inkeep/agents-core@0.50.0
+  - @inkeep/agents-mcp@0.50.0
+
 ## 0.49.0
 
 ### Patch Changes

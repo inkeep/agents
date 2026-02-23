@@ -1,19 +1,9 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey, XCircle } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/settings/change-password-dialog';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +23,10 @@ import {
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
+import { InvitationActionsMenu } from './components/invitation-actions-menu';
+import { MemberActionsMenu } from './components/member-actions-menu';
+import { MemberConfirmationModals } from './components/member-confirmation-modals';
+import { useConfirmationModal } from './hooks/use-confirmation-modal';
 import { ProjectAccessDialog } from './project-access-dialog';
 
 type AuthClient = ReturnType<typeof useAuthClient>;
@@ -89,8 +83,8 @@ export function MembersTable({
   const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [resettingMemberId, setResettingMemberId] = useState<string | null>(null);
-  const [revokingInvitation, setRevokingInvitation] = useState<Invitation | null>(null);
-  const [isRevoking, setIsRevoking] = useState(false);
+  const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
+  const [revokingInvitation, setRevokingInvitation] = useState<string | null>(null);
 
   // State for the project access dialog
   const [projectAccessDialogOpen, setProjectAccessDialogOpen] = useState(false);
@@ -98,6 +92,25 @@ export function MembersTable({
   const [selectedUser, setSelectedUser] = useState<{ userId: string; userName: string } | null>(
     null
   );
+
+  // Confirmation modals using reusable hook
+  const deleteModal = useConfirmationModal<Member>({
+    onConfirm: async (member) => {
+      await handleDeleteMember(member);
+    },
+  });
+
+  const roleChangeModal = useConfirmationModal<{ member: Member; newRole: OrgRole }>({
+    onConfirm: async ({ member, newRole }) => {
+      await performRoleChange(member.id, member, newRole);
+    },
+  });
+
+  const revokeModal = useConfirmationModal<Invitation>({
+    onConfirm: async (invitation) => {
+      await handleRevokeInvitation(invitation);
+    },
+  });
 
   // Sort members alphabetically by name (A→Z)
   const sortedMembers = useMemo(() => {
@@ -108,16 +121,16 @@ export function MembersTable({
     });
   }, [members]);
 
-  const memberHasCredentialAuth = (userId: string): boolean => {
-    const userProviders = memberProviders.find((p) => p.userId === userId);
-    return userProviders?.providers.includes('credential') ?? false;
-  };
-
-  const handleRoleChange = async (memberId: string, member: Member, newRole: OrgRole) => {
+  const handleRoleChange = async (member: Member, newRole: OrgRole) => {
     if (!isOrgAdmin) return;
 
     if (member.role === newRole) return;
 
+    // Always show confirmation modal for any role change
+    roleChangeModal.openModal({ member, newRole });
+  };
+
+  const performRoleChange = async (memberId: string, member: Member, newRole: OrgRole) => {
     const isDemotion =
       (member.role === OrgRoles.ADMIN || member.role === OrgRoles.OWNER) &&
       newRole === OrgRoles.MEMBER;
@@ -212,13 +225,11 @@ export function MembersTable({
     }
   };
 
-  const handleRevokeInvitation = async () => {
-    if (!revokingInvitation) return;
-
-    setIsRevoking(true);
+  const handleRevokeInvitation = async (invitation: Invitation) => {
+    setRevokingInvitation(invitation.id);
     try {
       const { error } = await authClient.organization.cancelInvitation({
-        invitationId: revokingInvitation.id,
+        invitationId: invitation.id,
       });
 
       if (error) {
@@ -229,7 +240,7 @@ export function MembersTable({
       }
 
       toast.success('Invitation revoked', {
-        description: `Invitation to ${revokingInvitation.email} has been revoked.`,
+        description: `Invitation to ${invitation.email} has been revoked.`,
       });
       onMemberUpdated?.();
     } catch (err) {
@@ -237,8 +248,40 @@ export function MembersTable({
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
     } finally {
-      setIsRevoking(false);
       setRevokingInvitation(null);
+    }
+  };
+
+  const handleDeleteMember = async (member: Member) => {
+    if (!isOrgAdmin) return;
+    if (member.id === currentMember?.id) return;
+    if (member.role === OrgRoles.OWNER) return;
+
+    setDeletingMemberId(member.id);
+    try {
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: member.id,
+        organizationId,
+      });
+
+      if (error) {
+        toast.error('Failed to delete member', {
+          description: error.message || 'An error occurred while deleting the member.',
+        });
+        return;
+      }
+
+      toast.success('Member deleted', {
+        description: `${member.user.name || member.user.email} has been removed from the organization.`,
+      });
+
+      onMemberUpdated?.();
+    } catch (err) {
+      toast.error('Failed to delete member', {
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setDeletingMemberId(null);
     }
   };
 
@@ -311,7 +354,7 @@ export function MembersTable({
                               {ROLE_OPTIONS.map((r) => (
                                 <DropdownMenuItem
                                   key={r.value}
-                                  onClick={() => handleRoleChange(id, member, r.value)}
+                                  onClick={() => handleRoleChange(member, r.value)}
                                   className={role === r.value ? 'bg-muted' : ''}
                                 >
                                   <div className="flex flex-col">
@@ -356,37 +399,17 @@ export function MembersTable({
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {isOrgAdmin && memberHasCredentialAuth(member.user.id) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                aria-label="Open actions menu"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {isCurrentUser ? (
-                                <DropdownMenuItem onClick={() => setChangePasswordDialogOpen(true)}>
-                                  <RotateCcwKey className="h-4 w-4" />
-                                  Change password
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  onClick={() => handleResetPassword(member)}
-                                  disabled={resettingMemberId === member.id}
-                                >
-                                  <RotateCcwKey className="h-4 w-4" />
-                                  Reset password
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <MemberActionsMenu
+                          member={member}
+                          currentMember={currentMember}
+                          isOrgAdmin={isOrgAdmin}
+                          memberProviders={memberProviders}
+                          onResetPassword={handleResetPassword}
+                          onChangePassword={() => setChangePasswordDialogOpen(true)}
+                          onDeleteMember={(member) => deleteModal.openModal(member)}
+                          resettingMemberId={resettingMemberId}
+                          deletingMemberId={deletingMemberId}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -415,48 +438,11 @@ export function MembersTable({
                     </TableCell>
                     <TableCell />
                     <TableCell className="text-right">
-                      {isOrgAdmin && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              aria-label="Open actions menu"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {invitation.authMethod === 'email-password' ? (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const link = `${window.location.origin}/accept-invitation/${invitation.id}?email=${encodeURIComponent(invitation.email)}`;
-                                  navigator.clipboard.writeText(link);
-                                  toast.success('Invite link copied');
-                                }}
-                              >
-                                <Copy className="h-4 w-4" />
-                                Copy invite link
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem disabled className="text-muted-foreground">
-                                <Info className="h-4 w-4" />
-                                Sign in via{' '}
-                                {invitation.authMethod === 'google' ? 'Google' : 'Inkeep SSO'}
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => setRevokingInvitation(invitation)}
-                              variant="destructive"
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Revoke invite
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                      <InvitationActionsMenu
+                        invitation={invitation}
+                        isOrgAdmin={isOrgAdmin}
+                        onRevokeInvitation={(invitation) => revokeModal.openModal(invitation)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -491,32 +477,29 @@ export function MembersTable({
         />
       )}
 
-      <AlertDialog
-        open={!!revokingInvitation}
-        onOpenChange={(open) => {
-          if (!open) setRevokingInvitation(null);
+      <MemberConfirmationModals
+        deleteModal={{
+          isOpen: deleteModal.isOpen,
+          data: deleteModal.data,
+          isLoading: deletingMemberId === deleteModal.data?.id,
+          onClose: deleteModal.closeModal,
+          onConfirm: deleteModal.handleConfirm,
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Revoke invitation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will revoke the pending invitation to {revokingInvitation?.email}. They will no
-              longer be able to accept it. You can send a new invitation if needed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isRevoking}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRevokeInvitation}
-              variant="destructive"
-              disabled={isRevoking}
-            >
-              {isRevoking ? 'Revoking...' : 'Revoke'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        roleChangeModal={{
+          isOpen: roleChangeModal.isOpen,
+          data: roleChangeModal.data,
+          isLoading: updatingMemberId === roleChangeModal.data?.member.id,
+          onClose: roleChangeModal.closeModal,
+          onConfirm: roleChangeModal.handleConfirm,
+        }}
+        revokeModal={{
+          isOpen: revokeModal.isOpen,
+          data: revokeModal.data,
+          isLoading: revokingInvitation === revokeModal.data?.id,
+          onClose: revokeModal.closeModal,
+          onConfirm: revokeModal.handleConfirm,
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   commonUpdateErrorResponses,
@@ -14,8 +14,10 @@ import {
   WorkAppGitHubAccessSetRequestSchema,
   WorkAppGitHubAccessSetResponseSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('project-github-access');
@@ -43,7 +45,7 @@ const SetGitHubAccessResponseSchema = WorkAppGitHubAccessSetResponseSchema.exten
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'Get project GitHub repository access',
@@ -53,6 +55,7 @@ app.openapi(
       'Returns the current GitHub repository access configuration for a project. ' +
       'If mode is "all", the project has access to all repositories from tenant GitHub installations. ' +
       'If mode is "selected", the project is scoped to specific repositories.',
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -118,7 +121,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/',
     summary: 'Set project GitHub repository access',
@@ -129,6 +132,7 @@ app.openapi(
       'When mode is "all", the project has access to all repositories from tenant GitHub installations. ' +
       'When mode is "selected", the project is scoped to specific repositories (repositoryIds required). ' +
       'This replaces any existing access configuration.',
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {

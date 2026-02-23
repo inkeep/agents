@@ -16,8 +16,8 @@ The executable command is `inkeep`.
 
 - CLI overview: <https://docs.inkeep.com/guides/cli/overview>
 - CLI reference: <https://docs.inkeep.com/typescript-sdk/cli-reference>
-- Push guide: <https://docs.inkeep.com/guides/cli/push-to-cloud>
-- Pull guide: <https://docs.inkeep.com/guides/cli/pull-from-cloud>
+- Push guide: <https://docs.inkeep.com/guides/cli/push-to-remote>
+- Pull guide: <https://docs.inkeep.com/guides/cli/pull-from-remote>
 - Profile setup: <https://docs.inkeep.com/guides/cli/setup-profile>
 
 ## Quick usage

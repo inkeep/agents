@@ -1,5 +1,86 @@
 # @inkeep/agents-cli
 
+## 0.51.0
+
+### Patch Changes
+
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-manage-ui@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-sdk@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.50.6
+- @inkeep/agents-core@0.50.6
+- @inkeep/agents-sdk@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-manage-ui@0.50.5
+  - @inkeep/agents-sdk@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-manage-ui@0.50.4
+  - @inkeep/agents-sdk@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- d50fa44: Released Gemini 3.1-pro
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+- Updated dependencies [13197d8]
+- Updated dependencies [0aea45a]
+  - @inkeep/agents-core@0.50.3
+  - @inkeep/agents-manage-ui@0.50.3
+  - @inkeep/agents-sdk@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+  - @inkeep/agents-manage-ui@0.50.2
+  - @inkeep/agents-sdk@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+  - @inkeep/agents-manage-ui@0.50.1
+  - @inkeep/agents-sdk@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- Updated dependencies [d32f38f]
+  - @inkeep/agents-manage-ui@0.50.0
+  - @inkeep/agents-core@0.50.0
+  - @inkeep/agents-sdk@0.50.0
+
 ## 0.49.0
 
 ### Patch Changes

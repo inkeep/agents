@@ -17,6 +17,7 @@ import {
   getEvaluationJobConfigEvaluatorRelations,
   getEvaluatorById,
   getFullAgent,
+  getInProcessFetch,
   getProjectScopedRef,
   ModelFactory,
   parseSSEResponse,
@@ -31,7 +32,6 @@ import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import { getInProcessFetch } from '../../../utils/in-process-fetch';
 
 const logger = getLogger('EvaluationService');
 

@@ -25,6 +25,7 @@ export {
   handleMessageShortcut,
   handleOpenAgentSelectorModal,
   handleOpenFollowUpModal,
+  handleToolApproval,
 } from './block-actions';
 export { handleFollowUpSubmission, handleModalSubmission } from './modal-submission';
 export type { StreamResult } from './streaming';
@@ -32,6 +33,7 @@ export { streamAgentResponse } from './streaming';
 export {
   checkIfBotThread,
   classifyError,
+  extractApiErrorMessage,
   fetchAgentsForProject,
   fetchProjectsForTenant,
   findCachedUserMapping,

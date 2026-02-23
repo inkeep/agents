@@ -1,17 +1,15 @@
 ---
-title: AI Assistant for Slack
+title: Slack Work App
 sidebarTitle: Overview
-description: Connect your Inkeep agents to Slack for real-time AI assistance in your workspace.
+description: Connect your Inkeep agents to Slack.
 icon: LuMessageSquare
 ---
 
-# AI Assistant for Slack
-
 <Note>
-The Slack integration is available on **Inkeep Cloud**. On cloud, the required environment variables are already configured — no setup needed on your end beyond installing the app.
+The Slack integration is only available for [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav).
 </Note>
 
-The AI Assistant for Slack brings your Inkeep agents directly into Slack. Team members can interact with agents through `@mentions` for public responses or `/inkeep` commands for private ones — no context switching required.
+The Slack Work App brings your Inkeep agents directly into Slack. Team members can interact with agents by mentioning `@Inkeep` or by using `/inkeep` commands.
 
 ## Key features
 
@@ -20,6 +18,7 @@ The AI Assistant for Slack brings your Inkeep agents directly into Slack. Team m
 - **Thread context** — Mention `@Inkeep` in a thread to give the agent full conversation context
 - **Agent configuration** — Set a workspace-wide default agent, or assign specific agents to individual channels
 - **Account linking** — Unlinked users are automatically prompted to connect their Inkeep account when they first interact with the bot, and their original question resumes after linking
+- **Channel-based authorization** — When an admin assigns an agent to a channel, members can use that agent without needing explicit project access
 
 ## How it works
 
@@ -55,12 +54,12 @@ Use `/inkeep status` in any channel to see which agent is active for that channe
 
 <Cards>
   <Card title="Admin: Install & Configure" icon="LuShield" href="/talk-to-your-agents/slack/installation">
-    For workspace admins — install the app, set up agents, manage users
+    Guide for Slack workspace admins — install the app, set up agents, manage users
   </Card>
   <Card title="Using the Slack App" icon="LuMessageSquare" href="/talk-to-your-agents/slack/commands">
-    For all team members — how to ask questions, link your account, and use commands
+    Guide for all team members — how to ask questions, link your account, and use commands
   </Card>
   <Card title="Dashboard Configuration" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">
-    For admins — workspace defaults, channel defaults, and user management
+    Guide for admins — workspace defaults, channel defaults, and user management
   </Card>
 </Cards>

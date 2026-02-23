@@ -6,7 +6,9 @@ import {
   generateId,
   generateServiceToken,
   getActiveAgentForConversation,
+  getInProcessFetch,
   getTask,
+  type ModelSettings,
   type Part,
   type SendMessageResponse,
   setSpanWithError,
@@ -16,7 +18,6 @@ import {
 import runDbClient from '../../../data/db/runDbClient.js';
 import { flushBatchProcessor } from '../../../instrumentation.js';
 import { getLogger } from '../../../logger.js';
-import { getInProcessFetch } from '../../../utils/in-process-fetch.js';
 import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -102,53 +103,54 @@ export class ExecutionHandler {
 
     const agent = project.agents[agentId];
     try {
-      if (agent?.statusUpdates && agent.statusUpdates.enabled !== false) {
-        try {
-          // Get the default sub-agent to resolve models properly with inheritance
+      // Always resolve models for artifact naming, even if status updates are disabled
+      let summarizerModel: ModelSettings | undefined;
+      let baseModel: ModelSettings | undefined;
 
-          if (agent?.defaultSubAgentId) {
-            const resolvedModels = await resolveModelConfig(
-              executionContext,
-              agent.subAgents[agent.defaultSubAgentId]
-            );
-
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agent.statusUpdates,
-              resolvedModels.summarizer,
-              resolvedModels.base
-            );
-          } else {
-            // Fallback to agent-level config if no default sub-agent
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agent.statusUpdates,
-              agent.models?.summarizer
-            );
-          }
-        } catch (modelError) {
-          logger.warn(
-            {
-              error: modelError instanceof Error ? modelError.message : 'Unknown error',
-              agentId,
-            },
-            'Failed to resolve models for status updates, using agent-level config'
+      try {
+        if (agent?.defaultSubAgentId) {
+          const resolvedModels = await resolveModelConfig(
+            executionContext,
+            agent.subAgents[agent.defaultSubAgentId]
           );
-          // Fallback to agent-level config
-          agentSessionManager.initializeStatusUpdates(
-            requestId,
-            agent.statusUpdates,
-            agent.models?.summarizer
-          );
+          summarizerModel = resolvedModels.summarizer;
+          baseModel = resolvedModels.base;
+        } else {
+          // Fallback to agent-level config if no default sub-agent
+          summarizerModel = agent.models?.summarizer;
+          baseModel = agent.models?.base;
         }
+      } catch (modelError) {
+        logger.warn(
+          {
+            error: modelError instanceof Error ? modelError.message : 'Unknown error',
+            agentId,
+          },
+          'Failed to resolve models, using agent-level config'
+        );
+        summarizerModel = agent.models?.summarizer;
+        baseModel = agent.models?.base;
       }
+
+      // Initialize status updates (always call to set models, but only enable events if configured)
+      const statusConfig =
+        agent?.statusUpdates && agent.statusUpdates.enabled !== false
+          ? agent.statusUpdates
+          : { enabled: false }; // Disabled but still sets models
+
+      agentSessionManager.initializeStatusUpdates(
+        requestId,
+        statusConfig,
+        summarizerModel,
+        baseModel
+      );
     } catch (error) {
       logger.error(
         {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         },
-        '❌ Failed to initialize status updates, continuing without them'
+        'Failed to initialize session configuration, continuing with defaults'
       );
     }
 

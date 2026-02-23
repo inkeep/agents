@@ -13,6 +13,7 @@ import { DOCS_BASE_URL } from '@/constants/theme';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useSlack } from '../context/slack-provider';
 import { AgentConfigurationCard } from './agent-configuration-card';
+import { JoinFromWorkspaceToggle } from './join-from-workspace-toggle';
 import { LinkedUsersSection } from './linked-users-section';
 import { MyLinkStatus } from './my-link-status';
 import { WorkspaceHero } from './workspace-hero';
@@ -125,6 +126,8 @@ export function SlackDashboard() {
                 {/* Agent Configuration  */}
                 <AgentConfigurationCard />
                 <LinkedUsersSection />
+                {/* Join from Workspace Toggle */}
+                <JoinFromWorkspaceToggle />
               </div>
             ) : (
               /* Member Dashboard View */

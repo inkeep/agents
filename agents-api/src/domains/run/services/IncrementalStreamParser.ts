@@ -50,6 +50,7 @@ export class IncrementalStreamParser {
       artifactComponents?: any[];
       streamRequestId?: string;
       subAgentId?: string;
+      contextWindowSize?: number;
     }
   ) {
     this.streamHelper = streamHelper;

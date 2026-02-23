@@ -119,6 +119,10 @@ export const SPAN_KEYS = {
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',
   ARTIFACT_DESCRIPTION: 'artifact.description',
+  ARTIFACT_IS_OVERSIZED: 'artifact.is_oversized',
+  ARTIFACT_RETRIEVAL_BLOCKED: 'artifact.retrieval_blocked',
+  ARTIFACT_ORIGINAL_TOKEN_SIZE: 'artifact.original_token_size',
+  ARTIFACT_CONTEXT_WINDOW_SIZE: 'artifact.context_window_size',
 
   // Context breakdown attributes (estimated token counts)
   CONTEXT_BREAKDOWN_SYSTEM_TEMPLATE: 'context.breakdown.system_template_tokens',

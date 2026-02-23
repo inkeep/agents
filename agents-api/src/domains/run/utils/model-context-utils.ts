@@ -16,7 +16,7 @@ export interface ModelContextInfo {
   contextWindow: number | null;
   hasValidContextWindow: boolean;
   modelId: string;
-  source: 'llm-info' | 'fallback';
+  source: 'llm-info' | 'fallback' | 'provider-options';
 }
 
 /**
@@ -72,6 +72,28 @@ export function extractModelIdForLlmInfo(modelInput?: string | ModelSettings): s
  */
 export function getModelContextWindow(modelSettings?: ModelSettings): ModelContextInfo {
   const defaultContextWindow = 120000; // Current fallback default
+
+  // Check for explicit context window size in providerOptions first
+  if (
+    modelSettings?.providerOptions?.contextWindowSize &&
+    typeof modelSettings.providerOptions.contextWindowSize === 'number' &&
+    modelSettings.providerOptions.contextWindowSize > 0
+  ) {
+    const contextWindowSize = modelSettings.providerOptions.contextWindowSize;
+    logger.debug(
+      {
+        contextWindow: contextWindowSize,
+        model: modelSettings.model,
+      },
+      'Using context window from providerOptions'
+    );
+    return {
+      contextWindow: contextWindowSize,
+      hasValidContextWindow: true,
+      modelId: modelSettings.model || 'custom',
+      source: 'provider-options',
+    };
+  }
 
   if (!modelSettings?.model) {
     logger.debug({}, 'No model settings provided, using fallback');
