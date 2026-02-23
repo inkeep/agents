@@ -1,14 +1,16 @@
 import { project } from '@inkeep/agents-sdk';
-import { docsAssistantAgent } from './agents/docs-assistant';
-import { inkeepRagMcpTool } from './tools/inkeep-rag-mcp';
+import { docsAssistant as docsAssistantAgent } from './agents/docs-assistant';
+import { inkeepRagMcp } from './tools/inkeep-rag-mcp';
 
-export const myProject = project({
+export const docsAssistant = project({
   id: 'docs-assistant',
   name: 'Docs Assistant',
   description: 'Docs assistant template',
-  agents: () => [docsAssistantAgent],
-  tools: () => [inkeepRagMcpTool],
   models: {
-    base: { model: 'openai/gpt-4o-mini' },
+    base: {
+      model: 'openai/gpt-4o-mini',
+    },
   },
+  agents: () => [docsAssistantAgent],
+  tools: () => [inkeepRagMcp],
 });
