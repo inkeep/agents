@@ -1,4 +1,7 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
+import { websearch } from './websearch';
+import { weather } from './weather';
+import { coordinates } from './coordinates';
 
 export const planner = subAgent({
   id: 'planner',
