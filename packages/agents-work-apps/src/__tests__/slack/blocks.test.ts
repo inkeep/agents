@@ -9,6 +9,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildToolApprovalBlocks,
+  buildToolApprovalDoneBlocks,
   createAlreadyLinkedMessage,
   createContextBlock,
   createErrorMessage,
@@ -111,5 +113,117 @@ describe('Slack Block Builders', () => {
       expect(JSON.stringify(result)).toContain('Not linked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
     });
+  });
+});
+
+describe('buildToolApprovalBlocks', () => {
+  const buttonValue = JSON.stringify({ toolCallId: 'tc-1', conversationId: 'conv-1' });
+
+  it('should include a header, section, divider, and actions block', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const types = blocks.map((b: any) => b.type);
+    expect(types).toContain('header');
+    expect(types).toContain('section');
+    expect(types).toContain('divider');
+    expect(types).toContain('actions');
+  });
+
+  it('should include the tool name in the section text', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const section = blocks.find((b: any) => b.type === 'section');
+    expect(section.text.text).toContain('search_web');
+  });
+
+  it('should have correct action_ids on approve and deny buttons', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const actions = blocks.find((b: any) => b.type === 'actions');
+    const actionIds = actions.elements.map((e: any) => e.action_id);
+    expect(actionIds).toContain('tool_approval_approve');
+    expect(actionIds).toContain('tool_approval_deny');
+  });
+
+  it('should embed buttonValue in both buttons', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const actions = blocks.find((b: any) => b.type === 'actions');
+    for (const element of actions.elements) {
+      expect(element.value).toBe(buttonValue);
+    }
+  });
+
+  it('should not add an input section when input is empty', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input: {}, buttonValue });
+
+    const sections = blocks.filter((b: any) => b.type === 'section');
+    expect(sections).toHaveLength(1);
+  });
+
+  it('should render input as a JSON code block in mrkdwn', () => {
+    const input = { query: 'hello', limit: 10 };
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
+
+    const inputSection = blocks.find(
+      (b: any) => b.type === 'section' && b.text?.text?.startsWith('```json')
+    );
+    expect(inputSection).toBeDefined();
+    expect(inputSection.text.type).toBe('mrkdwn');
+    expect(inputSection.text.text).toContain('"query"');
+    expect(inputSection.text.text).toContain('"hello"');
+    expect(inputSection.text.text).toContain('```json');
+  });
+
+  it('should truncate input JSON at 2900 characters with ellipsis', () => {
+    const input = { data: 'x'.repeat(3000) };
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
+
+    const inputSection = blocks.find(
+      (b: any) => b.type === 'section' && b.text?.text?.startsWith('```json')
+    );
+    expect(inputSection.text.text).toContain('…');
+    const jsonContent = inputSection.text.text.replace(/```json\n/, '').replace(/\n```$/, '');
+    expect(jsonContent.length).toBeLessThanOrEqual(2901);
+  });
+
+  it('should not truncate input JSON under 2900 characters', () => {
+    const input = { query: 'hello', limit: 10 };
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
+
+    const inputSection = blocks.find(
+      (b: any) => b.type === 'section' && b.text?.text?.startsWith('```json')
+    );
+    expect(inputSection.text.text).not.toContain('…');
+  });
+});
+
+describe('buildToolApprovalDoneBlocks', () => {
+  it('should show approved status with actor mention', () => {
+    const blocks = buildToolApprovalDoneBlocks({
+      toolName: 'search_web',
+      approved: true,
+      actorUserId: 'U123',
+    });
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe('context');
+    const text: string = blocks[0].elements[0].text;
+    expect(text).toContain('✅');
+    expect(text).toContain('search_web');
+    expect(text).toContain('<@U123>');
+  });
+
+  it('should show denied status with actor mention', () => {
+    const blocks = buildToolApprovalDoneBlocks({
+      toolName: 'search_web',
+      approved: false,
+      actorUserId: 'U456',
+    });
+
+    const text: string = blocks[0].elements[0].text;
+    expect(text).toContain('❌');
+    expect(text).toContain('search_web');
+    expect(text).toContain('<@U456>');
   });
 });

@@ -16,6 +16,7 @@ export const SLACK_SPAN_NAMES = {
   OPEN_FOLLOW_UP_MODAL: 'slack.open_follow_up_modal',
   PROJECT_SELECT_UPDATE: 'slack.project_select_update',
   CALL_AGENT_API: 'slack.call_agent_api',
+  TOOL_APPROVAL: 'slack.tool_approval',
 } as const;
 
 export const SLACK_SPAN_KEYS = {

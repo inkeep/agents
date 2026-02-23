@@ -313,6 +313,20 @@ export function createAuth(config: BetterAuthConfig) {
               },
             },
           },
+          organization: {
+            additionalFields: {
+              preferredAuthMethod: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+              serviceAccountUserId: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+            },
+          },
         },
         organizationHooks: {
           afterAcceptInvitation: async ({ member, user, organization: org }) => {

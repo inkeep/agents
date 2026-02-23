@@ -1,5 +1,35 @@
 # @inkeep/agents-api
 
+## 0.51.0
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-work-apps@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-mcp@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- 51bb2f6: remove noisy instrumentation in agents api
+  - @inkeep/agents-core@0.50.6
+  - @inkeep/agents-mcp@0.50.6
+  - @inkeep/agents-work-apps@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-work-apps@0.50.5
+  - @inkeep/agents-mcp@0.50.5
+
 ## 0.50.4
 
 ### Patch Changes

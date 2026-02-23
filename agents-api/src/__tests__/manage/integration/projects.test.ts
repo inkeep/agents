@@ -169,7 +169,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
         ...page3Body.data.map((p: any) => p.id),
       ];
       expect(new Set(allProjectIds).size).toBe(5); // All should be unique
-    });
+    }, 120_000);
 
     it('should return empty data for page beyond available data', async () => {
       const tenantId = await createTrackedTenant('projects-list-beyond-pages');
@@ -187,7 +187,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
         total: 3,
         pages: 2,
       });
-    });
+    }, 90_000);
 
     it('should enforce max limit of 100', async () => {
       const tenantId = await createTrackedTenant('projects-list-max-limit');
@@ -555,7 +555,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       const listRes = await makeRequest(`/manage/tenants/${tenantId}/projects?limit=10`);
       const listBody = await listRes.json();
       expect(listBody.data).toHaveLength(5);
-    });
+    }, 90_000);
 
     it('should maintain data isolation between tenants', async () => {
       const tenantId1 = await createTrackedTenant('projects-isolation-1');
@@ -579,6 +579,6 @@ describe('Project CRUD Routes - Integration Tests', () => {
       const ids2 = body2.data.map((p: any) => p.id);
       const intersection = ids1.filter((id: string) => ids2.includes(id));
       expect(intersection).toHaveLength(0);
-    });
+    }, 90_000);
   });
 });

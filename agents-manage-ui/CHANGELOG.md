@@ -1,5 +1,27 @@
 # @inkeep/agents-manage-ui
 
+## 0.51.0
+
+### Patch Changes
+
+- fe36caa: Add join-from-workspace toggle and auto-invite flow for Slack users
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
 ## 0.50.4
 
 ### Patch Changes

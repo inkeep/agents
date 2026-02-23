@@ -1,17 +1,15 @@
 ---
-title: AI Assistant for Slack
+title: Slack Work App
 sidebarTitle: Overview
-description: Connect your Inkeep agents to Slack for real-time AI assistance in your workspace.
+description: Connect your Inkeep agents to Slack.
 icon: LuMessageSquare
 ---
 
-# AI Assistant for Slack
-
 <Note>
-The Slack integration is available on **Inkeep Cloud**. On cloud, the required environment variables are already configured — no setup needed on your end beyond installing the app.
+The Slack integration is only available for [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav).
 </Note>
 
-The AI Assistant for Slack brings your Inkeep agents directly into Slack. Team members can interact with agents through `@mentions` for public responses or `/inkeep` commands for private ones — no context switching required.
+The Slack Work App brings your Inkeep agents directly into Slack. Team members can interact with agents by mentioning `@Inkeep` or by using `/inkeep` commands.
 
 ## Key features
 
@@ -22,46 +20,16 @@ The AI Assistant for Slack brings your Inkeep agents directly into Slack. Team m
 - **Account linking** — Each Slack user links their account to Inkeep via `/inkeep link` for personalized, secure access
 - **Channel-based authorization** — When an admin assigns an agent to a channel, members can use that agent without needing explicit project access
 
-## How it works
-
-```mermaid
-graph LR
-    A[Slack User] -->|"@Inkeep or /inkeep"| B[Inkeep API]
-    B -->|Resolve agent| C[Channel or Workspace Default]
-    C -->|Execute| D[AI Agent]
-    D -->|Stream response| E[Slack Thread or Ephemeral]
-```
-
-1. A user sends a message via `@Inkeep` or `/inkeep` in Slack
-2. The Inkeep API verifies the user's identity and resolves the configured agent for that channel
-3. The agent processes the message (with optional thread context) and returns a response
-4. The response appears as a public thread reply (`@Inkeep`) or a private ephemeral message (`/inkeep`)
-
-## Which agent handles my request?
-
-The app uses an **agent resolution priority** to decide which agent responds:
-
-| Priority | Source | Set by | Scope |
-|----------|--------|--------|-------|
-| 1 | **Channel default** | Admin, via the dashboard | Only that channel |
-| 2 | **Workspace default** | Admin, via the dashboard | All channels without a channel default |
-
-If no agent is configured at either level, the bot prompts you to ask an admin to set one up in the dashboard.
-
-<Tip>
-Use `/inkeep status` in any channel to see which agent is active for that channel and how it was resolved.
-</Tip>
-
 ## Get started
 
 <Cards>
   <Card title="Admin: Install & Configure" icon="LuShield" href="/talk-to-your-agents/slack/installation">
-    For workspace admins — install the app, set up agents, manage users
+    Guide for Slack workspace admins — install the app, set up agents, manage users
   </Card>
   <Card title="Using the Slack App" icon="LuMessageSquare" href="/talk-to-your-agents/slack/commands">
-    For all team members — how to ask questions, link your account, and use commands
+    Guide for all team members — how to ask questions, link your account, and use commands
   </Card>
   <Card title="Dashboard Configuration" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">
-    For admins — workspace defaults, channel defaults, and user management
+    Guide for admins — workspace defaults, channel defaults, and user management
   </Card>
 </Cards>

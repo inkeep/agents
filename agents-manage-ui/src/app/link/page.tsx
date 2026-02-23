@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,8 +113,10 @@ function SlackLinkForm() {
     [user]
   );
 
+  const linkingRef = useRef(false);
   useEffect(() => {
-    if (isAuthenticated && user?.id && state === 'waiting' && initialToken) {
+    if (isAuthenticated && user?.id && state === 'waiting' && initialToken && !linkingRef.current) {
+      linkingRef.current = true;
       handleLinkWithToken(initialToken);
     }
   }, [initialToken, isAuthenticated, user?.id, state, handleLinkWithToken]);
