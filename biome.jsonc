@@ -10,7 +10,8 @@
       "source": {
         "organizeImports": "on"
       }
-    }
+    },
+    "includes": ["**", "!agents-cli/src/commands/pull-v4/__snapshots__/**"]
   },
   "vcs": {
     "enabled": true,
@@ -140,7 +141,12 @@
     }
   },
   "formatter": {
-    "includes": ["**", "!**/drizzle/**", "!**/__snapshots__/*.json"],
+    "includes": [
+      "**",
+      "!**/drizzle/**",
+      "!**/__snapshots__/*.json",
+      "!agents-cli/src/commands/pull-v4/__snapshots__/**"
+    ],
     "enabled": true,
     "lineWidth": 100,
     "indentStyle": "space",

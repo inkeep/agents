@@ -1,0 +1,14 @@
+import { project } from '@inkeep/agents-sdk';
+
+export const stepOnlyProject = project({
+  id: 'step-only-project',
+  name: 'Step Only Project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini',
+    },
+  },
+  stopWhen: {
+    stepCountIs: 50,
+  },
+});

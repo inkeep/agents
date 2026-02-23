@@ -1,0 +1,10 @@
+import { mcpTool } from '@inkeep/agents-sdk';
+
+export const stripePaymentTool = mcpTool({
+  id: 'stripe-payment-tool',
+  name: 'Stripe Payment',
+  serverUrl: 'https://stripe.example.com/mcp',
+  transport: {
+    type: 'streamable_http',
+  },
+});
