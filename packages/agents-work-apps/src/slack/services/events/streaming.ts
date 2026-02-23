@@ -356,14 +356,16 @@ export async function streamAgentResponse(params: {
                 });
                 if (overflowJson) {
                   const label = componentType || 'data-component';
-                  await retryWithBackoff(() =>
-                    slackClient.files.uploadV2({
-                      channel_id: channel,
-                      thread_ts: threadTs,
-                      filename: `${label}.json`,
-                      content: overflowJson,
-                      initial_comment: `📊 ${label}`,
-                    })
+                  await retryWithBackoff(
+                    () =>
+                      slackClient.files.uploadV2({
+                        channel_id: channel,
+                        thread_ts: threadTs,
+                        filename: `${label}.json`,
+                        content: overflowJson,
+                        initial_comment: `📊 ${label}`,
+                      }),
+                    { label: 'slack-file-upload' }
                   ).catch((e) =>
                     logger.warn(
                       { error: e, channel, threadTs, agentId, componentType: label },
@@ -409,14 +411,16 @@ export async function streamAgentResponse(params: {
                 });
                 if (overflowContent) {
                   const label = artifactName || 'artifact';
-                  await retryWithBackoff(() =>
-                    slackClient.files.uploadV2({
-                      channel_id: channel,
-                      thread_ts: threadTs,
-                      filename: `${label}.md`,
-                      content: overflowContent,
-                      initial_comment: `📄 ${label}`,
-                    })
+                  await retryWithBackoff(
+                    () =>
+                      slackClient.files.uploadV2({
+                        channel_id: channel,
+                        thread_ts: threadTs,
+                        filename: `${label}.md`,
+                        content: overflowContent,
+                        initial_comment: `📄 ${label}`,
+                      }),
+                    { label: 'slack-file-upload' }
                   ).catch((e) =>
                     logger.warn(
                       { error: e, channel, threadTs, agentId, artifactName: label },
