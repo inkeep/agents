@@ -273,9 +273,13 @@ export const weatherMcpTool = mcpTool({
     project.tools = {
       'weather-mcp': {
         id: 'weather-mcp',
+        name: 'foo',
+        serverUrl: 'https://foo.com',
       },
       'exa-mcp': {
         id: 'exa-mcp',
+        name: 'bar',
+        serverUrl: 'https://bar.com',
       },
     };
 
@@ -344,6 +348,8 @@ export const exaMcpTool = mcpTool({
     project.tools = {
       'ad1dRlGjxH7FgdTcRn-qr': {
         id: 'ad1dRlGjxH7FgdTcRn-qr',
+        name: 'foo',
+        serverUrl: 'https://foo.com',
       },
     };
 
