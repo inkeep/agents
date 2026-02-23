@@ -258,7 +258,6 @@ app.openapi(
         201
       );
     } catch (error: any) {
-      // Handle duplicate project (PostgreSQL unique constraint violation)
       throwIfUniqueConstraintError(error, 'Project with this ID already exists');
       throw error;
     }

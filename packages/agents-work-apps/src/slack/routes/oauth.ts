@@ -8,7 +8,7 @@
 
 import * as crypto from 'node:crypto';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
-import { createWorkAppSlackWorkspace } from '@inkeep/agents-core';
+import { createWorkAppSlackWorkspace, isUniqueConstraintError } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -330,12 +330,7 @@ app.openapi(
               'Persisted workspace installation to database'
             );
           } catch (dbError) {
-            const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-            const isDuplicate =
-              dbErrorMessage.includes('duplicate key') ||
-              dbErrorMessage.includes('unique constraint');
-
-            if (isDuplicate) {
+            if (isUniqueConstraintError(dbError)) {
               logger.info(
                 { teamId: workspaceData.teamId, tenantId },
                 'Workspace already exists in database'
@@ -349,7 +344,6 @@ app.openapi(
               logger.error(
                 {
                   err: dbError,
-                  dbErrorMessage,
                   pgCode,
                   teamId: workspaceData.teamId,
                   tenantId,
