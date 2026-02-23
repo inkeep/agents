@@ -5,7 +5,7 @@ import {
   convertJsonSchemaToZodSafe,
   createFactoryDefinition,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 interface StatusComponentDefinitionData {
   statusComponentId: string;

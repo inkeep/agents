@@ -14,7 +14,7 @@ import {
   isPlainObject,
   resolveReferenceName,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
 

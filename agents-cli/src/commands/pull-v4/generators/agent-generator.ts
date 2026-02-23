@@ -10,7 +10,7 @@ import {
   formatTemplate,
   isPlainObject,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 const SubAgentReferenceSchema = z.object({
   name: z.string().nonempty(),

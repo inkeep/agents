@@ -10,7 +10,7 @@ import {
   formatPropertyName,
   isPlainObject,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 interface ContextConfigDefinitionData {
   contextConfigId: string;

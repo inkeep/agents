@@ -6,7 +6,7 @@ import {
   formatInlineLiteral,
   formatStringLiteral,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 interface McpToolDefinitionData {
   mcpToolId: string;

@@ -6,7 +6,7 @@ import {
   convertJsonSchemaToZodSafe,
   createFactoryDefinition,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 interface DataComponentDefinitionData {
   dataComponentId: string;

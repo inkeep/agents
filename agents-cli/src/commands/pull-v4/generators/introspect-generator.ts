@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { Node, type SourceFile, SyntaxKind } from 'ts-morph';
-import { buildComponentRegistryFromParsing } from '../pull-v3/component-parser';
-import type { ComponentRegistry, ComponentType } from '../pull-v3/utils/component-registry';
+import { buildComponentRegistryFromParsing } from '../../pull-v3/component-parser';
+import type { ComponentRegistry, ComponentType } from '../../pull-v3/utils/component-registry';
 import { generateAgentDefinition } from './agent-generator';
 import { generateArtifactComponentDefinition } from './artifact-component-generator';
 import { generateContextConfigDefinition } from './context-config-generator';
@@ -20,7 +20,7 @@ import {
   createInMemoryProject,
   isPlainObject,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 export interface ProjectPaths {
   projectRoot: string;

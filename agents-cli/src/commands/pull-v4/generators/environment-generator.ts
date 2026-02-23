@@ -6,7 +6,7 @@ import {
   formatInlineLiteral,
   formatPropertyName,
   isPlainObject,
-} from './utils';
+} from '../utils';
 
 interface EnvironmentSettingsData {
   credentials?: unknown;

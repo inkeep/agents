@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import type { ProjectPaths } from '../introspect-generator';
-import { introspectGenerate } from '../introspect-generator';
+import type { ProjectPaths } from '../generators/introspect-generator';
+import { introspectGenerate } from '../generators/introspect-generator';
 import {
   cleanupTestEnvironment,
   createProjectFixture,

@@ -24,7 +24,7 @@ import { performBackgroundVersionCheck } from '../../../utils/background-version
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
 import { extractSubAgents } from '../../pull-v3/utils/component-registry';
-import { introspectGenerate } from '../introspect-generator';
+import { introspectGenerate } from '../generators/introspect-generator';
 
 export interface PullV3Options {
   project?: string;

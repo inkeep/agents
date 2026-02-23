@@ -1,6 +1,6 @@
 import type { ObjectLiteralExpression, SourceFile, Statement } from 'ts-morph';
 import { Node, SyntaxKind } from 'ts-morph';
-import { createInMemoryProject } from './utils';
+import { createInMemoryProject } from '../utils';
 
 export function mergeGeneratedModule(existingContent: string, generatedContent: string): string {
   const project = createInMemoryProject();

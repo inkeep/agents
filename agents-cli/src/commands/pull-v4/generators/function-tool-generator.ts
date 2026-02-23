@@ -1,6 +1,6 @@
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
+import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
 
 interface FunctionToolDefinitionData {
   functionToolId: string;

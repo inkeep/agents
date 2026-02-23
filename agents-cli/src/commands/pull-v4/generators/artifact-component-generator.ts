@@ -9,7 +9,7 @@ import {
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
-} from './utils';
+} from '../utils';
 
 interface ArtifactComponentDefinitionData {
   artifactComponentId: string;
