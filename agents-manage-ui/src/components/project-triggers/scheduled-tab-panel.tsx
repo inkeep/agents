@@ -28,16 +28,13 @@ export function ScheduledTabPanel({
   const [triggers, setTriggers] = useState(initialTriggers);
 
   useEffect(() => {
-    setTriggers(initialTriggers);
-  }, [initialTriggers]);
-
-  useEffect(() => {
     const fetchTriggers = async () => {
       try {
         const updatedTriggers = await getProjectScheduledTriggersAction(tenantId, projectId);
         setTriggers(updatedTriggers);
       } catch (error) {
         console.error('Failed to fetch scheduled triggers:', error);
+        2;
       }
     };
 
