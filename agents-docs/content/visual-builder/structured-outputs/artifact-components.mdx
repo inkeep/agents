@@ -131,9 +131,9 @@ Agents can access artifact data in a few ways:
 When a tool receives an artifact as an argument, it has access to all fields — not just the preview ones. For example, a document processing tool can read the full `content` array even though `content` is a non-preview field:
 
 ```typescript
-import { tool } from "@inkeep/agents-sdk";
+import { functionTool } from "@inkeep/agents-sdk";
 
-const summarizeTool = tool({
+const summarizeTool = functionTool({
   id: "summarize-document",
   description: "Summarize the content of a document artifact",
   inputSchema: {

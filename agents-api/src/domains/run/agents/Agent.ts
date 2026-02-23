@@ -1863,6 +1863,12 @@ export class Agent {
 
       const seen = new Set<string>();
       const all: any[] = [];
+      for (const ac of this.artifactComponents) {
+        if (ac.name && !seen.has(ac.name)) {
+          seen.add(ac.name);
+          all.push(ac);
+        }
+      }
       for (const subAgent of Object.values(agentDefinition.subAgents)) {
         if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
           for (const ac of subAgent.artifactComponents as any[]) {
@@ -1873,7 +1879,7 @@ export class Agent {
           }
         }
       }
-      return all.length > 0 ? all : this.artifactComponents;
+      return all;
     } catch {
       return this.artifactComponents;
     }

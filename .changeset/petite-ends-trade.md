@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-Allowed Artifacts to be Passed as Tool Arguments
+Add support for passing artifacts as tool arguments

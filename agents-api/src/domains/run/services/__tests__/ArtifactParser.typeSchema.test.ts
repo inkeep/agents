@@ -272,4 +272,63 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       });
     });
   });
+
+  describe('resolveArgs', () => {
+    let parser: ArtifactParser;
+
+    beforeEach(() => {
+      parser = new ArtifactParser(mockExecutionContext, {
+        artifactService: mockArtifactService,
+        artifactComponents: testArtifactComponents,
+      });
+    });
+
+    it('resolves a top-level artifact ref to full artifact data', async () => {
+      mockArtifactService.getArtifactFull.mockResolvedValue({
+        data: { title: 'Resolved Title', content: 'Full content' },
+      });
+      const result = await parser.resolveArgs({ $artifact: 'art-1', $tool: 'tool-1' });
+      expect(mockArtifactService.getArtifactFull).toHaveBeenCalledWith('art-1', 'tool-1');
+      expect(result).toEqual({ title: 'Resolved Title', content: 'Full content' });
+    });
+
+    it('resolves a nested artifact ref inside an object', async () => {
+      mockArtifactService.getArtifactFull.mockResolvedValue({ data: { content: 'Full content' } });
+      const result = await parser.resolveArgs({
+        doc: { $artifact: 'art-2', $tool: 'tool-2' },
+        other: 'value',
+      });
+      expect(result).toEqual({ doc: { content: 'Full content' }, other: 'value' });
+    });
+
+    it('resolves artifact refs inside arrays', async () => {
+      mockArtifactService.getArtifactFull.mockResolvedValue({ data: { title: 'Array item' } });
+      const result = await parser.resolveArgs([
+        { $artifact: 'art-3', $tool: 'tool-3' },
+        'plain-string',
+      ]);
+      expect(result).toEqual([{ title: 'Array item' }, 'plain-string']);
+    });
+
+    it('returns original ref when resolution returns null', async () => {
+      mockArtifactService.getArtifactFull.mockResolvedValue(null);
+      const ref = { $artifact: 'missing', $tool: 'tool-x' };
+      const result = await parser.resolveArgs(ref);
+      expect(result).toEqual(ref);
+    });
+
+    it('returns original ref when resolution returns empty data', async () => {
+      mockArtifactService.getArtifactFull.mockResolvedValue({ data: null });
+      const ref = { $artifact: 'bad', $tool: 'tool-y' };
+      const result = await parser.resolveArgs(ref);
+      expect(result).toEqual(ref);
+    });
+
+    it('passes through primitive values unchanged', async () => {
+      expect(await parser.resolveArgs('string')).toBe('string');
+      expect(await parser.resolveArgs(42)).toBe(42);
+      expect(await parser.resolveArgs(true)).toBe(true);
+      expect(await parser.resolveArgs(null)).toBe(null);
+    });
+  });
 });

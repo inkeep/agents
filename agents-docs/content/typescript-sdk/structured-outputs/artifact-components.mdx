@@ -115,10 +115,10 @@ When an agent passes an artifact to a tool as an argument, the tool receives the
 For example, a document processing tool can access the full `content` array from a citation artifact even though `content` is a non-preview field:
 
 ```typescript
-import { tool } from "@inkeep/agents-sdk";
+import { functionTool } from "@inkeep/agents-sdk";
 import { z } from "zod";
 
-const summarizeTool = tool({
+const summarizeTool = functionTool({
   id: "summarize-document",
   description: "Summarize the content of a document artifact",
   inputSchema: z.object({
