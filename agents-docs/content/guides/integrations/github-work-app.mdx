@@ -14,61 +14,15 @@ The GitHub Work App connects your GitHub organization or user account to Inkeep,
 
 ## Install the GitHub App
 
-<Steps>
-  <Step>
-    ### Get the installation URL
+1. Go to [**Work Apps → GitHub**](https://app.inkeep.com/default/work-apps/github) in your Inkeep dashboard.
+2. Click **Install GitHub App** and authorize Inkeep on your GitHub organization or user account.
+3. Select which repositories to grant access to (all repositories or specific ones).
 
-    Call the install-url endpoint to generate a signed GitHub App installation link:
+<Note>
+  Choosing "All repositories" on GitHub grants access to all current and future repositories in that organization. You can still restrict access at the project or MCP tool level within Inkeep.
+</Note>
 
-    ```bash
-    curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/install-url" \
-      -H "Authorization: Bearer YOUR_API_KEY"
-    ```
-
-    The response returns a `url` that expires after 10 minutes.
-
-    ```json
-    {
-      "url": "https://github.com/apps/inkeep/installations/new?state=..."
-    }
-    ```
-  </Step>
-  <Step>
-    ### Complete the OAuth flow
-
-    Open the returned URL in your browser. GitHub will prompt you to select the organization or user account to install the app on and choose which repositories to grant access to (all repositories or specific ones).
-
-    After authorizing, GitHub redirects back to Inkeep and the installation is recorded automatically.
-
-    <Note>
-      Choosing "All repositories" on GitHub grants access to all current and future repositories in that organization. You can still restrict access at the project or MCP tool level within Inkeep.
-    </Note>
-  </Step>
-  <Step>
-    ### Verify the installation
-
-    List your installations to confirm it registered successfully:
-
-    ```bash
-    curl -X GET "https://api.inkeep.com/manage/tenants/YOUR_TENANT_ID/github/installations" \
-      -H "Authorization: Bearer YOUR_API_KEY"
-    ```
-
-    ```json
-    {
-      "installations": [
-        {
-          "id": "inst_abc123",
-          "accountLogin": "my-org",
-          "accountType": "Organization",
-          "repositoryCount": 42,
-          "status": "active"
-        }
-      ]
-    }
-    ```
-  </Step>
-</Steps>
+After installation, the GitHub App installation will appear in your Work Apps settings.
 
 ## Manage project repository access
 
