@@ -147,6 +147,7 @@ app.openapi(
       'chat:write',
       'chat:write.public',
       'commands',
+      'files:write',
       'groups:history',
       'groups:read',
       'im:history',

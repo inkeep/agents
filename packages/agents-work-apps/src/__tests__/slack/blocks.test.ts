@@ -119,14 +119,14 @@ describe('Slack Block Builders', () => {
 describe('buildToolApprovalBlocks', () => {
   const buttonValue = JSON.stringify({ toolCallId: 'tc-1', conversationId: 'conv-1' });
 
-  it('should include a header, section, divider, and actions block', () => {
+  it('should include a section and actions block but no header or divider', () => {
     const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
 
     const types = blocks.map((b: any) => b.type);
-    expect(types).toContain('header');
     expect(types).toContain('section');
-    expect(types).toContain('divider');
     expect(types).toContain('actions');
+    expect(types).not.toContain('header');
+    expect(types).not.toContain('divider');
   });
 
   it('should include the tool name in the section text', () => {
@@ -161,40 +161,39 @@ describe('buildToolApprovalBlocks', () => {
     expect(sections).toHaveLength(1);
   });
 
-  it('should render input as a JSON code block in mrkdwn', () => {
+  it('should render input as key-value fields', () => {
     const input = { query: 'hello', limit: 10 };
     const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
 
-    const inputSection = blocks.find(
-      (b: any) => b.type === 'section' && b.text?.text?.startsWith('```json')
-    );
+    const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
     expect(inputSection).toBeDefined();
-    expect(inputSection.text.type).toBe('mrkdwn');
-    expect(inputSection.text.text).toContain('"query"');
-    expect(inputSection.text.text).toContain('"hello"');
-    expect(inputSection.text.text).toContain('```json');
+    expect(inputSection.fields).toHaveLength(2);
+    const fieldTexts = inputSection.fields.map((f: any) => f.text);
+    expect(fieldTexts.some((t: string) => t.includes('query'))).toBe(true);
+    expect(fieldTexts.some((t: string) => t.includes('hello'))).toBe(true);
   });
 
-  it('should truncate input JSON at 2900 characters with ellipsis', () => {
-    const input = { data: 'x'.repeat(3000) };
+  it('should truncate field values longer than 80 characters with ellipsis', () => {
+    const input = { data: 'x'.repeat(100) };
     const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
 
-    const inputSection = blocks.find(
-      (b: any) => b.type === 'section' && b.text?.text?.startsWith('```json')
-    );
-    expect(inputSection.text.text).toContain('…');
-    const jsonContent = inputSection.text.text.replace(/```json\n/, '').replace(/\n```$/, '');
-    expect(jsonContent.length).toBeLessThanOrEqual(2901);
+    const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+    expect(inputSection).toBeDefined();
+    const field = inputSection.fields[0];
+    expect(field.text).toContain('…');
+    const valueText = field.text.split('\n')[1];
+    expect(valueText.length).toBeLessThanOrEqual(82);
   });
 
-  it('should not truncate input JSON under 2900 characters', () => {
+  it('should not truncate field values under 80 characters', () => {
     const input = { query: 'hello', limit: 10 };
     const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
 
-    const inputSection = blocks.find(
-      (b: any) => b.type === 'section' && b.text?.text?.startsWith('```json')
-    );
-    expect(inputSection.text.text).not.toContain('…');
+    const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+    expect(inputSection).toBeDefined();
+    for (const field of inputSection.fields) {
+      expect(field.text).not.toContain('…');
+    }
   });
 });
 
