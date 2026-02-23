@@ -14,6 +14,7 @@ import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
+  isUniqueConstraintError,
   verifySlackLinkToken,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
@@ -258,17 +259,7 @@ app.openapi(
         tenantId,
       });
     } catch (error) {
-      const isUniqueViolation =
-        (error instanceof Error &&
-          (error.message.includes('duplicate key') ||
-            error.message.includes('unique constraint'))) ||
-        (typeof error === 'object' &&
-          error !== null &&
-          'cause' in error &&
-          typeof (error as any).cause === 'object' &&
-          (error as any).cause?.code === '23505');
-
-      if (isUniqueViolation) {
+      if (isUniqueConstraintError(error)) {
         logger.info({ userId: body.userId }, 'Concurrent link resolved — mapping already exists');
         return c.json({ success: true });
       }
