@@ -26,6 +26,7 @@ import {
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
@@ -193,14 +194,8 @@ app.openapi(
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
-      // Handle duplicate project creation (PostgreSQL unique constraint violation)
       logger.error({ error }, 'Error creating project');
-      if (error?.cause?.code === '23505' || error?.message?.includes('already exists')) {
-        throw createApiError({
-          code: 'conflict',
-          message: `Project with ID '${projectData.id}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(error, `Project with ID '${projectData.id}' already exists`);
 
       // Handle SpiceDB sync failures — DB transactions rolled back since the
       // exception propagated out of the transaction callbacks.
