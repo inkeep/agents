@@ -254,6 +254,7 @@ export async function streamAgentResponse(params: {
       toolCallId: string;
     }> = [];
     const toolCallIdToName = new Map<string, string>();
+    const toolCallIdToInput = new Map<string, Record<string, unknown>>();
     const toolErrors: Array<{ toolName: string; errorText: string }> = [];
     const citations: Array<{ title?: string; url?: string }> = [];
     const summaryLabels: string[] = [];
@@ -289,9 +290,9 @@ export async function streamAgentResponse(params: {
             }
 
             if (data.type === 'tool-approval-request' && conversationId) {
-              const toolName: string = data.toolName || 'Tool';
               const toolCallId: string = data.toolCallId;
-              const input: Record<string, unknown> | undefined = data.input;
+              const toolName: string = toolCallIdToName.get(toolCallId) || 'Tool';
+              const input: Record<string, unknown> | undefined = toolCallIdToInput.get(toolCallId);
 
               const buttonValue: ToolApprovalButtonValue = {
                 toolCallId,
@@ -331,6 +332,12 @@ export async function streamAgentResponse(params: {
 
             if (data.type === 'tool-input-available' && data.toolCallId && data.toolName) {
               toolCallIdToName.set(String(data.toolCallId), String(data.toolName));
+              if (data.input && typeof data.input === 'object') {
+                toolCallIdToInput.set(
+                  String(data.toolCallId),
+                  data.input as Record<string, unknown>
+                );
+              }
               continue;
             }
 
