@@ -2,7 +2,14 @@ Index: agents/weather-agent.ts
 ===================================================================
 --- agents/weather-agent.ts	before
 +++ agents/weather-agent.ts	after
-@@ -9,14 +9,16 @@
+@@ -1,4 +1,6 @@
+ import { agent, subAgent } from '@inkeep/agents-sdk';
++import { weatherForecaster } from './weather-forecaster';
++import { geocoderAgent } from './geocoder-agent';
+ 
+ export const weatherForecaster = subAgent({
+   id: 'weather-forecaster',
+@@ -9,14 +11,16 @@
    id: 'geocoder-agent',
    name: 'Geocoder agent'
  });
