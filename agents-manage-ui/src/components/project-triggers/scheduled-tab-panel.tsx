@@ -34,7 +34,6 @@ export function ScheduledTabPanel({
         setTriggers(updatedTriggers);
       } catch (error) {
         console.error('Failed to fetch scheduled triggers:', error);
-        2;
       }
     };
 
