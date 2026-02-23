@@ -86,7 +86,12 @@ const testArtifactComponents: ArtifactComponentApiInsert[] = [
         title: { type: 'string', description: 'Document title', inPreview: true },
         summary: { type: 'string', description: 'Short summary', inPreview: true },
         content: { type: 'string', description: 'Full content', inPreview: false },
-        tags: { type: 'array', items: { type: 'string', description: 'Tag' }, description: 'Tags', inPreview: false },
+        tags: {
+          type: 'array',
+          items: { type: 'string', description: 'Tag' },
+          description: 'Tags',
+          inPreview: false,
+        },
       },
     },
   },
