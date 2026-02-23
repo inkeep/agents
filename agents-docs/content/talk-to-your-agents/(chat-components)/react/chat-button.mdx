@@ -84,6 +84,74 @@ pnpm add @inkeep/agents-ui
   </Tab>
 </Tabs>
 
+## Custom Tool Component
+
+Customize how tool calls are rendered in the chat by providing a custom `IkpTool` component via `aiChatSettings.components`.
+
+The `IkpTool` component receives the following props:
+- **`tool`** - A `ToolUIPart` object containing the tool's name, arguments, state, and result
+- **`approve`** - An async function to approve or reject tool calls that require user confirmation
+- **`renderMarkdown`** - A utility function to render markdown text as React nodes
+
+### Example
+
+```tsx
+import { InkeepChatButton, type InkeepChatButtonProps } from "@inkeep/agents-ui";
+
+const CustomToolComponent = ({
+  tool,
+  approve,
+  renderMarkdown,
+}: {
+  tool: any;
+  approve: (approved?: boolean) => Promise<void>;
+  renderMarkdown: (text: string) => React.ReactNode;
+}) => {
+  // Handle tools that require approval
+  if (tool.state === "requires-confirmation") {
+    return (
+      <div className="tool-approval">
+        <p>Tool <strong>{tool.toolName}</strong> wants to execute.</p>
+        <button onClick={() => approve(true)}>Approve</button>
+        <button onClick={() => approve(false)}>Reject</button>
+      </div>
+    );
+  }
+
+  // Handle completed tools
+  if (tool.state === "result") {
+    return (
+      <div className="tool-result">
+        <p>✓ {tool.toolName} completed</p>
+      </div>
+    );
+  }
+
+  // Handle tools in progress
+  return (
+    <div className="tool-loading">
+      <p>Running {tool.toolName}...</p>
+    </div>
+  );
+};
+
+const buttonProps: InkeepChatButtonProps = {
+  aiChatSettings: {
+    agentUrl: "https://your-api.example.com/api/chat",
+    apiKey: process.env.REACT_APP_INKEEP_API_KEY,
+    components: {
+      IkpTool: (props) => <CustomToolComponent {...props} />,
+    },
+  },
+};
+
+const ChatButton = () => {
+  return <InkeepChatButton {...buttonProps} />;
+};
+```
+
+<Tip>Return `null` from the component to hide specific tool calls from the UI.</Tip>
+
 ## Props
 
 <AutoTypeTable
