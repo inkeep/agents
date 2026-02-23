@@ -14,7 +14,7 @@ import { useProjectPermissions } from '@/contexts/project';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
-import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
+import { createProviderConnectSession, fetchNangoIntegration } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
@@ -27,6 +27,7 @@ function ProviderSetupPage({
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [integrationExists, setIntegrationExists] = useState<boolean | null>(null);
   const { openNangoConnect } = useNangoConnect();
   const { user } = useAuthSession();
   const authClient = useAuthClient();
@@ -40,6 +41,13 @@ function ProviderSetupPage({
   }, [canEdit, router, tenantId, projectId]);
 
   const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
+
+  useEffect(() => {
+    if (!provider || !requiresCredentialForm(provider.auth_mode)) return;
+    fetchNangoIntegration(`${provider.name}-${tenantId}`).then((integration) => {
+      setIntegrationExists(integration?.areCredentialsSet ?? false);
+    });
+  }, [provider, tenantId]);
 
   const handleNangoConnect = useCallback(
     async (event: any) => {
@@ -91,7 +99,7 @@ function ProviderSetupPage({
       try {
         const connectToken = await createProviderConnectSession({
           providerName: provider.name,
-          uniqueKey: provider.name,
+          uniqueKey: `${provider.name}-${tenantId}`,
           displayName: provider.name,
           credentials:
             credentials && provider.auth_mode
@@ -129,15 +137,25 @@ function ProviderSetupPage({
         setLoading(false);
       }
     },
-    [provider, openNangoConnect, handleNangoConnect, user?.id, user?.email, user?.name, authClient]
+    [
+      provider,
+      tenantId,
+      openNangoConnect,
+      handleNangoConnect,
+      user?.id,
+      user?.email,
+      user?.name,
+      authClient,
+    ]
   );
 
-  // Auto-connect when no credential form is required
+  // Auto-connect when no credential form is required or integration already exists for this tenant
   useEffect(() => {
-    if (provider && !requiresCredentialForm(provider.auth_mode) && !loading && !hasAttempted) {
+    if (!provider || loading || hasAttempted) return;
+    if (!requiresCredentialForm(provider.auth_mode) || integrationExists === true) {
       handleCreateCredential();
     }
-  }, [provider, loading, hasAttempted, handleCreateCredential]);
+  }, [provider, loading, hasAttempted, handleCreateCredential, integrationExists]);
 
   const backLink = `/${tenantId}/projects/${projectId}/credentials/new/providers` as const;
 
@@ -161,7 +179,7 @@ function ProviderSetupPage({
 
   const isCredentialFormRequired = requiresCredentialForm(provider.auth_mode);
 
-  if (!isCredentialFormRequired) {
+  if (!isCredentialFormRequired || integrationExists === true) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center justify-center space-y-4">
@@ -175,6 +193,10 @@ function ProviderSetupPage({
         </div>
       </div>
     );
+  }
+
+  if (isCredentialFormRequired && integrationExists === null) {
+    return <div className="flex items-center justify-center h-64">Loading provider...</div>;
   }
 
   return (
