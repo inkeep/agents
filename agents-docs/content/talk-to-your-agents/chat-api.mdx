@@ -88,6 +88,10 @@ The response is an SSE stream of JSON events compatible with the Vercel AI SDK U
 - **`data-operation`** — Low-level operational events (agent lifecycle, completion, errors)
 - **`data-summary`** — AI-generated status updates with user-friendly labels and contextual details
 
+<Tip>
+  When using the [Slack Work App](/talk-to-your-agents/slack/overview), these data events are automatically rendered as structured Slack Block Kit messages in the thread.
+</Tip>
+
 #### Tool Events
 
 - **`tool-input-start`**, **`tool-input-delta`**, **`tool-input-available`** — Tool input streaming
