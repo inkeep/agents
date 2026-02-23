@@ -26,7 +26,7 @@ export function NewTriggerDialog({
   agents: AgentSummary[];
   type: 'webhook' | 'scheduled';
 }) {
-  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const [selectedAgent, setSelectedAgent] = useState('');
   const [open, setOpen] = useState(false);
 
   const triggerLabel = type === 'webhook' ? 'webhook trigger' : 'scheduled trigger';
