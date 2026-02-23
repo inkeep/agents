@@ -1,0 +1,81 @@
+---
+title: Self-hosting limitations
+sidebarTitle: Limitations
+description: Features not available in self-hosted Docker deployments of the Inkeep Agent Platform.
+keywords: self-hosting, docker, limitations, open source
+icon: LuCircleAlert
+---
+
+Self-hosted Docker deployments run on the **Open Source** tier. All Open Source features are available out of the box, but several Enterprise-only capabilities require Inkeep's managed cloud infrastructure and are not available when self-hosting.
+
+See the [pricing page](/pricing) for the full Open Source feature list.
+
+## Features not available when self-hosting
+
+### Unified AI Search (Managed RAG)
+
+| Feature | Available |
+|---------|:---------:|
+| Public sources ingestion (docs, help center, etc.) | — |
+| Private sources ingestion (Notion, Confluence, etc.) | — |
+| Optimized Retrieval and Search (Managed RAG) | — |
+| Semantic Search | — |
+
+<Note>
+Real-time fetching from databases, APIs, and the web is available in the Open Source tier. Managed RAG — ingestion pipelines, vector storage, and optimized retrieval — requires Enterprise.
+</Note>
+
+### Platform integrations
+
+| Feature | Available |
+|---------|:---------:|
+| Slack, Discord, and Teams | — |
+| Zendesk, Salesforce, and support platforms | — |
+
+### Insights & analytics
+
+| Feature | Available |
+|---------|:---------:|
+| AI Reports on Knowledge Gaps | — |
+| AI Reports on Product Feature Gaps | — |
+
+### Authentication & authorization
+
+| Feature | Available |
+|---------|:---------:|
+| Single Sign-on (SSO) | — |
+| Role-Based Access Control (RBAC) | — |
+| Audit Logs | — |
+
+### Security & compliance
+
+| Feature | Available |
+|---------|:---------:|
+| PII Removal | — |
+| Uptime and Support SLAs | — |
+| SOC II Type II and Pentest Reports | — |
+| GDPR, HIPAA, DPA, and Infosec Reviews | — |
+
+### Support
+
+| Feature | Available |
+|---------|:---------:|
+| Dedicated Forward Deployed Engineer | — |
+| Dedicated Engineering Team | — |
+| 1:1 Office Hours and Trainings | — |
+| Community support | ✓ |
+
+## Infrastructure responsibilities
+
+When self-hosting, you are responsible for:
+
+- **Updates** — pulling and redeploying new Docker image releases
+- **Scaling** — provisioning sufficient compute and managing load
+- **Reliability** — uptime, backups, and incident response
+- **Security** — network hardening, secrets management, and patching
+
+There are no Inkeep-managed SLAs for self-hosted deployments.
+
+## Upgrade to Enterprise
+
+If your organization needs managed RAG, platform integrations, SSO, compliance certifications, or dedicated support, [schedule a demo](https://inkeep.com/demo) to learn about the Enterprise plan.
