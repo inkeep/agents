@@ -5,7 +5,7 @@
  * Streams responses incrementally to Slack using chatStream API.
  */
 
-import { getInProcessFetch } from '@inkeep/agents-core';
+import { getInProcessFetch, retryWithBackoff } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
@@ -21,7 +21,6 @@ import {
   type ToolApprovalButtonValue,
 } from '../blocks';
 import type { getSlackClient } from '../client';
-import { retryWithBackoff } from '../retry';
 import {
   classifyError,
   extractApiErrorMessage,

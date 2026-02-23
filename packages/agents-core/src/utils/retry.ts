@@ -1,6 +1,6 @@
-import { getLogger } from '../../logger';
+import { getLogger } from './logger';
 
-const logger = getLogger('slack-retry');
+const logger = getLogger('retry');
 
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,

@@ -18,7 +18,7 @@
  * @see packages/agents-core/src/data-access/runtime/workAppSlack.ts
  */
 
-import { findWorkAppSlackWorkspaceBySlackTeamId } from '@inkeep/agents-core';
+import { findWorkAppSlackWorkspaceBySlackTeamId, retryWithBackoff } from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -30,7 +30,6 @@ import {
   loadSlackDevConfig,
   saveSlackDevConfig,
 } from './dev-config';
-import { retryWithBackoff } from './retry';
 
 const MAX_WORKSPACE_CACHE_SIZE = 1000;
 const workspaceConnectionCache = new Map<
