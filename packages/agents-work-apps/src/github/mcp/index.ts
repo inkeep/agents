@@ -18,6 +18,7 @@ import {
   createPullRequestReviewCommentReaction,
   deleteIssueCommentReaction,
   deletePullRequestReviewCommentReaction,
+  fetchBranchChangedFiles,
   fetchComments,
   fetchPrFileDiffs,
   fetchPrFiles,
@@ -460,6 +461,109 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error getting file patches: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'fetch-changed-files-for-branch',
+    `Get the list of files changed on a branch compared to a base ref, without requiring a pull request. Returns file paths, status, additions/deletions, and optionally patches and full file contents. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      head: z.string().describe('The branch or ref to check for changes (e.g. "feat/my-feature")'),
+      base: z
+        .string()
+        .optional()
+        .describe(
+          'The base branch or ref to compare against (defaults to the repository default branch)'
+        ),
+      file_paths: z
+        .array(z.string())
+        .optional()
+        .describe('Optional list of file path glob patterns to filter results'),
+      include_contents: z
+        .boolean()
+        .default(false)
+        .describe('Whether to include full file contents for each changed file'),
+      include_patch: z
+        .boolean()
+        .default(false)
+        .describe('Whether to include the patch/diff text for each changed file'),
+    },
+    async ({ owner, repo, head, base, file_paths, include_contents, include_patch }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const baseRef =
+          base ?? (await githubClient.rest.repos.get({ owner, repo })).data.default_branch;
+
+        const files = await fetchBranchChangedFiles(githubClient, owner, repo, baseRef, head, {
+          pathFilters: file_paths ?? [],
+          includeContents: include_contents,
+          includePatch: include_patch,
+        });
+
+        if (files.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No changed files found between ${baseRef} and ${head} in ${owner}/${repo}.${file_paths?.length ? `\n\nFilters applied: ${file_paths.join(', ')}` : ''}`,
+              },
+            ],
+          };
+        }
+
+        const output = await formatFileDiff(0, files, include_contents);
+        const header = `## Changed files: ${baseRef}...${head} in ${owner}/${repo}\n\nFound ${files.length} changed file(s).\n\n`;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: header + output,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Repository ${owner}/${repo} not found, or one of the refs ("${base ?? 'default'}", "${head}") does not exist.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error fetching changed files: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,
