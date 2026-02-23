@@ -107,8 +107,8 @@ const activitiesPlanner = subAgent({
   description: 'Plans activities based on weather conditions',
   prompt: 'Help users plan activities based on current weather.',
   skills: () => [
-    { id: 'weather-safety-guardrails', index: 0 },
-    { id: 'structured-itinerary-responses', index: 1 },
+    { id: 'weather-safety-guardrails' },
+    { id: 'structured-itinerary-responses' },
   ],
 });
 ```
@@ -118,8 +118,9 @@ const activitiesPlanner = subAgent({
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | Yes | The skill identifier (matches the `name` in SKILL.md). |
-| `index` | number | No | Controls ordering. Higher index = higher priority in the prompt. |
 | `alwaysLoaded` | boolean | No | If `true`, skill content is always included. If `false` (default), loaded on demand. |
+
+Skill order and priority follow the order of items in the `skills` array.
 
 ### Attaching Skills
 
@@ -130,13 +131,7 @@ const mySubAgent = subAgent({
   id: 'my-sub-agent',
   name: 'My Sub Agent',
   prompt: 'You are a helpful assistant.',
-  skills: () => [
-    {
-      id: 'inline-skill',
-      index: 0,
-      alwaysLoaded: true,
-    },
-  ],
+  skills: () => [{ id: 'inline-skill', alwaysLoaded: true } ],
 });
 ```
 
@@ -212,8 +207,8 @@ const activitiesPlanner = subAgent({
   description: 'Plans activities considering weather conditions',
   prompt: 'Help users find activities based on weather forecasts.',
   skills: () => [
-    { id: 'weather-safety-guardrails', index: 0 },
-    { id: 'structured-itinerary-responses', index: 1 },
+    { id: 'weather-safety-guardrails' },
+    { id: 'structured-itinerary-responses' },
   ],
 });
 

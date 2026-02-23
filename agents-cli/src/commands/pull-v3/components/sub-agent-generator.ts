@@ -203,7 +203,6 @@ export function generateSubAgentDefinition(
     lines.push(`${indentation}skills: () => [`);
     for (const skill of agentData.skills) {
       const parts = [`id: ${formatString(skill.id, q)}`];
-      parts.push(`index: ${skill.index}`);
       if (skill.alwaysLoaded) {
         parts.push(`alwaysLoaded: ${skill.alwaysLoaded}`);
       }

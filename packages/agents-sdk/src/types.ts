@@ -7,6 +7,7 @@ import type {
   FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
+  SkillSelect,
   StatusUpdateSettings,
   SubAgentApiInsert,
   ToolInsert,
@@ -83,21 +84,16 @@ export interface ToolResult {
   error?: string;
 }
 
-export interface SkillDefinition {
-  id: string;
-  name: string;
-  description: string;
-  content: string;
-  metadata: Record<string, string> | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
+export type SkillDefinition = Pick<
+  SkillSelect,
+  'id' | 'name' | 'description' | 'content' | 'metadata' | 'createdAt' | 'updatedAt'
+>;
 
-export type SkillReference =
-  | string
-  | { id: string; index?: number; alwaysLoaded?: boolean }
-  | { skillId: string; index?: number; alwaysLoaded?: boolean }
-  | (SkillDefinition & { index?: number; alwaysLoaded?: boolean });
+export interface SkillReference {
+  id: string;
+  /** @default false */
+  alwaysLoaded?: boolean;
+}
 export type AllDelegateInputInterface =
   | SubAgentInterface
   | subAgentExternalAgentInterface
@@ -353,7 +349,7 @@ export type subAgentTeamAgentInterface = {
 
 export interface AgentInterface {
   init(): Promise<void>;
-  setConfig(tenantId: string, projectId: string, apiUrl: string, skills?: SkillDefinition[]): void;
+  setConfig(tenantId: string, projectId: string, apiUrl: string): void;
   getId(): string;
   getName(): string;
   getDescription(): string | undefined;
