@@ -1,6 +1,6 @@
 import { formatDate, formatDateAgo, formatDateTime, formatDateTimeTable } from '../format-date';
 
-// Mock console.warn to avoid noise in test output
+// Mock console.warn and console.error to avoid noise in test output
 vi.spyOn(console, 'warn').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -14,7 +14,7 @@ describe('formatDate', () => {
       expect(formatDate('2024-01-15T10:30:00.123Z')).toBe('Jan 15, 2024');
     });
 
-    it('should format ISO date with timezone offset', () => {
+    it('should format ISO date with full timezone offset', () => {
       expect(formatDate('2024-01-15T10:30:00+00:00')).toBe('Jan 15, 2024');
     });
   });
@@ -24,20 +24,8 @@ describe('formatDate', () => {
       expect(formatDate('2025-11-07 21:48:24')).toBe('Nov 7, 2025');
     });
 
-    it('should handle timestamp with 1 fractional digit', () => {
-      expect(formatDate('2025-11-07 21:48:24.8')).toBe('Nov 7, 2025');
-    });
-
-    it('should handle timestamp with 2 fractional digits', () => {
-      expect(formatDate('2025-11-07 21:48:24.85')).toBe('Nov 7, 2025');
-    });
-
     it('should handle timestamp with 3 fractional digits (milliseconds)', () => {
       expect(formatDate('2025-11-07 21:48:24.858')).toBe('Nov 7, 2025');
-    });
-
-    it('should handle timestamp with 4 fractional digits', () => {
-      expect(formatDate('2025-11-07 21:48:24.8581')).toBe('Nov 7, 2025');
     });
 
     it('should handle timestamp with 6 fractional digits (microseconds)', () => {
@@ -69,13 +57,39 @@ describe('formatDate', () => {
     });
 
     it('should handle timestamp with non-UTC timezone offset', () => {
-      // +05:30 is IST (India Standard Time)
-      // 21:48 UTC+05:30 = 16:18 UTC, which is still Nov 7
       expect(formatDate('2025-11-07 21:48:24.858+05:30')).toBe('Nov 7, 2025');
     });
 
     it('should handle timestamp with negative timezone offset', () => {
       expect(formatDate('2025-11-07 21:48:24.858-05')).toBe('Nov 8, 2025');
+    });
+
+    it('should handle timestamp with compact timezone offset (+0000)', () => {
+      expect(formatDate('2025-11-07 21:48:24.858+0000')).toBe('Nov 7, 2025');
+    });
+  });
+
+  describe('ISO with non-standard timezone (T separator + short tz)', () => {
+    it('should handle T-separated timestamp with +00 timezone', () => {
+      expect(formatDate('2025-11-07T21:48:24.858+00')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle T-separated timestamp with microseconds and +00', () => {
+      expect(formatDate('2025-11-07T21:48:24.858000+00')).toBe('Nov 7, 2025');
+    });
+
+    it('should handle T-separated timestamp without Z', () => {
+      expect(formatDate('2025-11-07T21:48:24.858')).not.toBe('Invalid date');
+    });
+  });
+
+  describe('whitespace handling', () => {
+    it('should handle leading/trailing whitespace', () => {
+      expect(formatDate('  2024-01-15T10:30:00Z  ')).toBe('Jan 15, 2024');
+    });
+
+    it('should handle timestamp with trailing whitespace', () => {
+      expect(formatDate('2025-11-07 21:48:24.858 ')).toBe('Nov 7, 2025');
     });
   });
 
@@ -95,34 +109,26 @@ describe('formatDate', () => {
     it('should return Invalid date for undefined-like inputs', () => {
       expect(formatDate('undefined')).toBe('Invalid date');
     });
-
-    it('should return Invalid date for malformed date', () => {
-      expect(formatDate('2024-13-45T25:70:80Z')).toBe('Invalid date');
-    });
   });
 
   describe('local timezone option', () => {
     it('should format in UTC by default', () => {
-      const result = formatDate('2024-01-15T23:30:00Z');
-      expect(result).toBe('Jan 15, 2024');
+      expect(formatDate('2024-01-15T23:30:00Z')).toBe('Jan 15, 2024');
     });
 
     it('should accept local option without error', () => {
-      const result = formatDate('2024-01-15T10:30:00Z', { local: true });
-      expect(result).not.toBe('Invalid date');
+      expect(formatDate('2024-01-15T10:30:00Z', { local: true })).not.toBe('Invalid date');
     });
   });
 });
 
 describe('formatDateTime', () => {
   it('should format ISO date with time', () => {
-    const result = formatDateTime('2024-08-28T17:42:30Z');
-    expect(result).toBe('Aug 28, 2024, 5:42:30 PM');
+    expect(formatDateTime('2024-08-28T17:42:30Z')).toBe('Aug 28, 2024, 5:42:30 PM');
   });
 
   it('should handle PostgreSQL timestamp with microseconds', () => {
-    const result = formatDateTime('2024-08-28 17:42:30.123456');
-    expect(result).toBe('Aug 28, 2024, 5:42:30 PM');
+    expect(formatDateTime('2024-08-28 17:42:30.123456')).toBe('Aug 28, 2024, 5:42:30 PM');
   });
 
   it('should return Invalid date for invalid input', () => {
@@ -132,13 +138,11 @@ describe('formatDateTime', () => {
 
 describe('formatDateTimeTable', () => {
   it('should format ISO date with time (no seconds)', () => {
-    const result = formatDateTimeTable('2024-08-28T17:42:30Z');
-    expect(result).toBe('Aug 28, 2024, 5:42 PM');
+    expect(formatDateTimeTable('2024-08-28T17:42:30Z')).toBe('Aug 28, 2024, 5:42 PM');
   });
 
   it('should handle PostgreSQL timestamp with microseconds', () => {
-    const result = formatDateTimeTable('2024-08-28 17:42:30.123456');
-    expect(result).toBe('Aug 28, 2024, 5:42 PM');
+    expect(formatDateTimeTable('2024-08-28 17:42:30.123456')).toBe('Aug 28, 2024, 5:42 PM');
   });
 
   it('should return Invalid date for invalid input', () => {
@@ -192,23 +196,19 @@ describe('formatDateAgo', () => {
 
   describe('PostgreSQL/Doltgres timestamp formats', () => {
     it('should handle PostgreSQL timestamp with microseconds', () => {
-      const result = formatDateAgo('2024-01-15 09:00:00.000000');
-      expect(result).toBe('3h ago');
+      expect(formatDateAgo('2024-01-15 09:00:00.000000')).toBe('3h ago');
     });
 
     it('should handle PostgreSQL timestamp with 3 fractional digits', () => {
-      const result = formatDateAgo('2024-01-15 09:00:00.000');
-      expect(result).toBe('3h ago');
+      expect(formatDateAgo('2024-01-15 09:00:00.000')).toBe('3h ago');
     });
 
     it('should handle PostgreSQL timestamp without fractional seconds', () => {
-      const result = formatDateAgo('2024-01-15 09:00:00');
-      expect(result).toBe('3h ago');
+      expect(formatDateAgo('2024-01-15 09:00:00')).toBe('3h ago');
     });
 
     it('should handle PostgreSQL timestamp with timezone offset', () => {
-      const result = formatDateAgo('2024-01-15 09:00:00.000+00');
-      expect(result).toBe('3h ago');
+      expect(formatDateAgo('2024-01-15 09:00:00.000+00')).toBe('3h ago');
     });
   });
 

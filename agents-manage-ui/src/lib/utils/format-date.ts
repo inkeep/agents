@@ -1,36 +1,74 @@
 /**
- * Checks if a date string is in PostgreSQL/Doltgres timestamp format and normalizes it to ISO 8601
- * PostgreSQL format: "2025-11-07 21:48:24.858" or "2025-11-07 21:48:24"
- * Doltgres may return microsecond precision: "2025-11-07 21:48:24.858000"
- * May include timezone offset: "2025-11-07 21:48:24.858+00"
- * ISO 8601 format: "2025-11-07T21:48:24.858Z"
+ * Tests whether a string is parseable as a Date.
+ */
+function isParseableDate(value: string): boolean {
+  return !Number.isNaN(new Date(value).getTime());
+}
+
+/**
+ * Normalizes a timezone offset string to ISO 8601 format.
+ * +00 -> Z, -05 -> -05:00, +0530 -> +05:30, +00:00 -> Z
+ */
+function normalizeTzOffset(tz: string): string {
+  if (/^[+-]\d{2}$/.test(tz)) return `${tz}:00`;
+  if (/^[+-]\d{4}$/.test(tz)) return `${tz.slice(0, 3)}:${tz.slice(3)}`;
+  const normalized = tz;
+  if (normalized === '+00:00' || normalized === '-00:00') return 'Z';
+  return normalized;
+}
+
+/**
+ * Normalizes a date string from any database timestamp format to a browser-parseable ISO 8601 string.
+ * Handles PostgreSQL, Doltgres, and ISO 8601 formats with varying precision and timezone offsets.
+ *
+ * Key behaviors:
+ * - Space-separated timestamps (PG format) are ALWAYS normalized to ISO with explicit UTC
+ *   to avoid Node.js interpreting them as local time (which differs from browser behavior).
+ * - T-separated timestamps that are already parseable are returned as-is.
+ * - Short timezone offsets (+00, -05) are expanded to ISO format (+00:00, -05:00).
+ * - Fractional seconds beyond 3 digits are truncated for broad browser compatibility.
  */
 function normalizeDateString(dateString: string | Date): string | Date {
   if (typeof dateString !== 'string') {
     return dateString;
   }
 
-  // PostgreSQL/Doltgres timestamp format pattern: YYYY-MM-DD HH:MM:SS[.fractional][±TZ]
-  // Matches up to 9 fractional digits (microsecond/nanosecond precision)
-  // Optionally matches timezone offset like +00, -05, +05:30
-  const pgTimestampPattern =
-    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?)([+-]\d{2}(?::?\d{2})?)?$/;
+  const trimmed = dateString.trim();
+  if (!trimmed) return trimmed;
 
-  const match = dateString.match(pgTimestampPattern);
-  if (match) {
-    const [, datePart, timePart, tz] = match;
-    // Truncate fractional seconds to 3 digits (milliseconds) for broad browser compatibility
-    const normalizedTime = timePart.replace(/(\.\d{3})\d+$/, '$1');
-    // If no timezone offset, treat as UTC
-    if (!tz) {
-      return `${datePart}T${normalizedTime}Z`;
-    }
-    // Normalize short offsets like +00 or -05 to full form +00:00 or -05:00
-    const normalizedTz = tz === '+00' || tz === '+00:00' ? 'Z' : tz.length === 3 ? `${tz}:00` : tz;
-    return `${datePart}T${normalizedTime}${normalizedTz}`;
+  // Match date-time strings with either space or T separator
+  const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})([T ])(\d{2}:\d{2}:\d{2}(?:\.\d+)?)(.*)$/);
+
+  if (!match) {
+    // Not a recognizable date-time pattern — return as-is for new Date() to attempt
+    return trimmed;
   }
 
-  return dateString;
+  const [, datePart, separator, timePart, rest] = match;
+  // Truncate fractional seconds to 3 digits for broad browser compatibility
+  const normalizedTime = timePart.replace(/(\.\d{3})\d+/, '$1');
+  const tz = rest.trim();
+
+  // Space-separated (PG/Doltgres format): ALWAYS normalize to avoid local-time interpretation.
+  // T-separated (ISO-like): only normalize if the browser can't parse it as-is.
+  const needsNormalization = separator === ' ' || !isParseableDate(trimmed);
+
+  if (!needsNormalization) {
+    return trimmed;
+  }
+
+  // Build normalized ISO string
+  if (!tz) {
+    // No timezone — treat as UTC (PG "timestamp without time zone" convention)
+    return `${datePart}T${normalizedTime}Z`;
+  }
+
+  const normalizedTz = normalizeTzOffset(tz);
+  const candidate = `${datePart}T${normalizedTime}${normalizedTz}`;
+  if (isParseableDate(candidate)) return candidate;
+
+  // Fallback: strip timezone and treat as UTC
+  return `${datePart}T${normalizedTime}Z`;
 }
 
 interface FormatDateOptions {
@@ -39,9 +77,9 @@ interface FormatDateOptions {
 
 /**
  * Formats an ISO date string or PostgreSQL timestamp string as "Mon DD, YYYY", e.g. "Jan 20, 2024".
- * @param {string} dateString - An ISO‐formatted date string or PostgreSQL timestamp string, e.g. "2024-01-20T14:45:00Z" or "2025-11-07 21:48:24.858"
- * @param {FormatDateOptions} options - Pass { local: true } to format in the user's browser timezone instead of UTC
- * @returns {string} - Formatted date like "Jan 20, 2024"
+ * @param dateString - An ISO-formatted date string or PostgreSQL timestamp string
+ * @param options - Pass { local: true } to format in the user's browser timezone instead of UTC
+ * @returns Formatted date like "Jan 20, 2024"
  */
 export function formatDate(dateString: string, options?: FormatDateOptions) {
   const normalized = normalizeDateString(dateString);
