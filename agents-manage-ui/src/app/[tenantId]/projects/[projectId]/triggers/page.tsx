@@ -7,8 +7,6 @@ import { WebhooksTabContent } from '@/components/project-triggers/webhooks-tab-c
 import { Skeleton } from '@/components/ui/skeleton';
 import { STATIC_LABELS } from '@/constants/theme';
 
-export const dynamic = 'force-dynamic';
-
 export const metadata = {
   title: STATIC_LABELS.triggers,
   description: 'Configure webhook and scheduled triggers to invoke your agents.',
