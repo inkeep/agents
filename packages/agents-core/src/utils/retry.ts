@@ -16,7 +16,9 @@ export async function retryWithBackoff<T>(
       const isRateLimit = status === 429;
       const isServerError = typeof status === 'number' && status >= 500;
       if ((!isTimeout && !isServerError && !isRateLimit) || attempt === maxAttempts) throw error;
-      const retryAfter = (error as { headers?: { get?: (name: string) => string | null } }).headers?.get?.('Retry-After');
+      const retryAfter = (
+        error as { headers?: { get?: (name: string) => string | null } }
+      ).headers?.get?.('Retry-After');
       const retryAfterMs = retryAfter ? (Number(retryAfter) || 0) * 1000 : 0;
       const baseDelay = Math.min(500 * 2 ** (attempt - 1), maxDelayMs);
       const delay = Math.max(baseDelay, retryAfterMs) + Math.random() * 100;
