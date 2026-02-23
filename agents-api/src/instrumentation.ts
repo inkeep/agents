@@ -65,6 +65,9 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
           span.updateName(host ? `${method} ${host}${path}` : `${method} ${path}`);
       },
     },
+    '@opentelemetry/instrumentation-fs': { enabled: false },
+    '@opentelemetry/instrumentation-dns': { enabled: false },
+    '@opentelemetry/instrumentation-net': { enabled: false },
   }),
 ];
 

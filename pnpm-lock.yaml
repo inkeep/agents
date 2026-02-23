@@ -715,9 +715,6 @@ importers:
       recharts:
         specifier: 2.15.4
         version: 2.15.4(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
-      remark-supersub:
-        specifier: ^1.0.0
-        version: 1.0.0
       shiki:
         specifier: ^3.20.0
         version: 3.21.0

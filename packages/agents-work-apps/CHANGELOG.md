@@ -1,5 +1,21 @@
 # @inkeep/agents-work-apps
 
+## 0.51.0
+
+### Patch Changes
+
+- fe36caa: Fix error response format consistency in join-from-workspace endpoints
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
 ## 0.50.5
 
 ### Patch Changes

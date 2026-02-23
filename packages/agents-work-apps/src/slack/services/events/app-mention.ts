@@ -252,7 +252,7 @@ export async function handleAppMention(params: {
         const ackMessage = await slackClient.chat.postMessage({
           channel,
           thread_ts: threadTs,
-          text: `_${agentDisplayName} is reading this thread..._`,
+          text: SlackStrings.status.readingThread(agentDisplayName),
         });
         thinkingMessageTs = ackMessage.ts || undefined;
 
@@ -354,7 +354,7 @@ Respond naturally as if you're joining the conversation to help.`;
       const ackMessage = await slackClient.chat.postMessage({
         channel,
         thread_ts: replyThreadTs,
-        text: `_${agentDisplayName} is preparing a response..._`,
+        text: SlackStrings.status.thinking(agentDisplayName),
       });
       thinkingMessageTs = ackMessage.ts || undefined;
 

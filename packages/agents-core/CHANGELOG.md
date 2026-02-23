@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.51.0
+
+### Minor Changes
+
+- fe36caa: Add organization service account, preferred auth method, and Slack workspace join-from-workspace schema support
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+
+## 0.50.6
+
 ## 0.50.5
 
 ### Patch Changes

@@ -381,12 +381,18 @@ export async function sendResponseUrlMessage(
   try {
     const payload: Record<string, unknown> = { text: message.text };
 
-    if (message.replace_original) {
+    if (message.replace_original === true) {
       payload.replace_original = true;
     } else if (message.delete_original) {
       payload.delete_original = true;
-    } else if (message.response_type) {
-      payload.response_type = message.response_type;
+    } else {
+      // Explicitly prevent Slack's default replace_original: true behavior so the
+      // original message (e.g. approval buttons) is preserved when sending an
+      // ephemeral rejection or any other non-replacing response.
+      payload.replace_original = false;
+      if (message.response_type) {
+        payload.response_type = message.response_type;
+      }
     }
 
     if (message.blocks) {

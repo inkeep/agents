@@ -66,7 +66,10 @@ runs:
         ENVIRONMENT: development
         INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
         BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
-      run: pnpm exec turbo dev --filter='@inkeep/agents-api' &
+      run: |
+        # Start API server and capture logs using nohup to ensure child process output is captured
+        nohup pnpm exec turbo dev --filter='@inkeep/agents-api' > /tmp/api-server.log 2>&1 &
+        echo "API server started with PID $!"
 
     - name: Wait for API server to be ready
       shell: bash
@@ -101,34 +104,43 @@ runs:
           echo "Push attempt $attempt/$max_attempts..."
           if cd agents-cookbook/template-projects && npx inkeep push --project activities-planner; then
             echo "Push succeeded on attempt $attempt"
-            break
-          fi
-          if [ $attempt -eq $max_attempts ]; then
-            echo "Push failed after $max_attempts attempts"
-            exit 1
+            exit 0
           fi
           echo "Push failed, retrying in $((attempt * 5)) seconds..."
           sleep $((attempt * 5))
           cd "$GITHUB_WORKSPACE"
           attempt=$((attempt + 1))
         done
+        echo "::error::Push failed after $max_attempts attempts"
+        exit 1
 
     - name: Run Cypress E2E Tests
       shell: bash
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: cypress-screenshots
         path: agents-manage-ui/cypress/screenshots
+        if-no-files-found: ignore
         retention-days: 7
 
     - name: Upload Cypress Videos
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
+        if-no-files-found: ignore
+        retention-days: 7
+
+    - name: Upload API Server Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-server-logs
+        path: /tmp/api-server.log
+        if-no-files-found: ignore
         retention-days: 7
