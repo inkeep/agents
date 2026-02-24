@@ -79,7 +79,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: agent.name ? `${agent.name} (${agent.id})` : agent.id,
             emoji: true,
           },
           value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
@@ -325,7 +325,7 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: agent.name ? `${agent.name} (${agent.id})` : agent.id,
             emoji: true,
           },
           value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
