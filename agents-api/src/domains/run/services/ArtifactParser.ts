@@ -238,7 +238,10 @@ export class ArtifactParser {
       if (typeof args.$tool === 'string' && args.$artifact === undefined) {
         const raw = this.artifactService.getToolResultRaw(args.$tool);
         if (raw !== undefined) {
-          logger.debug({ toolCallId: args.$tool }, 'Resolved ephemeral tool result ref in tool arg');
+          logger.debug(
+            { toolCallId: args.$tool },
+            'Resolved ephemeral tool result ref in tool arg'
+          );
           return raw;
         }
         logger.warn({ toolCallId: args.$tool }, 'Ephemeral tool result ref could not be resolved');
