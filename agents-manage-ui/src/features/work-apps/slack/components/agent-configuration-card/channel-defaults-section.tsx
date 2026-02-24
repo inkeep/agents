@@ -1,10 +1,19 @@
 'use client';
 
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import { Globe, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -102,6 +111,105 @@ export function ChannelDefaultsSection({
   onBulkResetToDefault,
   onClearFilters,
 }: ChannelDefaultsSectionProps) {
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([
+    { id: 'memberCount', desc: true },
+  ]);
+
+  const columns = useMemo<ColumnDef<Channel>[]>(
+    () => [
+      {
+        id: 'select',
+        header: () => null,
+        cell: () => null,
+        enableSorting: false,
+      },
+      {
+        accessorKey: 'name',
+        id: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" align="left" />,
+        cell: ({ row }) => {
+          const channel = row.original;
+          return (
+            <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
+              {channel.isShared ? (
+                <Globe aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : channel.isPrivate ? (
+                <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : (
+                <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="min-w-0 truncate">{channel.name}</span>
+            </span>
+          );
+        },
+      },
+      {
+        accessorFn: (row) => row.memberCount ?? -1,
+        id: 'memberCount',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Members" align="right" />
+        ),
+        cell: ({ row }) => {
+          const channel = row.original;
+          return (
+            <span className="text-right">
+              {channel.memberCount !== undefined ? (
+                <span className="text-muted-foreground text-sm font-mono tabular-nums">
+                  {channel.memberCount}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/50">—</span>
+              )}
+            </span>
+          );
+        },
+      },
+      {
+        accessorFn: (row) => row.agentConfig?.grantAccessToMembers,
+        id: 'memberAccess',
+        sortUndefined: 'last',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Member Access" align="right" />
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            <ChannelAccessCell channel={row.original} onToggleGrantAccess={onToggleGrantAccess} />
+          </div>
+        ),
+      },
+      {
+        accessorFn: (row) => row.agentConfig?.agentName ?? undefined,
+        id: 'agent',
+        sortUndefined: 'last',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Agent" align="right" />
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            <ChannelAgentCell
+              channel={row.original}
+              agents={agents}
+              savingChannel={savingChannel}
+              onSetAgent={onSetChannelAgent}
+              onResetToDefault={onResetChannelToDefault}
+            />
+          </div>
+        ),
+      },
+    ],
+    [agents, savingChannel, onSetChannelAgent, onResetChannelToDefault, onToggleGrantAccess]
+  );
+
+  const table = useReactTable({
+    data: filteredChannels,
+    columns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    state: { sorting },
+  });
+
   return (
     <Card className="shadow-none">
       <CardHeader>
@@ -196,13 +304,12 @@ export function ChannelDefaultsSection({
               <colgroup>
                 <col className="w-10" />
                 <col style={{ width: '40%' }} />
-                <col className="w-28" />
                 <col className="w-24" />
                 <col className="w-32" />
                 <col className="w-40" />
               </colgroup>
-              <TableHeader className="sticky top-0 z-10 [&_th]:border-b [&_th]:border-border">
-                <TableRow className="hover:bg-background bg-card shadow-[0_1px_0_0_var(--border)]">
+              <TableHeader className="sticky text-xs top-0 z-10 [&_th]:border-b [&_th]:border-border">
+                <TableRow className="hover:bg-card bg-card shadow-[0_1px_0_0_var(--border)]">
                   <TableHead className="w-fit">
                     <Checkbox
                       checked={
@@ -218,7 +325,7 @@ export function ChannelDefaultsSection({
                     />
                   </TableHead>
                   {selectedChannels.size > 0 ? (
-                    <TableHead colSpan={5} className="font-sans normal-case py-1.5">
+                    <TableHead colSpan={4} className="font-sans normal-case py-1.5">
                       <BulkSelectAgentBar
                         selectedCount={selectedChannels.size}
                         agents={agents}
@@ -229,91 +336,55 @@ export function ChannelDefaultsSection({
                       />
                     </TableHead>
                   ) : (
-                    <>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="w-fit text-right">Members</TableHead>
-                      <TableHead className="text-right">Member Access</TableHead>
-                      <TableHead className="text-right">Agent</TableHead>
-                    </>
+                    table
+                      .getHeaderGroups()[0]
+                      .headers.filter((h) => h.column.id !== 'select')
+                      .map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className={cn(
+                            header.column.id === 'name' && 'w-fit',
+                            (header.column.id === 'memberCount' ||
+                              header.column.id === 'memberAccess' ||
+                              header.column.id === 'agent') &&
+                              'text-right'
+                          )}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))
                   )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredChannels.map((channel) => (
-                  <TableRow
-                    key={channel.id}
-                    data-state={selectedChannels.has(channel.id) ? 'selected' : ''}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedChannels.has(channel.id)}
-                        onCheckedChange={() => onToggleChannel(channel.id)}
-                        aria-label={`Select ${channel.name}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
-                        {channel.isShared ? (
-                          <Globe
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                {table.getRowModel().rows?.length
+                  ? table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={selectedChannels.has(row.original.id) ? 'selected' : ''}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedChannels.has(row.original.id)}
+                            onCheckedChange={() => onToggleChannel(row.original.id)}
+                            aria-label={`Select ${row.original.name}`}
                           />
-                        ) : channel.isPrivate ? (
-                          <Lock
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                          />
-                        ) : (
-                          <Hash
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                          />
+                        </TableCell>
+                        {row.getVisibleCells().map((cell) =>
+                          cell.column.id === 'select' ? null : (
+                            <TableCell
+                              key={cell.id}
+                              className={cell.column.id !== 'name' ? 'text-right' : undefined}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          )
                         )}
-                        <span className="min-w-0 truncate">{channel.name}</span>
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {channel.isShared ? (
-                        <Badge variant="primary" className="uppercase">
-                          Slack Connect
-                        </Badge>
-                      ) : channel.isPrivate ? (
-                        <Badge className="uppercase" variant="violet">
-                          Private
-                        </Badge>
-                      ) : (
-                        <Badge variant="code" className="uppercase">
-                          Public
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {channel.memberCount !== undefined ? (
-                        <span className="text-muted-foreground text-sm font-mono tabular-nums">
-                          {channel.memberCount}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground/50">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <ChannelAccessCell
-                        channel={channel}
-                        onToggleGrantAccess={onToggleGrantAccess}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <ChannelAgentCell
-                        channel={channel}
-                        agents={agents}
-                        savingChannel={savingChannel}
-                        onSetAgent={onSetChannelAgent}
-                        onResetToDefault={onResetChannelToDefault}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableRow>
+                    ))
+                  : null}
               </TableBody>
             </Table>
           </div>
