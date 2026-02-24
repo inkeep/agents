@@ -1,7 +1,7 @@
 'use client';
 
 import { Maximize } from 'lucide-react';
-import type { ComponentProps, FC, JSX, ReactNode } from 'react';
+import { type ComponentProps, type FC, type JSX, type ReactNode, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 
 interface EditorDialogProps {
   open: boolean;
@@ -53,6 +54,42 @@ const EditorDialogTrigger: FC<ComponentProps<typeof Button>> = ({ className, ...
   );
 };
 
+const EditorFormatAction: FC<ComponentProps<typeof Button>> = (props) => {
+  'use memo';
+  const [isFormatting, startFormattingTransition] = useTransition();
+  const { getEditorByUri } = useMonacoActions();
+
+  return (
+    <Button
+      type="button"
+      onClick={(event) => {
+        const parent = event.currentTarget.closest<HTMLDivElement>('[data-mode-id]');
+        if (!parent) return;
+        const editorContainer = parent.querySelector<HTMLDivElement>('[data-uri]');
+        if (!editorContainer) return;
+        const uri = editorContainer.dataset.uri?.replace('file:///', '');
+        if (!uri) return;
+        const editor = getEditorByUri(uri);
+        console.log({ editor });
+        const formatAction = editor?.getAction('editor.action.formatDocument');
+        startFormattingTransition(async () => {
+          await Promise.all([
+            formatAction?.run(),
+            new Promise((resolve) => setTimeout(resolve, 500)),
+          ]);
+        });
+      }}
+      variant="outline"
+      size="sm"
+      className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+      {...props}
+      disabled={props.disabled || isFormatting}
+    >
+      Format
+    </Button>
+  );
+};
+
 /**
  * Base editor which will be used for declaring all editors in the future using
  * [Vercel composition patterns skill](.agents/skills/vercel-composition-patterns/AGENTS.md)
@@ -60,4 +97,5 @@ const EditorDialogTrigger: FC<ComponentProps<typeof Button>> = ({ className, ...
 export const Editor = {
   Dialog: EditorDialog,
   DialogTrigger: EditorDialogTrigger,
+  FormatAction: EditorFormatAction,
 };
