@@ -65,9 +65,8 @@ function provideDocumentFormattingEdits(
     try {
       text = await formatter(text);
     } catch (error) {
-        toast.error(
-            `Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`
-        );    }
+      toast.error(`Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`);
+    }
     return [{ text, range: model.getFullModelRange() }];
   };
 }
