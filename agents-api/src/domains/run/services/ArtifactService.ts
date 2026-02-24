@@ -649,16 +649,8 @@ export class ArtifactService {
     const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
     const fullValidation = validateAgainstSchema(fullData, fullSchema);
 
-    // Block artifact creation if required fields are missing from summary data
+    // Log and return early if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {
-      new Error(
-        `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
-          `for '${artifactType}' schema. ` +
-          `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
-          `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
-          `Consider using a different artifact component type that matches your data structure.`
-      );
-
       logger.error(
         {
           artifactId,
