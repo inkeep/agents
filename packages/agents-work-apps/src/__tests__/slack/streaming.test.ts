@@ -175,7 +175,8 @@ describe('streamAgentResponse', () => {
   describe('tool-approval-request event handling', () => {
     it('should post an approval message when tool-approval-request event is received', async () => {
       const sseData =
-        'data: {"type":"tool-approval-request","toolCallId":"tc-1","toolName":"search_web","input":{"query":"hello"}}\n' +
+        'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{"query":"hello"}}\n' +
+        'data: {"type":"tool-approval-request","toolCallId":"tc-1","approvalId":"aitxt-tc-1"}\n' +
         'data: {"type":"data-operation","data":{"type":"completion"}}\n';
 
       const stream = new ReadableStream({
@@ -224,7 +225,8 @@ describe('streamAgentResponse', () => {
 
     it('should embed conversationId and toolCallId in the button value', async () => {
       const sseData =
-        'data: {"type":"tool-approval-request","toolCallId":"tc-3","toolName":"run_code"}\n' +
+        'data: {"type":"tool-input-available","toolCallId":"tc-3","toolName":"run_code","input":{}}\n' +
+        'data: {"type":"tool-approval-request","toolCallId":"tc-3","approvalId":"aitxt-tc-3"}\n' +
         'data: {"type":"data-operation","data":{"type":"completion"}}\n';
 
       const stream = new ReadableStream({
@@ -274,7 +276,8 @@ describe('streamAgentResponse', () => {
       mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
 
       const sseData =
-        'data: {"type":"tool-approval-request","toolCallId":"tc-5","toolName":"run_code"}\n';
+        'data: {"type":"tool-input-available","toolCallId":"tc-5","toolName":"run_code","input":{}}\n' +
+        'data: {"type":"tool-approval-request","toolCallId":"tc-5","approvalId":"aitxt-tc-5"}\n';
 
       let readCount = 0;
       const stream = new ReadableStream({
