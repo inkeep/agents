@@ -18,6 +18,7 @@ import {
   createCredentialReference,
   generateId,
   getCredentialReferenceWithResources,
+  getInProcessFetch,
   getProjectMainResolvedRef,
   getToolById,
   OAuthCallbackQuerySchema,
@@ -247,6 +248,8 @@ app.openapi(
         clientInformation,
         metadata,
         resourceUrl,
+        redirectAfter,
+        userId,
       } = pkceData;
 
       // Resolve the project's main branch (tenant/project come from PKCE state, not query params)
@@ -286,7 +289,10 @@ app.openapi(
       );
 
       // Store access token in keychain.
-      const credentialTokenKey = `oauth_token_${toolId}`;
+      // For user-scoped credentials, include userId in the key to avoid collisions
+      const credentialTokenKey = userId
+        ? `oauth_token_${toolId}_${userId}`
+        : `oauth_token_${toolId}`;
       let newCredentialData: CredentialReferenceApiInsert | undefined;
 
       const keychainStore = credentialStores.get('keychain-default');
@@ -295,12 +301,13 @@ app.openapi(
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
             id: generateId(),
-            name: tool.name,
+            name: userId ? `${tool.name} (user)` : tool.name,
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
             retrievalParams: {
               key: credentialTokenKey,
             },
+            ...(userId && { toolId, userId }),
           };
         } catch (error) {
           logger.info(
@@ -321,6 +328,7 @@ app.openapi(
       };
 
       // Create credential and update tool in a single withRef scope with auto-commit
+      const isUserScoped = !!userId;
       const newCredential = await withRef(
         manageDbPool,
         resolvedRef,
@@ -332,23 +340,42 @@ app.openapi(
             newCredentialData
           );
 
-          // Update MCP tool to link the credential
-          await updateTool(db)({
-            scopes: { tenantId, projectId },
-            toolId,
-            data: {
-              credentialReferenceId: credential.id,
-            },
-          });
+          // Only link credential to tool for project-scoped credentials.
+          // User-scoped credentials are looked up by (toolId, userId) at runtime.
+          if (!isUserScoped) {
+            await updateTool(db)({
+              scopes: { tenantId, projectId },
+              toolId,
+              data: {
+                credentialReferenceId: credential.id,
+              },
+            });
+          }
 
           return credential;
         },
         commitOptions
       );
 
-      logger.info({ toolId, credentialId: newCredential.id }, 'OAuth flow completed successfully');
+      logger.info(
+        { toolId, credentialId: newCredential.id, isUserScoped, userId },
+        'OAuth flow completed successfully'
+      );
 
-      // Show simple success page that auto-closes the tab
+      // Fire-and-forget: trigger auto-continue for any pending conversations
+      if (userId) {
+        getInProcessFetch()('/run/api/internal/tool-auth-completed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, toolId, tenantId, projectId }),
+        }).catch((err) => logger.warn({ err }, 'Failed to trigger tool-auth-completed'));
+      }
+
+      // Redirect to manage UI when redirectAfter is present, otherwise show close-popup HTML
+      if (redirectAfter) {
+        return c.redirect(redirectAfter, 302);
+      }
+
       const successPage = generateOAuthCallbackPage({
         title: 'Authentication Complete',
         message: 'You have been successfully authenticated.',

@@ -36091,6 +36091,15 @@
             "schema": {
               "$ref": "#/components/schemas/ResourceId"
             }
+          },
+          {
+            "in": "query",
+            "name": "redirectAfter",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -37175,6 +37184,154 @@
         }
       }
     },
+    "/run/api/internal/pending-tool-auth": {
+      "post": {
+        "description": "Called internally by the Slack streaming handler when a tool-auth-required event is emitted.",
+        "operationId": "internal-store-pending-tool-auth",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "agentName": {
+                    "type": "string"
+                  },
+                  "channel": {
+                    "type": "string"
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "slackUserId": {
+                    "type": "string"
+                  },
+                  "teamId": {
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "type": "string"
+                  },
+                  "threadTs": {
+                    "type": "string"
+                  },
+                  "toolId": {
+                    "type": "string"
+                  },
+                  "toolName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "toolId",
+                  "toolName",
+                  "tenantId",
+                  "projectId",
+                  "conversationId",
+                  "agentId",
+                  "slackUserId",
+                  "channel",
+                  "threadTs",
+                  "teamId",
+                  "agentName"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "stored": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "stored"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "Store a pending tool auth request from a Slack conversation",
+        "tags": [
+          "Internal"
+        ]
+      }
+    },
+    "/run/api/internal/tool-auth-completed": {
+      "post": {
+        "description": "Called internally after OAuth callback to trigger auto-retry of pending conversations.",
+        "operationId": "internal-tool-auth-completed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "type": "string"
+                  },
+                  "toolId": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "toolId",
+                  "tenantId",
+                  "projectId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "triggered": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "triggered"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "Notify that a user completed tool OAuth authentication",
+        "tags": [
+          "Internal"
+        ]
+      }
+    },
     "/run/api/tool-approvals": {
       "post": {
         "description": "Handle user approval/denial of tool execution requests during conversations",
@@ -37922,6 +38079,90 @@
           "Work Apps",
           "Slack",
           "OAuth"
+        ]
+      }
+    },
+    "/work-apps/slack/internal/retry-pending-auth": {
+      "post": {
+        "description": "Called internally after tool-auth-completed to re-invoke the agent in Slack.",
+        "operationId": "internal-slack-retry-pending-auth",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "agentName": {
+                    "type": "string"
+                  },
+                  "channel": {
+                    "type": "string"
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "slackUserId": {
+                    "type": "string"
+                  },
+                  "teamId": {
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "type": "string"
+                  },
+                  "threadTs": {
+                    "type": "string"
+                  },
+                  "toolName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "channel",
+                  "threadTs",
+                  "teamId",
+                  "slackUserId",
+                  "agentName",
+                  "conversationId",
+                  "agentId",
+                  "tenantId",
+                  "projectId",
+                  "toolName"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "Retry a pending agent conversation after user completes tool authentication",
+        "tags": [
+          "Internal"
         ]
       }
     },

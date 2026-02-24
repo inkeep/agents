@@ -42,6 +42,14 @@ export interface StreamHelper {
     input?: Record<string, unknown>;
   }): Promise<void>;
   writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
+  writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void>;
 }
 
 export interface HonoSSEStream {
@@ -325,6 +333,27 @@ export class SSEStreamHelper implements StreamHelper {
       JSON.stringify({
         type: 'tool-output-denied',
         toolCallId: params.toolCallId,
+      })
+    );
+  }
+
+  async writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-auth-required',
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        toolId: params.toolId,
+        ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
+        message: params.message,
+        ...(params.authLink && { authLink: params.authLink }),
       })
     );
   }
@@ -655,6 +684,20 @@ export class VercelDataStreamHelper implements StreamHelper {
       type: 'tool-output-denied',
       toolCallId: params.toolCallId,
     });
+  }
+
+  async writeToolAuthRequired(_params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void> {
+    // No-op for Vercel data stream — the client UI does not yet handle this
+    // custom event type. The LLM's text response already carries the auth error
+    // message from the placeholder tool's execute(). SSEStreamHelper (used by
+    // Slack) still emits this event.
   }
 
   async streamData(data: any): Promise<void> {
@@ -1016,6 +1059,17 @@ export class BufferingStreamHelper implements StreamHelper {
 
   async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
     this.capturedData.push({ type: 'tool-output-denied', ...params });
+  }
+
+  async writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void> {
+    this.capturedData.push({ type: 'tool-auth-required', ...params });
   }
 
   async complete(): Promise<void> {

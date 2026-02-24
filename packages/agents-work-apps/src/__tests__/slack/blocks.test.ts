@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildToolApprovalBlocks,
   buildToolApprovalDoneBlocks,
+  buildToolAuthRequiredBlock,
   createAlreadyLinkedMessage,
   createContextBlock,
   createErrorMessage,
@@ -194,6 +195,38 @@ describe('buildToolApprovalBlocks', () => {
     for (const field of inputSection.fields) {
       expect(field.text).not.toContain('…');
     }
+  });
+});
+
+describe('buildToolAuthRequiredBlock', () => {
+  it('should render section block with Connect Account button when authLink is provided', () => {
+    const block = buildToolAuthRequiredBlock('GitHub', 'https://example.com/oauth/login') as any;
+
+    expect(block.type).toBe('section');
+    expect(block.text.type).toBe('mrkdwn');
+    expect(block.text.text).toContain('GitHub');
+    expect(block.text.text).toContain('requires authentication');
+    expect(block.accessory).toBeDefined();
+    expect(block.accessory.type).toBe('button');
+    expect(block.accessory.text.text).toBe('Connect Account');
+    expect(block.accessory.url).toBe('https://example.com/oauth/login');
+    expect(block.accessory.style).toBe('primary');
+  });
+
+  it('should render context block without button when authLink is absent', () => {
+    const block = buildToolAuthRequiredBlock('Jira') as any;
+
+    expect(block.type).toBe('context');
+    expect(block.elements[0].type).toBe('mrkdwn');
+    expect(block.elements[0].text).toContain('Jira');
+    expect(block.elements[0].text).toContain('requires authentication');
+    expect(block.accessory).toBeUndefined();
+  });
+
+  it('should render context block when authLink is undefined', () => {
+    const block = buildToolAuthRequiredBlock('Slack', undefined);
+
+    expect(block.type).toBe('context');
   });
 });
 

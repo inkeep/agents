@@ -414,6 +414,9 @@ app.openapi(
     permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
+      query: z.object({
+        redirectAfter: z.string().url().optional(),
+      }),
     },
     responses: {
       302: {
@@ -447,6 +450,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id: toolId } = c.req.valid('param');
+    const { redirectAfter } = c.req.valid('query');
+    const userId = c.get('userId');
     const db = c.get('db');
 
     try {
@@ -465,6 +470,8 @@ app.openapi(
         toolId,
         mcpServerUrl: tool.config.mcp.server.url,
         baseUrl,
+        redirectAfter,
+        userId,
       });
 
       return c.redirect(redirectUrl, 302);

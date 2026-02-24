@@ -831,6 +831,39 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
 );
 
 // ============================================================================
+// PENDING TOOL AUTH REQUESTS
+// ============================================================================
+
+/**
+ * Tracks pending tool authentication requests.
+ * When a user-scoped tool fails due to missing credentials, a record is created here.
+ * After the user authenticates, matching records are consumed to trigger conversation
+ * retry (e.g., auto-continue in Slack threads).
+ * Records are deleted after consumption or by periodic cleanup (>7 days).
+ */
+export const pendingToolAuthRequests = pgTable(
+  'pending_tool_auth_requests',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    userId: varchar('user_id', { length: 256 }).notNull(),
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    toolName: varchar('tool_name', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 512 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    surfaceType: varchar('surface_type', { length: 50 }),
+    surfaceContext: jsonb('surface_context').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('pending_tool_auth_requests_user_tool_idx').on(table.userId, table.toolId),
+    index('pending_tool_auth_requests_tenant_idx').on(table.tenantId),
+    index('pending_tool_auth_requests_created_at_idx').on(table.createdAt),
+  ]
+);
+
+// ============================================================================
 // GITHUB APP INSTALLATION RELATIONS
 // ============================================================================
 

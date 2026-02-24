@@ -269,6 +269,33 @@ export function buildToolApprovalExpiredBlocks(params: { toolName: string }) {
   ];
 }
 
+export function buildToolAuthRequiredBlock(toolName: string, authLink?: string) {
+  if (authLink) {
+    return {
+      type: 'section' as const,
+      text: {
+        type: 'mrkdwn' as const,
+        text: `⚠️ *${toolName}* requires authentication. Connect your account to use this tool.`,
+      },
+      accessory: {
+        type: 'button' as const,
+        text: { type: 'plain_text' as const, text: 'Connect Account' },
+        url: authLink,
+        style: 'primary' as const,
+      },
+    };
+  }
+  return {
+    type: 'context' as const,
+    elements: [
+      {
+        type: 'mrkdwn' as const,
+        text: `⚠️ *${toolName}* requires authentication. Connect your account to use this tool.`,
+      },
+    ],
+  };
+}
+
 export function buildToolOutputErrorBlock(toolName: string, errorText: string) {
   const truncated = errorText.length > 100 ? `${errorText.slice(0, 100)}…` : errorText;
   return {

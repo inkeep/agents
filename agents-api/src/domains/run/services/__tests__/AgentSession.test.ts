@@ -97,6 +97,7 @@ describe('AgentSession', () => {
       writeToolOutputError: vi.fn().mockResolvedValue(undefined),
       writeToolApprovalRequest: vi.fn().mockResolvedValue(undefined),
       writeToolOutputDenied: vi.fn().mockResolvedValue(undefined),
+      writeToolAuthRequired: vi.fn().mockResolvedValue(undefined),
     };
 
     mockExecutionContext = {

@@ -33,6 +33,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { WorkAppsVariables } from '../types';
 import eventsRouter from './events';
+import internalRouter from './internal';
 import oauthRouter from './oauth';
 import usersRouter from './users';
 import workspacesRouter from './workspaces';
@@ -41,6 +42,7 @@ const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 app.route('/workspaces', workspacesRouter);
 app.route('/users', usersRouter);
+app.route('/internal', internalRouter);
 app.route('/', oauthRouter);
 app.route('/', eventsRouter);
 

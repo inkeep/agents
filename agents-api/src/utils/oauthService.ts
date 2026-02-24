@@ -10,19 +10,20 @@ import { getLogger } from '../logger';
 
 const logger = getLogger('oauth-service');
 
+export interface PKCEData {
+  codeVerifier: string;
+  toolId: string;
+  tenantId: string;
+  projectId: string;
+  clientInformation: any;
+  metadata: any;
+  resourceUrl?: string;
+  redirectAfter?: string;
+  userId?: string;
+}
+
 // PKCE storage with OAuth metadata (TODO: Use Redis or database in production)
-const pkceStore = new Map<
-  string,
-  {
-    codeVerifier: string;
-    toolId: string;
-    tenantId: string;
-    projectId: string;
-    clientInformation: any;
-    metadata: any;
-    resourceUrl?: string;
-  }
->();
+const pkceStore = new Map<string, PKCEData>();
 
 /**
  * Store PKCE verifier and OAuth metadata for later use in token exchange
@@ -35,7 +36,9 @@ function storePKCEVerifier(
   projectId: string,
   clientInformation: any,
   metadata: any,
-  resourceUrl?: string
+  resourceUrl?: string,
+  redirectAfter?: string,
+  userId?: string
 ): void {
   pkceStore.set(state, {
     codeVerifier,
@@ -45,6 +48,8 @@ function storePKCEVerifier(
     clientInformation,
     metadata,
     resourceUrl,
+    redirectAfter,
+    userId,
   });
 
   // Clean up after 10 minutes (OAuth flows should complete quickly)
@@ -59,15 +64,7 @@ function storePKCEVerifier(
 /**
  * Retrieve and remove PKCE verifier
  */
-export function retrievePKCEVerifier(state: string): {
-  codeVerifier: string;
-  toolId: string;
-  tenantId: string;
-  projectId: string;
-  clientInformation: any;
-  metadata: any;
-  resourceUrl?: string;
-} | null {
+export function retrievePKCEVerifier(state: string): PKCEData | null {
   const data = pkceStore.get(state);
   if (data) {
     pkceStore.delete(state); // One-time use
@@ -131,8 +128,10 @@ class OAuthService {
     toolId: string;
     mcpServerUrl: string;
     baseUrl?: string; // Optional override for the base URL
+    redirectAfter?: string;
+    userId?: string;
   }): Promise<OAuthInitiationResult> {
-    const { tenantId, projectId, toolId, mcpServerUrl, baseUrl } = params;
+    const { tenantId, projectId, toolId, mcpServerUrl, baseUrl, redirectAfter, userId } = params;
 
     const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
     const redirectUri = `${redirectBaseUrl}/manage/oauth/callback`;
@@ -157,7 +156,9 @@ class OAuthService {
       projectId,
       authResult.clientInformation,
       authResult.metadata,
-      authResult.resourceUrl
+      authResult.resourceUrl,
+      redirectAfter,
+      userId
     );
 
     logger.info(

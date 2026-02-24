@@ -353,6 +353,140 @@ describe('streamAgentResponse', () => {
       expect(result.errorMessage).toContain('Authentication error');
     });
 
+    describe('tool-auth-required event handling', () => {
+      it('should render auth block with Connect Account button in stop blocks', async () => {
+        const sseData =
+          'data: {"type":"tool-auth-required","toolName":"GitHub","toolId":"tool-gh","authLink":"https://example.com/auth"}\n' +
+          'data: {"type":"text-delta","delta":"Auth needed"}\n' +
+          'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        expect(localStop).toHaveBeenCalled();
+        const stopCall = localStop.mock.calls[0][0];
+        const authBlock = stopCall.blocks.find(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('GitHub')
+        );
+        expect(authBlock).toBeDefined();
+        expect(authBlock.accessory.type).toBe('button');
+        expect(authBlock.accessory.url).toBe('https://example.com/auth');
+      });
+
+      it('should render context block when authLink is absent', async () => {
+        const sseData =
+          'data: {"type":"tool-auth-required","toolName":"Jira","toolId":"tool-jira"}\n' +
+          'data: {"type":"text-delta","delta":"Auth needed"}\n' +
+          'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const stopCall = localStop.mock.calls[0][0];
+        const authBlock = stopCall.blocks.find(
+          (b: any) => b.type === 'context' && b.elements?.[0]?.text?.includes('Jira')
+        );
+        expect(authBlock).toBeDefined();
+      });
+
+      it('should store pending auth request via internal endpoint when tenantId is provided', async () => {
+        const sseData =
+          'data: {"type":"tool-auth-required","toolName":"GitHub","toolId":"tool-gh","authLink":"https://example.com/auth"}\n' +
+          'data: {"type":"text-delta","delta":"Auth needed"}\n' +
+          'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse({ ...baseParams, tenantId: 'tenant-1' });
+
+        // The internal endpoint call is fire-and-forget, check mockFetch was called
+        const fetchCalls = mockFetch.mock.calls;
+        const pendingAuthCall = fetchCalls.find(
+          (call: any) => typeof call[0] === 'string' && call[0].includes('pending-tool-auth')
+        );
+        expect(pendingAuthCall).toBeDefined();
+        const body = JSON.parse(pendingAuthCall?.[1].body);
+        expect(body.toolId).toBe('tool-gh');
+        expect(body.toolName).toBe('GitHub');
+        expect(body.tenantId).toBe('tenant-1');
+      });
+
+      it('should not store pending auth when tenantId is not provided', async () => {
+        const sseData =
+          'data: {"type":"tool-auth-required","toolName":"GitHub","toolId":"tool-gh"}\n' +
+          'data: {"type":"text-delta","delta":"Auth needed"}\n' +
+          'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const fetchCalls = mockFetch.mock.calls;
+        const pendingAuthCall = fetchCalls.find(
+          (call: any) => typeof call[0] === 'string' && call[0].includes('pending-tool-auth')
+        );
+        expect(pendingAuthCall).toBeUndefined();
+      });
+    });
+
     describe('contentAlreadyDelivered error suppression', () => {
       it('should return success and suppress error message when content was already streamed', async () => {
         // Simulate a stream that delivers content then throws on the next read

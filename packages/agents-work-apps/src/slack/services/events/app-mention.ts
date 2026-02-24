@@ -297,6 +297,7 @@ Respond naturally as if you're joining the conversation to help.`;
           question: threadQuery,
           agentName: agentDisplayName,
           conversationId,
+          tenantId,
         });
         span.end();
         return;
@@ -392,6 +393,7 @@ Respond naturally as if you're joining the conversation to help.`;
         question: queryText,
         agentName: agentDisplayName,
         conversationId,
+        tenantId,
       });
       span.end();
     } catch (error) {

@@ -16,6 +16,7 @@ import {
   buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
   buildToolApprovalExpiredBlocks,
+  buildToolAuthRequiredBlock,
   buildToolOutputErrorBlock,
   createContextBlock,
   type ToolApprovalButtonValue,
@@ -69,6 +70,7 @@ export async function streamAgentResponse(params: {
   question: string;
   agentName: string;
   conversationId: string;
+  tenantId?: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -84,6 +86,7 @@ export async function streamAgentResponse(params: {
       question,
       agentName,
       conversationId,
+      tenantId,
     } = params;
 
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
@@ -256,6 +259,7 @@ export async function streamAgentResponse(params: {
     const toolCallIdToName = new Map<string, string>();
     const toolCallIdToInput = new Map<string, Record<string, unknown>>();
     const toolErrors: Array<{ toolName: string; errorText: string }> = [];
+    const toolAuthErrors: Array<{ toolName: string; authLink?: string; toolId?: string }> = [];
     const citations: Array<{ title?: string; url?: string }> = [];
     const summaryLabels: string[] = [];
     let richMessageCount = 0;
@@ -352,6 +356,15 @@ export async function streamAgentResponse(params: {
             if (data.type === 'tool-output-error' && data.toolCallId) {
               const toolName = toolCallIdToName.get(String(data.toolCallId)) || 'Tool';
               toolErrors.push({ toolName, errorText: String(data.errorText || 'Unknown error') });
+              continue;
+            }
+
+            if (data.type === 'tool-auth-required' && data.toolName) {
+              toolAuthErrors.push({
+                toolName: String(data.toolName),
+                authLink: data.authLink ? String(data.authLink) : undefined,
+                toolId: data.toolId ? String(data.toolId) : undefined,
+              });
               continue;
             }
 
@@ -497,6 +510,9 @@ export async function streamAgentResponse(params: {
       clearTimeout(timeoutId);
 
       const stopBlocks: any[] = [];
+      for (const { toolName, authLink } of toolAuthErrors) {
+        stopBlocks.push(buildToolAuthRequiredBlock(toolName, authLink));
+      }
       for (const { toolName, errorText } of toolErrors) {
         stopBlocks.push(buildToolOutputErrorBlock(toolName, errorText));
       }
@@ -544,11 +560,41 @@ export async function streamAgentResponse(params: {
           agentId,
           conversationId,
           toolErrorCount: toolErrors.length,
+          toolAuthErrorCount: toolAuthErrors.length,
           citationCount: citations.length,
           richMessageCount,
         },
         'Streaming completed'
       );
+
+      // Store pending auth requests for auto-continue after user authenticates
+      if (toolAuthErrors.length > 0 && tenantId) {
+        for (const { toolName, toolId: authToolId } of toolAuthErrors) {
+          if (!authToolId) continue;
+          getInProcessFetch()(`/run/api/internal/pending-tool-auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              toolId: authToolId,
+              toolName,
+              tenantId,
+              projectId,
+              conversationId,
+              agentId,
+              slackUserId,
+              channel,
+              threadTs,
+              teamId,
+              agentName,
+            }),
+          }).catch((err) =>
+            logger.warn(
+              { err, toolName, toolId: authToolId },
+              'Failed to store pending tool auth request'
+            )
+          );
+        }
+      }
 
       span.end();
       return { success: true };
