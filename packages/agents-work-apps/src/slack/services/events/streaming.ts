@@ -503,6 +503,10 @@ export async function streamAgentResponse(params: {
       if (summaryLabels.length > 0) {
         stopBlocks.push(buildSummaryBreadcrumbBlock(summaryLabels));
       }
+      if (citations.length > 0) {
+        const citationBlocks = buildCitationsBlock(citations);
+        stopBlocks.push(...citationBlocks);
+      }
       stopBlocks.push(createContextBlock({ agentName }));
 
       try {
@@ -519,20 +523,6 @@ export async function streamAgentResponse(params: {
           { stopError, channel, threadTs, responseLength: fullText.length },
           'Failed to finalize chatStream — content was already delivered'
         );
-      }
-
-      if (citations.length > 0) {
-        const citationBlocks = buildCitationsBlock(citations);
-        if (citationBlocks.length > 0) {
-          await slackClient.chat
-            .postMessage({
-              channel,
-              thread_ts: threadTs,
-              text: '📚 Sources',
-              blocks: citationBlocks,
-            })
-            .catch((e) => logger.warn({ error: e }, 'Failed to post citations'));
-        }
       }
 
       if (thinkingMessageTs) {

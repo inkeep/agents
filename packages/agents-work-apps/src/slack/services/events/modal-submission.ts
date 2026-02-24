@@ -63,12 +63,14 @@ export async function handleModalSubmission(view: {
 
       let agentId = metadata.selectedAgentId;
       let projectId = metadata.selectedProjectId;
+      let agentName: string | null = null;
 
       if (agentSelectValue?.selected_option?.value) {
         try {
           const parsed = JSON.parse(agentSelectValue.selected_option.value);
           agentId = parsed.agentId;
           projectId = parsed.projectId;
+          agentName = parsed.agentName || null;
         } catch {
           logger.warn(
             { value: agentSelectValue.selected_option.value },
@@ -76,6 +78,8 @@ export async function handleModalSubmission(view: {
           );
         }
       }
+
+      const agentDisplayName = agentName || agentId || 'Agent';
 
       if (!agentId || !projectId) {
         logger.error({ metadata }, 'Missing agent or project ID in modal submission');
@@ -186,7 +190,7 @@ export async function handleModalSubmission(view: {
       const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
       // Post thinking message (always ephemeral)
-      const thinkingText = SlackStrings.status.thinking(agentId);
+      const thinkingText = SlackStrings.status.thinking(agentDisplayName);
 
       if (metadata.buttonResponseUrl) {
         await sendResponseUrlMessage(metadata.buttonResponseUrl, {
@@ -221,6 +225,7 @@ export async function handleModalSubmission(view: {
         slackClient,
         metadata,
         agentId,
+        agentDisplayName,
         projectId,
         tenantId,
         conversationId,
@@ -284,8 +289,17 @@ export async function handleFollowUpSubmission(view: {
         return;
       }
 
-      const { conversationId, agentId, projectId, tenantId, teamId, slackUserId, channel } =
-        metadata;
+      const {
+        conversationId,
+        agentId,
+        agentName,
+        projectId,
+        tenantId,
+        teamId,
+        slackUserId,
+        channel,
+      } = metadata;
+      const agentDisplayName = agentName || agentId || 'Agent';
       span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
       span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
       span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
@@ -337,7 +351,7 @@ export async function handleFollowUpSubmission(view: {
       await slackClient.chat.postEphemeral({
         channel,
         user: slackUserId,
-        text: SlackStrings.status.thinking(agentId),
+        text: SlackStrings.status.thinking(agentDisplayName),
       });
 
       // Call the Run API with the same conversationId
@@ -354,11 +368,12 @@ export async function handleFollowUpSubmission(view: {
       const responseBlocks = buildConversationResponseBlocks({
         userMessage: question,
         responseText: responseText.text,
-        agentName: agentId,
+        agentName: agentDisplayName,
         isError: responseText.isError,
         followUpParams: {
           conversationId,
           agentId,
+          agentName: agentDisplayName,
           projectId,
           tenantId,
           teamId,
@@ -484,6 +499,7 @@ async function postPrivateResponse(params: {
   slackClient: ReturnType<typeof getSlackClient>;
   metadata: ModalMetadata;
   agentId: string;
+  agentDisplayName: string;
   projectId: string;
   tenantId: string;
   conversationId: string;
@@ -495,6 +511,7 @@ async function postPrivateResponse(params: {
     slackClient,
     metadata,
     agentId,
+    agentDisplayName,
     projectId,
     tenantId,
     conversationId,
@@ -506,11 +523,12 @@ async function postPrivateResponse(params: {
   const responseBlocks = buildConversationResponseBlocks({
     userMessage,
     responseText,
-    agentName: agentId,
+    agentName: agentDisplayName,
     isError,
     followUpParams: {
       conversationId,
       agentId,
+      agentName: agentDisplayName,
       projectId,
       tenantId,
       teamId: metadata.teamId,
