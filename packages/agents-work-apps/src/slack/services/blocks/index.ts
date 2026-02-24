@@ -1,6 +1,7 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
 import { z } from 'zod';
 import { SlackStrings } from '../../i18n';
+import { escapeSlackLinkText } from '../events/utils';
 
 export function createErrorMessage(message: string) {
   return Message().blocks(Blocks.Section().text(message)).buildToObject();
@@ -371,7 +372,8 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
     const lines = shown
       .map((s) => {
         const url = s.url || s.href;
-        const title = s.title || s.name || url;
+        const rawTitle = s.title || s.name || url;
+        const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
         return url ? `• <${url}|${title}>` : null;
       })
       .filter((l): l is string => l !== null);
@@ -425,7 +427,7 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
     .map((c) => {
       const url = c.url;
       const rawTitle = c.title || url;
-      const title = rawTitle?.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
       return url ? `• <${url}|${title}>` : null;
     })
     .filter((l): l is string => l !== null);
