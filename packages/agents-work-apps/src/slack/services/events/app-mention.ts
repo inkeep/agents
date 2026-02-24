@@ -13,6 +13,7 @@
  *    - Thread + query → Execute agent with thread context included
  */
 
+import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -25,6 +26,7 @@ import {
   getSlackUserInfo,
   postMessageInThread,
 } from '../client';
+import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { streamAgentResponse } from './streaming';
 import {
@@ -167,13 +169,43 @@ export async function handleAppMention(params: {
 
       if (!existingLink) {
         logger.info({ slackUserId, teamId, channel }, 'User not linked — prompting account link');
+
+        const intent: SlackLinkIntent = {
+          entryPoint: 'mention',
+          question: text.slice(0, 2000),
+          channelId: channel,
+          threadTs: isInThread ? threadTs : undefined,
+          messageTs,
+          agentId: agentConfig.agentId,
+          projectId: agentConfig.projectId,
+        };
+
+        const linkResult = await resolveUnlinkedUserAction({
+          tenantId,
+          teamId,
+          slackUserId,
+          botToken,
+          intent,
+        });
+        const message = buildLinkPromptMessage(linkResult);
+
+        logger.info(
+          {
+            event: 'smart_link_intent_captured',
+            entryPoint: 'mention',
+            linkType: linkResult.type,
+            questionLength: intent.question.length,
+            channelId: channel,
+          },
+          'Smart link intent captured'
+        );
+
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
           thread_ts: isInThread ? threadTs : undefined,
-          text:
-            `*Link your account to use @Inkeep*\n\n` +
-            `Run \`/inkeep link\` to connect your Slack and Inkeep accounts.`,
+          text: "To get started, let's connect your Inkeep account with Slack.",
+          blocks: message.blocks,
         });
         span.end();
         return;

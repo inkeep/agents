@@ -21,6 +21,7 @@ const mockChatStream = vi.fn().mockReturnValue({
 
 vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
+  signSlackLinkToken: vi.fn().mockResolvedValue('mock-link-token'),
 }));
 
 const mockSpan = {
@@ -130,6 +131,26 @@ vi.mock('../../slack/services/agent-resolution', () => ({
   resolveEffectiveAgent: vi.fn(),
 }));
 
+vi.mock('../../slack/services/link-prompt', () => ({
+  resolveUnlinkedUserAction: vi.fn().mockResolvedValue({
+    type: 'jwt_link',
+    url: 'http://localhost:3000/link?token=mock',
+    expiresInMinutes: 10,
+  }),
+  buildLinkPromptMessage: vi.fn().mockReturnValue({
+    text: "To get started, let's connect your Inkeep account with Slack.",
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: "To get started, let's connect your Inkeep account with Slack.",
+        },
+      },
+    ],
+  }),
+}));
+
 const baseParams = {
   slackUserId: 'U123',
   channel: 'C456',
@@ -204,7 +225,7 @@ describe('handleAppMention', () => {
 
     expect(mockPostEphemeral).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Link your account'),
+        text: expect.stringContaining('connect your Inkeep account'),
       })
     );
   });

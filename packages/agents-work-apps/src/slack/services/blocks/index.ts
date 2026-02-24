@@ -208,6 +208,18 @@ export function createStatusMessage(
     .buildToObject();
 }
 
+export function createSmartLinkMessage(linkUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text("To get started, let's connect your Inkeep account with Slack."),
+      Blocks.Actions().elements(
+        Elements.Button().text('Link Account').url(linkUrl).actionId('smart_link_account').primary()
+      ),
+      Blocks.Context().elements('🕐 This only needs to happen once.')
+    )
+    .buildToObject();
+}
+
 export interface ToolApprovalButtonValue {
   toolCallId: string;
   conversationId: string;
@@ -471,21 +483,6 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
       text: { type: 'mrkdwn', text: `📚 *Sources*\n${lines.join('\n')}${suffix}` },
     },
   ];
-}
-
-export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold('Link your Inkeep account')}\n\n` +
-          'Connect your Slack and Inkeep accounts to use Inkeep agents.'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('Link Account').url(linkUrl).actionId('link_account').primary()
-      ),
-      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes.`)
-    )
-    .buildToObject();
 }
 
 export function createCreateInkeepAccountMessage(acceptUrl: string, expiresInMinutes: number) {

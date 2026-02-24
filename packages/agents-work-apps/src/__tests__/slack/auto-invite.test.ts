@@ -70,7 +70,7 @@ vi.mock('../../slack/services/client', () => ({
 
 vi.mock('../../slack/services/blocks', () => ({
   createAlreadyLinkedMessage: vi.fn(() => ({ blocks: [{ type: 'section' }] })),
-  createJwtLinkMessage: vi.fn(() => ({ blocks: [{ type: 'section', text: 'jwt-link' }] })),
+  createSmartLinkMessage: vi.fn(() => ({ blocks: [{ type: 'section', text: 'smart-link' }] })),
   createCreateInkeepAccountMessage: vi.fn((url: string) => ({
     blocks: [{ type: 'section', text: `create-account:${url}` }],
   })),
@@ -115,8 +115,8 @@ describe('auto-invite flow in handleLinkCommand', () => {
     expect(mockGetOrganizationMemberByEmail).not.toHaveBeenCalled();
     expect(mockCreateInvitationInDb).not.toHaveBeenCalled();
 
-    const { createJwtLinkMessage } = await import('../../slack/services/blocks');
-    expect(createJwtLinkMessage).toHaveBeenCalled();
+    const { createSmartLinkMessage } = await import('../../slack/services/blocks');
+    expect(createSmartLinkMessage).toHaveBeenCalled();
   });
 
   it('should fall through to JWT link flow when workspace is null', async () => {
@@ -125,8 +125,8 @@ describe('auto-invite flow in handleLinkCommand', () => {
     const result = await handleLinkCommand(basePayload, DASHBOARD_URL, TENANT_ID, BOT_TOKEN);
 
     expect(result.response_type).toBe('ephemeral');
-    const { createJwtLinkMessage } = await import('../../slack/services/blocks');
-    expect(createJwtLinkMessage).toHaveBeenCalled();
+    const { createSmartLinkMessage } = await import('../../slack/services/blocks');
+    expect(createSmartLinkMessage).toHaveBeenCalled();
   });
 
   it('should fall through to JWT link flow when no bot token provided', async () => {
@@ -135,8 +135,8 @@ describe('auto-invite flow in handleLinkCommand', () => {
     expect(result.response_type).toBe('ephemeral');
     expect(mockFindWorkAppSlackWorkspaceByTeamId).not.toHaveBeenCalled();
 
-    const { createJwtLinkMessage } = await import('../../slack/services/blocks');
-    expect(createJwtLinkMessage).toHaveBeenCalled();
+    const { createSmartLinkMessage } = await import('../../slack/services/blocks');
+    expect(createSmartLinkMessage).toHaveBeenCalled();
   });
 
   it('should fall through to JWT link flow when Slack user has no email', async () => {
@@ -150,8 +150,8 @@ describe('auto-invite flow in handleLinkCommand', () => {
     expect(result.response_type).toBe('ephemeral');
     expect(mockGetOrganizationMemberByEmail).not.toHaveBeenCalled();
 
-    const { createJwtLinkMessage } = await import('../../slack/services/blocks');
-    expect(createJwtLinkMessage).toHaveBeenCalled();
+    const { createSmartLinkMessage } = await import('../../slack/services/blocks');
+    expect(createSmartLinkMessage).toHaveBeenCalled();
   });
 
   it('should fall through to JWT link flow when user already has Inkeep account', async () => {
@@ -171,8 +171,8 @@ describe('auto-invite flow in handleLinkCommand', () => {
     expect(result.response_type).toBe('ephemeral');
     expect(mockCreateInvitationInDb).not.toHaveBeenCalled();
 
-    const { createJwtLinkMessage } = await import('../../slack/services/blocks');
-    expect(createJwtLinkMessage).toHaveBeenCalled();
+    const { createSmartLinkMessage } = await import('../../slack/services/blocks');
+    expect(createSmartLinkMessage).toHaveBeenCalled();
   });
 
   it('should reuse existing pending invitation instead of creating a new one', async () => {
@@ -208,7 +208,7 @@ describe('auto-invite flow in handleLinkCommand', () => {
     });
     mockGetOrganizationMemberByEmail.mockResolvedValue(null);
     mockGetPendingInvitationsByEmail.mockResolvedValue([]);
-    mockCreateInvitationInDb.mockResolvedValue({ id: 'inv_new_456' });
+    mockCreateInvitationInDb.mockResolvedValue({ id: 'inv_new_456', authMethod: 'email-password' });
 
     const result = await handleLinkCommand(basePayload, DASHBOARD_URL, TENANT_ID, BOT_TOKEN);
 
@@ -234,7 +234,7 @@ describe('auto-invite flow in handleLinkCommand', () => {
     });
     mockGetOrganizationMemberByEmail.mockResolvedValue(null);
     mockGetPendingInvitationsByEmail.mockResolvedValue([]);
-    mockCreateInvitationInDb.mockResolvedValue({ id: 'inv_789' });
+    mockCreateInvitationInDb.mockResolvedValue({ id: 'inv_789', authMethod: 'email-password' });
     mockSignSlackLinkToken.mockResolvedValue('jwt-token-for-linking');
 
     await handleLinkCommand(basePayload, DASHBOARD_URL, TENANT_ID, BOT_TOKEN);
@@ -256,8 +256,8 @@ describe('auto-invite flow in handleLinkCommand', () => {
 
     expect(result.response_type).toBe('ephemeral');
 
-    const { createJwtLinkMessage } = await import('../../slack/services/blocks');
-    expect(createJwtLinkMessage).toHaveBeenCalled();
+    const { createSmartLinkMessage } = await import('../../slack/services/blocks');
+    expect(createSmartLinkMessage).toHaveBeenCalled();
   });
 
   it('should return already-linked message when user is already linked', async () => {
@@ -290,7 +290,10 @@ describe('auto-invite flow in handleLinkCommand', () => {
     mockGetPendingInvitationsByEmail.mockResolvedValue([
       { id: 'inv_other_org', organizationId: 'org_different', email: 'new@example.com' },
     ]);
-    mockCreateInvitationInDb.mockResolvedValue({ id: 'inv_correct_org' });
+    mockCreateInvitationInDb.mockResolvedValue({
+      id: 'inv_correct_org',
+      authMethod: 'email-password',
+    });
 
     const result = await handleLinkCommand(basePayload, DASHBOARD_URL, TENANT_ID, BOT_TOKEN);
 
