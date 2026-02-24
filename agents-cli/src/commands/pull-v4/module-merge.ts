@@ -35,6 +35,9 @@ function mergeImports(existingFile: SourceFile, generatedFile: SourceFile) {
       if (areGeneratedImportBindingsAlreadyPresent(existingFile, generatedImport)) {
         continue;
       }
+      if (hasGeneratedImportBindingConflicts(existingFile, generatedImport)) {
+        continue;
+      }
       existingFile.addImportDeclaration(generatedImport.getStructure());
       continue;
     }
@@ -53,18 +56,25 @@ function mergeImports(existingFile: SourceFile, generatedFile: SourceFile) {
 
     const generatedDefaultImport = generatedImport.getDefaultImport();
     if (generatedDefaultImport && !targetImport.getDefaultImport()) {
-      targetImport.setDefaultImport(generatedDefaultImport.getText());
+      const defaultImportName = generatedDefaultImport.getText();
+      if (!hasTopLevelDeclarationWithName(existingFile, defaultImportName)) {
+        targetImport.setDefaultImport(defaultImportName);
+      }
     }
 
     const generatedNamespaceImport = generatedImport.getNamespaceImport();
     if (generatedNamespaceImport && !targetImport.getNamespaceImport()) {
-      targetImport.setNamespaceImport(generatedNamespaceImport.getText());
+      const namespaceImportName = generatedNamespaceImport.getText();
+      if (!hasTopLevelDeclarationWithName(existingFile, namespaceImportName)) {
+        targetImport.setNamespaceImport(namespaceImportName);
+      }
     }
 
     for (const generatedNamedImport of generatedImport.getNamedImports()) {
       const generatedName = generatedNamedImport.getName();
       const generatedAlias = generatedNamedImport.getAliasNode()?.getText();
       const generatedIsTypeOnly = generatedNamedImport.isTypeOnly();
+      const generatedBindingName = generatedAlias ?? generatedName;
       const hasNamedImport = targetImport.getNamedImports().some((existingNamedImport) => {
         return (
           existingNamedImport.getName() === generatedName &&
@@ -74,6 +84,9 @@ function mergeImports(existingFile: SourceFile, generatedFile: SourceFile) {
       });
 
       if (!hasNamedImport) {
+        if (hasTopLevelDeclarationWithName(existingFile, generatedBindingName)) {
+          continue;
+        }
         targetImport.addNamedImport({
           name: generatedName,
           alias: generatedAlias,
@@ -124,6 +137,18 @@ function areGeneratedImportBindingsAlreadyPresent(
   );
 }
 
+function hasGeneratedImportBindingConflicts(
+  existingFile: SourceFile,
+  generatedImport: ReturnType<SourceFile['getImportDeclarations']>[number]
+): boolean {
+  const generatedBindings = getImportBindingNames(generatedImport);
+  if (!generatedBindings.length) {
+    return false;
+  }
+
+  return generatedBindings.some((binding) => hasTopLevelDeclarationWithName(existingFile, binding));
+}
+
 function getImportBindingNames(
   importDeclaration: ReturnType<SourceFile['getImportDeclarations']>[number]
 ): string[] {
@@ -161,6 +186,34 @@ function importHasBinding(
   return importDeclaration.getNamedImports().some((namedImport) => {
     return (namedImport.getAliasNode()?.getText() ?? namedImport.getName()) === bindingName;
   });
+}
+
+function hasTopLevelDeclarationWithName(
+  existingFile: SourceFile,
+  declarationName: string
+): boolean {
+  if (existingFile.getVariableDeclaration(declarationName)) {
+    return true;
+  }
+  if (existingFile.getFunction(declarationName)) {
+    return true;
+  }
+  if (existingFile.getClass(declarationName)) {
+    return true;
+  }
+  if (existingFile.getInterface(declarationName)) {
+    return true;
+  }
+  if (existingFile.getTypeAlias(declarationName)) {
+    return true;
+  }
+  if (existingFile.getEnum(declarationName)) {
+    return true;
+  }
+  if (existingFile.getModule(declarationName)) {
+    return true;
+  }
+  return false;
 }
 
 function upsertStatement(existingFile: SourceFile, generatedStatement: Statement) {

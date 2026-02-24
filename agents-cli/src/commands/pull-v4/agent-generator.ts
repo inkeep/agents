@@ -6,6 +6,7 @@ import {
   addStringProperty,
   collectTemplateVariableNames as collectTemplateVariableNamesFromString,
   createFactoryDefinition,
+  createUniqueReferenceName,
   formatStringLiteral,
   formatTemplate,
   isPlainObject,
@@ -486,30 +487,4 @@ function createReferenceNameMap(
     map.set(id, createUniqueReferenceName(toCamelCase(id), reservedNames, conflictSuffix));
   }
   return map;
-}
-
-function createUniqueReferenceName(
-  baseName: string,
-  reservedNames: Set<string>,
-  conflictSuffix: string
-): string {
-  if (!reservedNames.has(baseName)) {
-    reservedNames.add(baseName);
-    return baseName;
-  }
-
-  const baseCandidate = `${baseName}${conflictSuffix}`;
-  if (!reservedNames.has(baseCandidate)) {
-    reservedNames.add(baseCandidate);
-    return baseCandidate;
-  }
-
-  let index = 2;
-  while (reservedNames.has(`${baseCandidate}${index}`)) {
-    index += 1;
-  }
-
-  const uniqueName = `${baseCandidate}${index}`;
-  reservedNames.add(uniqueName);
-  return uniqueName;
 }

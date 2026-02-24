@@ -9,6 +9,7 @@ import { generateArtifactComponentDefinition } from './artifact-component-genera
 import { generateContextConfigDefinition } from './context-config-generator';
 import { generateCredentialDefinition } from './credential-generator';
 import { generateDataComponentDefinition } from './data-component-generator';
+import { generateMcpToolDefinition } from './mcp-tool-generator';
 import { mergeGeneratedModule } from './module-merge';
 import { generateProjectDefinition } from './project-generator';
 import { generateStatusComponentDefinition } from './status-component-generator';
@@ -70,7 +71,6 @@ interface SkippedAgent {
 }
 
 interface UnsupportedComponentCounts {
-  tools: number;
   functionTools: number;
   functions: number;
   externalAgents: number;
@@ -183,6 +183,11 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       type: 'data-component',
       collect: collectDataComponentRecords,
       generate: generateDataComponentDefinition,
+    },
+    {
+      type: 'tool',
+      collect: collectToolRecords,
+      generate: generateMcpToolDefinition,
     },
     {
       type: 'context-config',
@@ -353,6 +358,24 @@ function collectContextConfigRecords(
   }
 
   return [...contextConfigRecordsById.values()];
+}
+
+function collectToolRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateMcpToolDefinition>[0]>> {
+  return Object.entries(context.project.tools ?? {}).map(([toolId, toolData]) => ({
+    id: toolId,
+    filePath: resolveRecordFilePath(
+      context,
+      'tools',
+      toolId,
+      join(context.paths.toolsDir, `${toolId}.ts`)
+    ),
+    payload: {
+      mcpToolId: toolId,
+      ...toolData,
+    } as Parameters<typeof generateMcpToolDefinition>[0],
+  }));
 }
 
 function collectContextConfigCredentialReferenceOverrides(
@@ -748,7 +771,6 @@ function collectUnsupportedComponentCounts(
   project: FullProjectDefinition
 ): UnsupportedComponentCounts {
   return {
-    tools: getObjectKeys(project.tools).length,
     functionTools: getObjectKeys(project.functionTools).length,
     functions: getObjectKeys(project.functions).length,
     externalAgents: getObjectKeys(project.externalAgents).length,

@@ -1,4 +1,10 @@
 import { subAgent } from '@inkeep/agents-sdk';
+import { calculateBMI } from '../../tools/calculateBMI';
+import { weatherTool } from '../../tools/weatherTool';
+import { taskList } from '../../data-components/taskList';
+import { citation } from '../../artifact-components/citation';
+import { coordinatesAgent } from './coordinatesAgent';
+import { teamAgent } from './teamAgent';
 
 export const myComplexSubAgentV2 = subAgent({
   id: 'my-complex-sub-agent_v2',

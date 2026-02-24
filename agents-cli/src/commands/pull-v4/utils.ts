@@ -108,6 +108,32 @@ export function toCamelCase(input: string): string {
   return result.charAt(0).toLowerCase() + result.slice(1);
 }
 
+export function createUniqueReferenceName(
+  baseName: string,
+  reservedNames: Set<string>,
+  conflictSuffix: string
+): string {
+  if (!reservedNames.has(baseName)) {
+    reservedNames.add(baseName);
+    return baseName;
+  }
+
+  const baseCandidate = `${baseName}${conflictSuffix}`;
+  if (!reservedNames.has(baseCandidate)) {
+    reservedNames.add(baseCandidate);
+    return baseCandidate;
+  }
+
+  let index = 2;
+  while (reservedNames.has(`${baseCandidate}${index}`)) {
+    index += 1;
+  }
+
+  const uniqueName = `${baseCandidate}${index}`;
+  reservedNames.add(uniqueName);
+  return uniqueName;
+}
+
 type ReferenceOverrideMap = Record<string, string>;
 
 export function resolveReferenceName(
