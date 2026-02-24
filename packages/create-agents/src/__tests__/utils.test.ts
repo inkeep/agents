@@ -822,4 +822,20 @@ describe('syncTemplateDependencies', () => {
       { spaces: 2 }
     );
   });
+
+  it('should skip sync when CLI version cannot be determined', async () => {
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readJson).mockResolvedValue({
+      name: 'test-project',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+    });
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).not.toHaveBeenCalled();
+  });
 });
