@@ -456,6 +456,7 @@ export function MCPServerNodeEditor({
               const displayName = override?.displayName || tool.name;
               const displayDescription = override?.description || tool.description;
               const hasSchemaOverride = !!override?.schema;
+              const hasMetadataOverride = !!override?.displayName || !!override?.description;
 
               return (
                 <div
@@ -472,6 +473,11 @@ export function MCPServerNodeEditor({
                       <div className="text-xs text-muted-foreground line-clamp-1">
                         {displayDescription}
                       </div>
+                      {hasMetadataOverride && !hasSchemaOverride && (
+                        <Badge variant="violet" className="mt-1 uppercase">
+                          Modified
+                        </Badge>
+                      )}
                       {hasSchemaOverride && <SchemaOverrideBadge schema={override.schema} />}
                     </div>
                   </div>
