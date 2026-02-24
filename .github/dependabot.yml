@@ -4,8 +4,25 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    groups:
+      docker-compose:
+        patterns:
+          - '*'
 
   - package-ecosystem: 'docker-compose'
     directory: '/create-agents-template'
     schedule:
       interval: 'weekly'
+    groups:
+      docker-compose:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    groups:
+      github-actions:
+        patterns:
+          - '*'
