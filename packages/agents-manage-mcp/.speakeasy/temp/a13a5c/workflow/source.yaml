@@ -1,3 +1,0 @@
-inputs:
-    - location: http://localhost:3002/openapi.json
-output: .speakeasy/out.openapi.yaml
