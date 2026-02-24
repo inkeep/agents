@@ -52,6 +52,8 @@ const oneTimeTask = scheduledTrigger({
 | `maxRetries` | `number` | No | `1` | Max retry attempts on failure (0–10) |
 | `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
 | `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
+| `runAsUserId` | `string` | No | — | User ID whose identity and credentials are used during execution |
+| `createdBy` | `string` | — | — | Read-only. User ID of the trigger creator, set automatically on creation. |
 
 <Note>
 You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.
@@ -74,6 +76,23 @@ const weekdayReport = dailyReport.with({
   cronExpression: "0 9 * * MON-FRI",
 });
 ```
+
+## User-Scoped Execution
+
+Set `runAsUserId` to execute the trigger with a specific user's identity, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira):
+
+```typescript
+import { scheduledTrigger } from "@inkeep/agents-sdk";
+
+const userScopedReport = scheduledTrigger({
+  name: "My Daily Report",
+  cronExpression: "0 9 * * MON-FRI",
+  messageTemplate: "Generate my daily status report",
+  runAsUserId: "user_abc123",
+});
+```
+
+See [User-Scoped Execution](/talk-to-your-agents/triggers/scheduled#user-scoped-execution) for details on permissions, admin delegation, and runtime behavior.
 
 ## Complete Example
 

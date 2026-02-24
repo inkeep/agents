@@ -113,6 +113,25 @@ function validateRunNowDelegation(params: {
   }
 }
 
+/**
+ * Check if a non-admin user is allowed to mutate a trigger.
+ * Admins can mutate any trigger. Non-admins can only mutate triggers they created or that run as them.
+ */
+function assertCanMutateTrigger(params: {
+  trigger: { createdBy: string | null; runAsUserId: string | null };
+  callerId: string;
+  tenantRole: OrgRole;
+}): void {
+  const { trigger, callerId, tenantRole } = params;
+  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+  if (isAdmin) return;
+  if (trigger.createdBy === callerId || trigger.runAsUserId === callerId) return;
+  throw createApiError({
+    code: 'forbidden',
+    message: 'You can only modify triggers that you created or that are configured to run as you.',
+  });
+}
+
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 const ScheduledTriggerIdParamsSchema = TenantProjectAgentParamsSchema.extend({
@@ -573,6 +592,8 @@ app.openapi(
       });
     }
 
+    assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
+
     // Validate merged state for schedule fields to prevent database corruption
     const merged = {
       cronExpression:
@@ -696,6 +717,8 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -714,6 +737,8 @@ app.openapi(
         message: 'Scheduled trigger not found',
       });
     }
+
+    assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
 
     // Cancel any pending invocations before deleting the trigger
     const cancelledCount = await cancelPendingInvocationsForTrigger(runDbClient)({

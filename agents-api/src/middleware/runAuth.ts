@@ -38,6 +38,7 @@ interface RequestData {
   subAgentId?: string;
   ref?: string;
   baseUrl: string;
+  runAsUserId?: string;
 }
 
 /**
@@ -63,6 +64,7 @@ function extractRequestData(c: { req: any }): RequestData {
   const projectId = c.req.header('x-inkeep-project-id');
   const agentId = c.req.header('x-inkeep-agent-id');
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
+  const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
   const host = fwdHost ?? c.req.header('host');
@@ -85,6 +87,7 @@ function extractRequestData(c: { req: any }): RequestData {
     subAgentId,
     ref,
     baseUrl,
+    runAsUserId,
   };
 }
 
@@ -412,6 +415,9 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
     projectId: reqData.projectId,
     agentId: reqData.agentId,
     apiKeyId: 'bypass',
+    ...(reqData.runAsUserId
+      ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+      : {}),
   };
 }
 
@@ -419,12 +425,15 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
  * Create default development context
  */
 function createDevContext(reqData: RequestData): AuthResult {
-  const result = {
+  const result: AuthResult = {
     apiKey: 'development',
     tenantId: reqData.tenantId || 'test-tenant',
     projectId: reqData.projectId || 'test-project',
     agentId: reqData.agentId || 'test-agent',
     apiKeyId: 'test-key',
+    ...(reqData.runAsUserId
+      ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+      : {}),
   };
 
   // Log when falling back to test values to help debug auth issues
