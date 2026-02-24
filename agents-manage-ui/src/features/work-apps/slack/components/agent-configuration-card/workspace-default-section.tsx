@@ -85,7 +85,7 @@ export function WorkspaceDefaultSection({
                   <Button
                     onClick={onRemoveDefaultAgent}
                     variant="outline"
-                    aria-label="Clear model selection"
+                    aria-label="Remove default agent"
                     type="button"
                   >
                     <X />
@@ -153,7 +153,7 @@ export function WorkspaceDefaultSection({
       )}
       {defaultAgent && canEdit && (
         <div className="flex items-center justify-between gap-2 px-1">
-          <Label htmlFor="workspace-grant-access">Member Access</Label>
+          <Label>Member Access</Label>
           <ChannelAccessPopover
             grantAccess={grantAccess}
             onToggleGrantAccess={onToggleGrantAccess}
