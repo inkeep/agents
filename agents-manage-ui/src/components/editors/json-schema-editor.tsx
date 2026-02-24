@@ -1,8 +1,8 @@
 import type { ComponentProps, FC } from 'react';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
 import { Switch } from '@/components/ui/switch';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 interface JsonSchemaEditorProps
   extends ComponentProps<typeof StandaloneJsonEditor>,

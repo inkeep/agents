@@ -1,8 +1,8 @@
 'use client';
 
 import { type Control, type FieldPath, type FieldValues, useFormState } from 'react-hook-form';
-import { FormFieldWrapper } from './form-field-wrapper';
 import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
+import { FormFieldWrapper } from './form-field-wrapper';
 
 interface JsonSchemaInputProps<FV extends FieldValues, TV = FV> {
   control: Control<FV, unknown, TV>;
@@ -24,7 +24,7 @@ interface JsonSchemaInputProps<FV extends FieldValues, TV = FV> {
   customTemplate?: string;
 }
 
-export function JsonSchemaInput<
+export function GenericJsonSchemaEditor<
   TFieldValues extends FieldValues,
   TTransformedValues extends FieldValues,
 >({

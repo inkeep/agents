@@ -25,9 +25,9 @@ import {
   useJsonSchemaStore,
 } from '@/features/agent/state/json-schema';
 import { useDidUpdate } from '@/hooks/use-did-update';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 import { cn } from '@/lib/utils';
 import { ArrayIcon, BooleanIcon, EnumIcon, NumberIcon, ObjectIcon, StringIcon } from '../../icons';
-import { useIsMounted } from '@/hooks/use-is-mounted';
 
 const INDENT_PX = 24;
 
