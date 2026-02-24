@@ -515,6 +515,65 @@ describe('ArtifactService', () => {
     });
   });
 
+  describe('getToolResultRaw', () => {
+    it('returns undefined when sessionId is missing', () => {
+      const serviceWithoutSession = new ArtifactService({ ...mockContext, sessionId: undefined });
+      expect(serviceWithoutSession.getToolResultRaw('call-1')).toBeUndefined();
+    });
+
+    it('returns undefined when toolCallId not found', () => {
+      toolSessionManagerMock.getToolResult.mockReturnValue(undefined);
+      expect(artifactService.getToolResultRaw('call-missing')).toBeUndefined();
+    });
+
+    it('unwraps MCP-style text content', () => {
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-1',
+        toolName: 'fetch',
+        result: { content: [{ type: 'text', text: '<html>page</html>' }] },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-1')).toBe('<html>page</html>');
+    });
+
+    it('unwraps MCP-style image content', () => {
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-img',
+        toolName: 'screenshot',
+        result: {
+          content: [{ type: 'image', data: 'base64data==', mimeType: 'image/png' }],
+        },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-img')).toEqual({
+        data: 'base64data==',
+        encoding: 'base64',
+        mimeType: 'image/png',
+      });
+    });
+
+    it('unwraps AI SDK function tool text output', () => {
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-fn',
+        toolName: 'citation_extract_text',
+        result: { type: 'text', value: 'extracted text content' },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-fn')).toBe('extracted text content');
+    });
+
+    it('returns raw result for non-standard formats', () => {
+      const rawResult = { rows: [{ id: 1, name: 'Alice' }] };
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-db',
+        toolName: 'db_query',
+        result: rawResult,
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-db')).toEqual(rawResult);
+    });
+  });
+
   describe('JMESPath sanitization', () => {
     it('should fix double quotes in filter expressions', async () => {
       const mockToolResult = {

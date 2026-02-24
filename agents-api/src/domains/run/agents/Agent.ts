@@ -661,7 +661,10 @@ export class Agent {
           const artifactParser = streamRequestId
             ? agentSessionManager.getArtifactParser(streamRequestId)
             : null;
-          const resolvedArgs = artifactParser ? await artifactParser.resolveArgs(args) : args;
+          const parsedArgsForResolution = artifactParser ? parseEmbeddedJson(args) : args;
+          const resolvedArgs = artifactParser
+            ? await artifactParser.resolveArgs(parsedArgsForResolution)
+            : args;
           const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
@@ -1096,7 +1099,7 @@ export class Agent {
                 toolCallId,
                 toolName,
                 args: finalArgs,
-                result: enhancedResult,
+                result: parsedResult,
                 timestamp: Date.now(),
               });
 
@@ -1695,7 +1698,16 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return result;
+              // Convert AI SDK text format { type:"text", value } to MCP content format so the
+              // AI SDK passes the full object through to the LLM (preserving _toolCallId),
+              // instead of stripping extra fields from the text-typed result.
+              const r = result as any;
+              const resultForEnhancement =
+                r?.type === 'text' && typeof r?.value === 'string'
+                  ? { content: [{ type: 'text', text: r.value }] }
+                  : result;
+
+              return this.enhanceToolResultWithStructureHints(resultForEnhancement, toolCallId);
             } catch (error) {
               logger.error(
                 {
@@ -2584,16 +2596,19 @@ ${output}`;
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
-   * Also adds tool call ID to the result for easy reference
-   * Only adds hints when artifact components are available
+   * Also adds _toolCallId to every object result for LLM tool-chaining reference.
+   * Structure hints are only added when artifact components are available.
    */
   private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
     if (!result) {
       return result;
     }
 
-    // Only add structure hints and tool call ID if artifact components are available
+    // Always inject _toolCallId into object results so the LLM can reference them for chaining
     if (!this.artifactComponents || this.artifactComponents.length === 0) {
+      if (toolCallId && typeof result === 'object') {
+        return { ...result, _toolCallId: toolCallId };
+      }
       return result;
     }
 

@@ -738,13 +738,45 @@ ${creationInstructions}
     return artifactXml;
   }
 
+  private getToolChainingGuidance(): string {
+    return `TOOL RESULT CHAINING:
+Any tool argument can reference the raw output of a previous tool call using { "$tool": "tool_call_id" }.
+The system resolves this to the complete raw output of that tool call before executing the next tool.
+
+🚨 MANDATORY: When a tool's output is the direct input to the next tool, you MUST use { "$tool": "call_id" }.
+NEVER read a tool result and copy its value as a literal string or object into the next tool call.
+
+❌ WRONG — copying tool output inline:
+  Call tool_a → returns "some text"
+  Call tool_b with { "text": "some text" }  ← you copied the value manually
+
+✅ CORRECT — referencing the previous call:
+  Call tool_a → returns "some text" (tool_call_id: "call_a_xyz")
+  Call tool_b with { "text": { "$tool": "call_a_xyz" } }  ← system resolves it automatically
+
+Pipeline example:
+  Step 1: citation_extract_text({ "citation": { "$artifact": "cit-1", "$tool": "call_search" } }) → (tool_call_id: "call_extract")
+  Step 2: text_search({ "text": { "$tool": "call_extract" }, "term": "authentication" })
+
+This is different from artifact passing:
+- { "$tool": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
+- { "$artifact": "id", "$tool": "call_id" } — passes a structured object you explicitly extracted and saved from a tool result
+
+When to use each:
+✅ Use { "$tool": "call_id" } when chaining processing steps and the intermediate result is not shown to the user
+✅ Use { "$artifact": "id", "$tool": "call_id" } when you have already created an artifact and want to pass its full structured data to a tool
+⚠️ Only references tool calls from the current response turn`;
+  }
+
   private generateToolsSection(templates: Map<string, string>, tools: ToolData[]): string {
     if (tools.length === 0) {
       return '<available_tools description="No tools are currently available"></available_tools>';
     }
 
     const toolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
-    return `<available_tools description="These are the tools available for you to use to accomplish tasks">
+    return `<available_tools description="These are the tools available for you to use to accomplish tasks.
+
+${this.getToolChainingGuidance()}">
   ${toolsXml}
 </available_tools>`;
   }

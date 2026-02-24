@@ -95,6 +95,31 @@ export class ArtifactService {
   }
 
   /**
+   * Get raw tool result by toolCallId from the current session.
+   * Unwraps MCP-style content arrays; returns the value as-is for non-MCP results.
+   */
+  getToolResultRaw(toolCallId: string): unknown {
+    if (!this.context.sessionId) return undefined;
+
+    const record = toolSessionManager.getToolResult(this.context.sessionId, toolCallId);
+    if (!record) return undefined;
+
+    const result = record.result;
+
+    // Unwrap MCP-style content array
+    const first = result?.content?.[0];
+    if (first?.type === 'text') return first.text;
+    if (first?.type === 'image') {
+      return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+    }
+
+    // Unwrap AI SDK function tool output: { type: "text", value: "..." }
+    if (result?.type === 'text' && typeof result?.value === 'string') return result.value;
+
+    return result;
+  }
+
+  /**
    * Get all artifacts for a context from database
    */
   async getContextArtifacts(contextId: string): Promise<Map<string, any>> {
