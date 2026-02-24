@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildToolApprovalBlocks,
   buildToolApprovalDoneBlocks,
+  buildToolAuthRequiredBlock,
   createAlreadyLinkedMessage,
   createContextBlock,
   createErrorMessage,
@@ -113,6 +114,25 @@ describe('Slack Block Builders', () => {
       expect(JSON.stringify(result)).toContain('Not linked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
     });
+  });
+});
+
+describe('buildToolAuthRequiredBlock', () => {
+  it('should return a context block with the tool name', () => {
+    const block = buildToolAuthRequiredBlock('Linear Ticketing');
+
+    expect(block.type).toBe('context');
+    expect(block.elements).toHaveLength(1);
+    expect(block.elements[0].type).toBe('mrkdwn');
+    expect(block.elements[0].text).toContain('Linear Ticketing');
+  });
+
+  it('should include warning emoji and authentication message', () => {
+    const block = buildToolAuthRequiredBlock('GitHub');
+
+    expect(block.elements[0].text).toBe(
+      '⚠️ *GitHub* requires authentication. Connect your account to use this tool.'
+    );
   });
 });
 

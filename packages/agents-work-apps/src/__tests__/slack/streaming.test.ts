@@ -353,6 +353,82 @@ describe('streamAgentResponse', () => {
       expect(result.errorMessage).toContain('Authentication error');
     });
 
+    describe('tool-auth-required event handling', () => {
+      it('should render auth required blocks at stream completion', async () => {
+        const sseData =
+          'data: {"type":"tool-auth-required","toolName":"Linear Ticketing","toolId":"tool-1","toolCallId":"tc-1","message":"Auth required"}\n' +
+          'data: {"type":"text-delta","delta":"You need to connect Linear."}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        const result = await streamAgentResponse(baseParams);
+
+        expect(result.success).toBe(true);
+        expect(localStop).toHaveBeenCalledWith(
+          expect.objectContaining({
+            blocks: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'context',
+                elements: expect.arrayContaining([
+                  expect.objectContaining({
+                    type: 'mrkdwn',
+                    text: expect.stringContaining('Linear Ticketing'),
+                  }),
+                ]),
+              }),
+            ]),
+          })
+        );
+      });
+
+      it('should collect multiple auth errors and render each as a block', async () => {
+        const sseData =
+          'data: {"type":"tool-auth-required","toolName":"Linear","toolId":"tool-1","toolCallId":"tc-1","message":"Auth required"}\n' +
+          'data: {"type":"tool-auth-required","toolName":"GitHub","toolId":"tool-2","toolCallId":"tc-2","message":"Auth required"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const stopCall = localStop.mock.calls[0][0];
+        const authBlocks = stopCall.blocks.filter(
+          (b: any) =>
+            b.type === 'context' && b.elements?.[0]?.text?.includes('requires authentication')
+        );
+        expect(authBlocks).toHaveLength(2);
+      });
+    });
+
     describe('contentAlreadyDelivered error suppression', () => {
       it('should return success and suppress error message when content was already streamed', async () => {
         // Simulate a stream that delivers content then throws on the next read

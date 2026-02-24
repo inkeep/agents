@@ -269,6 +269,18 @@ export function buildToolApprovalExpiredBlocks(params: { toolName: string }) {
   ];
 }
 
+export function buildToolAuthRequiredBlock(toolName: string) {
+  return {
+    type: 'context' as const,
+    elements: [
+      {
+        type: 'mrkdwn' as const,
+        text: `⚠️ *${toolName}* requires authentication. Connect your account to use this tool.`,
+      },
+    ],
+  };
+}
+
 export function buildToolOutputErrorBlock(toolName: string, errorText: string) {
   const truncated = errorText.length > 100 ? `${errorText.slice(0, 100)}…` : errorText;
   return {
