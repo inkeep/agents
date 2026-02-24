@@ -137,9 +137,25 @@ export function createNotLinkedMessage() {
 }
 
 export interface AgentConfigSources {
-  channelConfig: { agentName?: string; agentId: string } | null;
-  workspaceConfig: { agentName?: string; agentId: string } | null;
-  effective: { agentName?: string; agentId: string; source: string } | null;
+  channelConfig: {
+    agentName?: string;
+    agentId: string;
+    projectId?: string;
+    projectName?: string;
+  } | null;
+  workspaceConfig: {
+    agentName?: string;
+    agentId: string;
+    projectId?: string;
+    projectName?: string;
+  } | null;
+  effective: {
+    agentName?: string;
+    agentId: string;
+    projectId?: string;
+    projectName?: string;
+    source: string;
+  } | null;
 }
 
 export function createStatusMessage(
@@ -150,23 +166,43 @@ export function createStatusMessage(
 ) {
   const { effective } = agentConfigs;
 
+  const baseUrl = dashboardUrl.replace(/\/work-apps\/slack$/, '');
+
   let agentLine: string;
+  let projectLine: string;
   if (effective) {
-    agentLine = `${Md.bold('Agent:')} ${effective.agentName || effective.agentId}`;
+    const agentDisplayName = effective.agentName || effective.agentId;
+    if (effective.projectId) {
+      const agentUrl = `${baseUrl}/projects/${effective.projectId}/agents/${effective.agentId}`;
+      agentLine = `${Md.bold('Agent:')} <${agentUrl}|${agentDisplayName}>`;
+      const projectDisplayName = effective.projectName || effective.projectId;
+      const projectUrl = `${baseUrl}/projects/${effective.projectId}/agents`;
+      projectLine = `${Md.bold('Project:')} <${projectUrl}|${projectDisplayName}>`;
+    } else {
+      agentLine = `${Md.bold('Agent:')} ${agentDisplayName}`;
+      projectLine = `${Md.bold('Project:')} Unknown`;
+    }
   } else {
     agentLine =
       `${Md.bold('Agent:')} None configured\n` +
       `${Md.italic('Ask your admin to set up an agent in the dashboard.')}`;
+    projectLine = '';
+  }
+
+  const lines = [
+    Md.bold('Connected to Inkeep'),
+    '',
+    `${Md.bold('Account:')} ${email}`,
+    `${Md.bold('Linked:')} ${new Date(linkedAt).toLocaleDateString()}`,
+    agentLine,
+  ];
+  if (projectLine) {
+    lines.push(projectLine);
   }
 
   return Message()
     .blocks(
-      Blocks.Section().text(
-        Md.bold('Connected to Inkeep') +
-          `\n\n${Md.bold('Account:')} ${email}\n` +
-          `${Md.bold('Linked:')} ${new Date(linkedAt).toLocaleDateString()}\n` +
-          agentLine
-      ),
+      Blocks.Section().text(lines.join('\n')),
       Blocks.Actions().elements(
         Elements.Button()
           .text(SlackStrings.buttons.openDashboard)
