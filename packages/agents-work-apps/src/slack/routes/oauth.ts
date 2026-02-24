@@ -8,7 +8,11 @@
 
 import * as crypto from 'node:crypto';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
-import { createWorkAppSlackWorkspace } from '@inkeep/agents-core';
+import {
+  createWorkAppSlackWorkspace,
+  isUniqueConstraintError,
+  listWorkAppSlackWorkspacesByTenant,
+} from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -147,6 +151,7 @@ app.openapi(
       'chat:write',
       'chat:write.public',
       'commands',
+      'files:write',
       'groups:history',
       'groups:read',
       'im:history',
@@ -287,6 +292,32 @@ app.openapi(
         installedAt: new Date().toISOString(),
       };
 
+      if (tenantId && workspaceData.teamId) {
+        let existingWorkspaces: Awaited<
+          ReturnType<ReturnType<typeof listWorkAppSlackWorkspacesByTenant>>
+        >;
+        try {
+          existingWorkspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
+        } catch (err) {
+          logger.error({ err, tenantId }, 'Failed to check existing workspaces');
+          return c.redirect(`${dashboardUrl}?error=workspace_check_failed`);
+        }
+        const hasOtherWorkspace = existingWorkspaces.some(
+          (w) => w.slackTeamId !== workspaceData.teamId
+        );
+        if (hasOtherWorkspace) {
+          logger.warn(
+            {
+              tenantId,
+              newTeamId: workspaceData.teamId,
+              existingTeamIds: existingWorkspaces.map((w) => w.slackTeamId),
+            },
+            'Tenant already has a different Slack workspace, rejecting installation'
+          );
+          return c.redirect(`${dashboardUrl}?error=workspace_limit_reached`);
+        }
+      }
+
       if (workspaceData.teamId && workspaceData.botToken) {
         clearWorkspaceConnectionCache(workspaceData.teamId);
 
@@ -330,12 +361,7 @@ app.openapi(
               'Persisted workspace installation to database'
             );
           } catch (dbError) {
-            const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-            const isDuplicate =
-              dbErrorMessage.includes('duplicate key') ||
-              dbErrorMessage.includes('unique constraint');
-
-            if (isDuplicate) {
+            if (isUniqueConstraintError(dbError)) {
               logger.info(
                 { teamId: workspaceData.teamId, tenantId },
                 'Workspace already exists in database'
@@ -349,7 +375,6 @@ app.openapi(
               logger.error(
                 {
                   err: dbError,
-                  dbErrorMessage,
                   pgCode,
                   teamId: workspaceData.teamId,
                   tenantId,

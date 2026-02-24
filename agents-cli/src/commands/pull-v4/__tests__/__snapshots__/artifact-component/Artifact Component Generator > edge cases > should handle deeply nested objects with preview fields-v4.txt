@@ -1,0 +1,11 @@
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const nested = artifactComponent({
+  id: 'nested',
+  name: 'Nested',
+  description: 'Component with nested objects',
+  props: z.object({
+      metadata: z.object({ "title": z.string().optional(), "internal": z.string().optional() }),
+    }),
+});

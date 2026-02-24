@@ -610,7 +610,7 @@ async function executeAgentInBackground(
 
       const contextBlock = createContextBlock({ agentName: targetAgent.name || targetAgent.id });
       await sendResponseUrlMessage(payload.responseUrl, {
-        response_type: 'ephemeral',
+        response_type: 'in_channel',
         text: assistantMessage,
         blocks: [
           {
