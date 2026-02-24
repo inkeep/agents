@@ -49,7 +49,7 @@ export const ContextConfigForm: FC = () => {
       <GenericJsonEditor
         control={form.control}
         name="contextConfig.contextVariables"
-        label="Context variables (JSON)"
+        label="Context variables"
         placeholder="{}"
         customTemplate={contextVariablesTemplate}
         isRequired={isRequired(schema, 'contextVariables')}
@@ -57,7 +57,7 @@ export const ContextConfigForm: FC = () => {
       <GenericJsonSchemaEditor
         control={form.control}
         name="contextConfig.headersSchema"
-        label="Headers schema (JSON)"
+        label="Headers schema"
         placeholder="{}"
         customTemplate={headersSchemaTemplate}
         isRequired={isRequired(schema, 'headersSchema')}
