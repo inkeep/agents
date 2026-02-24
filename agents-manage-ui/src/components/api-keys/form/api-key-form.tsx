@@ -14,25 +14,19 @@ import type { ApiKeyCreateResponse } from '@/lib/api/api-keys';
 import { isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { type ApiKeyFormData, ApiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
+import { useParams } from 'next/navigation';
 
 interface ApiKeyFormProps {
-  tenantId: string;
-  projectId: string;
   initialData?: ApiKeyFormData;
   agentsOptions: SelectOption[];
   onApiKeyCreated?: (apiKeyData: ApiKeyCreateResponse) => void;
 }
 
-export function ApiKeyForm({
-  tenantId,
-  projectId,
-  initialData = defaultValues,
-  agentsOptions,
-  onApiKeyCreated,
-}: ApiKeyFormProps) {
+export function ApiKeyForm({ agentsOptions, onApiKeyCreated }: ApiKeyFormProps) {
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useForm({
     resolver: zodResolver(ApiKeySchema),
-    defaultValues: initialData,
+    defaultValues,
   });
 
   const { isSubmitting } = form.formState;
