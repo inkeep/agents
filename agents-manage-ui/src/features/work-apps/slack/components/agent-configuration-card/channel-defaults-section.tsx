@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { BulkSelectAgentBar } from './bulk-select-agent-bar';
+import { ChannelAccessCell } from './channel-access-cell';
 import { ChannelAgentCell } from './channel-agent-cell';
 import type { Channel, SlackAgentOption } from './types';
 
@@ -194,9 +195,10 @@ export function ChannelDefaultsSection({
             >
               <colgroup>
                 <col className="w-10" />
-                <col style={{ width: '50%' }} />
+                <col style={{ width: '40%' }} />
                 <col className="w-28" />
                 <col className="w-24" />
+                <col className="w-32" />
                 <col className="w-40" />
               </colgroup>
               <TableHeader className="sticky top-0 z-10 [&_th]:border-b [&_th]:border-border">
@@ -216,7 +218,7 @@ export function ChannelDefaultsSection({
                     />
                   </TableHead>
                   {selectedChannels.size > 0 ? (
-                    <TableHead colSpan={4} className="font-sans normal-case py-1.5">
+                    <TableHead colSpan={5} className="font-sans normal-case py-1.5">
                       <BulkSelectAgentBar
                         selectedCount={selectedChannels.size}
                         agents={agents}
@@ -231,6 +233,7 @@ export function ChannelDefaultsSection({
                       <TableHead>Name</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="w-fit text-right">Members</TableHead>
+                      <TableHead className="text-right">Member Access</TableHead>
                       <TableHead className="text-right">Agent</TableHead>
                     </>
                   )}
@@ -295,13 +298,18 @@ export function ChannelDefaultsSection({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
+                      <ChannelAccessCell
+                        channel={channel}
+                        onToggleGrantAccess={onToggleGrantAccess}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
                       <ChannelAgentCell
                         channel={channel}
                         agents={agents}
                         savingChannel={savingChannel}
                         onSetAgent={onSetChannelAgent}
                         onResetToDefault={onResetChannelToDefault}
-                        onToggleGrantAccess={onToggleGrantAccess}
                       />
                     </TableCell>
                   </TableRow>
