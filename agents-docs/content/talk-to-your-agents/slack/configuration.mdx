@@ -8,6 +8,10 @@ description: Admin guide — set up workspace and channel default agents for the
 This page is for **workspace administrators**. Regular team members should see [Using the Slack App](/talk-to-your-agents/slack/commands) for usage instructions.
 </Note>
 
+<Note>
+Only one Slack workspace can be connected per Inkeep tenant. To switch workspaces, uninstall the existing one first from the [Installation](/talk-to-your-agents/slack/installation) page.
+</Note>
+
 After installing the Slack app, configure which agents respond to your team's messages. You can set a workspace-wide default and optionally assign different agents to specific channels.
 
 ## Workspace default
@@ -26,6 +30,11 @@ The workspace default agent responds to all `@Inkeep` mentions and `/inkeep` com
     In the **Agent Configuration** section, select a project and agent from the dropdowns. Click **Save**.
 
     This agent handles all requests in channels without a channel-specific default.
+  </Step>
+  <Step>
+    ### Remove the default agent (optional)
+
+    To clear the workspace default, open the dropdown and select **Remove default agent**. Channels without a channel-specific agent will no longer have a fallback.
   </Step>
 </Steps>
 

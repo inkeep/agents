@@ -18,7 +18,7 @@
  * @see packages/agents-core/src/data-access/runtime/workAppSlack.ts
  */
 
-import { findWorkAppSlackWorkspaceBySlackTeamId } from '@inkeep/agents-core';
+import { findWorkAppSlackWorkspaceBySlackTeamId, retryWithBackoff } from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -39,34 +39,6 @@ const workspaceConnectionCache = new Map<
 const CACHE_TTL_MS = 60_000;
 
 const logger = getLogger('slack-nango');
-
-/**
- * Retry a function with exponential backoff for transient failures.
- * Retries on AbortError (timeout) and 5xx HTTP errors.
- */
-async function retryWithBackoff<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      const isTimeout = (error as Error).name === 'AbortError';
-      const isServerError =
-        typeof (error as { status?: number }).status === 'number' &&
-        (error as { status: number }).status >= 500;
-      const isRetriable = isTimeout || isServerError;
-
-      if (!isRetriable || attempt === maxAttempts) throw error;
-
-      const delay = Math.min(500 * 2 ** (attempt - 1), 2000) + Math.random() * 100;
-      logger.warn(
-        { attempt, maxAttempts, isTimeout, delay: Math.round(delay) },
-        'Retrying Nango API call after transient failure'
-      );
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Unreachable');
-}
 
 /**
  * Evict expired entries from workspace cache to bound memory.

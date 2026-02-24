@@ -40,7 +40,11 @@ When you use `@Inkeep` inside a thread, the agent automatically receives the ful
 
 ## Private responses — `/inkeep`
 
-Private responses are **ephemeral** — only you can see them. They don't appear in the channel for other users.
+Private responses are visible **only to you** — they don't appear in the channel for other users.
+
+<Note>
+Private responses use Slack's **ephemeral messages**. They are visible only to you and do not persist across page reloads, between desktop and mobile apps, or across sessions.
+</Note>
 
 | Command | What it does |
 |---------|-------------|
@@ -55,7 +59,7 @@ Private responses are **ephemeral** — only you can see them. They don't appear
 
 When you use `/inkeep` (modal) or `/inkeep <message>`, the response includes a **Follow Up** button. Click it to continue the same conversation — the agent remembers everything from previous turns.
 
-Each follow-up appears as a new ephemeral message showing your question and the agent's response.
+Each follow-up appears as a new private message showing your question and the agent's response.
 
 ### Agent picker modal
 
