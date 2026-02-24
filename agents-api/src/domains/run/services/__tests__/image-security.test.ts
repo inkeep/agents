@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalImage } from '../blob-storage/external-image-downloader';
+import { normalizeInlineImageBytes } from '../blob-storage/image-content-security';
 import {
-  normalizeInlineImageBytes,
-  toCanonicalImageMimeType,
-} from '../blob-storage/image-content-security';
-import { MAX_EXTERNAL_IMAGE_BYTES } from '../blob-storage/image-security-constants';
+  MAX_EXTERNAL_IMAGE_BYTES,
+  MAX_EXTERNAL_REDIRECTS,
+} from '../blob-storage/image-security-constants';
 
 const VALID_PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
@@ -33,13 +33,6 @@ describe('image-security', () => {
     });
   });
 
-  describe('toCanonicalImageMimeType', () => {
-    it('returns lowercase mime without parameters', () => {
-      expect(toCanonicalImageMimeType('IMAGE/PNG')).toBe('image/png');
-      expect(toCanonicalImageMimeType('image/jpeg; charset=utf-8')).toBe('image/jpeg');
-    });
-  });
-
   describe('normalizeInlineImageBytes', () => {
     it('accepts valid PNG base64 and returns sniffed mime', async () => {
       const result = await normalizeInlineImageBytes({
@@ -58,7 +51,7 @@ describe('image-security', () => {
           bytes: Buffer.from(svg).toString('base64'),
           mimeType: 'image/svg+xml',
         })
-      ).rejects.toThrow(/Blocked image with unsupported mime type/);
+      ).rejects.toThrow(/Blocked inline image with unsupported bytes signature/);
     });
 
     it('rejects oversized inline bytes', async () => {
@@ -72,7 +65,20 @@ describe('image-security', () => {
       const random = Buffer.alloc(64, 0x01).toString('base64');
       await expect(
         normalizeInlineImageBytes({ bytes: random, mimeType: 'application/octet-stream' })
-      ).rejects.toThrow(/Blocked image with unsupported mime type/);
+      ).rejects.toThrow(/Blocked inline image with unsupported bytes signature/);
+    });
+
+    it('rejects malformed base64 payload', async () => {
+      await expect(
+        normalizeInlineImageBytes({ bytes: '!!!not-base64!!!', mimeType: 'image/png' })
+      ).rejects.toThrow(/Invalid inline image: malformed base64 payload/);
+    });
+
+    it('rejects random bytes even when claimed mime type is allowed', async () => {
+      const random = Buffer.alloc(128, 0x7f).toString('base64');
+      await expect(
+        normalizeInlineImageBytes({ bytes: random, mimeType: 'image/png' })
+      ).rejects.toThrow(/Blocked inline image with unsupported bytes signature/);
     });
   });
 
@@ -116,6 +122,32 @@ describe('image-security', () => {
       expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 
+    it('blocks URLs that resolve to IPv6 loopback', async () => {
+      const { lookup } = vi.mocked(await import('node:dns/promises'));
+      lookup.mockImplementation((...args: unknown[]) => {
+        const options = args[args.length - 1];
+        const isAll =
+          options &&
+          typeof options === 'object' &&
+          'all' in options &&
+          (options as { all: boolean }).all;
+        const result = { address: '::1', family: 6 };
+        return Promise.resolve(isAll ? [result] : result) as Promise<never>;
+      });
+
+      await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
+        /Blocked external image URL resolving to private/
+      );
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('blocks cloud metadata address path', async () => {
+      await expect(
+        downloadExternalImage('http://169.254.169.254/latest/meta-data')
+      ).rejects.toThrow(/Blocked external image URL resolving to private/);
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
     it('re-validates redirect target and blocks redirect to private IP', async () => {
       vi.stubGlobal(
         'fetch',
@@ -148,6 +180,12 @@ describe('image-security', () => {
       );
     });
 
+    it('rejects URL with disallowed port', async () => {
+      await expect(downloadExternalImage('https://example.com:444/image.png')).rejects.toThrow(
+        /Blocked external image URL with disallowed port/
+      );
+    });
+
     it('blocks response exceeding size limit', async () => {
       const big = new Uint8Array(MAX_EXTERNAL_IMAGE_BYTES + 1);
       vi.stubGlobal(
@@ -171,6 +209,59 @@ describe('image-security', () => {
       );
     });
 
+    it('enforces redirect limit', async () => {
+      const fetchMock = vi.fn();
+      for (let i = 0; i <= MAX_EXTERNAL_REDIRECTS; i++) {
+        fetchMock.mockResolvedValueOnce(
+          new Response(null, {
+            status: 302,
+            headers: { location: `https://example.com/r${i + 1}` },
+          })
+        );
+      }
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(downloadExternalImage('https://example.com/r0')).rejects.toThrow(
+        /Too many redirects while downloading image/
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(MAX_EXTERNAL_REDIRECTS + 1);
+    });
+
+    it('enforces streaming size limit when content-length under-reports', async () => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(MAX_EXTERNAL_IMAGE_BYTES));
+          controller.enqueue(new Uint8Array(1));
+          controller.close();
+        },
+      });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(stream, {
+            status: 200,
+            headers: {
+              'content-type': 'image/png',
+              'content-length': '1',
+            },
+          })
+        )
+      );
+
+      await expect(downloadExternalImage('https://example.com/under-reported.png')).rejects.toThrow(
+        /Blocked external image exceeding/
+      );
+    });
+
+    it('maps DNS lookup failures to sanitized errors', async () => {
+      const { lookup } = vi.mocked(await import('node:dns/promises'));
+      lookup.mockRejectedValueOnce(new Error('ENOTFOUND'));
+
+      await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
+        /Unable to resolve external image host: example\.com/
+      );
+    });
+
     it('rejects unsupported scheme', async () => {
       await expect(downloadExternalImage('ftp://example.com/image.png')).rejects.toThrow(
         /Blocked external image URL with unsupported scheme/
@@ -181,6 +272,26 @@ describe('image-security', () => {
       await expect(
         downloadExternalImage('https://user:pass@example.com/image.png')
       ).rejects.toThrow(/Blocked external image URL with embedded credentials/);
+    });
+
+    it('does not leak query tokens in download errors', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response('bad', {
+            status: 500,
+            statusText: 'Server Error',
+          })
+        )
+      );
+
+      await expect(
+        downloadExternalImage('https://example.com/image.png?token=super-secret#hash')
+      ).rejects.toThrow(/https:\/\/example\.com\/image\.png/);
+
+      await expect(
+        downloadExternalImage('https://example.com/image.png?token=super-secret#hash')
+      ).rejects.not.toThrow(/super-secret|#hash|\?/);
     });
   });
 });

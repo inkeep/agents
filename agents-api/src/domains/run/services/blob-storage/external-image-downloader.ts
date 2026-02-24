@@ -8,6 +8,8 @@
  *
  * Use this for any untrusted external image URL.
  */
+import { lookup as dnsLookup } from 'node:dns';
+import { Agent } from 'undici';
 import { resolveDownloadedImageMimeType } from './image-content-security';
 import {
   ALLOWED_EXTERNAL_IMAGE_MIME_TYPES,
@@ -15,7 +17,62 @@ import {
   MAX_EXTERNAL_IMAGE_BYTES,
   MAX_EXTERNAL_REDIRECTS,
 } from './image-security-constants';
-import { validateExternalImageUrl, validateUrlResolvesToPublicIp } from './image-url-security';
+import {
+  BLOCKED_CONNECTION_PRIVATE_PREFIX,
+  blockedConnectionToPrivateIp,
+  blockedExternalImageExceeding,
+  blockedExternalImageLargerThan,
+  blockedNonImageContentType,
+  externalImageResponseBodyEmpty,
+  failedToDownload,
+  redirectMissingLocation,
+  timedOutDownloading,
+  tooManyRedirects,
+  UNABLE_RESOLVE_HOST_PREFIX,
+  unableToResolveHost,
+  unexpectedRedirectState,
+} from './image-security-errors';
+import {
+  isBlockedIpAddress,
+  validateExternalImageUrl,
+  validateUrlResolvesToPublicIp,
+} from './image-url-security';
+
+const externalImageDispatcher = new Agent({
+  connect: {
+    lookup(hostname, options, callback) {
+      dnsLookup(hostname, options, (error, address, family) => {
+        if (error) {
+          callback(new Error(unableToResolveHost(hostname)), '', 0);
+          return;
+        }
+
+        if (Array.isArray(address)) {
+          const selected = address[0];
+          if (!selected) {
+            callback(new Error(unableToResolveHost(hostname)), '', 0);
+            return;
+          }
+
+          if (isBlockedIpAddress(selected.address)) {
+            callback(new Error(blockedConnectionToPrivateIp(selected.address)), '', 0);
+            return;
+          }
+
+          callback(null, selected.address, selected.family);
+          return;
+        }
+
+        if (isBlockedIpAddress(address)) {
+          callback(new Error(blockedConnectionToPrivateIp(address)), '', 0);
+          return;
+        }
+
+        callback(null, address, family);
+      });
+    },
+  },
+});
 
 export async function downloadExternalImage(
   url: string
@@ -24,19 +81,16 @@ export async function downloadExternalImage(
   await validateUrlResolvesToPublicIp(currentUrl);
 
   for (let redirectCount = 0; redirectCount <= MAX_EXTERNAL_REDIRECTS; redirectCount++) {
-    const response = await fetch(currentUrl.toString(), {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(EXTERNAL_FETCH_TIMEOUT_MS),
-    });
+    const response = await fetchWithConnectionIpValidation(currentUrl);
 
     if (isRedirectStatus(response.status)) {
       const location = response.headers.get('location');
       if (!location) {
-        throw new Error(`Redirect response missing location header: ${currentUrl.toString()}`);
+        throw new Error(redirectMissingLocation(toSanitizedUrl(currentUrl)));
       }
 
       if (redirectCount === MAX_EXTERNAL_REDIRECTS) {
-        throw new Error(`Too many redirects while downloading image: ${url}`);
+        throw new Error(tooManyRedirects(toSanitizedUrl(url)));
       }
 
       currentUrl = validateExternalImageUrl(new URL(location, currentUrl).toString());
@@ -46,7 +100,7 @@ export async function downloadExternalImage(
 
     if (!response.ok) {
       throw new Error(
-        `Failed to download image from ${currentUrl.toString()}: ${response.status} ${response.statusText}`
+        failedToDownload(toSanitizedUrl(currentUrl), `${response.status} ${response.statusText}`)
       );
     }
 
@@ -55,7 +109,7 @@ export async function downloadExternalImage(
       .trim()
       .toLowerCase();
     if (headerContentType && !ALLOWED_EXTERNAL_IMAGE_MIME_TYPES.has(headerContentType)) {
-      throw new Error(`Blocked external image with non-image content-type: ${headerContentType}`);
+      throw new Error(blockedNonImageContentType(headerContentType));
     }
 
     const contentLength = response.headers.get('content-length');
@@ -64,9 +118,7 @@ export async function downloadExternalImage(
       Number.isFinite(Number(contentLength)) &&
       Number(contentLength) > MAX_EXTERNAL_IMAGE_BYTES
     ) {
-      throw new Error(
-        `Blocked external image larger than ${MAX_EXTERNAL_IMAGE_BYTES} bytes: ${contentLength}`
-      );
+      throw new Error(blockedExternalImageLargerThan(MAX_EXTERNAL_IMAGE_BYTES, contentLength));
     }
 
     const data = await readResponseBytesWithLimit(response, MAX_EXTERNAL_IMAGE_BYTES);
@@ -74,7 +126,7 @@ export async function downloadExternalImage(
     return { data, mimeType };
   }
 
-  throw new Error(`Unexpected redirect handling state for URL: ${url}`);
+  throw new Error(unexpectedRedirectState(toSanitizedUrl(url)));
 }
 
 function isRedirectStatus(status: number): boolean {
@@ -86,27 +138,31 @@ async function readResponseBytesWithLimit(
   maxBytes: number
 ): Promise<Uint8Array> {
   if (!response.body) {
-    throw new Error('External image response body is empty');
+    throw new Error(externalImageResponseBodyEmpty);
   }
 
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    if (!value) {
-      continue;
-    }
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (!value) {
+        continue;
+      }
 
-    totalBytes += value.byteLength;
-    if (totalBytes > maxBytes) {
-      throw new Error(`Blocked external image exceeding ${maxBytes} bytes`);
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        throw new Error(blockedExternalImageExceeding(maxBytes));
+      }
+      chunks.push(value);
     }
-    chunks.push(value);
+  } finally {
+    reader.releaseLock();
   }
 
   const merged = new Uint8Array(totalBytes);
@@ -116,4 +172,36 @@ async function readResponseBytesWithLimit(
     offset += chunk.byteLength;
   }
   return merged;
+}
+
+async function fetchWithConnectionIpValidation(url: URL): Promise<Response> {
+  try {
+    return await fetch(url.toString(), {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(EXTERNAL_FETCH_TIMEOUT_MS),
+      dispatcher: externalImageDispatcher,
+    } as RequestInit & { dispatcher: Agent });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (
+        error.message.startsWith(BLOCKED_CONNECTION_PRIVATE_PREFIX) ||
+        error.message.startsWith(UNABLE_RESOLVE_HOST_PREFIX)
+      ) {
+        throw error;
+      }
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        throw new Error(timedOutDownloading(toSanitizedUrl(url)));
+      }
+    }
+
+    throw new Error(failedToDownload(toSanitizedUrl(url)));
+  }
+}
+
+// Remove search and hash from the URL for logging purposes
+function toSanitizedUrl(url: URL | string): string {
+  const parsed = typeof url === 'string' ? new URL(url) : new URL(url.toString());
+  parsed.search = '';
+  parsed.hash = '';
+  return parsed.toString();
 }
