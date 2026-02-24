@@ -1,5 +1,22 @@
 # @inkeep/agents-work-apps
 
+## 0.52.0
+
+### Patch Changes
+
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- f2d822b: Fix Slack modal showing 'We had some trouble connecting' error on form submission by returning empty ack body
+- 520e4f0: Add branch file inspection tool to github mcp
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
 ## 0.51.0
 
 ### Patch Changes

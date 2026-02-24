@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, Loader2, ShieldCheck, SlackIcon } from 'lucide-react';
+import { Check, ChevronDown, Loader2, ShieldCheck, SlackIcon, X } from 'lucide-react';
 import { InkeepIconMono } from '@/components/icons/inkeep';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
@@ -25,6 +26,7 @@ interface WorkspaceDefaultSectionProps {
   canEdit: boolean;
   onSetDefaultAgent: (agent: SlackAgentOption) => void;
   onToggleGrantAccess: (grantAccess: boolean) => void;
+  onRemoveDefaultAgent: () => void;
   onFetchAgents: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +40,7 @@ export function WorkspaceDefaultSection({
   canEdit,
   onSetDefaultAgent,
   onToggleGrantAccess,
+  onRemoveDefaultAgent,
   onFetchAgents,
   open,
   onOpenChange,
@@ -89,6 +92,20 @@ export function WorkspaceDefaultSection({
                     'No agents found. Create an agent first.'
                   )}
                 </CommandEmpty>
+                {defaultAgent && (
+                  <>
+                    <CommandGroup>
+                      <CommandItem
+                        value="Remove default agent"
+                        onSelect={() => onRemoveDefaultAgent()}
+                      >
+                        <X className="h-4 w-4" />
+                        Remove default agent
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandSeparator />
+                  </>
+                )}
                 <CommandGroup>
                   {agents.map((agent) => (
                     <CommandItem

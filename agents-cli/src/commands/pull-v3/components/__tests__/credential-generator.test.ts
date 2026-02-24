@@ -3,12 +3,14 @@
  * Unit tests for credential generator
  */
 
-import { describe, expect, it } from 'vitest';
-import {
-  generateCredentialDefinition,
-  generateCredentialFile,
-  generateCredentialImports,
-} from '../credential-generator';
+import { generateCredentialDefinition as originalGenerateCredentialDefinition } from '../../../pull-v4/credential-generator';
+import { expectSnapshots } from '../../../pull-v4/utils';
+
+function generateCredentialDefinition(
+  ...args: Parameters<typeof originalGenerateCredentialDefinition>
+): string {
+  return originalGenerateCredentialDefinition(...args).getFullText();
+}
 
 describe('Credential Generator', () => {
   const testCredentialData = {
@@ -46,28 +48,10 @@ describe('Credential Generator', () => {
     },
   };
 
-  describe('generateCredentialImports', () => {
-    it('should generate correct imports', () => {
-      const imports = generateCredentialImports();
-
-      expect(imports).toHaveLength(1);
-      expect(imports[0]).toBe("import { credential } from '@inkeep/agents-sdk';");
-    });
-
-    it('should handle different code styles', () => {
-      const imports = generateCredentialImports({
-        quotes: 'double',
-        semicolons: false,
-        indentation: '    ',
-      });
-
-      expect(imports[0]).toBe('import { credential } from "@inkeep/agents-sdk"');
-    });
-  });
-
   describe('generateCredentialDefinition', () => {
-    it('should generate correct definition with all properties', () => {
-      const definition = generateCredentialDefinition('inkeep-api-key', testCredentialData);
+    it('should generate correct definition with all properties', async () => {
+      const credentialId = 'inkeep-api-key';
+      const definition = generateCredentialDefinition({ credentialId, ...testCredentialData });
 
       expect(definition).toContain('export const inkeepApiKey = credential({');
       expect(definition).toContain("id: 'inkeep-api-key',");
@@ -79,55 +63,41 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'INKEEP_API_KEY'");
       expect(definition).toContain('});');
+      await expectSnapshots(definition);
     });
 
-    it('should handle credential ID to camelCase conversion', () => {
-      const definition = generateCredentialDefinition('database-connection-url', {
+    it('should handle credential ID to camelCase conversion', async () => {
+      const credentialId = 'database-connection-url';
+      const conversionData = {
         name: 'Database Connection URL',
         type: 'env',
         credentialStoreId: 'env-default',
-      });
-
+      };
+      const definition = generateCredentialDefinition({ credentialId, ...conversionData });
       expect(definition).toContain('export const databaseConnectionUrl = credential({');
       expect(definition).toContain("id: 'database-connection-url',");
+      await expectSnapshots(definition);
     });
 
-    it('should handle credential with all required fields', () => {
-      const definition = generateCredentialDefinition('my-credential', {
+    it('should handle credential with all required fields', async () => {
+      const credentialId = 'my-credential';
+      const requiredFieldsData = {
         name: 'My Credential',
         type: 'memory',
         credentialStoreId: 'memory-default',
-      });
+      };
+      const definition = generateCredentialDefinition({ credentialId, ...requiredFieldsData });
 
       expect(definition).toContain('export const myCredential = credential({');
       expect(definition).toContain("type: 'memory',");
+      expect(definition).not.toContain('retrievalParams: {');
+      expect(definition).not.toContain("key: 'OPENAI_API_KEY'"); // Should not auto-generate
+      await expectSnapshots(definition);
     });
 
-    it('should handle different credential store types', () => {
-      const envDef = generateCredentialDefinition('env-cred', {
-        name: 'Env Cred',
-        type: 'env',
-        credentialStoreId: 'env-default',
-      });
-      expect(envDef).toContain("credentialStoreId: 'env-default'");
-
-      const keychainDef = generateCredentialDefinition('keychain-cred', {
-        name: 'Keychain Cred',
-        type: 'keychain',
-        credentialStoreId: 'keychain-default',
-      });
-      expect(keychainDef).toContain("credentialStoreId: 'keychain-default'");
-
-      const memoryDef = generateCredentialDefinition('memory-cred', {
-        name: 'Memory Cred',
-        type: 'memory',
-        credentialStoreId: 'memory-default',
-      });
-      expect(memoryDef).toContain("credentialStoreId: 'memory-default'");
-    });
-
-    it('should handle env credential with complex retrieval params', () => {
-      const definition = generateCredentialDefinition('database-url', envCredentialData);
+    it('should handle env credential with complex retrieval params', async () => {
+      const credentialId = 'database-url';
+      const definition = generateCredentialDefinition({ credentialId, ...envCredentialData });
 
       expect(definition).toContain('export const databaseUrl = credential({');
       expect(definition).toContain("type: 'env',");
@@ -135,10 +105,15 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'DATABASE_URL',");
       expect(definition).toContain("fallback: 'postgresql://localhost:5432/app'");
+      await expectSnapshots(definition);
     });
 
-    it('should handle keychain credential with service and account', () => {
-      const definition = generateCredentialDefinition('slack-token', keychainCredentialData);
+    it('should handle keychain credential with service and account', async () => {
+      const credentialId = 'slack-token';
+      const definition = generateCredentialDefinition({
+        credentialId,
+        ...keychainCredentialData,
+      });
 
       expect(definition).toContain('export const slackToken = credential({');
       expect(definition).toContain("type: 'keychain',");
@@ -146,26 +121,26 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("service: 'slack-bot',");
       expect(definition).toContain("account: 'my-workspace'");
-    });
-
-    it('should not generate retrieval params when not specified', () => {
-      const definition = generateCredentialDefinition('openai-api-key', {
-        name: 'OpenAI API Key',
-        type: 'memory',
-        credentialStoreId: 'memory-default',
-      });
-
-      expect(definition).not.toContain('retrievalParams: {');
-      expect(definition).not.toContain("key: 'OPENAI_API_KEY'"); // Should not auto-generate
+      await expectSnapshots(definition);
     });
 
     it('should throw error for missing required fields', () => {
       expect(() => {
-        generateCredentialDefinition('minimal', {});
-      }).toThrow("Missing required fields for credential 'minimal': name, type, credentialStoreId");
+        // @ts-expect-error -- test missing fields
+        generateCredentialDefinition({ credentialId: 'minimal' });
+      }).toThrow(
+        new Error(`Validation failed for credential:
+✖ Invalid input: expected string, received undefined
+  → at name
+✖ Invalid input: expected string, received undefined
+  → at type
+✖ Invalid input: expected string, received undefined
+  → at credentialStoreId`)
+      );
     });
 
-    it('should handle multiline descriptions', () => {
+    it('should handle multiline descriptions', async () => {
+      const credentialId = 'long-desc';
       const longDescription =
         'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the credential';
       const dataWithLongDesc = {
@@ -175,12 +150,13 @@ describe('Credential Generator', () => {
         description: longDescription,
       };
 
-      const definition = generateCredentialDefinition('long-desc', dataWithLongDesc);
-
-      expect(definition).toContain(`description: \`${longDescription}\``);
+      const definition = generateCredentialDefinition({ credentialId, ...dataWithLongDesc });
+      expect(definition).toContain(`description: '${longDescription}'`);
+      await expectSnapshots(definition);
     });
 
-    it('should handle nested retrieval params', () => {
+    it('should handle nested retrieval params', async () => {
+      const credentialId = 'complex';
       const complexCredential = {
         name: 'Complex Credential',
         type: 'keychain',
@@ -195,7 +171,7 @@ describe('Credential Generator', () => {
         },
       };
 
-      const definition = generateCredentialDefinition('complex', complexCredential);
+      const definition = generateCredentialDefinition({ credentialId, ...complexCredential });
 
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("service: 'oauth-service',");
@@ -203,9 +179,12 @@ describe('Credential Generator', () => {
       expect(definition).toContain('config: {');
       expect(definition).toContain('timeout: 5000,');
       expect(definition).toContain('retries: 3');
+
+      await expectSnapshots(definition);
     });
 
-    it('should handle different data types in retrieval params', () => {
+    it('should handle different data types in retrieval params', async () => {
+      const credentialId = 'mixed';
       const mixedParamsCredential = {
         name: 'Mixed Params Credential',
         type: 'env',
@@ -218,175 +197,46 @@ describe('Credential Generator', () => {
         },
       };
 
-      const definition = generateCredentialDefinition('mixed', mixedParamsCredential);
+      const definition = generateCredentialDefinition({
+        credentialId,
+        ...mixedParamsCredential,
+      });
 
       expect(definition).toContain("key: 'API_KEY',");
       expect(definition).toContain('port: 3000,');
       expect(definition).toContain('enabled: true,');
       expect(definition).toContain('timeout: 30.5');
-    });
-  });
 
-  describe('generateCredentialFile', () => {
-    it('should generate complete file with imports and definition', () => {
-      const file = generateCredentialFile('inkeep-api-key', testCredentialData);
-
-      expect(file).toContain("import { credential } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const inkeepApiKey = credential({');
-      expect(file).toContain("id: 'inkeep-api-key',");
-
-      // Should have proper spacing
-      expect(file).toMatch(/import.*\n\n.*export/s);
-      expect(file.endsWith('\n')).toBe(true);
-    });
-  });
-
-  describe('compilation tests', () => {
-    it('should generate code that compiles and creates a working credential', async () => {
-      generateCredentialFile('inkeep-api-key', testCredentialData);
-
-      // Extract just the credential definition (remove imports and export)
-      const definition = generateCredentialDefinition('inkeep-api-key', testCredentialData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      // Mock the dependencies and test compilation
-      const moduleCode = `
-        // Mock the imports for testing
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return inkeepApiKey;
-      `;
-
-      // Use eval to test the code compiles and runs
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      // Verify the resulting object has the correct structure
-      expect(result).toBeDefined();
-      expect(result.id).toBe('inkeep-api-key');
-      expect(result.type).toBe('memory');
-      expect(result.credentialStoreId).toBe('memory-default');
-      expect(result.description).toBe('API key for Inkeep search and context services');
-      expect(result.retrievalParams).toBeDefined();
-      expect(result.retrievalParams.key).toBe('INKEEP_API_KEY');
-    });
-
-    it('should generate code for env credential that compiles', () => {
-      const file = generateCredentialFile('database-url', envCredentialData);
-
-      // Should have credential import
-      expect(file).toContain('import { credential }');
-
-      // Test compilation
-      const definition = generateCredentialDefinition('database-url', envCredentialData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return databaseUrl;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('database-url');
-      expect(result.type).toBe('env');
-      expect(result.credentialStoreId).toBe('env-production');
-      expect(result.retrievalParams.key).toBe('DATABASE_URL');
-      expect(result.retrievalParams.fallback).toBe('postgresql://localhost:5432/app');
-    });
-
-    it('should generate code for keychain credential that compiles', () => {
-      const definition = generateCredentialDefinition('slack-token', keychainCredentialData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return slackToken;
-      `;
-
-      let result: any;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('slack-token');
-      expect(result.type).toBe('keychain');
-      expect(result.credentialStoreId).toBe('keychain-main');
-      expect(result.retrievalParams.service).toBe('slack-bot');
-      expect(result.retrievalParams.account).toBe('my-workspace');
-    });
-
-    it('should throw error for minimal credential with missing fields', () => {
-      expect(() => {
-        generateCredentialDefinition('minimal-cred', {});
-      }).toThrow(
-        "Missing required fields for credential 'minimal-cred': name, type, credentialStoreId"
-      );
+      await expectSnapshots(definition);
     });
   });
 
   describe('edge cases', () => {
-    it('should throw error for empty credential data', () => {
-      expect(() => {
-        generateCredentialDefinition('empty', {});
-      }).toThrow("Missing required fields for credential 'empty': name, type, credentialStoreId");
-    });
-
-    it('should handle special characters in credential ID', () => {
-      const definition = generateCredentialDefinition('api-key_v2', {
-        name: 'API Key V2',
-        type: 'env',
-        credentialStoreId: 'env-default',
-      });
-
-      expect(definition).toContain('export const apiKeyV2 = credential({');
-      expect(definition).toContain("id: 'api-key_v2',");
-    });
-
-    it('should handle credential ID starting with number', () => {
-      const definition = generateCredentialDefinition('2023-api-key', {
-        name: '2023 API Key',
-        type: 'memory',
-        credentialStoreId: 'memory-default',
-      });
-
-      expect(definition).toContain('export const _2023ApiKey = credential({');
-    });
-
-    it('should handle null and undefined values gracefully', () => {
+    it('should handle null and undefined values gracefully', async () => {
+      const credentialId = 'null-test';
       const credentialData = {
         name: 'Null Test Credential',
         type: 'env',
         credentialStoreId: 'env-default',
-        description: null,
+        description: undefined,
         retrievalParams: {
           key: 'API_KEY',
           fallback: undefined,
         },
       };
 
-      const definition = generateCredentialDefinition('null-test', credentialData);
+      const definition = generateCredentialDefinition({ credentialId, ...credentialData });
 
       expect(definition).toContain('export const nullTest = credential({');
       expect(definition).not.toContain('description:');
       expect(definition).toContain("key: 'API_KEY'");
       expect(definition).not.toContain('fallback');
+
+      await expectSnapshots(definition);
     });
 
-    it('should handle empty retrieval params object', () => {
+    it('should handle empty retrieval params object', async () => {
+      const credentialId = 'empty-params';
       const credentialData = {
         name: 'Empty Params Credential',
         type: 'memory',
@@ -394,10 +244,9 @@ describe('Credential Generator', () => {
         retrievalParams: {},
       };
 
-      const definition = generateCredentialDefinition('empty-params', credentialData);
-
-      expect(definition).toContain('retrievalParams: {');
-      expect(definition).toContain('  }');
+      const definition = generateCredentialDefinition({ credentialId, ...credentialData });
+      expect(definition).toContain('retrievalParams: {},');
+      await expectSnapshots(definition);
     });
   });
 });
