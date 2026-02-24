@@ -6,6 +6,7 @@ import {
   addValueToObject,
   convertNullToUndefined,
   createFactoryDefinition,
+  createUniqueReferenceName,
   formatStringLiteral,
   hasReferences,
   resolveReferenceName,
@@ -252,13 +253,7 @@ function createResolvedReferences(
     seenIds.add(referenceId);
 
     const importName = resolveReferenceName(referenceId, [referenceOverrides]);
-    let localName = importName;
-
-    if (reservedReferenceNames.has(localName)) {
-      localName = createUniqueReferenceName(localName, reservedReferenceNames, suffix);
-    } else {
-      reservedReferenceNames.add(localName);
-    }
+    const localName = createUniqueReferenceName(importName, reservedReferenceNames, suffix);
 
     resolvedReferences.push({
       id: referenceId,
@@ -268,24 +263,4 @@ function createResolvedReferences(
   }
 
   return resolvedReferences;
-}
-
-function createUniqueReferenceName(
-  baseName: string,
-  reservedReferenceNames: Set<string>,
-  suffix: string
-): string {
-  const suffixedName = `${baseName}${suffix}`;
-  if (!reservedReferenceNames.has(suffixedName)) {
-    reservedReferenceNames.add(suffixedName);
-    return suffixedName;
-  }
-
-  let suffixIndex = 2;
-  while (reservedReferenceNames.has(`${suffixedName}${suffixIndex}`)) {
-    suffixIndex += 1;
-  }
-  const uniqueName = `${suffixedName}${suffixIndex}`;
-  reservedReferenceNames.add(uniqueName);
-  return uniqueName;
 }

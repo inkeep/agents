@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  ci:
+  cypress-e2e:
+    name: Cypress E2E Tests
     runs-on: ubuntu-32gb
     timeout-minutes: 30
 

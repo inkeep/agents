@@ -5,13 +5,18 @@
  * Streams responses incrementally to Slack using chatStream API.
  */
 
-import { getInProcessFetch } from '@inkeep/agents-core';
+import { getInProcessFetch, retryWithBackoff } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import {
+  buildCitationsBlock,
+  buildDataArtifactBlocks,
+  buildDataComponentBlocks,
+  buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
   buildToolApprovalExpiredBlocks,
+  buildToolOutputErrorBlock,
   createContextBlock,
   type ToolApprovalButtonValue,
 } from '../blocks';
@@ -243,7 +248,19 @@ export async function streamAgentResponse(params: {
       thread_ts: threadTs,
     });
 
-    const pendingApprovalMessages: Array<{ messageTs: string; toolName: string }> = [];
+    const pendingApprovalMessages: Array<{
+      messageTs: string;
+      toolName: string;
+      toolCallId: string;
+    }> = [];
+    const toolCallIdToName = new Map<string, string>();
+    const toolCallIdToInput = new Map<string, Record<string, unknown>>();
+    const toolErrors: Array<{ toolName: string; errorText: string }> = [];
+    const citations: Array<{ title?: string; url?: string }> = [];
+    const summaryLabels: string[] = [];
+    let richMessageCount = 0;
+    let richMessageCapWarned = false;
+    const MAX_RICH_MESSAGES = 20;
 
     try {
       let agentCompleted = false;
@@ -273,9 +290,9 @@ export async function streamAgentResponse(params: {
             }
 
             if (data.type === 'tool-approval-request' && conversationId) {
-              const toolName: string = data.toolName || 'Tool';
               const toolCallId: string = data.toolCallId;
-              const input: Record<string, unknown> | undefined = data.input;
+              const toolName: string = toolCallIdToName.get(toolCallId) || 'Tool';
+              const input: Record<string, unknown> | undefined = toolCallIdToInput.get(toolCallId);
 
               const buttonValue: ToolApprovalButtonValue = {
                 toolCallId,
@@ -304,12 +321,137 @@ export async function streamAgentResponse(params: {
                   return null;
                 });
               if (approvalPost?.ts) {
-                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName });
+                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName, toolCallId });
               }
               // Clear the stream timeout — we're now waiting for human approval which
               // can take minutes. The backend has its own APPROVAL_TIMEOUT_MS and will
               // close the stream when that expires, triggering the expiry path in catch.
               clearTimeout(timeoutId);
+              continue;
+            }
+
+            if (data.type === 'tool-input-available' && data.toolCallId && data.toolName) {
+              toolCallIdToName.set(String(data.toolCallId), String(data.toolName));
+              if (data.input && typeof data.input === 'object') {
+                toolCallIdToInput.set(
+                  String(data.toolCallId),
+                  data.input as Record<string, unknown>
+                );
+              }
+              continue;
+            }
+
+            if (data.type === 'tool-output-denied' && data.toolCallId) {
+              const idx = pendingApprovalMessages.findIndex(
+                (m) => m.toolCallId === data.toolCallId
+              );
+              if (idx !== -1) pendingApprovalMessages.splice(idx, 1);
+              continue;
+            }
+
+            if (data.type === 'tool-output-error' && data.toolCallId) {
+              const toolName = toolCallIdToName.get(String(data.toolCallId)) || 'Tool';
+              toolErrors.push({ toolName, errorText: String(data.errorText || 'Unknown error') });
+              continue;
+            }
+
+            if (data.type === 'data-component' && data.data && typeof data.data === 'object') {
+              if (richMessageCount < MAX_RICH_MESSAGES) {
+                const { blocks, overflowJson, componentType } = buildDataComponentBlocks({
+                  id: String(data.id || ''),
+                  data: data.data as Record<string, unknown>,
+                });
+                if (overflowJson) {
+                  const label = componentType || 'data-component';
+                  await retryWithBackoff(
+                    () =>
+                      slackClient.files.uploadV2({
+                        channel_id: channel,
+                        thread_ts: threadTs,
+                        filename: `${label}.json`,
+                        content: overflowJson,
+                        initial_comment: `📊 ${label}`,
+                      }),
+                    { label: 'slack-file-upload' }
+                  ).catch((e) =>
+                    logger.warn(
+                      { error: e, channel, threadTs, agentId, componentType: label },
+                      'Failed to upload data component file'
+                    )
+                  );
+                } else {
+                  await slackClient.chat
+                    .postMessage({
+                      channel,
+                      thread_ts: threadTs,
+                      text: '📊 Data component',
+                      blocks,
+                    })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to post data component'));
+                }
+                richMessageCount++;
+              } else if (!richMessageCapWarned) {
+                logger.warn(
+                  { channel, threadTs, agentId, eventType: 'data-component', MAX_RICH_MESSAGES },
+                  'MAX_RICH_MESSAGES cap reached — additional rich content will be dropped'
+                );
+                richMessageCapWarned = true;
+              }
+              continue;
+            }
+
+            if (data.type === 'data-artifact' && data.data && typeof data.data === 'object') {
+              const artifactData = data.data as Record<string, unknown>;
+              if (
+                typeof artifactData.type === 'string' &&
+                artifactData.type.toLowerCase() === 'citation'
+              ) {
+                const summary = artifactData.artifactSummary as
+                  | { title?: string; url?: string }
+                  | undefined;
+                if (summary?.url && !citations.some((c) => c.url === summary.url)) {
+                  citations.push({ title: summary.title, url: summary.url });
+                }
+              } else if (richMessageCount < MAX_RICH_MESSAGES) {
+                const { blocks, overflowContent, artifactName } = buildDataArtifactBlocks({
+                  data: artifactData,
+                });
+                if (overflowContent) {
+                  const label = artifactName || 'artifact';
+                  await retryWithBackoff(
+                    () =>
+                      slackClient.files.uploadV2({
+                        channel_id: channel,
+                        thread_ts: threadTs,
+                        filename: `${label}.md`,
+                        content: overflowContent,
+                        initial_comment: `📄 ${label}`,
+                      }),
+                    { label: 'slack-file-upload' }
+                  ).catch((e) =>
+                    logger.warn(
+                      { error: e, channel, threadTs, agentId, artifactName: label },
+                      'Failed to upload artifact file'
+                    )
+                  );
+                } else {
+                  await slackClient.chat
+                    .postMessage({ channel, thread_ts: threadTs, text: '📄 Data', blocks })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to post data artifact'));
+                }
+                richMessageCount++;
+              } else if (!richMessageCapWarned) {
+                logger.warn(
+                  { channel, threadTs, agentId, eventType: 'data-artifact', MAX_RICH_MESSAGES },
+                  'MAX_RICH_MESSAGES cap reached — additional rich content will be dropped'
+                );
+                richMessageCapWarned = true;
+              }
+              continue;
+            }
+
+            if (data.type === 'data-summary' && data.data?.label) {
+              summaryLabels.push(String(data.data.label));
               continue;
             }
 
@@ -354,10 +496,22 @@ export async function streamAgentResponse(params: {
 
       clearTimeout(timeoutId);
 
-      const contextBlock = createContextBlock({ agentName });
+      const stopBlocks: any[] = [];
+      for (const { toolName, errorText } of toolErrors) {
+        stopBlocks.push(buildToolOutputErrorBlock(toolName, errorText));
+      }
+      if (summaryLabels.length > 0) {
+        stopBlocks.push(buildSummaryBreadcrumbBlock(summaryLabels));
+      }
+      if (citations.length > 0) {
+        const citationBlocks = buildCitationsBlock(citations);
+        stopBlocks.push(...citationBlocks);
+      }
+      stopBlocks.push(createContextBlock({ agentName }));
+
       try {
         await withTimeout(
-          streamer.stop({ blocks: [contextBlock] }),
+          streamer.stop({ blocks: stopBlocks.slice(0, 50) }),
           CHATSTREAM_OP_TIMEOUT_MS,
           'streamer.stop'
         );
@@ -383,7 +537,16 @@ export async function streamAgentResponse(params: {
       }
 
       logger.info(
-        { channel, threadTs, responseLength: fullText.length, agentId, conversationId },
+        {
+          channel,
+          threadTs,
+          responseLength: fullText.length,
+          agentId,
+          conversationId,
+          toolErrorCount: toolErrors.length,
+          citationCount: citations.length,
+          richMessageCount,
+        },
         'Streaming completed'
       );
 

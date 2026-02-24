@@ -5,8 +5,8 @@
  */
 
 import {
-  generateEnvironmentIndexImports as generateEnvironmentIndexImports,
-  generateEnvironmentSettingsImports as generateEnvironmentSettingsImports,
+  generateEnvironmentIndexImports,
+  generateEnvironmentSettingsImports,
   generateEnvironmentIndexDefinition as originalGenerateEnvironmentIndexDefinition,
   generateEnvironmentIndexFile as originalGenerateEnvironmentIndexFile,
   generateEnvironmentSettingsDefinition as originalGenerateEnvironmentSettingsDefinition,
