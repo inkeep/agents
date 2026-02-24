@@ -3,7 +3,7 @@ import { StreamEventSchema, ToolAuthRequiredEventSchema } from '../stream-event-
 
 describe('ToolAuthRequiredEventSchema', () => {
   const validEvent = {
-    type: 'tool-auth-required' as const,
+    type: 'data-tool-auth-required' as const,
     toolCallId: 'call_abc123',
     toolName: 'Linear Ticketing',
     toolId: 'tool_linear_01',
@@ -15,7 +15,7 @@ describe('ToolAuthRequiredEventSchema', () => {
     const result = ToolAuthRequiredEventSchema.safeParse(validEvent);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.type).toBe('tool-auth-required');
+      expect(result.data.type).toBe('data-tool-auth-required');
       expect(result.data.toolCallId).toBe('call_abc123');
       expect(result.data.toolName).toBe('Linear Ticketing');
       expect(result.data.toolId).toBe('tool_linear_01');
@@ -38,7 +38,7 @@ describe('ToolAuthRequiredEventSchema', () => {
 
   it('validates without optional mcpServerUrl and authLink', () => {
     const event = {
-      type: 'tool-auth-required' as const,
+      type: 'data-tool-auth-required' as const,
       toolCallId: 'call_abc123',
       toolName: 'Linear Ticketing',
       toolId: 'tool_linear_01',
@@ -54,7 +54,7 @@ describe('ToolAuthRequiredEventSchema', () => {
 
   it('rejects event missing required toolName', () => {
     const event = {
-      type: 'tool-auth-required' as const,
+      type: 'data-tool-auth-required' as const,
       toolCallId: 'call_abc123',
       toolId: 'tool_linear_01',
       message: 'Auth required.',
@@ -65,7 +65,7 @@ describe('ToolAuthRequiredEventSchema', () => {
 
   it('rejects event missing required toolId', () => {
     const event = {
-      type: 'tool-auth-required' as const,
+      type: 'data-tool-auth-required' as const,
       toolCallId: 'call_abc123',
       toolName: 'Linear',
       message: 'Auth required.',
@@ -76,7 +76,7 @@ describe('ToolAuthRequiredEventSchema', () => {
 
   it('rejects event missing required message', () => {
     const event = {
-      type: 'tool-auth-required' as const,
+      type: 'data-tool-auth-required' as const,
       toolCallId: 'call_abc123',
       toolName: 'Linear',
       toolId: 'tool_linear_01',
@@ -89,7 +89,7 @@ describe('ToolAuthRequiredEventSchema', () => {
 describe('StreamEventSchema discriminated union', () => {
   it('parses tool-auth-required as a valid stream event', () => {
     const event = {
-      type: 'tool-auth-required' as const,
+      type: 'data-tool-auth-required' as const,
       toolCallId: 'call_abc123',
       toolName: 'Linear Ticketing',
       toolId: 'tool_linear_01',

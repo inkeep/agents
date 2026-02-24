@@ -357,7 +357,7 @@ export async function streamAgentResponse(params: {
               continue;
             }
 
-            if (data.type === 'tool-auth-required' && data.toolName) {
+            if (data.type === 'data-tool-auth-required' && data.toolName) {
               toolAuthErrors.push({ toolName: String(data.toolName) });
               continue;
             }

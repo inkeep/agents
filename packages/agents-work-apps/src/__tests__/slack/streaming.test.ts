@@ -356,7 +356,7 @@ describe('streamAgentResponse', () => {
     describe('tool-auth-required event handling', () => {
       it('should render auth required blocks at stream completion', async () => {
         const sseData =
-          'data: {"type":"tool-auth-required","toolName":"Linear Ticketing","toolId":"tool-1","toolCallId":"tc-1","message":"Auth required"}\n' +
+          'data: {"type":"data-tool-auth-required","toolName":"Linear Ticketing","toolId":"tool-1","toolCallId":"tc-1","message":"Auth required"}\n' +
           'data: {"type":"text-delta","delta":"You need to connect Linear."}\n' +
           'data: {"type":"data-operation","data":{"type":"completion"}}\n';
 
@@ -398,8 +398,8 @@ describe('streamAgentResponse', () => {
 
       it('should collect multiple auth errors and render each as a block', async () => {
         const sseData =
-          'data: {"type":"tool-auth-required","toolName":"Linear","toolId":"tool-1","toolCallId":"tc-1","message":"Auth required"}\n' +
-          'data: {"type":"tool-auth-required","toolName":"GitHub","toolId":"tool-2","toolCallId":"tc-2","message":"Auth required"}\n' +
+          'data: {"type":"data-tool-auth-required","toolName":"Linear","toolId":"tool-1","toolCallId":"tc-1","message":"Auth required"}\n' +
+          'data: {"type":"data-tool-auth-required","toolName":"GitHub","toolId":"tool-2","toolCallId":"tc-2","message":"Auth required"}\n' +
           'data: {"type":"data-operation","data":{"type":"completion"}}\n';
 
         const stream = new ReadableStream({

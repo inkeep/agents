@@ -168,13 +168,26 @@ export const ToolOutputDeniedEventSchema = z.object({
  * Tool auth required event - user-scoped tool is missing credentials
  */
 export const ToolAuthRequiredEventSchema = z.object({
-  type: z.literal('tool-auth-required'),
+  type: z.literal('data-tool-auth-required'),
   toolCallId: z.string(),
   toolName: z.string(),
   toolId: z.string(),
   mcpServerUrl: z.string().optional(),
   message: z.string(),
   authLink: z.string().optional(),
+});
+
+export const DataToolAuthRequiredEventSchema = z.object({
+  type: z.literal('data-tool-auth-required'),
+  data: z.object({
+    type: z.literal('data-tool-auth-required'),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    toolId: z.string(),
+    mcpServerUrl: z.string().optional(),
+    message: z.string(),
+    authLink: z.string().optional(),
+  }), // Contains ToolAuthRequiredEvent from entities.ts
 });
 
 // =============================================================================

@@ -219,7 +219,7 @@ describe('Tool auth error short-circuit behavior', () => {
       const outerData = JSON.parse(sseMessages[0].data);
       const innerContent = JSON.parse(outerData.choices[0].delta.content);
 
-      expect(innerContent.type).toBe('tool-auth-required');
+      expect(innerContent.type).toBe('data-tool-auth-required');
       expect(innerContent.toolCallId).toBe('call_abc');
       expect(innerContent.toolName).toBe('Linear Ticketing');
       expect(innerContent.toolId).toBe('tool_linear_01');
@@ -258,7 +258,7 @@ describe('Tool auth error short-circuit behavior', () => {
       const response = helper.getCapturedResponse();
       expect(response.data).toHaveLength(1);
       expect(response.data[0]).toEqual({
-        type: 'tool-auth-required',
+        type: 'data-tool-auth-required',
         toolCallId: 'call_buf',
         toolName: 'Linear Ticketing',
         toolId: 'tool_linear_01',

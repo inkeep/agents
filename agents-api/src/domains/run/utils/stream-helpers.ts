@@ -347,7 +347,7 @@ export class SSEStreamHelper implements StreamHelper {
   }): Promise<void> {
     await this.writeContent(
       JSON.stringify({
-        type: 'tool-auth-required',
+        type: 'data-tool-auth-required',
         toolCallId: params.toolCallId,
         toolName: params.toolName,
         toolId: params.toolId,
@@ -1069,7 +1069,7 @@ export class BufferingStreamHelper implements StreamHelper {
     message: string;
     authLink?: string;
   }): Promise<void> {
-    this.capturedData.push({ type: 'tool-auth-required', ...params });
+    this.capturedData.push({ type: 'data-tool-auth-required', ...params });
   }
 
   async complete(): Promise<void> {
