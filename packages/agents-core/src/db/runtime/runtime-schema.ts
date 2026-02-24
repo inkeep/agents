@@ -525,6 +525,40 @@ export const datasetRunConversationRelations = pgTable(
 );
 
 /**
+ * Tracks per-item execution status within a dataset run. Created before execution starts
+ * (status: pending) and updated as each item is processed. One invocation per
+ * agentId × datasetItemId pair per attempt.
+ *
+ * Includes: datasetRunId, datasetItemId, agentId (from agentScoped), status, startedAt,
+ * completedAt, attemptNumber, and timestamps
+ */
+export const datasetRunInvocations = pgTable(
+  'dataset_run_invocations',
+  {
+    ...agentScoped,
+    datasetRunId: varchar('dataset_run_id', { length: 256 }).notNull(),
+    datasetItemId: varchar('dataset_item_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 50 })
+      .notNull()
+      .$type<'pending' | 'running' | 'completed' | 'failed'>()
+      .default('pending'),
+    startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }),
+    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    uniqueIndex('dataset_run_invocations_unique_idx').on(
+      table.datasetRunId,
+      table.datasetItemId,
+      table.agentId,
+      table.attemptNumber
+    ),
+  ]
+);
+
+/**
  * Record created when an evaluation job config or evaluation run config is triggered.
  * Represents a completed evaluation run. Links to the evaluationJobConfig (if created from a job)
  * or evaluationRunConfig (if created from a run config).

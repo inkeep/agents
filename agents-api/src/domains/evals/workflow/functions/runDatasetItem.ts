@@ -12,6 +12,7 @@ import {
   getEvaluatorById,
   getProjectScopedRef,
   resolveRef,
+  updateDatasetRunInvocationStatus,
   updateEvaluationResult,
   withRef,
 } from '@inkeep/agents-core';
@@ -36,6 +37,7 @@ type RunDatasetItemPayload = {
     stopWhen?: { transferCountIs?: number; stepCountIs?: number };
   };
   datasetRunId: string;
+  invocationId?: string;
   // Optional: evaluator IDs to run after conversation completes
   evaluatorIds?: string[];
   evaluationRunId?: string;
@@ -213,6 +215,22 @@ async function executeEvaluatorStep(
 }
 
 /**
+ * Step: Update invocation status in the database
+ */
+async function updateInvocationStep(
+  tenantId: string,
+  projectId: string,
+  invocationId: string,
+  data: { status: 'running' | 'completed' | 'failed'; startedAt?: string; completedAt?: string }
+) {
+  'use step';
+  await updateDatasetRunInvocationStatus(runDbClient)({
+    scopes: { tenantId, projectId, invocationId },
+    data,
+  });
+}
+
+/**
  * Step: Log workflow progress
  */
 async function logStep(message: string, data: Record<string, unknown>) {
@@ -227,7 +245,8 @@ async function logStep(message: string, data: Record<string, unknown>) {
 async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
   'use workflow';
 
-  const { datasetItemId, datasetRunId, agentId, evaluatorIds, evaluationRunId } = payload;
+  const { datasetItemId, datasetRunId, agentId, evaluatorIds, evaluationRunId, invocationId } =
+    payload;
 
   await logStep('Starting dataset item processing', {
     datasetItemId,
@@ -242,6 +261,13 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
   // Create relation if we got a conversation
   if (result.conversationId) {
     await createRelationStep(payload, result.conversationId);
+
+    if (invocationId) {
+      await updateInvocationStep(payload.tenantId, payload.projectId, invocationId, {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+      });
+    }
 
     // Run evaluations if configured
     if (evaluatorIds && evaluatorIds.length > 0 && evaluationRunId) {
@@ -262,6 +288,13 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
       datasetRunId,
       error: result.error,
     });
+
+    if (invocationId) {
+      await updateInvocationStep(payload.tenantId, payload.projectId, invocationId, {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+      });
+    }
   }
 
   return {

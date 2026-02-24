@@ -45,6 +45,7 @@ import {
   conversations,
   datasetRun,
   datasetRunConversationRelations,
+  datasetRunInvocations,
   evaluationResult,
   evaluationRun,
   ledgerArtifacts,
@@ -1286,6 +1287,23 @@ export const DatasetRunConversationRelationApiUpdateSchema = createApiUpdateSche
 )
   .omit({ id: true })
   .openapi('DatasetRunConversationRelationUpdate');
+
+export const DatasetRunInvocationStatusEnum = z.enum(['pending', 'running', 'completed', 'failed']);
+
+export const DatasetRunInvocationSelectSchema = createSelectSchema(datasetRunInvocations).extend({
+  status: DatasetRunInvocationStatusEnum,
+});
+export const DatasetRunInvocationInsertSchema = createInsertSchema(datasetRunInvocations, {
+  id: () => ResourceIdSchema,
+  status: () => DatasetRunInvocationStatusEnum,
+}).extend({
+  status: DatasetRunInvocationStatusEnum.optional(),
+});
+export const DatasetRunInvocationUpdateSchema = DatasetRunInvocationInsertSchema.partial();
+
+export const DatasetRunInvocationApiSelectSchema = createApiSchema(
+  DatasetRunInvocationSelectSchema
+).openapi('DatasetRunInvocation');
 
 export const EvaluationResultSelectSchema = createSelectSchema(evaluationResult);
 export const EvaluationResultInsertSchema = createInsertSchema(evaluationResult).extend({
