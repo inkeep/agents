@@ -23,7 +23,7 @@ export const JsonSchemaEditor: FC<JsonSchemaEditorProps> = ({
   const id = useId();
 
   return (
-    <div className="pt-2 flex flex-col gap-2">
+    <div className="pt-2 flex flex-col gap-2 min-w-0">
       {isJsonSchemaModeChecked ? (
         <StandaloneJsonEditor {...props} />
       ) : (
