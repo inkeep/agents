@@ -234,7 +234,7 @@ describe('VercelDataStreamHelper Memory Management', () => {
     expect(mockWriter.write).not.toHaveBeenCalled();
   });
 
-  test('writeToolAuthRequired should be a no-op and not write to the stream', async () => {
+  test('writeToolAuthRequired should write data-tool-auth-required to the stream', async () => {
     await helper.writeToolAuthRequired({
       toolCallId: 'call_vercel_123',
       toolName: 'Linear Ticketing',
@@ -243,15 +243,17 @@ describe('VercelDataStreamHelper Memory Management', () => {
       message: 'Linear Ticketing requires authentication.',
     });
 
-    expect(mockWriter.write).not.toHaveBeenCalled();
+    expect(mockWriter.write).toHaveBeenCalledWith({
+      type: 'data-tool-auth-required',
+      toolCallId: 'call_vercel_123',
+      toolName: 'Linear Ticketing',
+      toolId: 'tool_linear_01',
+      mcpServerUrl: 'https://mcp.example.com/linear',
+      message: 'Linear Ticketing requires authentication.',
+    });
   });
 
-  test('writeToolAuthRequired no-op should not affect stream state', async () => {
-    mockParsePartialJson.mockResolvedValue({
-      value: [{ type: 'test', content: 'item1' }],
-      state: 'successful-parse',
-    });
-
+  test('writeToolAuthRequired omits optional fields when not provided', async () => {
     await helper.writeToolAuthRequired({
       toolCallId: 'call_vercel_456',
       toolName: 'GitHub',
@@ -259,12 +261,13 @@ describe('VercelDataStreamHelper Memory Management', () => {
       message: 'GitHub requires authentication.',
     });
 
-    // Stream should still be functional after the no-op
-    await helper.writeContent('[{"type":"test","content":"item1"}]');
-    expect(mockWriter.write).toHaveBeenCalledTimes(1);
-
-    const stats = helper.getMemoryStats();
-    expect(stats.isCompleted).toBe(false);
+    expect(mockWriter.write).toHaveBeenCalledWith({
+      type: 'data-tool-auth-required',
+      toolCallId: 'call_vercel_456',
+      toolName: 'GitHub',
+      toolId: 'tool_github_01',
+      message: 'GitHub requires authentication.',
+    });
   });
 
   test('should handle very large content without crashing', async () => {

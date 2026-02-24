@@ -686,7 +686,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     });
   }
 
-  async writeToolAuthRequired(_params: {
+  async writeToolAuthRequired(params: {
     toolCallId: string;
     toolName: string;
     toolId: string;
@@ -694,10 +694,16 @@ export class VercelDataStreamHelper implements StreamHelper {
     message: string;
     authLink?: string;
   }): Promise<void> {
-    // No-op for Vercel data stream — the client UI (@inkeep/agents-ui) does not
-    // yet handle this custom event type and will crash. The LLM's text response
-    // already carries the auth error message from the placeholder tool's execute().
-    // SSEStreamHelper (used by Slack) still emits this event.
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'data-tool-auth-required',
+      toolCallId: params.toolCallId,
+      toolName: params.toolName,
+      toolId: params.toolId,
+      ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
+      message: params.message,
+      ...(params.authLink && { authLink: params.authLink }),
+    });
   }
 
   async streamData(data: any): Promise<void> {
