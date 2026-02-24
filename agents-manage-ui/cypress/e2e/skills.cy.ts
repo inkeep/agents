@@ -14,6 +14,11 @@ describe('Skills', () => {
     cy.typeInMonaco('content.md', fixture.content);
     cy.typeInMonaco('metadata.json', fixture.metadata);
     cy.contains('Save').click();
+
+    // Wait for either success redirect or error toast
+    cy.get('[data-sonner-toast]', { timeout: 30_000 }).should('exist');
+    // Verify creation succeeded (not an error)
+    cy.get('[data-sonner-toast]').should('not.contain', 'error');
     for (const text of Object.values(fixture)) {
       cy.contains(text).should('exist');
     }

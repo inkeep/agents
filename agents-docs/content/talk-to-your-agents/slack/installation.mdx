@@ -1,15 +1,17 @@
 ---
 title: Install and Set Up the Slack App
-sidebarTitle: How to Install
+sidebarTitle: Installation
 description: Admin guide — install the Inkeep Slack app, configure agents, and onboard your team.
 ---
-
-# Install and Set Up the Slack App
 
 This guide is for **workspace administrators**. It walks you through installing the Inkeep Slack app, configuring which agents respond, and getting your team onboarded.
 
 <Note>
-The AI Assistant for Slack is a **enterprise-only** feature. On Inkeep Enterprise, all required Slack environment variables are pre-configured — you don't need to set anything up on the infrastructure side.
+The Slack integration is only available for [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav).
+</Note>
+
+<Note>
+Only one Slack workspace can be connected per Inkeep tenant. Re-authorizing the same workspace (e.g. to refresh tokens) is supported, but installing a different workspace requires uninstalling the existing one first.
 </Note>
 
 ## Prerequisites
@@ -49,11 +51,8 @@ The AI Assistant for Slack is a **enterprise-only** feature. On Inkeep Enterpris
 
 After installing, set up which agent responds to your team's requests. See the full [Configuration guide](/talk-to-your-agents/slack/configuration) for details.
 
-**Quick start:**
-
 1. Go to **Work Apps** → **Slack** in the dashboard
-2. Set a **Workspace default** agent — this is the agent that responds in all channels by default
-3. Optionally set **Channel defaults** for channels that need a different agent (e.g. a support agent for `#support`)
+2. Set default agents for your workspace and channels
 
 <Tip>
 Channel defaults take priority over the workspace default. If you remove a channel default, that channel falls back to the workspace default agent.
@@ -61,18 +60,24 @@ Channel defaults take priority over the workspace default. If you remove a chann
 
 ## Onboard your team
 
-Each team member needs to link their Slack account to Inkeep before using agents. Share these instructions with your team:
+Team members can start using `@Inkeep` and `/inkeep` immediately, and you can point them to the [Using the Slack App](/talk-to-your-agents/slack/commands) usage guide.
 
+The first time they interact with the bot, they'll be prompted to link their Slack account. They can also link proactively:
 1. Type `/inkeep link` in any Slack channel
 2. Click the private link the bot sends (expires in 10 minutes)
-3. Sign in to Inkeep if not already signed in — the linking completes automatically
+3. Sign in to Inkeep if not already signed in
 4. Verify with `/inkeep status`
 
-<Tip>
-Account linking uses a short-lived JWT token for security. If the link expires, run `/inkeep link` again.
-</Tip>
+## Next steps
 
-Once linked, team members can start using `@Inkeep` and `/inkeep` immediately. Point them to the [Using the Slack App](/talk-to-your-agents/slack/commands) guide for a full command reference.
+<Cards>
+  <Card title="Configuration" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">
+    Set up workspace defaults, channel defaults, and manage users
+  </Card>
+  <Card title="Using the Slack App" icon="LuMessageSquare" href="/talk-to-your-agents/slack/commands">
+    Share this with your team — full command and usage reference
+  </Card>
+</Cards>
 
 ## Uninstalling
 
@@ -83,14 +88,3 @@ To remove the Slack app from your workspace:
 3. Select **Uninstall**
 
 This removes the bot from your workspace, deletes all user link mappings, and cleans up channel configurations.
-
-## Next steps
-
-<Cards>
-  <Card title="Dashboard Configuration" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">
-    Set up workspace defaults, channel defaults, and manage users
-  </Card>
-  <Card title="Using the Slack App" icon="LuMessageSquare" href="/talk-to-your-agents/slack/commands">
-    Share this with your team — full command and usage reference
-  </Card>
-</Cards>

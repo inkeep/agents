@@ -431,6 +431,123 @@ export async function fetchPrFileDiffs(
 }
 
 /**
+ * Fetch files changed on a branch compared to a base ref, without requiring a PR.
+ * Uses the GitHub Compare API (`repos.compareCommitsWithBasehead`).
+ */
+export async function fetchBranchChangedFiles(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  base: string,
+  head: string,
+  options: {
+    pathFilters?: string[];
+    includeContents?: boolean;
+    includePatch?: boolean;
+  } = {}
+): Promise<ChangedFile[]> {
+  const { pathFilters = [], includeContents = false, includePatch = false } = options;
+  logger.info(
+    { owner, repo, base, head, pathFilters, includeContents, includePatch },
+    `Fetching changed files between ${base}...${head}`
+  );
+
+  const response = await octokit.rest.repos.compareCommitsWithBasehead({
+    owner,
+    repo,
+    basehead: `${base}...${head}`,
+    per_page: 1,
+  });
+
+  const totalCommits = response.data.total_commits;
+
+  const collectedFiles: ChangedFile[] = [];
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const pageResponse = await octokit.rest.repos.compareCommitsWithBasehead({
+      owner,
+      repo,
+      basehead: `${base}...${head}`,
+      per_page: perPage,
+      page,
+    });
+
+    const files = pageResponse.data.files ?? [];
+    if (files.length === 0) break;
+
+    for (const file of files) {
+      if (
+        pathFilters.length > 0 &&
+        !pathFilters.some((filter) => minimatch(file.filename, filter))
+      ) {
+        continue;
+      }
+
+      collectedFiles.push({
+        commit_messages: [],
+        path: file.filename,
+        status: file.status as ChangedFile['status'],
+        additions: file.additions,
+        deletions: file.deletions,
+        patch: includePatch ? file.patch : undefined,
+        previousPath: file.previous_filename,
+      });
+    }
+
+    if (files.length < perPage) break;
+    page++;
+  }
+
+  if (includeContents) {
+    const BATCH_SIZE = 10;
+    const filesToFetch = collectedFiles.filter((f) => f.status !== 'removed');
+
+    for (let i = 0; i < filesToFetch.length; i += BATCH_SIZE) {
+      const batch = filesToFetch.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (changedFile) => {
+          try {
+            const { data: content } = await octokit.rest.repos.getContent({
+              owner,
+              repo,
+              path: changedFile.path,
+              ref: head,
+            });
+
+            if ('content' in content && content.encoding === 'base64') {
+              changedFile.contents = Buffer.from(content.content, 'base64').toString('utf-8');
+            }
+          } catch (error) {
+            logger.warn(
+              { owner, repo, base, head, file: changedFile.path },
+              `Failed to fetch contents for ${changedFile.path}: ${error}`
+            );
+          }
+        })
+      );
+    }
+  }
+
+  logger.info(
+    {
+      owner,
+      repo,
+      base,
+      head,
+      totalCommits,
+      pathFilters,
+      includeContents,
+      fileCount: collectedFiles.length,
+    },
+    `Found ${collectedFiles.length} changed files between ${base}...${head} (${totalCommits} commits)`
+  );
+
+  return collectedFiles;
+}
+
+/**
  * Fetch all PR comments (both issue comments and review comments)
  */
 export async function fetchComments(
@@ -1103,6 +1220,31 @@ export async function listPullRequestReviewCommentReactions(
     octokit.rest.reactions.listForPullRequestReviewComment,
     { owner, repo, comment_id: commentId, per_page: 100 }
   )) {
+    for (const r of response.data) {
+      reactions.push({
+        id: r.id,
+        content: r.content as ReactionContent,
+        user: r.user?.login ?? 'unknown',
+        createdAt: r.created_at,
+      });
+    }
+  }
+  return reactions;
+}
+
+export async function listIssueReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<ReactionDetail[]> {
+  const reactions: ReactionDetail[] = [];
+  for await (const response of octokit.paginate.iterator(octokit.rest.reactions.listForIssue, {
+    owner,
+    repo,
+    issue_number: issueNumber,
+    per_page: 100,
+  })) {
     for (const r of response.data) {
       reactions.push({
         id: r.id,

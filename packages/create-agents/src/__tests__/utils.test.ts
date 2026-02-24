@@ -2,7 +2,7 @@ import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
-import { createAgents, defaultMockModelConfigurations } from '../utils';
+import { createAgents, defaultMockModelConfigurations, syncTemplateDependencies } from '../utils';
 
 // Create the mock execAsync function that will be used by promisify - hoisted so it's available in mocks
 const { mockExecAsync } = vi.hoisted(() => ({
@@ -25,6 +25,20 @@ vi.mock('node:child_process', () => ({
 vi.mock('node:util', () => ({
   promisify: vi.fn(() => mockExecAsync),
 }));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    readFileSync: vi.fn(() => JSON.stringify({ version: '1.2.3' })),
+  };
+});
+vi.mock('node:url', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:url')>();
+  return {
+    ...actual,
+    fileURLToPath: vi.fn(() => '/fake/dist/utils.js'),
+  };
+});
 
 // Setup default mocks
 const mockSpinner = {
@@ -32,6 +46,35 @@ const mockSpinner = {
   stop: vi.fn().mockReturnThis(),
   message: vi.fn().mockReturnThis(),
 };
+
+const mockEnvExample = [
+  'ENVIRONMENT=development',
+  'NODE_ENV=development',
+  'LOG_LEVEL=info',
+  'INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents',
+  'INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents',
+  'INKEEP_AGENTS_API_URL=http://localhost:3002',
+  'PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:3002',
+  'TENANT_ID=default',
+  'ANTHROPIC_API_KEY=',
+  'OPENAI_API_KEY=',
+  'GOOGLE_GENERATIVE_AI_API_KEY=',
+  'AZURE_API_KEY=',
+  'DEFAULT_PROJECT_ID=',
+  'NANGO_SECRET_KEY=',
+  'NANGO_SERVER_URL=http://localhost:3050',
+  'SIGNOZ_URL=http://localhost:3080',
+  'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=',
+  'INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com',
+  'INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12',
+  'BETTER_AUTH_SECRET=your-secret-key-change-in-production',
+  'SPICEDB_ENDPOINT=localhost:50051',
+  'SPICEDB_PRESHARED_KEY=dev-secret-key',
+  'INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=test-bypass-secret-for-ci',
+  '# INKEEP_AGENTS_JWT_SIGNING_SECRET=',
+  '# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=',
+  '# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=',
+].join('\n');
 
 describe('createAgents - Template and Project ID Logic', () => {
   let processExitSpy: any;
@@ -73,6 +116,8 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(fs.writeFile).mockResolvedValue(undefined);
     vi.mocked(fs.writeJson).mockResolvedValue(undefined);
     vi.mocked(fs.readJson).mockResolvedValue({});
+    vi.mocked(fs.readFile).mockResolvedValue(mockEnvExample as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.remove).mockResolvedValue(undefined);
 
@@ -482,6 +527,75 @@ describe('createAgents - Template and Project ID Logic', () => {
     });
   });
 
+  describe('Environment file generation', () => {
+    it('should contain INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET from .env.example', async () => {
+      await createAgents({
+        dirName: 'test-dir',
+        openAiKey: 'test-openai-key',
+        anthropicKey: 'test-anthropic-key',
+      });
+
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '.env',
+        expect.stringContaining('INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=test-bypass-secret-for-ci')
+      );
+    });
+
+    it('should inject CLI-prompted API keys into the .env', async () => {
+      await createAgents({
+        dirName: 'test-dir',
+        openAiKey: 'sk-openai-123',
+        anthropicKey: 'sk-ant-456',
+        googleKey: 'google-789',
+        azureKey: 'azure-abc',
+      });
+
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '.env',
+        expect.stringContaining('ANTHROPIC_API_KEY=sk-ant-456')
+      );
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '.env',
+        expect.stringContaining('OPENAI_API_KEY=sk-openai-123')
+      );
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '.env',
+        expect.stringContaining('GOOGLE_GENERATIVE_AI_API_KEY=google-789')
+      );
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '.env',
+        expect.stringContaining('AZURE_API_KEY=azure-abc')
+      );
+    });
+
+    it('should use localhost URLs (not 127.0.0.1)', async () => {
+      await createAgents({
+        dirName: 'test-dir',
+        openAiKey: 'test-key',
+        anthropicKey: 'test-key',
+      });
+
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '.env',
+        expect.stringContaining('PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:3002')
+      );
+    });
+
+    it('should not generate any secrets inline', async () => {
+      await createAgents({
+        dirName: 'test-dir',
+        openAiKey: 'test-key',
+        anthropicKey: 'test-key',
+      });
+
+      const envWriteCall = vi.mocked(fs.writeFile).mock.calls.find((call) => call[0] === '.env');
+      const envContent = envWriteCall?.[1] as string;
+      expect(envContent).toContain('BETTER_AUTH_SECRET=your-secret-key-change-in-production');
+      expect(envContent).toContain('INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12');
+      expect(envContent).toContain('# INKEEP_AGENTS_JWT_SIGNING_SECRET=');
+    });
+  });
+
   describe('Security - Password input for API keys', () => {
     it('should use password input instead of text input for API keys', async () => {
       // Mock the select to return 'anthropic' to trigger the API key prompt
@@ -558,9 +672,278 @@ function setupDefaultMocks() {
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
   vi.mocked(fs.writeJson).mockResolvedValue(undefined);
   vi.mocked(fs.readJson).mockResolvedValue({});
+  vi.mocked(fs.readFile).mockResolvedValue(mockEnvExample as any);
+  vi.mocked(fs.readdir).mockResolvedValue([] as any);
   vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
   vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
-  // Reset mockExecAsync for tests that clear mocks
   mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
 }
+
+describe('syncTemplateDependencies', () => {
+  function mockDirent(name: string, isDir: boolean) {
+    return { name, isDirectory: () => isDir, isFile: () => !isDir };
+  }
+
+  function setupFlatTemplate(rootPkg: Record<string, unknown>) {
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
+    vi.mocked(fs.readJson).mockResolvedValue(rootPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should update @inkeep/* dependencies to match CLI version', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        '@inkeep/agents-sdk': '^0.50.3',
+        'some-other-package': '^1.0.0',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-sdk': '^1.2.3',
+          'some-other-package': '^1.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should skip if template package.json does not exist', async () => {
+    vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.readJson).not.toHaveBeenCalled();
+    expect(fs.writeJson).not.toHaveBeenCalled();
+  });
+
+  it('should handle template with no @inkeep/* dependencies', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        'some-other-package': '^1.0.0',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          'some-other-package': '^1.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should handle template with no devDependencies', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should update devDependencies @inkeep/* packages', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {},
+      devDependencies: {
+        '@inkeep/agents-sdk': '^0.49.0',
+        vitest: '^1.0.0',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        devDependencies: {
+          '@inkeep/agents-sdk': '^1.2.3',
+          vitest: '^1.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should not modify non-@inkeep dependencies', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        react: '^18.0.0',
+        next: '^14.0.0',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          react: '^18.0.0',
+          next: '^14.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should not update excluded packages like @inkeep/agents-ui', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        '@inkeep/agents-ui': '^0.50.3',
+        '@inkeep/agents-sdk': '^0.50.3',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-ui': '^0.50.3',
+          '@inkeep/agents-sdk': '^1.2.3',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should skip sync when CLI version cannot be determined', async () => {
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
+    vi.mocked(fs.readJson).mockResolvedValue({
+      name: 'test-project',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+    });
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).not.toHaveBeenCalled();
+  });
+
+  it('should sync nested package.json files in subdirectories', async () => {
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockReturnValue(JSON.stringify({ version: '1.2.3' }));
+
+    const rootPkg = {
+      name: 'monorepo',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+    };
+    const nestedPkg = {
+      name: 'nested-app',
+      dependencies: { '@inkeep/agents-sdk': '^0.50.3', express: '^4.0.0' },
+    };
+
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir as any)
+      .mockResolvedValueOnce([mockDirent('apps', true), mockDirent('README.md', false)])
+      .mockResolvedValueOnce([mockDirent('api', true)])
+      .mockResolvedValueOnce([]);
+    vi.mocked(fs.readJson)
+      .mockResolvedValueOnce(rootPkg)
+      .mockResolvedValueOnce(nestedPkg)
+      .mockResolvedValueOnce(nestedPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledTimes(3);
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: { '@inkeep/agents-core': '^1.2.3' },
+      }),
+      { spaces: 2 }
+    );
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      expect.stringContaining('apps/package.json'),
+      expect.anything(),
+      { spaces: 2 }
+    );
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      expect.stringContaining('apps/api/package.json'),
+      expect.objectContaining({
+        dependencies: { '@inkeep/agents-sdk': '^1.2.3', express: '^4.0.0' },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should skip node_modules and dot directories', async () => {
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockReturnValue(JSON.stringify({ version: '1.2.3' }));
+
+    const rootPkg = {
+      name: 'test-project',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+    };
+
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir as any)
+      .mockResolvedValueOnce([
+        mockDirent('node_modules', true),
+        mockDirent('.git', true),
+        mockDirent('src', true),
+      ])
+      .mockResolvedValueOnce([]);
+    vi.mocked(fs.readJson).mockResolvedValue(rootPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.readdir).toHaveBeenCalledTimes(2);
+    expect(fs.readdir).toHaveBeenCalledWith('/test/path', { withFileTypes: true });
+    expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('src'), {
+      withFileTypes: true,
+    });
+  });
+});

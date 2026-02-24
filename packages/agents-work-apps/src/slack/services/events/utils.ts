@@ -529,7 +529,10 @@ export async function getThreadContext(
     };
     users?: {
       info: (params: { user: string }) => Promise<{
-        user?: { real_name?: string; display_name?: string; name?: string };
+        user?: {
+          real_name?: string;
+          profile?: { display_name?: string; email?: string };
+        };
       }>;
     };
   },
@@ -564,7 +567,7 @@ export async function getThreadContext(
     // Build a cache of user IDs to their Slack profile names
     const userNameCache = new Map<
       string,
-      { displayName: string | undefined; fullName: string | undefined; name: string | undefined }
+      { displayName: string | undefined; fullName: string | undefined; email: string | undefined }
     >();
 
     if (resolveUserNames && slackClient.users) {
@@ -579,15 +582,15 @@ export async function getThreadContext(
           try {
             const userInfo = await slackClient.users?.info({ user: userId });
             userNameCache.set(userId, {
-              displayName: userInfo?.user?.display_name,
+              displayName: userInfo?.user?.profile?.display_name,
               fullName: userInfo?.user?.real_name,
-              name: userInfo?.user?.name,
+              email: userInfo?.user?.profile?.email,
             });
           } catch {
             userNameCache.set(userId, {
               displayName: undefined,
               fullName: undefined,
-              name: undefined,
+              email: undefined,
             });
           }
         })
@@ -600,13 +603,13 @@ export async function getThreadContext(
       const parts = [`userId: ${userId}`];
       if (info.displayName) parts.push(`"${info.displayName}"`);
       if (info.fullName) parts.push(`"${info.fullName}"`);
-      if (info.name) parts.push(`"${info.name}"`);
+      if (info.email) parts.push(info.email);
       userDirectoryLines.push(`- ${parts.join(', ')}`);
     }
 
     const userDirectory =
       userDirectoryLines.length > 0
-        ? `Users in this thread (UserId - DisplayName, FullName, Name):\n${userDirectoryLines.join('\n')}\n\n`
+        ? `Users in this thread (UserId - DisplayName, FullName, Email):\n${userDirectoryLines.join('\n')}\n\n`
         : '';
 
     // Format messages using only user IDs

@@ -1,10 +1,8 @@
 ---
 title: Using the Slack App
-sidebarTitle: Ask Questions
-description: How to interact with Inkeep agents in Slack — commands, mentions, and tips.
+sidebarTitle: Usage Guide
+description: How to talk to Inkeep agents in Slack — commands, mentions, and tips.
 ---
-
-# Using the Slack App
 
 This guide is for **all team members** using the Inkeep Slack app. You'll learn how to ask questions, understand which agent responds, and get the most out of the integration.
 
@@ -40,13 +38,13 @@ When you use `@Inkeep` inside a thread, the agent automatically receives the ful
 - Asking follow-up questions about something in the thread
 - Having the agent help draft a response
 
-## Private responses — `/inkeep`
+## Slash command — `/inkeep`
 
-Private responses are **ephemeral** — only you can see them. They don't appear in the channel for other users.
+The `/inkeep` slash command lets you ask questions and manage your account. Agent responses to `/inkeep <your question>` are posted **publicly in the channel**, visible to everyone. Administrative commands (`link`, `unlink`, `status`, `help`) respond privately using Slack's ephemeral messages.
 
 | Command | What it does |
 |---------|-------------|
-| `/inkeep <your question>` | Ask the default agent privately |
+| `/inkeep <your question>` | Ask the default agent — response is posted in the channel |
 | `/inkeep` | Open a modal to pick a project, agent, and write your prompt |
 | `/inkeep help` | Show the full usage guide |
 | `/inkeep status` | See your linked account and the active agent for this channel |
@@ -57,7 +55,7 @@ Private responses are **ephemeral** — only you can see them. They don't appear
 
 When you use `/inkeep` (modal) or `/inkeep <message>`, the response includes a **Follow Up** button. Click it to continue the same conversation — the agent remembers everything from previous turns.
 
-Each follow-up appears as a new ephemeral message showing your question and the agent's response.
+Each follow-up appears as a new message in the channel showing your question and the agent's response.
 
 ### Agent picker modal
 

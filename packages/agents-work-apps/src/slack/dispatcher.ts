@@ -48,6 +48,7 @@ export async function dispatchSlackEvent(
           thread_ts?: string;
           bot_id?: string;
           subtype?: string;
+          edited?: unknown;
         }
       | undefined;
 
@@ -65,6 +66,13 @@ export async function dispatchSlackEvent(
         { botId: event.bot_id, subtype: event?.subtype, teamId, innerEventType },
         'Ignoring bot message'
       );
+      return { outcome };
+    }
+
+    if (event?.edited) {
+      outcome = 'ignored_edited_message';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      logger.info({ teamId, innerEventType }, 'Ignoring edited message');
       return { outcome };
     }
 

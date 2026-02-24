@@ -1069,6 +1069,351 @@ describe('github mcp utils', () => {
     });
   });
 
+  describe('listIssueReactions', () => {
+    let listIssueReactions: typeof import('../../../github/mcp/utils').listIssueReactions;
+
+    beforeEach(async () => {
+      ({ listIssueReactions } = await import('../../../github/mcp/utils'));
+    });
+
+    function createPaginateIterator(items: any[]) {
+      return async function* () {
+        yield { data: items };
+      };
+    }
+
+    it('should return reaction details for an issue/PR body', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() =>
+            createPaginateIterator([
+              {
+                id: 401,
+                content: '+1',
+                user: { login: 'alice' },
+                created_at: '2026-03-01T00:00:00Z',
+              },
+              {
+                id: 402,
+                content: 'heart',
+                user: { login: 'bob' },
+                created_at: '2026-03-02T00:00:00Z',
+              },
+            ])()
+          ),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 401,
+        content: '+1',
+        user: 'alice',
+        createdAt: '2026-03-01T00:00:00Z',
+      });
+      expect(result[1]).toEqual({
+        id: 402,
+        content: 'heart',
+        user: 'bob',
+        createdAt: '2026-03-02T00:00:00Z',
+      });
+    });
+
+    it('should handle missing user gracefully', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi
+            .fn()
+            .mockImplementation(() =>
+              createPaginateIterator([
+                { id: 501, content: 'eyes', user: null, created_at: '2026-03-01T00:00:00Z' },
+              ])()
+            ),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result[0].user).toBe('unknown');
+    });
+
+    it('should return empty array when no reactions exist', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() => createPaginateIterator([])()),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('fetchBranchChangedFiles', () => {
+    let fetchBranchChangedFiles: typeof import('../../../github/mcp/utils').fetchBranchChangedFiles;
+
+    beforeEach(async () => {
+      ({ fetchBranchChangedFiles } = await import('../../../github/mcp/utils'));
+    });
+
+    function createMockOctokit(
+      pages: Array<{ files: any[]; total_commits: number }>,
+      contentResponses?: Record<string, any>
+    ) {
+      let callCount = 0;
+      return {
+        rest: {
+          repos: {
+            compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
+              const page = pages[callCount] ?? pages[pages.length - 1];
+              callCount++;
+              return Promise.resolve({
+                data: {
+                  total_commits: page.total_commits,
+                  files: page.files,
+                },
+              });
+            }),
+            getContent: vi.fn().mockImplementation(({ path }: { path: string }) => {
+              if (contentResponses?.[path]) {
+                return Promise.resolve({ data: contentResponses[path] });
+              }
+              return Promise.reject(new Error(`File not found: ${path}`));
+            }),
+          },
+        },
+      } as any;
+    }
+
+    it('should return changed files from compare API', async () => {
+      const mockFiles = [
+        {
+          filename: 'src/index.ts',
+          status: 'modified',
+          additions: 10,
+          deletions: 3,
+          patch: '@@ -1,3 +1,10 @@',
+        },
+        {
+          filename: 'src/utils.ts',
+          status: 'added',
+          additions: 20,
+          deletions: 0,
+          patch: '@@ -0,0 +1,20 @@',
+        },
+      ];
+      const mockOctokit = createMockOctokit([{ files: mockFiles, total_commits: 2 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch'
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        commit_messages: [],
+        path: 'src/index.ts',
+        status: 'modified',
+        additions: 10,
+        deletions: 3,
+        patch: undefined,
+        previousPath: undefined,
+      });
+      expect(result[1].path).toBe('src/utils.ts');
+      expect(result[1].status).toBe('added');
+    });
+
+    it('should include patches when includePatch is true', async () => {
+      const mockFiles = [
+        {
+          filename: 'src/index.ts',
+          status: 'modified',
+          additions: 5,
+          deletions: 1,
+          patch: '@@ -1,3 +1,7 @@\n+new line',
+        },
+      ];
+      const mockOctokit = createMockOctokit([{ files: mockFiles, total_commits: 1 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch',
+        { includePatch: true }
+      );
+
+      expect(result[0].patch).toBe('@@ -1,3 +1,7 @@\n+new line');
+    });
+
+    it('should filter files by path patterns', async () => {
+      const mockFiles = [
+        { filename: 'src/index.ts', status: 'modified', additions: 5, deletions: 1 },
+        { filename: 'docs/readme.md', status: 'modified', additions: 2, deletions: 0 },
+        { filename: 'src/utils.ts', status: 'added', additions: 10, deletions: 0 },
+      ];
+      const mockOctokit = createMockOctokit([{ files: mockFiles, total_commits: 1 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch',
+        { pathFilters: ['src/**'] }
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.every((f) => f.path.startsWith('src/'))).toBe(true);
+    });
+
+    it('should include file contents when includeContents is true', async () => {
+      const mockFiles = [
+        { filename: 'src/index.ts', status: 'modified', additions: 5, deletions: 1 },
+      ];
+      const contentResponses = {
+        'src/index.ts': {
+          content: Buffer.from('const x = 1;').toString('base64'),
+          encoding: 'base64',
+        },
+      };
+      const mockOctokit = createMockOctokit(
+        [{ files: mockFiles, total_commits: 1 }],
+        contentResponses
+      );
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch',
+        { includeContents: true }
+      );
+
+      expect(result[0].contents).toBe('const x = 1;');
+      expect(mockOctokit.rest.repos.getContent).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        path: 'src/index.ts',
+        ref: 'feat/branch',
+      });
+    });
+
+    it('should not fetch contents for removed files', async () => {
+      const mockFiles = [
+        { filename: 'src/deleted.ts', status: 'removed', additions: 0, deletions: 10 },
+      ];
+      const mockOctokit = createMockOctokit([{ files: mockFiles, total_commits: 1 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch',
+        { includeContents: true }
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].contents).toBeUndefined();
+      expect(mockOctokit.rest.repos.getContent).not.toHaveBeenCalled();
+    });
+
+    it('should handle empty file list', async () => {
+      const mockOctokit = createMockOctokit([{ files: [], total_commits: 0 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch'
+      );
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should include previousPath for renamed files', async () => {
+      const mockFiles = [
+        {
+          filename: 'src/new-name.ts',
+          previous_filename: 'src/old-name.ts',
+          status: 'renamed',
+          additions: 0,
+          deletions: 0,
+        },
+      ];
+      const mockOctokit = createMockOctokit([{ files: mockFiles, total_commits: 1 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch'
+      );
+
+      expect(result[0].previousPath).toBe('src/old-name.ts');
+      expect(result[0].status).toBe('renamed');
+    });
+
+    it('should gracefully handle content fetch failures', async () => {
+      const mockFiles = [
+        { filename: 'src/index.ts', status: 'modified', additions: 5, deletions: 1 },
+      ];
+      const mockOctokit = createMockOctokit([{ files: mockFiles, total_commits: 1 }]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch',
+        { includeContents: true }
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].contents).toBeUndefined();
+    });
+
+    it('should paginate through multiple pages of files', async () => {
+      const page1Files = Array.from({ length: 100 }, (_, i) => ({
+        filename: `file-${i}.ts`,
+        status: 'modified',
+        additions: 1,
+        deletions: 0,
+      }));
+      const page2Files = [{ filename: 'file-100.ts', status: 'added', additions: 5, deletions: 0 }];
+      const mockOctokit = createMockOctokit([
+        { files: page1Files, total_commits: 5 },
+        { files: page1Files, total_commits: 5 },
+        { files: page2Files, total_commits: 5 },
+      ]);
+
+      const result = await fetchBranchChangedFiles(
+        mockOctokit,
+        'owner',
+        'repo',
+        'main',
+        'feat/branch'
+      );
+
+      expect(result).toHaveLength(101);
+      expect(result[100].path).toBe('file-100.ts');
+    });
+  });
+
   describe('getGitHubClientFromRepo', () => {
     let getGitHubClientFromRepo: typeof import('../../../github/mcp/utils').getGitHubClientFromRepo;
 

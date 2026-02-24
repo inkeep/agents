@@ -1,5 +1,24 @@
 # @inkeep/agents-core
 
+## 0.53.0
+
+### Patch Changes
+
+- 0a0cb6e: Unify .env generation between quickstart CLI and contributor flows
+
+## 0.52.0
+
+### Patch Changes
+
+- 886b2da: Restrict `stopWhen` schema for sub-agents to only allow `stepCountIs` field
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- 65f71b5: Derive scope config types and WHERE helpers from single source of truth (scope-definitions.ts)
+
 ## 0.51.0
 
 ### Minor Changes
