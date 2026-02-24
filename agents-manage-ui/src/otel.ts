@@ -52,15 +52,15 @@ const defaultBatchProcessor = createSafeBatchProcessor();
 async function validateOtlpEndpoint(): Promise<void> {
   if (!otlpEndpointConfigured) return;
 
-  const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT!;
-  const ok = await fetch(endpoint, {
+  const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT as string;
+  const status = await fetch(endpoint, {
     method: 'HEAD',
     signal: AbortSignal.timeout(3_000),
   })
     .then((res) => res.status < 500)
     .catch(() => false);
 
-  otlpReachable = ok;
+  otlpReachable = status;
   logger.info({ endpoint, otlpReachable }, 'OTLP endpoint validation complete');
 }
 

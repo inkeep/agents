@@ -51,7 +51,7 @@ function createSafeBatchProcessor(): SpanProcessor {
 export async function validateOtlpEndpoint(): Promise<void> {
   if (!otlpEndpointConfigured) return;
 
-  const endpoint = env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT!;
+  const endpoint = env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT as string;
   const status = await fetch(endpoint, {
     method: 'HEAD',
     signal: AbortSignal.timeout(3_000),
