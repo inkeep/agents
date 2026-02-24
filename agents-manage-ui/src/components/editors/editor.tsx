@@ -88,7 +88,7 @@ const EditorFormatAction: FC<ComponentProps<typeof Button>> = ({ disabled, ...pr
           await Promise.all([
             formatAction?.run(),
             new Promise((resolve) => {
-              timeoutRef.current = window.setTimeout(resolve, 500);
+              timeoutRef.current = window.setTimeout(resolve, 300);
             }),
           ]);
         });
