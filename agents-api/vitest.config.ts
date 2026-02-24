@@ -31,6 +31,8 @@ export default defineProject({
       LOG_LEVEL: 'error',
       AGENTS_COMPRESSION_ENABLED: 'false',
       INKEEP_AGENTS_RUN_API_BYPASS_SECRET: 'test-bypass-secret',
+      INKEEP_AGENTS_MANAGE_DATABASE_URL: 'postgresql://test:test@localhost:5432/test_manage',
+      INKEEP_AGENTS_RUN_DATABASE_URL: 'postgresql://test:test@localhost:5433/test_run',
     },
   },
 });

@@ -1205,22 +1205,47 @@ export class Agent {
           selectedTools
         );
       } else {
-        // User hasn't connected their credential yet - build config without auth
+        // User hasn't connected their credential yet — short-circuit tool execution
         logger.warn(
           { toolId: tool.id, userId },
           'User-scoped tool has no credential connected for this user'
         );
-        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-          {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-            contextConfigId: this.config.contextConfigId || undefined,
-            conversationId: this.conversationId || undefined,
+
+        const authErrorMessage =
+          `Authentication required: ${tool.name} requires you to connect your account. ` +
+          "This tool uses user-scoped credentials and you haven't connected yours yet. " +
+          'DO NOT RETRY this tool — the user must authenticate first.';
+        const mcpServerUrl = tool.config.type === 'mcp' ? tool.config.mcp.server.url : undefined;
+
+        const authErrorExecute = async (_args: any, context?: any) => {
+          const toolCallId = context?.toolCallId || generateToolId();
+          const streamHelper = this.getStreamingHelper();
+          if (streamHelper) {
+            await streamHelper.writeToolAuthRequired({
+              toolCallId,
+              toolName: tool.name,
+              toolId: tool.id,
+              mcpServerUrl,
+              message: `${tool.name} requires authentication. Connect your account to use this tool.`,
+            });
+          }
+          return authErrorMessage;
+        };
+
+        const placeholderTools: Record<string, any> = {
+          [tool.name]: {
+            description: tool.name,
+            parameters: z.object({}),
+            execute: authErrorExecute,
           },
-          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-          undefined,
-          selectedTools
-        );
+        };
+
+        return {
+          tools: placeholderTools,
+          toolPolicies,
+          mcpServerId: tool.id,
+          mcpServerName: tool.name,
+        };
       }
     } else if (credentialReferenceId && this.credentialStuffer) {
       // Project-scoped: look up credential by credentialReferenceId

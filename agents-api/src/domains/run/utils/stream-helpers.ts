@@ -42,6 +42,14 @@ export interface StreamHelper {
     input?: Record<string, unknown>;
   }): Promise<void>;
   writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
+  writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void>;
 }
 
 export interface HonoSSEStream {
@@ -325,6 +333,27 @@ export class SSEStreamHelper implements StreamHelper {
       JSON.stringify({
         type: 'tool-output-denied',
         toolCallId: params.toolCallId,
+      })
+    );
+  }
+
+  async writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-auth-required',
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        toolId: params.toolId,
+        ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
+        message: params.message,
+        ...(params.authLink && { authLink: params.authLink }),
       })
     );
   }
@@ -654,6 +683,26 @@ export class VercelDataStreamHelper implements StreamHelper {
     this.writer.write({
       type: 'tool-output-denied',
       toolCallId: params.toolCallId,
+    });
+  }
+
+  async writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-auth-required',
+      toolCallId: params.toolCallId,
+      toolName: params.toolName,
+      toolId: params.toolId,
+      ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
+      message: params.message,
+      ...(params.authLink && { authLink: params.authLink }),
     });
   }
 
@@ -1016,6 +1065,17 @@ export class BufferingStreamHelper implements StreamHelper {
 
   async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
     this.capturedData.push({ type: 'tool-output-denied', ...params });
+  }
+
+  async writeToolAuthRequired(params: {
+    toolCallId: string;
+    toolName: string;
+    toolId: string;
+    mcpServerUrl?: string;
+    message: string;
+    authLink?: string;
+  }): Promise<void> {
+    this.capturedData.push({ type: 'tool-auth-required', ...params });
   }
 
   async complete(): Promise<void> {

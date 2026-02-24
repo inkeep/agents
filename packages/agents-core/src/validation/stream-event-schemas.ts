@@ -164,6 +164,19 @@ export const ToolOutputDeniedEventSchema = z.object({
   toolCallId: z.string(),
 });
 
+/**
+ * Tool auth required event - user-scoped tool is missing credentials
+ */
+export const ToolAuthRequiredEventSchema = z.object({
+  type: z.literal('tool-auth-required'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  toolId: z.string(),
+  mcpServerUrl: z.string().optional(),
+  message: z.string(),
+  authLink: z.string().optional(),
+});
+
 // =============================================================================
 // DISCRIMINATED UNION
 // =============================================================================
@@ -189,6 +202,7 @@ export const StreamEventSchema = z.discriminatedUnion('type', [
   ToolOutputErrorEventSchema,
   ToolApprovalRequestEventSchema,
   ToolOutputDeniedEventSchema,
+  ToolAuthRequiredEventSchema,
 ]);
 
 // =============================================================================
@@ -212,6 +226,7 @@ export type ToolOutputAvailableEvent = z.infer<typeof ToolOutputAvailableEventSc
 export type ToolOutputErrorEvent = z.infer<typeof ToolOutputErrorEventSchema>;
 export type ToolApprovalRequestEvent = z.infer<typeof ToolApprovalRequestEventSchema>;
 export type ToolOutputDeniedEvent = z.infer<typeof ToolOutputDeniedEventSchema>;
+export type ToolAuthRequiredEvent = z.infer<typeof ToolAuthRequiredEventSchema>;
 
 /**
  * Union type of all possible stream events
