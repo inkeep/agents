@@ -4,7 +4,7 @@ import { type Control, type FieldPath, type FieldValues, useFormState } from 're
 import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 import { FormFieldWrapper } from './form-field-wrapper';
 
-interface JsonSchemaInputProps<FV extends FieldValues, TV = FV> {
+interface GenericJsonSchemaEditorProps<FV extends FieldValues, TV = FV> {
   control: Control<FV, unknown, TV>;
   name: FieldPath<FV>;
   label?: string;
@@ -40,7 +40,7 @@ export function GenericJsonSchemaEditor<
   allRequired = false,
   uri,
   customTemplate,
-}: JsonSchemaInputProps<TFieldValues, TTransformedValues>) {
+}: GenericJsonSchemaEditorProps<TFieldValues, TTransformedValues>) {
   const formState = useFormState({ name });
   const fieldState = control.getFieldState(name, formState);
 

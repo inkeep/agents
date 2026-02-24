@@ -1,4 +1,6 @@
-import type { ComponentProps, FC } from 'react';
+'use client';
+
+import { type ComponentProps, type FC, useId } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
 import { Switch } from '@/components/ui/switch';
@@ -15,8 +17,10 @@ export const JsonSchemaEditor: FC<JsonSchemaEditorProps> = ({
   allRequired,
   ...props
 }) => {
+  'use memo';
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
+  const id = useId();
 
   return (
     <div className="pt-2 flex flex-col gap-2">
@@ -32,10 +36,13 @@ export const JsonSchemaEditor: FC<JsonSchemaEditorProps> = ({
           allRequired={allRequired}
         />
       )}
-      <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">
+      <label
+        htmlFor={id}
+        className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium cursor-pointer"
+      >
         JSON
-        <Switch checked={isJsonSchemaModeChecked} onCheckedChange={setJsonSchemaMode} />
-      </span>
+        <Switch id={id} checked={isJsonSchemaModeChecked} onCheckedChange={setJsonSchemaMode} />
+      </label>
     </div>
   );
 };
