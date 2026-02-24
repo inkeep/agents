@@ -47,7 +47,7 @@ vi.mock('../../slack/services/agent-resolution', () => ({
 
 vi.mock('../../slack/services/blocks', () => ({
   createErrorMessage: vi.fn().mockReturnValue({ text: 'Error' }),
-  createJwtLinkMessage: vi.fn().mockReturnValue({ text: 'Link account' }),
+  createSmartLinkMessage: vi.fn().mockReturnValue({ text: 'Link account' }),
   createContextBlock: vi.fn().mockReturnValue({ type: 'context' }),
   createNotLinkedMessage: vi.fn().mockReturnValue({ text: 'Not linked' }),
   createAlreadyLinkedMessage: vi.fn().mockReturnValue({ text: 'Already linked' }),
@@ -65,6 +65,15 @@ vi.mock('../../slack/services/events/utils', () => ({
   fetchProjectsForTenant: vi.fn(),
   getChannelAgentConfig: vi.fn(),
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../slack/services/link-prompt', () => ({
+  resolveUnlinkedUserAction: vi.fn().mockResolvedValue({
+    type: 'jwt_link',
+    url: 'http://localhost:3000/link?token=test',
+    expiresInMinutes: 10,
+  }),
+  buildLinkPromptMessage: vi.fn().mockReturnValue({ text: 'Link account', blocks: [] }),
 }));
 
 vi.mock('../../slack/services/modals', () => ({
@@ -125,7 +134,13 @@ describe('handleQuestionCommand', () => {
     });
 
     const { handleQuestionCommand } = await import('../../slack/services/commands/index');
-    await handleQuestionCommand(basePayload, 'What is Inkeep?', 'http://localhost:3000', 'default');
+    await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
 
     // Wait for background execution
     await vi.waitFor(() => {
@@ -164,7 +179,13 @@ describe('handleQuestionCommand', () => {
     });
 
     const { handleQuestionCommand } = await import('../../slack/services/commands/index');
-    await handleQuestionCommand(basePayload, 'What is Inkeep?', 'http://localhost:3000', 'default');
+    await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
 
     // Wait for background execution
     await vi.waitFor(() => {

@@ -14,19 +14,19 @@
  */
 
 import type { SlackLinkIntent } from '@inkeep/agents-core';
-import { signSlackLinkToken, signSlackUserToken } from '@inkeep/agents-core';
+import { signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import { resolveEffectiveAgent } from '../agent-resolution';
-import { createSmartLinkMessage } from '../blocks';
 import {
   getSlackChannelInfo,
   getSlackClient,
   getSlackUserInfo,
   postMessageInThread,
 } from '../client';
+import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { streamAgentResponse } from './streaming';
 import {
@@ -180,20 +180,20 @@ export async function handleAppMention(params: {
           projectId: agentConfig.projectId,
         };
 
-        const linkToken = await signSlackLinkToken({
+        const linkResult = await resolveUnlinkedUserAction({
           tenantId,
-          slackTeamId: teamId,
+          teamId,
           slackUserId,
+          botToken,
           intent,
         });
-
-        const linkUrl = `${manageUiUrl}/link?token=${encodeURIComponent(linkToken)}`;
-        const message = createSmartLinkMessage(linkUrl);
+        const message = buildLinkPromptMessage(linkResult);
 
         logger.info(
           {
             event: 'smart_link_intent_captured',
             entryPoint: 'mention',
+            linkType: linkResult.type,
             questionLength: intent.question.length,
             channelId: channel,
           },

@@ -73,19 +73,21 @@ export async function findCachedUserMapping(
     clientId
   );
 
-  // Evict before insertion to prevent unbounded growth during traffic spikes
-  if (userMappingCache.size >= USER_MAPPING_CACHE_MAX_SIZE) {
-    evictExpiredEntries();
-    // If still over limit after TTL eviction, evict oldest entry
+  // Only cache positive hits — don't cache null so that newly-linked users
+  // are recognized immediately on their next message instead of waiting for TTL expiry.
+  if (mapping) {
     if (userMappingCache.size >= USER_MAPPING_CACHE_MAX_SIZE) {
-      const oldestKey = userMappingCache.keys().next().value;
-      if (oldestKey) userMappingCache.delete(oldestKey);
+      evictExpiredEntries();
+      if (userMappingCache.size >= USER_MAPPING_CACHE_MAX_SIZE) {
+        const oldestKey = userMappingCache.keys().next().value;
+        if (oldestKey) userMappingCache.delete(oldestKey);
+      }
     }
+    userMappingCache.set(cacheKey, {
+      mapping,
+      expiresAt: Date.now() + USER_MAPPING_CACHE_TTL_MS,
+    });
   }
-  userMappingCache.set(cacheKey, {
-    mapping,
-    expiresAt: Date.now() + USER_MAPPING_CACHE_TTL_MS,
-  });
 
   return mapping;
 }

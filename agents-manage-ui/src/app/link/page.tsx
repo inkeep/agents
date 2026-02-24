@@ -16,44 +16,22 @@ const isExpiredTokenError = (error: string | null) =>
   error?.toLowerCase().includes('expired') ?? false;
 
 function SuccessState({ slackUsername }: { slackUsername?: string }) {
-  const [countdown, setCountdown] = useState(3);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          window.close();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
   return (
     <div className="space-y-4 text-center">
       <div className="flex justify-center">
         <CheckCircle2 className="h-16 w-16 text-green-500" />
       </div>
       <div>
-        <p className="font-medium text-lg">Account Linked!</p>
-        <p className="text-sm text-muted-foreground mt-2">
+        <p className="font-medium">Account Linked</p>
+        <p className="text-sm text-muted-foreground mt-1">
           {slackUsername ? (
             <>
-              Your Slack account <strong>@{slackUsername}</strong> is now connected to Inkeep.
+              Your Slack account <strong>@{slackUsername}</strong> is now connected.
             </>
           ) : (
-            'Your Slack account is now connected to Inkeep.'
-          )}
-        </p>
-      </div>
-      <div className="pt-4">
-        <p className="text-sm text-muted-foreground">You can now use Inkeep agents in Slack!</p>
-        <p className="text-xs text-muted-foreground mt-2">
-          This window will close in {countdown}...
+            'Your Slack account is now connected.'
+          )}{' '}
+          You can close this window and return to Slack.
         </p>
       </div>
     </div>
@@ -205,10 +183,10 @@ function SlackLinkForm() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <div className="px-6">
+        <div className="flex justify-center">
           <InkeepIcon size={48} />
         </div>
-        <CardHeader>
+        <CardHeader className="text-center">
           <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
             Link Slack Account
           </CardTitle>
@@ -218,7 +196,7 @@ function SlackLinkForm() {
               : state === 'linking'
                 ? 'Linking your accounts...'
                 : state === 'success'
-                  ? 'Your accounts are now linked!'
+                  ? 'Account linked successfully.'
                   : 'An error occurred.'}
           </CardDescription>
         </CardHeader>

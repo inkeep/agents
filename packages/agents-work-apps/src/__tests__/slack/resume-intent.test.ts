@@ -2,8 +2,12 @@ import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resumeSmartLinkIntent } from '../../slack/services/resume-intent';
 
+const { mockSignSlackUserToken } = vi.hoisted(() => ({
+  mockSignSlackUserToken: vi.fn().mockResolvedValue('mock-slack-user-token'),
+}));
+
 vi.mock('@inkeep/agents-core', () => ({
-  signSlackUserToken: vi.fn().mockResolvedValue('mock-slack-user-token'),
+  signSlackUserToken: mockSignSlackUserToken,
 }));
 
 const mockPostMessage = vi.fn().mockResolvedValue({ ts: '1234567890.000001' });
@@ -74,7 +78,15 @@ describe('resumeSmartLinkIntent', () => {
     });
   });
 
-  it('should handle mention entry point with streaming', async () => {
+  it('should handle mention entry point with streaming and channel auth', async () => {
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent_123',
+      projectId: 'project_456',
+      agentName: 'Test Agent',
+      source: 'channel',
+      grantAccessToMembers: true,
+    });
+
     const intent: SlackLinkIntent = {
       entryPoint: 'mention',
       question: 'What is the API rate limit?',
@@ -88,6 +100,21 @@ describe('resumeSmartLinkIntent', () => {
     await resumeSmartLinkIntent({ ...baseParams, intent });
 
     expect(findWorkspaceConnectionByTeamId).toHaveBeenCalledWith('T12345678');
+    expect(resolveEffectiveAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant_456',
+        teamId: 'T12345678',
+        channelId: 'C12345678',
+      })
+    );
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: true,
+        slackAuthSource: 'channel',
+        slackChannelId: 'C12345678',
+        slackAuthorizedProjectId: 'project_456',
+      })
+    );
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: 'C12345678',
@@ -105,7 +132,7 @@ describe('resumeSmartLinkIntent', () => {
     );
   });
 
-  it('should handle question_command entry point', async () => {
+  it('should handle question_command entry point with channel auth', async () => {
     vi.mocked(resolveEffectiveAgent).mockResolvedValue({
       agentId: 'agent_123',
       projectId: 'project_456',
@@ -137,6 +164,14 @@ describe('resumeSmartLinkIntent', () => {
         tenantId: 'tenant_456',
         teamId: 'T12345678',
         channelId: 'C12345678',
+      })
+    );
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: true,
+        slackAuthSource: 'workspace',
+        slackChannelId: 'C12345678',
+        slackAuthorizedProjectId: 'project_456',
       })
     );
     expect(sendResponseUrlMessage).toHaveBeenCalledWith(
@@ -233,6 +268,14 @@ describe('resumeSmartLinkIntent', () => {
 
     await resumeSmartLinkIntent({ ...baseParams, intent });
 
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: true,
+        slackAuthSource: 'workspace',
+        slackChannelId: 'C12345678',
+        slackAuthorizedProjectId: 'project_456',
+      })
+    );
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: 'C12345678',
@@ -243,7 +286,15 @@ describe('resumeSmartLinkIntent', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should handle run_command entry point with agent lookup', async () => {
+  it('should handle run_command entry point with agent lookup and channel auth', async () => {
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent_found',
+      projectId: 'proj_1',
+      agentName: 'My Custom Agent',
+      source: 'channel',
+      grantAccessToMembers: true,
+    });
+
     const mockFetch = vi
       .fn()
       .mockResolvedValueOnce({
@@ -276,6 +327,21 @@ describe('resumeSmartLinkIntent', () => {
 
     await resumeSmartLinkIntent({ ...baseParams, intent });
 
+    expect(resolveEffectiveAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant_456',
+        teamId: 'T12345678',
+        channelId: 'C12345678',
+      })
+    );
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: true,
+        slackAuthSource: 'channel',
+        slackChannelId: 'C12345678',
+        slackAuthorizedProjectId: 'proj_1',
+      })
+    );
     expect(sendResponseUrlMessage).toHaveBeenCalledWith(
       'https://hooks.slack.com/commands/T123/456/abc',
       expect.objectContaining({
@@ -287,6 +353,13 @@ describe('resumeSmartLinkIntent', () => {
   });
 
   it('should post error when run_command agent identifier not found', async () => {
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'other_agent',
+      projectId: 'proj_1',
+      source: 'workspace',
+      grantAccessToMembers: false,
+    });
+
     const mockFetch = vi
       .fn()
       .mockResolvedValueOnce({

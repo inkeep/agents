@@ -76,8 +76,17 @@ vi.mock('../../slack/services/blocks', () => ({
   createNotLinkedMessage: vi.fn(() => ({ blocks: [] })),
   createUnlinkSuccessMessage: vi.fn(() => ({ blocks: [] })),
   createStatusMessage: vi.fn(() => ({ blocks: [] })),
-  createJwtLinkMessage: vi.fn(() => ({ blocks: [] })),
+  createSmartLinkMessage: vi.fn(() => ({ blocks: [] })),
   createContextBlock: vi.fn(() => ({ type: 'context', elements: [] })),
+}));
+
+vi.mock('../../slack/services/link-prompt', () => ({
+  resolveUnlinkedUserAction: vi.fn().mockResolvedValue({
+    type: 'jwt_link',
+    url: 'http://localhost:3000/link?token=test',
+    expiresInMinutes: 10,
+  }),
+  buildLinkPromptMessage: vi.fn().mockReturnValue({ text: 'Link account', blocks: [] }),
 }));
 
 vi.mock('../../slack/services/modals', () => ({

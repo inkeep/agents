@@ -131,6 +131,26 @@ vi.mock('../../slack/services/agent-resolution', () => ({
   resolveEffectiveAgent: vi.fn(),
 }));
 
+vi.mock('../../slack/services/link-prompt', () => ({
+  resolveUnlinkedUserAction: vi.fn().mockResolvedValue({
+    type: 'jwt_link',
+    url: 'http://localhost:3000/link?token=mock',
+    expiresInMinutes: 10,
+  }),
+  buildLinkPromptMessage: vi.fn().mockReturnValue({
+    text: "To get started, let's connect your Inkeep account with Slack.",
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: "To get started, let's connect your Inkeep account with Slack.",
+        },
+      },
+    ],
+  }),
+}));
+
 const baseParams = {
   slackUserId: 'U123',
   channel: 'C456',

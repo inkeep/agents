@@ -454,21 +454,6 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   ];
 }
 
-export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold('Link your Inkeep account')}\n\n` +
-          'Connect your Slack and Inkeep accounts to use Inkeep agents.'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('Link Account').url(linkUrl).actionId('link_account').primary()
-      ),
-      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes.`)
-    )
-    .buildToObject();
-}
-
 export function createCreateInkeepAccountMessage(acceptUrl: string, expiresInMinutes: number) {
   return Message()
     .blocks(

@@ -1,16 +1,11 @@
 import type { SlackLinkIntent } from '@inkeep/agents-core';
 import {
-  createInvitationInDb,
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingBySlackUser,
-  findWorkAppSlackWorkspaceByTeamId,
   flushTraces,
   getInProcessFetch,
-  getOrganizationMemberByEmail,
-  getPendingInvitationsByEmail,
   getWaitUntil,
-  signSlackLinkToken,
   signSlackUserToken,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../db/runDbClient';
@@ -21,11 +16,8 @@ import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   createAlreadyLinkedMessage,
   createContextBlock,
-  createCreateInkeepAccountMessage,
   createErrorMessage,
-  createJwtLinkMessage,
   createNotLinkedMessage,
-  createSmartLinkMessage,
   createStatusMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
@@ -38,103 +30,14 @@ import {
   getChannelAgentConfig,
   sendResponseUrlMessage,
 } from '../events/utils';
+import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { buildAgentSelectorModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId, type SlackWorkspaceConnection } from '../nango';
 import type { SlackCommandPayload, SlackCommandResponse } from '../types';
 
 const DEFAULT_CLIENT_ID = 'work-apps-slack';
-const LINK_CODE_TTL_MINUTES = 10;
 
 const logger = getLogger('slack-commands');
-
-/**
- * Create an invitation for a Slack user who doesn't have an Inkeep account yet.
- * Returns the invitation ID and email so the caller can direct the user
- * to the accept-invitation page.
- *
- * Returns null if:
- * - Workspace doesn't have shouldAllowJoinFromWorkspace enabled
- * - User already has an Inkeep account (JWT link flow is sufficient)
- * - Service account is not configured
- */
-async function tryAutoInvite(
-  payload: SlackCommandPayload,
-  tenantId: string,
-  botToken: string
-): Promise<{ invitationId: string; email: string } | null> {
-  try {
-    const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(
-      tenantId,
-      payload.teamId
-    );
-
-    if (!workspace?.shouldAllowJoinFromWorkspace) {
-      return null;
-    }
-
-    const slackClient = getSlackClient(botToken);
-
-    let userEmail: string | undefined;
-    try {
-      const userInfo = await slackClient.users.info({ user: payload.userId });
-      userEmail = userInfo.user?.profile?.email;
-    } catch (error) {
-      logger.warn({ error, userId: payload.userId }, 'Failed to get user info from Slack');
-      return null;
-    }
-
-    if (!userEmail) {
-      logger.warn({ userId: payload.userId }, 'No email found in Slack user profile');
-      return null;
-    }
-
-    // If user already has an Inkeep account, no invitation needed — JWT link flow handles it
-    const existingUser = await getOrganizationMemberByEmail(runDbClient)(tenantId, userEmail);
-    if (existingUser) {
-      logger.debug(
-        { userId: payload.userId, email: userEmail },
-        'User already has Inkeep account, skipping auto-invite'
-      );
-      return null;
-    }
-
-    // Reuse an existing pending invitation for the same org instead of creating duplicates
-    const pendingInvitations = await getPendingInvitationsByEmail(runDbClient)(userEmail);
-    const existingInvitation = pendingInvitations.find((inv) => inv.organizationId === tenantId);
-    if (existingInvitation) {
-      logger.info(
-        {
-          userId: payload.userId,
-          tenantId,
-          invitationId: existingInvitation.id,
-          email: userEmail,
-        },
-        'Reusing existing pending invitation for Slack user'
-      );
-      return { invitationId: existingInvitation.id, email: userEmail };
-    }
-
-    const invitation = await createInvitationInDb(runDbClient)({
-      organizationId: tenantId,
-      email: userEmail,
-    });
-
-    logger.info(
-      {
-        userId: payload.userId,
-        tenantId,
-        invitationId: invitation.id,
-        email: userEmail,
-      },
-      'Invitation created for Slack user without Inkeep account'
-    );
-
-    return { invitationId: invitation.id, email: userEmail };
-  } catch (error) {
-    logger.warn({ error, userId: payload.userId, tenantId }, 'Auto-invite attempt failed');
-    return null;
-  }
-}
 
 export async function handleLinkCommand(
   payload: SlackCommandPayload,
@@ -158,52 +61,17 @@ export async function handleLinkCommand(
     return { response_type: 'ephemeral', ...message };
   }
 
-  // If auto-invite is enabled and user has no Inkeep account,
-  // create an invitation and send them to the accept-invitation page to sign up.
-  // After signup, they'll be redirected to /link?token=... to complete Slack linking.
-  if (botToken) {
-    const autoInvite = await tryAutoInvite(payload, tenantId, botToken);
-    if (autoInvite) {
-      const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-
-      // Generate a link token so we can chain: signup → accept invitation → link Slack
-      const linkToken = await signSlackLinkToken({
-        tenantId,
-        slackTeamId: payload.teamId,
-        slackUserId: payload.userId,
-        slackEnterpriseId: payload.enterpriseId,
-        slackUsername: payload.userName,
-      });
-      const linkReturnUrl = `/link?token=${encodeURIComponent(linkToken)}`;
-      const acceptUrl = `${manageUiUrl}/accept-invitation/${autoInvite.invitationId}?email=${encodeURIComponent(autoInvite.email)}&returnUrl=${encodeURIComponent(linkReturnUrl)}`;
-
-      logger.info(
-        { invitationId: autoInvite.invitationId, email: autoInvite.email },
-        'Directing new user to accept-invitation page with link returnUrl'
-      );
-
-      const message = createCreateInkeepAccountMessage(acceptUrl, LINK_CODE_TTL_MINUTES);
-      return { response_type: 'ephemeral', ...message };
-    }
-  }
-
-  // User already has an Inkeep account (or auto-invite not enabled) — use JWT link flow.
-  // They'll log in on the dashboard and the link completes automatically.
   try {
-    const linkToken = await signSlackLinkToken({
+    const linkResult = await resolveUnlinkedUserAction({
       tenantId,
-      slackTeamId: payload.teamId,
+      teamId: payload.teamId,
       slackUserId: payload.userId,
+      botToken: botToken || '',
       slackEnterpriseId: payload.enterpriseId,
       slackUsername: payload.userName,
     });
-
-    const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-    const linkUrl = `${manageUiUrl}/link?token=${encodeURIComponent(linkToken)}`;
-
-    logger.info({ slackUserId: payload.userId, tenantId }, 'Generated JWT link token');
-
-    const message = createJwtLinkMessage(linkUrl, LINK_CODE_TTL_MINUTES);
+    console.log('linkResult', linkResult);
+    const message = buildLinkPromptMessage(linkResult);
     return { response_type: 'ephemeral', ...message };
   } catch (error) {
     logger.error({ error, slackUserId: payload.userId, tenantId }, 'Failed to generate link token');
@@ -397,42 +265,35 @@ export async function handleAgentPickerCommand(
 async function generateLinkCodeWithIntent(
   payload: SlackCommandPayload,
   tenantId: string,
+  botToken: string,
   intent?: SlackLinkIntent
 ): Promise<SlackCommandResponse> {
   try {
-    const linkToken = await signSlackLinkToken({
+    const linkResult = await resolveUnlinkedUserAction({
       tenantId,
-      slackTeamId: payload.teamId,
+      teamId: payload.teamId,
       slackUserId: payload.userId,
+      botToken,
       slackEnterpriseId: payload.enterpriseId,
       slackUsername: payload.userName,
       intent,
     });
 
-    const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-    const linkUrl = `${manageUiUrl}/link?token=${encodeURIComponent(linkToken)}`;
-
-    if (intent) {
+    const hasIntent = !!intent;
+    if (hasIntent) {
       logger.info(
         {
           event: 'smart_link_intent_captured',
           entryPoint: intent.entryPoint,
+          linkType: linkResult.type,
           questionLength: intent.question.length,
           channelId: payload.channelId,
         },
         'Smart link intent captured'
       );
-      const message = createSmartLinkMessage(linkUrl);
-      return {
-        response_type: 'ephemeral',
-        text: "To get started, let's connect your Inkeep account with Slack.",
-        blocks: message.blocks,
-      };
     }
 
-    logger.info({ slackUserId: payload.userId, tenantId }, 'Generated JWT link token');
-
-    const message = createJwtLinkMessage(linkUrl, LINK_CODE_TTL_MINUTES);
+    const message = buildLinkPromptMessage(linkResult);
     return { response_type: 'ephemeral', ...message };
   } catch (error) {
     logger.error({ error, slackUserId: payload.userId, tenantId }, 'Failed to generate link token');
@@ -445,7 +306,8 @@ export async function handleQuestionCommand(
   payload: SlackCommandPayload,
   question: string,
   _dashboardUrl: string,
-  tenantId: string
+  tenantId: string,
+  botToken: string
 ): Promise<SlackCommandResponse> {
   // Find user mapping without tenant filter to get the correct tenant
   const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
@@ -461,7 +323,7 @@ export async function handleQuestionCommand(
       channelId: payload.channelId,
       responseUrl: payload.responseUrl,
     };
-    return generateLinkCodeWithIntent(payload, tenantId, intent);
+    return generateLinkCodeWithIntent(payload, tenantId, botToken, intent);
   }
 
   // Use the tenant from the user's mapping
@@ -683,6 +545,12 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
       return handleAgentPickerCommand(payload, tenantId, workspaceConnection);
 
     default:
-      return handleQuestionCommand(payload, text, dashboardUrl, tenantId);
+      return handleQuestionCommand(
+        payload,
+        text,
+        dashboardUrl,
+        tenantId,
+        workspaceConnection.botToken
+      );
   }
 }

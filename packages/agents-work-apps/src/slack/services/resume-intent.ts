@@ -2,7 +2,7 @@ import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
-import { resolveEffectiveAgent } from './agent-resolution';
+import { type ResolvedAgentConfig, resolveEffectiveAgent } from './agent-resolution';
 import { createContextBlock } from './blocks';
 import { getSlackClient } from './client';
 import { streamAgentResponse } from './events/streaming';
@@ -10,6 +10,24 @@ import { generateSlackConversationId, sendResponseUrlMessage } from './events/ut
 import { findWorkspaceConnectionByTeamId } from './nango';
 
 const logger = getLogger('slack-resume-intent');
+
+interface TokenSigningContext {
+  inkeepUserId: string;
+  tenantId: string;
+  slackTeamId: string;
+  slackUserId: string;
+  slackEnterpriseId?: string;
+}
+
+function getChannelAuthClaims(agentConfig: ResolvedAgentConfig | null, channelId: string) {
+  return {
+    slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
+    slackAuthSource:
+      agentConfig?.source && agentConfig.source !== 'none' ? agentConfig.source : undefined,
+    slackChannelId: channelId,
+    slackAuthorizedProjectId: agentConfig?.projectId,
+  };
+}
 
 export interface ResumeSmartLinkIntentParams {
   intent: SlackLinkIntent;
@@ -36,13 +54,13 @@ export async function resumeSmartLinkIntent(params: ResumeSmartLinkIntentParams)
 
     const slackClient = getSlackClient(botToken);
 
-    const slackUserToken = await signSlackUserToken({
+    const tokenCtx: TokenSigningContext = {
       inkeepUserId,
       tenantId,
       slackTeamId: teamId,
       slackUserId,
       slackEnterpriseId,
-    });
+    };
 
     let resolvedAgentId: string | undefined;
     let deliveryMethod: string | undefined;
@@ -51,15 +69,15 @@ export async function resumeSmartLinkIntent(params: ResumeSmartLinkIntentParams)
       case 'mention':
         resolvedAgentId = intent.agentId;
         deliveryMethod = 'streaming';
-        await resumeMention(intent, slackClient, slackUserToken, slackUserId, teamId);
+        await resumeMention(intent, slackClient, tokenCtx, teamId, tenantId);
         break;
       case 'question_command':
         deliveryMethod = intent.responseUrl ? 'response_url' : 'bot_token';
-        await resumeCommand(intent, slackClient, slackUserToken, slackUserId, teamId, tenantId);
+        await resumeCommand(intent, slackClient, tokenCtx, teamId, tenantId);
         break;
       case 'run_command':
         deliveryMethod = intent.responseUrl ? 'response_url' : 'bot_token';
-        await resumeRunCommand(intent, slackClient, slackUserToken, slackUserId, teamId, tenantId);
+        await resumeRunCommand(intent, slackClient, tokenCtx, teamId, tenantId);
         break;
     }
 
@@ -90,10 +108,12 @@ export async function resumeSmartLinkIntent(params: ResumeSmartLinkIntentParams)
 async function resumeMention(
   intent: SlackLinkIntent,
   slackClient: ReturnType<typeof getSlackClient>,
-  slackUserToken: string,
-  slackUserId: string,
-  teamId: string
+  tokenCtx: TokenSigningContext,
+  teamId: string,
+  tenantId: string
 ): Promise<void> {
+  const { slackUserId } = tokenCtx;
+
   if (!intent.agentId || !intent.projectId) {
     logger.error(
       {
@@ -123,6 +143,17 @@ async function resumeMention(
     );
     return;
   }
+
+  const agentConfig = await resolveEffectiveAgent({
+    tenantId,
+    teamId,
+    channelId: intent.channelId,
+  });
+
+  const slackUserToken = await signSlackUserToken({
+    ...tokenCtx,
+    ...getChannelAuthClaims(agentConfig, intent.channelId),
+  });
 
   const ackMessage = await slackClient.chat.postMessage({
     channel: intent.channelId,
@@ -157,11 +188,12 @@ async function resumeMention(
 async function resumeCommand(
   intent: SlackLinkIntent,
   slackClient: ReturnType<typeof getSlackClient>,
-  slackUserToken: string,
-  slackUserId: string,
+  tokenCtx: TokenSigningContext,
   teamId: string,
   tenantId: string
 ): Promise<void> {
+  const { slackUserId } = tokenCtx;
+
   const resolvedAgent = await resolveEffectiveAgent({
     tenantId,
     teamId,
@@ -180,6 +212,11 @@ async function resumeCommand(
     return;
   }
 
+  const slackUserToken = await signSlackUserToken({
+    ...tokenCtx,
+    ...getChannelAuthClaims(resolvedAgent, intent.channelId),
+  });
+
   await executeAndDeliver({
     intent,
     slackClient,
@@ -195,11 +232,12 @@ async function resumeCommand(
 async function resumeRunCommand(
   intent: SlackLinkIntent,
   slackClient: ReturnType<typeof getSlackClient>,
-  slackUserToken: string,
-  slackUserId: string,
+  tokenCtx: TokenSigningContext,
   teamId: string,
   tenantId: string
 ): Promise<void> {
+  const { slackUserId } = tokenCtx;
+
   if (!intent.agentIdentifier) {
     logger.error(
       { entryPoint: intent.entryPoint, channelId: intent.channelId },
@@ -208,6 +246,17 @@ async function resumeRunCommand(
     await postErrorToChannel(slackClient, intent.channelId, slackUserId);
     return;
   }
+
+  const agentConfig = await resolveEffectiveAgent({
+    tenantId,
+    teamId,
+    channelId: intent.channelId,
+  });
+
+  const slackUserToken = await signSlackUserToken({
+    ...tokenCtx,
+    ...getChannelAuthClaims(agentConfig, intent.channelId),
+  });
 
   const agentInfo = await findAgentByIdentifierViaApi(
     tenantId,
