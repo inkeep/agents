@@ -1069,6 +1069,92 @@ describe('github mcp utils', () => {
     });
   });
 
+  describe('listIssueReactions', () => {
+    let listIssueReactions: typeof import('../../../github/mcp/utils').listIssueReactions;
+
+    beforeEach(async () => {
+      ({ listIssueReactions } = await import('../../../github/mcp/utils'));
+    });
+
+    function createPaginateIterator(items: any[]) {
+      return async function* () {
+        yield { data: items };
+      };
+    }
+
+    it('should return reaction details for an issue/PR body', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() =>
+            createPaginateIterator([
+              {
+                id: 401,
+                content: '+1',
+                user: { login: 'alice' },
+                created_at: '2026-03-01T00:00:00Z',
+              },
+              {
+                id: 402,
+                content: 'heart',
+                user: { login: 'bob' },
+                created_at: '2026-03-02T00:00:00Z',
+              },
+            ])()
+          ),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 401,
+        content: '+1',
+        user: 'alice',
+        createdAt: '2026-03-01T00:00:00Z',
+      });
+      expect(result[1]).toEqual({
+        id: 402,
+        content: 'heart',
+        user: 'bob',
+        createdAt: '2026-03-02T00:00:00Z',
+      });
+    });
+
+    it('should handle missing user gracefully', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi
+            .fn()
+            .mockImplementation(() =>
+              createPaginateIterator([
+                { id: 501, content: 'eyes', user: null, created_at: '2026-03-01T00:00:00Z' },
+              ])()
+            ),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result[0].user).toBe('unknown');
+    });
+
+    it('should return empty array when no reactions exist', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() => createPaginateIterator([])()),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe('fetchBranchChangedFiles', () => {
     let fetchBranchChangedFiles: typeof import('../../../github/mcp/utils').fetchBranchChangedFiles;
 
