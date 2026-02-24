@@ -3,8 +3,8 @@
 import type { ComponentProps, FC } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
-import { basicSchemaTemplate } from '@/lib/templates';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { basicSchemaTemplate } from '@/lib/templates';
 
 type JsonEditorProps = ComponentProps<typeof JsonEditor>;
 
