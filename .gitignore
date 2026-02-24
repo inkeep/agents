@@ -96,9 +96,6 @@ agents-api/.workflow-data/
 # Node compile cache
 node-compile-cache/
 
-# inkeep pull temp folder
-.temp-validation-*/
-
 tmp
 .claude/specs
 specs

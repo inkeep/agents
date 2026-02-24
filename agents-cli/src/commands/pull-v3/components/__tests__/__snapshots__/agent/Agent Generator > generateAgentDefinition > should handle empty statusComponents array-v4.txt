@@ -1,0 +1,22 @@
+import { agent } from '@inkeep/agents-sdk';
+import { mainAssistant } from './sub-agents/mainAssistant';
+import { helperAgent } from './sub-agents/helperAgent';
+import { coordinatorAgent } from './sub-agents/coordinatorAgent';
+import { complexAgentContext } from '../context-configs/complexAgentContext';
+
+export const emptyStatusAgent = agent({
+  id: 'empty-status-agent',
+  name: 'Complex Personal Agent',
+  description: 'A complex agent with status updates and transfer limits',
+  defaultSubAgent: mainAssistant,
+  subAgents: () => [mainAssistant, helperAgent, coordinatorAgent],
+  contextConfig: complexAgentContext,
+  stopWhen: {
+    transferCountIs: 5,
+  },
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    prompt: 'Test prompt',
+  },
+});
