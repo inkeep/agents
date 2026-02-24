@@ -8,6 +8,8 @@ import {
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type DataPart,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   getFunctionToolsForSubAgent,
@@ -23,11 +25,13 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
+  type Part,
   parseEmbeddedJson,
   type ResolvedRef,
   type SubAgentSkillWithIndex,
   type SubAgentStopWhen,
   TemplateEngine,
+  unwrapError,
   withRef,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
@@ -65,11 +69,14 @@ import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
+import { formatOversizedRetrievalReason } from '../utils/artifact-utils';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
-import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import { extractTextFromParts } from '../utils/message-parts';
+import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
@@ -86,6 +93,19 @@ import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { PromptConfig, V1_BREAKDOWN_SCHEMA } from './versions/v1/PromptConfig';
+
+type AiSdkTextPart = {
+  type: 'text';
+  text: string;
+};
+
+type AiSdkImagePart = {
+  type: 'image';
+  image: string | URL;
+  experimental_providerMetadata?: { openai?: { imageDetail?: ImageDetail } };
+};
+
+type AiSdkContentPart = AiSdkTextPart | AiSdkImagePart;
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -704,7 +724,8 @@ export class Agent {
           return result;
         } catch (error) {
           const duration = Date.now() - startTime;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const rootCause = unwrapError(error);
+          const errorMessage = rootCause.message;
 
           if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
@@ -723,7 +744,7 @@ export class Agent {
             await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
           }
 
-          throw error;
+          throw rootCause;
         }
       },
     };
@@ -913,6 +934,8 @@ export class Agent {
                 await streamHelper.writeToolApprovalRequest({
                   approvalId: `aitxt-${toolCallId}`,
                   toolCallId,
+                  toolName,
+                  input: finalArgs as Record<string, unknown>,
                 });
               } else if (this.isDelegatedAgent) {
                 const streamRequestId = this.getStreamRequestId();
@@ -1060,7 +1083,10 @@ export class Agent {
 
               const parsedResult = parseEmbeddedJson(rawResult);
 
-              const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
+              const enhancedResult = this.enhanceToolResultWithStructureHints(
+                parsedResult,
+                toolCallId
+              );
 
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
@@ -1072,8 +1098,12 @@ export class Agent {
 
               return enhancedResult;
             } catch (error) {
-              logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
-              throw error;
+              const rootCause = unwrapError(error);
+              logger.error(
+                { toolName, toolCallId, error: rootCause.message },
+                'MCP tool execution failed'
+              );
+              throw rootCause;
             }
           },
         });
@@ -1534,6 +1564,8 @@ export class Agent {
                 await streamHelper.writeToolApprovalRequest({
                   approvalId: `aitxt-${toolCallId}`,
                   toolCallId,
+                  toolName: functionToolDef.name,
+                  input: finalArgs as Record<string, unknown>,
                 });
               } else if (this.isDelegatedAgent) {
                 const streamRequestId = this.getStreamRequestId();
@@ -2025,6 +2057,41 @@ export class Agent {
           throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
         }
 
+        // Check if artifact is oversized and block retrieval
+        if (artifactData.metadata?.isOversized || artifactData.metadata?.retrievalBlocked) {
+          logger.info(
+            {
+              artifactId,
+              toolCallId,
+              tokenSize: artifactData.metadata?.originalTokenSize,
+              contextWindowSize: artifactData.metadata?.contextWindowSize,
+            },
+            'Blocked retrieval of oversized artifact'
+          );
+
+          return {
+            artifactId: artifactData.artifactId,
+            name: artifactData.name,
+            description: artifactData.description,
+            type: artifactData.type,
+            status: 'retrieval_blocked',
+            warning:
+              '⚠️ This artifact contains an oversized tool result that cannot be retrieved to prevent context overflow.',
+            reason: formatOversizedRetrievalReason(
+              artifactData.metadata?.originalTokenSize || 0,
+              artifactData.metadata?.contextWindowSize || 0
+            ),
+            toolInfo: {
+              toolName: artifactData.metadata?.toolName,
+              toolArgs: artifactData.metadata?.toolArgs,
+              structureInfo: (artifactData.data as any)?._structureInfo,
+            },
+            recommendation:
+              'The tool arguments that caused this large result are included above. Consider: 1) Using more specific filters/queries with the original tool, 2) Asking the user to break down the request, 3) Processing the data differently.',
+          };
+        }
+
+        // Normal retrieval for non-oversized artifacts
         return {
           artifactId: artifactData.artifactId,
           name: artifactData.name,
@@ -2480,14 +2547,15 @@ ${output}`;
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
+   * Also adds tool call ID to the result for easy reference
    * Only adds hints when artifact components are available
    */
-  private enhanceToolResultWithStructureHints(result: any): any {
+  private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
     if (!result) {
       return result;
     }
 
-    // Only add structure hints if artifact components are available
+    // Only add structure hints and tool call ID if artifact components are available
     if (!this.artifactComponents || this.artifactComponents.length === 0) {
       return result;
     }
@@ -2690,9 +2758,10 @@ ${output}`;
       const allSelectors = [...usefulSelectors, ...nestedContentPaths];
       const uniqueSelectors = [...new Set(allSelectors)].slice(0, 15);
 
-      // Add structure hints to the original result (not the parsed version)
+      // Add structure hints and tool call ID to the original result (not the parsed version)
       const enhanced = {
         ...result,
+        ...(toolCallId ? { _toolCallId: toolCallId } : {}),
         _structureHints: {
           terminalPaths: terminalPaths, // All field paths that contain actual values
           arrayPaths: arrayPaths, // All array structures found
@@ -2703,6 +2772,8 @@ ${output}`;
           maxDepthFound: Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length)),
           totalPathsFound: allPaths.length,
           artifactGuidance: {
+            toolCallId:
+              '🔧 CRITICAL: Use the _toolCallId field from this result object. This is the exact tool call ID you must use in your artifact:create tag. NEVER generate or make up a tool call ID.',
             creationFirst:
               '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
             baseSelector:
@@ -2768,7 +2839,7 @@ ${output}`;
   }
 
   async generate(
-    userMessage: string,
+    userParts: Part[],
     runtimeContext?: {
       contextId: string;
       metadata: {
@@ -2780,6 +2851,25 @@ ${output}`;
       };
     }
   ) {
+    const textParts = extractTextFromParts(userParts);
+    const dataParts = userParts.filter(
+      (part): part is DataPart => part.kind === 'data' && part.data != null
+    );
+    const dataContext =
+      dataParts.length > 0
+        ? dataParts
+            .map((part) => {
+              const metadata = part.metadata as Record<string, unknown> | undefined;
+              const source = metadata?.source ? ` (source: ${metadata.source})` : '';
+              return `\n\n<structured_data${source}>\n${JSON.stringify(part.data, null, 2)}\n</structured_data>`;
+            })
+            .join('')
+        : '';
+    const userMessage = `${textParts}${dataContext}`;
+    const imageParts = userParts.filter(
+      (part): part is FilePart =>
+        part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
+    );
     // Extract conversation ID early for span attributes
     const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
 
@@ -2852,7 +2942,8 @@ ${output}`;
           const messages = this.buildInitialMessages(
             systemPrompt,
             conversationHistory,
-            userMessage
+            userMessage,
+            imageParts
           );
 
           // Setup compression for this generation
@@ -2910,7 +3001,7 @@ ${output}`;
               hasStructuredOutput,
               shouldStream,
             },
-            '🚀 Starting generation'
+            'Starting generation'
           );
 
           // Execute generation
@@ -2936,7 +3027,7 @@ ${output}`;
               dataComponentsCount: (rawResponse.output as any)?.dataComponents?.length || 0,
               finishReason: rawResponse.finishReason,
             },
-            '✅ Generation completed'
+            'Generation completed'
           );
 
           response = await resolveGenerationResponse(rawResponse);
@@ -2953,7 +3044,7 @@ ${output}`;
                 dataComponentNames:
                   response.output?.dataComponents?.map((dc: any) => dc.name) || [],
               },
-              '📦 Processing response with data components'
+              'Processing response with data components'
             );
             textResponse = JSON.stringify(response.output, null, 2);
           } else if (hasToolCallWithPrefix('transfer_to_')(response)) {
@@ -3229,7 +3320,8 @@ ${output}`;
   private buildInitialMessages(
     systemPrompt: string,
     conversationHistory: string,
-    userMessage: string
+    userMessage: string,
+    imageParts?: FilePart[]
   ): any[] {
     const messages: any[] = [];
     messages.push({ role: 'system', content: systemPrompt });
@@ -3237,12 +3329,53 @@ ${output}`;
     if (conversationHistory.trim() !== '') {
       messages.push({ role: 'user', content: conversationHistory });
     }
+
+    // Build user message content - use array format if images present
+    const userContent = this.buildUserMessageContent(userMessage, imageParts);
     messages.push({
       role: 'user',
-      content: userMessage,
+      content: userContent,
     });
 
     return messages;
+  }
+
+  /**
+   * Build user message content, formatting for multimodal if images are present
+   */
+  private buildUserMessageContent(
+    text: string,
+    imageParts?: FilePart[]
+  ): string | AiSdkContentPart[] {
+    // No images - return simple string for backward compatibility
+    if (!imageParts || imageParts.length === 0) {
+      return text;
+    }
+
+    const content: AiSdkContentPart[] = [{ type: 'text', text }];
+
+    for (const part of imageParts) {
+      const file = part.file;
+      // Transform directly from A2A FilePart to Vercel format:
+      // - HTTP URIs become URL objects
+      // - Base64 bytes become data URL strings (Vercel handles MIME detection)
+      const imageValue =
+        'uri' in file && file.uri
+          ? new URL(file.uri)
+          : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+
+      const imagePart: AiSdkContentPart = {
+        type: 'image',
+        image: imageValue,
+        ...(part.metadata?.detail && {
+          experimental_providerMetadata: { openai: { imageDetail: part.metadata.detail } },
+        }),
+      };
+
+      content.push(imagePart);
+    }
+
+    return content;
   }
 
   /**
@@ -3479,6 +3612,10 @@ ${output}`;
       throw new Error('Stream helper is unexpectedly undefined in streaming context');
     }
     const session = toolSessionManager.getSession(sessionId);
+
+    // Get context window size for oversized artifact detection
+    const modelContextInfo = getModelContextWindow(this.getPrimaryModel());
+
     const artifactParserOptions = {
       sessionId,
       taskId: session?.taskId,
@@ -3486,6 +3623,7 @@ ${output}`;
       artifactComponents: this.artifactComponents,
       streamRequestId: this.getStreamRequestId(),
       subAgentId: this.config.id,
+      contextWindowSize: modelContextInfo.contextWindow ?? undefined,
     };
     const parser = new IncrementalStreamParser(
       streamHelper,
@@ -3588,6 +3726,10 @@ ${output}`;
 
     if (!formattedContent) {
       const session = toolSessionManager.getSession(sessionId);
+
+      // Get context window size for oversized artifact detection
+      const modelContextInfo = getModelContextWindow(this.getPrimaryModel());
+
       const responseFormatter = new ResponseFormatter(this.executionContext, {
         sessionId,
         taskId: session?.taskId,
@@ -3596,6 +3738,7 @@ ${output}`;
         artifactComponents: this.artifactComponents,
         streamRequestId: this.getStreamRequestId(),
         subAgentId: this.config.id,
+        contextWindowSize: modelContextInfo.contextWindow ?? undefined,
       });
 
       if (response.object) {
@@ -3627,7 +3770,7 @@ ${output}`;
         errorStack: errorToThrow.stack,
         errorName: errorToThrow.name,
       },
-      '❌ Generation error in Agent'
+      'Generation error in Agent'
     );
     setSpanWithError(span, errorToThrow);
     span.end();

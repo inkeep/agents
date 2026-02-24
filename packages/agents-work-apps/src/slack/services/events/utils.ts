@@ -6,6 +6,7 @@ import {
   findWorkAppSlackChannelAgentConfig,
   findWorkAppSlackUserMapping,
   generateInternalServiceToken,
+  getInProcessFetch,
   InternalServices,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../db/runDbClient';
@@ -178,24 +179,36 @@ export function classifyError(error: unknown, httpStatus?: number): SlackErrorTy
 /**
  * Get a user-friendly error message based on error type
  */
+export function extractApiErrorMessage(responseBody: string): string | null {
+  try {
+    const parsed = JSON.parse(responseBody);
+    if (typeof parsed.message === 'string' && parsed.message.length > 0) {
+      return parsed.message;
+    }
+  } catch {
+    // Body is not valid JSON
+  }
+  return null;
+}
+
 export function getUserFriendlyErrorMessage(errorType: SlackErrorType, agentName?: string): string {
   const agent = agentName || 'The agent';
 
   switch (errorType) {
     case SlackErrorType.TIMEOUT:
-      return `⏱️ *Request timed out*\n\n${agent} took too long to respond. This can happen with complex queries.\n\n*Try:*\n• Simplifying your question\n• Breaking it into smaller parts\n• Trying again in a moment`;
+      return `*Request timed out.* ${agent} took too long to respond. Try again with a simpler question.`;
 
     case SlackErrorType.RATE_LIMIT:
-      return `⚠️ *Too many requests*\n\nYou've hit the rate limit. Please wait a moment before trying again.\n\n*Tip:* Space out your requests to avoid this.`;
+      return '*Rate limited.* Wait a moment and try again.';
 
     case SlackErrorType.AUTH_ERROR:
-      return `🔐 *Authentication issue*\n\nThere was a problem with your account connection.\n\n*Try:*\n• Running \`/inkeep link\` to re-link your account\n• Contacting your workspace admin if the issue persists`;
+      return '*Authentication error.* Run `/inkeep link` to reconnect your account.';
 
     case SlackErrorType.API_ERROR:
-      return `❌ *Something went wrong*\n\n${agent} encountered an error processing your request.\n\n*Try:*\n• Rephrasing your question\n• Trying again in a moment\n• Using \`/inkeep help\` for more options`;
+      return `*Something went wrong.* ${agent} encountered an error. Try again in a moment.`;
 
     default:
-      return `❌ *Unexpected error*\n\nSomething went wrong while processing your request.\n\n*Try:*\n• Trying again in a moment\n• Using \`/inkeep help\` for more options`;
+      return '*Unexpected error.* Something went wrong. Try again in a moment.';
   }
 }
 
@@ -214,14 +227,17 @@ export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectO
   const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-    });
+    const response = await getInProcessFetch()(
+      `${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      }
+    );
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
@@ -261,7 +277,7 @@ export async function fetchAgentsForProject(
   const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(
+    const response = await getInProcessFetch()(
       `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=50`,
       {
         method: 'GET',
@@ -365,12 +381,18 @@ export async function sendResponseUrlMessage(
   try {
     const payload: Record<string, unknown> = { text: message.text };
 
-    if (message.replace_original) {
+    if (message.replace_original === true) {
       payload.replace_original = true;
     } else if (message.delete_original) {
       payload.delete_original = true;
-    } else if (message.response_type) {
-      payload.response_type = message.response_type;
+    } else {
+      // Explicitly prevent Slack's default replace_original: true behavior so the
+      // original message (e.g. approval buttons) is preserved when sending an
+      // ephemeral rejection or any other non-replacing response.
+      payload.replace_original = false;
+      if (message.response_type) {
+        payload.response_type = message.response_type;
+      }
     }
 
     if (message.blocks) {
@@ -507,7 +529,10 @@ export async function getThreadContext(
     };
     users?: {
       info: (params: { user: string }) => Promise<{
-        user?: { real_name?: string; display_name?: string; name?: string };
+        user?: {
+          real_name?: string;
+          profile?: { display_name?: string; email?: string };
+        };
       }>;
     };
   },
@@ -533,19 +558,22 @@ export async function getThreadContext(
       ? threadMessages.messages
       : threadMessages.messages.slice(0, -1);
 
+    const allMessages = threadMessages.messages;
+
     if (messagesToProcess.length === 0) {
       return '';
     }
 
-    // Build a cache of user IDs to names
-    const userNameCache = new Map<string, string>();
+    // Build a cache of user IDs to their Slack profile names
+    const userNameCache = new Map<
+      string,
+      { displayName: string | undefined; fullName: string | undefined; email: string | undefined }
+    >();
 
     if (resolveUserNames && slackClient.users) {
       const uniqueUserIds = [
         ...new Set(
-          messagesToProcess
-            .filter((m): m is typeof m & { user: string } => !!m.user)
-            .map((m) => m.user)
+          allMessages.filter((m): m is typeof m & { user: string } => !!m.user).map((m) => m.user)
         ),
       ];
 
@@ -553,20 +581,38 @@ export async function getThreadContext(
         uniqueUserIds.map(async (userId) => {
           try {
             const userInfo = await slackClient.users?.info({ user: userId });
-            const name =
-              userInfo?.user?.display_name ||
-              userInfo?.user?.real_name ||
-              userInfo?.user?.name ||
-              userId;
-            userNameCache.set(userId, name);
+            userNameCache.set(userId, {
+              displayName: userInfo?.user?.profile?.display_name,
+              fullName: userInfo?.user?.real_name,
+              email: userInfo?.user?.profile?.email,
+            });
           } catch {
-            userNameCache.set(userId, userId);
+            userNameCache.set(userId, {
+              displayName: undefined,
+              fullName: undefined,
+              email: undefined,
+            });
           }
         })
       );
     }
 
-    // Format messages with clear structure
+    // Build user directory mapping at the start of the context
+    const userDirectoryLines: string[] = [];
+    for (const [userId, info] of userNameCache) {
+      const parts = [`userId: ${userId}`];
+      if (info.displayName) parts.push(`"${info.displayName}"`);
+      if (info.fullName) parts.push(`"${info.fullName}"`);
+      if (info.email) parts.push(info.email);
+      userDirectoryLines.push(`- ${parts.join(', ')}`);
+    }
+
+    const userDirectory =
+      userDirectoryLines.length > 0
+        ? `Users in this thread (UserId - DisplayName, FullName, Email):\n${userDirectoryLines.join('\n')}\n\n`
+        : '';
+
+    // Format messages using only user IDs
     const formattedMessages = messagesToProcess.map((msg, index) => {
       const isBot = !!msg.bot_id;
       const isParent = index === 0;
@@ -575,25 +621,43 @@ export async function getThreadContext(
       if (isBot) {
         role = 'Inkeep Agent';
       } else if (msg.user) {
-        role = resolveUserNames ? userNameCache.get(msg.user) || msg.user : `<@${msg.user}>`;
+        role = msg.user;
       } else {
         role = 'Unknown';
       }
 
       const prefix = isParent ? '[Thread Start] ' : '';
-      const messageText =
-        msg.text?.replace(/<@U[A-Z0-9]+>/g, (match) => {
-          const userId = match.slice(2, -1);
-          return `@${userNameCache.get(userId) || userId}`;
-        }) || '';
+      const messageText = msg.text || '';
 
-      return `${prefix}${role}: ${messageText}`;
+      return `${prefix}${role}: """${messageText}"""`;
     });
 
-    return formattedMessages.join('\n\n');
+    return `${userDirectory}Messages in this thread:\n${formattedMessages.join('\n\n')}`;
   } catch (threadError) {
     logger.warn({ threadError, channel, threadTs }, 'Failed to fetch thread context');
   }
 
   return '';
+}
+
+export async function timedOp<T>(
+  operation: Promise<T>,
+  opts: { warnThresholdMs?: number; label: string; context: Record<string, unknown> }
+): Promise<{ result: T; durationMs: number }> {
+  const { warnThresholdMs = 3000, label, context } = opts;
+  const start = Date.now();
+  const result = await operation;
+  const durationMs = Date.now() - start;
+  if (durationMs > warnThresholdMs)
+    logger.warn({ ...context, durationMs, operation: label }, `Slow ${label}`);
+  return { result, durationMs };
+}
+
+export function formatChannelLabel(channelInfo: { name?: string } | null): string {
+  return channelInfo?.name ? `#${channelInfo.name}` : '';
+}
+
+export function formatChannelContext(channelInfo: { name?: string } | null): string {
+  const label = formatChannelLabel(channelInfo);
+  return label ? `the Slack channel ${label}` : 'Slack';
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Link2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Link2, Loader2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSlackLinkedUsersQuery } from '../api/queries';
@@ -53,14 +53,26 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-medium">Account Linked</p>
-                <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">
-                  Active
-                </Badge>
+                <Badge variant="success">Active</Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Linked as{' '}
                 <span className="font-medium">{myLink.slackUsername || myLink.slackEmail}</span>
                 {myLink.linkedAt && <> on {formatDate(myLink.linkedAt)}</>}
+                {myLink.slackUserId && (
+                  <>
+                    {' \u00b7 '}
+                    <a
+                      href={`https://app.slack.com/team/${myLink.slackUserId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                    >
+                      View in Slack
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </div>

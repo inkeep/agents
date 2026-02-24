@@ -4,6 +4,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  extractApiErrorMessage,
   getChannelAgentConfig,
   getThreadContext,
   getWorkspaceDefaultAgent,
@@ -16,6 +17,54 @@ vi.mock('@inkeep/agents-core', () => ({
   generateInternalServiceToken: vi.fn().mockResolvedValue('mock-token'),
   InternalServices: { INKEEP_AGENTS_MANAGE_API: 'inkeep-agents-manage-api' },
 }));
+
+vi.mock('../../slack/tracer', () => {
+  const mockSpan = {
+    setAttribute: vi.fn(),
+    updateName: vi.fn(),
+    setStatus: vi.fn(),
+    recordException: vi.fn(),
+    end: vi.fn(),
+  };
+  return {
+    tracer: {
+      startActiveSpan: vi.fn((_name: string, fn: (span: unknown) => unknown) => fn(mockSpan)),
+    },
+    setSpanWithError: vi.fn(),
+    SLACK_SPAN_NAMES: {
+      WEBHOOK: 'slack.webhook',
+      APP_MENTION: 'slack.app_mention',
+      BLOCK_ACTION: 'slack.block_action',
+      MODAL_SUBMISSION: 'slack.modal_submission',
+      FOLLOW_UP_SUBMISSION: 'slack.follow_up_submission',
+      MESSAGE_SHORTCUT: 'slack.message_shortcut',
+      STREAM_AGENT_RESPONSE: 'slack.stream_agent_response',
+      OPEN_AGENT_SELECTOR_MODAL: 'slack.open_agent_selector_modal',
+      OPEN_FOLLOW_UP_MODAL: 'slack.open_follow_up_modal',
+      PROJECT_SELECT_UPDATE: 'slack.project_select_update',
+      CALL_AGENT_API: 'slack.call_agent_api',
+    },
+    SLACK_SPAN_KEYS: {
+      TEAM_ID: 'slack.team_id',
+      CHANNEL_ID: 'slack.channel_id',
+      USER_ID: 'slack.user_id',
+      EVENT_TYPE: 'slack.event_type',
+      INNER_EVENT_TYPE: 'slack.inner_event_type',
+      TENANT_ID: 'slack.tenant_id',
+      PROJECT_ID: 'slack.project_id',
+      AGENT_ID: 'slack.agent_id',
+      CONVERSATION_ID: 'slack.conversation_id',
+      OUTCOME: 'slack.outcome',
+      IS_BOT_MESSAGE: 'slack.is_bot_message',
+      HAS_QUERY: 'slack.has_query',
+      IS_IN_THREAD: 'slack.is_in_thread',
+      THREAD_TS: 'slack.thread_ts',
+      MESSAGE_TS: 'slack.message_ts',
+      CALLBACK_ID: 'slack.callback_id',
+      ACTION_IDS: 'slack.action_ids',
+    },
+  };
+});
 
 vi.mock('../../db/runDbClient', () => ({
   default: {},
@@ -71,8 +120,8 @@ describe('Event Utils', () => {
       };
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
-      expect(result).toContain('[Thread Start] U123: First message');
-      expect(result).toContain('U456: Second message');
+      expect(result).toContain('[Thread Start] U123: """First message"""');
+      expect(result).toContain('U456: """Second message"""');
       // Last message is excluded (it's the current @mention)
       expect(result).not.toContain('Current message');
     });
@@ -91,8 +140,69 @@ describe('Event Utils', () => {
       };
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
-      expect(result).toContain('[Thread Start] U123: Question');
-      expect(result).toContain('Inkeep Agent: Answer Powered by Agent');
+      expect(result).toContain('[Thread Start] U123: """Question"""');
+      expect(result).toContain('Inkeep Agent: """Answer Powered by Agent"""');
+    });
+
+    it('should resolve user names and build a user directory', async () => {
+      const mockClient = {
+        conversations: {
+          replies: vi.fn().mockResolvedValue({
+            messages: [
+              { user: 'U123', text: 'Hello' },
+              { user: 'U456', text: 'World' },
+              { user: 'U123', text: 'Follow up' },
+            ],
+          }),
+        },
+        users: {
+          info: vi.fn().mockImplementation(({ user }: { user: string }) => {
+            if (user === 'U123') {
+              return Promise.resolve({
+                user: {
+                  real_name: 'Alice Smith',
+                  profile: { display_name: 'alice', email: 'alice@example.com' },
+                },
+              });
+            }
+            return Promise.resolve({
+              user: {
+                real_name: 'Bob Jones',
+                profile: { display_name: '', email: 'bob@example.com' },
+              },
+            });
+          }),
+        },
+      };
+
+      const result = await getThreadContext(mockClient, 'C123', '1234.5678');
+      expect(result).toContain('Users in this thread');
+      expect(result).toContain('U123');
+      expect(result).toContain('"alice"');
+      expect(result).toContain('"Alice Smith"');
+      expect(result).toContain('alice@example.com');
+      expect(result).toContain('U456');
+      expect(result).toContain('"Bob Jones"');
+      expect(result).toContain('bob@example.com');
+    });
+
+    it('should handle user info fetch failures gracefully', async () => {
+      const mockClient = {
+        conversations: {
+          replies: vi.fn().mockResolvedValue({
+            messages: [
+              { user: 'U123', text: 'Hello' },
+              { user: 'U123', text: 'Follow up' },
+            ],
+          }),
+        },
+        users: {
+          info: vi.fn().mockRejectedValue(new Error('User not found')),
+        },
+      };
+
+      const result = await getThreadContext(mockClient, 'C123', '1234.5678');
+      expect(result).toContain('U123: """Hello"""');
     });
 
     it('should handle API errors gracefully', async () => {
@@ -201,5 +311,35 @@ describe('getChannelAgentConfig', () => {
 
     const result = await getChannelAgentConfig('T123', 'C456');
     expect(result?.agentId).toBe('workspace-agent');
+  });
+});
+
+describe('extractApiErrorMessage', () => {
+  it('should extract message from valid JSON body', () => {
+    const body = JSON.stringify({ message: 'Access denied: insufficient permissions' });
+    expect(extractApiErrorMessage(body)).toBe('Access denied: insufficient permissions');
+  });
+
+  it('should return null for JSON without message field', () => {
+    const body = JSON.stringify({ error: 'something went wrong' });
+    expect(extractApiErrorMessage(body)).toBeNull();
+  });
+
+  it('should return null for empty message string', () => {
+    const body = JSON.stringify({ message: '' });
+    expect(extractApiErrorMessage(body)).toBeNull();
+  });
+
+  it('should return null for non-string message', () => {
+    const body = JSON.stringify({ message: 42 });
+    expect(extractApiErrorMessage(body)).toBeNull();
+  });
+
+  it('should return null for invalid JSON', () => {
+    expect(extractApiErrorMessage('not json')).toBeNull();
+  });
+
+  it('should return null for empty string', () => {
+    expect(extractApiErrorMessage('')).toBeNull();
   });
 });

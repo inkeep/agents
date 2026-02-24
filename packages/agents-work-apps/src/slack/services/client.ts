@@ -10,8 +10,36 @@ import { getLogger } from '../../logger';
 
 const logger = getLogger('slack-client');
 
+interface PaginateSlackOptions<TResponse, TItem> {
+  fetchPage: (cursor?: string) => Promise<TResponse>;
+  extractItems: (response: TResponse) => TItem[];
+  getNextCursor: (response: TResponse) => string | undefined;
+  limit?: number;
+}
+
+async function paginateSlack<TResponse, TItem>({
+  fetchPage,
+  extractItems,
+  getNextCursor,
+  limit,
+}: PaginateSlackOptions<TResponse, TItem>): Promise<TItem[]> {
+  const items: TItem[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const response = await fetchPage(cursor);
+    items.push(...extractItems(response));
+    cursor = getNextCursor(response);
+  } while (cursor && (limit === undefined || items.length < limit));
+
+  return limit !== undefined ? items.slice(0, limit) : items;
+}
+
 /**
  * Create a Slack WebClient with the provided bot token.
+ *
+ * Built-in retry behavior:
+ * - **Connection errors**: 5 retries in 5 minutes (exponential backoff + jitter).
  *
  * @param token - Bot OAuth token from Nango connection
  * @returns Configured Slack WebClient instance
@@ -75,37 +103,74 @@ export async function getSlackTeamInfo(client: WebClient) {
 }
 
 /**
+ * Fetch channel information from Slack.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelId - Slack channel ID (e.g., C0ABC123)
+ * @returns Channel info object, or null if not found
+ */
+export async function getSlackChannelInfo(client: WebClient, channelId: string) {
+  try {
+    const result = await client.conversations.info({ channel: channelId });
+    if (result.ok && result.channel) {
+      return {
+        id: result.channel.id,
+        name: result.channel.name,
+        topic: result.channel.topic?.value,
+        purpose: result.channel.purpose?.value,
+        isPrivate: result.channel.is_private ?? false,
+        isShared: result.channel.is_shared ?? result.channel.is_ext_shared ?? false,
+        isMember: result.channel.is_member ?? false,
+      };
+    }
+    return null;
+  } catch (error) {
+    logger.error({ error, channelId }, 'Failed to fetch Slack channel info');
+    return null;
+  }
+}
+
+/**
  * List channels in the workspace (public, private, and shared).
  *
  * Note: The bot must be a member of private channels to see them.
  * Users can invite the bot with `/invite @BotName` in the private channel.
  *
  * @param client - Authenticated Slack WebClient
- * @param limit - Maximum number of channels to return (default 20)
+ * @param limit - Maximum number of channels to return. Fetches in pages of up to 200 until the limit is reached or all channels are returned.
  * @returns Array of channel objects with id, name, member count, and privacy status
  */
-export async function getSlackChannels(client: WebClient, limit = 20) {
-  try {
-    const result = await client.conversations.list({
-      types: 'public_channel,private_channel',
-      exclude_archived: true,
-      limit,
-    });
-    if (result.ok && result.channels) {
-      return result.channels.map((ch) => ({
-        id: ch.id,
-        name: ch.name,
-        memberCount: ch.num_members,
-        isBotMember: ch.is_member,
-        isPrivate: ch.is_private ?? false,
-        isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
-      }));
-    }
-    return [];
-  } catch (error) {
-    logger.error({ error }, 'Failed to fetch Slack channels');
-    return [];
-  }
+export async function getSlackChannels(client: WebClient, limit = 200) {
+  return paginateSlack({
+    fetchPage: (cursor) =>
+      client.conversations.list({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: Math.min(limit, 200),
+        cursor,
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        logger.warn(
+          { error: result.error },
+          'Slack API returned ok: false during channel pagination'
+        );
+        return [];
+      }
+      return result.channels
+        ? result.channels.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            memberCount: ch.num_members,
+            isBotMember: ch.is_member,
+            isPrivate: ch.is_private ?? false,
+            isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
+          }))
+        : [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+    limit,
+  });
 }
 
 /**
@@ -190,31 +255,26 @@ export async function checkUserIsChannelMember(
   channelId: string,
   userId: string
 ): Promise<boolean> {
-  try {
-    let cursor: string | undefined;
-    do {
-      const result = await client.conversations.members({
+  const members = await paginateSlack({
+    fetchPage: (cursor) =>
+      client.conversations.members({
         channel: channelId,
         limit: 200,
         cursor,
-      });
-
-      if (!result.ok || !result.members) {
-        return false;
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        logger.warn(
+          { error: result.error },
+          'Slack API returned ok: false during members pagination'
+        );
+        return [];
       }
-
-      if (result.members.includes(userId)) {
-        return true;
-      }
-
-      cursor = result.response_metadata?.next_cursor;
-    } while (cursor);
-
-    return false;
-  } catch (error) {
-    logger.error({ error, channelId, userId }, 'Failed to check channel membership');
-    return false;
-  }
+      return result.members ?? [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+  });
+  return members.includes(userId);
 }
 
 /**

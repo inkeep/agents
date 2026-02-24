@@ -1,6 +1,6 @@
 'use client';
 
-import { Blocks, Github, LayoutGrid, MessageSquare } from 'lucide-react';
+import { Blocks, Github, Slack } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -11,15 +11,15 @@ interface WorkAppsNavProps {
 
 const navItems = [
   {
-    label: 'Overview',
+    label: 'All Apps',
     href: (tenantId: string) => `/${tenantId}/work-apps`,
-    icon: LayoutGrid,
+    icon: Blocks,
     exact: true,
   },
   {
     label: 'Slack',
     href: (tenantId: string) => `/${tenantId}/work-apps/slack`,
-    icon: MessageSquare,
+    icon: Slack,
     exact: false,
   },
   {
@@ -36,11 +36,7 @@ export function WorkAppsNav({ tenantId }: WorkAppsNavProps) {
   return (
     <div className="flex items-center justify-between border-b mb-6">
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 pr-4 border-r mr-2">
-          <Blocks className="size-5 text-muted-foreground" />
-          <h1 className="text-lg font-medium">Work Apps</h1>
-        </div>
-        <nav className="flex gap-1">
+        <nav className="flex h-10 items-end gap-4">
           {navItems.map((item) => {
             const href = item.href(tenantId);
             const isActive = item.exact ? pathname === href : pathname.startsWith(href);
@@ -50,10 +46,11 @@ export function WorkAppsNav({ tenantId }: WorkAppsNavProps) {
                 key={href}
                 href={href}
                 className={cn(
-                  'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  'inline-flex items-center gap-2 px-3 h-full rounded-none border-0 border-b-2 bg-transparent font-mono text-sm uppercase transition-colors',
+                  'mt-0.5 pt-2 pb-1.5',
                   isActive
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
                 <item.icon className="size-4" />

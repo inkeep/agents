@@ -6,9 +6,16 @@ import {
   type OrgRole,
   type ProjectPermissionLevel,
 } from '@inkeep/agents-core';
+import { type ProjectScopedMiddleware, registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import type { ManageAppVariables } from '../types/app';
+
+const projectPermissionDescriptions: Record<string, string> = {
+  view: 'Requires project view permission (project_viewer+, or org admin/owner)',
+  use: 'Requires project use permission (project_member+, or org admin/owner)',
+  edit: 'Requires project edit permission (project_admin, or org admin/owner)',
+};
 
 /**
  * Middleware to check project-level access.
@@ -17,11 +24,10 @@ export const requireProjectPermission = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
 >(
   permission: ProjectPermissionLevel = 'view'
-) =>
-  createMiddleware<Env>(async (c, next) => {
+) => {
+  const mw = createMiddleware<Env>(async (c, next) => {
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
-    // Skip checks in test environment or when auth is disabled
     if (isTestEnvironment) {
       await next();
       return;
@@ -48,8 +54,6 @@ export const requireProjectPermission = <
       });
     }
 
-    // System users and API key users bypass project access checks
-    // They have full access within their authorized scope (enforced by tenant-access middleware)
     if (userId === 'system' || userId.startsWith('apikey:')) {
       await next();
       return;
@@ -62,6 +66,7 @@ export const requireProjectPermission = <
         case 'view':
           hasAccess = await canViewProject({
             userId,
+            tenantId,
             projectId,
             orgRole: tenantRole,
           });
@@ -69,6 +74,7 @@ export const requireProjectPermission = <
         case 'use':
           hasAccess = await canUseProject({
             userId,
+            tenantId,
             projectId,
             orgRole: tenantRole,
           });
@@ -76,6 +82,7 @@ export const requireProjectPermission = <
         case 'edit':
           hasAccess = await canEditProject({
             userId,
+            tenantId,
             projectId,
             orgRole: tenantRole,
           });
@@ -108,3 +115,12 @@ export const requireProjectPermission = <
       });
     }
   });
+
+  registerAuthzMeta(mw, {
+    resource: 'project',
+    permission,
+    description:
+      projectPermissionDescriptions[permission] ?? `Requires project ${permission} permission`,
+  });
+  return mw as unknown as ProjectScopedMiddleware;
+};

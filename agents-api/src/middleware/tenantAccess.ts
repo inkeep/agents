@@ -2,12 +2,14 @@ import { createApiError, getUserOrganizationsFromDb, OrgRoles } from '@inkeep/ag
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
+import { env } from '../env';
 
 /**
  * Middleware to enforce tenant access control.
  * Verifies that the authenticated user has access to the requested tenant/organization.
  *
  * Access rules:
+ * - Test environment: Grants anonymous owner access (bypasses all checks)
  * - System user (bypass auth): Full access to all tenants
  * - API key user: Access only to the tenant associated with the API key
  * - Session user: Access based on organization membership
@@ -20,8 +22,19 @@ export const requireTenantAccess = () =>
       tenantRole: string;
     };
   }>(async (c, next) => {
-    const userId = c.get('userId');
     const tenantId = c.req.param('tenantId');
+
+    if (env.ENVIRONMENT === 'test') {
+      if (tenantId) {
+        c.set('tenantId', tenantId);
+        c.set('userId', 'anonymous');
+        c.set('tenantRole', OrgRoles.OWNER);
+      }
+      await next();
+      return;
+    }
+
+    const userId = c.get('userId');
 
     if (!userId) {
       throw createApiError({

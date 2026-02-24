@@ -1,11 +1,11 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { capabilitiesHandler } from '../../routes/capabilities';
 import type { ManageAppVariables } from '../../types/app';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
-import mcpRoutes from './routes/mcp';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
 import oauthRoutes from './routes/oauth';
 import passwordResetLinksRoutes from './routes/passwordResetLinks';
@@ -13,6 +13,7 @@ import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
+import userProjectMembershipsRoutes from './routes/userProjectMemberships';
 import usersRoutes from './routes/users';
 
 export function createManageRoutes() {
@@ -40,6 +41,9 @@ export function createManageRoutes() {
   // Mount GitHub routes under tenant (uses requireTenantAccess middleware for authorization)
   app.route('/tenants/:tenantId/github', githubRoutes);
 
+  // User-level routes (tenant-scoped, not project-scoped)
+  app.route('/tenants/:tenantId/users/:userId/project-memberships', userProjectMembershipsRoutes);
+
   // Mount project GitHub access routes under tenant/project
   app.route('/tenants/:tenantId/projects/:projectId/github-access', projectGitHubAccessRoutes);
 
@@ -55,9 +59,10 @@ export function createManageRoutes() {
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
-  app.route('/mcp', mcpRoutes);
-
   app.route('/available-agents', availableAgentsRoutes);
+
+  // Server capabilities (sandbox config, etc.)
+  app.route('/capabilities', capabilitiesHandler);
 
   return app;
 }

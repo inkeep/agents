@@ -24,6 +24,7 @@ import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
+import { generateId } from '@/lib/utils/id-utils';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -52,6 +53,7 @@ interface AgentStateData {
    */
   hasOpenModelConfig: boolean;
   availableSkills: Skill[];
+  playgroundConversationId: string;
 }
 
 interface AgentPersistedStateData {
@@ -122,6 +124,7 @@ interface AgentActions {
    * Setter for `hasOpenModelConfig` field.
    */
   setHasOpenModelConfig: (hasOpenModelConfig: boolean) => void;
+  resetPlaygroundConversationId: () => void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -148,6 +151,7 @@ const initialAgentState: AgentStateData = {
   variableSuggestions: [],
   hasOpenModelConfig: false,
   availableSkills: [],
+  playgroundConversationId: generateId(),
 };
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
@@ -363,6 +367,12 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     animateGraph(event) {
       // @ts-expect-error -- improve types
       const data = event.detail;
+
+      const { playgroundConversationId } = get();
+      if (data.conversationId !== playgroundConversationId) {
+        return;
+      }
+
       console.info('Data operation received:', data);
 
       set((state) => {
@@ -543,6 +553,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     setHasOpenModelConfig(hasOpenModelConfig) {
       set({ hasOpenModelConfig });
+    },
+    resetPlaygroundConversationId() {
+      set({ playgroundConversationId: generateId() });
     },
   },
 });

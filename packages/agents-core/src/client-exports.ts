@@ -12,6 +12,11 @@ import type {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiSelectSchema,
   CredentialReferenceApiInsertSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInvocationApiSelectSchema,
+  ScheduledTriggerWithRunInfoSchema,
   FullAgentAgentInsertSchema,
   TriggerApiSelectSchema,
   TriggerInvocationApiSelectSchema,
@@ -25,6 +30,13 @@ export * from './validation/schemas';
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+export type ScheduledTriggerInvocationApiSelect = z.infer<
+  typeof ScheduledTriggerInvocationApiSelectSchema
+>;
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;

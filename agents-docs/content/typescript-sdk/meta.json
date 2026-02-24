@@ -13,7 +13,7 @@
     "context-fetchers",
     "structured-outputs",
     "data-operations",
-    "(observability)",
+    "evaluations",
     "external-agents",
     "workspace-configuration",
     "cli-reference",

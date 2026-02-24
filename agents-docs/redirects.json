@@ -189,18 +189,23 @@
     "permanent": true
   },
   {
-    "source": "/tutorials/cli/push-to-cloud",
-    "destination": "/guides/cli/push-to-cloud",
+    "source": "/tutorials/cli/push-to-remote",
+    "destination": "/guides/cli/push-to-remote",
     "permanent": true
   },
   {
-    "source": "/tutorials/cli/pull-from-cloud",
-    "destination": "/guides/cli/pull-from-cloud",
+    "source": "/tutorials/cli/pull-from-remote",
+    "destination": "/guides/cli/pull-from-remote",
     "permanent": true
   },
   {
     "source": "/tutorials/upgrading",
     "destination": "/guides/upgrading",
+    "permanent": true
+  },
+  {
+    "source": "/guides/agent-engineering/failure-modes",
+    "destination": "/guides/agent-engineering/prompt-troubleshooting",
     "permanent": true
   }
 ]

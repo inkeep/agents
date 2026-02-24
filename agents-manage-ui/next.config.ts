@@ -16,6 +16,22 @@ if (process.env.NODE_ENV !== 'production') {
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbopackFileSystemCacheForBuild: true,
+    serverComponentsHmrCache: true,
+  },
+  serverExternalPackages: [
+    '@opentelemetry/api',
+    '@opentelemetry/auto-instrumentations-node',
+    '@opentelemetry/baggage-span-processor',
+    '@opentelemetry/context-async-hooks',
+    '@opentelemetry/core',
+    '@opentelemetry/exporter-trace-otlp-http',
+    '@opentelemetry/resources',
+    '@opentelemetry/sdk-node',
+    '@opentelemetry/sdk-trace-base',
+    '@opentelemetry/semantic-conventions',
+  ],
   env: {
     NEXT_PUBLIC_CI: process.env.CI,
   },

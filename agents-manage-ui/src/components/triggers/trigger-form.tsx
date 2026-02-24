@@ -262,6 +262,7 @@ interface TriggerFormProps {
 }
 
 export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: TriggerFormProps) {
+  const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`;
   const router = useRouter();
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState(true);
@@ -401,8 +402,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
   const defaultValues = getDefaultValues();
 
-  const form = useForm<TriggerFormData>({
-    resolver: zodResolver(triggerFormSchema) as any,
+  const form = useForm({
+    resolver: zodResolver(triggerFormSchema),
     defaultValues,
   });
 
@@ -696,7 +697,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
       if (result.success) {
         toast.success(`Trigger ${mode === 'create' ? 'created' : 'updated'} successfully`);
-        router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`);
+        router.push(redirectPath);
       } else {
         toast.error(result.error || `Failed to ${mode} trigger`);
       }
@@ -1592,13 +1593,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`)
-            }
-          >
+          <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>

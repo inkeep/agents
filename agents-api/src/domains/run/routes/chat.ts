@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
@@ -8,17 +8,22 @@ import {
   generateId,
   getActiveAgentForConversation,
   getConversationId,
+  PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
-import type { ContentItem, Message } from '../types/chat';
+import type { Message } from '../types/chat';
+import { ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
+import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
@@ -30,7 +35,7 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('completionsHandler');
 
-const chatCompletionsRoute = createRoute({
+const chatCompletionsRoute = createProtectedRoute({
   method: 'post',
   path: '/completions',
   tags: ['Chat'],
@@ -38,6 +43,7 @@ const chatCompletionsRoute = createRoute({
   description:
     'Creates a new chat completion with streaming SSE response using the configured agent',
   security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
   request: {
     body: {
       content: {
@@ -54,10 +60,13 @@ const chatCompletionsRoute = createRoute({
                     .union([
                       z.string(),
                       z.array(
-                        z.strictObject({
-                          type: z.string(),
-                          text: z.string().optional(),
-                        })
+                        z.discriminatedUnion('type', [
+                          z.object({
+                            type: z.literal('text'),
+                            text: z.string(),
+                          }),
+                          ImageContentItemSchema,
+                        ])
                       ),
                     ])
                     .describe('The message content'),
@@ -299,7 +308,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
       const lastUserMessage = body.messages
         .filter((msg: Message) => msg.role === 'user')
         .slice(-1)[0];
-      const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
+
+      // Build Part[] for execution (text + image parts), validated against core PartSchema
+      const messageParts = z
+        .array(PartSchema)
+        .parse(lastUserMessage ? getMessagePartsFromOpenAIContent(lastUserMessage.content) : []);
+
+      // Extract text content from parts
+      const userMessage = extractTextFromParts(messageParts);
 
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
@@ -456,6 +472,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
             initialAgentId: subAgentId,
             requestId,
             sseHelper,
@@ -503,6 +520,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           try {
             unsubscribe?.();
           } catch (_e) {}
+          await flushBatchProcessor();
         }
       });
     });
@@ -525,17 +543,5 @@ app.openapi(chatCompletionsRoute, async (c) => {
     });
   }
 });
-
-const getMessageText = (content: string | ContentItem[]): string => {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  // For content arrays, extract text from all text items
-  return content
-    .filter((item) => item.type === 'text' && item.text)
-    .map((item) => item.text)
-    .join(' ');
-};
 
 export default app;

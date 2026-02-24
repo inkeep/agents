@@ -35,6 +35,7 @@ export interface ModalMetadata {
 export interface FollowUpModalMetadata {
   conversationId: string;
   agentId: string;
+  agentName?: string;
   projectId: string;
   tenantId: string;
   teamId: string;
@@ -79,10 +80,14 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: agent.name ? `${agent.name} (${agent.id})` : agent.id,
             emoji: true,
           },
-          value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
+          value: JSON.stringify({
+            agentId: agent.id,
+            projectId: agent.projectId,
+            agentName: agent.name,
+          }),
         }))
       : [
           {
@@ -122,7 +127,9 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     },
     {
       type: 'input',
-      block_id: 'agent_select_block',
+      block_id: selectedProjectId
+        ? `agent_select_block_${selectedProjectId}`
+        : 'agent_select_block',
       element: {
         type: 'static_select',
         action_id: 'agent_select',
@@ -207,7 +214,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     elements: [
       {
         type: 'mrkdwn',
-        text: `⚙️ <${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
+        text: `<${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
       },
     ],
   } as unknown as (typeof blocks)[number]);
@@ -323,10 +330,14 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: agent.name ? `${agent.name} (${agent.id})` : agent.id,
             emoji: true,
           },
-          value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
+          value: JSON.stringify({
+            agentId: agent.id,
+            projectId: agent.projectId,
+            agentName: agent.name,
+          }),
         }))
       : [
           {
@@ -380,7 +391,9 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     },
     {
       type: 'input',
-      block_id: 'agent_select_block',
+      block_id: selectedProjectId
+        ? `agent_select_block_${selectedProjectId}`
+        : 'agent_select_block',
       element: {
         type: 'static_select',
         action_id: 'agent_select',
@@ -425,7 +438,7 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     elements: [
       {
         type: 'mrkdwn',
-        text: `⚙️ <${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
+        text: `<${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
       },
     ],
   } as unknown as (typeof blocks)[number]);

@@ -12,10 +12,13 @@ import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
+  getWaitUntil,
 } from '@inkeep/agents-core';
+import { SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
+import { dispatchSlackEvent } from '../dispatcher';
 import {
   findWorkspaceConnectionByTeamId,
   getSlackClient,
@@ -29,15 +32,7 @@ import {
   updateConnectionMetadata,
   verifySlackRequest,
 } from '../services';
-import {
-  handleAppMention,
-  handleFollowUpSubmission,
-  handleMessageShortcut,
-  handleModalSubmission,
-  handleOpenAgentSelectorModal,
-  handleOpenFollowUpModal,
-  sendResponseUrlMessage,
-} from '../services/events';
+import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, type SlackOutcome, tracer } from '../tracer';
 import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-events');
@@ -86,302 +81,110 @@ app.post('/commands', async (c) => {
 });
 
 app.post('/events', async (c) => {
-  const contentType = c.req.header('content-type') || '';
-  const body = await c.req.text();
-  const timestamp = c.req.header('x-slack-request-timestamp') || '';
-  const signature = c.req.header('x-slack-signature') || '';
-
-  let eventBody: Record<string, unknown>;
-  try {
-    eventBody = parseSlackEventBody(body, contentType);
-  } catch (error) {
-    logger.error(
-      { error, contentType, bodyPreview: body.slice(0, 200) },
-      'Failed to parse Slack event body'
-    );
-    return c.json({ error: 'Invalid payload' }, 400);
+  // Slack retries event delivery when the initial ack is slow (>3s).
+  // Retries include X-Slack-Retry-Num / X-Slack-Retry-Reason headers.
+  // Since we fire-and-forget background work, retries would cause duplicate processing.
+  const retryNum = c.req.header('x-slack-retry-num');
+  const retryReason = c.req.header('x-slack-retry-reason');
+  if (retryNum) {
+    return tracer.startActiveSpan(`${SLACK_SPAN_NAMES.WEBHOOK} retry`, (span) => {
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'ignored_slack_retry' satisfies SlackOutcome);
+      span.setAttribute('slack.retry_num', retryNum);
+      if (retryReason) span.setAttribute('slack.retry_reason', retryReason);
+      logger.info({ retryNum, retryReason }, 'Acknowledging Slack retry without re-processing');
+      span.end();
+      return c.body(null, 200);
+    });
   }
 
-  logger.debug({ eventType: eventBody.type }, 'Slack event received');
+  const waitUntil = await getWaitUntil();
 
-  const eventType = eventBody.type as string | undefined;
+  return tracer.startActiveSpan(SLACK_SPAN_NAMES.WEBHOOK, async (span) => {
+    let outcome: SlackOutcome = 'ignored_unknown_event';
 
-  // Verify signature on ALL Slack requests, including url_verification
-  if (!env.SLACK_SIGNING_SECRET) {
-    logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
-    return c.json({ error: 'Server configuration error' }, 500);
-  }
+    try {
+      const contentType = c.req.header('content-type') || '';
+      const body = await c.req.text();
+      const timestamp = c.req.header('x-slack-request-timestamp') || '';
+      const signature = c.req.header('x-slack-signature') || '';
 
-  if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
-    logger.error({}, 'Invalid Slack request signature');
-    return c.json({ error: 'Invalid request signature' }, 401);
-  }
-
-  if (eventType === 'url_verification') {
-    logger.info({}, 'Responding to Slack URL verification challenge');
-    return c.text(String(eventBody.challenge));
-  }
-
-  if (eventType === 'event_callback') {
-    const teamId = eventBody.team_id as string | undefined;
-    const event = eventBody.event as
-      | {
-          type?: string;
-          user?: string;
-          text?: string;
-          channel?: string;
-          ts?: string;
-          thread_ts?: string;
-          bot_id?: string;
-          subtype?: string;
-        }
-      | undefined;
-
-    if (event?.bot_id || event?.subtype === 'bot_message') {
-      logger.debug({ botId: event.bot_id }, 'Ignoring bot message');
-      return c.json({ ok: true });
-    }
-
-    logger.debug({ eventType: event?.type, teamId }, 'Slack event callback');
-
-    if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
-      const question = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
-
-      logger.info({ userId: event.user, channel: event.channel, teamId }, 'Bot was mentioned');
-
-      handleAppMention({
-        slackUserId: event.user,
-        channel: event.channel,
-        text: question,
-        threadTs: event.thread_ts || event.ts || '',
-        messageTs: event.ts || '',
-        teamId,
-      }).catch((err: unknown) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const errorStack = err instanceof Error ? err.stack : undefined;
-        logger.error({ errorMessage, errorStack }, 'Failed to handle app mention (outer catch)');
-      });
-    }
-  }
-
-  if (eventType === 'block_actions' || eventType === 'interactive_message') {
-    logger.debug({ eventType }, 'Slack interactive event received');
-
-    const actions = eventBody.actions as
-      | Array<{
-          action_id: string;
-          value?: string;
-        }>
-      | undefined;
-
-    const teamId = (eventBody.team as { id?: string })?.id;
-    const responseUrl = eventBody.response_url as string | undefined;
-
-    const triggerId = eventBody.trigger_id as string | undefined;
-
-    if (actions && teamId) {
-      for (const action of actions) {
-        if (action.action_id === 'open_agent_selector_modal' && action.value && triggerId) {
-          handleOpenAgentSelectorModal({
-            triggerId,
-            actionValue: action.value,
-            teamId,
-            responseUrl: responseUrl || '',
-          }).catch(async (err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error(
-              { errorMessage, actionId: action.action_id },
-              'Failed to open agent selector modal'
-            );
-            if (responseUrl) {
-              await sendResponseUrlMessage(responseUrl, {
-                text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
-                response_type: 'ephemeral',
-              }).catch((e) =>
-                logger.warn({ error: e }, 'Failed to send error notification via response URL')
-              );
-            }
-          });
-        }
-
-        if (action.action_id === 'modal_project_select') {
-          const selectedOption = (action as { selected_option?: { value?: string } })
-            .selected_option;
-          const selectedProjectId = selectedOption?.value;
-          const view = eventBody.view as {
-            id?: string;
-            private_metadata?: string;
-          };
-
-          if (selectedProjectId && view?.id) {
-            (async () => {
-              try {
-                const metadata = JSON.parse(view.private_metadata || '{}');
-                const tenantId = metadata.tenantId;
-                if (!tenantId) {
-                  logger.warn(
-                    { teamId },
-                    'No tenantId in modal metadata — skipping project update'
-                  );
-                  return;
-                }
-
-                const workspace = await findWorkspaceConnectionByTeamId(teamId);
-                if (!workspace?.botToken) return;
-
-                const slackClient = getSlackClient(workspace.botToken);
-
-                const { fetchProjectsForTenant, fetchAgentsForProject } = await import(
-                  '../services/events/utils'
-                );
-                const { buildAgentSelectorModal, buildMessageShortcutModal } = await import(
-                  '../services/modals'
-                );
-
-                const projectList = await fetchProjectsForTenant(tenantId);
-                const agentList = await fetchAgentsForProject(tenantId, selectedProjectId);
-
-                const agentOptions = agentList.map((a) => ({
-                  id: a.id,
-                  name: a.name,
-                  projectId: a.projectId,
-                  projectName: a.projectName || a.projectId,
-                }));
-
-                const modal = metadata.messageContext
-                  ? buildMessageShortcutModal({
-                      projects: projectList,
-                      agents: agentOptions,
-                      metadata,
-                      selectedProjectId,
-                      messageContext: metadata.messageContext,
-                    })
-                  : buildAgentSelectorModal({
-                      projects: projectList,
-                      agents: agentOptions,
-                      metadata,
-                      selectedProjectId,
-                    });
-
-                await slackClient.views.update({
-                  view_id: view.id as string,
-                  view: modal,
-                });
-
-                logger.debug(
-                  { selectedProjectId, agentCount: agentList.length },
-                  'Updated modal with agents for selected project'
-                );
-              } catch (err) {
-                logger.error(
-                  { err, selectedProjectId },
-                  'Failed to update modal on project change'
-                );
-              }
-            })();
-          }
-        }
-
-        if (action.action_id === 'open_follow_up_modal' && action.value && triggerId) {
-          handleOpenFollowUpModal({
-            triggerId,
-            actionValue: action.value,
-            teamId,
-            responseUrl: responseUrl || undefined,
-          }).catch((err: unknown) => {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            logger.error(
-              { errorMessage, actionId: action.action_id },
-              'Failed to open follow-up modal'
-            );
-          });
-        }
-      }
-    }
-  }
-
-  if (eventType === 'message_action') {
-    const callbackId = eventBody.callback_id as string | undefined;
-
-    if (callbackId === 'ask_agent_shortcut') {
-      const triggerId = eventBody.trigger_id as string | undefined;
-      const teamId = (eventBody.team as { id?: string })?.id;
-      const channelId = (eventBody.channel as { id?: string })?.id;
-      const userId = (eventBody.user as { id?: string })?.id;
-      const message = eventBody.message as {
-        ts?: string;
-        text?: string;
-        thread_ts?: string;
-      };
-      const responseUrl = eventBody.response_url as string | undefined;
-
-      if (triggerId && teamId && channelId && userId && message?.ts) {
-        handleMessageShortcut({
-          triggerId,
-          teamId,
-          channelId,
-          userId,
-          messageTs: message.ts,
-          messageText: message.text || '',
-          threadTs: message.thread_ts,
-          responseUrl,
-        }).catch((err: unknown) => {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
-        });
-      }
-    }
-  }
-
-  if (eventType === 'view_submission') {
-    const callbackId = (eventBody.view as { callback_id?: string })?.callback_id;
-
-    if (callbackId === 'agent_selector_modal') {
-      const view = eventBody.view as {
-        private_metadata?: string;
-        state?: { values?: Record<string, Record<string, unknown>> };
-      };
-
-      // Validate agent selection before accepting submission
-      const agentSelect = view.state?.values?.agent_select_block?.agent_select as
-        | {
-            selected_option?: { value?: string };
-          }
-        | undefined;
-      if (!agentSelect?.selected_option?.value || agentSelect.selected_option.value === 'none') {
-        return c.json({
-          response_action: 'errors',
-          errors: {
-            agent_select_block:
-              'Please select an agent. If none are available, add agents to this project in the dashboard.',
-          },
-        });
+      let eventBody: Record<string, unknown>;
+      try {
+        eventBody = parseSlackEventBody(body, contentType);
+      } catch (error) {
+        outcome = 'validation_error';
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+        logger.error(
+          { error, contentType, bodyPreview: body.slice(0, 200) },
+          'Failed to parse Slack event body'
+        );
+        span.end();
+        return c.json({ error: 'Invalid payload' }, 400);
       }
 
-      handleModalSubmission(view).catch((err: unknown) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
-      });
+      const eventType = eventBody.type as string | undefined;
+      span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType || 'unknown');
+      span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType || 'unknown'}`);
 
-      return new Response(null, { status: 200 });
-    }
+      if (!env.SLACK_SIGNING_SECRET) {
+        outcome = 'error';
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+        logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
+        span.end();
+        return c.json({ error: 'Server configuration error' }, 500);
+      }
 
-    if (callbackId === 'follow_up_modal') {
-      const view = eventBody.view as {
-        private_metadata?: string;
-        state?: { values?: Record<string, Record<string, unknown>> };
+      if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
+        outcome = 'signature_invalid';
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+        logger.error({ eventType }, 'Invalid Slack request signature');
+        span.end();
+        return c.json({ error: 'Invalid request signature' }, 401);
+      }
+
+      if (eventType === 'url_verification') {
+        outcome = 'url_verification';
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+        logger.info({}, 'Responding to Slack URL verification challenge');
+        span.end();
+        return c.text(String(eventBody.challenge));
+      }
+
+      const registerBackgroundWork = (work: Promise<unknown>) => {
+        if (waitUntil) {
+          waitUntil(work);
+        }
       };
 
-      handleFollowUpSubmission(view).catch((err: unknown) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
-      });
+      const result = await dispatchSlackEvent(
+        eventType || '',
+        eventBody,
+        { registerBackgroundWork },
+        span
+      );
+      outcome = result.outcome;
 
-      return new Response(null, { status: 200 });
+      if (result.response) {
+        span.end();
+        return c.json(result.response);
+      }
+
+      span.end();
+      // Slack requires an empty body for view_submission ack (non-empty
+      // bodies without a response_action cause "We had some trouble
+      // connecting" errors). An empty 200 is valid for all interaction types.
+      return c.body(null, 200);
+    } catch (error) {
+      outcome = 'error';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.end();
+      throw error;
     }
-  }
-
-  return c.json({ ok: true });
+  });
 });
 
 app.post('/nango-webhook', async (c) => {

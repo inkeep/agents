@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
-import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
+import { useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 
@@ -36,17 +36,17 @@ export default function TracesOverview({
     timeRange: selectedTimeRange,
     customStartDate,
     customEndDate,
+    agentId: selectedAgent,
     spanName,
     spanAttributes: attributes,
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
+    setAgentFilter: setSelectedAgent,
     setSpanFilter,
   } = useTracesQueryState();
 
   // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
-
-  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
@@ -111,20 +111,7 @@ export default function TracesOverview({
     return filters;
   }, [spanName, attributes]);
 
-  const {
-    aggregateStats,
-    loading: aggregateLoading,
-    error: aggregateError,
-  } = useAggregateStats({
-    startTime,
-    endTime,
-    filters: spanFilters,
-    projectId,
-    tenantId,
-    agentId: selectedAgent,
-  });
-
-  const { stats, loading, error, pagination } = useConversationStats({
+  const { stats, loading, error, pagination, aggregateStats } = useConversationStats({
     startTime,
     endTime,
     filters: spanFilters,
@@ -134,6 +121,9 @@ export default function TracesOverview({
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
   });
+
+  const aggregateLoading = loading;
+  const aggregateError = error;
 
   // Aggregate stats now come directly from server-side aggregation
 

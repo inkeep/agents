@@ -1,25 +1,36 @@
 name: Inkeep Agent
 
 on:
-  issue_comment:
-    types: [created]
+    issue_comment:
+        types: [created]
+    
+    pull_request_review_comment:
+        types: [created]
+    
+    pull_request_review:
+        types: [submitted]
 
-  pull_request:
-    types: [opened]
+    pull_request:
+        types: [closed]
 
 permissions:
-  contents: read
-  pull-requests: read
-  id-token: write
+    contents: read
+    pull-requests: read
+    id-token: write
 
 jobs:
-  trigger-agent:
-    if: (github.event.issue.pull_request && contains(github.event.comment.body, '@inkeep')) || (github.event_name == 'pull_request' && github.event.action == 'opened')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Inkeep Agent
-        uses: inkeep/inkeep-agents-action@v0
-        with:
-          trigger-url: ${{ secrets.INKEEP_CONTENT_WRITER_TRIGGER_URL }}
-          
-    
+    trigger-agent:
+        if: |
+            !contains(github.actor, '[bot]') &&
+            (
+              (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+              (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@inkeep')) ||
+              (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@inkeep')) ||
+              (github.event_name == 'pull_request_review' && contains(github.event.review.body || '', '@inkeep'))
+            )
+        runs-on: ubuntu-latest
+        steps:
+            - name: Trigger Inkeep Agent
+              uses: inkeep/inkeep-agents-action@v0
+              with:
+                  trigger-url: ${{ secrets.INKEEP_CONTENT_WRITER_TRIGGER_URL }}

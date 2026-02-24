@@ -73,11 +73,33 @@ If your agent stops mid-conversation, it may have hit a configured stopWhen limi
 
 See [Configuring StopWhen](/typescript-sdk/agent-settings#configuring-stopwhen) for more details.
 
+## Local environment not starting
+
+If `pnpm dev` fails or services aren't reachable, the most common cause is that `pnpm setup-dev` hasn't been run (or Docker containers have stopped).
+
+**How to fix:**
+
+1. Ensure Docker Desktop (or Docker daemon) is running
+2. Run `pnpm setup-dev` — it will start any stopped databases, apply pending migrations, and ensure the admin user exists
+3. Run `pnpm dev` again
+
+For the [quickstart template](/get-started/quick-start), the same applies: run `pnpm setup-dev` from the workspace root before `pnpm dev`.
+
+### Port conflicts
+
+If `pnpm setup-dev` reports that ports 5432, 5433, or 5434 are in use by another Docker Compose project, stop that project first:
+
+```bash
+docker compose -p <project-name> down
+```
+
+The setup script tells you the exact project name and command. After stopping the conflicting project, re-run `pnpm setup-dev`.
+
 ## Check service logs (local development)
 
 When running `pnpm dev` from your [quickstart workspace](/quick-start/start-development), you will see an interactive terminal interface. This interface allows you to inspect the logs of each [running service](/quick-start/start-development#service-ports). You can navigate between services using the up and down arrow keys.
 
-![Service logs in local development](/images/agents-quickstart-pnpm-dev.png)
+<img src="/images/agents-quickstart-pnpm-dev.png" alt="Service logs in local development" style={{ borderRadius: '8px' }} />
 
 - The `service-info` tab displays the health of each running service.
 - The `manage-api` tab contains logs for all database operations. This is useful primarily for debugging issues with [`inkeep push`](/typescript-sdk/cli-reference#inkeep-push).
@@ -86,6 +108,36 @@ When running `pnpm dev` from your [quickstart workspace](/quick-start/start-deve
 - The `dashboard` tab displays logs for the [Visual Builder](/visual-builder/sub-agents) dashboard.
 
 To terminate the running services, click press `q` or `esc` in the terminal.
+
+## CLI Issues
+
+### Login fails or browser shows "connection refused"
+
+- Verify the dashboard is running (`inkeep dev` or check Docker services)
+- Check the manage UI URL in your profile: `inkeep profile current`
+- Common cause: profile has a wrong port — re-create with `inkeep profile add`
+
+### "Device code expired" during login
+
+This usually means the manage UI was unreachable when you tried to approve the device code.
+
+- Check: `inkeep profile current` — verify the **Manage UI** URL is correct and accessible in your browser
+- For local development, the default manage UI runs on `http://localhost:3000`
+
+### Push fails with authentication errors
+
+- Ensure you've logged in for the active profile: `inkeep login`
+- Local profiles with `credential: none` don't require login — the local server accepts unauthenticated requests
+- Check which profile is active: `inkeep profile current`
+
+## Authentication Issues (Local Development)
+
+If auto-login isn't working when you open `http://localhost:3000`:
+
+- **`pnpm db:auth:init` not run**: The admin user must exist in the database. Run `pnpm db:auth:init` to create it.
+- **API not running**: The auto-login proxy calls `POST /api/auth/dev-session` on the API server. Make sure the API is running on `localhost:3002`.
+- **Bypass secret missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` is set in your `.env` file. The proxy uses this to authenticate with the API. Check the server console for `[proxy]` warnings.
+- **Credentials missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_UI_USERNAME` is set in your `.env` file. The password env var is only used by `pnpm db:auth:init` to create the admin user, not for auto-login.
 
 ## Common Configuration Issues
 

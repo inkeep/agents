@@ -12,11 +12,9 @@ import type { WorkAppGitHubInstallation } from '@/lib/api/github';
 import { fetchWorkAppGitHubInstallations } from '@/lib/api/github';
 import GitHubSettingsLoading from './loading';
 
-interface PageParams {
-  params: Promise<{ tenantId: string }>;
-}
-
-export default function WorkAppGitHubSettingsPage({ params }: PageParams) {
+export default function WorkAppGitHubSettingsPage({
+  params,
+}: PageProps<'/[tenantId]/work-apps/github'>) {
   const { tenantId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,7 +68,7 @@ export default function WorkAppGitHubSettingsPage({ params }: PageParams) {
   const hasInstallations = installations && installations.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
       {hasInstallations ? (
         <>
           <div className="flex items-center justify-end">
@@ -84,13 +82,9 @@ export default function WorkAppGitHubSettingsPage({ params }: PageParams) {
         </>
       ) : (
         <EmptyState
-          title="No GitHub connections"
+          title="No GitHub connections."
           description="Connect your GitHub organization to enable repository access for your agents."
-          icon={
-            <div className="flex size-24 items-center justify-center rounded-full bg-muted">
-              <Github className="size-12 text-muted-foreground" />
-            </div>
-          }
+          icon={<Github strokeWidth={0.5} className="size-24 text-gray-300 dark:text-gray-700" />}
           action={<WorkAppGitHubInstallButton tenantId={tenantId} />}
         />
       )}

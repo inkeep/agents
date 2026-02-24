@@ -7,8 +7,13 @@
  */
 
 import * as crypto from 'node:crypto';
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { createWorkAppSlackWorkspace } from '@inkeep/agents-core';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
+import {
+  createWorkAppSlackWorkspace,
+  isUniqueConstraintError,
+  listWorkAppSlackWorkspacesByTenant,
+} from '@inkeep/agents-core';
+import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
@@ -29,32 +34,7 @@ const logger = getLogger('slack-oauth');
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-/**
- * Allowed redirect domains for OAuth callbacks.
- * Validates INKEEP_AGENTS_MANAGE_UI_URL to prevent open redirect attacks.
- */
-const ALLOWED_REDIRECT_HOSTNAMES = new Set(['localhost', '127.0.0.1', 'agents.inkeep.com']);
-
-function isAllowedRedirectUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    if (ALLOWED_REDIRECT_HOSTNAMES.has(parsed.hostname)) return true;
-    // Allow any *.inkeep.com subdomain
-    if (parsed.hostname.endsWith('.inkeep.com')) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-// Validate at module load time so misconfig is caught early
 const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-if (!isAllowedRedirectUrl(manageUiUrl)) {
-  throw new Error(
-    `Invalid INKEEP_AGENTS_MANAGE_UI_URL: "${manageUiUrl}" is not in the allowed redirect domains. ` +
-      'Allowed: localhost, 127.0.0.1, *.inkeep.com'
-  );
-}
 
 interface OAuthState {
   nonce: string;
@@ -140,13 +120,14 @@ const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 export { getBotTokenForTeam, setBotTokenForTeam };
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/install',
     summary: 'Install Slack App',
     description: 'Redirects to Slack OAuth page for workspace installation',
     operationId: 'slack-install',
     tags: ['Work Apps', 'Slack', 'OAuth'],
+    permission: noAuth(),
     request: {
       query: z.object({
         tenant_id: z.string().optional(),
@@ -170,6 +151,7 @@ app.openapi(
       'chat:write',
       'chat:write.public',
       'commands',
+      'files:write',
       'groups:history',
       'groups:read',
       'im:history',
@@ -195,13 +177,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/oauth_redirect',
     summary: 'Slack OAuth Callback',
     description: 'Handles the OAuth callback from Slack after workspace installation',
     operationId: 'slack-oauth-redirect',
     tags: ['Work Apps', 'Slack', 'OAuth'],
+    permission: noAuth(),
     request: {
       query: z.object({
         code: z.string().optional(),
@@ -309,6 +292,32 @@ app.openapi(
         installedAt: new Date().toISOString(),
       };
 
+      if (tenantId && workspaceData.teamId) {
+        let existingWorkspaces: Awaited<
+          ReturnType<ReturnType<typeof listWorkAppSlackWorkspacesByTenant>>
+        >;
+        try {
+          existingWorkspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
+        } catch (err) {
+          logger.error({ err, tenantId }, 'Failed to check existing workspaces');
+          return c.redirect(`${dashboardUrl}?error=workspace_check_failed`);
+        }
+        const hasOtherWorkspace = existingWorkspaces.some(
+          (w) => w.slackTeamId !== workspaceData.teamId
+        );
+        if (hasOtherWorkspace) {
+          logger.warn(
+            {
+              tenantId,
+              newTeamId: workspaceData.teamId,
+              existingTeamIds: existingWorkspaces.map((w) => w.slackTeamId),
+            },
+            'Tenant already has a different Slack workspace, rejecting installation'
+          );
+          return c.redirect(`${dashboardUrl}?error=workspace_limit_reached`);
+        }
+      }
+
       if (workspaceData.teamId && workspaceData.botToken) {
         clearWorkspaceConnectionCache(workspaceData.teamId);
 
@@ -352,12 +361,7 @@ app.openapi(
               'Persisted workspace installation to database'
             );
           } catch (dbError) {
-            const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-            const isDuplicate =
-              dbErrorMessage.includes('duplicate key') ||
-              dbErrorMessage.includes('unique constraint');
-
-            if (isDuplicate) {
+            if (isUniqueConstraintError(dbError)) {
               logger.info(
                 { teamId: workspaceData.teamId, tenantId },
                 'Workspace already exists in database'
@@ -371,7 +375,6 @@ app.openapi(
               logger.error(
                 {
                   err: dbError,
-                  dbErrorMessage,
                   pgCode,
                   teamId: workspaceData.teamId,
                   tenantId,

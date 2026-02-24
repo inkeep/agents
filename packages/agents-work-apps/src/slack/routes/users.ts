@@ -8,14 +8,16 @@
  * - POST /disconnect - Disconnect user
  */
 
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   createWorkAppSlackUserMapping,
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
+  isUniqueConstraintError,
   verifySlackLinkToken,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { createConnectSession } from '../services';
@@ -48,13 +50,14 @@ function isAuthorizedForUser(
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/link-status',
     summary: 'Check Link Status',
     description: 'Check if a Slack user is linked to an Inkeep account',
     operationId: 'slack-link-status',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       query: z.object({
         slackUserId: z.string(),
@@ -108,13 +111,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/link/verify-token',
     summary: 'Verify Link Token',
     description: 'Verify a JWT link token and create user mapping',
     operationId: 'slack-verify-link-token',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       body: {
         content: {
@@ -217,6 +221,12 @@ app.openapi(
           },
           'Slack user already linked, updating to new user'
         );
+        await deleteWorkAppSlackUserMapping(runDbClient)(
+          tenantId,
+          slackUserId,
+          teamId,
+          'work-apps-slack'
+        );
       }
 
       const slackUserMapping = await createWorkAppSlackUserMapping(runDbClient)({
@@ -249,11 +259,9 @@ app.openapi(
         tenantId,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
-        logger.warn({ userId: body.userId }, 'Slack user already linked');
-        return c.json({ error: 'This Slack account is already linked to an Inkeep account.' }, 409);
+      if (isUniqueConstraintError(error)) {
+        logger.info({ userId: body.userId }, 'Concurrent link resolved — mapping already exists');
+        return c.json({ success: true });
       }
 
       logger.error({ error, userId: body.userId }, 'Failed to verify link token');
@@ -263,13 +271,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/connect',
     summary: 'Create Nango Connect Session',
     description: 'Create a Nango session for Slack OAuth flow. Used by the dashboard.',
     operationId: 'slack-user-connect',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       body: {
         content: {
@@ -330,13 +339,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/disconnect',
     summary: 'Disconnect User',
     description: 'Unlink a Slack user from their Inkeep account.',
     operationId: 'slack-user-disconnect',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       body: {
         content: {
@@ -444,13 +454,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/status',
     summary: 'Get Connection Status',
     description: 'Check if an Inkeep user has a linked Slack account.',
     operationId: 'slack-user-status',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       query: z.object({
         userId: z.string().describe('Inkeep user ID'),

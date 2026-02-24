@@ -14,3 +14,6 @@ echo "# Temporary JWT Keys for Playground"
 echo "INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=$(base64 -i jwt-private-key.pem | tr -d '\n')"
 echo "INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=$(base64 -i jwt-public-key.pem | tr -d '\n')"
 echo
+
+# Clean up PEM files (keys are in the output above)
+rm -f jwt-private-key.pem jwt-public-key.pem

@@ -6,6 +6,7 @@
  */
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
+import { cache } from 'react';
 import type {
   Agent,
   CreateAgentResponse,
@@ -70,7 +71,7 @@ export async function updateAgent(
 /**
  * Get a full agent by ID
  */
-export async function getFullAgent(
+async function $getFullAgent(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -85,6 +86,8 @@ export async function getFullAgent(
     }
   );
 }
+
+export const getFullAgent = cache($getFullAgent);
 
 /**
  * Update or create a full agent (upsert)

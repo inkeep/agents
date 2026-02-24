@@ -43,6 +43,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   Skills: 'LuHexagon',
   Slack: 'LuMessageCircle',
   SubAgents: 'LuSpline',
+  'Scheduled Triggers': 'LuClock',
   'Third-Party MCP Servers': 'LuServerCog',
   Tools: 'LuHammer',
   Triggers: 'LuWebhook',

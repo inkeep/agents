@@ -5,7 +5,8 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
-import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import { type ArtifactInfo, detectOversizedArtifact } from '../utils/artifact-utils';
+import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { tracer } from '../utils/tracer';
 import { agentSessionManager } from './AgentSession';
 
@@ -37,6 +38,7 @@ export interface CompressionEventData {
 export abstract class BaseCompressor {
   protected processedToolCalls = new Set<string>();
   protected cumulativeSummary: ConversationSummary | null = null;
+  protected contextWindowSize?: number;
 
   constructor(
     protected sessionId: string,
@@ -46,7 +48,21 @@ export abstract class BaseCompressor {
     protected config: CompressionConfig,
     protected summarizerModel?: ModelSettings,
     protected baseModel?: ModelSettings
-  ) {}
+  ) {
+    // Calculate context window size from baseModel if available
+    if (baseModel) {
+      const modelContextInfo = getModelContextWindow(baseModel);
+      this.contextWindowSize = modelContextInfo.contextWindow ?? undefined;
+      logger.debug(
+        {
+          sessionId,
+          model: baseModel.model,
+          contextWindowSize: this.contextWindowSize,
+        },
+        'BaseCompressor initialized with context window size'
+      );
+    }
+  }
 
   /**
    * Get the hard limit for compression decisions
@@ -114,7 +130,7 @@ export abstract class BaseCompressor {
   async saveToolResultsAsArtifacts(
     messages: any[],
     startIndex: number = 0
-  ): Promise<Record<string, string>> {
+  ): Promise<Record<string, ArtifactInfo>> {
     const session = agentSessionManager.getSession(this.sessionId);
     if (!session) {
       throw new Error(`No session found: ${this.sessionId}`);
@@ -126,7 +142,7 @@ export abstract class BaseCompressor {
     const toolCallIds = this.extractToolCallIds(messagesToProcess);
     const existingArtifacts = await this.batchFindExistingArtifacts(toolCallIds);
 
-    const toolCallToArtifactMap: Record<string, string> = {};
+    const toolCallToArtifactMap: Record<string, ArtifactInfo> = {};
 
     // Step 2: Process messages with existing artifacts cache
     for (const message of messagesToProcess) {
@@ -287,14 +303,19 @@ export abstract class BaseCompressor {
     message: any,
     session: any,
     existingArtifacts: Map<string, string>
-  ): Promise<Record<string, string>> {
-    const toolCallToArtifactMap: Record<string, string> = {};
+  ): Promise<Record<string, ArtifactInfo>> {
+    const toolCallToArtifactMap: Record<string, ArtifactInfo> = {};
 
     for (const block of message.content) {
       if (block.type === 'tool-result') {
-        const artifactId = await this.processToolResult(block, message, session, existingArtifacts);
-        if (artifactId) {
-          toolCallToArtifactMap[block.toolCallId] = artifactId;
+        const artifactInfo = await this.processToolResult(
+          block,
+          message,
+          session,
+          existingArtifacts
+        );
+        if (artifactInfo) {
+          toolCallToArtifactMap[block.toolCallId] = artifactInfo;
         }
       }
     }
@@ -310,7 +331,7 @@ export abstract class BaseCompressor {
     message: any,
     session: any,
     existingArtifacts: Map<string, string>
-  ): Promise<string | null> {
+  ): Promise<ArtifactInfo | null> {
     // Skip internal tools
     if (this.shouldSkipToolCall(block.toolName)) {
       logger.debug(
@@ -347,7 +368,16 @@ export abstract class BaseCompressor {
         },
         'Reusing existing artifact from batch lookup'
       );
-      return existingArtifactId;
+      // Existing artifact - assume not oversized since we don't have metadata for existing artifacts
+      // LIMITATION: This assumption is safe when compressing new conversations, but could be problematic
+      // when re-compressing conversations that already contain oversized artifacts. In such cases,
+      // the distillation prompt may incorrectly try to include the full tool result output instead
+      // of just metadata. To fix this properly, getLedgerArtifacts() would need to return the
+      // metadata.isOversized flag along with artifact IDs.
+      return {
+        artifactId: existingArtifactId,
+        isOversized: false,
+      };
     }
 
     // Create new artifact
@@ -370,7 +400,11 @@ export abstract class BaseCompressor {
   /**
    * Create a new artifact for a tool call
    */
-  private async createNewArtifact(block: any, message: any, session: any): Promise<string | null> {
+  private async createNewArtifact(
+    block: any,
+    message: any,
+    session: any
+  ): Promise<ArtifactInfo | null> {
     const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
 
     // Find corresponding tool input
@@ -425,7 +459,14 @@ export abstract class BaseCompressor {
       'Created new compression artifact'
     );
 
-    return artifactId;
+    // Extract metadata for oversized detection
+    return {
+      artifactId,
+      isOversized: artifactData.metadata?.isOversized || false,
+      toolArgs: artifactData.metadata?.toolArgs,
+      structureInfo: artifactData.summaryData?._structureInfo,
+      oversizedWarning: artifactData.summaryData?._oversizedWarning,
+    };
   }
 
   /**
@@ -446,6 +487,26 @@ export abstract class BaseCompressor {
    * Build artifact data structure
    */
   private buildArtifactData(artifactId: string, block: any, toolResultData: any): any {
+    // Detect if artifact data is oversized
+    const oversizedDetection = detectOversizedArtifact(toolResultData, this.contextWindowSize, {
+      artifactId,
+      toolCallId: block.toolCallId,
+      toolName: block.toolName,
+    });
+
+    // Build summary data with oversized warning if needed
+    const summaryData: any = {
+      toolCallId: block.toolCallId,
+      toolName: block.toolName,
+      resultPreview: this.generateResultPreview(toolResultData.toolResult),
+      note: `Tool result from ${block.toolName} - compressed to save context space`,
+    };
+
+    if (oversizedDetection.isOversized) {
+      summaryData._oversizedWarning = oversizedDetection.oversizedWarning;
+      summaryData._structureInfo = oversizedDetection.structureInfo;
+    }
+
     return {
       artifactId,
       taskId: `task_${this.conversationId}-${this.sessionId}`,
@@ -459,14 +520,14 @@ export abstract class BaseCompressor {
       metadata: {
         toolCallId: block.toolCallId,
         toolName: block.toolName,
+        toolArgs: block.input || null,
         compressionReason: this.getCompressionType(),
+        isOversized: oversizedDetection.isOversized,
+        originalTokenSize: oversizedDetection.originalTokenSize,
+        contextWindowSize: oversizedDetection.contextWindowSize,
+        retrievalBlocked: oversizedDetection.retrievalBlocked,
       },
-      summaryData: {
-        toolCallId: block.toolCallId,
-        toolName: block.toolName,
-        resultPreview: this.generateResultPreview(toolResultData.toolResult),
-        note: `Tool result from ${block.toolName} - compressed to save context space`,
-      },
+      summaryData,
       data: toolResultData,
     };
   }
@@ -490,7 +551,7 @@ export abstract class BaseCompressor {
    */
   protected async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, string>
+    toolCallToArtifactMap: Record<string, ArtifactInfo>
   ): Promise<any> {
     const summary = await distillConversation({
       messages: messages,

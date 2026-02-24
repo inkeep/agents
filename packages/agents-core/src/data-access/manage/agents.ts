@@ -30,6 +30,7 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
+import { listScheduledTriggers } from './scheduledTriggers';
 import { getSkillsForSubAgents } from './skills';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
@@ -253,7 +254,7 @@ export const deleteAgent =
 export const fetchComponentRelationships =
   (db: AgentsManageDatabaseClient) =>
   async <T extends Record<string, unknown>>(
-    scopes: ProjectScopeConfig,
+    scopes: AgentScopeConfig,
     subAgentIds: string[],
     config: {
       relationTable: PgTable<any>;
@@ -278,6 +279,7 @@ export const fetchComponentRelationships =
           and(
             eq((config.relationTable as any).tenantId, scopes.tenantId),
             eq((config.relationTable as any).projectId, scopes.projectId),
+            eq((config.relationTable as any).agentId, scopes.agentId),
             inArray(config.subAgentIdField as any, subAgentIds)
           )
         );
@@ -555,6 +557,8 @@ const getFullAgentDefinitionInternal =
         const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
           where: and(
             eq(subAgentDataComponents.tenantId, tenantId),
+            eq(subAgentDataComponents.projectId, projectId),
+            eq(subAgentDataComponents.agentId, agentId),
             eq(subAgentDataComponents.subAgentId, agent.id)
           ),
         });
@@ -563,6 +567,8 @@ const getFullAgentDefinitionInternal =
         const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
           where: and(
             eq(subAgentArtifactComponents.tenantId, tenantId),
+            eq(subAgentArtifactComponents.projectId, projectId),
+            eq(subAgentArtifactComponents.agentId, agentId),
             eq(subAgentArtifactComponents.subAgentId, agent.id)
           ),
         });
@@ -684,7 +690,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
         relationIdField: subAgentDataComponents.dataComponentId,
@@ -702,7 +708,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
         relationIdField: subAgentArtifactComponents.artifactComponentId,
@@ -807,6 +813,7 @@ const getFullAgentDefinitionInternal =
                         and(
                           eq(subAgents.tenantId, tenantId),
                           eq(subAgents.projectId, projectId),
+                          eq(subAgents.agentId, agentId),
                           eq(subAgents.id, subAgentId)
                         )
                       );
@@ -945,6 +952,36 @@ const getFullAgentDefinitionInternal =
       }
     } catch (error) {
       console.warn('Failed to load triggers:', error);
+    }
+
+    // Fetch scheduled triggers (agent-scoped)
+    try {
+      const scheduledTriggersList = await listScheduledTriggers(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+
+      if (scheduledTriggersList.length > 0) {
+        const scheduledTriggersObject: Record<string, any> = {};
+        for (const scheduledTrigger of scheduledTriggersList) {
+          scheduledTriggersObject[scheduledTrigger.id] = {
+            id: scheduledTrigger.id,
+            name: scheduledTrigger.name,
+            description: scheduledTrigger.description,
+            enabled: scheduledTrigger.enabled,
+            cronExpression: scheduledTrigger.cronExpression,
+            cronTimezone: scheduledTrigger.cronTimezone,
+            runAt: scheduledTrigger.runAt,
+            payload: scheduledTrigger.payload,
+            messageTemplate: scheduledTrigger.messageTemplate,
+            maxRetries: scheduledTrigger.maxRetries,
+            retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
+            timeoutSeconds: scheduledTrigger.timeoutSeconds,
+          };
+        }
+        result.scheduledTriggers = scheduledTriggersObject;
+      }
+    } catch (error) {
+      console.warn('Failed to load scheduled triggers:', error);
     }
 
     return result;

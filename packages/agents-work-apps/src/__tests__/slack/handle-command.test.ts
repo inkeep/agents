@@ -6,7 +6,6 @@
  * - Empty text opens agent picker (returns {})
  * - Help returns ephemeral response
  * - Unknown text treated as question
- * - Run command validates args
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -76,7 +75,6 @@ vi.mock('../../slack/services/blocks', () => ({
   createAlreadyLinkedMessage: vi.fn(() => ({ blocks: [] })),
   createNotLinkedMessage: vi.fn(() => ({ blocks: [] })),
   createUnlinkSuccessMessage: vi.fn(() => ({ blocks: [] })),
-  createAgentListMessage: vi.fn(() => ({ blocks: [] })),
   createStatusMessage: vi.fn(() => ({ blocks: [] })),
   createJwtLinkMessage: vi.fn(() => ({ blocks: [] })),
   createContextBlock: vi.fn(() => ({ type: 'context', elements: [] })),
@@ -145,17 +143,6 @@ describe('handleCommand', () => {
   it('should route "unlink" command', async () => {
     const result = await handleCommand({ ...basePayload, text: 'unlink' });
     expect(result.response_type).toBe('ephemeral');
-  });
-
-  it('should route "list" command', async () => {
-    const result = await handleCommand({ ...basePayload, text: 'list' });
-    expect(result.response_type).toBe('ephemeral');
-  });
-
-  it('should return error for "run" without proper args', async () => {
-    const result = await handleCommand({ ...basePayload, text: 'run' });
-    expect(result.response_type).toBe('ephemeral');
-    expect(JSON.stringify(result)).toContain('Usage');
   });
 
   it('should treat unknown text as a question command', async () => {

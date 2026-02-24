@@ -13,7 +13,6 @@ export interface WorkApp {
   installUrl?: string;
   dashboardUrl?: string;
   color: string;
-  features: string[];
 }
 
 export const WORK_APPS_CONFIG: Record<
@@ -23,27 +22,15 @@ export const WORK_APPS_CONFIG: Record<
   slack: {
     id: 'slack',
     name: 'Slack',
-    description: 'Connect your Slack workspace to interact with Inkeep agents via slash commands',
+    description: 'Connect your Slack workspace to interact with Inkeep agents via slash commands.',
     icon: 'slack',
     color: '#4A154B',
-    features: [
-      'Slash commands (/inkeep)',
-      'User account linking',
-      'Project listing',
-      'Real-time status updates',
-    ],
   },
   github: {
     id: 'github',
     name: 'GitHub',
-    description: 'Integrate with GitHub for code search, issue tracking, and PR assistance',
+    description: 'Integrate with GitHub for code search, issue tracking, and PR assistance.',
     icon: 'github',
     color: '#24292F',
-    features: [
-      'Code search across repos',
-      'Issue summarization',
-      'PR review assistance',
-      'Commit history analysis',
-    ],
   },
 };

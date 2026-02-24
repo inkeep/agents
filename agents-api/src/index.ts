@@ -1,4 +1,4 @@
-import './env';
+import { env } from './env';
 import { defaultSDK } from './instrumentation';
 
 defaultSDK.start();
@@ -8,12 +8,17 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import { getLogger } from './logger';
+
+const logger = getLogger('agents-api-init');
+
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
 import { createAgentsAuth } from './factory';
 import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
+import { recoverOrphanedWorkflows, world } from './workflow/world';
 
 export type { AppConfig, AppVariables } from './types';
 
@@ -101,5 +106,57 @@ const app = createAgentsHono({
   auth,
   sandboxConfig,
 });
+
+// Start the workflow world worker and recover orphaned workflows.
+const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
+if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
+  const STARTUP_DELAY_MS = 3000; // Wait for Vite/server to start
+  logger.info(
+    { targetWorld: workflowWorld, delayMs: STARTUP_DELAY_MS },
+    'Scheduling workflow world worker start'
+  );
+
+  setTimeout(async () => {
+    try {
+      if (workflowWorld === '@workflow/world-postgres') {
+        await world.start();
+        logger.info({}, 'Workflow world worker started successfully');
+      } else {
+        logger.info(
+          { targetWorld: workflowWorld },
+          'Workflow world does not require explicit start'
+        );
+      }
+      const recoveredCount = await recoverOrphanedWorkflows();
+      if (recoveredCount > 0) {
+        logger.info({ recoveredCount }, 'Recovered orphaned workflow(s)');
+      }
+    } catch (err) {
+      logger.error({ error: err }, 'Failed to start workflow world');
+    }
+  }, STARTUP_DELAY_MS);
+}
+
+// Start Slack Socket Mode client for local development (when configured)
+if (env.ENVIRONMENT === 'development' && env.SLACK_APP_TOKEN) {
+  const SOCKET_MODE_DELAY_MS = 3000;
+  logger.info({ delayMs: SOCKET_MODE_DELAY_MS }, 'Scheduling Slack Socket Mode start');
+
+  setTimeout(async () => {
+    try {
+      const { startSocketMode } = await import('@inkeep/agents-work-apps/slack');
+      await startSocketMode(env.SLACK_APP_TOKEN as string);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+        logger.error(
+          {},
+          'SLACK_APP_TOKEN is set but @slack/socket-mode is not installed. Run: pnpm add -D @slack/socket-mode (in packages/agents-work-apps)'
+        );
+      } else {
+        logger.error({ error: err }, 'Failed to start Slack Socket Mode');
+      }
+    }
+  }, SOCKET_MODE_DELAY_MS);
+}
 
 export default app;

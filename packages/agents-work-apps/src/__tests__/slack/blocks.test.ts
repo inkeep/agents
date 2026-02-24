@@ -4,13 +4,13 @@
  * Tests all message builders in blocks/index.ts including:
  * - Context blocks and follow-up buttons (centralized helpers)
  * - Help and command reference messages
- * - Agent list messages
  * - Error and success messages
  */
 
 import { describe, expect, it } from 'vitest';
 import {
-  createAgentListMessage,
+  buildToolApprovalBlocks,
+  buildToolApprovalDoneBlocks,
   createAlreadyLinkedMessage,
   createContextBlock,
   createErrorMessage,
@@ -59,40 +59,11 @@ describe('Slack Block Builders', () => {
       expect(JSON.stringify(result)).toContain(errorText);
     });
 
-    it('should include error emoji', () => {
+    it('should include the error text directly without emoji prefix', () => {
       const result = createErrorMessage('Error occurred');
 
-      expect(JSON.stringify(result)).toContain('❌');
-    });
-  });
-
-  describe('createAgentListMessage', () => {
-    it('should create agent list message', () => {
-      const agents = [
-        { id: 'agent-1', name: 'Support Agent', projectName: 'Main Project' },
-        { id: 'agent-2', name: 'Sales Agent', projectName: null },
-        { id: 'agent-3', name: null, projectName: 'Other Project' },
-      ];
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createAgentListMessage(agents, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Available Agents');
-      expect(JSON.stringify(result)).toContain('Support Agent');
-      expect(JSON.stringify(result)).toContain('Main Project');
-    });
-
-    it('should show more text when agents exceed 15', () => {
-      const agents = Array.from({ length: 20 }, (_, i) => ({
-        id: `agent-${i}`,
-        name: `Agent ${i}`,
-        projectName: 'Project',
-      }));
-
-      const result = createAgentListMessage(agents, 'https://app.inkeep.com');
-
-      expect(JSON.stringify(result)).toContain('and 5 more');
+      expect(JSON.stringify(result)).toContain('Error occurred');
+      expect(JSON.stringify(result)).not.toContain('❌');
     });
   });
 
@@ -104,8 +75,8 @@ describe('Slack Block Builders', () => {
       expect(JSON.stringify(result)).toContain('How to Use');
       expect(JSON.stringify(result)).toContain('Public');
       expect(JSON.stringify(result)).toContain('Private');
-      expect(JSON.stringify(result)).toContain('/inkeep run');
-      expect(JSON.stringify(result)).toContain('/inkeep list');
+      expect(JSON.stringify(result)).toContain('/inkeep status');
+      expect(JSON.stringify(result)).toContain('Learn more');
     });
   });
 
@@ -118,7 +89,7 @@ describe('Slack Block Builders', () => {
       const result = createAlreadyLinkedMessage(email, linkedAt, dashboardUrl);
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Already Linked');
+      expect(JSON.stringify(result)).toContain('Already linked');
       expect(JSON.stringify(result)).toContain(email);
       expect(JSON.stringify(result)).toContain('/inkeep unlink');
     });
@@ -129,7 +100,7 @@ describe('Slack Block Builders', () => {
       const result = createUnlinkSuccessMessage();
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Account Unlinked');
+      expect(JSON.stringify(result)).toContain('Account unlinked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
     });
   });
@@ -139,8 +110,119 @@ describe('Slack Block Builders', () => {
       const result = createNotLinkedMessage();
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Not Linked');
+      expect(JSON.stringify(result)).toContain('Not linked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
     });
+  });
+});
+
+describe('buildToolApprovalBlocks', () => {
+  const buttonValue = JSON.stringify({ toolCallId: 'tc-1', conversationId: 'conv-1' });
+
+  it('should include a section and actions block but no header or divider', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const types = blocks.map((b: any) => b.type);
+    expect(types).toContain('section');
+    expect(types).toContain('actions');
+    expect(types).not.toContain('header');
+    expect(types).not.toContain('divider');
+  });
+
+  it('should include the tool name in the section text', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const section = blocks.find((b: any) => b.type === 'section');
+    expect(section.text.text).toContain('search_web');
+  });
+
+  it('should have correct action_ids on approve and deny buttons', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const actions = blocks.find((b: any) => b.type === 'actions');
+    const actionIds = actions.elements.map((e: any) => e.action_id);
+    expect(actionIds).toContain('tool_approval_approve');
+    expect(actionIds).toContain('tool_approval_deny');
+  });
+
+  it('should embed buttonValue in both buttons', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', buttonValue });
+
+    const actions = blocks.find((b: any) => b.type === 'actions');
+    for (const element of actions.elements) {
+      expect(element.value).toBe(buttonValue);
+    }
+  });
+
+  it('should not add an input section when input is empty', () => {
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input: {}, buttonValue });
+
+    const sections = blocks.filter((b: any) => b.type === 'section');
+    expect(sections).toHaveLength(1);
+  });
+
+  it('should render input as key-value fields', () => {
+    const input = { query: 'hello', limit: 10 };
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
+
+    const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+    expect(inputSection).toBeDefined();
+    expect(inputSection.fields).toHaveLength(2);
+    const fieldTexts = inputSection.fields.map((f: any) => f.text);
+    expect(fieldTexts.some((t: string) => t.includes('query'))).toBe(true);
+    expect(fieldTexts.some((t: string) => t.includes('hello'))).toBe(true);
+  });
+
+  it('should truncate field values longer than 80 characters with ellipsis', () => {
+    const input = { data: 'x'.repeat(100) };
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
+
+    const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+    expect(inputSection).toBeDefined();
+    const field = inputSection.fields[0];
+    expect(field.text).toContain('…');
+    const valueText = field.text.split('\n')[1];
+    expect(valueText.length).toBeLessThanOrEqual(82);
+  });
+
+  it('should not truncate field values under 80 characters', () => {
+    const input = { query: 'hello', limit: 10 };
+    const blocks = buildToolApprovalBlocks({ toolName: 'search_web', input, buttonValue });
+
+    const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+    expect(inputSection).toBeDefined();
+    for (const field of inputSection.fields) {
+      expect(field.text).not.toContain('…');
+    }
+  });
+});
+
+describe('buildToolApprovalDoneBlocks', () => {
+  it('should show approved status with actor mention', () => {
+    const blocks = buildToolApprovalDoneBlocks({
+      toolName: 'search_web',
+      approved: true,
+      actorUserId: 'U123',
+    });
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe('context');
+    const text: string = blocks[0].elements[0].text;
+    expect(text).toContain('✅');
+    expect(text).toContain('search_web');
+    expect(text).toContain('<@U123>');
+  });
+
+  it('should show denied status with actor mention', () => {
+    const blocks = buildToolApprovalDoneBlocks({
+      toolName: 'search_web',
+      approved: false,
+      actorUserId: 'U456',
+    });
+
+    const text: string = blocks[0].elements[0].text;
+    expect(text).toContain('❌');
+    expect(text).toContain('search_web');
+    expect(text).toContain('<@U456>');
   });
 });

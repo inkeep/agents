@@ -29,15 +29,18 @@ export interface ConversationStats {
   agentName: string;
   totalToolCalls: number;
   toolsUsed: Array<{ name: string; calls: number; description: string }>;
-  transfers: Array<{ from: string; to: string; count: number }>;
-  totalTransfers: number;
-  delegations: Array<{ from: string; to: string; count: number }>;
-  totalDelegations: number;
-  totalAICalls: number;
   totalErrors: number;
   hasErrors: boolean;
   firstUserMessage?: string;
   startTime?: number;
+}
+
+export interface AggregateStats {
+  totalToolCalls: number;
+  totalTransfers: number;
+  totalDelegations: number;
+  totalConversations: number;
+  totalAICalls: number;
 }
 
 export interface PaginatedConversationStats {
@@ -50,6 +53,7 @@ export interface PaginatedConversationStats {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
+  aggregateStats?: AggregateStats;
 }
 
 export interface SpanFilterOptions {
@@ -162,20 +166,72 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    // Call Next.js route which validates and forwards to agents-api
     const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
       withCredentials: true,
-    });
+      'axios-retry': {
+        retries: 3,
+        retryDelay: axiosRetry.exponentialDelay,
+        retryCondition: (error: import('axios').AxiosError) =>
+          axiosRetry.isNetworkError(error) ||
+          (error.response !== undefined && error.response.status >= 500),
+      },
+    } as any);
+    return response.data;
+  }
+
+  private async makePipelineRequest(
+    paginationPayload: any,
+    detailPayloadTemplate: any
+  ): Promise<{ paginationResponse: any; detailResponse: any }> {
+    if (!this.tenantId) {
+      throw new Error('TenantId not set. Call setTenantId() before making requests.');
+    }
+
+    const response = await axios.post(
+      `/api/signoz?tenantId=${this.tenantId}&mode=batch`,
+      { paginationPayload, detailPayloadTemplate },
+      {
+        timeout: 60000,
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true,
+        'axios-retry': {
+          retries: 3,
+          retryDelay: axiosRetry.exponentialDelay,
+          retryCondition: (error: import('axios').AxiosError) =>
+            axiosRetry.isNetworkError(error) ||
+            (error.response !== undefined && error.response.status >= 500),
+        },
+      } as any
+    );
     return response.data;
   }
 
   // --- Helpers to read SigNoz response
   private extractSeries(resp: any, name: string): Series[] {
     return resp?.data?.result?.find((r: any) => r?.queryName === name)?.series ?? [];
+  }
+
+  private extractToolCallAggregates(resp: any): {
+    totalToolCalls: number;
+    totalTransfers: number;
+    totalDelegations: number;
+  } {
+    const series = this.extractSeries(resp, 'aggToolCallsByType');
+    let totalToolCalls = 0;
+    let totalTransfers = 0;
+    let totalDelegations = 0;
+    for (const s of series) {
+      const toolType = s.labels?.[SPAN_KEYS.AI_TOOL_TYPE];
+      const count = countFromSeries(s);
+      if (toolType === AI_TOOL_TYPES.MCP) totalToolCalls += count;
+      else if (toolType === AI_TOOL_TYPES.TRANSFER) totalTransfers += count;
+      else if (toolType === AI_TOOL_TYPES.DELEGATION) totalDelegations += count;
+    }
+    return { totalToolCalls, totalTransfers, totalDelegations };
   }
 
   // ---------- Public methods (unchanged signatures)
@@ -215,55 +271,11 @@ class SigNozStatsAPI {
     }
   }
 
-  private async getConversationStatsPaginated(
-    startTime: number,
-    endTime: number,
-    filters: SpanFilterOptions | undefined,
-    projectId: string | undefined,
-    pagination: { page: number; limit: number },
-    searchQuery: string | undefined,
-    agentId: string | undefined
-  ): Promise<PaginatedConversationStats> {
-    // Step 1: Get total count and paginated conversation IDs sorted by last activity
-    const { conversationIds, total } = await this.getPaginatedConversationIds(
-      startTime,
-      endTime,
-      filters,
-      projectId,
-      pagination,
-      searchQuery,
-      agentId
-    );
-
-    if (conversationIds.length === 0) {
-      return {
-        data: [],
-        pagination: {
-          page: pagination.page,
-          limit: pagination.limit,
-          total,
-          totalPages: Math.ceil(total / pagination.limit),
-          hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
-          hasPreviousPage: pagination.page > 1,
-        },
-      };
-    }
-
-    // Step 2: Fetch detailed stats only for the paginated conversation IDs
-    const payload = this.buildCombinedPayload(
-      startTime,
-      endTime,
-      filters,
-      projectId,
-      agentId,
-      conversationIds
-    );
-    const resp = await this.makeRequest(payload);
-
+  private parseDetailResponse(
+    resp: any,
+    conversationIds: string[]
+  ): { orderedStats: ConversationStats[]; firstSeen: Map<string, number> } {
     const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
-    const transfersSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TRANSFERS);
-    const delegationsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.DELEGATIONS);
-    const aiCallsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.AI_CALLS);
     const lastActivitySeries = this.extractSeries(resp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
     const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
     const spansWithErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
@@ -297,10 +309,7 @@ class SigNozStatsAPI {
       const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
       const t = numberFromSeries(s);
       if (!id || !content) continue;
-      (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({
-        t,
-        c: content,
-      });
+      (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({ t, c: content });
     }
     for (const [id, arr] of msgsByConv) {
       arr.sort((a, b) => a.t - b.t);
@@ -311,12 +320,8 @@ class SigNozStatsAPI {
       }
     }
 
-    // build stats
     const stats = this.toConversationStats(
       toolsSeries,
-      transfersSeries,
-      delegationsSeries,
-      aiCallsSeries,
       metaByConv,
       spansWithErrorsSeries,
       firstMsgByConv
@@ -333,16 +338,134 @@ class SigNozStatsAPI {
       byFirstActivity(firstSeen.get(a.conversationId), firstSeen.get(b.conversationId))
     );
 
+    return { orderedStats, firstSeen };
+  }
+
+  private async getConversationStatsPaginated(
+    startTime: number,
+    endTime: number,
+    filters: SpanFilterOptions | undefined,
+    projectId: string | undefined,
+    pagination: { page: number; limit: number },
+    searchQuery: string | undefined,
+    agentId: string | undefined
+  ): Promise<PaginatedConversationStats> {
+    const hasSearchQuery = !!searchQuery?.trim();
+    const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
+    const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
+
+    const makePaginationResult = (total: number) => ({
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages: Math.ceil(total / pagination.limit),
+      hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
+      hasPreviousPage: pagination.page > 1,
+    });
+
+    // Fast path: use server-side pipeline (1 browser round-trip instead of 2)
+    if (useServerSidePagination) {
+      const paginationPayload = this.buildFilteredConversationIdsPayload(
+        startTime,
+        endTime,
+        filters,
+        projectId,
+        agentId,
+        false,
+        pagination
+      );
+
+      const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
+      const detailPayloadTemplate = this.buildCombinedPayload(
+        startTime,
+        endTime,
+        filters,
+        projectId,
+        sanitizedAgentId,
+        undefined
+      );
+
+      const { paginationResponse, detailResponse } = await this.makePipelineRequest(
+        paginationPayload,
+        detailPayloadTemplate
+      );
+
+      const zeroSeries = { values: [{ value: '0' }] } as Series;
+      const toolAggs = this.extractToolCallAggregates(paginationResponse);
+      const aggregateStats: AggregateStats = {
+        ...toolAggs,
+        totalAICalls: countFromSeries(
+          this.extractSeries(paginationResponse, 'aggAICalls')[0] || zeroSeries
+        ),
+        totalConversations: 0,
+      };
+
+      const pageSeries = this.extractSeries(
+        paginationResponse,
+        QUERY_EXPRESSIONS.PAGE_CONVERSATIONS
+      );
+      const conversationIds = pageSeries
+        .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
+        .filter(Boolean) as string[];
+
+      const totalSeries = this.extractSeries(
+        paginationResponse,
+        QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS
+      );
+      const total = countFromSeries(totalSeries[0] || zeroSeries);
+      aggregateStats.totalConversations = total;
+
+      if (conversationIds.length === 0 || !detailResponse) {
+        return {
+          data: [],
+          pagination: makePaginationResult(total),
+          aggregateStats,
+        };
+      }
+
+      const { orderedStats } = this.parseDetailResponse(detailResponse, conversationIds);
+
+      return {
+        data: orderedStats,
+        pagination: makePaginationResult(total),
+        aggregateStats,
+      };
+    }
+
+    // Slow path: search or span filters require client-side processing (2 round-trips)
+    const { conversationIds, total, aggregateStats } = await this.getPaginatedConversationIds(
+      startTime,
+      endTime,
+      filters,
+      projectId,
+      pagination,
+      searchQuery,
+      agentId
+    );
+
+    if (conversationIds.length === 0) {
+      return {
+        data: [],
+        pagination: makePaginationResult(total),
+        aggregateStats,
+      };
+    }
+
+    const payload = this.buildCombinedPayload(
+      startTime,
+      endTime,
+      filters,
+      projectId,
+      agentId,
+      conversationIds
+    );
+    const resp = await this.makeRequest(payload);
+    const { orderedStats } = this.parseDetailResponse(resp, conversationIds);
+
     return {
       data: orderedStats,
-      pagination: {
-        page: pagination.page,
-        limit: pagination.limit,
-        total,
-        totalPages: Math.ceil(total / pagination.limit),
-        hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
-        hasPreviousPage: pagination.page > 1,
-      },
+      pagination: makePaginationResult(total),
+      aggregateStats,
     };
   }
 
@@ -354,10 +477,9 @@ class SigNozStatsAPI {
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
     agentId: string | undefined
-  ): Promise<{ conversationIds: string[]; total: number }> {
+  ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
-    const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
 
     const consolidatedPayload = this.buildFilteredConversationIdsPayload(
       startTime,
@@ -366,26 +488,19 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      useServerSidePagination ? pagination : undefined
+      undefined
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
 
-    // Fast path: server-side pagination (no search, no span filters)
-    if (useServerSidePagination) {
-      const pageSeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.PAGE_CONVERSATIONS);
-      const conversationIds = pageSeries
-        .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
-        .filter(Boolean) as string[];
-
-      const totalSeries = this.extractSeries(
-        consolidatedResp,
-        QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS
-      );
-      const total = countFromSeries(totalSeries[0] || { values: [{ value: '0' }] });
-
-      return { conversationIds, total };
-    }
+    const zeroSeries = { values: [{ value: '0' }] } as Series;
+    const extractAggregates = (): AggregateStats => ({
+      ...this.extractToolCallAggregates(consolidatedResp),
+      totalAICalls: countFromSeries(
+        this.extractSeries(consolidatedResp, 'aggAICalls')[0] || zeroSeries
+      ),
+      totalConversations: 0,
+    });
 
     // Slow path: client-side filtering needed for search or span filters
     const activitySeries = this.extractSeries(
@@ -464,7 +579,10 @@ class SigNozStatsAPI {
     const start = (pagination.page - 1) * pagination.limit;
     const paginatedIds = conversationIds.slice(start, start + pagination.limit);
 
-    return { conversationIds: paginatedIds, total };
+    const aggregateStats = extractAggregates();
+    aggregateStats.totalConversations = total;
+
+    return { conversationIds: paginatedIds, total, aggregateStats };
   }
 
   async getAICallsBySubAgent(
@@ -778,46 +896,6 @@ class SigNozStatsAPI {
     }
   }
 
-  async getToolCallsByServer(startTime: number, endTime: number, projectId?: string) {
-    try {
-      const resp = await this.makeRequest(
-        this.buildToolServerBreakdownPayload(startTime, endTime, projectId)
-      );
-      const series = this.extractSeries(resp, 'serverCalls');
-      const errorSeries = this.extractSeries(resp, 'serverErrors');
-
-      const errorMap = new Map<string, number>();
-      for (const s of errorSeries) {
-        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
-        const count = countFromSeries(s);
-        errorMap.set(serverName, (errorMap.get(serverName) || 0) + count);
-      }
-
-      const totals = new Map<string, { totalCalls: number; errorCount: number }>();
-      for (const s of series) {
-        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
-        const count = countFromSeries(s);
-        if (!count) continue;
-        const existing = totals.get(serverName) || { totalCalls: 0, errorCount: 0 };
-        existing.totalCalls += count;
-        existing.errorCount = errorMap.get(serverName) || 0;
-        totals.set(serverName, existing);
-      }
-
-      return [...totals]
-        .map(([serverName, data]) => ({
-          serverName,
-          totalCalls: data.totalCalls,
-          errorCount: data.errorCount,
-          errorRate: data.totalCalls > 0 ? (data.errorCount / data.totalCalls) * 100 : 0,
-        }))
-        .sort((a, b) => b.totalCalls - a.totalCalls);
-    } catch (e) {
-      console.error('getToolCallsByServer error:', e);
-      return [];
-    }
-  }
-
   async getUniqueToolServers(startTime: number, endTime: number, projectId?: string) {
     try {
       const resp = await this.makeRequest(
@@ -863,21 +941,11 @@ class SigNozStatsAPI {
     projectId?: string
   ) {
     try {
-      // 1) which conversations exist?
-      const metaResp = await this.makeRequest(
-        this.buildConversationMetadataPayload(startTime, endTime, agentId, projectId)
+      // Fetch conversation activity directly — no need for a metadata pre-check
+      const activityResp = await this.makeRequest(
+        this.buildConversationActivityPayload(startTime, endTime, agentId, projectId)
       );
-      const metaSeries = this.extractSeries(metaResp, 'conversationMetadata');
-
-      // 2) if any, fetch their last activity
-      const activitySeries = metaSeries.length
-        ? this.extractSeries(
-            await this.makeRequest(
-              this.buildConversationActivityPayload(startTime, endTime, agentId, projectId)
-            ),
-            'lastActivity'
-          )
-        : [];
+      const activitySeries = this.extractSeries(activityResp, 'lastActivity');
 
       const buckets = new Map<string, number>();
       for (const s of activitySeries) {
@@ -895,78 +963,6 @@ class SigNozStatsAPI {
     } catch (e) {
       console.error('getConversationsPerDay error:', e);
       return datesRange(startTime, endTime).map((date) => ({ date, count: 0 }));
-    }
-  }
-
-  async getAggregateStats(
-    startTime: number,
-    endTime: number,
-    filters?: SpanFilterOptions,
-    projectId?: string,
-    agentId?: string
-  ) {
-    try {
-      // If span filters are applied, first get the conversation IDs that match those filters
-      let filteredConversationIds: string[] | undefined;
-      if (filters?.spanName || filters?.attributes?.length) {
-        const filteredPayload = this.buildFilteredConversationsPayload(
-          startTime,
-          endTime,
-          filters,
-          projectId
-        );
-        const filteredResp = await this.makeRequest(filteredPayload);
-        const filteredSeries = this.extractSeries(filteredResp, 'filteredConversations');
-        filteredConversationIds = filteredSeries
-          .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
-          .filter(Boolean) as string[];
-
-        if (filteredConversationIds.length === 0) {
-          // No conversations match the filters, return zeros
-          return {
-            totalToolCalls: 0,
-            totalTransfers: 0,
-            totalDelegations: 0,
-            totalConversations: 0,
-            totalAICalls: 0,
-          };
-        }
-      }
-
-      const payload = this.buildAggregateBadgesPayload(
-        startTime,
-        endTime,
-        projectId,
-        agentId,
-        filteredConversationIds
-      );
-
-      const resp = await this.makeRequest(payload);
-
-      const toolCallsSeries = this.extractSeries(resp, 'totalToolCalls');
-      const transfersSeries = this.extractSeries(resp, 'totalTransfers');
-      const delegationsSeries = this.extractSeries(resp, 'totalDelegations');
-      const aiCallsSeries = this.extractSeries(resp, 'totalAICalls');
-      const conversationsSeries = this.extractSeries(resp, 'totalConversations');
-
-      return {
-        totalToolCalls: countFromSeries(toolCallsSeries[0] || { values: [{ value: '0' }] }),
-        totalTransfers: countFromSeries(transfersSeries[0] || { values: [{ value: '0' }] }),
-        totalDelegations: countFromSeries(delegationsSeries[0] || { values: [{ value: '0' }] }),
-        totalConversations: filteredConversationIds
-          ? filteredConversationIds.length
-          : countFromSeries(conversationsSeries[0] || { values: [{ value: '0' }] }),
-        totalAICalls: countFromSeries(aiCallsSeries[0] || { values: [{ value: '0' }] }),
-      };
-    } catch (e) {
-      console.error('getAggregateStats error:', e);
-      return {
-        totalToolCalls: 0,
-        totalTransfers: 0,
-        totalDelegations: 0,
-        totalConversations: 0,
-        totalAICalls: 0,
-      };
     }
   }
 
@@ -1061,9 +1057,6 @@ class SigNozStatsAPI {
 
   private toConversationStats(
     toolCallsSeries: Series[],
-    transferSeries: Series[],
-    delegationSeries: Series[],
-    aiCallsSeries: Series[],
     metaByConv: Map<string, { tenantId: string; agentId: string; agentName: string }>,
     spansWithErrorsSeries: Series[],
     firstMsgByConv: Map<string, { content: string; timestamp: number }>
@@ -1071,11 +1064,6 @@ class SigNozStatsAPI {
     type Acc = {
       totalToolCalls: number;
       toolsUsed: Map<string, { name: string; calls: number; description: string }>;
-      transfers: Map<string, { from: string; to: string; count: number }>;
-      totalTransfers: number;
-      delegations: Map<string, { from: string; to: string; count: number }>;
-      totalDelegations: number;
-      totalAICalls: number;
       totalErrors: number;
     };
 
@@ -1087,18 +1075,12 @@ class SigNozStatsAPI {
       const blank: Acc = {
         totalToolCalls: 0,
         toolsUsed: new Map(),
-        transfers: new Map(),
-        totalTransfers: 0,
-        delegations: new Map(),
-        totalDelegations: 0,
-        totalAICalls: 0,
         totalErrors: 0,
       };
       byConv.set(id, blank);
       return blank;
     };
 
-    // tools
     for (const s of toolCallsSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
@@ -1118,48 +1100,6 @@ class SigNozStatsAPI {
       acc.toolsUsed.set(name, t);
     }
 
-    // transfers
-    for (const s of transferSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      if (!id) continue;
-      const from = s.labels?.[SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID];
-      const to = s.labels?.[SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID];
-      const count = countFromSeries(s);
-      if (!from || !to || !count) continue;
-      const acc = ensure(id);
-      acc.totalTransfers += count;
-      const key = `${from}→${to}`;
-      const h = acc.transfers.get(key) || { from, to, count: 0 };
-      h.count += count;
-      acc.transfers.set(key, h);
-    }
-
-    // delegations
-    for (const s of delegationSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      if (!id) continue;
-      const from = s.labels?.[SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID];
-      const to = s.labels?.[SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID];
-      const count = countFromSeries(s);
-      if (!from || !to || !count) continue;
-      const acc = ensure(id);
-      acc.totalDelegations += count;
-      const key = `${from}→${to}`;
-      const d = acc.delegations.get(key) || { from, to, count: 0 };
-      d.count += count;
-      acc.delegations.set(key, d);
-    }
-
-    // AI calls
-    for (const s of aiCallsSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      if (!id) continue;
-      const count = countFromSeries(s);
-      if (!count) continue;
-      ensure(id).totalAICalls += count;
-    }
-
-    // errors - only count critical errors
     const CRITICAL_ERROR_SPAN_NAMES = [
       'execution_handler.execute',
       'agent.load_tools',
@@ -1187,7 +1127,6 @@ class SigNozStatsAPI {
       }
     }
 
-    // finalize
     const out: ConversationStats[] = [];
     const allConvIds = new Set<string>([...byConv.keys(), ...metaByConv.keys()]);
     for (const id of allConvIds) {
@@ -1204,11 +1143,6 @@ class SigNozStatsAPI {
         agentName: meta.agentName || '',
         totalToolCalls: acc.totalToolCalls,
         toolsUsed: [...acc.toolsUsed.values()],
-        transfers: [...acc.transfers.values()],
-        totalTransfers: acc.totalTransfers,
-        delegations: [...acc.delegations.values()],
-        totalDelegations: acc.totalDelegations,
-        totalAICalls: acc.totalAICalls,
         totalErrors: acc.totalErrors,
         hasErrors: acc.totalErrors > 0,
         firstUserMessage: firstMsgByConv.get(id)?.content,
@@ -1449,101 +1383,6 @@ class SigNozStatsAPI {
             ],
             expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
             reduceTo: REDUCE_OPERATIONS.MIN,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
-      },
-      dataSource: DATA_SOURCES.TRACES,
-      projectId,
-    };
-  }
-
-  private buildConversationMetadataPayload(
-    start: number,
-    end: number,
-    agentId?: string,
-    projectId?: string
-  ) {
-    const items: any[] = [
-      {
-        key: {
-          key: SPAN_KEYS.CONVERSATION_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      ...(agentId && agentId !== 'all'
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: agentId,
-            },
-          ]
-        : []),
-      ...(projectId
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.PROJECT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
-    ];
-
-    return {
-      start,
-      end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          conversationMetadata: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
             offset: QUERY_DEFAULTS.OFFSET,
@@ -1857,6 +1696,72 @@ class SigNozStatsAPI {
       };
     }
 
+    {
+      const convIdFilter = buildBaseFilters();
+
+      builderQueries.aggToolCallsByType = {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: 'aggToolCallsByType',
+        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+        aggregateAttribute: {
+          key: SPAN_KEYS.SPAN_ID,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        },
+        filters: {
+          op: OPERATORS.AND,
+          items: [
+            ...convIdFilter,
+            {
+              key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.AI_TOOL_CALL,
+            },
+          ],
+        },
+        groupBy: [{ key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
+        expression: 'aggToolCallsByType',
+        reduceTo: REDUCE_OPERATIONS.SUM,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [],
+        offset: QUERY_DEFAULTS.OFFSET,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+      };
+
+      builderQueries.aggAICalls = {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: 'aggAICalls',
+        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+        aggregateAttribute: {
+          key: SPAN_KEYS.SPAN_ID,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        },
+        filters: {
+          op: OPERATORS.AND,
+          items: [
+            ...convIdFilter,
+            {
+              key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              op: OPERATORS.IN,
+              value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+            },
+          ],
+        },
+        groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
+        expression: 'aggAICalls',
+        reduceTo: REDUCE_OPERATIONS.SUM,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [],
+        offset: QUERY_DEFAULTS.OFFSET,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+      };
+    }
+
     return {
       start,
       end,
@@ -1866,418 +1771,6 @@ class SigNozStatsAPI {
         queryType: QUERY_TYPES.BUILDER,
         panelType: PANEL_TYPES.TABLE,
         builderQueries,
-      },
-      dataSource: DATA_SOURCES.TRACES,
-      projectId,
-    };
-  }
-
-  private buildFilteredConversationsPayload(
-    start: number,
-    end: number,
-    filters: SpanFilterOptions,
-    projectId?: string
-  ) {
-    const items: any[] = [
-      {
-        key: {
-          key: SPAN_KEYS.CONVERSATION_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-    ];
-
-    if (filters.spanName) {
-      items.push({
-        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-        op: OPERATORS.EQUALS,
-        value: filters.spanName,
-      });
-    }
-
-    // Attribute filters — pass typed booleans/numbers where possible
-    for (const attr of filters.attributes ?? []) {
-      const op = attr.operator ?? OPERATORS.EQUALS;
-      let value: any = asTypedFilterValue(attr.value);
-      let dataType: 'string' | 'int64' | 'float64' | 'bool' = 'string';
-      if (typeof value === 'boolean') dataType = 'bool';
-      else if (typeof value === 'number') dataType = Number.isInteger(value) ? 'int64' : 'float64';
-
-      // exists/nexists ignore value
-      if (op === OPERATORS.EXISTS || op === OPERATORS.NOT_EXISTS) {
-        items.push({
-          key: { key: attr.key, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op,
-          value: '',
-        });
-        continue;
-      }
-
-      // LIKE operators add wildcards if absent
-      if (
-        (op === OPERATORS.LIKE || op === OPERATORS.NOT_LIKE) &&
-        typeof value === 'string' &&
-        !value.includes('%')
-      ) {
-        value = `%${value}%`;
-      }
-
-      // For numeric equality, keep exact-match pair (>= & <=) for robustness
-      if ((dataType === 'int64' || dataType === 'float64') && op === OPERATORS.EQUALS) {
-        const config =
-          dataType === 'int64' ? QUERY_FIELD_CONFIGS.INT64_TAG : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
-        items.push({
-          key: { key: attr.key, ...config },
-          op: OPERATORS.GREATER_THAN_OR_EQUAL,
-          value,
-        });
-        items.push({
-          key: { key: attr.key, ...config },
-          op: OPERATORS.LESS_THAN_OR_EQUAL,
-          value,
-        });
-      } else {
-        const config =
-          dataType === 'string'
-            ? QUERY_FIELD_CONFIGS.STRING_TAG
-            : dataType === 'int64'
-              ? QUERY_FIELD_CONFIGS.INT64_TAG
-              : dataType === 'float64'
-                ? QUERY_FIELD_CONFIGS.FLOAT64_TAG
-                : QUERY_FIELD_CONFIGS.BOOL_TAG;
-        items.push({ key: { key: attr.key, ...config }, op, value });
-      }
-    }
-
-    if (projectId) {
-      items.push({
-        key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: projectId,
-      });
-    }
-
-    return {
-      start,
-      end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          filteredConversations: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
-      },
-      dataSource: DATA_SOURCES.TRACES,
-      projectId,
-    };
-  }
-
-  private buildAggregateBadgesPayload(
-    start: number,
-    end: number,
-    projectId?: string,
-    agentId?: string,
-    conversationIds?: string[]
-  ) {
-    const buildBaseFilters = (): any[] => {
-      const items: any[] = [];
-
-      if (projectId) {
-        items.push({
-          key: {
-            key: SPAN_KEYS.PROJECT_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EQUALS,
-          value: projectId,
-        });
-      }
-
-      if (agentId) {
-        items.push({
-          key: {
-            key: SPAN_KEYS.AGENT_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EQUALS,
-          value: agentId,
-        });
-      }
-      return items;
-    };
-
-    const buildConversationIdFilter = (): any[] => {
-      if (conversationIds && conversationIds.length > 0) {
-        return [
-          {
-            key: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            op: OPERATORS.IN,
-            value: conversationIds,
-          },
-        ];
-      }
-      return [
-        {
-          key: {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
-      ];
-    };
-
-    const baseFilters = buildBaseFilters();
-    const conversationIdFilters = buildConversationIdFilter();
-
-    return {
-      start,
-      end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          totalToolCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalToolCalls',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
-                {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                ...conversationIdFilters,
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_TOOL_TYPE,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.MCP,
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalToolCalls',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          totalTransfers: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalTransfers',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
-                {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_TOOL_TYPE,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.TRANSFER,
-                },
-                ...conversationIdFilters,
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalTransfers',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          totalDelegations: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalDelegations',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
-                {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_TOOL_TYPE,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.DELEGATION,
-                },
-                ...conversationIdFilters,
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalDelegations',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          totalAICalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalAICalls',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.IN,
-                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-                },
-                ...conversationIdFilters,
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalAICalls',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          totalConversations: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalConversations',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
-                ...conversationIdFilters,
-                {
-                  key: {
-                    key: SPAN_KEYS.TENANT_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: {
-                    key: SPAN_KEYS.AGENT_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
       },
       dataSource: DATA_SOURCES.TRACES,
       projectId,
@@ -2409,114 +1902,6 @@ class SigNozStatsAPI {
             limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
-          transfers: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.TRANSFERS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
-                {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_TOOL_TYPE,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.TRANSFER,
-                },
-              ]),
-            },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.TRANSFERS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          delegations: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.DELEGATIONS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
-                {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_TOOL_TYPE,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.DELEGATION,
-                },
-              ]),
-            },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.DELEGATIONS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
           conversationMetadata: {
             dataSource: DATA_SOURCES.TRACES,
             queryName: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
@@ -2556,49 +1941,6 @@ class SigNozStatsAPI {
               { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          aiCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.AI_CALLS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
-                {
-                  key: {
-                    key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.IN,
-                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-                },
-              ]),
-            },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              {
-                key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.AI_CALLS,
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
@@ -2966,104 +2308,6 @@ class SigNozStatsAPI {
     };
   }
 
-  private buildToolServerBreakdownPayload(start: number, end: number, projectId?: string) {
-    const baseFilters: any[] = [
-      {
-        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-        op: OPERATORS.EQUALS,
-        value: SPAN_NAMES.AI_TOOL_CALL,
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: AI_TOOL_TYPES.MCP,
-      },
-      {
-        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      ...(projectId
-        ? [
-            {
-              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
-    ];
-
-    return {
-      start,
-      end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          serverCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'serverCalls',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items: baseFilters },
-            groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: 'serverCalls',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-          serverErrors: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'serverErrors',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
-                {
-                  key: { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN },
-                  op: OPERATORS.EQUALS,
-                  value: true,
-                },
-              ],
-            },
-            groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: 'serverErrors',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
-      },
-      dataSource: DATA_SOURCES.TRACES,
-      projectId,
-    };
-  }
-
   private buildUniqueToolServersPayload(start: number, end: number, projectId?: string) {
     const items: any[] = [
       {
@@ -3282,23 +2526,12 @@ class SigNozStatsAPI {
     projectIds?: string[]
   ): Promise<{ date: string; count: number }[]> {
     try {
-      // When filtering by a single project, pass it to makeRequest for server-side filtering
       const singleProjectId = projectIds?.length === 1 ? projectIds[0] : undefined;
-      const metaResp = await this.makeRequest(
-        this.buildProjectConversationMetadataPayload(startTime, endTime, projectIds),
+      const activityResp = await this.makeRequest(
+        this.buildProjectConversationActivityPayload(startTime, endTime, projectIds),
         singleProjectId
       );
-      const metaSeries = this.extractSeries(metaResp, 'conversationMetadata');
-
-      const activitySeries = metaSeries.length
-        ? this.extractSeries(
-            await this.makeRequest(
-              this.buildProjectConversationActivityPayload(startTime, endTime, projectIds),
-              singleProjectId
-            ),
-            'lastActivity'
-          )
-        : [];
+      const activitySeries = this.extractSeries(activityResp, 'lastActivity');
 
       const buckets = new Map<string, number>();
       for (const s of activitySeries) {
@@ -3614,82 +2847,6 @@ class SigNozStatsAPI {
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
-      },
-      dataSource: DATA_SOURCES.TRACES,
-    };
-  }
-
-  private buildProjectConversationMetadataPayload(
-    start: number,
-    end: number,
-    projectIds?: string[]
-  ) {
-    const buildProjectFilters = (): any[] => {
-      if (projectIds && projectIds.length > 0) {
-        return [
-          {
-            key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            op: OPERATORS.IN,
-            value: projectIds,
-          },
-        ];
-      }
-      return [
-        {
-          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
-      ];
-    };
-
-    const items: any[] = [
-      {
-        key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: this.tenantId,
-      },
-      ...buildProjectFilters(),
-      {
-        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-    ];
-
-    return {
-      start,
-      end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          conversationMetadata: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
             offset: QUERY_DEFAULTS.OFFSET,
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,

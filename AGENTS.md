@@ -7,14 +7,19 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ### Build & Development
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
-- **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
-- **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
-- **Typecheck**: `pnpm typecheck`
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
+- **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 
-### Testing
-- **Test (all)**: `pnpm test` or `turbo test`
-- **Test (single file)**: `cd <package> && pnpm test --run <file-path>` (use `--run` to avoid watch mode)
-- **Test (package)**: `cd <package> && pnpm test --run`
+### Verification
+
+**Pre-push** (run both, in order):
+```bash
+pnpm format     # auto-fix formatting
+pnpm check      # lint + typecheck + test + format:check + env-descriptions + knip
+```
+
+**Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -22,6 +27,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
 - **Check schema**: `pnpm db:check`
+- **Initialize auth**: `pnpm db:auth:init` - Create default organization and admin user for local development
 
 ### Creating Changelog Entries (Changesets)
 
@@ -40,7 +46,7 @@ pnpm bump patch --pkg agents-core "Fix race condition in agent message queue"
 pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
 ```
 
-**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
+**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-work-apps`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
 
 **Semver guidance:**
 - **Major**: Reserved - do not use without explicit approval
@@ -68,6 +74,10 @@ pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response suppo
 - "update dependencies" (not user-facing, doesn't need changeset)
 - "Refactored the agent connection handler to use async/await" (implementation detail, not user impact)
 - "changes" (meaningless)
+
+**When to create a changeset (MANDATORY):**
+- Any bug fix, feature, or behavior change to a published package — even if the package is "internal-facing" (e.g., `agents-work-apps`, `agents-api`). If the code ships to users or affects runtime behavior, it needs a changeset.
+- This includes work-app integrations (Slack, GitHub), API route changes, SDK changes, CLI changes, and core library changes.
 
 **When NOT to create a changeset:**
 - Documentation-only changes
@@ -243,41 +253,18 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
 **Before marking any feature complete, verify:**
-- [ ] Tests written and passing (`pnpm test`)
+- [ ] `pnpm check` passes
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
-- [ ] All linting passes (`pnpm lint`)
-- [ ] Code is formatted (`pnpm format` to auto-fix, `pnpm format:check` to verify)
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
 
 ### 📋 Standard Development Workflow
 
-**After completing a feature and ensuring all tests, typecheck, and build are passing:**
+1. Create a branch: `git checkout -b feature/your-feature-name`
+2. Run [Verification](#verification) before pushing
+3. Commit, then `gh pr create`
 
-1. **Create a new branch** (if not already on one):
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Run verification commands** to ensure everything passes:
-   ```bash
-   pnpm test
-   pnpm typecheck  # or pnpm tsc --noEmit
-   pnpm build
-   pnpm lint
-   pnpm format     # IMPORTANT: Always run formatter before committing
-   ```
-
-3. **Commit your changes** with a descriptive message
-
-4. **Open a GitHub Pull Request** once all checks pass:
-   ```bash
-   gh pr create --title "feat: Your feature description" --body "Description of changes"
-   ```
-   
-   This is the standard development procedure to ensure code review and CI/CD processes.
-   
-   **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
+The user may override this workflow (e.g., work directly on main).
 
 ### 📁 Git Worktrees for Parallel Feature Development
 
@@ -349,6 +336,80 @@ git worktree prune
 - **Parallelize database operations** using `Promise.all()` instead of sequential `await` calls
 - **Optimize array processing** with `flatMap()` and `filter()` instead of nested loops
 - **Implement cleanup mechanisms** for debug files and logs to prevent memory leaks
+
+### Internal Self-Calls: `getInProcessFetch()` vs `fetch`
+Any code in `agents-api` or `agents-work-apps` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `@inkeep/agents-core` instead of the global `fetch`.
+
+- `getInProcessFetch()` routes the request through the Hono app's middleware stack **in-process**, guaranteeing it stays on the same instance.
+- Global `fetch` sends the request over the network, where a load balancer may route it to a **different** instance — breaking features that depend on process-local state (e.g. the stream helper registry for SSE streaming).
+- This bug only manifests under load in multi-instance deployments and is extremely difficult to diagnose.
+
+**When to use:**
+| Scenario | Use |
+|---|---|
+| Internal A2A delegation/transfer (same service) | `getInProcessFetch()` |
+| Eval service calling the chat API on itself | `getInProcessFetch()` |
+| Forwarding requests to internal workflow routes | `getInProcessFetch()` |
+| Slack/work-app calls to `/run/api/chat` or `/manage/` routes | `getInProcessFetch()` |
+| Calling an **external** service or third-party API | Global `fetch` |
+| Test environments (falls back automatically) | Either (auto-fallback) |
+
+### Route Authorization Pattern (`createProtectedRoute`)
+All API routes in `agents-api` **must** use `createProtectedRoute()` from `@inkeep/agents-core/middleware` instead of the plain `createRoute()` from `@hono/zod-openapi`. This is enforced by Biome lint rules and ensures every route has explicit authorization metadata (`x-authz`) in the OpenAPI spec.
+
+```typescript
+import { createProtectedRoute, noAuth, inheritedAuth } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../middleware/projectAccess';
+
+// Standard protected route — pass the permission middleware directly
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/',
+    permission: requireProjectPermission('view'),
+    // ... rest of route config
+  }),
+  handler,
+);
+
+// Public route (no auth) — use noAuth()
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/callback',
+    permission: noAuth(),
+    security: [],
+    // ... rest of route config
+  }),
+  handler,
+);
+
+// Route where auth is enforced by parent middleware — use inheritedAuth()
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/',
+    permission: inheritedAuth({
+      resource: 'organization',
+      permission: 'member',
+      description: 'Auth enforced by parent middleware in createApp.ts',
+    }),
+    // ... rest of route config
+  }),
+  handler,
+);
+```
+
+**Key helpers:**
+| Helper | When to use |
+|---|---|
+| `requireProjectPermission('view' \| 'edit')` | Routes scoped to a project |
+| `requirePermission({ project: 'create' })` | Org-level permission checks (admin) |
+| `noAuth()` | Truly public endpoints (webhooks, OAuth callbacks) |
+| `inheritedAuth(meta)` | Auth enforced by parent/global middleware |
+| `inheritedRunApiKeyAuth()` | Run-domain routes behind API key middleware |
+| `inheritedManageTenantAuth()` | Manage-domain routes behind session/API key middleware |
+| `inheritedWorkAppsAuth()` | Work-apps routes behind OIDC/Slack middleware |
 
 ### Common Gotchas
 - **Empty Task Messages**: Ensure task messages contain actual text content

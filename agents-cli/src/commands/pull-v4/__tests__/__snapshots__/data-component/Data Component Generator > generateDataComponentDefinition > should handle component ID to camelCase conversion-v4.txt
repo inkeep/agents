@@ -1,0 +1,9 @@
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const userProfileData = dataComponent({
+  id: 'user-profile-data',
+  name: 'Profile',
+  description: 'User profile data',
+  props: z.object({ "name": z.string().optional() }),
+});

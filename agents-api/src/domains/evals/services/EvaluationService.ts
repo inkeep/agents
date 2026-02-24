@@ -17,6 +17,7 @@ import {
   getEvaluationJobConfigEvaluatorRelations,
   getEvaluatorById,
   getFullAgent,
+  getInProcessFetch,
   getProjectScopedRef,
   ModelFactory,
   parseSSEResponse,
@@ -188,7 +189,7 @@ export class EvaluationService {
       'Running dataset item through chat API'
     );
 
-    const response = await fetch(chatUrl, {
+    const response = await getInProcessFetch()(chatUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(chatPayload),

@@ -56,9 +56,6 @@ Cypress.Commands.add('login', (email?: string, password?: string) => {
       // Wait for the page to fully load by checking for a stable element
       cy.get('body', { timeout: 10000 }).should('be.visible');
 
-      // Add a small delay to ensure cookies and session are fully set
-      cy.wait(500);
-
       cy.log('✅ Login successful - session established and cached');
     },
     {

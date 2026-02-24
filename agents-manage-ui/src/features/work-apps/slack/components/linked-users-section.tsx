@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { useSlackLinkedUsersQuery, useSlackUnlinkUserMutation } from '../api/queries';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
@@ -106,19 +107,6 @@ export function LinkedUsersSection() {
     }
   };
 
-  const formatRelativeTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
-
   if (!selectedWorkspace) {
     return null;
   }
@@ -132,12 +120,23 @@ export function LinkedUsersSection() {
       </Avatar>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">
-          {user.slackUsername || user.slackEmail || 'Unknown User'}
+          {user.slackUserId ? (
+            <a
+              href={`https://app.slack.com/team/${user.slackUserId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {user.slackUsername || user.slackEmail || 'Unknown User'}
+            </a>
+          ) : (
+            user.slackUsername || user.slackEmail || 'Unknown User'
+          )}
         </p>
-        <p className="text-xs text-muted-foreground">Linked {formatRelativeTime(user.linkedAt)}</p>
+        <p className="text-xs text-muted-foreground">Linked {formatDateAgo(user.linkedAt)}</p>
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 shrink-0">
+        <Badge variant="success" className="shrink-0">
           Active
         </Badge>
         <DropdownMenu>
@@ -152,11 +151,8 @@ export function LinkedUsersSection() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => setUserToUnlink(user)}
-              className="text-destructive focus:text-destructive"
-            >
-              <UserMinus className="h-4 w-4 mr-2" />
+            <DropdownMenuItem onClick={() => setUserToUnlink(user)} variant="destructive">
+              <UserMinus className="h-4 w-4" />
               Unlink user
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -167,30 +163,24 @@ export function LinkedUsersSection() {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Users className="h-4 w-4" />
-                Linked Users
-                {linkedUsers.length > 0 && (
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {linkedUsers.length}
-                  </Badge>
-                )}
+              <CardTitle className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-base font-medium"> Linked Users</span>
+                </div>
+                {linkedUsers.length > 0 && <Badge variant="count">{linkedUsers.length}</Badge>}
               </CardTitle>
-              <CardDescription className="text-xs mt-1">
-                Manage Slack users linked to Inkeep accounts
-              </CardDescription>
             </div>
             <div className="flex items-center gap-1">
               {linkedUsers.length > 0 && (
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="icon-sm"
                   onClick={handleExportUsers}
-                  className="h-8 w-8"
                   aria-label="Export linked users to CSV"
                   title="Export to CSV"
                 >
@@ -199,10 +189,9 @@ export function LinkedUsersSection() {
               )}
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 onClick={() => fetchLinkedUsers()}
                 disabled={isLoading}
-                className="h-8 w-8"
                 aria-label="Refresh linked users"
                 title="Refresh"
               >
@@ -214,6 +203,7 @@ export function LinkedUsersSection() {
               </Button>
             </div>
           </div>
+          <CardDescription>Manage Slack users linked to Inkeep accounts</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading && linkedUsers.length === 0 ? (
@@ -283,7 +273,7 @@ export function LinkedUsersSection() {
             <AlertDialogAction
               onClick={handleUnlinkUser}
               disabled={unlinkMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
             >
               {unlinkMutation.isPending ? (
                 <>

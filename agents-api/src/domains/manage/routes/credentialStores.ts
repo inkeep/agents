@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   CreateCredentialInStoreRequestSchema,
   CreateCredentialInStoreResponseSchema,
@@ -8,25 +8,20 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/:id/credentials', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Credential Stores',
     operationId: 'list-credential-stores',
     tags: ['Credential Stores'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -66,12 +61,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{id}/credentials',
     summary: 'Create Credential in Store',
     operationId: 'create-credential-in-store',
     tags: ['Credential Stores'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -95,7 +91,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { id: storeId } = c.req.param();
+    const { id: storeId } = c.req.valid('param');
     const { key, value, metadata } = await c.req.json();
     const credentialStores = c.get('credentialStores');
 

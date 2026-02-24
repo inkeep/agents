@@ -1,25 +1,23 @@
 'use client';
 
-import { ArrowLeft, HelpCircle, MessageSquare, Shield, User } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useSlack } from '../context/slack-provider';
 import { AgentConfigurationCard } from './agent-configuration-card';
+import { JoinFromWorkspaceToggle } from './join-from-workspace-toggle';
 import { LinkedUsersSection } from './linked-users-section';
 import { MyLinkStatus } from './my-link-status';
-import { NotificationBanner } from './notification-banner';
 import { WorkspaceHero } from './workspace-hero';
 
 export function SlackDashboard() {
-  const { tenantId } = useParams<{ tenantId: string }>();
-  const { user, installedWorkspaces, actions } = useSlack();
-  const { handleInstallClick, setNotification } = actions;
+  const { user, installedWorkspaces } = useSlack();
   const { isAdmin, isLoading: isLoadingRole } = useIsOrgAdmin();
 
   const hasWorkspace = installedWorkspaces.data.length > 0;
@@ -34,18 +32,16 @@ export function SlackDashboard() {
 
     if (error) {
       if (error === 'access_denied') {
-        setNotification({
-          type: 'info',
-          message: 'Slack installation was cancelled.',
-          action: 'cancelled',
-        });
+        toast.info('Slack installation was cancelled.');
+      } else if (error === 'workspace_limit_reached') {
+        toast.error(
+          'Only one Slack workspace can be connected per organization. Uninstall the existing workspace to connect a different one.'
+        );
+      } else if (error === 'workspace_check_failed') {
+        toast.error('Could not verify workspace status. Please try again.');
       } else {
         console.error('Slack OAuth Error:', error);
-        setNotification({
-          type: 'error',
-          message: `Slack installation failed: ${error}`,
-          action: 'error',
-        });
+        toast.error(`Slack installation failed: ${error}`);
       }
       window.history.replaceState({}, '', window.location.pathname);
       return;
@@ -55,84 +51,30 @@ export function SlackDashboard() {
       try {
         const workspace = JSON.parse(workspaceData);
 
-        setNotification({
-          type: 'success',
-          message: `Workspace "${workspace.teamName}" installed successfully!`,
-          action: 'installed',
-        });
-
+        toast.success(`Workspace "${workspace.teamName}" installed successfully!`);
         installedWorkspaces.refetch();
       } catch (e) {
         console.error('Failed to parse workspace data:', e);
-        setNotification({
-          type: 'error',
-          message: 'Failed to process workspace data',
-          action: 'error',
-        });
+        toast.error('Failed to process workspace data');
       }
 
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [setNotification, installedWorkspaces]);
+  }, [installedWorkspaces]);
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="-ml-2">
-            <Link href={`/${tenantId}/work-apps`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Work Apps
-            </Link>
-          </Button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <a
-                  href="https://docs.inkeep.com/talk-to-your-agents/slack/overview"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="View Slack integration documentation"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </a>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>View documentation</TooltipContent>
-          </Tooltip>
-        </div>
-
+      <div className="space-y-6 h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold flex items-center gap-2">
-                <MessageSquare className="h-6 w-6" />
-                Slack Integration
-              </h1>
+        <PageHeader
+          title={
+            <div className="flex items-center gap-2">
+              Slack Integration
               {!isLoadingRole && (
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Badge
-                      variant="outline"
-                      className={
-                        isAdmin
-                          ? 'border-primary/50 text-primary bg-primary/5'
-                          : 'border-muted-foreground/30'
-                      }
-                    >
-                      {isAdmin ? (
-                        <>
-                          <Shield className="h-3 w-3 mr-1" />
-                          Admin
-                        </>
-                      ) : (
-                        <>
-                          <User className="h-3 w-3 mr-1" />
-                          Member
-                        </>
-                      )}
+                  <TooltipTrigger asChild>
+                    <Badge variant={isAdmin ? 'primary' : 'code'} className="uppercase">
+                      {isAdmin ? 'Admin' : 'Member'}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -143,21 +85,18 @@ export function SlackDashboard() {
                 </Tooltip>
               )}
             </div>
-            <p className="text-muted-foreground mt-1">
+          }
+          description={
+            <>
               {isAdmin
-                ? 'Manage workspace settings, channel configurations, and linked users'
-                : 'Configure AI agents for your Slack channels'}
-            </p>
-          </div>
-          {hasWorkspace && isAdmin && (
-            <Button className="gap-2" onClick={handleInstallClick}>
-              <MessageSquare className="h-4 w-4" />
-              Add Workspace
-            </Button>
-          )}
-        </div>
-
-        <NotificationBanner />
+                ? 'Manage workspace settings, channel configurations, and linked users.'
+                : 'Configure AI agents for your Slack channels.'}
+              <ExternalLink href={`${DOCS_BASE_URL}/talk-to-your-agents/slack/overview`}>
+                Learn more
+              </ExternalLink>
+            </>
+          }
+        />
 
         {/* Workspace Status */}
         <WorkspaceHero />
@@ -177,85 +116,20 @@ export function SlackDashboard() {
               </div>
             ) : isAdmin ? (
               /* Admin Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2">
-                  <AgentConfigurationCard />
-                </div>
-
-                {/* Sidebar - Admin Tools */}
-                <div className="space-y-6">
-                  <LinkedUsersSection />
-
-                  {/* Admin Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Admin Tips</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Set a <strong>workspace default</strong> agent for all channels
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Use <strong>channel defaults</strong> to set a specific agent per channel
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Members can configure channels they&apos;re in</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Export linked users for auditing or reporting</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+              <div className="grid gap-6">
+                {/* Agent Configuration  */}
+                <AgentConfigurationCard />
+                <LinkedUsersSection />
+                {/* Join from Workspace Toggle */}
+                <JoinFromWorkspaceToggle />
               </div>
             ) : (
               /* Member Dashboard View */
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Agent Configuration - Takes 2 columns */}
-                <div className="lg:col-span-2 space-y-6">
-                  <AgentConfigurationCard />
-                </div>
-
+              <div className="grid gap-6 ">
+                {/* Agent Configuration */}
+                <AgentConfigurationCard />
                 {/* Sidebar - Member Tools */}
-                <div className="space-y-6">
-                  <MyLinkStatus currentUserId={user?.id} />
-
-                  {/* Member Quick Tips */}
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <h3 className="text-sm font-medium">Getting Started</h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          Run <code className="bg-muted px-1 rounded">/inkeep link</code> in Slack
-                          to connect your account
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>
-                          @mention the bot or use{' '}
-                          <code className="bg-muted px-1 rounded">/inkeep</code> to ask questions
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Configure agents for channels you&apos;re a member of</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>The workspace default is set by your admin</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                <MyLinkStatus currentUserId={user?.id} />
               </div>
             )}
           </>

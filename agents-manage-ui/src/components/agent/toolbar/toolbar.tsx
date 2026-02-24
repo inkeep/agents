@@ -1,4 +1,4 @@
-import { Play, Settings, Webhook } from 'lucide-react';
+import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, useEffect, useRef } from 'react';
@@ -26,11 +26,10 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
+      tenantId: string;
+      projectId: string;
+      agentId: string;
   }>();
-
   const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
@@ -66,7 +65,13 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   }, []);
 
   return (
-    <div className="flex gap-2 flex-wrap justify-end content-start">
+    <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
+      <Button {...commonProps} asChild>
+        <Link href={tracesHref}>
+          <Activity className="size-4 text-muted-foreground" />
+          Traces
+        </Link>
+      </Button>
       {canUse && <ShipModal buttonClassName={commonProps.className} />}
       {(dirty || hasOpenModelConfig) && canUse ? (
         <Tooltip>
@@ -104,14 +109,6 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         <Button {...commonProps} onClick={toggleSidePane}>
           <Settings className="size-4" />
           Agent Settings
-        </Button>
-      )}
-      {canEdit && (
-        <Button {...commonProps} asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
-            <Webhook className="size-4" />
-            Triggers
-          </Link>
         </Button>
       )}
     </div>

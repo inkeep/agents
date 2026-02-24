@@ -4,6 +4,7 @@ import {
   getUserOrganizationsFromDb,
   OrgRoles,
 } from '@inkeep/agents-core';
+import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import type { Context, Next } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import runDbClient from '../../db/runDbClient';
@@ -60,8 +61,8 @@ async function resolveWorkAppTenantContext(c: Context, teamId: string, userId: s
  */
 export const requireWorkspaceAdmin = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
->() =>
-  createMiddleware<Env>(async (c: Context, next: Next) => {
+>() => {
+  const mw = createMiddleware<Env>(async (c: Context, next: Next) => {
     // Test bypass requires both test environment AND test-specific header
     if (process.env.ENVIRONMENT === 'test' && c.req.header('x-test-bypass-auth') === 'true') {
       await next();
@@ -83,9 +84,10 @@ export const requireWorkspaceAdmin = <
       return;
     }
 
-    // Resolve tenant context from teamId for session-based users
+    // Resolve tenant context from teamId if tenantId or tenantRole is missing
+    // workAppsAuth sets tenantId from session but not tenantRole — we need both
     const teamId = c.req.param('teamId') || c.req.param('workspaceId');
-    if (teamId && !c.get('tenantId')) {
+    if (teamId && !c.get('tenantRole')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }
 
@@ -101,6 +103,10 @@ export const requireWorkspaceAdmin = <
     }
 
     if (!isOrgAdmin(tenantRole)) {
+      logger.warn(
+        { userId, tenantId, tenantRole, path: c.req.path },
+        'User does not have admin role for workspace operation'
+      );
       throw createApiError({
         code: 'forbidden',
         message: 'Only organization administrators can modify workspace settings',
@@ -114,6 +120,13 @@ export const requireWorkspaceAdmin = <
 
     await next();
   });
+  registerAuthzMeta(mw, {
+    resource: 'organization',
+    permission: 'admin',
+    description: 'Requires Inkeep org admin/owner role to modify workspace settings',
+  });
+  return mw;
+};
 
 /**
  * Middleware that requires either:
@@ -124,8 +137,8 @@ export const requireWorkspaceAdmin = <
  */
 export const requireChannelMemberOrAdmin = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
->() =>
-  createMiddleware<Env>(async (c: Context, next: Next) => {
+>() => {
+  const mw = createMiddleware<Env>(async (c: Context, next: Next) => {
     // Test bypass requires both test environment AND test-specific header
     if (process.env.ENVIRONMENT === 'test' && c.req.header('x-test-bypass-auth') === 'true') {
       await next();
@@ -147,9 +160,10 @@ export const requireChannelMemberOrAdmin = <
       return;
     }
 
-    // Resolve tenant context from teamId for session-based users
+    // Resolve tenant context from teamId if tenantRole is missing
+    // workAppsAuth sets tenantId from session but not tenantRole — we need both
     const teamId = c.req.param('teamId');
-    if (teamId && !c.get('tenantId')) {
+    if (teamId && !c.get('tenantRole')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }
 
@@ -237,3 +251,9 @@ export const requireChannelMemberOrAdmin = <
 
     await next();
   });
+  registerAuthzMeta(mw, {
+    description:
+      'Requires Inkeep organization admin role, or Slack channel membership to modify channel settings',
+  });
+  return mw;
+};

@@ -127,7 +127,6 @@ describe('tool streaming', () => {
         type: 'tool-output-error',
         toolCallId: 'call_1',
         errorText: 'nope',
-        output: null,
       });
       expect(writer.write).toHaveBeenCalledWith({
         type: 'tool-approval-request',

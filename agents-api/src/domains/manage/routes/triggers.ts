@@ -1,8 +1,9 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createTrigger,
+  DateTimeFilterQueryParamsSchema,
   deleteTrigger,
   errorSchemaFactory,
   generateId,
@@ -25,6 +26,7 @@ import {
   TriggerWithWebhookUrlResponse,
   updateTrigger,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -36,24 +38,6 @@ import { dispatchExecution } from '../../run/services/TriggerService';
 const logger = getLogger('triggers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
-
-// Apply permission middleware by HTTP method
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
 
 /**
  * Generate webhook URL for a trigger
@@ -73,12 +57,13 @@ function generateWebhookUrl(params: {
  * List Triggers for an Agent
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Triggers',
     operationId: 'list-triggers',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -134,12 +119,13 @@ app.openapi(
  * Get Trigger by ID
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Trigger',
     operationId: 'get-trigger-by-id',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -194,12 +180,13 @@ app.openapi(
  * Create Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Trigger',
     operationId: 'create-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -308,12 +295,13 @@ app.openapi(
  * Update Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{id}',
     summary: 'Update Trigger',
     operationId: 'update-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -487,12 +475,13 @@ app.openapi(
  * Delete Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Trigger',
     operationId: 'delete-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -538,28 +527,25 @@ app.openapi(
  */
 
 // Query params for invocation filtering (extends base pagination with status/date filters)
-const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: TriggerInvocationStatusEnum.optional().openapi({
-    description: 'Filter by invocation status',
-  }),
-  from: z.string().datetime().optional().openapi({
-    description: 'Start date for filtering (ISO8601)',
-  }),
-  to: z.string().datetime().optional().openapi({
-    description: 'End date for filtering (ISO8601)',
-  }),
-}).openapi('TriggerInvocationQueryParams');
+const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.merge(
+  DateTimeFilterQueryParamsSchema
+)
+  .extend({
+    status: TriggerInvocationStatusEnum.optional().describe('Filter by invocation status'),
+  })
+  .openapi('TriggerInvocationQueryParams');
 
 /**
  * List Trigger Invocations
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/invocations',
     summary: 'List Trigger Invocations',
     operationId: 'list-trigger-invocations',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       query: TriggerInvocationQueryParamsSchema,
@@ -578,7 +564,6 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
@@ -598,7 +583,6 @@ app.openapi(
       },
     });
 
-    // Remove sensitive scope fields from invocations
     const dataWithoutScopes = result.data.map((invocation) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
@@ -616,12 +600,13 @@ app.openapi(
  * Get Trigger Invocation by ID
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/invocations/{invocationId}',
     summary: 'Get Trigger Invocation',
     operationId: 'get-trigger-invocation-by-id',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema.extend({
         invocationId: z.string().describe('Trigger Invocation ID'),
@@ -640,7 +625,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
     logger.debug(
@@ -679,20 +663,14 @@ app.openapi(
  * Rerun Trigger
  * Re-executes a trigger with the provided user message (from a previous trace).
  */
-app.use('/:id/rerun', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('use')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{id}/rerun',
     summary: 'Rerun Trigger',
     operationId: 'rerun-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('use'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {

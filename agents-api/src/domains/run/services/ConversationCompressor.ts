@@ -1,6 +1,7 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { distillConversationHistory } from '../tools/distill-conversation-history-tool';
+import type { ArtifactInfo } from '../utils/artifact-utils';
 import {
   BaseCompressor,
   type CompressionConfig,
@@ -110,13 +111,13 @@ export class ConversationCompressor extends BaseCompressor {
         contextSizeBefore,
         contextSizeAfter,
         compressionRatio: contextSizeAfter / contextSizeBefore,
-        artifactIds: Object.values(toolCallToArtifactMap),
+        artifactIds: Object.values(toolCallToArtifactMap).map((info) => info.artifactId),
       },
       'CONVERSATION COMPRESSION: Compression completed successfully'
     );
 
     return {
-      artifactIds: Object.values(toolCallToArtifactMap),
+      artifactIds: Object.values(toolCallToArtifactMap).map((info) => info.artifactId),
       summary,
     };
   }
@@ -127,7 +128,7 @@ export class ConversationCompressor extends BaseCompressor {
    */
   protected async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, string>
+    toolCallToArtifactMap: Record<string, ArtifactInfo>
   ): Promise<any> {
     if (!this.summarizerModel) {
       throw new Error('Summarizer model is required for conversation history compression');

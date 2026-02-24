@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
 import { STATIC_LABELS } from '@/constants/theme';
-import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { getFullAgent } from '@/lib/api/agent-full-client';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchCredential } from '@/lib/api/credentials';
 import { fetchDataComponent } from '@/lib/api/data-components';
@@ -11,11 +11,13 @@ import { fetchDataset } from '@/lib/api/datasets';
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
+import { fetchWorkAppGitHubInstallationDetail } from '@/lib/api/github';
 import { fetchProject } from '@/lib/api/projects';
+import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
-import { getTrigger } from '@/lib/api/triggers';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
+import { sentry } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 
@@ -47,14 +49,8 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       return project.data.name;
     },
     async agents(id) {
-      const result = await getFullAgentAction(tenantId, projectId, id);
-      if (result.success) {
-        return result.data.name;
-      }
-      throw {
-        message: result.error,
-        code: result.code,
-      };
+      const result = await getFullAgent(tenantId, projectId, id);
+      return result.data.name;
     },
     async artifacts(id) {
       const artifact = await fetchArtifactComponent(tenantId, projectId, id);
@@ -102,13 +98,21 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
     async runs(_id) {
       return 'Run';
     },
-    async triggers(id) {
-      const trigger = await getTrigger(tenantId, projectId, slug[3], id);
-      return trigger.name;
+    async webhooks(agentId: string) {
+      const result = await getFullAgent(tenantId, projectId, agentId);
+      return result.data.name;
     },
     async skills(id) {
       const result = await fetchSkill(tenantId, projectId, id);
       return result.name;
+    },
+    async 'scheduled-triggers'(id) {
+      const trigger = await getScheduledTrigger(tenantId, projectId, slug[3], id);
+      return trigger.name;
+    },
+    async github(id) {
+      const result = await fetchWorkAppGitHubInstallationDetail(tenantId, id);
+      return result.installation.accountLogin;
     },
   };
 
@@ -123,6 +127,8 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
       `/${tenantId}/projects/${projectId}/agents/${slug[3]}/triggers/${slug[5]}`,
       ...(slug[3] === 'new' ? [] : [`/${tenantId}/projects/${projectId}/skills/${slug[3]}`]),
+      `/${tenantId}/projects/${projectId}/triggers/webhooks`,
+      `/${tenantId}/projects/${projectId}/triggers/scheduled`,
     ]);
 
     if (!routesWithoutBreadcrumbs.has(href)) {
@@ -144,7 +150,9 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
           : undefined;
         label = fetcher ? await fetcher(segment) : getStaticLabel(segment);
         if (!label) {
-          throw new Error(`Unknown breadcrumb segment "${segment}"`);
+          const error = new Error(`Unknown breadcrumb segment "${segment}"`);
+          sentry.captureException(error);
+          throw error;
         }
       }
     } catch (error) {

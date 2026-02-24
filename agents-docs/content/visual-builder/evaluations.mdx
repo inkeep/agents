@@ -1,0 +1,91 @@
+---
+title: Evaluations
+sidebarTitle: Evaluations
+description: Configure evaluators, batch evaluations, and continuous tests in the Visual Builder
+icon: LuFlaskConical
+keywords: evaluations, evaluators, batch evaluations, continuous tests, datasets
+---
+
+The Visual Builder lets you define, manage, and run evaluations. You define evaluators (how to score agents), then run them in two ways: **batch evaluations** (one-time jobs over selected conversations) and **continuous tests** (automatic evaluation on a sample of live conversations).
+
+## Where to find evaluations
+
+1. Open your project in the Visual Builder.
+2. In the project sidebar, go to **Evaluations** for evaluators, batch jobs, and continuous tests.
+
+<Note>
+You need **Edit** permission on the project to create or change evaluators, batch evaluations, and continuous tests. See [Access control](/visual-builder/access-control) for roles and permissions.
+</Note>
+
+## Evaluators
+
+Evaluators define how agent responses are scored. Each evaluator has a **prompt**, a **schema**, and optionally a **pass criteria** to produce a score or structured output.
+
+### Creating an evaluator
+
+1. Go to **Evaluations** and open the **Evaluators** tab.
+2. Click **New evaluator**.
+3. Fill in:
+   - **Name** and optional **Description**
+   - **Prompt** — instructions for the model (e.g. what to score and how)
+   - **Schema** — JSON schema for structured output (e.g. numeric score, categories)
+   - **Model** — the model used to run the evaluator
+   - **Pass criteria** (optional) — conditions on numeric schema fields that define pass/fail (e.g. `score >= 0.8`)
+
+4. Save. The evaluator is then available for batch evaluations and continuous tests.
+
+### Example Evaluator
+
+<Image
+  src="/images/evaluator-example.png"
+  alt="Evaluator form in the Visual Builder showing name, prompt, schema, model, and pass criteria fields"
+/>
+
+### Editing or deleting
+
+From the Evaluators list, open an evaluator to view or edit it, or use the delete action.
+
+## Batch evaluations
+
+Batch evaluations run selected evaluators over a set of conversations once. You choose which evaluators to run and over what date range.
+
+### Creating a batch evaluation
+
+1. Go to **Evaluations** and open the **Batch Evaluations** tab.
+2. Click **New batch evaluation**.
+3. Select one or more **Evaluators**.
+4. Narrow the scope by **Date range** — only conversations within that range
+5. Start the job. A new batch evaluation job is created and runs asynchronously.
+
+### Viewing results
+
+From the Batch Evaluations list, open a job to see its **results**: per-conversation evaluation outputs, pass/fail if pass criteria are set, and status. You can filter and inspect individual results.
+
+## Continuous tests
+
+Continuous tests evaluate a sample of **live** conversations automatically. You specify which evaluators to run, which agents (optional), and a **sample rate** (e.g. 10% of conversations).
+
+### Creating a continuous test
+
+1. Go to **Evaluations** and open the **Continuous Tests** tab.
+2. Click **New continuous test**.
+3. Set **Name** and optional **Description**.
+4. The config is **Active** so it runs on new conversations.
+5. Choose **Evaluators** to run.
+6. Optionally restrict by **Agents** (only evaluate conversations for those agents).
+7. Set **Sample rate** (0–1) to evaluate a fraction of matching conversations.
+8. Save. Once active, matching conversations will be evaluated according to the sample rate.
+
+### Viewing results
+
+From the Continuous Tests list, open a config to see **Results** for that run config: all evaluation results triggered by that continuous test, with filters.
+
+## Summary
+
+| Area | Purpose |
+|------|---------|
+| **Evaluators** | Define how to score agent outputs (prompt, model, schema, pass criteria). |
+| **Batch evaluations** | Run evaluators once over a scoped set of conversations (date range). |
+| **Continuous tests** | Automatically run evaluators on a sample of live conversations. |
+
+For programmatic access to the same concepts, see [TypeScript SDK: Evaluations](/typescript-sdk/evaluations) and the [Evaluations API reference](/api-reference/evaluations).

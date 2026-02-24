@@ -31,6 +31,10 @@ export const modelOptions = {
       label: 'Claude Opus 4.1',
     },
     {
+      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_6,
+      label: 'Claude Sonnet 4.6',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
       label: 'Claude Sonnet 4.5',
     },
@@ -82,6 +86,10 @@ export const modelOptions = {
     },
   ],
   google: [
+    {
+      value: GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW,
+      label: 'Gemini 3.1 Pro Preview',
+    },
     {
       value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
       label: 'Gemini 3 Pro Preview',
