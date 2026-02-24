@@ -249,7 +249,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           </div>
         </DialogContent>
       </Dialog>
-      <div className="relative">
+      <div className="space-y-2 relative">
         <FieldLabel label="Input Schema" isRequired />
         <JsonSchemaEditor
           value={inputSchema}
