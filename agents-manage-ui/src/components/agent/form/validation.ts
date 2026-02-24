@@ -3,6 +3,8 @@ import {
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
+import type { FullAgentResponse } from '@/lib/types/agent-full';
+import { serializeJson } from '@/lib/utils';
 
 const OriginalContextConfigSchema =
   AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
@@ -18,7 +20,8 @@ const StringToJsonSchema = z
   .string()
   .trim()
   .transform((value, ctx) => (value === '' ? undefined : transformToJson(value, ctx)))
-  .refine((v) => v !== null, 'Cannot be null');
+  .refine((v) => v !== null, 'Cannot be null')
+  .optional();
 
 const NullToUndefinedSchema = z
   // Normalize number input: <input type="number"> produce `null` for empty value,
@@ -27,10 +30,10 @@ const NullToUndefinedSchema = z
 
 export const ContextConfigSchema = z.strictObject({
   id: OriginalContextConfigSchema.id,
-  headersSchema: StringToJsonSchema.pipe(OriginalContextConfigSchema.headersSchema).optional(),
-  contextVariables: StringToJsonSchema.pipe(
-    OriginalContextConfigSchema.contextVariables
-  ).optional(),
+  headersSchema: StringToJsonSchema.pipe(OriginalContextConfigSchema.headersSchema).default(null),
+  contextVariables: StringToJsonSchema.pipe(OriginalContextConfigSchema.contextVariables).default(
+    null
+  ),
 });
 
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
@@ -65,3 +68,53 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     }),
   }),
 });
+
+export function serializeAgentForm(data: FullAgentResponse) {
+  const {
+    id,
+    name,
+    description,
+    prompt,
+    contextConfig,
+    statusUpdates = {},
+    stopWhen,
+    models = {},
+  } = data;
+
+  return {
+    id,
+    name,
+    description,
+    prompt: prompt ?? '',
+    contextConfig: {
+      id: contextConfig?.id,
+      headersSchema: serializeJson(contextConfig?.headersSchema),
+      contextVariables: serializeJson(contextConfig?.contextVariables),
+    },
+    statusUpdates: {
+      ...statusUpdates,
+      enabled: statusUpdates.enabled ?? false,
+      numEvents: statusUpdates.numEvents ?? 10,
+      timeInSeconds: statusUpdates.timeInSeconds ?? 30,
+      prompt: statusUpdates.prompt ?? '',
+      statusComponents: serializeJson(statusUpdates.statusComponents),
+    },
+    stopWhen: {
+      transferCountIs: stopWhen?.transferCountIs ?? 10,
+    },
+    models: {
+      base: {
+        ...models.base,
+        providerOptions: serializeJson(models.base?.providerOptions),
+      },
+      structuredOutput: {
+        ...models.structuredOutput,
+        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
+      },
+      summarizer: {
+        ...models.summarizer,
+        providerOptions: serializeJson(models.summarizer?.providerOptions),
+      },
+    },
+  };
+}

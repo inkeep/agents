@@ -38,7 +38,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
     variant: 'outline',
   } satisfies ComponentProps<typeof Button>;
 
-  const PreviewButton = (
+  const previewButton = (
     <Button
       {...commonProps}
       disabled={dirty || hasOpenModelConfig}
@@ -72,27 +72,31 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
           Traces
         </Link>
       </Button>
-      {canUse && <ShipModal buttonClassName={commonProps.className} />}
-      {(dirty || hasOpenModelConfig) && canUse ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/**
-             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-             * don't trigger pointer events in the browser
-             **/}
-            <div>{PreviewButton}</div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {hasOpenModelConfig
-              ? 'Please complete model configuration before trying the agent.'
-              : dirty
-                ? 'Please save your changes before trying the agent.'
-                : 'Please save the agent to try it.'}
-          </TooltipContent>
-        </Tooltip>
-      ) : canUse ? (
-        PreviewButton
-      ) : null}
+      {canUse && (
+        <>
+          <ShipModal buttonClassName={commonProps.className} />
+          {dirty || hasOpenModelConfig ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/**
+                 * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+                 * don't trigger pointer events in the browser
+                 **/}
+                <div>{previewButton}</div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {hasOpenModelConfig
+                  ? 'Please complete model configuration before trying the agent.'
+                  : dirty
+                    ? 'Please save your changes before trying the agent.'
+                    : 'Please save the agent to try it.'}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            previewButton
+          )}
+        </>
+      )}
       {canEdit && (
         <Button
           {...commonProps}

@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { serializeAgentForm } from '@/components/agent/form/validation';
 import FullPageError from '@/components/errors/full-page-error';
 import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
@@ -9,7 +10,7 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchSkillsAction } from '@/lib/actions/skills';
 import { fetchToolsAction } from '@/lib/actions/tools';
-import { createLookup, serializeJson } from '@/lib/utils';
+import { createLookup } from '@/lib/utils';
 import { Agent } from './page.client';
 
 export const dynamic = 'force-dynamic';
@@ -77,56 +78,9 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     : false;
 
   const skillsList = (skills.success && skills.data) || [];
-  const {
-    id,
-    name,
-    description,
-    prompt,
-    contextConfig,
-    statusUpdates = {},
-    stopWhen,
-    models = {},
-  } = agent.data;
-
-  const defaultValues = {
-    id,
-    name,
-    description,
-    prompt: prompt ?? '',
-    contextConfig: {
-      id: contextConfig?.id,
-      headersSchema: serializeJson(contextConfig?.headersSchema),
-      contextVariables: serializeJson(contextConfig?.contextVariables),
-    },
-    statusUpdates: {
-      ...statusUpdates,
-      enabled: statusUpdates.enabled ?? false,
-      numEvents: statusUpdates.numEvents ?? 10,
-      timeInSeconds: statusUpdates.timeInSeconds ?? 30,
-      prompt: statusUpdates.prompt ?? '',
-      statusComponents: serializeJson(statusUpdates.statusComponents),
-    },
-    stopWhen: {
-      transferCountIs: stopWhen?.transferCountIs ?? 10,
-    },
-    models: {
-      base: {
-        ...models.base,
-        providerOptions: serializeJson(models.base?.providerOptions),
-      },
-      structuredOutput: {
-        ...models.structuredOutput,
-        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
-      },
-      summarizer: {
-        ...models.summarizer,
-        providerOptions: serializeJson(models.summarizer?.providerOptions),
-      },
-    },
-  };
 
   return (
-    <FullAgentFormProvider defaultValues={defaultValues}>
+    <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
       <Agent
         agent={agent.data}
         dataComponentLookup={dataComponentLookup}

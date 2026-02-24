@@ -160,7 +160,7 @@ export const MetadataEditor: FC = () => {
           onModelChange={(value) => {
             form.setValue('models.base.model', value, { shouldDirty: true });
           }}
-          onProviderOptionsChange={(value = '') => {
+          onProviderOptionsChange={(value) => {
             form.setValue('models.base.providerOptions', value, { shouldDirty: true });
           }}
           editorNamePrefix="agent-base"
@@ -203,7 +203,7 @@ export const MetadataEditor: FC = () => {
             onModelChange={(value) => {
               form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
             }}
-            onProviderOptionsChange={(value = '') => {
+            onProviderOptionsChange={(value) => {
               form.setValue('models.structuredOutput.providerOptions', value, {
                 shouldDirty: true,
               });
@@ -248,7 +248,7 @@ export const MetadataEditor: FC = () => {
             onModelChange={(value) => {
               form.setValue('models.summarizer.model', value, { shouldDirty: true });
             }}
-            onProviderOptionsChange={(value = '') => {
+            onProviderOptionsChange={(value) => {
               form.setValue('models.summarizer.providerOptions', value, { shouldDirty: true });
             }}
             editorNamePrefix="agent-summarizer"
