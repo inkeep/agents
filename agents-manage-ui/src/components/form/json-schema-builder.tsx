@@ -27,6 +27,7 @@ import {
 import { useDidUpdate } from '@/hooks/use-did-update';
 import { cn } from '@/lib/utils';
 import { ArrayIcon, BooleanIcon, EnumIcon, NumberIcon, ObjectIcon, StringIcon } from '../../icons';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 
 const INDENT_PX = 24;
 
@@ -268,20 +269,19 @@ export const JsonSchemaBuilder: FC<{
   const allRequiredState = useJsonSchemaStore((state) => state.allRequired);
   const { addChild, setFields, setReadOnly } = useJsonSchemaActions();
   // Fix race condition in cypress
-  const [isHydrated, setIsHydrated] = useState(false);
+  const isMounted = useIsMounted();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
     setFields(value, hasInPreview, allRequired, readOnly);
-    setIsHydrated(true);
   }, []);
 
   // Sync readOnly state when prop changes
   useEffect(() => {
-    if (isHydrated) {
+    if (isMounted) {
       setReadOnly(readOnly);
     }
-  }, [readOnly, isHydrated, setReadOnly]);
+  }, [readOnly, isMounted, setReadOnly]);
 
   // Calls only on update to avoid race condition with above useEffect
   useDidUpdate(() => {
@@ -341,7 +341,7 @@ export const JsonSchemaBuilder: FC<{
           variant="link"
           size="sm"
           className="self-start text-xs"
-          disabled={!isHydrated}
+          disabled={!isMounted}
         >
           <PlusIcon />
           Add property
