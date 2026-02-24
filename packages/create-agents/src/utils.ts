@@ -1,6 +1,8 @@
 import { exec } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
@@ -41,6 +43,60 @@ const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/te
 const execAsync = promisify(exec);
 
 const agentsApiPort = '3002';
+
+function getCliVersion(): string {
+  try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const pkgJson = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+    return pkgJson.version;
+  } catch {
+    return '';
+  }
+}
+
+export async function syncTemplateDependencies(templatePath: string): Promise<void> {
+  const cliVersion = getCliVersion();
+  if (!cliVersion) return;
+
+  const packageJsonPaths = await findPackageJsonFiles(templatePath);
+
+  await Promise.all(
+    packageJsonPaths.map(async (pkgPath) => {
+      const pkg = await fs.readJson(pkgPath);
+
+      for (const depType of ['dependencies', 'devDependencies'] as const) {
+        const deps = pkg[depType];
+        if (!deps) continue;
+        for (const name of Object.keys(deps)) {
+          if (name.startsWith('@inkeep/') && name !== '@inkeep/agents-ui') {
+            deps[name] = `^${cliVersion}`;
+          }
+        }
+      }
+
+      await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+    })
+  );
+}
+
+async function findPackageJsonFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const rootPkg = path.join(dir, 'package.json');
+  if (await fs.pathExists(rootPkg)) {
+    results.push(rootPkg);
+  }
+
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      continue;
+    }
+    const nested = await findPackageJsonFiles(path.join(dir, entry.name));
+    results.push(...nested);
+  }
+
+  return results;
+}
 
 export const defaultGoogleModelConfigurations = {
   base: {
@@ -397,6 +453,8 @@ export const createAgents = async (
     });
 
     process.chdir(directoryPath);
+
+    await syncTemplateDependencies('.');
 
     const config = {
       dirName,
