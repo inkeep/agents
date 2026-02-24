@@ -1698,14 +1698,14 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              // Convert AI SDK text format { type:"text", value } to MCP content format so the
-              // AI SDK passes the full object through to the LLM (preserving _toolCallId),
-              // instead of stripping extra fields from the text-typed result.
+              // If a tool explicitly returns the AI SDK text format { type:"text", value:"..." },
+              // convert it to a neutral object so the full result (including _toolCallId) is
+              // preserved when the AI SDK serializes it for the Anthropic API. The content-array
+              // format { content: [{type:"text", text}] } is recognized by the AI SDK and only
+              // the content array is forwarded, dropping any extra metadata fields.
               const r = result as any;
               const resultForEnhancement =
-                r?.type === 'text' && typeof r?.value === 'string'
-                  ? { content: [{ type: 'text', text: r.value }] }
-                  : result;
+                r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
 
               return this.enhanceToolResultWithStructureHints(resultForEnhancement, toolCallId);
             } catch (error) {
@@ -2600,7 +2600,20 @@ ${output}`;
    * Structure hints are only added when artifact components are available.
    */
   private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
-    if (!result) {
+    if (result === undefined) {
+      return result;
+    }
+
+    // Wrap primitive results (string, number, boolean, null) with _toolCallId so the LLM can
+    // reference them for tool chaining. The AI SDK serializes plain objects as JSON for the
+    // Anthropic API, so the LLM sees the full object including _toolCallId — unlike bare
+    // primitives which have no place to embed it. The raw value is stored separately in
+    // ToolSessionManager, so downstream tools still receive the bare primitive via {$tool}.
+    // Covers all primitives including falsy ones (false, 0, "", null).
+    if (typeof result !== 'object' || result === null) {
+      if (toolCallId) {
+        return { [typeof result === 'string' ? 'text' : 'value']: result, _toolCallId: toolCallId };
+      }
       return result;
     }
 

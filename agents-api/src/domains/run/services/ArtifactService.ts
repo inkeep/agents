@@ -824,7 +824,7 @@ export class ArtifactService {
     const cacheKey = `${artifactId}:${toolCallId}`;
     const artifactForCache = {
       ...artifactData,
-      parts: [{ data: { summary: artifactData.data, data: fullData } }],
+      parts: [{ data: { summary: artifactData.data, full: fullData } }],
       metadata: { artifactType: artifactData.type, toolCallId },
       taskId: this.context.taskId,
     };

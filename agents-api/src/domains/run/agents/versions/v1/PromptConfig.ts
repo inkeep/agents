@@ -599,10 +599,16 @@ IMPORTANT GUIDELINES:
             : {};
           const fullShape = fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {};
 
-          schemaDescription = `PREVIEW FIELDS — artifact:ref in text or artifact:create (summary only):
+          schemaDescription = `CAPTURED by artifact:create — include ALL of these in your details (both preview and non-preview):
+    ${JSON.stringify(fullShape, null, 2)}
+
+    DISPLAYED to user — artifact:ref in text shows only preview fields:
     ${JSON.stringify(previewShape, null, 2)}
 
-    FULL FIELDS — { "$artifact": "...", "$tool": "..." } tool argument or get_reference_artifact tool:
+    PASSED to tools — { "$artifact": "...", "$tool": "..." } as a tool argument resolves to all captured fields:
+    ${JSON.stringify(fullShape, null, 2)}
+
+    RETRIEVED explicitly — get_reference_artifact tool returns all captured fields:
     ${JSON.stringify(fullShape, null, 2)}`;
         }
 
@@ -621,8 +627,10 @@ ${typeDescriptions}
 - Do NOT make up arbitrary property names like "founders", "nick_details", "year"  
 - Each artifact type has specific fields defined in its schema
 - Your JMESPath selectors must extract values for these exact schema-defined properties
-- Example: If schema defines "title" and "url", use details='{"title":"title","url":"url"}' not made-up names
-- The system will automatically determine which fields are preview vs full based on schema configuration
+- Example: If the schema defines fields "title" (preview), "summary" (preview), and "body" (non-preview), your details must include all three: details='{"title":"title","summary":"summary","body":"body"}' — never omit non-preview fields
+- Include ALL schema fields in your details — both preview and non-preview. artifact:create captures everything.
+- Do NOT only include preview fields. Non-preview fields are what tools and get_reference_artifact receive.
+- The preview/full split is automatic based on the schema — your job is to map every field.
 
 🚨 CRITICAL: USE EXACT ARTIFACT TYPE NAMES IN QUOTES! 🚨
 - MUST use the exact type name shown in quotes above
@@ -722,8 +730,10 @@ ${creationInstructions}
     const artifactType = artifact.type || 'unknown';
     const schemas = typeSchemaMap?.[artifactType];
     const typeSchema = schemas
-      ? `PREVIEW (artifact:ref in text / artifact:create): ${JSON.stringify(schemas.previewShape)}
-    FULL ({ "$artifact": "...", "$tool": "..." } tool argument or get_reference_artifact): ${JSON.stringify(schemas.fullShape)}`
+      ? `DISPLAYED to user via artifact:ref (preview fields only): ${JSON.stringify(schemas.previewShape)}
+    PASSED to tools via { "$artifact": "...", "$tool": "..." } (all fields): ${JSON.stringify(schemas.fullShape)}
+    RETRIEVED via get_reference_artifact (all fields): ${JSON.stringify(schemas.fullShape)}
+    Note: artifact:create captured all fields at creation time.`
       : 'Schema not available';
 
     artifactXml = artifactXml.replace('{{ARTIFACT_NAME}}', artifact.name || '');
@@ -748,15 +758,27 @@ NEVER read a tool result and copy its value as a literal string or object into t
 
 ❌ WRONG — copying tool output inline:
   Call tool_a → returns "some text"
-  Call tool_b with { "text": "some text" }  ← you copied the value manually
+  Call tool_b with { "input": "some text" }  ← you copied the value manually
 
 ✅ CORRECT — referencing the previous call:
   Call tool_a → returns "some text" (tool_call_id: "call_a_xyz")
-  Call tool_b with { "text": { "$tool": "call_a_xyz" } }  ← system resolves it automatically
+  Call tool_b with { "input": { "$tool": "call_a_xyz" } }  ← system resolves it automatically
+
+HOW PRIMITIVE RESULTS APPEAR vs. WHAT { "$tool" } RESOLVES TO:
+When a tool returns a primitive (string, number, boolean), the result appears in the conversation
+wrapped for display purposes — e.g. { "text": "...", "_toolCallId": "call_a_xyz" } for strings
+or { "value": 42, "_toolCallId": "call_a_xyz" } for numbers. This wrapper is display-only.
+{ "$tool": "call_a_xyz" } resolves to the raw primitive itself — not the wrapper object.
+
+  Call tool_a → result shown as { "value": 42, "_toolCallId": "call_a_xyz" }
+  tool_b with { "input": { "$tool": "call_a_xyz" } } receives: 42  ← raw number, not the wrapper
+
+  Call tool_a → result shown as { "text": "hello", "_toolCallId": "call_a_xyz" }
+  tool_b with { "input": { "$tool": "call_a_xyz" } } receives: "hello"  ← raw string, not the wrapper
 
 Pipeline example:
-  Step 1: citation_extract_text({ "citation": { "$artifact": "cit-1", "$tool": "call_search" } }) → (tool_call_id: "call_extract")
-  Step 2: text_search({ "text": { "$tool": "call_extract" }, "term": "authentication" })
+  Step 1: tool_a({ "arg": "value" }) → (tool_call_id: "call_a")
+  Step 2: tool_b({ "input": { "$tool": "call_a" }, "other": "value" })
 
 This is different from artifact passing:
 - { "$tool": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
