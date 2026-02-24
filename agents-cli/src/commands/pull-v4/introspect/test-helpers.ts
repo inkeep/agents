@@ -46,7 +46,7 @@ export function cleanupTestEnvironment(testDir: string): void {
 }
 
 export function getTestPath(): string {
-  return `../__snapshots__/introspect/${expect.getState().currentTestName?.split(' > ').at(-1)}`;
+  return `../__tests__/__snapshots__/introspect/${expect.getState().currentTestName?.split(' > ').at(-1)}`;
 }
 
 export function createProjectFixture(): FullProjectDefinition {
