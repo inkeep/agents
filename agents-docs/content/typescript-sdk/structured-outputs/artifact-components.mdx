@@ -108,6 +108,8 @@ Agents can access artifact data in a few ways:
 - **Passing to a tool** — the agent can supply an artifact as an argument to a tool; the tool receives the complete artifact data, including all non-preview fields
 - **On-demand retrieval** — the agent can explicitly fetch the full artifact when it needs to read non-preview fields itself
 
+Not every intermediate tool result needs to become an artifact. When an agent chains tool calls — passing one tool's output directly into the next — no artifact is created and nothing surfaces to the user. See [Tool Output Pipelines](/typescript-sdk/tools/function-tools#tool-output-pipelines).
+
 ## Passing Artifacts to Tools
 
 When an agent passes an artifact to a tool as an argument, the tool receives the **complete artifact data** — all fields, including those not marked `inPreview`. This means you can design tools that work with rich artifact content without needing to fetch or reconstruct data manually.
