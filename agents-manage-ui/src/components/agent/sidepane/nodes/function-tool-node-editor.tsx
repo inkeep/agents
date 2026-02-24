@@ -3,6 +3,7 @@ import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
+import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,7 +25,6 @@ import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { TextareaField } from '../form-components/text-area';
-import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
