@@ -147,6 +147,49 @@ describe('Tool auth error short-circuit behavior', () => {
     });
   });
 
+  describe('isValidTool compatibility', () => {
+    function isValidTool(
+      tool: any
+    ): tool is { description: string; inputSchema: any; execute: (...args: any[]) => any } {
+      return (
+        tool &&
+        typeof tool === 'object' &&
+        typeof tool.description === 'string' &&
+        tool.inputSchema &&
+        typeof tool.execute === 'function'
+      );
+    }
+
+    it('accepts placeholder tool with inputSchema', () => {
+      const tool = {
+        description: toolName,
+        inputSchema: z.object({}),
+        execute: createAuthErrorExecute(undefined),
+      };
+
+      expect(isValidTool(tool)).toBe(true);
+    });
+
+    it('rejects tool with parameters instead of inputSchema', () => {
+      const tool = {
+        description: toolName,
+        parameters: z.object({}),
+        execute: createAuthErrorExecute(undefined),
+      };
+
+      expect(isValidTool(tool)).toBeFalsy();
+    });
+
+    it('rejects tool missing execute function', () => {
+      const tool = {
+        description: toolName,
+        inputSchema: z.object({}),
+      };
+
+      expect(isValidTool(tool)).toBeFalsy();
+    });
+  });
+
   describe('SSEStreamHelper integration', () => {
     let sseMessages: Array<{ data: string }>;
     let mockStream: HonoSSEStream;
