@@ -50,7 +50,9 @@ export function AgentItem({
         <ItemCardDescription hasContent={!!description}>
           {description || 'No description'}
         </ItemCardDescription>
-        <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
+        <ItemCardFooter
+          footerText={`Created ${formatDate(createdAt)} [DEBUG raw: ${JSON.stringify(createdAt)}]`}
+        />
       </ItemCardContent>
     </ItemCardRoot>
   );
