@@ -144,7 +144,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           try {
             formattedText = await formatMarkdown(text);
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
+            toast.error(`Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`);
             formattedText = text;
           }
           return [
