@@ -5,15 +5,10 @@
  * Priority: Channel default > Workspace default (all admin-controlled)
  */
 
-import {
-  findWorkAppSlackChannelAgentConfig,
-  generateInternalServiceToken,
-  getInProcessFetch,
-  InternalServices,
-} from '@inkeep/agents-core';
+import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
-import { env } from '../../env';
 import { getLogger } from '../../logger';
+import { fetchAgentsForProject } from './events/utils';
 import { getWorkspaceDefaultAgentFromNango } from './nango';
 
 const logger = getLogger('slack-agent-resolution');
@@ -33,77 +28,35 @@ async function lookupAgentName(
     return cached.name || undefined;
   }
 
-  try {
-    const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
-    const token = await generateInternalServiceToken({
-      serviceId: InternalServices.INKEEP_AGENTS_MANAGE_API,
-      tenantId,
-      projectId,
+  const agents = await fetchAgentsForProject(tenantId, projectId);
+
+  for (const agent of agents) {
+    const key = `${tenantId}:${projectId}:${agent.id}`;
+    agentNameCache.set(key, {
+      name: agent.name || null,
+      expiresAt: Date.now() + AGENT_NAME_CACHE_TTL_MS,
     });
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5_000);
-
-    try {
-      const response = await getInProcessFetch()(
-        `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=50`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'x-inkeep-project-id': projectId,
-          },
-          signal: controller.signal,
-        }
-      );
-
-      if (!response.ok) {
-        logger.warn(
-          { status: response.status, tenantId, projectId, agentId },
-          'Failed to fetch agents for name lookup'
-        );
-        return undefined;
-      }
-
-      const result = (await response.json()) as {
-        data: Array<{ id: string; name: string }>;
-      };
-
-      for (const agent of result.data) {
-        const key = `${tenantId}:${projectId}:${agent.id}`;
-        agentNameCache.set(key, {
-          name: agent.name || null,
-          expiresAt: Date.now() + AGENT_NAME_CACHE_TTL_MS,
-        });
-      }
-
-      if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
-        const now = Date.now();
-        for (const [key, entry] of agentNameCache) {
-          if (entry.expiresAt <= now) {
-            agentNameCache.delete(key);
-          }
-        }
-        if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
-          const excess = agentNameCache.size - AGENT_NAME_CACHE_MAX_SIZE;
-          const keys = agentNameCache.keys();
-          for (let i = 0; i < excess; i++) {
-            const { value } = keys.next();
-            if (value) agentNameCache.delete(value);
-          }
-        }
-      }
-
-      const found = result.data.find((a) => a.id === agentId);
-      return found?.name || undefined;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch (error) {
-    logger.warn({ error, tenantId, projectId, agentId }, 'Failed to look up agent name');
-    return undefined;
   }
+
+  if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
+    const now = Date.now();
+    for (const [key, entry] of agentNameCache) {
+      if (entry.expiresAt <= now) {
+        agentNameCache.delete(key);
+      }
+    }
+    if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
+      const excess = agentNameCache.size - AGENT_NAME_CACHE_MAX_SIZE;
+      const keys = agentNameCache.keys();
+      for (let i = 0; i < excess; i++) {
+        const { value } = keys.next();
+        if (value) agentNameCache.delete(value);
+      }
+    }
+  }
+
+  const found = agents.find((a) => a.id === agentId);
+  return found?.name || undefined;
 }
 
 /** Configuration for a resolved agent */

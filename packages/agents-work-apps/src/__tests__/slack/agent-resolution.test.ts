@@ -30,6 +30,10 @@ vi.mock('../../slack/services/nango', () => ({
   getWorkspaceDefaultAgentFromNango: vi.fn(),
 }));
 
+vi.mock('../../slack/services/events/utils', () => ({
+  fetchAgentsForProject: vi.fn().mockResolvedValue([]),
+}));
+
 describe('Agent Resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
