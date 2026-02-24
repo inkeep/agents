@@ -28,7 +28,9 @@ import {
   getGitHubClientFromRepo,
   type LLMUpdateOperation,
   listIssueCommentReactions,
+  listIssueReactions,
   listPullRequestReviewCommentReactions,
+  type ReactionDetail,
   visualizeUpdateOperations,
 } from './utils';
 
@@ -1219,7 +1221,7 @@ const getServer = async (toolId: string) => {
 
   server.tool(
     'remove-reaction',
-    `Remove a reaction from a pull request body, a general PR comment, or an inline PR review comment. Requires the reaction ID (returned when adding a reaction or from list-comment-reactions). ${getAvailableRepositoryString(repositoryAccess)}`,
+    `Remove a reaction from a pull request body, a general PR comment, or an inline PR review comment. Requires the reaction ID (returned when adding a reaction or from list-reactions). ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
@@ -1312,19 +1314,23 @@ const getServer = async (toolId: string) => {
   );
 
   server.tool(
-    'list-comment-reactions',
-    `List all reactions on a comment, including each reaction's ID (needed for removal). Supports both general issue/PR comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    'list-reactions',
+    `List all reactions on a pull request body, a general PR comment, or an inline PR review comment. Returns each reaction's ID (needed for removal). ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
-      comment_id: z.number().describe('The ID of the comment to list reactions for'),
-      comment_type: z
-        .enum(['issue_comment', 'review_comment'])
+      target_id: z
+        .number()
         .describe(
-          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+          'The target to list reactions for: a comment ID for issue_comment/review_comment, or the pull request number for pull_request'
+        ),
+      target_type: z
+        .enum(['pull_request', 'issue_comment', 'review_comment'])
+        .describe(
+          'The type of target: "pull_request" for the PR body itself, "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
         ),
     },
-    async ({ owner, repo, comment_id, comment_type }) => {
+    async ({ owner, repo, target_id, target_type }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -1341,17 +1347,29 @@ const getServer = async (toolId: string) => {
           };
         }
 
-        const reactions =
-          comment_type === 'issue_comment'
-            ? await listIssueCommentReactions(githubClient, owner, repo, comment_id)
-            : await listPullRequestReviewCommentReactions(githubClient, owner, repo, comment_id);
+        let reactions: ReactionDetail[] = [];
+        if (target_type === 'pull_request') {
+          reactions = await listIssueReactions(githubClient, owner, repo, target_id);
+        } else if (target_type === 'issue_comment') {
+          reactions = await listIssueCommentReactions(githubClient, owner, repo, target_id);
+        } else {
+          reactions = await listPullRequestReviewCommentReactions(
+            githubClient,
+            owner,
+            repo,
+            target_id
+          );
+        }
+
+        const label =
+          target_type === 'pull_request' ? `PR #${target_id}` : `${target_type} ${target_id}`;
 
         if (reactions.length === 0) {
           return {
             content: [
               {
                 type: 'text',
-                text: `No reactions found on ${comment_type} comment ${comment_id} in ${owner}/${repo}.`,
+                text: `No reactions found on ${label} in ${owner}/${repo}.`,
               },
             ],
           };
@@ -1365,7 +1383,7 @@ const getServer = async (toolId: string) => {
           content: [
             {
               type: 'text',
-              text: `Found ${reactions.length} reaction(s) on ${comment_type} comment ${comment_id} in ${owner}/${repo}:\n\n${formatted}`,
+              text: `Found ${reactions.length} reaction(s) on ${label} in ${owner}/${repo}:\n\n${formatted}`,
             },
           ],
         };
@@ -1377,7 +1395,7 @@ const getServer = async (toolId: string) => {
               content: [
                 {
                   type: 'text',
-                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                  text: `Target ${target_id} (${target_type}) not found in ${owner}/${repo}.`,
                 },
               ],
               isError: true,
