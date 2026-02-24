@@ -30,6 +30,7 @@ import {
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import { FieldLabel } from '../form-components/label';
+import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
@@ -82,6 +83,10 @@ export function MCPServerNodeEditor({
   }, [selectedNode.id]);
 
   const availableTools = toolData?.availableTools;
+  const toolOverrides =
+    toolData?.config && toolData.config.type === 'mcp'
+      ? toolData.config.mcp.toolOverrides
+      : undefined;
 
   const activeTools = getActiveTools({
     availableTools: availableTools,
@@ -447,6 +452,10 @@ export function MCPServerNodeEditor({
                   ? true // If null, all tools are selected
                   : selectedTools.includes(tool.name);
               const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
+              const override = toolOverrides?.[tool.name];
+              const displayName = override?.displayName || tool.name;
+              const displayDescription = override?.description || tool.description;
+              const hasSchemaOverride = !!override?.schema;
 
               return (
                 <div
@@ -458,19 +467,13 @@ export function MCPServerNodeEditor({
                       checked={isSelected}
                       onCheckedChange={() => toggleToolSelection(tool.name)}
                     />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{tool.name}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">
-                            {tool.description}
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-sm">
-                        <div>{tool.description}</div>
-                      </TooltipContent>
-                    </Tooltip>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{displayName}</div>
+                      <div className="text-xs text-muted-foreground line-clamp-1">
+                        {displayDescription}
+                      </div>
+                      {hasSchemaOverride && <SchemaOverrideBadge schema={override.schema} />}
+                    </div>
                   </div>
                   <div className="items-center">
                     <Checkbox
