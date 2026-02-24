@@ -3,7 +3,9 @@ import { z } from 'zod';
 
 const DATE_ENUM = ['1d', '1w', '1m', '3m', '1y', 'never'] as const;
 
-export const EXPIRATION_DATE_OPTIONS: { value: (typeof DATE_ENUM)[number]; label: string }[] = [
+export type ApiKeyDate = (typeof DATE_ENUM)[number];
+
+export const EXPIRATION_DATE_OPTIONS: { value: ApiKeyDate; label: string }[] = [
   { value: '1d', label: '1 day' },
   { value: '1w', label: '1 week' },
   { value: '1m', label: '1 month' },
@@ -12,7 +14,7 @@ export const EXPIRATION_DATE_OPTIONS: { value: (typeof DATE_ENUM)[number]; label
   { value: 'never', label: 'No expiration' },
 ];
 
-function convertDurationToDate(duration: (typeof DATE_ENUM)[number] | string): string | undefined {
+function convertDurationToDate(duration: ApiKeyDate): string | undefined {
   if (duration === 'never') {
     return;
   }
@@ -46,15 +48,12 @@ export const ApiKeySchema = ApiKeyApiInsertSchema.pick({
   name: true,
   agentId: true,
 }).extend({
-  expiresAt: z
-    .enum(DATE_ENUM as readonly string[])
-    .transform(convertDurationToDate)
-    .optional(),
+  expiresAt: z.enum(DATE_ENUM).transform(convertDurationToDate).optional(),
 });
 export const ApiKeyUpdateSchema = ApiKeySchema.omit({
   agentId: true,
 });
 
-export type ApiKeyFormData = z.infer<typeof ApiKeySchema>;
+export type ApiKeyFormData = z.input<typeof ApiKeySchema>;
 
 export type ApiKeyUpdateData = z.infer<typeof ApiKeyUpdateSchema>;

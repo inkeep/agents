@@ -30,7 +30,7 @@ export function ApiKeyForm({
   agentsOptions,
   onApiKeyCreated,
 }: ApiKeyFormProps) {
-  const form = useForm<ApiKeyFormData>({
+  const form = useForm({
     resolver: zodResolver(ApiKeySchema),
     defaultValues: initialData,
   });

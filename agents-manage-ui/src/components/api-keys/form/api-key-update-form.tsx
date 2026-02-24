@@ -10,7 +10,7 @@ import { Form } from '@/components/ui/form';
 import { updateApiKeyAction } from '@/lib/actions/api-keys';
 import type { ApiKey } from '@/lib/api/api-keys';
 import { isRequired } from '@/lib/utils';
-import { type ApiKeyUpdateData, ApiKeyUpdateSchema, EXPIRATION_DATE_OPTIONS } from './validation';
+import { type ApiKeyDate, ApiKeyUpdateSchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
 interface ApiKeyUpdateFormProps {
   tenantId: string;
@@ -19,7 +19,7 @@ interface ApiKeyUpdateFormProps {
   onApiKeyUpdated?: (apiKeyData: ApiKey) => void;
 }
 
-const convertDateToDuration = (isoDate?: string): 'never' | '1d' | '1w' | '1m' | '3m' | '1y' => {
+function convertDateToDuration(isoDate?: string): ApiKeyDate {
   if (!isoDate) {
     return 'never';
   }
@@ -46,7 +46,7 @@ const convertDateToDuration = (isoDate?: string): 'never' | '1d' | '1w' | '1m' |
 
   // For dates far in the future, default to 1 year
   return '1y';
-};
+}
 
 export function ApiKeyUpdateForm({
   tenantId,
@@ -54,7 +54,7 @@ export function ApiKeyUpdateForm({
   apiKey,
   onApiKeyUpdated,
 }: ApiKeyUpdateFormProps) {
-  const form = useForm<ApiKeyUpdateData>({
+  const form = useForm({
     resolver: zodResolver(ApiKeyUpdateSchema),
     defaultValues: {
       name: apiKey.name,
