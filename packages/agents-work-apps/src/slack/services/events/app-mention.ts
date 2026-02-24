@@ -309,7 +309,6 @@ Respond naturally as if you're joining the conversation to help.`;
       // Has query → Execute agent with streaming
       let queryText = text;
       const attachmentContext = formatAttachments(attachments);
-      logger.info({ attachmentContext }, 'Attachment context');
 
       // Include thread context if in a thread
       if (isInThread && threadTs) {

@@ -11,6 +11,7 @@ import {
   handleToolApproval,
   sendResponseUrlMessage,
 } from './services/events';
+import type { SlackAttachment } from './services/events/utils';
 import { SLACK_SPAN_KEYS, type SlackOutcome } from './tracer';
 
 const logger = getLogger('slack-dispatcher');
