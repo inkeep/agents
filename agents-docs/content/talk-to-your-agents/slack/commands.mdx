@@ -47,7 +47,7 @@ The `/inkeep` slash command lets you ask questions and manage your account. Agen
 | `/inkeep <your question>` | Ask the default agent — response is posted in the channel |
 | `/inkeep` | Open a modal to pick a project, agent, and write your prompt |
 | `/inkeep help` | Show the full usage guide |
-| `/inkeep status` | See your linked account and the active agent for this channel |
+| `/inkeep status` | See your linked account, active agent, and project for this channel |
 | `/inkeep link` | Link your Slack account to Inkeep (one-time) |
 | `/inkeep unlink` | Disconnect your Slack account |
 
@@ -81,7 +81,7 @@ The agent that handles your request depends on how your admin configured the wor
 - If no agent is configured at all → the bot tells you to ask an admin to set one up
 
 <Tip>
-Run `/inkeep status` to see exactly which agent is active in the current channel and whether it's a channel default or workspace default.
+Run `/inkeep status` to see exactly which agent and project are active in the current channel. Both are shown as links to the Inkeep dashboard for easy access.
 </Tip>
 
 ## Tool approvals
