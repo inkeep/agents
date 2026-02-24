@@ -1,6 +1,7 @@
 import { type FC, useEffect } from 'react';
 import { ContextConfigSchema as schema } from '@/components/agent/form/validation';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
@@ -53,7 +54,7 @@ export const ContextConfigForm: FC = () => {
         customTemplate={contextVariablesTemplate}
         isRequired={isRequired(schema, 'contextVariables')}
       />
-      <GenericJsonEditor
+      <GenericJsonSchemaEditor
         control={form.control}
         name="contextConfig.headersSchema"
         label="Headers schema (JSON)"
