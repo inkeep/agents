@@ -187,21 +187,23 @@ describe('Slack Block Builders', () => {
       expect(json).not.toContain('Project:');
     });
 
-    it('should render agent without link when projectId is missing', () => {
+    it('should always include project and agent links when effective config is present', () => {
       const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
         channelConfig: null,
         workspaceConfig: null,
         effective: {
           agentName: 'Support Agent',
           agentId: 'support-agent',
+          projectId: 'proj-1',
           source: 'workspace',
         },
       });
 
       const json = JSON.stringify(result);
-      expect(json).toContain('Support Agent');
-      expect(json).toContain('Unknown');
-      expect(json).not.toContain('<https://');
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|Support Agent>'
+      );
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|proj-1>');
     });
   });
 });

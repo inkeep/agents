@@ -140,19 +140,19 @@ export interface AgentConfigSources {
   channelConfig: {
     agentName?: string;
     agentId: string;
-    projectId?: string;
+    projectId: string;
     projectName?: string;
   } | null;
   workspaceConfig: {
     agentName?: string;
     agentId: string;
-    projectId?: string;
+    projectId: string;
     projectName?: string;
   } | null;
   effective: {
     agentName?: string;
     agentId: string;
-    projectId?: string;
+    projectId: string;
     projectName?: string;
     source: string;
   } | null;
@@ -172,16 +172,11 @@ export function createStatusMessage(
   let projectLine: string;
   if (effective) {
     const agentDisplayName = effective.agentName || effective.agentId;
-    if (effective.projectId) {
-      const agentUrl = `${baseUrl}/projects/${effective.projectId}/agents/${effective.agentId}`;
-      agentLine = `${Md.bold('Agent:')} <${agentUrl}|${agentDisplayName}>`;
-      const projectDisplayName = effective.projectName || effective.projectId;
-      const projectUrl = `${baseUrl}/projects/${effective.projectId}/agents`;
-      projectLine = `${Md.bold('Project:')} <${projectUrl}|${projectDisplayName}>`;
-    } else {
-      agentLine = `${Md.bold('Agent:')} ${agentDisplayName}`;
-      projectLine = `${Md.bold('Project:')} Unknown`;
-    }
+    const agentUrl = `${baseUrl}/projects/${effective.projectId}/agents/${effective.agentId}`;
+    agentLine = `${Md.bold('Agent:')} <${agentUrl}|${agentDisplayName}>`;
+    const projectDisplayName = effective.projectName || effective.projectId;
+    const projectUrl = `${baseUrl}/projects/${effective.projectId}/agents`;
+    projectLine = `${Md.bold('Project:')} <${projectUrl}|${projectDisplayName}>`;
   } else {
     agentLine =
       `${Md.bold('Agent:')} None configured\n` +

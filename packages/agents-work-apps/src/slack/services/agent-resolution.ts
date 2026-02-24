@@ -87,6 +87,14 @@ async function lookupProjectName(tenantId: string, projectId: string): Promise<s
         projectNameCache.delete(key);
       }
     }
+    if (projectNameCache.size > PROJECT_NAME_CACHE_MAX_SIZE) {
+      const excess = projectNameCache.size - PROJECT_NAME_CACHE_MAX_SIZE;
+      const keys = projectNameCache.keys();
+      for (let i = 0; i < excess; i++) {
+        const { value } = keys.next();
+        if (value) projectNameCache.delete(value);
+      }
+    }
   }
 
   const found = projects.find((p) => p.id === projectId);
