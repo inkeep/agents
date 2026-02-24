@@ -66,7 +66,10 @@ export function ApiKeyUpdateForm({
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const res = await updateApiKeyAction(tenantId, projectId, data);
+      const res = await updateApiKeyAction(tenantId, projectId, {
+        id: apiKey.id,
+        ...data,
+      });
       if (!res.success) {
         toast.error(res.error || 'Failed to update api key');
         return;
