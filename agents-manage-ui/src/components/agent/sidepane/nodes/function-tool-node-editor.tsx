@@ -16,11 +16,9 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
@@ -36,8 +34,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   });
 
   const { canEdit } = useProjectPermissions();
-  const isJsonSchemaMode = useAgentStore((state) => state.jsonSchemaMode);
-  const { setJsonSchemaMode } = useAgentActions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
 
   const nodeData = selectedNode.data;
@@ -49,10 +45,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const [name, setName] = useState(String(nodeData.name || ''));
   const [description, setDescription] = useState(String(nodeData.description || ''));
   const [code, setCode] = useState(String(nodeData.code || ''));
-  const [inputSchema, setInputSchema] = useState(
+  const [inputSchema, setInputSchema] = useState(() =>
     nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : ''
   );
-  const [dependencies, setDependencies] = useState(
+  const [dependencies, setDependencies] = useState(() =>
     nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : ''
   );
   const [needsApproval, setNeedsApproval] = useState(
