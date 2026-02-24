@@ -44,11 +44,10 @@ async function formatJS(value: string): Promise<string> {
   return formatted.trimEnd();
 }
 async function formatMarkdown(value: string): Promise<string> {
-  const [{ default: prettier }, { default: parserMarkdown }] =
-    await Promise.all([
-      import('prettier/standalone'),
-      import('prettier/plugins/markdown'),
-    ]);
+  const [{ default: prettier }, { default: parserMarkdown }] = await Promise.all([
+    import('prettier/standalone'),
+    import('prettier/plugins/markdown'),
+  ]);
 
   const formatted = await prettier.format(value, {
     parser: 'mdx',
