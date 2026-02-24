@@ -27,6 +27,8 @@ export {
   handleOpenFollowUpModal,
   handleToolApproval,
 } from './block-actions';
+export type { PublicExecutionParams } from './execution';
+export { executeAgentPublicly } from './execution';
 export { handleFollowUpSubmission, handleModalSubmission } from './modal-submission';
 export type { StreamResult } from './streaming';
 export { streamAgentResponse } from './streaming';
