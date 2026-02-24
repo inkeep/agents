@@ -1,0 +1,12 @@
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const test = artifactComponent({
+  id: 'test',
+  name: 'Test',
+  description: 'Component with content type',
+  contentType: 'text/html',
+  props: z.object({
+      content: z.string(),
+    }),
+});

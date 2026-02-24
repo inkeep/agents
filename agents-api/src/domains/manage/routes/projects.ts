@@ -24,6 +24,7 @@ import {
   syncProjectToSpiceDb,
   TenantIdParamsSchema,
   TenantParamsSchema,
+  throwIfUniqueConstraintError,
   updateProject,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
@@ -257,13 +258,7 @@ app.openapi(
         201
       );
     } catch (error: any) {
-      // Handle duplicate project (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505' || error?.message?.includes('already exists')) {
-        throw createApiError({
-          code: 'conflict',
-          message: 'Project with this ID already exists',
-        });
-      }
+      throwIfUniqueConstraintError(error, 'Project with this ID already exists');
       throw error;
     }
   }

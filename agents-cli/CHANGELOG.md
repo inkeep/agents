@@ -1,5 +1,26 @@
 # @inkeep/agents-cli
 
+## 0.52.0
+
+### Minor Changes
+
+- 886b2da: Refactor pull command to use ts-morph for improved code generation and smart merging
+
+  - Migrates from string-based code generation to AST-based manipulation using ts-morph
+  - Adds intelligent merge mode that preserves user customizations when pulling updates
+  - Improves handling of imports, comments, and custom code during regeneration
+  - Adds comprehensive test coverage for the new pull command implementation
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+- Updated dependencies [d717f54]
+  - @inkeep/agents-core@0.52.0
+  - @inkeep/agents-manage-ui@0.52.0
+  - @inkeep/agents-sdk@0.52.0
+
 ## 0.51.0
 
 ### Patch Changes

@@ -1,0 +1,31 @@
+Index: agents/support-agent.ts
+===================================================================
+--- agents/support-agent.ts	before
++++ agents/support-agent.ts	after
+@@ -1,14 +1,23 @@
+ import { agent, subAgent } from '@inkeep/agents-sdk';
++import { supportContext } from '../context-configs/support-context';
++import { githubWebhook } from './triggers/github-webhook';
++import { toolSummary } from '../status-components/tool-summary';
+ 
+ const tierOneCustom = subAgent({
+   id: 'tier-one',
+-  name: 'Legacy Tier One'
++  name: 'Tier One'
+ });
+ 
+ // Agent
+ export const supportAgent = agent({
+   id: 'support-agent',
+-  name: 'Legacy Support Agent',
++  name: 'Support Agent',
+   defaultSubAgent: tierOneCustom,
+-  subAgents: () => [tierOneCustom]
++  subAgents: () => [tierOneCustom],
++  contextConfig: supportContext,
++  triggers: () => [githubWebhook],
++  statusUpdates: {
++    numEvents: 1,
++    statusComponents: [toolSummary.config]
++  }
+ });

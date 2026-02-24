@@ -23,6 +23,7 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -249,14 +250,10 @@ app.openapi(
 
       return c.json({ data: agent }, 201);
     } catch (error: any) {
-      // Handle duplicate agent (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
-        const agentId = validatedBody.id || 'unknown';
-        throw createApiError({
-          code: 'conflict',
-          message: `An agent with ID '${agentId}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(
+        error,
+        `An agent with ID '${validatedBody.id || 'unknown'}' already exists`
+      );
 
       // Re-throw other errors to be handled by the global error handler
       throw error;
