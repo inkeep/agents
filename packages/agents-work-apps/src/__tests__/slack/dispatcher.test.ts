@@ -99,6 +99,31 @@ describe('dispatchSlackEvent', () => {
       expect(options.registerBackgroundWork).not.toHaveBeenCalled();
     });
 
+    it('should ignore edited messages', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '123.456',
+            edited: { user: 'U123', ts: '123.789' },
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('ignored_edited_message');
+      expect(options.registerBackgroundWork).not.toHaveBeenCalled();
+    });
+
     it('should handle app_mention events', async () => {
       const span = createMockSpan();
       const options = createMockOptions();

@@ -144,6 +144,67 @@ describe('Event Utils', () => {
       expect(result).toContain('Inkeep Agent: """Answer Powered by Agent"""');
     });
 
+    it('should resolve user names and build a user directory', async () => {
+      const mockClient = {
+        conversations: {
+          replies: vi.fn().mockResolvedValue({
+            messages: [
+              { user: 'U123', text: 'Hello' },
+              { user: 'U456', text: 'World' },
+              { user: 'U123', text: 'Follow up' },
+            ],
+          }),
+        },
+        users: {
+          info: vi.fn().mockImplementation(({ user }: { user: string }) => {
+            if (user === 'U123') {
+              return Promise.resolve({
+                user: {
+                  real_name: 'Alice Smith',
+                  profile: { display_name: 'alice', email: 'alice@example.com' },
+                },
+              });
+            }
+            return Promise.resolve({
+              user: {
+                real_name: 'Bob Jones',
+                profile: { display_name: '', email: 'bob@example.com' },
+              },
+            });
+          }),
+        },
+      };
+
+      const result = await getThreadContext(mockClient, 'C123', '1234.5678');
+      expect(result).toContain('Users in this thread');
+      expect(result).toContain('U123');
+      expect(result).toContain('"alice"');
+      expect(result).toContain('"Alice Smith"');
+      expect(result).toContain('alice@example.com');
+      expect(result).toContain('U456');
+      expect(result).toContain('"Bob Jones"');
+      expect(result).toContain('bob@example.com');
+    });
+
+    it('should handle user info fetch failures gracefully', async () => {
+      const mockClient = {
+        conversations: {
+          replies: vi.fn().mockResolvedValue({
+            messages: [
+              { user: 'U123', text: 'Hello' },
+              { user: 'U123', text: 'Follow up' },
+            ],
+          }),
+        },
+        users: {
+          info: vi.fn().mockRejectedValue(new Error('User not found')),
+        },
+      };
+
+      const result = await getThreadContext(mockClient, 'C123', '1234.5678');
+      expect(result).toContain('U123: """Hello"""');
+    });
+
     it('should handle API errors gracefully', async () => {
       const mockClient = {
         conversations: {
