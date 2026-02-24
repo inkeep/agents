@@ -18,6 +18,7 @@ const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 const nextConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForBuild: true,
+    serverComponentsHmrCache: true,
   },
   serverExternalPackages: [
     '@opentelemetry/api',

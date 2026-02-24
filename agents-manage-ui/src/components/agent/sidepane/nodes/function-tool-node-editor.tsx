@@ -1,9 +1,9 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
-import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -24,6 +24,7 @@ import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { TextareaField } from '../form-components/text-area';
+import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
@@ -248,22 +249,13 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           </div>
         </DialogContent>
       </Dialog>
-      <div className="space-y-2">
-        <div className="relative flex items-center justify-between">
-          <div className="text-sm font-medium">
-            Input Schema <span className="text-red-500">*</span>
-          </div>
-          <span className="flex items-center gap-2 text-sm font-medium">
-            JSON
-            <Switch checked={isJsonSchemaMode} onCheckedChange={setJsonSchemaMode} />
-          </span>
-        </div>
-        <div className="pt-2">
-          {isJsonSchemaMode ? (
-            <StandaloneJsonEditor
-              value={inputSchema}
-              onChange={handleInputSchemaChange}
-              placeholder={`{
+      <div className="relative">
+        <FieldLabel label="Input Schema" isRequired />
+        <JsonSchemaEditor
+          value={inputSchema}
+          onChange={handleInputSchemaChange}
+          aria-invalid={!!getFieldError('inputSchema')}
+          placeholder={`{
   "type": "object",
   "properties": {
     "param1": {
@@ -277,15 +269,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   },
   "required": ["param1"]
 }`}
-            />
-          ) : (
-            <JsonSchemaBuilder
-              value={inputSchema}
-              onChange={handleInputSchemaChange}
-              hasError={!!getFieldError('inputSchema')}
-            />
-          )}
-        </div>
+        />
         <p className="text-xs text-muted-foreground">
           JSON schema defining the parameters that the function will receive. This defines the
           structure and validation rules for the function's input arguments.
