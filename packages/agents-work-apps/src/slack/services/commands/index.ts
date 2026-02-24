@@ -70,7 +70,6 @@ export async function handleLinkCommand(
       slackEnterpriseId: payload.enterpriseId,
       slackUsername: payload.userName,
     });
-    console.log('linkResult', linkResult);
     const message = buildLinkPromptMessage(linkResult);
     return { response_type: 'ephemeral', ...message };
   } catch (error) {
