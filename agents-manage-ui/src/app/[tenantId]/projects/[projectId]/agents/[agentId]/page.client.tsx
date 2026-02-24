@@ -33,6 +33,7 @@ import { resolveCollisions } from '@/components/agent/configuration/resolve-coll
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
+import { serializeAgentForm } from '@/components/agent/form/validation';
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
@@ -780,6 +781,8 @@ export const Agent: FC<AgentProps> = ({
       clearErrors();
       toast.success('Agent saved', { closeButton: true });
       markSaved();
+      // This makes current values the new default values
+      form.reset(serializeAgentForm(res.data));
 
       // Update MCP nodes with new relationshipIds from backend response
       if (res.data) {
