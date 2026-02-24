@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.53.0
+
+### Patch Changes
+
+- 6a7dc67: Updated artifact parsing
+- Updated dependencies [901ff0a]
+- Updated dependencies [6d435a6]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [41ed409]
+- Updated dependencies [38506a8]
+- Updated dependencies [f868a96]
+- Updated dependencies [4d4fa33]
+  - @inkeep/agents-work-apps@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-mcp@0.53.0
+
 ## 0.52.0
 
 ### Patch Changes

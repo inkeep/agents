@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.53.0
+
+### Patch Changes
+
+- 0a0cb6e: Unify .env generation between quickstart CLI and contributor flows
+
 ## 0.52.0
 
 ### Patch Changes
