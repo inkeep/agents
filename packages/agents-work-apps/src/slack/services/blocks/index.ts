@@ -28,6 +28,7 @@ export function createContextBlock(params: ContextBlockParams) {
 export interface FollowUpButtonParams {
   conversationId: string;
   agentId: string;
+  agentName?: string;
   projectId: string;
   tenantId: string;
   teamId: string;
@@ -67,7 +68,7 @@ export function buildConversationResponseBlocks(params: {
   ];
 
   if (!isError) {
-    const contextBlock = createContextBlock({ agentName, isPrivate: true });
+    const contextBlock = createContextBlock({ agentName });
     blocks.push(contextBlock);
     blocks.push({ type: 'actions', elements: buildFollowUpButton(followUpParams) });
   }
