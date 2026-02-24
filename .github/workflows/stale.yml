@@ -18,7 +18,7 @@ jobs:
     
     steps:
       - name: Mark stale pull requests
-        uses: actions/stale@v9
+        uses: actions/stale@v10
         with:
           # Configuration for pull requests
           stale-pr-message: |
