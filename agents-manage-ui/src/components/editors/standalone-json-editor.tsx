@@ -31,14 +31,20 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   customTemplate = basicSchemaTemplate,
   name,
   readOnly,
+  uri,
   ...props
 }) => {
   'use memo';
-  // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
-  const uri = props.uri ?? (name ? (`${name}.json` as const) : undefined);
 
   return (
-    <JsonEditor value={value} onChange={onChange} readOnly={readOnly} uri={uri} {...props}>
+    <JsonEditor
+      value={value}
+      onChange={onChange}
+      readOnly={readOnly}
+      // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
+      uri={uri ?? (name ? (`${name}.json` as const) : undefined)}
+      {...props}
+    >
       {!readOnly && (
         <Button
           type="button"
