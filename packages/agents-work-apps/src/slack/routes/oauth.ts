@@ -8,7 +8,11 @@
 
 import * as crypto from 'node:crypto';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
-import { createWorkAppSlackWorkspace, isUniqueConstraintError } from '@inkeep/agents-core';
+import {
+  createWorkAppSlackWorkspace,
+  isUniqueConstraintError,
+  listWorkAppSlackWorkspacesByTenant,
+} from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -287,6 +291,24 @@ app.openapi(
         appId: tokenData.app_id,
         installedAt: new Date().toISOString(),
       };
+
+      if (tenantId && workspaceData.teamId) {
+        const existingWorkspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
+        const hasOtherWorkspace = existingWorkspaces.some(
+          (w) => w.slackTeamId !== workspaceData.teamId
+        );
+        if (hasOtherWorkspace) {
+          logger.warn(
+            {
+              tenantId,
+              newTeamId: workspaceData.teamId,
+              existingTeamIds: existingWorkspaces.map((w) => w.slackTeamId),
+            },
+            'Tenant already has a different Slack workspace, rejecting installation'
+          );
+          return c.redirect(`${dashboardUrl}?error=workspace_limit_reached`);
+        }
+      }
 
       if (workspaceData.teamId && workspaceData.botToken) {
         clearWorkspaceConnectionCache(workspaceData.teamId);

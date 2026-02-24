@@ -1,11 +1,9 @@
 'use client';
 
-import { SlackIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,8 +17,7 @@ import { MyLinkStatus } from './my-link-status';
 import { WorkspaceHero } from './workspace-hero';
 
 export function SlackDashboard() {
-  const { user, installedWorkspaces, actions } = useSlack();
-  const { handleInstallClick } = actions;
+  const { user, installedWorkspaces } = useSlack();
   const { isAdmin, isLoading: isLoadingRole } = useIsOrgAdmin();
 
   const hasWorkspace = installedWorkspaces.data.length > 0;
@@ -36,6 +33,10 @@ export function SlackDashboard() {
     if (error) {
       if (error === 'access_denied') {
         toast.info('Slack installation was cancelled.');
+      } else if (error === 'workspace_limit_reached') {
+        toast.error(
+          'Only one Slack workspace can be connected per organization. Remove the existing workspace to connect a different one.'
+        );
       } else {
         console.error('Slack OAuth Error:', error);
         toast.error(`Slack installation failed: ${error}`);
@@ -92,15 +93,6 @@ export function SlackDashboard() {
                 Learn more
               </ExternalLink>
             </>
-          }
-          action={
-            hasWorkspace &&
-            isAdmin && (
-              <Button className="gap-2" onClick={handleInstallClick}>
-                <SlackIcon className="h-4 w-4" />
-                Add Workspace
-              </Button>
-            )
           }
         />
 
