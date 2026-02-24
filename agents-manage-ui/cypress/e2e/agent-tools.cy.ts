@@ -30,7 +30,7 @@ describe('Agent Tools', () => {
     connectEdge('[data-handleid="target-function-tool"]');
     cy.typeInMonaco('code.jsx', 'function () {}');
     dragNode('[aria-label="Drag MCP node"]');
-    cy.contains('Geocode address').click();
+    cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
     saveAndAssert();
     cy.get('.react-flow__node-agent').click();

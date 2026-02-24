@@ -11,6 +11,7 @@ describe('Agent Prompt', () => {
         testHeadersJsonSchemaValue: { type: 'string' },
       },
     };
+    cy.contains('JSON').click();
     cy.typeInMonaco('contextConfig.headersSchema.json', JSON.stringify(headersJsonSchema));
     cy.contains('Save changes').click();
 
