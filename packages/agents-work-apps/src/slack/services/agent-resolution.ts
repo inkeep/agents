@@ -79,11 +79,19 @@ async function lookupAgentName(
       }
 
       if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
-        const excess = agentNameCache.size - AGENT_NAME_CACHE_MAX_SIZE;
-        const keys = agentNameCache.keys();
-        for (let i = 0; i < excess; i++) {
-          const { value } = keys.next();
-          if (value) agentNameCache.delete(value);
+        const now = Date.now();
+        for (const [key, entry] of agentNameCache) {
+          if (entry.expiresAt <= now) {
+            agentNameCache.delete(key);
+          }
+        }
+        if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
+          const excess = agentNameCache.size - AGENT_NAME_CACHE_MAX_SIZE;
+          const keys = agentNameCache.keys();
+          for (let i = 0; i < excess; i++) {
+            const { value } = keys.next();
+            if (value) agentNameCache.delete(value);
+          }
         }
       }
 

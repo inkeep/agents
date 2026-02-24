@@ -299,7 +299,7 @@ export async function handleFollowUpSubmission(view: {
         slackUserId,
         channel,
       } = metadata;
-      const agentDisplayName = agentName || agentId;
+      const agentDisplayName = agentName || agentId || 'Agent';
       span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
       span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
       span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
