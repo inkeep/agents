@@ -88,20 +88,6 @@ export class ExecutionHandler {
     const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
       executionContext;
 
-    logger.info(
-      {
-        tenantId,
-        projectId,
-        project,
-        agentId,
-        apiKey,
-        baseUrl,
-        resolvedRef,
-        metadata: executionContext.metadata,
-      },
-      'Execution context'
-    );
-
     registerStreamHelper(requestId, sseHelper);
 
     agentSessionManager.createSession(requestId, executionContext, conversationId);

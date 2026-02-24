@@ -138,38 +138,6 @@ const ScheduledTriggerIdParamsSchema = TenantProjectAgentParamsSchema.extend({
   id: z.string().describe('Scheduled Trigger ID'),
 });
 
-// Apply permission middleware by HTTP method
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id/run', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id/invocations/:invocationId/rerun', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 /**
  * List Scheduled Triggers for an Agent
  */

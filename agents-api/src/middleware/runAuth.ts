@@ -507,6 +507,12 @@ async function runApiKeyAuthHandler(
   const reqData = extractRequestData(c);
   const isDev = process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test';
 
+  if (reqData.runAsUserId === 'system' || reqData.runAsUserId?.startsWith('apikey:')) {
+    throw new HTTPException(400, {
+      message: 'x-inkeep-run-as-user-id cannot be a system identifier',
+    });
+  }
+
   // Development/test environment handling
   if (isDev) {
     logger.info({}, 'development environment');
