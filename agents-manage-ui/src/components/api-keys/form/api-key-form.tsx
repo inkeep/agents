@@ -14,10 +14,9 @@ import { createApiKeyAction } from '@/lib/actions/api-keys';
 import type { ApiKeyCreateResponse } from '@/lib/api/api-keys';
 import { isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
-import { type ApiKeyFormData, ApiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
+import { ApiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
 interface ApiKeyFormProps {
-  initialData?: ApiKeyFormData;
   agentsOptions: SelectOption[];
   onApiKeyCreated?: (apiKeyData: ApiKeyCreateResponse) => void;
 }

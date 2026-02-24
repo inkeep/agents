@@ -54,4 +54,4 @@ export const ApiKeyUpdateSchema = ApiKeySchema.omit({
   agentId: true,
 });
 
-export type ApiKeyFormData = z.input<typeof ApiKeySchema>;
+export type ApiKeyInput = z.input<typeof ApiKeySchema>;

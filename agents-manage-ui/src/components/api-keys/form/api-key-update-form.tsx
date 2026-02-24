@@ -60,6 +60,7 @@ export function ApiKeyUpdateForm({
       name: apiKey.name,
       expiresAt: convertDateToDuration(apiKey.expiresAt),
     },
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
