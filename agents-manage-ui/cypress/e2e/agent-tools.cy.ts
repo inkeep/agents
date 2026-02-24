@@ -79,9 +79,9 @@ describe('Agent Tools', () => {
       const uri = 'agent-prompt.template';
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
-      cy.typeInMonaco(uri, '#   hello');
+      cy.typeInMonaco(uri, '#   hello   {{name}}');
       cy.contains('Format').click();
-      cy.assertMonacoContent(uri, '# hello');
+      cy.assertMonacoContent(uri, '# hello {{name}}');
     });
   });
 });
