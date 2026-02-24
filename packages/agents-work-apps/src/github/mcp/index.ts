@@ -585,7 +585,8 @@ const getServer = async (toolId: string) => {
         .describe('Branch to create from (defaults to default branch)'),
     },
     async ({ owner, repo, from_branch }) => {
-      const branch_name = `docs-writer-ai-update-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      const suffix = Math.random().toString(36).slice(2, 8);
+      const branch_name = `docs-writer-ai-update-${new Date().toISOString().replace(/[:.]/g, '-')}-${suffix}`;
       try {
         const githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
 
