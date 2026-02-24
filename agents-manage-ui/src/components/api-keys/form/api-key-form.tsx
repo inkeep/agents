@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
@@ -14,7 +15,6 @@ import type { ApiKeyCreateResponse } from '@/lib/api/api-keys';
 import { isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { type ApiKeyFormData, ApiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
-import { useParams } from 'next/navigation';
 
 interface ApiKeyFormProps {
   initialData?: ApiKeyFormData;
