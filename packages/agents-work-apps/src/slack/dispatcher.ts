@@ -11,6 +11,7 @@ import {
   handleToolApproval,
   sendResponseUrlMessage,
 } from './services/events';
+import type { SlackAttachment } from './services/events/utils';
 import { SLACK_SPAN_KEYS, type SlackOutcome } from './tracer';
 
 const logger = getLogger('slack-dispatcher');
@@ -49,6 +50,7 @@ export async function dispatchSlackEvent(
           bot_id?: string;
           subtype?: string;
           edited?: unknown;
+          attachments?: SlackAttachment[];
         }
       | undefined;
 
@@ -94,6 +96,7 @@ export async function dispatchSlackEvent(
         slackUserId: event.user,
         channel: event.channel,
         text: question,
+        attachments: event.attachments,
         threadTs: event.thread_ts || event.ts || '',
         messageTs: event.ts || '',
         teamId,

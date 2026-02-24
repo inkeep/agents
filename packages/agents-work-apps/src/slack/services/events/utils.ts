@@ -512,6 +512,57 @@ export async function checkIfBotThread(
   }
 }
 
+export interface SlackAttachment {
+  text?: string;
+  fallback?: string;
+  pretext?: string;
+  author_name?: string;
+  author_id?: string;
+  channel_name?: string;
+  channel_id?: string;
+  title?: string;
+  is_msg_unfurl?: boolean;
+  is_share?: boolean;
+  from_url?: string;
+  fields?: Array<{ title?: string; value?: string }>;
+}
+
+export function formatAttachments(attachments: SlackAttachment[] | undefined): string {
+  if (!attachments || attachments.length === 0) return '';
+
+  const parts: string[] = [];
+
+  for (const att of attachments) {
+    const content = att.text || att.fallback;
+    if (!content) continue;
+
+    const isSharedMessage = att.is_msg_unfurl || att.is_share;
+
+    const meta: string[] = [];
+    if (att.author_name) meta.push(`from ${att.author_name}`);
+    if (att.channel_name) {
+      meta.push(`in #${att.channel_name}`);
+    } else if (att.channel_id) {
+      meta.push(`in channel ${att.channel_id}`);
+    }
+
+    const label = isSharedMessage ? 'Shared message' : 'Attachment';
+    const metaSuffix = meta.length > 0 ? ` (${meta.join(', ')})` : '';
+    const sourceLine = att.from_url ? `\n[Source: ${att.from_url}]` : '';
+    parts.push(`[${label}${metaSuffix}]:\n\`\`\`\n${content}\n\`\`\`${sourceLine}`);
+
+    if (att.fields && att.fields.length > 0) {
+      for (const field of att.fields) {
+        if (field.title && field.value) {
+          parts.push(`${field.title}: ${field.value}`);
+        }
+      }
+    }
+  }
+
+  return parts.join('\n\n');
+}
+
 interface ThreadContextOptions {
   includeLastMessage?: boolean;
   resolveUserNames?: boolean;
@@ -526,6 +577,7 @@ export async function getThreadContext(
           user?: string;
           text?: string;
           ts?: string;
+          attachments?: SlackAttachment[];
         }>;
       }>;
     };
@@ -630,8 +682,10 @@ export async function getThreadContext(
 
       const prefix = isParent ? '[Thread Start] ' : '';
       const messageText = msg.text || '';
+      const attachmentText = formatAttachments(msg.attachments);
+      const fullText = attachmentText ? `${messageText}\n${attachmentText}` : messageText;
 
-      return `${prefix}${role}: """${messageText}"""`;
+      return `${prefix}${role}: """${fullText}"""`;
     });
 
     return `${userDirectory}Messages in this thread:\n${formattedMessages.join('\n\n')}`;
