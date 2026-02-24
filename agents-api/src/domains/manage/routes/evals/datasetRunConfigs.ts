@@ -183,7 +183,7 @@ app.openapi(
     const db = c.get('db');
     const configData = c.req.valid('json') as any;
 
-    const { agentIds, ...runConfigData } = configData;
+    const { agentIds, evaluatorIds: _evaluatorIds, ...runConfigData } = configData;
 
     try {
       const id = runConfigData.id || generateId();
