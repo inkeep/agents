@@ -2,12 +2,7 @@ Index: agents/support-agent.ts
 ===================================================================
 --- agents/support-agent.ts	before
 +++ agents/support-agent.ts	after
-@@ -1,10 +1,13 @@
- import { agent, subAgent } from '@inkeep/agents-sdk';
-+import { websearch } from './websearch';
-+import { weather } from './weather';
-+import { coordinates } from './coordinates';
- 
+@@ -3,8 +3,8 @@
  export const planner = subAgent({
    id: 'planner',
    name: 'Planner',
