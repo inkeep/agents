@@ -90,3 +90,22 @@ Inkeep is designed to be extensible and open: use the LLM provider of your choic
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
 [Join our community](https://docs.inkeep.com/community/inkeep-community) to get support, stay up to date, and share feedback.
+
+
+## Installation
+
+```bash
+# Installation instructions
+```
+
+
+## Usage
+
+```python
+# Usage examples
+```
+
+
+## Contributing
+
+Contributions are welcome!
