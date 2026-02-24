@@ -57,6 +57,21 @@ async function formatMarkdown(value: string): Promise<string> {
   return formatted.trimEnd();
 }
 
+function provideDocumentFormattingEdits(
+  formatter: typeof formatJS
+): Monaco.languages.DocumentFormattingEditProvider['provideDocumentFormattingEdits'] {
+  return async (model) => {
+    let text = model.getValue();
+    try {
+      text = await formatter(text);
+    } catch (error) {
+        toast.error(
+            `Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`
+        );    }
+    return [{ text, range: model.getFullModelRange() }];
+  };
+}
+
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
   monaco: null,
   actions: {
@@ -117,47 +132,16 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         /** Enable formatting of only a selected range */
         documentRangeFormattingEdits: true,
       });
+
+      // Setup formatters
       monaco.languages.registerDocumentFormattingEditProvider('javascript', {
-        async provideDocumentFormattingEdits(model) {
-          const text = model.getValue();
-
-          let formattedText: string;
-          try {
-            formattedText = await formatJS(text);
-          } catch (error) {
-            toast.error(
-              `Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`
-            );
-            formattedText = text;
-          }
-
-          return [
-            {
-              range: model.getFullModelRange(),
-              text: formattedText,
-            },
-          ];
-        },
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatJS),
+      });
+      monaco.languages.registerDocumentFormattingEditProvider('markdown', {
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatMarkdown),
       });
       monaco.languages.registerDocumentFormattingEditProvider(TEMPLATE_LANGUAGE, {
-        async provideDocumentFormattingEdits(model) {
-          const text = model.getValue();
-          let formattedText: string;
-          try {
-            formattedText = await formatMarkdown(text);
-          } catch (error) {
-            toast.error(
-              `Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`
-            );
-            formattedText = text;
-          }
-          return [
-            {
-              range: model.getFullModelRange(),
-              text: formattedText,
-            },
-          ];
-        },
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatMarkdown),
       });
 
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
