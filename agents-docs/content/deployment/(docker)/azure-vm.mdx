@@ -70,6 +70,11 @@ newgrp docker
 
 For a production deployment, you will want to restrict access to the VM and only expose 3002. To do this, we'll setup an Application Gateway and a Front Door (with https).
 
+### Data Retention
+
+By default, the retention period for conversation data and traces is set to 15 days. To set a longer retention period, navigate to the **General** tab on the **Settings** page in SigNoz.
+
+
 ### Application Gateway
 - On the VM page, under "Networking" > "Load balancing", click on "Add load balancing" and create a new "Application Gateway"
 - Provide a name for the gateway and a name for the routing rule. The routing rule should be configured to Port 80 HTTP.
