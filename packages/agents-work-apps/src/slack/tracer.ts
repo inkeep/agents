@@ -46,6 +46,7 @@ export const SLACK_SPAN_KEYS = {
 export type SlackOutcome =
   | 'handled'
   | 'ignored_bot_message'
+  | 'ignored_edited_message'
   | 'ignored_unknown_event'
   | 'ignored_no_action_match'
   | 'ignored_slack_retry'
