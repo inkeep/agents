@@ -24,7 +24,6 @@ import { getLogger } from './lib/logger';
 const logger = getLogger('instrumentation');
 
 const otlpEndpointConfigured = !!process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
-let otlpReachable = otlpEndpointConfigured;
 
 /**
  * Creates a safe batch processor that falls back to no-op when SigNoz is not configured
@@ -36,8 +35,8 @@ function createSafeBatchProcessor(): SpanProcessor {
   }
 
   try {
-    const otlpExporter = new OTLPTraceExporter();
-    return new BatchSpanProcessor(otlpExporter, {
+    const exporter = new OTLPTraceExporter();
+    return new BatchSpanProcessor(exporter, {
       scheduledDelayMillis: Number(process.env.OTEL_BSP_SCHEDULE_DELAY) || 500,
       maxExportBatchSize: Number(process.env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE) || 64,
     });
@@ -48,21 +47,6 @@ function createSafeBatchProcessor(): SpanProcessor {
 }
 
 const defaultBatchProcessor = createSafeBatchProcessor();
-
-async function validateOtlpEndpoint(): Promise<void> {
-  if (!otlpEndpointConfigured) return;
-
-  const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT as string;
-  const status = await fetch(endpoint, {
-    method: 'HEAD',
-    signal: AbortSignal.timeout(3_000),
-  })
-    .then((res) => res.status < 500)
-    .catch(() => false);
-
-  otlpReachable = status;
-  logger.info({ endpoint, otlpReachable }, 'OTLP endpoint validation complete');
-}
 
 const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-manage-ui',
@@ -115,8 +99,6 @@ const sdk = new NodeSDK({
 
 try {
   sdk.start();
-  validateOtlpEndpoint();
-
   process.on('SIGTERM', async () => {
     await sdk.shutdown();
   });
