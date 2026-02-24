@@ -1,5 +1,60 @@
 # @inkeep/agents-core
 
+## 0.53.0
+
+### Patch Changes
+
+- 0a0cb6e: Unify .env generation between quickstart CLI and contributor flows
+
+## 0.52.0
+
+### Patch Changes
+
+- 886b2da: Restrict `stopWhen` schema for sub-agents to only allow `stepCountIs` field
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- 65f71b5: Derive scope config types and WHERE helpers from single source of truth (scope-definitions.ts)
+
+## 0.51.0
+
+### Minor Changes
+
+- fe36caa: Add organization service account, preferred auth method, and Slack workspace join-from-workspace schema support
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+
+## 0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- 56fd821: Fix multi-tenant unique constraint on sub_agent_skills table to scope by tenant, project, and agent
+
+## 0.50.4
+
+### Patch Changes
+
+- e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
+
+  - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
+  - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
+  - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
+  - Add `resolveEffectiveAgent` with `grantAccessToMembers` propagation from channel/workspace config
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- d50fa44: Released Gemini 3.1-pro
+
 ## 0.50.2
 
 ### Patch Changes

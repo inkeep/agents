@@ -1,5 +1,59 @@
 # @inkeep/create-agents
 
+## 0.53.0
+
+### Patch Changes
+
+- 0a0cb6e: Unify .env generation between quickstart CLI and contributor flows
+- 3e3efd2: Sync template @inkeep/\* dependency versions to match CLI version after clone
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
 ## 0.50.2
 
 ### Patch Changes

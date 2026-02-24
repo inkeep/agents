@@ -4250,6 +4250,9 @@
                 },
                 "type": "array"
               },
+              "stopWhen": {
+                "$ref": "#/components/schemas/SubAgentStopWhen"
+              },
               "type": {
                 "enum": [
                   "internal"
@@ -7797,6 +7800,17 @@
         "required": [
           "data"
         ],
+        "type": "object"
+      },
+      "SubAgentStopWhen": {
+        "properties": {
+          "stepCountIs": {
+            "description": "The maximum number of steps to trigger the stop condition.",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
         "type": "object"
       },
       "SubAgentTeamAgentRelation": {
@@ -38491,6 +38505,9 @@
                         "agentName": {
                           "type": "string"
                         },
+                        "grantAccessToMembers": {
+                          "type": "boolean"
+                        },
                         "projectId": {
                           "type": "string"
                         },
@@ -38596,6 +38613,9 @@
                               },
                               "agentName": {
                                 "type": "string"
+                              },
+                              "grantAccessToMembers": {
+                                "type": "boolean"
                               },
                               "projectId": {
                                 "type": "string"
@@ -38764,6 +38784,9 @@
                       },
                       "agentName": {
                         "type": "string"
+                      },
+                      "grantAccessToMembers": {
+                        "type": "boolean"
                       },
                       "projectId": {
                         "type": "string"
@@ -38947,6 +38970,9 @@
                         "agentName": {
                           "type": "string"
                         },
+                        "grantAccessToMembers": {
+                          "type": "boolean"
+                        },
                         "projectId": {
                           "type": "string"
                         },
@@ -39017,6 +39043,9 @@
                       },
                       "agentName": {
                         "type": "string"
+                      },
+                      "grantAccessToMembers": {
+                        "type": "boolean"
                       },
                       "projectId": {
                         "type": "string"
@@ -39164,6 +39193,125 @@
         }
       }
     },
+    "/work-apps/slack/workspaces/{teamId}/join-from-workspace": {
+      "get": {
+        "description": "Get the join from workspace setting for the workspace",
+        "operationId": "slack-get-join-from-workspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "shouldAllowJoinFromWorkspace": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "shouldAllowJoinFromWorkspace"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Join from workspace setting"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Get Join From Workspace Setting",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ],
+        "x-authz": {
+          "description": "Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts."
+        }
+      },
+      "put": {
+        "description": "Enable or disable join from workspace for the workspace",
+        "operationId": "slack-update-join-from-workspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "shouldAllowJoinFromWorkspace": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "shouldAllowJoinFromWorkspace"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Join from workspace setting updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Workspace not found"
+          },
+          "500": {
+            "description": "Failed to update setting"
+          }
+        },
+        "summary": "Update Join From Workspace Setting",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ],
+        "x-authz": {
+          "description": "Requires Inkeep org admin/owner role to modify workspace settings",
+          "permission": "admin",
+          "resource": "organization"
+        }
+      }
+    },
     "/work-apps/slack/workspaces/{teamId}/settings": {
       "get": {
         "description": "Get settings for a Slack workspace including default agent",
@@ -39191,6 +39339,9 @@
                         },
                         "agentName": {
                           "type": "string"
+                        },
+                        "grantAccessToMembers": {
+                          "type": "boolean"
                         },
                         "projectId": {
                           "type": "string"
@@ -39248,6 +39399,9 @@
                       },
                       "agentName": {
                         "type": "string"
+                      },
+                      "grantAccessToMembers": {
+                        "type": "boolean"
                       },
                       "projectId": {
                         "type": "string"

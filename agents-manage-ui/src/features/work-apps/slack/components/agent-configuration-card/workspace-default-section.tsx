@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, ChevronDown, Loader2 } from 'lucide-react';
+import { Check, ChevronDown, Loader2, ShieldCheck, SlackIcon, X } from 'lucide-react';
+import { InkeepIconMono } from '@/components/icons/inkeep';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -9,8 +10,11 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { DefaultAgentConfig, SlackAgentOption } from './types';
 
@@ -21,6 +25,8 @@ interface WorkspaceDefaultSectionProps {
   savingDefault: boolean;
   canEdit: boolean;
   onSetDefaultAgent: (agent: SlackAgentOption) => void;
+  onToggleGrantAccess: (grantAccess: boolean) => void;
+  onRemoveDefaultAgent: () => void;
   onFetchAgents: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,12 +39,16 @@ export function WorkspaceDefaultSection({
   savingDefault,
   canEdit,
   onSetDefaultAgent,
+  onToggleGrantAccess,
+  onRemoveDefaultAgent,
   onFetchAgents,
   open,
   onOpenChange,
 }: WorkspaceDefaultSectionProps) {
+  const grantAccess = defaultAgent?.grantAccessToMembers ?? true;
+
   return (
-    <div>
+    <div className="space-y-3">
       {canEdit ? (
         <Popover open={open} onOpenChange={onOpenChange}>
           <PopoverTrigger asChild>
@@ -82,6 +92,20 @@ export function WorkspaceDefaultSection({
                     'No agents found. Create an agent first.'
                   )}
                 </CommandEmpty>
+                {defaultAgent && (
+                  <>
+                    <CommandGroup>
+                      <CommandItem
+                        value="Remove default agent"
+                        onSelect={() => onRemoveDefaultAgent()}
+                      >
+                        <X className="h-4 w-4" />
+                        Remove default agent
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandSeparator />
+                  </>
+                )}
                 <CommandGroup>
                   {agents.map((agent) => (
                     <CommandItem
@@ -120,6 +144,38 @@ export function WorkspaceDefaultSection({
           ) : (
             <span className="text-muted-foreground">No default agent configured.</span>
           )}
+        </div>
+      )}
+      {defaultAgent && canEdit && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <label
+                htmlFor="workspace-grant-access"
+                className="flex items-center gap-2 text-sm cursor-pointer"
+              >
+                <span className="inline-flex items-center gap-0.5 text-muted-foreground">
+                  {grantAccess ? (
+                    <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                  ) : (
+                    <InkeepIconMono aria-hidden="true" className="h-3.5 w-3.5" />
+                  )}
+                  <ShieldCheck aria-hidden="true" className="h-3 w-3" />
+                </span>
+                <span>Authorize via Slack</span>
+              </label>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[280px]">
+              When enabled, any member of this Slack workspace can use this agent without an
+              explicit Inkeep project invite. When disabled, only users with direct project access
+              can use it.
+            </TooltipContent>
+          </Tooltip>
+          <Switch
+            id="workspace-grant-access"
+            checked={grantAccess}
+            onCheckedChange={onToggleGrantAccess}
+          />
         </div>
       )}
     </div>

@@ -14,6 +14,7 @@ import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
+  isUniqueConstraintError,
   verifySlackLinkToken,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
@@ -220,6 +221,12 @@ app.openapi(
           },
           'Slack user already linked, updating to new user'
         );
+        await deleteWorkAppSlackUserMapping(runDbClient)(
+          tenantId,
+          slackUserId,
+          teamId,
+          'work-apps-slack'
+        );
       }
 
       const slackUserMapping = await createWorkAppSlackUserMapping(runDbClient)({
@@ -252,11 +259,9 @@ app.openapi(
         tenantId,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
-        logger.warn({ userId: body.userId }, 'Slack user already linked');
-        return c.json({ error: 'This Slack account is already linked to an Inkeep account.' }, 409);
+      if (isUniqueConstraintError(error)) {
+        logger.info({ userId: body.userId }, 'Concurrent link resolved — mapping already exists');
+        return c.json({ success: true });
       }
 
       logger.error({ error, userId: body.userId }, 'Failed to verify link token');

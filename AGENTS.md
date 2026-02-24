@@ -46,7 +46,7 @@ pnpm bump patch --pkg agents-core "Fix race condition in agent message queue"
 pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
 ```
 
-**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
+**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-work-apps`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
 
 **Semver guidance:**
 - **Major**: Reserved - do not use without explicit approval
@@ -74,6 +74,10 @@ pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response suppo
 - "update dependencies" (not user-facing, doesn't need changeset)
 - "Refactored the agent connection handler to use async/await" (implementation detail, not user impact)
 - "changes" (meaningless)
+
+**When to create a changeset (MANDATORY):**
+- Any bug fix, feature, or behavior change to a published package — even if the package is "internal-facing" (e.g., `agents-work-apps`, `agents-api`). If the code ships to users or affects runtime behavior, it needs a changeset.
+- This includes work-app integrations (Slack, GitHub), API route changes, SDK changes, CLI changes, and core library changes.
 
 **When NOT to create a changeset:**
 - Documentation-only changes
@@ -262,10 +266,6 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 The user may override this workflow (e.g., work directly on main).
 
-### PR Review Agents
-
-The `.claude/agents/pr-review*.md` agents are for **on-demand invocation only** (user requests a review, or CI triggers one). Do NOT invoke them during autonomous implementation workflows like `/ship` — those workflows delegate review to external reviewers via `/review`.
-
 ### 📁 Git Worktrees for Parallel Feature Development
 
 Git worktrees allow you to work on multiple features simultaneously without switching branches in your main working directory. This is especially useful when you need to quickly switch context between different Linear tickets or have multiple features in progress.
@@ -338,7 +338,7 @@ git worktree prune
 - **Implement cleanup mechanisms** for debug files and logs to prevent memory leaks
 
 ### Internal Self-Calls: `getInProcessFetch()` vs `fetch`
-Any code in `agents-api` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `agents-api/src/utils/in-process-fetch.ts` instead of the global `fetch`.
+Any code in `agents-api` or `agents-work-apps` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `@inkeep/agents-core` instead of the global `fetch`.
 
 - `getInProcessFetch()` routes the request through the Hono app's middleware stack **in-process**, guaranteeing it stays on the same instance.
 - Global `fetch` sends the request over the network, where a load balancer may route it to a **different** instance — breaking features that depend on process-local state (e.g. the stream helper registry for SSE streaming).
@@ -350,6 +350,7 @@ Any code in `agents-api` that makes **internal A2A calls or self-referencing API
 | Internal A2A delegation/transfer (same service) | `getInProcessFetch()` |
 | Eval service calling the chat API on itself | `getInProcessFetch()` |
 | Forwarding requests to internal workflow routes | `getInProcessFetch()` |
+| Slack/work-app calls to `/run/api/chat` or `/manage/` routes | `getInProcessFetch()` |
 | Calling an **external** service or third-party API | Global `fetch` |
 | Test environments (falls back automatically) | Either (auto-fallback) |
 

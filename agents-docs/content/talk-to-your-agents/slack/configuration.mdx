@@ -4,10 +4,12 @@ sidebarTitle: Configuration
 description: Admin guide — set up workspace and channel default agents for the Slack integration.
 ---
 
-# Configure Slack Agents
-
 <Note>
 This page is for **workspace administrators**. Regular team members should see [Using the Slack App](/talk-to-your-agents/slack/commands) for usage instructions.
+</Note>
+
+<Note>
+Only one Slack workspace can be connected per Inkeep tenant. To switch workspaces, uninstall the existing one first from the [Installation](/talk-to-your-agents/slack/installation) page.
 </Note>
 
 After installing the Slack app, configure which agents respond to your team's messages. You can set a workspace-wide default and optionally assign different agents to specific channels.
@@ -29,6 +31,11 @@ The workspace default agent responds to all `@Inkeep` mentions and `/inkeep` com
 
     This agent handles all requests in channels without a channel-specific default.
   </Step>
+  <Step>
+    ### Remove the default agent (optional)
+
+    To clear the workspace default, open the dropdown and select **Remove default agent**. Channels without a channel-specific agent will no longer have a fallback.
+  </Step>
 </Steps>
 
 ## Channel defaults
@@ -40,6 +47,10 @@ Channel defaults let you assign a specific agent to individual channels. This is
     ### Open channel defaults
 
     In the Slack dashboard, scroll to the **Channel Defaults** section. You'll see a list of all channels the bot has access to.
+
+    <Note>
+    Private channels only appear in this list after you add the Inkeep bot to them in Slack. Open the private channel in Slack, add `@Inkeep` as a member, and the channel will then be available for configuration in the dashboard.
+    </Note>
   </Step>
   <Step>
     ### Filter and select channels
@@ -52,6 +63,23 @@ Channel defaults let you assign a specific agent to individual channels. This is
     Choose a project and agent for the selected channels. You can configure channels individually or use **bulk actions** to assign the same agent to multiple channels at once.
   </Step>
 </Steps>
+
+### Grant access to channel members
+
+When you assign an agent to a channel, a **Grant access to members** toggle appears in the channel's agent selector. This controls whether channel members can use the assigned agent without being explicit project members.
+
+| Setting | Behavior |
+|---------|----------|
+| **Enabled** (default) | Channel members can use the agent via `@Inkeep` and `/inkeep` without needing explicit project access. The channel configuration acts as implicit authorization. |
+| **Disabled** | Channel members must have explicit project access (configured separately) to use the agent. The channel default still determines *which* agent responds, but doesn't grant access. |
+
+<Tip>
+This toggle defaults to **enabled** — assigning an agent to a channel automatically grants access to all channel members. Disable it if you want to control project access separately (e.g., for channels where only certain members should use the agent).
+</Tip>
+
+<Note>
+The grant access setting applies per channel. Workspace defaults grant access by default — the toggle is only available in the UI for channel-level overrides.
+</Note>
 
 ## Agent resolution priority
 

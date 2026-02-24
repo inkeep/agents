@@ -1,5 +1,92 @@
 # @inkeep/agents-cli
 
+## 0.53.0
+
+### Patch Changes
+
+- ef0f287: Remove deprecated pull-v3 code and consolidate tests into pull-v4
+- ac63aa8: Fix `inkeep pull` for create mode: missing generation for MCP tools, sub-agent dependency imports, and project import alias collisions
+- Updated dependencies [f54846b]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [08ba7c2]
+- Updated dependencies [9c293ff]
+- Updated dependencies [a5f8f24]
+- Updated dependencies [f868a96]
+  - @inkeep/agents-manage-ui@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-sdk@0.53.0
+
+## 0.52.0
+
+### Minor Changes
+
+- 886b2da: Refactor pull command to use ts-morph for improved code generation and smart merging
+
+  - Migrates from string-based code generation to AST-based manipulation using ts-morph
+  - Adds intelligent merge mode that preserves user customizations when pulling updates
+  - Improves handling of imports, comments, and custom code during regeneration
+  - Adds comprehensive test coverage for the new pull command implementation
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+- Updated dependencies [d717f54]
+  - @inkeep/agents-core@0.52.0
+  - @inkeep/agents-manage-ui@0.52.0
+  - @inkeep/agents-sdk@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-manage-ui@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-sdk@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.50.6
+- @inkeep/agents-core@0.50.6
+- @inkeep/agents-sdk@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-manage-ui@0.50.5
+  - @inkeep/agents-sdk@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-manage-ui@0.50.4
+  - @inkeep/agents-sdk@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- d50fa44: Released Gemini 3.1-pro
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+- Updated dependencies [13197d8]
+- Updated dependencies [0aea45a]
+  - @inkeep/agents-core@0.50.3
+  - @inkeep/agents-manage-ui@0.50.3
+  - @inkeep/agents-sdk@0.50.3
+
 ## 0.50.2
 
 ### Patch Changes

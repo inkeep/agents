@@ -1,5 +1,79 @@
 # @inkeep/agents-work-apps
 
+## 0.53.0
+
+### Minor Changes
+
+- 901ff0a: Add PR body reactions to GitHub MCP. BREAKING: Renamed `add-comment-reaction` → `add-reaction`, `remove-comment-reaction` → `remove-reaction` and `list-comment-reactions` → `list-reactions`. Parameters `comment_id`/`comment_type` renamed to `target_id`/`target_type`.
+
+### Patch Changes
+
+- 6d435a6: Refactor lookupAgentName to reuse fetchAgentsForProject instead of duplicating API call logic
+- 41ed409: Fix Slack responses showing agent ID instead of agent name in thinking messages and signatures across all interaction types
+- 38506a8: Show agent name and ID in Slack modal dropdowns for disambiguation
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- 4d4fa33: Update slack user metadata in thread context
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- f2d822b: Fix Slack modal showing 'We had some trouble connecting' error on form submission by returning empty ack body
+- 520e4f0: Add branch file inspection tool to github mcp
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- fe36caa: Fix error response format consistency in join-from-workspace endpoints
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- 1be6def: Update slack streaming timeout to 10 minutes
+- 0011c4b: Mimic nango config in dev mode.
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
 ## 0.50.2
 
 ### Patch Changes

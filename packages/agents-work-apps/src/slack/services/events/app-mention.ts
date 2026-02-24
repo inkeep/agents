@@ -18,6 +18,7 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
+import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   getSlackChannelInfo,
   getSlackClient,
@@ -34,7 +35,6 @@ import {
   generateSlackConversationId,
   getThreadContext,
   getUserFriendlyErrorMessage,
-  resolveChannelAgentConfig,
   timedOp,
 } from './utils';
 
@@ -138,7 +138,7 @@ export async function handleAppMention(params: {
         result: [agentConfig, existingLink],
       } = await timedOp(
         Promise.all([
-          resolveChannelAgentConfig(teamId, channel, workspaceConnection),
+          resolveEffectiveAgent({ tenantId, teamId, channelId: channel }),
           findCachedUserMapping(tenantId, slackUserId, teamId),
         ]),
         {
@@ -161,6 +161,8 @@ export async function handleAppMention(params: {
 
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentConfig.agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, agentConfig.projectId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, agentConfig.grantAccessToMembers);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTH_SOURCE, agentConfig.source);
       const agentDisplayName = agentConfig.agentName || agentConfig.agentId;
 
       if (!existingLink) {
@@ -234,19 +236,23 @@ export async function handleAppMention(params: {
           return;
         }
 
-        // Sign JWT token for authentication
+        // Sign JWT token for authentication with channel auth context
         const slackUserToken = await signSlackUserToken({
           inkeepUserId: existingLink.inkeepUserId,
           tenantId,
           slackTeamId: teamId,
           slackUserId,
+          slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
+          slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
+          slackChannelId: channel,
+          slackAuthorizedProjectId: agentConfig?.projectId,
         });
 
         // Post acknowledgement message
         const ackMessage = await slackClient.chat.postMessage({
           channel,
           thread_ts: threadTs,
-          text: `_${agentDisplayName} is reading this thread..._`,
+          text: SlackStrings.status.readingThread(agentDisplayName),
         });
         thinkingMessageTs = ackMessage.ts || undefined;
 
@@ -332,19 +338,23 @@ Respond naturally as if you're joining the conversation to help.`;
         queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
       }
 
-      // Sign JWT token for authentication
+      // Sign JWT token for authentication with channel auth context
       const slackUserToken = await signSlackUserToken({
         inkeepUserId: existingLink.inkeepUserId,
         tenantId,
         slackTeamId: teamId,
         slackUserId,
+        slackAuthorized: agentConfig?.grantAccessToMembers ?? false,
+        slackAuthSource: agentConfig?.source === 'none' ? undefined : agentConfig?.source,
+        slackChannelId: channel,
+        slackAuthorizedProjectId: agentConfig?.projectId,
       });
 
       // Post acknowledgement message
       const ackMessage = await slackClient.chat.postMessage({
         channel,
         thread_ts: replyThreadTs,
-        text: `_${agentDisplayName} is preparing a response..._`,
+        text: SlackStrings.status.thinking(agentDisplayName),
       });
       thinkingMessageTs = ackMessage.ts || undefined;
 

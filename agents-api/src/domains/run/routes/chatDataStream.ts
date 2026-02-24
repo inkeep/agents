@@ -472,6 +472,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
                 await streamHelper.writeToolApprovalRequest({
                   approvalId: event.approvalId,
                   toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                  input: event.input as Record<string, unknown>,
                 });
               } else if (event.type === 'approval-resolved') {
                 if (seenOutputs.has(event.toolCallId)) return;

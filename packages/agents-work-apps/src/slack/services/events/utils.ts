@@ -6,6 +6,7 @@ import {
   findWorkAppSlackChannelAgentConfig,
   findWorkAppSlackUserMapping,
   generateInternalServiceToken,
+  getInProcessFetch,
   InternalServices,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../db/runDbClient';
@@ -178,6 +179,18 @@ export function classifyError(error: unknown, httpStatus?: number): SlackErrorTy
 /**
  * Get a user-friendly error message based on error type
  */
+export function extractApiErrorMessage(responseBody: string): string | null {
+  try {
+    const parsed = JSON.parse(responseBody);
+    if (typeof parsed.message === 'string' && parsed.message.length > 0) {
+      return parsed.message;
+    }
+  } catch {
+    // Body is not valid JSON
+  }
+  return null;
+}
+
 export function getUserFriendlyErrorMessage(errorType: SlackErrorType, agentName?: string): string {
   const agent = agentName || 'The agent';
 
@@ -214,14 +227,17 @@ export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectO
   const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-    });
+    const response = await getInProcessFetch()(
+      `${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      }
+    );
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
@@ -261,7 +277,7 @@ export async function fetchAgentsForProject(
   const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(
+    const response = await getInProcessFetch()(
       `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=50`,
       {
         method: 'GET',
@@ -365,12 +381,18 @@ export async function sendResponseUrlMessage(
   try {
     const payload: Record<string, unknown> = { text: message.text };
 
-    if (message.replace_original) {
+    if (message.replace_original === true) {
       payload.replace_original = true;
     } else if (message.delete_original) {
       payload.delete_original = true;
-    } else if (message.response_type) {
-      payload.response_type = message.response_type;
+    } else {
+      // Explicitly prevent Slack's default replace_original: true behavior so the
+      // original message (e.g. approval buttons) is preserved when sending an
+      // ephemeral rejection or any other non-replacing response.
+      payload.replace_original = false;
+      if (message.response_type) {
+        payload.response_type = message.response_type;
+      }
     }
 
     if (message.blocks) {
@@ -507,7 +529,10 @@ export async function getThreadContext(
     };
     users?: {
       info: (params: { user: string }) => Promise<{
-        user?: { real_name?: string; display_name?: string; name?: string };
+        user?: {
+          real_name?: string;
+          profile?: { display_name?: string; email?: string };
+        };
       }>;
     };
   },
@@ -542,7 +567,7 @@ export async function getThreadContext(
     // Build a cache of user IDs to their Slack profile names
     const userNameCache = new Map<
       string,
-      { displayName: string | undefined; fullName: string | undefined; name: string | undefined }
+      { displayName: string | undefined; fullName: string | undefined; email: string | undefined }
     >();
 
     if (resolveUserNames && slackClient.users) {
@@ -557,15 +582,15 @@ export async function getThreadContext(
           try {
             const userInfo = await slackClient.users?.info({ user: userId });
             userNameCache.set(userId, {
-              displayName: userInfo?.user?.display_name,
+              displayName: userInfo?.user?.profile?.display_name,
               fullName: userInfo?.user?.real_name,
-              name: userInfo?.user?.name,
+              email: userInfo?.user?.profile?.email,
             });
           } catch {
             userNameCache.set(userId, {
               displayName: undefined,
               fullName: undefined,
-              name: undefined,
+              email: undefined,
             });
           }
         })
@@ -578,13 +603,13 @@ export async function getThreadContext(
       const parts = [`userId: ${userId}`];
       if (info.displayName) parts.push(`"${info.displayName}"`);
       if (info.fullName) parts.push(`"${info.fullName}"`);
-      if (info.name) parts.push(`"${info.name}"`);
+      if (info.email) parts.push(info.email);
       userDirectoryLines.push(`- ${parts.join(', ')}`);
     }
 
     const userDirectory =
       userDirectoryLines.length > 0
-        ? `Users in this thread (UserId - DisplayName, FullName, Name):\n${userDirectoryLines.join('\n')}\n\n`
+        ? `Users in this thread (UserId - DisplayName, FullName, Email):\n${userDirectoryLines.join('\n')}\n\n`
         : '';
 
     // Format messages using only user IDs

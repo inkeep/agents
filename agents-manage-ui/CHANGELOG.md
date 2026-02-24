@@ -1,5 +1,67 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.0
+
+### Patch Changes
+
+- f54846b: Add code formatting action button for Prompt, Markdown and JavaScript Monaco editors
+- 08ba7c2: rename `JsonSchemaInput` to `GenericJsonSchemaEditor` and add `JsonSchemaEditor` component
+- 9c293ff: Improve function tool form, add a toggle between visual and JSON editing modes for Input Schema field
+- a5f8f24: Fix double skeleton rendering in header menus
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- d717f54: Add clear option to Slack workspace default agent selector dropdown
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- fe36caa: Add join-from-workspace toggle and auto-invite flow for Slack users
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- d50fa44: Released Gemini 3.1-pro
+- 13197d8: improve trace performance
+- 0aea45a: Add OpenTelemetry instrumentation for server-side tracing
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
 ## 0.50.2
 
 ### Patch Changes

@@ -48,6 +48,7 @@ vi.mock('../../slack/services/events', () => ({
   handleModalSubmission: vi.fn().mockResolvedValue(undefined),
   handleOpenAgentSelectorModal: vi.fn().mockResolvedValue(undefined),
   handleOpenFollowUpModal: vi.fn().mockResolvedValue(undefined),
+  handleToolApproval: vi.fn().mockResolvedValue(undefined),
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -95,6 +96,31 @@ describe('dispatchSlackEvent', () => {
       );
 
       expect(result.outcome).toBe('ignored_bot_message');
+      expect(options.registerBackgroundWork).not.toHaveBeenCalled();
+    });
+
+    it('should ignore edited messages', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '123.456',
+            edited: { user: 'U123', ts: '123.789' },
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('ignored_edited_message');
       expect(options.registerBackgroundWork).not.toHaveBeenCalled();
     });
 
@@ -319,6 +345,53 @@ describe('dispatchSlackEvent', () => {
 
       expect(result.outcome).toBe('handled');
       expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle tool_approval_approve action', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'block_actions',
+        {
+          team: { id: 'T123' },
+          user: { id: 'U123' },
+          response_url: 'https://hooks.slack.com/response/123',
+          actions: [{ action_id: 'tool_approval_approve', value: '{"toolCallId":"tc-1"}' }],
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+      const { handleToolApproval } = await import('../../slack/services/events');
+      expect(vi.mocked(handleToolApproval)).toHaveBeenCalledWith(
+        expect.objectContaining({ approved: true, slackUserId: 'U123', teamId: 'T123' })
+      );
+    });
+
+    it('should handle tool_approval_deny action', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'block_actions',
+        {
+          team: { id: 'T123' },
+          user: { id: 'U456' },
+          actions: [{ action_id: 'tool_approval_deny', value: '{"toolCallId":"tc-2"}' }],
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+      const { handleToolApproval } = await import('../../slack/services/events');
+      expect(vi.mocked(handleToolApproval)).toHaveBeenCalledWith(
+        expect.objectContaining({ approved: false, slackUserId: 'U456' })
+      );
     });
 
     it('should return ignored_no_action_match for unmatched actions', async () => {

@@ -5,7 +5,7 @@
  * All responses are private (ephemeral) with a Follow Up button for multi-turn conversations.
  */
 
-import { signSlackUserToken } from '@inkeep/agents-core';
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
@@ -16,6 +16,7 @@ import type { FollowUpModalMetadata, ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import {
   classifyError,
+  extractApiErrorMessage,
   findCachedUserMapping,
   generateSlackConversationId,
   getThreadContext,
@@ -62,12 +63,14 @@ export async function handleModalSubmission(view: {
 
       let agentId = metadata.selectedAgentId;
       let projectId = metadata.selectedProjectId;
+      let agentName: string | null = null;
 
       if (agentSelectValue?.selected_option?.value) {
         try {
           const parsed = JSON.parse(agentSelectValue.selected_option.value);
           agentId = parsed.agentId;
           projectId = parsed.projectId;
+          agentName = parsed.agentName || null;
         } catch {
           logger.warn(
             { value: agentSelectValue.selected_option.value },
@@ -75,6 +78,8 @@ export async function handleModalSubmission(view: {
           );
         }
       }
+
+      const agentDisplayName = agentName || agentId || 'Agent';
 
       if (!agentId || !projectId) {
         logger.error({ metadata }, 'Missing agent or project ID in modal submission');
@@ -91,6 +96,7 @@ export async function handleModalSubmission(view: {
       }
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, false);
 
       const tenantId = metadata.tenantId;
 
@@ -169,6 +175,7 @@ export async function handleModalSubmission(view: {
         tenantId,
         slackTeamId: metadata.teamId,
         slackUserId: metadata.slackUserId,
+        slackAuthorized: false,
       });
 
       const conversationId = generateSlackConversationId({
@@ -183,7 +190,7 @@ export async function handleModalSubmission(view: {
       const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
       // Post thinking message (always ephemeral)
-      const thinkingText = SlackStrings.status.thinking(agentId);
+      const thinkingText = SlackStrings.status.thinking(agentDisplayName);
 
       if (metadata.buttonResponseUrl) {
         await sendResponseUrlMessage(metadata.buttonResponseUrl, {
@@ -218,6 +225,7 @@ export async function handleModalSubmission(view: {
         slackClient,
         metadata,
         agentId,
+        agentDisplayName,
         projectId,
         tenantId,
         conversationId,
@@ -281,8 +289,17 @@ export async function handleFollowUpSubmission(view: {
         return;
       }
 
-      const { conversationId, agentId, projectId, tenantId, teamId, slackUserId, channel } =
-        metadata;
+      const {
+        conversationId,
+        agentId,
+        agentName,
+        projectId,
+        tenantId,
+        teamId,
+        slackUserId,
+        channel,
+      } = metadata;
+      const agentDisplayName = agentName || agentId || 'Agent';
       span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
       span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
       span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
@@ -290,6 +307,7 @@ export async function handleFollowUpSubmission(view: {
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
+      span.setAttribute(SLACK_SPAN_KEYS.AUTHORIZED, false);
 
       // Parallel: workspace connection + user mapping
       const [workspaceConnection, existingLink] = await Promise.all([
@@ -324,6 +342,7 @@ export async function handleFollowUpSubmission(view: {
         tenantId,
         slackTeamId: teamId,
         slackUserId,
+        slackAuthorized: false,
       });
 
       const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
@@ -332,7 +351,7 @@ export async function handleFollowUpSubmission(view: {
       await slackClient.chat.postEphemeral({
         channel,
         user: slackUserId,
-        text: SlackStrings.status.thinking(agentId),
+        text: SlackStrings.status.thinking(agentDisplayName),
       });
 
       // Call the Run API with the same conversationId
@@ -349,11 +368,12 @@ export async function handleFollowUpSubmission(view: {
       const responseBlocks = buildConversationResponseBlocks({
         userMessage: question,
         responseText: responseText.text,
-        agentName: agentId,
+        agentName: agentDisplayName,
         isError: responseText.isError,
         followUpParams: {
           conversationId,
           agentId,
+          agentName: agentDisplayName,
           projectId,
           tenantId,
           teamId,
@@ -423,7 +443,7 @@ async function callAgentApi(params: {
 
     let response: Response;
     try {
-      response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -460,10 +480,14 @@ async function callAgentApi(params: {
       return { text: markdownToMrkdwn(rawContent), isError: false };
     }
 
+    const errorBody = await response.text().catch(() => '');
+    const apiMessage = extractApiErrorMessage(errorBody);
     const errorType = classifyError(null, response.status);
-    const errorText = getUserFriendlyErrorMessage(errorType, agentId);
+    const errorText = apiMessage
+      ? `*Error.* ${apiMessage}`
+      : getUserFriendlyErrorMessage(errorType, agentId);
     logger.warn(
-      { status: response.status, statusText: response.statusText, agentId },
+      { status: response.status, statusText: response.statusText, agentId, errorBody },
       'Agent API returned error'
     );
     apiSpan.end();
@@ -475,6 +499,7 @@ async function postPrivateResponse(params: {
   slackClient: ReturnType<typeof getSlackClient>;
   metadata: ModalMetadata;
   agentId: string;
+  agentDisplayName: string;
   projectId: string;
   tenantId: string;
   conversationId: string;
@@ -486,6 +511,7 @@ async function postPrivateResponse(params: {
     slackClient,
     metadata,
     agentId,
+    agentDisplayName,
     projectId,
     tenantId,
     conversationId,
@@ -497,11 +523,12 @@ async function postPrivateResponse(params: {
   const responseBlocks = buildConversationResponseBlocks({
     userMessage,
     responseText,
-    agentName: agentId,
+    agentName: agentDisplayName,
     isError,
     followUpParams: {
       conversationId,
       agentId,
+      agentName: agentDisplayName,
       projectId,
       tenantId,
       teamId: metadata.teamId,

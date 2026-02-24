@@ -37,7 +37,7 @@ pnpm setup-dev
 This will:
 
 - Create `.env` from `.env.example` if missing
-- Generate JWT keys if not already configured
+- Generate secrets (JWT keys, signing secret, auth secret, UI password) if not already configured
 - Check that Docker is running and required ports (5432, 5433, 5434) are free
 - Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml`
 - Run database migrations (manage + runtime)
