@@ -223,8 +223,6 @@ function createAgentsHono(config: AppConfig) {
     const waitUntil = await getWaitUntil();
     if (waitUntil) {
       waitUntil(flushBatchProcessor());
-    } else {
-      await flushBatchProcessor();
     }
   });
 
