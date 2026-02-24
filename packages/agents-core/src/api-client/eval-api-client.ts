@@ -1,6 +1,5 @@
 import type {
   TriggerConversationEvaluationRequest,
-  TriggerDatasetRunRequest,
   TriggerEvaluationJobRequest,
 } from '../types/entities';
 import { getLogger } from '../utils/logger';
@@ -16,12 +15,6 @@ export class EvalApiError extends BaseApiError {
 }
 
 // Request/Response types based on the trigger schemas
-export interface TriggerDatasetRunResponse {
-  queued: number;
-  failed: number;
-  datasetRunId: string;
-}
-
 export interface TriggerConversationEvaluationResponse {
   success: boolean;
   message: string;
@@ -54,31 +47,6 @@ export class EvalApiClient extends BaseApiClient {
     responseBody: string
   ): EvalApiError {
     return new EvalApiError(message, statusCode, responseBody);
-  }
-
-  /**
-   * Trigger a dataset run workflow
-   * Enqueues dataset items for processing through the chat API
-   */
-  async triggerDatasetRun(request: TriggerDatasetRunRequest): Promise<TriggerDatasetRunResponse> {
-    const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/run-dataset-items`;
-
-    logger.info(
-      {
-        tenantId,
-        projectId: this.projectId,
-        datasetRunId: request.datasetRunId,
-        itemCount: request.items.length,
-      },
-      'Triggering dataset run workflow'
-    );
-
-    return this.makePostRequest<TriggerDatasetRunResponse>(
-      path,
-      request,
-      'Failed to trigger dataset run workflow'
-    );
   }
 
   /**

@@ -1,9 +1,8 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ManageAppVariables } from '../../../../types/app';
 import datasetItemsRoutes from './datasetItems';
-// Disabling dataset runs
-// import datasetRunConfigsRoutes from './datasetRunConfigs';
-// import datasetRunsRoutes from './datasetRuns';
+import datasetRunConfigsRoutes from './datasetRunConfigs';
+import datasetRunsRoutes from './datasetRuns';
 import datasetRoutes from './datasets';
 import evaluationJobConfigEvaluatorRelationsRoutes from './evaluationJobConfigEvaluatorRelations';
 import evaluationJobConfigsRoutes from './evaluationJobConfigs';
@@ -15,9 +14,9 @@ import evaluatorsRoutes from './evaluators';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// app.route('dataset-run-configs', datasetRunConfigsRoutes);
+app.route('dataset-run-configs', datasetRunConfigsRoutes);
 app.route('dataset-items', datasetItemsRoutes);
-// app.route('dataset-runs', datasetRunsRoutes);
+app.route('dataset-runs', datasetRunsRoutes);
 app.route('evaluation-job-configs', evaluationJobConfigsRoutes);
 app.route('evaluation-job-configs', evaluationJobConfigEvaluatorRelationsRoutes);
 app.route('evaluation-run-configs', evaluationRunConfigsRoutes);
