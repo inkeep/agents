@@ -26,9 +26,9 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
-      tenantId: string;
-      projectId: string;
-      agentId: string;
+    tenantId: string;
+    projectId: string;
+    agentId: string;
   }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
 
@@ -67,7 +67,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
       <Button {...commonProps} asChild>
-        <Link href={tracesHref}>
+        <Link href={`/${tenantId}/projects/${projectId}/traces?agentId=${agentId}`}>
           <Activity className="size-4 text-muted-foreground" />
           Traces
         </Link>

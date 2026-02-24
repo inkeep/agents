@@ -69,7 +69,7 @@ describe('FullAgentUpdateSchema', () => {
     expect(result.error).toBeUndefined();
   });
 
-  it.only('should be able remove fields', () => {
+  it('should be able remove fields', () => {
     const result = FullAgentUpdateSchema.safeParse({
       id: '_',
       name: '_',

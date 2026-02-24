@@ -8,8 +8,8 @@ import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import {

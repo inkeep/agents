@@ -997,11 +997,6 @@ export const Agent: FC<AgentProps> = ({
                     closeSidePane();
                     setShowPlayground(true);
                   }}
-                  tracesHref={
-                    agent.id
-                      ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
-                      : undefined
-                  }
                 />
               </form>
             </Panel>

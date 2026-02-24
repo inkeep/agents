@@ -12,12 +12,12 @@ import type {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiSelectSchema,
   CredentialReferenceApiInsertSchema,
+  FullAgentAgentInsertSchema,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiSelectSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationApiSelectSchema,
   ScheduledTriggerWithRunInfoSchema,
-  FullAgentAgentInsertSchema,
   TriggerApiSelectSchema,
   TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
