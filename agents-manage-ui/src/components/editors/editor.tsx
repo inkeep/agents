@@ -10,8 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
+import { cn } from '@/lib/utils';
 
 interface EditorDialogProps {
   open: boolean;
