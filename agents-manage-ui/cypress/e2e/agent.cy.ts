@@ -41,4 +41,23 @@ describe('Agent', () => {
       cy.location('pathname').should('eq', '/default/projects');
     });
   });
+
+  it('should correctly handle dirty state', () => {
+    cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
+    // Disable json schema builder
+    cy.contains('JSON').click();
+    for (const selector of [
+      '[name=name]',
+      'textarea[name=description]',
+      '[data-uri$="prompt.template"] textarea',
+      '[name="stopWhen.transferCountIs"]',
+      '[data-uri$="contextConfig.contextVariables.json"] textarea',
+      '[data-uri$="contextConfig.headersSchema.json"] textarea',
+    ]) {
+      cy.get('[type=submit]').should('have.prop', 'disabled', true);
+      cy.get(selector).type('0', { force: true });
+      cy.get('[type=submit]').should('have.prop', 'disabled', false);
+      cy.get(selector).type('{backspace}', { force: true });
+    }
+  });
 });
