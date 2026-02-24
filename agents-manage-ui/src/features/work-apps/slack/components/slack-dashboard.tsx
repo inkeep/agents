@@ -35,8 +35,10 @@ export function SlackDashboard() {
         toast.info('Slack installation was cancelled.');
       } else if (error === 'workspace_limit_reached') {
         toast.error(
-          'Only one Slack workspace can be connected per organization. Remove the existing workspace to connect a different one.'
+          'Only one Slack workspace can be connected per organization. Uninstall the existing workspace to connect a different one.'
         );
+      } else if (error === 'workspace_check_failed') {
+        toast.error('Could not verify workspace status. Please try again.');
       } else {
         console.error('Slack OAuth Error:', error);
         toast.error(`Slack installation failed: ${error}`);

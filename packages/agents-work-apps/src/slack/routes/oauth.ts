@@ -293,7 +293,15 @@ app.openapi(
       };
 
       if (tenantId && workspaceData.teamId) {
-        const existingWorkspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
+        let existingWorkspaces: Awaited<
+          ReturnType<ReturnType<typeof listWorkAppSlackWorkspacesByTenant>>
+        >;
+        try {
+          existingWorkspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
+        } catch (err) {
+          logger.error({ err, tenantId }, 'Failed to check existing workspaces');
+          return c.redirect(`${dashboardUrl}?error=workspace_check_failed`);
+        }
         const hasOtherWorkspace = existingWorkspaces.some(
           (w) => w.slackTeamId !== workspaceData.teamId
         );
