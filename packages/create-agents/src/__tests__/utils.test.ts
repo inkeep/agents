@@ -117,6 +117,7 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(fs.writeJson).mockResolvedValue(undefined);
     vi.mocked(fs.readJson).mockResolvedValue({});
     vi.mocked(fs.readFile).mockResolvedValue(mockEnvExample as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.remove).mockResolvedValue(undefined);
 
@@ -672,6 +673,7 @@ function setupDefaultMocks() {
   vi.mocked(fs.writeJson).mockResolvedValue(undefined);
   vi.mocked(fs.readJson).mockResolvedValue({});
   vi.mocked(fs.readFile).mockResolvedValue(mockEnvExample as any);
+  vi.mocked(fs.readdir).mockResolvedValue([] as any);
   vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
   vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
@@ -819,6 +821,32 @@ describe('syncTemplateDependencies', () => {
           '@inkeep/agents-core': '^1.2.3',
           react: '^18.0.0',
           next: '^14.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should not update excluded packages like @inkeep/agents-ui', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        '@inkeep/agents-ui': '^0.50.3',
+        '@inkeep/agents-sdk': '^0.50.3',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-ui': '^0.50.3',
+          '@inkeep/agents-sdk': '^1.2.3',
         },
       }),
       { spaces: 2 }
