@@ -1,7 +1,8 @@
 'use client';
 
 import { Maximize } from 'lucide-react';
-import { type ComponentProps, type FC, type JSX, type ReactNode, useTransition } from 'react';
+import type { ComponentProps, FC, JSX, ReactNode } from 'react';
+import { useEffect, useRef, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -54,10 +55,18 @@ const EditorDialogTrigger: FC<ComponentProps<typeof Button>> = ({ className, ...
   );
 };
 
-const EditorFormatAction: FC<ComponentProps<typeof Button>> = (props) => {
+const EditorFormatAction: FC<ComponentProps<typeof Button>> = ({ disabled, ...props }) => {
   'use memo';
   const [isFormatting, startFormattingTransition] = useTransition();
   const { getEditorByUri } = useMonacoActions();
+  const timeoutRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (!timeoutRef.current) return;
+      clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   return (
     <Button
@@ -65,25 +74,30 @@ const EditorFormatAction: FC<ComponentProps<typeof Button>> = (props) => {
       onClick={(event) => {
         const parent = event.currentTarget.closest<HTMLDivElement>('[data-mode-id]');
         if (!parent) return;
+
         const editorContainer = parent.querySelector<HTMLDivElement>('[data-uri]');
         if (!editorContainer) return;
+
         const uri = editorContainer.dataset.uri?.replace('file:///', '');
         if (!uri) return;
+
         const editor = getEditorByUri(uri);
-        console.log({ editor });
         const formatAction = editor?.getAction('editor.action.formatDocument');
+
         startFormattingTransition(async () => {
           await Promise.all([
             formatAction?.run(),
-            new Promise((resolve) => setTimeout(resolve, 500)),
+            new Promise((resolve) => {
+              timeoutRef.current = window.setTimeout(resolve, 500);
+            }),
           ]);
         });
       }}
       variant="outline"
       size="sm"
       className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+      disabled={disabled || isFormatting}
       {...props}
-      disabled={props.disabled || isFormatting}
     >
       Format
     </Button>
