@@ -143,6 +143,10 @@ const envSchema = z.object({
     .string()
     .optional()
     .describe('Google Generative AI API key for Gemini models'),
+  EXA_API_KEY: z
+    .string()
+    .optional()
+    .describe('Exa API key for web search and find-similar tools in the dev-tools MCP server. Get from https://dashboard.exa.ai/'),
 
   // GitHub App Configuration
   GITHUB_APP_ID: z.string().optional().describe('GitHub App ID for GitHub integration'),
