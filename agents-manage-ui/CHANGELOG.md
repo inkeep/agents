@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.0
+
+### Patch Changes
+
+- f54846b: Add code formatting action button for Prompt, Markdown and JavaScript Monaco editors
+- 08ba7c2: rename `JsonSchemaInput` to `GenericJsonSchemaEditor` and add `JsonSchemaEditor` component
+- 9c293ff: Improve function tool form, add a toggle between visual and JSON editing modes for Input Schema field
+- a5f8f24: Fix double skeleton rendering in header menus
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
 ## 0.52.0
 
 ### Patch Changes
