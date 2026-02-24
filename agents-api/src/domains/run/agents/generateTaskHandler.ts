@@ -158,8 +158,6 @@ export const createTaskHandler = (
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
-      logger.info({ toolsForAgent }, 'Tools for agent');
-      logger.info({ userId: config.userId }, 'User ID');
       // Convert db tools to MCP tools and filter by selectedTools
       const toolsForAgentResult: McpTool[] =
         (await withRef(manageDbPool, resolvedRef, async (db) => {
