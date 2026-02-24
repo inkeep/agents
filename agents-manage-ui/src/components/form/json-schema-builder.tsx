@@ -81,7 +81,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
   const indentStyle = depth * INDENT_PX;
 
   const inputs = (
-    <div className="flex gap-2 items-center mb-2" style={{ marginLeft: indentStyle }}>
+    <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
       {prefix ||
         (hasInPreview && (
           <Tooltip>
