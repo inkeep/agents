@@ -29,6 +29,34 @@ interface MonacoState extends MonacoStateData {
 
 let wasInitialized = false;
 
+async function formatJS(value: string): Promise<string> {
+  const [{ default: prettier }, { default: parserBabel }, { default: parserEstree }] =
+    await Promise.all([
+      import('prettier/standalone'),
+      import('prettier/plugins/babel'),
+      import('prettier/plugins/estree'),
+    ]);
+
+  const formatted = await prettier.format(value, {
+    parser: 'babel',
+    plugins: [parserBabel, parserEstree],
+  });
+  return formatted.trimEnd();
+}
+async function formatMarkdown(value: string): Promise<string> {
+  const [{ default: prettier }, { default: parserMarkdown }] =
+    await Promise.all([
+      import('prettier/standalone'),
+      import('prettier/plugins/markdown'),
+    ]);
+
+  const formatted = await prettier.format(value, {
+    parser: 'mdx',
+    plugins: [parserMarkdown],
+  });
+  return formatted.trimEnd();
+}
+
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
   monaco: null,
   actions: {
@@ -88,6 +116,28 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         documentFormattingEdits: true,
         /** Enable formatting of only a selected range */
         documentRangeFormattingEdits: true,
+      });
+      monaco.languages.registerDocumentFormattingEditProvider('javascript', {
+        async provideDocumentFormattingEdits(model) {
+          const text = model.getValue();
+          return [
+            {
+              range: model.getFullModelRange(),
+              text: await formatJS(text),
+            },
+          ];
+        },
+      });
+      monaco.languages.registerDocumentFormattingEditProvider(TEMPLATE_LANGUAGE, {
+        async provideDocumentFormattingEdits(model) {
+          const text = model.getValue();
+          return [
+            {
+              range: model.getFullModelRange(),
+              text: await formatMarkdown(text),
+            },
+          ];
+        },
       });
 
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
