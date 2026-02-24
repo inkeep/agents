@@ -172,8 +172,8 @@ export async function resolveEffectiveAgent(
     }
   }
 
-  // Enrich: look up agent name from manage API if not in config
-  if (result && !result.agentName) {
+  // Enrich: look up agent name from manage API if missing or same as agent ID
+  if (result && (!result.agentName || result.agentName === result.agentId)) {
     const name = await lookupAgentName(tenantId, result.projectId, result.agentId);
     if (name) {
       result.agentName = name;
@@ -237,7 +237,7 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
 
   const effective = channelConfig || workspaceConfig;
 
-  if (effective && !effective.agentName) {
+  if (effective && (!effective.agentName || effective.agentName === effective.agentId)) {
     const name = await lookupAgentName(tenantId, effective.projectId, effective.agentId);
     if (name) {
       effective.agentName = name;
