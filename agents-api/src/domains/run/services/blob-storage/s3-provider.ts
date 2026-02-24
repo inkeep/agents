@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import type {
@@ -34,6 +35,10 @@ export class S3BlobStorageProvider implements BlobStorageProvider {
       region,
       credentials: { accessKeyId, secretAccessKey },
       forcePathStyle: env.BLOB_STORAGE_S3_FORCE_PATH_STYLE,
+      requestHandler: new NodeHttpHandler({
+        connectionTimeout: 5000, // 5s to establish connection
+        requestTimeout: 30000, // 30s for the full request
+      }),
     });
   }
 
@@ -58,31 +63,45 @@ export class S3BlobStorageProvider implements BlobStorageProvider {
 
   async download(key: string): Promise<BlobStorageDownloadResult> {
     logger.debug({ key }, 'Downloading from S3');
-    const response = await this.client.send(
-      new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      })
-    );
+    try {
+      const response = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        })
+      );
 
-    const bodyBytes = await response.Body?.transformToByteArray();
-    if (!bodyBytes) {
-      throw new Error(`Empty response body for key: ${key}`);
+      const bodyBytes = await response.Body?.transformToByteArray();
+      if (!bodyBytes) {
+        throw new Error(`Empty response body for key: ${key}`);
+      }
+
+      return {
+        data: bodyBytes,
+        contentType: response.ContentType || 'application/octet-stream',
+      };
+    } catch (error) {
+      logger.error({ key, bucket: this.bucket, error }, 'S3 download failed');
+      throw new Error(
+        `S3 download failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
-
-    return {
-      data: bodyBytes,
-      contentType: response.ContentType || 'application/octet-stream',
-    };
   }
 
   async delete(key: string): Promise<void> {
     logger.debug({ key }, 'Deleting from S3');
-    await this.client.send(
-      new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      })
-    );
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        })
+      );
+    } catch (error) {
+      logger.error({ key, bucket: this.bucket, error }, 'S3 delete failed');
+      throw new Error(
+        `S3 delete failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 }

@@ -18,37 +18,58 @@ export class VercelBlobStorageProvider implements BlobStorageProvider {
 
   async upload(params: BlobStorageUploadParams): Promise<void> {
     logger.debug({ key: params.key, contentType: params.contentType }, 'Uploading to Vercel Blob');
-    const body =
-      params.data instanceof Buffer ? params.data : Buffer.from(params.data as Uint8Array);
-    await put(params.key, body, {
-      access: 'private',
-      contentType: params.contentType,
-      token: this.token,
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    });
+    try {
+      const body =
+        params.data instanceof Buffer ? params.data : Buffer.from(params.data as Uint8Array);
+      await put(params.key, body, {
+        access: 'private',
+        contentType: params.contentType,
+        token: this.token,
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      });
+    } catch (error) {
+      logger.error({ key: params.key, error }, 'Vercel Blob upload failed');
+      throw new Error(
+        `Vercel Blob upload failed for key ${params.key}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   async download(key: string): Promise<BlobStorageDownloadResult> {
     logger.debug({ key }, 'Downloading from Vercel Blob');
-    const result = await get(key, {
-      access: 'private',
-      token: this.token,
-    });
-    if (result?.statusCode !== 200 || !result.stream) {
+    try {
+      const result = await get(key, {
+        access: 'private',
+        token: this.token,
+      });
+      if (result?.statusCode !== 200 || !result.stream) {
+        throw new Error(
+          `Vercel Blob download failed for key ${key}: ${result?.statusCode ?? 'no result'}`
+        );
+      }
+      const data = new Uint8Array(await new Response(result.stream).arrayBuffer());
+      return {
+        data,
+        contentType: result.blob.contentType || 'application/octet-stream',
+      };
+    } catch (error) {
+      logger.error({ key, error }, 'Vercel Blob download failed');
       throw new Error(
-        `Vercel Blob download failed for key ${key}: ${result?.statusCode ?? 'no result'}`
+        `Vercel Blob download failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
-    const data = new Uint8Array(await new Response(result.stream).arrayBuffer());
-    return {
-      data,
-      contentType: result.blob.contentType || 'application/octet-stream',
-    };
   }
 
   async delete(key: string): Promise<void> {
     logger.debug({ key }, 'Deleting from Vercel Blob');
-    await del(key, { token: this.token });
+    try {
+      await del(key, { token: this.token });
+    } catch (error) {
+      logger.error({ key, error }, 'Vercel Blob delete failed');
+      throw new Error(
+        `Vercel Blob delete failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 }

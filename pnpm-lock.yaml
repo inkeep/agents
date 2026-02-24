@@ -107,19 +107,19 @@ importers:
     dependencies:
       '@ai-sdk/google':
         specifier: 3.0.4
-        version: 3.0.4(zod@4.3.6)
+        version: 3.0.4(zod@4.1.11)
       '@aws-sdk/client-s3':
         specifier: ^3.985.0
         version: 3.995.0
       '@hono/mcp':
         specifier: ^0.1.5
-        version: 0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(hono@4.11.8)
+        version: 0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.1.11))(hono@4.11.8)
       '@hono/swagger-ui':
         specifier: ^0.5.1
         version: 0.5.2(hono@4.11.8)
       '@hono/zod-openapi':
         specifier: ^1.1.5
-        version: 1.2.0(hono@4.11.8)(zod@4.3.6)
+        version: 1.2.0(hono@4.11.8)(zod@4.1.11)
       '@inkeep/agents-core':
         specifier: workspace:^
         version: link:../packages/agents-core
@@ -131,7 +131,7 @@ importers:
         version: link:../packages/agents-work-apps
       '@modelcontextprotocol/sdk':
         specifier: ^1.25.2
-        version: 1.26.0(zod@4.3.6)
+        version: 1.26.0(zod@4.1.11)
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -162,6 +162,9 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: 'catalog:'
         version: 1.39.0
+      '@smithy/node-http-handler':
+        specifier: ^4.4.11
+        version: 4.4.11
       '@vercel/blob':
         specifier: ^2.3.0
         version: 2.3.0
@@ -185,7 +188,7 @@ importers:
         version: 4.1.0-beta.31(@opentelemetry/api@1.9.0)
       ai:
         specifier: 6.0.14
-        version: 6.0.14(zod@4.3.6)
+        version: 6.0.14(zod@4.1.11)
       ajv:
         specifier: ^8.17.1
         version: 8.17.1
@@ -227,7 +230,7 @@ importers:
         version: 4.1.0-beta.54(@aws-sdk/client-sts@3.970.0)(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(babel-plugin-react-compiler@1.0.0)(magicast@0.5.2)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3)
       zod:
         specifier: ^4.3.6
-        version: 4.3.6
+        version: 4.1.11
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.20.1
@@ -681,7 +684,7 @@ importers:
         version: 0.4.6(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
       nuqs:
         specifier: ^2.4.3
-        version: 2.8.6(next@16.1.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
+        version: 2.8.6(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
       pino:
         specifier: ^9.9.0
         version: 9.14.0
@@ -8607,6 +8610,7 @@ packages:
 
   bun@1.3.5:
     resolution: {integrity: sha512-c1YHIGUfgvYPJmLug5QiLzNWlX2Dg7X/67JWu1Va+AmMXNXzC/KQn2lgQ7rD+n1u1UqDpJMowVGGxTNpbPydNw==}
+    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 
@@ -14624,12 +14628,25 @@ snapshots:
       '@vercel/oidc': 3.1.0
       zod: 4.3.6
 
+  '@ai-sdk/gateway@3.0.9(zod@4.1.11)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.2
+      '@ai-sdk/provider-utils': 4.0.4(zod@4.1.11)
+      '@vercel/oidc': 3.1.0
+      zod: 4.1.11
+
   '@ai-sdk/gateway@3.0.9(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.2
       '@ai-sdk/provider-utils': 4.0.4(zod@4.3.6)
       '@vercel/oidc': 3.1.0
       zod: 4.3.6
+
+  '@ai-sdk/google@3.0.4(zod@4.1.11)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.2
+      '@ai-sdk/provider-utils': 4.0.4(zod@4.1.11)
+      zod: 4.1.11
 
   '@ai-sdk/google@3.0.4(zod@4.3.6)':
     dependencies:
@@ -14675,6 +14692,13 @@ snapshots:
       eventsource-parser: 3.0.6
       zod: 4.3.6
       zod-to-json-schema: 3.25.1(zod@4.3.6)
+
+  '@ai-sdk/provider-utils@4.0.4(zod@4.1.11)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.2
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.0.6
+      zod: 4.1.11
 
   '@ai-sdk/provider-utils@4.0.4(zod@4.3.6)':
     dependencies:
@@ -14789,6 +14813,11 @@ snapshots:
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
     optional: true
+
+  '@asteasolutions/zod-to-openapi@8.2.0(zod@4.1.11)':
+    dependencies:
+      openapi3-ts: 4.5.0
+      zod: 4.1.11
 
   '@asteasolutions/zod-to-openapi@8.2.0(zod@4.3.6)':
     dependencies:
@@ -14984,9 +15013,9 @@ snapshots:
       '@smithy/middleware-stack': 4.2.8
       '@smithy/node-config-provider': 4.3.8
       '@smithy/node-http-handler': 4.4.11
-      '@smithy/protocol-http': 5.3.8
+      '@smithy/protocol-http': 5.3.9
       '@smithy/smithy-client': 4.11.7
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       '@smithy/url-parser': 4.2.8
       '@smithy/util-base64': 4.3.0
       '@smithy/util-body-length-browser': 4.2.0
@@ -15079,7 +15108,7 @@ snapshots:
 
   '@aws-sdk/crc64-nvme@3.972.0':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-env@3.970.0':
@@ -15095,7 +15124,7 @@ snapshots:
       '@aws-sdk/core': 3.973.11
       '@aws-sdk/types': 3.973.1
       '@smithy/property-provider': 4.2.8
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-http@3.970.0':
@@ -15118,9 +15147,9 @@ snapshots:
       '@smithy/fetch-http-handler': 5.3.9
       '@smithy/node-http-handler': 4.4.11
       '@smithy/property-provider': 4.2.8
-      '@smithy/protocol-http': 5.3.8
+      '@smithy/protocol-http': 5.3.9
       '@smithy/smithy-client': 4.11.7
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       '@smithy/util-stream': 4.5.14
       tslib: 2.8.1
 
@@ -15157,7 +15186,7 @@ snapshots:
       '@smithy/credential-provider-imds': 4.2.8
       '@smithy/property-provider': 4.2.8
       '@smithy/shared-ini-file-loader': 4.4.3
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -15181,9 +15210,9 @@ snapshots:
       '@aws-sdk/nested-clients': 3.993.0
       '@aws-sdk/types': 3.973.1
       '@smithy/property-provider': 4.2.8
-      '@smithy/protocol-http': 5.3.8
+      '@smithy/protocol-http': 5.3.9
       '@smithy/shared-ini-file-loader': 4.4.3
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -15237,7 +15266,7 @@ snapshots:
       '@aws-sdk/types': 3.973.1
       '@smithy/property-provider': 4.2.8
       '@smithy/shared-ini-file-loader': 4.4.3
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-sso@3.970.0':
@@ -15261,7 +15290,7 @@ snapshots:
       '@aws-sdk/types': 3.973.1
       '@smithy/property-provider': 4.2.8
       '@smithy/shared-ini-file-loader': 4.4.3
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -15293,7 +15322,7 @@ snapshots:
       '@aws-sdk/types': 3.973.1
       '@smithy/property-provider': 4.2.8
       '@smithy/shared-ini-file-loader': 4.4.3
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -15492,9 +15521,9 @@ snapshots:
       '@smithy/middleware-stack': 4.2.8
       '@smithy/node-config-provider': 4.3.8
       '@smithy/node-http-handler': 4.4.11
-      '@smithy/protocol-http': 5.3.8
+      '@smithy/protocol-http': 5.3.9
       '@smithy/smithy-client': 4.11.7
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       '@smithy/url-parser': 4.2.8
       '@smithy/util-base64': 4.3.0
       '@smithy/util-body-length-browser': 4.2.0
@@ -15553,7 +15582,7 @@ snapshots:
       '@aws-sdk/types': 3.973.1
       '@smithy/property-provider': 4.2.8
       '@smithy/shared-ini-file-loader': 4.4.3
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -15588,7 +15617,7 @@ snapshots:
   '@aws-sdk/util-endpoints@3.993.0':
     dependencies:
       '@aws-sdk/types': 3.973.1
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       '@smithy/url-parser': 4.2.8
       '@smithy/util-endpoints': 3.2.8
       tslib: 2.8.1
@@ -15643,7 +15672,7 @@ snapshots:
 
   '@aws-sdk/xml-builder@3.972.5':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       fast-xml-parser: 5.3.6
       tslib: 2.8.1
 
@@ -17011,9 +17040,9 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(hono@4.11.8)':
+  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.1.11))(hono@4.11.8)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.26.0(zod@4.3.6)
+      '@modelcontextprotocol/sdk': 1.26.0(zod@4.1.11)
       hono: 4.11.8
 
   '@hono/node-server@1.19.7(hono@4.11.8)':
@@ -17038,6 +17067,14 @@ snapshots:
       hono: 4.11.8
       minimatch: 9.0.5
 
+  '@hono/zod-openapi@1.2.0(hono@4.11.8)(zod@4.1.11)':
+    dependencies:
+      '@asteasolutions/zod-to-openapi': 8.2.0(zod@4.1.11)
+      '@hono/zod-validator': 0.7.6(hono@4.11.8)(zod@4.1.11)
+      hono: 4.11.8
+      openapi3-ts: 4.5.0
+      zod: 4.1.11
+
   '@hono/zod-openapi@1.2.0(hono@4.11.8)(zod@4.3.6)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.2.0(zod@4.3.6)
@@ -17045,6 +17082,11 @@ snapshots:
       hono: 4.11.8
       openapi3-ts: 4.5.0
       zod: 4.3.6
+
+  '@hono/zod-validator@0.7.6(hono@4.11.8)(zod@4.1.11)':
+    dependencies:
+      hono: 4.11.8
+      zod: 4.1.11
 
   '@hono/zod-validator@0.7.6(hono@4.11.8)(zod@4.3.6)':
     dependencies:
@@ -17727,7 +17769,7 @@ snapshots:
       clsx: 2.1.1
       lucide-react: 0.503.0(react@19.3.0-canary-87ae75b3-20260128)
       next: 16.1.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
-      nuqs: 2.8.6(next@16.1.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
+      nuqs: 2.8.6(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
       react: 19.3.0-canary-87ae75b3-20260128
       react-dom: 19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128)
       react-icons: 5.5.0(react@19.3.0-canary-87ae75b3-20260128)
@@ -17963,6 +18005,28 @@ snapshots:
       zod-to-json-schema: 3.25.0(zod@4.3.6)
     transitivePeerDependencies:
       - hono
+      - supports-color
+
+  '@modelcontextprotocol/sdk@1.26.0(zod@4.1.11)':
+    dependencies:
+      '@hono/node-server': 1.19.9(hono@4.11.8)
+      ajv: 8.17.1
+      ajv-formats: 3.0.1(ajv@8.17.1)
+      content-type: 1.0.5
+      cors: 2.8.5
+      cross-spawn: 7.0.6
+      eventsource: 3.0.7
+      eventsource-parser: 3.0.6
+      express: 5.2.1
+      express-rate-limit: 8.2.1(express@5.2.1)
+      hono: 4.11.8
+      jose: 6.1.3
+      json-schema-typed: 8.0.2
+      pkce-challenge: 5.0.1
+      raw-body: 3.0.2
+      zod: 4.1.11
+      zod-to-json-schema: 3.25.1(zod@4.1.11)
+    transitivePeerDependencies:
       - supports-color
 
   '@modelcontextprotocol/sdk@1.26.0(zod@4.3.6)':
@@ -23352,7 +23416,7 @@ snapshots:
     dependencies:
       '@smithy/node-config-provider': 4.3.8
       '@smithy/property-provider': 4.2.8
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       '@smithy/url-parser': 4.2.8
       tslib: 2.8.1
 
@@ -23533,7 +23597,7 @@ snapshots:
 
   '@smithy/property-provider@4.2.8':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
 
   '@smithy/property-provider@4.2.9':
@@ -23553,7 +23617,7 @@ snapshots:
 
   '@smithy/querystring-builder@4.2.8':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       '@smithy/util-uri-escape': 4.2.0
       tslib: 2.8.1
 
@@ -23565,7 +23629,7 @@ snapshots:
 
   '@smithy/querystring-parser@4.2.8':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
 
   '@smithy/querystring-parser@4.2.9':
@@ -23575,7 +23639,7 @@ snapshots:
 
   '@smithy/service-error-classification@4.2.8':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
 
   '@smithy/service-error-classification@4.2.9':
     dependencies:
@@ -23583,7 +23647,7 @@ snapshots:
 
   '@smithy/shared-ini-file-loader@4.4.3':
     dependencies:
-      '@smithy/types': 4.12.0
+      '@smithy/types': 4.12.1
       tslib: 2.8.1
 
   '@smithy/shared-ini-file-loader@4.4.4':
@@ -23594,8 +23658,8 @@ snapshots:
   '@smithy/signature-v4@5.3.8':
     dependencies:
       '@smithy/is-array-buffer': 4.2.0
-      '@smithy/protocol-http': 5.3.8
-      '@smithy/types': 4.12.0
+      '@smithy/protocol-http': 5.3.9
+      '@smithy/types': 4.12.1
       '@smithy/util-hex-encoding': 4.2.0
       '@smithy/util-middleware': 4.2.8
       '@smithy/util-uri-escape': 4.2.0
@@ -24894,6 +24958,14 @@ snapshots:
     optionalDependencies:
       vite: 7.3.0(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  '@vitest/mocker@3.2.4(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@vitest/spy': 3.2.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+
   '@vitest/mocker@3.2.4(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@vitest/spy': 3.2.4
@@ -25604,6 +25676,14 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.1(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
       zod: 4.3.6
+
+  ai@6.0.14(zod@4.1.11):
+    dependencies:
+      '@ai-sdk/gateway': 3.0.9(zod@4.1.11)
+      '@ai-sdk/provider': 3.0.2
+      '@ai-sdk/provider-utils': 4.0.4(zod@4.1.11)
+      '@opentelemetry/api': 1.9.0
+      zod: 4.1.11
 
   ai@6.0.14(zod@4.3.6):
     dependencies:
@@ -30010,19 +30090,19 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuqs@2.8.6(next@16.1.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128):
-    dependencies:
-      '@standard-schema/spec': 1.0.0
-      react: 19.3.0-canary-87ae75b3-20260128
-    optionalDependencies:
-      next: 16.1.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
-
   nuqs@2.8.6(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0):
     dependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.2.0
     optionalDependencies:
       next: 16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+
+  nuqs@2.8.6(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128):
+    dependencies:
+      '@standard-schema/spec': 1.0.0
+      react: 19.3.0-canary-87ae75b3-20260128
+    optionalDependencies:
+      next: 16.1.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
 
   nwsapi@2.2.23:
     optional: true
@@ -33155,7 +33235,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -33620,6 +33700,10 @@ snapshots:
   zod-to-json-schema@3.25.0(zod@4.3.6):
     dependencies:
       zod: 4.3.6
+
+  zod-to-json-schema@3.25.1(zod@4.1.11):
+    dependencies:
+      zod: 4.1.11
 
   zod-to-json-schema@3.25.1(zod@4.3.6):
     dependencies:
