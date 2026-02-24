@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.53.1
+
+### Patch Changes
+
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+
 ## 0.53.0
 
 ### Patch Changes

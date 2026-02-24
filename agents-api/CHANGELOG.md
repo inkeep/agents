@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.53.1
+
+### Patch Changes
+
+- 2583c64: remove flushing on local dev for otel
+- Updated dependencies [8063da9]
+- Updated dependencies [bd3aab5]
+- Updated dependencies [75fbceb]
+- Updated dependencies [c4d8a7b]
+  - @inkeep/agents-work-apps@0.53.1
+  - @inkeep/agents-core@0.53.1
+  - @inkeep/agents-mcp@0.53.1
+
 ## 0.53.0
 
 ### Patch Changes

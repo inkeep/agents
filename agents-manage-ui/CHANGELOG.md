@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.1
+
+### Patch Changes
+
+- e06a945: fix generic combobox text color and chevron color, fix select hover color on light mode
+- 2222e08: Show MCP tool overrides in agent editor sidepane — display name, description, and schema overrides are now reflected in the tool configuration table
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
 ## 0.53.0
 
 ### Patch Changes
