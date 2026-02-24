@@ -27,6 +27,7 @@ export function ApiKeyForm({ agentsOptions, onApiKeyCreated }: ApiKeyFormProps) 
   const form = useForm({
     resolver: zodResolver(ApiKeySchema),
     defaultValues,
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
