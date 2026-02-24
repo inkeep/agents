@@ -37,7 +37,7 @@ const defaultValues: ExternalAgentFormData = {
 };
 
 export function ExternalAgentForm({
-  initialData,
+  initialData = defaultValues,
   externalAgent,
   credentials,
   tenantId,
@@ -48,10 +48,8 @@ export function ExternalAgentForm({
 
   const form = useForm({
     resolver: zodResolver(ExternalAgentFormSchema),
-    defaultValues: {
-      ...defaultValues,
-      ...initialData,
-    },
+    defaultValues: initialData,
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;

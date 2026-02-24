@@ -5,7 +5,6 @@ export const ExternalAgentFormSchema = ExternalAgentApiInsertSchema.pick({
   name: true,
   description: true,
   baseUrl: true,
-  credentialReferenceId: true,
 }).extend({
   credentialReferenceId: ExternalAgentApiInsertSchema.shape.credentialReferenceId.transform(
     (value) => (value === 'none' ? null : value)
