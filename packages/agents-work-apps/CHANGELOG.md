@@ -1,5 +1,16 @@
 # @inkeep/agents-work-apps
 
+## 0.53.1
+
+### Patch Changes
+
+- 8063da9: Add attachment content to slack messages
+- bd3aab5: Add randomness to generated branch names to prevent collisions
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- c4d8a7b: Add project name and link to /inkeep status command response.
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
 ## 0.53.0
 
 ### Minor Changes
