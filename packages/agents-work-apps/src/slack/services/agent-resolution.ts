@@ -5,12 +5,98 @@
  * Priority: Channel default > Workspace default (all admin-controlled)
  */
 
-import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
+import {
+  findWorkAppSlackChannelAgentConfig,
+  generateInternalServiceToken,
+  getInProcessFetch,
+  InternalServices,
+} from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
+import { env } from '../../env';
 import { getLogger } from '../../logger';
 import { getWorkspaceDefaultAgentFromNango } from './nango';
 
 const logger = getLogger('slack-agent-resolution');
+
+const AGENT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
+const AGENT_NAME_CACHE_MAX_SIZE = 500;
+const agentNameCache = new Map<string, { name: string | null; expiresAt: number }>();
+
+async function lookupAgentName(
+  tenantId: string,
+  projectId: string,
+  agentId: string
+): Promise<string | undefined> {
+  const cacheKey = `${tenantId}:${projectId}:${agentId}`;
+  const cached = agentNameCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.name || undefined;
+  }
+
+  try {
+    const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+    const token = await generateInternalServiceToken({
+      serviceId: InternalServices.INKEEP_AGENTS_MANAGE_API,
+      tenantId,
+      projectId,
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+
+    try {
+      const response = await getInProcessFetch()(
+        `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=50`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'x-inkeep-project-id': projectId,
+          },
+          signal: controller.signal,
+        }
+      );
+
+      if (!response.ok) {
+        logger.warn(
+          { status: response.status, tenantId, projectId, agentId },
+          'Failed to fetch agents for name lookup'
+        );
+        return undefined;
+      }
+
+      const result = (await response.json()) as {
+        data: Array<{ id: string; name: string }>;
+      };
+
+      for (const agent of result.data) {
+        const key = `${tenantId}:${projectId}:${agent.id}`;
+        agentNameCache.set(key, {
+          name: agent.name || null,
+          expiresAt: Date.now() + AGENT_NAME_CACHE_TTL_MS,
+        });
+      }
+
+      if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
+        const excess = agentNameCache.size - AGENT_NAME_CACHE_MAX_SIZE;
+        const keys = agentNameCache.keys();
+        for (let i = 0; i < excess; i++) {
+          const { value } = keys.next();
+          if (value) agentNameCache.delete(value);
+        }
+      }
+
+      const found = result.data.find((a) => a.id === agentId);
+      return found?.name || undefined;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (error) {
+    logger.warn({ error, tenantId, projectId, agentId }, 'Failed to look up agent name');
+    return undefined;
+  }
+}
 
 /** Configuration for a resolved agent */
 export interface ResolvedAgentConfig {
@@ -42,6 +128,8 @@ export async function resolveEffectiveAgent(
 
   logger.debug({ tenantId, teamId, channelId }, 'Resolving effective agent');
 
+  let result: ResolvedAgentConfig | null = null;
+
   // Priority 1: Channel default (admin-configured)
   if (channelId) {
     const channelConfig = await findWorkAppSlackChannelAgentConfig(runDbClient)(
@@ -55,7 +143,7 @@ export async function resolveEffectiveAgent(
         { channelId, agentId: channelConfig.agentId, source: 'channel' },
         'Resolved agent from channel config'
       );
-      return {
+      result = {
         projectId: channelConfig.projectId,
         agentId: channelConfig.agentId,
         agentName: channelConfig.agentName || undefined,
@@ -66,24 +154,41 @@ export async function resolveEffectiveAgent(
   }
 
   // Priority 2: Workspace default (admin-configured)
-  const workspaceConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+  if (!result) {
+    const workspaceConfig = await getWorkspaceDefaultAgentFromNango(teamId);
 
-  if (workspaceConfig?.agentId && workspaceConfig.projectId) {
-    logger.info(
-      { teamId, agentId: workspaceConfig.agentId, source: 'workspace' },
-      'Resolved agent from workspace config'
-    );
-    return {
-      projectId: workspaceConfig.projectId,
-      agentId: workspaceConfig.agentId,
-      agentName: workspaceConfig.agentName,
-      source: 'workspace',
-      grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
-    };
+    if (workspaceConfig?.agentId && workspaceConfig.projectId) {
+      logger.info(
+        { teamId, agentId: workspaceConfig.agentId, source: 'workspace' },
+        'Resolved agent from workspace config'
+      );
+      result = {
+        projectId: workspaceConfig.projectId,
+        agentId: workspaceConfig.agentId,
+        agentName: workspaceConfig.agentName,
+        source: 'workspace',
+        grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
+      };
+    }
   }
 
-  logger.debug({ tenantId, teamId, channelId }, 'No agent configuration found');
-  return null;
+  // Enrich: look up agent name from manage API if not in config
+  if (result && !result.agentName) {
+    const name = await lookupAgentName(tenantId, result.projectId, result.agentId);
+    if (name) {
+      result.agentName = name;
+      logger.debug(
+        { agentId: result.agentId, agentName: name },
+        'Enriched agent config with name from manage API'
+      );
+    }
+  }
+
+  if (!result) {
+    logger.debug({ tenantId, teamId, channelId }, 'No agent configuration found');
+  }
+
+  return result;
 }
 
 /**
@@ -131,6 +236,13 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
   }
 
   const effective = channelConfig || workspaceConfig;
+
+  if (effective && !effective.agentName) {
+    const name = await lookupAgentName(tenantId, effective.projectId, effective.agentId);
+    if (name) {
+      effective.agentName = name;
+    }
+  }
 
   return {
     channelConfig,
