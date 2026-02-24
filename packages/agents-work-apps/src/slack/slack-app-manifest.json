@@ -22,10 +22,10 @@
     },
     "shortcuts": [
       {
-        "name": "Ask Inkeep Agent",
+        "name": "Talk to an Inkeep Agent",
         "type": "message",
         "callback_id": "ask_agent_shortcut",
-        "description": "Ask an Inkeep agent about this message"
+        "description": "Talk to an Inkeep agent about this message"
       }
     ],
     "slash_commands": [
