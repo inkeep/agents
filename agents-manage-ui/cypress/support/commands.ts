@@ -94,7 +94,7 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
 
 Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
   return cy
-    .get(`[data-uri="file:///${uri}"] textarea`, { timeout: 5_000 })
+    .get(`[data-uri="file:///${uri}"] textarea`, { timeout: 10_000 })
     .type('{selectall}{del}', { force: true })
     .type(value, {
       parseSpecialCharSequences: false,
