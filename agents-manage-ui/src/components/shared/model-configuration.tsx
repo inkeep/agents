@@ -88,7 +88,7 @@ export function ModelConfiguration({
     // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
       setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.(undefined);
+      onProviderOptionsChange?.('');
     }
 
     onModelChange?.(newModel || '');
@@ -97,7 +97,7 @@ export function ModelConfiguration({
   const handleProviderOptionsChange = (options: Record<string, any>) => {
     if (!options || Object.keys(options).length === 0) {
       setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.(undefined);
+      onProviderOptionsChange?.('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
