@@ -119,18 +119,18 @@ describe('Tool auth error short-circuit behavior', () => {
   });
 
   describe('placeholder tool structure', () => {
-    it('creates a tool with description and parameters schema', () => {
+    it('creates a tool with description and inputSchema', () => {
       const placeholderTools: Record<string, any> = {
         [toolName]: {
           description: toolName,
-          parameters: z.object({}),
+          inputSchema: z.object({}),
           execute: createAuthErrorExecute(undefined),
         },
       };
 
       expect(placeholderTools[toolName]).toBeDefined();
       expect(placeholderTools[toolName].description).toBe(toolName);
-      expect(placeholderTools[toolName].parameters).toBeDefined();
+      expect(placeholderTools[toolName].inputSchema).toBeDefined();
       expect(typeof placeholderTools[toolName].execute).toBe('function');
     });
 
@@ -138,7 +138,7 @@ describe('Tool auth error short-circuit behavior', () => {
       const placeholderTools: Record<string, any> = {
         [toolName]: {
           description: toolName,
-          parameters: z.object({}),
+          inputSchema: z.object({}),
           execute: createAuthErrorExecute(undefined),
         },
       };

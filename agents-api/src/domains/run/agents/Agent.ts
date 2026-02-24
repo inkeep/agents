@@ -1235,7 +1235,7 @@ export class Agent {
         const placeholderTools: Record<string, any> = {
           [tool.name]: {
             description: tool.name,
-            parameters: z.object({}),
+            inputSchema: z.object({}),
             execute: authErrorExecute,
           },
         };
