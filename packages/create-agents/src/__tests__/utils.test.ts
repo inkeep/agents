@@ -679,6 +679,17 @@ function setupDefaultMocks() {
 }
 
 describe('syncTemplateDependencies', () => {
+  function mockDirent(name: string, isDir: boolean) {
+    return { name, isDirectory: () => isDir, isFile: () => !isDir };
+  }
+
+  function setupFlatTemplate(rootPkg: Record<string, unknown>) {
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
+    vi.mocked(fs.readJson).mockResolvedValue(rootPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -692,9 +703,7 @@ describe('syncTemplateDependencies', () => {
         'some-other-package': '^1.0.0',
       },
     };
-    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
-    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
-    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    setupFlatTemplate(mockPkg);
 
     await syncTemplateDependencies('/test/path');
 
@@ -713,6 +722,7 @@ describe('syncTemplateDependencies', () => {
 
   it('should skip if template package.json does not exist', async () => {
     vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
 
     await syncTemplateDependencies('/test/path');
 
@@ -727,9 +737,7 @@ describe('syncTemplateDependencies', () => {
         'some-other-package': '^1.0.0',
       },
     };
-    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
-    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
-    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    setupFlatTemplate(mockPkg);
 
     await syncTemplateDependencies('/test/path');
 
@@ -751,9 +759,7 @@ describe('syncTemplateDependencies', () => {
         '@inkeep/agents-core': '^0.50.3',
       },
     };
-    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
-    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
-    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    setupFlatTemplate(mockPkg);
 
     await syncTemplateDependencies('/test/path');
 
@@ -777,9 +783,7 @@ describe('syncTemplateDependencies', () => {
         vitest: '^1.0.0',
       },
     };
-    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
-    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
-    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    setupFlatTemplate(mockPkg);
 
     await syncTemplateDependencies('/test/path');
 
@@ -804,9 +808,7 @@ describe('syncTemplateDependencies', () => {
         next: '^14.0.0',
       },
     };
-    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
-    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
-    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    setupFlatTemplate(mockPkg);
 
     await syncTemplateDependencies('/test/path');
 
@@ -829,6 +831,7 @@ describe('syncTemplateDependencies', () => {
       throw new Error('ENOENT');
     });
     vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir).mockResolvedValue([] as any);
     vi.mocked(fs.readJson).mockResolvedValue({
       name: 'test-project',
       dependencies: { '@inkeep/agents-core': '^0.50.3' },
@@ -837,5 +840,82 @@ describe('syncTemplateDependencies', () => {
     await syncTemplateDependencies('/test/path');
 
     expect(fs.writeJson).not.toHaveBeenCalled();
+  });
+
+  it('should sync nested package.json files in subdirectories', async () => {
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockReturnValue(JSON.stringify({ version: '1.2.3' }));
+
+    const rootPkg = {
+      name: 'monorepo',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+    };
+    const nestedPkg = {
+      name: 'nested-app',
+      dependencies: { '@inkeep/agents-sdk': '^0.50.3', express: '^4.0.0' },
+    };
+
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir as any)
+      .mockResolvedValueOnce([mockDirent('apps', true), mockDirent('README.md', false)])
+      .mockResolvedValueOnce([mockDirent('api', true)])
+      .mockResolvedValueOnce([]);
+    vi.mocked(fs.readJson)
+      .mockResolvedValueOnce(rootPkg)
+      .mockResolvedValueOnce(nestedPkg)
+      .mockResolvedValueOnce(nestedPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledTimes(3);
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: { '@inkeep/agents-core': '^1.2.3' },
+      }),
+      { spaces: 2 }
+    );
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      expect.stringContaining('apps/package.json'),
+      expect.anything(),
+      { spaces: 2 }
+    );
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      expect.stringContaining('apps/api/package.json'),
+      expect.objectContaining({
+        dependencies: { '@inkeep/agents-sdk': '^1.2.3', express: '^4.0.0' },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should skip node_modules and dot directories', async () => {
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockReturnValue(JSON.stringify({ version: '1.2.3' }));
+
+    const rootPkg = {
+      name: 'test-project',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+    };
+
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readdir as any)
+      .mockResolvedValueOnce([
+        mockDirent('node_modules', true),
+        mockDirent('.git', true),
+        mockDirent('src', true),
+      ])
+      .mockResolvedValueOnce([]);
+    vi.mocked(fs.readJson).mockResolvedValue(rootPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.readdir).toHaveBeenCalledTimes(2);
+    expect(fs.readdir).toHaveBeenCalledWith('/test/path', { withFileTypes: true });
+    expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('src'), {
+      withFileTypes: true,
+    });
   });
 });

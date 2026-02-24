@@ -55,24 +55,47 @@ function getCliVersion(): string {
 }
 
 export async function syncTemplateDependencies(templatePath: string): Promise<void> {
-  const pkgPath = path.join(templatePath, 'package.json');
-  if (!(await fs.pathExists(pkgPath))) return;
-
-  const pkg = await fs.readJson(pkgPath);
   const cliVersion = getCliVersion();
   if (!cliVersion) return;
 
-  for (const depType of ['dependencies', 'devDependencies'] as const) {
-    const deps = pkg[depType];
-    if (!deps) continue;
-    for (const name of Object.keys(deps)) {
-      if (name.startsWith('@inkeep/')) {
-        deps[name] = `^${cliVersion}`;
+  const packageJsonPaths = await findPackageJsonFiles(templatePath);
+
+  await Promise.all(
+    packageJsonPaths.map(async (pkgPath) => {
+      const pkg = await fs.readJson(pkgPath);
+
+      for (const depType of ['dependencies', 'devDependencies'] as const) {
+        const deps = pkg[depType];
+        if (!deps) continue;
+        for (const name of Object.keys(deps)) {
+          if (name.startsWith('@inkeep/') && name !== '@inkeep/agents-ui') {
+            deps[name] = `^${cliVersion}`;
+          }
+        }
       }
-    }
+
+      await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+    })
+  );
+}
+
+async function findPackageJsonFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const rootPkg = path.join(dir, 'package.json');
+  if (await fs.pathExists(rootPkg)) {
+    results.push(rootPkg);
   }
 
-  await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      continue;
+    }
+    const nested = await findPackageJsonFiles(path.join(dir, entry.name));
+    results.push(...nested);
+  }
+
+  return results;
 }
 
 export const defaultGoogleModelConfigurations = {
