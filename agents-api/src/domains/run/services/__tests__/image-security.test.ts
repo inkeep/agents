@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { downloadExternalImage } from '../blob-storage/external-image-downloader';
 import {
-  downloadExternalImage,
-  MAX_EXTERNAL_IMAGE_BYTES,
   normalizeInlineImageBytes,
   toCanonicalImageMimeType,
-} from '../blob-storage/image-security';
+} from '../blob-storage/image-content-security';
+import { MAX_EXTERNAL_IMAGE_BYTES } from '../blob-storage/image-security-constants';
 
 const VALID_PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
@@ -51,13 +51,14 @@ describe('image-security', () => {
       expect(result.data.length).toBe(VALID_PNG_BYTES.length);
     });
 
-    it('accepts SVG when content looks like SVG', async () => {
+    it('rejects SVG (allowed formats from run/constants/allowed-image-formats)', async () => {
       const svg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
-      const result = await normalizeInlineImageBytes({
-        bytes: Buffer.from(svg).toString('base64'),
-        mimeType: 'image/svg+xml',
-      });
-      expect(result.mimeType).toBe('image/svg+xml');
+      await expect(
+        normalizeInlineImageBytes({
+          bytes: Buffer.from(svg).toString('base64'),
+          mimeType: 'image/svg+xml',
+        })
+      ).rejects.toThrow(/Blocked image with unsupported mime type/);
     });
 
     it('rejects oversized inline bytes', async () => {
