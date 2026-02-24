@@ -2,7 +2,7 @@ import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
-import { createAgents, defaultMockModelConfigurations } from '../utils';
+import { createAgents, defaultMockModelConfigurations, syncTemplateDependencies } from '../utils';
 
 // Create the mock execAsync function that will be used by promisify - hoisted so it's available in mocks
 const { mockExecAsync } = vi.hoisted(() => ({
@@ -25,6 +25,20 @@ vi.mock('node:child_process', () => ({
 vi.mock('node:util', () => ({
   promisify: vi.fn(() => mockExecAsync),
 }));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    readFileSync: vi.fn(() => JSON.stringify({ version: '1.2.3' })),
+  };
+});
+vi.mock('node:url', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:url')>();
+  return {
+    ...actual,
+    fileURLToPath: vi.fn(() => '/fake/dist/utils.js'),
+  };
+});
 
 // Setup default mocks
 const mockSpinner = {
@@ -663,3 +677,149 @@ function setupDefaultMocks() {
   vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
   mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
 }
+
+describe('syncTemplateDependencies', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should update @inkeep/* dependencies to match CLI version', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        '@inkeep/agents-sdk': '^0.50.3',
+        'some-other-package': '^1.0.0',
+      },
+    };
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-sdk': '^1.2.3',
+          'some-other-package': '^1.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should skip if template package.json does not exist', async () => {
+    vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.readJson).not.toHaveBeenCalled();
+    expect(fs.writeJson).not.toHaveBeenCalled();
+  });
+
+  it('should handle template with no @inkeep/* dependencies', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        'some-other-package': '^1.0.0',
+      },
+    };
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          'some-other-package': '^1.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should handle template with no devDependencies', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+      },
+    };
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should update devDependencies @inkeep/* packages', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {},
+      devDependencies: {
+        '@inkeep/agents-sdk': '^0.49.0',
+        vitest: '^1.0.0',
+      },
+    };
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        devDependencies: {
+          '@inkeep/agents-sdk': '^1.2.3',
+          vitest: '^1.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should not modify non-@inkeep dependencies', async () => {
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        react: '^18.0.0',
+        next: '^14.0.0',
+      },
+    };
+    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.readJson).mockResolvedValue(mockPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          react: '^18.0.0',
+          next: '^14.0.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+});
