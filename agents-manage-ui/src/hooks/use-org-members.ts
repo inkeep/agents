@@ -49,8 +49,9 @@ export function useOrgMembers(tenantId: string, projectId?: string) {
       const projectMemberIds = new Set((projectMembersResponse.data || []).map((m) => m.userId));
 
       setMembers(allMembers.filter((m) => orgAdminIds.has(m.id) || projectMemberIds.has(m.id)));
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error('useOrgMembers: failed to fetch members', err);
+      // Consider adding: setError('Failed to load organization members');
     } finally {
       setIsLoading(false);
     }
