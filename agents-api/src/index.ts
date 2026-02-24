@@ -1,7 +1,8 @@
 import { env } from './env';
-import { defaultSDK } from './instrumentation';
+import { defaultSDK, validateOtlpEndpoint } from './instrumentation';
 
 defaultSDK.start();
+validateOtlpEndpoint();
 
 import {
   CredentialStoreRegistry,

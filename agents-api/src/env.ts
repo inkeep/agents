@@ -107,6 +107,10 @@ const envSchema = z.object({
   NANGO_SECRET_KEY: z.string().optional().describe('Nango secret key for OAuth integrations'),
 
   // OpenTelemetry Configuration
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z
+    .string()
+    .optional()
+    .describe('OTLP traces exporter endpoint (e.g. http://localhost:14318/v1/traces)'),
   OTEL_BSP_SCHEDULE_DELAY: z.coerce
     .number()
     .optional()

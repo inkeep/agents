@@ -22,24 +22,47 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { getLogger } from './lib/logger';
 
 const logger = getLogger('instrumentation');
-const otlpExporter = new OTLPTraceExporter();
+
+const otlpEndpointConfigured = !!process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+let otlpReachable = otlpEndpointConfigured;
 
 /**
  * Creates a safe batch processor that falls back to no-op when SigNoz is not configured
  */
 function createSafeBatchProcessor(): SpanProcessor {
+  if (!otlpEndpointConfigured) {
+    logger.info({}, 'No OTLP exporter endpoint configured — using no-op span processor');
+    return new NoopSpanProcessor();
+  }
+
   try {
+    const otlpExporter = new OTLPTraceExporter();
     return new BatchSpanProcessor(otlpExporter, {
       scheduledDelayMillis: Number(process.env.OTEL_BSP_SCHEDULE_DELAY) || 500,
       maxExportBatchSize: Number(process.env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE) || 64,
     });
   } catch (error) {
-    logger.warn({ error }, 'Failed to create batch processor, falling back to NoopSpanProcessor');
+    logger.warn({ error }, 'Failed to create batch processor, falling back to no-op');
     return new NoopSpanProcessor();
   }
 }
 
 const defaultBatchProcessor = createSafeBatchProcessor();
+
+async function validateOtlpEndpoint(): Promise<void> {
+  if (!otlpEndpointConfigured) return;
+
+  const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT!;
+  const ok = await fetch(endpoint, {
+    method: 'HEAD',
+    signal: AbortSignal.timeout(3_000),
+  })
+    .then((res) => res.status < 500)
+    .catch(() => false);
+
+  otlpReachable = ok;
+  logger.info({ endpoint, otlpReachable }, 'OTLP endpoint validation complete');
+}
 
 const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-manage-ui',
@@ -92,6 +115,8 @@ const sdk = new NodeSDK({
 
 try {
   sdk.start();
+  validateOtlpEndpoint();
+
   process.on('SIGTERM', async () => {
     await sdk.shutdown();
   });

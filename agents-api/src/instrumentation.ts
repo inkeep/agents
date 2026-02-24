@@ -22,21 +22,45 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { env } from './env';
 import { getLogger } from './logger';
 
-const otlpExporter = new OTLPTraceExporter();
 const logger = getLogger('instrumentation');
+
+const otlpEndpointConfigured = !!env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+let otlpReachable = otlpEndpointConfigured;
+
 /**
- * Creates a safe batch processor that falls back to no-op when SignOz is not configured
+ * Creates a safe batch processor that falls back to no-op when SigNoz is not configured
  */
 function createSafeBatchProcessor(): SpanProcessor {
+  if (!otlpEndpointConfigured) {
+    logger.info({}, 'No OTLP exporter endpoint configured — using no-op span processor');
+    return new NoopSpanProcessor();
+  }
+
   try {
-    return new BatchSpanProcessor(otlpExporter, {
+    const exporter = new OTLPTraceExporter();
+    return new BatchSpanProcessor(exporter, {
       scheduledDelayMillis: env.OTEL_BSP_SCHEDULE_DELAY,
       maxExportBatchSize: env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE,
     });
   } catch (error) {
-    logger.warn({ error }, 'Failed to create batch processor');
+    logger.warn({ error }, 'Failed to create batch processor, falling back to no-op');
     return new NoopSpanProcessor();
   }
+}
+
+export async function validateOtlpEndpoint(): Promise<void> {
+  if (!otlpEndpointConfigured) return;
+
+  const endpoint = env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT!;
+  const status = await fetch(endpoint, {
+    method: 'HEAD',
+    signal: AbortSignal.timeout(3_000),
+  })
+    .then((res) => res.status < 500)
+    .catch(() => false);
+
+  otlpReachable = status;
+  logger.info({ endpoint, otlpReachable }, 'OTLP endpoint validation complete');
 }
 
 export const defaultBatchProcessor = createSafeBatchProcessor();
@@ -91,6 +115,8 @@ export const defaultSDK = new NodeSDK({
 });
 
 export async function flushBatchProcessor(): Promise<void> {
+  if (!otlpReachable) return;
+
   try {
     await defaultBatchProcessor.forceFlush();
   } catch (error) {
