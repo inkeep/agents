@@ -87,7 +87,8 @@ export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.in
   if (rest.length) {
     return isRequired(nestedSchema, rest.join('.'));
   }
-  return !nestedSchema.isOptional();
+  const result = nestedSchema.safeParse();
+  return !result.success;
 }
 
 /**
