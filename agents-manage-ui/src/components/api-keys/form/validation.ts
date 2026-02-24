@@ -48,12 +48,10 @@ export const ApiKeySchema = ApiKeyApiInsertSchema.pick({
   name: true,
   agentId: true,
 }).extend({
-  expiresAt: z.enum(DATE_ENUM).transform(convertDurationToDate).optional(),
+  expiresAt: z.enum(DATE_ENUM).transform(convertDurationToDate),
 });
 export const ApiKeyUpdateSchema = ApiKeySchema.omit({
   agentId: true,
 });
 
 export type ApiKeyFormData = z.input<typeof ApiKeySchema>;
-
-export type ApiKeyUpdateData = z.infer<typeof ApiKeyUpdateSchema>;
