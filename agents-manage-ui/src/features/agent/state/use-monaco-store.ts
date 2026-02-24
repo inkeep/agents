@@ -1,4 +1,5 @@
 import type * as Monaco from 'monaco-editor';
+import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
@@ -119,10 +120,19 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
       monaco.languages.registerDocumentFormattingEditProvider('javascript', {
         async provideDocumentFormattingEdits(model) {
           const text = model.getValue();
+
+          let formattedText: string;
+          try {
+            formattedText = await formatJS(text);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+            formattedText = text;
+          }
+
           return [
             {
               range: model.getFullModelRange(),
-              text: await formatJS(text),
+              text: formattedText,
             },
           ];
         },
@@ -130,10 +140,17 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
       monaco.languages.registerDocumentFormattingEditProvider(TEMPLATE_LANGUAGE, {
         async provideDocumentFormattingEdits(model) {
           const text = model.getValue();
+          let formattedText: string;
+          try {
+            formattedText = await formatMarkdown(text);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+            formattedText = text;
+          }
           return [
             {
               range: model.getFullModelRange(),
-              text: await formatMarkdown(text),
+              text: formattedText,
             },
           ];
         },
