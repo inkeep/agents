@@ -10,6 +10,7 @@ import {
   getWorkspaceDefaultAgent,
   sendResponseUrlMessage,
 } from '../../slack/services/events';
+import { formatAttachments } from '../../slack/services/events/utils';
 
 vi.mock('@inkeep/agents-core', () => ({
   findWorkAppSlackChannelAgentConfig: vi.fn(() => vi.fn()),
@@ -214,6 +215,170 @@ describe('Event Utils', () => {
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
       expect(result).toBe('');
+    });
+  });
+
+  describe('formatAttachments', () => {
+    it('should return empty string for undefined attachments', () => {
+      expect(formatAttachments(undefined)).toBe('');
+    });
+
+    it('should return empty string for empty array', () => {
+      expect(formatAttachments([])).toBe('');
+    });
+
+    it('should format a shared/forwarded message', () => {
+      const result = formatAttachments([
+        {
+          text: 'Original message content',
+          author_name: 'Alice',
+          channel_name: 'engineering',
+          is_msg_unfurl: true,
+        },
+      ]);
+
+      expect(result).toContain('[Shared message');
+      expect(result).toContain('from Alice');
+      expect(result).toContain('in #engineering');
+      expect(result).toContain('Original message content');
+    });
+
+    it('should format a regular attachment using fallback text', () => {
+      const result = formatAttachments([{ fallback: 'Fallback text' }]);
+
+      expect(result).toContain('[Attachment]');
+      expect(result).toContain('Fallback text');
+    });
+
+    it('should skip attachments with no text content', () => {
+      const result = formatAttachments([{ author_name: 'Alice' }, { text: 'Has content' }]);
+
+      expect(result).not.toContain('Alice');
+      expect(result).toContain('Has content');
+    });
+
+    it('should format multiple attachments', () => {
+      const result = formatAttachments([
+        { text: 'First message', is_msg_unfurl: true, author_name: 'Alice' },
+        { text: 'Second message', author_name: 'Bob' },
+      ]);
+
+      expect(result).toContain('First message');
+      expect(result).toContain('Second message');
+    });
+
+    it('should include attachment fields', () => {
+      const result = formatAttachments([
+        {
+          text: 'Status update',
+          fields: [
+            { title: 'Priority', value: 'High' },
+            { title: 'Status', value: 'Open' },
+          ],
+        },
+      ]);
+
+      expect(result).toContain('Priority: High');
+      expect(result).toContain('Status: Open');
+    });
+
+    it('should fall back to channel_id when channel_name is missing', () => {
+      const result = formatAttachments([
+        {
+          text: 'Message from private channel',
+          channel_id: 'C08QXR5CWBH',
+          is_msg_unfurl: true,
+        },
+      ]);
+
+      expect(result).toContain('in channel C08QXR5CWBH');
+    });
+
+    it('should treat is_share the same as is_msg_unfurl', () => {
+      const result = formatAttachments([
+        {
+          text: 'Shared via is_share flag',
+          is_share: true,
+          author_name: 'Alice',
+        },
+      ]);
+
+      expect(result).toContain('[Shared message');
+      expect(result).not.toContain('[Attachment]');
+    });
+
+    it('should include from_url as source reference', () => {
+      const result = formatAttachments([
+        {
+          text: 'Some message',
+          from_url: 'https://inkeep.slack.com/archives/C08QXR5CWBH/p1771959233866159',
+          is_msg_unfurl: true,
+        },
+      ]);
+
+      expect(result).toContain(
+        '[Source: https://inkeep.slack.com/archives/C08QXR5CWBH/p1771959233866159]'
+      );
+    });
+
+    it('should wrap content in backtick delimiters', () => {
+      const result = formatAttachments([{ text: 'The actual content', is_msg_unfurl: true }]);
+
+      expect(result).toContain('```');
+      expect(result).toContain('```\nThe actual content\n```');
+    });
+
+    it('should handle real Slack forwarded message payload', () => {
+      const result = formatAttachments([
+        {
+          is_msg_unfurl: true,
+          is_share: true,
+          text: '<@U084MCXMN2Y> link to PR with auth propagation work so far: <https://github.com/inkeep/agents/pull/2291>',
+          fallback:
+            '[February 24th, 2026 1:53 PM] andrew: <@U084MCXMN2Y> link to PR with auth propagation work so far: <https://github.com/inkeep/agents/pull/2291>',
+          author_name: 'Andrew Mikofalvy',
+          author_id: 'U06T51TJQ8G',
+          channel_id: 'C08QXR5CWBH',
+          from_url: 'https://inkeep.slack.com/archives/C08QXR5CWBH/p1771959233866159',
+        },
+      ]);
+
+      expect(result).toContain('[Shared message (from Andrew Mikofalvy, in channel C08QXR5CWBH)]');
+      expect(result).toContain('https://github.com/inkeep/agents/pull/2291');
+      expect(result).toContain(
+        '[Source: https://inkeep.slack.com/archives/C08QXR5CWBH/p1771959233866159]'
+      );
+    });
+  });
+
+  describe('getThreadContext with attachments', () => {
+    it('should include attachment content in thread messages', async () => {
+      const mockClient = {
+        conversations: {
+          replies: vi.fn().mockResolvedValue({
+            messages: [
+              {
+                user: 'U123',
+                text: 'Check out this message',
+                attachments: [
+                  {
+                    text: 'Forwarded content from another channel',
+                    is_msg_unfurl: true,
+                    author_name: 'Alice',
+                    channel_name: 'general',
+                  },
+                ],
+              },
+              { user: 'U456', text: 'Current message' },
+            ],
+          }),
+        },
+      };
+
+      const result = await getThreadContext(mockClient, 'C123', '1234.5678');
+      expect(result).toContain('Check out this message');
+      expect(result).toContain('Forwarded content from another channel');
+      expect(result).toContain('[Shared message');
     });
   });
 

@@ -49,6 +49,20 @@ export async function dispatchSlackEvent(
           bot_id?: string;
           subtype?: string;
           edited?: unknown;
+          attachments?: Array<{
+            text?: string;
+            fallback?: string;
+            pretext?: string;
+            author_name?: string;
+            author_id?: string;
+            channel_name?: string;
+            channel_id?: string;
+            title?: string;
+            is_msg_unfurl?: boolean;
+            is_share?: boolean;
+            from_url?: string;
+            fields?: Array<{ title?: string; value?: string }>;
+          }>;
         }
       | undefined;
 
@@ -94,6 +108,7 @@ export async function dispatchSlackEvent(
         slackUserId: event.user,
         channel: event.channel,
         text: question,
+        attachments: event.attachments,
         threadTs: event.thread_ts || event.ts || '',
         messageTs: event.ts || '',
         teamId,

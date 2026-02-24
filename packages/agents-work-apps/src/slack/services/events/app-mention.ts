@@ -27,10 +27,12 @@ import {
 } from '../client';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { streamAgentResponse } from './streaming';
+import type { SlackAttachment } from './utils';
 import {
   checkIfBotThread,
   classifyError,
   findCachedUserMapping,
+  formatAttachments,
   formatChannelContext,
   generateSlackConversationId,
   getThreadContext,
@@ -60,13 +62,15 @@ export async function handleAppMention(params: {
   slackUserId: string;
   channel: string;
   text: string;
+  attachments?: SlackAttachment[];
   threadTs: string;
   messageTs: string;
   teamId: string;
   dispatchedAt?: number;
 }): Promise<void> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.APP_MENTION, async (span) => {
-    const { slackUserId, channel, text, threadTs, messageTs, teamId, dispatchedAt } = params;
+    const { slackUserId, channel, text, attachments, threadTs, messageTs, teamId, dispatchedAt } =
+      params;
     const handlerStartedAt = Date.now();
     const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 
@@ -304,6 +308,8 @@ Respond naturally as if you're joining the conversation to help.`;
 
       // Has query → Execute agent with streaming
       let queryText = text;
+      const attachmentContext = formatAttachments(attachments);
+      logger.info({ attachmentContext }, 'Attachment context');
 
       // Include thread context if in a thread
       if (isInThread && threadTs) {
@@ -321,7 +327,11 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         if (contextMessages) {
           const channelContext = formatChannelContext(channelInfo);
-          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${text}`;
+          let messageContent = text;
+          if (attachmentContext) {
+            messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+          }
+          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${messageContent}`;
         }
       } else {
         const {
@@ -335,7 +345,11 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         const channelContext = formatChannelContext(channelInfo);
         const userName = userInfo?.displayName || 'User';
-        queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
+        if (attachmentContext) {
+          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+        } else {
+          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
+        }
       }
 
       // Sign JWT token for authentication with channel auth context
