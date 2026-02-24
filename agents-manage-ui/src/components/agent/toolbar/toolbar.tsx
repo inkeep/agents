@@ -1,6 +1,5 @@
-import { Play, Settings, Webhook } from 'lucide-react';
+import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -16,17 +15,13 @@ interface ToolbarProps {
   onSubmit: () => MaybePromise<boolean>;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
+  tracesHref?: string;
 }
 
-export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
+export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHref }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
+  const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
-  const { tenantId, projectId, agentId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>();
-
   const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
@@ -36,7 +31,11 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   } satisfies ComponentProps<typeof Button>;
 
   const PreviewButton = (
-    <Button {...commonProps} disabled={dirty} onClick={() => setShowPlayground(true)}>
+    <Button
+      {...commonProps}
+      disabled={dirty || hasOpenModelConfig}
+      onClick={() => setShowPlayground(true)}
+    >
       <Play className="size-4 text-muted-foreground" />
       Try it
     </Button>
@@ -65,9 +64,17 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   }, [onSubmit]);
 
   return (
-    <div className="flex gap-2 flex-wrap justify-end content-start">
+    <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
+      {tracesHref && (
+        <Button {...commonProps} asChild>
+          <Link href={tracesHref}>
+            <Activity className="size-4 text-muted-foreground" />
+            Traces
+          </Link>
+        </Button>
+      )}
       {canUse && <ShipModal buttonClassName={commonProps.className} />}
-      {dirty && canUse ? (
+      {(dirty || hasOpenModelConfig) && canUse ? (
         <Tooltip>
           <TooltipTrigger asChild>
             {/**
@@ -77,9 +84,11 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
             <div>{PreviewButton}</div>
           </TooltipTrigger>
           <TooltipContent>
-            {dirty
-              ? 'Please save your changes before trying the agent.'
-              : 'Please save the agent to try it.'}
+            {hasOpenModelConfig
+              ? 'Please complete model configuration before trying the agent.'
+              : dirty
+                ? 'Please save your changes before trying the agent.'
+                : 'Please save the agent to try it.'}
           </TooltipContent>
         </Tooltip>
       ) : canUse ? (
@@ -90,7 +99,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
           {...commonProps}
           onClick={saveAgent}
           variant={dirty ? 'default' : 'outline'}
-          disabled={isSubmitting || !dirty}
+          disabled={isSubmitting || !dirty || hasOpenModelConfig}
           ref={saveButtonRef}
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />
@@ -101,14 +110,6 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
         <Button {...commonProps} onClick={toggleSidePane}>
           <Settings className="size-4" />
           Agent Settings
-        </Button>
-      )}
-      {canEdit && (
-        <Button {...commonProps} asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
-            <Webhook className="size-4" />
-            Triggers
-          </Link>
         </Button>
       )}
     </div>

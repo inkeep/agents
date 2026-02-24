@@ -11,7 +11,7 @@ import {
   resolveRef,
 } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
-import { manageDbClient } from 'src/data/db';
+import { manageDbClient } from '../data/db';
 
 const logger = getLogger('ref-middleware');
 
@@ -335,28 +335,5 @@ export const manageRefMiddleware = createRefMiddleware(manageDbClient);
 export const runRefMiddleware = createRefMiddleware(manageDbClient, {
   extractTenantId: extractTenantIdFromExecutionContext,
   extractProjectId: extractProjectIdFromExecutionContext,
-  allowProjectIdFromBody: false,
-});
-
-/**
- * Extract tenantId from query parameters (for OAuth routes)
- */
-const extractTenantIdFromQuery = (c: Context): string | undefined => {
-  return c.req.query('tenantId');
-};
-
-/**
- * Extract projectId from query parameters (for OAuth routes)
- */
-const extractProjectIdFromQuery = (c: Context): string | undefined => {
-  return c.req.query('projectId');
-};
-
-/**
- * Ref middleware for OAuth routes - extracts tenant/project from query params
- */
-export const oauthRefMiddleware = createRefMiddleware(manageDbClient, {
-  extractTenantId: extractTenantIdFromQuery,
-  extractProjectId: extractProjectIdFromQuery,
   allowProjectIdFromBody: false,
 });

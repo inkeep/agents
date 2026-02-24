@@ -8,10 +8,10 @@ import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
-import { generateId } from '@/lib/utils/id-utils';
 import {
   copyFullTraceToClipboard,
   copySummarizedTraceToClipboard,
@@ -42,7 +42,8 @@ export const Playground = ({
   setShowTraces,
 }: PlaygroundProps) => {
   const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
-  const [conversationId, setConversationId] = useState(generateId);
+  const { resetPlaygroundConversationId } = useAgentActions();
+  const conversationId = useAgentStore(({ playgroundConversationId }) => playgroundConversationId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
   const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
   const [isCustomHeadersModalOpen, setIsCustomHeadersModalOpen] = useState(false);
@@ -183,7 +184,7 @@ export const Playground = ({
           <ResizablePanel order={1}>
             <ChatWidget
               conversationId={conversationId}
-              setConversationId={setConversationId}
+              resetPlaygroundConversationId={resetPlaygroundConversationId}
               startPolling={startPolling}
               stopPolling={stopPolling}
               agentId={agentId}

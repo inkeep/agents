@@ -3,15 +3,17 @@ import {
   boolean,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
   unique,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { organization } from '../../auth/auth-schema';
+import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
   ConversationMetadata,
@@ -179,6 +181,149 @@ export const triggerInvocations = pgTable(
     index('trigger_invocations_status_idx').on(table.triggerId, table.status),
     // Optional FK to conversations - only if conversationId is set
     // Note: Using a separate constraint to allow NULL conversationId
+  ]
+);
+
+/**
+ * Slack workspace installations - records each Slack workspace installation.
+ * Enforces workspace -> tenant uniqueness and provides audit trail.
+ * Stores reference to Nango connection for token retrieval.
+ */
+export const workAppSlackWorkspaces = pgTable(
+  'work_app_slack_workspaces',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 })
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    slackTeamId: varchar('slack_team_id', { length: 256 }).notNull(),
+    slackEnterpriseId: varchar('slack_enterprise_id', { length: 256 }),
+    slackAppId: varchar('slack_app_id', { length: 256 }),
+    slackTeamName: varchar('slack_team_name', { length: 512 }),
+    nangoProviderConfigKey: varchar('nango_provider_config_key', { length: 256 })
+      .notNull()
+      .default('work-apps-slack'),
+    nangoConnectionId: varchar('nango_connection_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    installedByUserId: text('installed_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    shouldAllowJoinFromWorkspace: boolean('should_allow_join_from_workspace')
+      .notNull()
+      .default(false),
+    ...timestamps,
+  },
+  (table) => [
+    unique('work_app_slack_workspaces_tenant_team_unique').on(table.tenantId, table.slackTeamId),
+    unique('work_app_slack_workspaces_nango_connection_unique').on(table.nangoConnectionId),
+    index('work_app_slack_workspaces_tenant_idx').on(table.tenantId),
+    index('work_app_slack_workspaces_team_idx').on(table.slackTeamId),
+  ]
+);
+
+/**
+ * Slack user mappings - maps Slack users to Inkeep users.
+ * Enables Slack users to trigger agents after linking their accounts.
+ * Unique per tenant + clientId + slackTeamId + slackUserId.
+ */
+export const workAppSlackUserMappings = pgTable(
+  'work_app_slack_user_mappings',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 })
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    clientId: varchar('client_id', { length: 256 }).notNull().default('work-apps-slack'),
+    slackUserId: varchar('slack_user_id', { length: 256 }).notNull(),
+    slackTeamId: varchar('slack_team_id', { length: 256 }).notNull(),
+    slackEnterpriseId: varchar('slack_enterprise_id', { length: 256 }),
+    inkeepUserId: text('inkeep_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    slackUsername: varchar('slack_username', { length: 256 }),
+    slackEmail: varchar('slack_email', { length: 256 }),
+    linkedAt: timestamp('linked_at', { mode: 'string' }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
+    ...timestamps,
+  },
+  (table) => [
+    unique('work_app_slack_user_mappings_unique').on(
+      table.tenantId,
+      table.clientId,
+      table.slackTeamId,
+      table.slackUserId
+    ),
+    index('work_app_slack_user_mappings_tenant_idx').on(table.tenantId),
+    index('work_app_slack_user_mappings_user_idx').on(table.inkeepUserId),
+    index('work_app_slack_user_mappings_team_idx').on(table.slackTeamId),
+    index('work_app_slack_user_mappings_slack_user_idx').on(table.slackUserId),
+  ]
+);
+
+/**
+ * Slack channel agent configurations - maps Slack channels to default agents.
+ * Allows admins to set channel-specific agent defaults that override workspace defaults.
+ * Unique per tenant + slackTeamId + slackChannelId.
+ */
+export const workAppSlackChannelAgentConfigs = pgTable(
+  'work_app_slack_channel_agent_configs',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 })
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    slackTeamId: varchar('slack_team_id', { length: 256 }).notNull(),
+    slackChannelId: varchar('slack_channel_id', { length: 256 }).notNull(),
+    slackChannelName: varchar('slack_channel_name', { length: 256 }),
+    slackChannelType: varchar('slack_channel_type', { length: 50 }),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    agentName: varchar('agent_name', { length: 256 }),
+    configuredByUserId: text('configured_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    enabled: boolean('enabled').notNull().default(true),
+    grantAccessToMembers: boolean('grant_access_to_members').notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    unique('work_app_slack_channel_agent_configs_unique').on(
+      table.tenantId,
+      table.slackTeamId,
+      table.slackChannelId
+    ),
+    index('work_app_slack_channel_agent_configs_tenant_idx').on(table.tenantId),
+    index('work_app_slack_channel_agent_configs_team_idx').on(table.slackTeamId),
+    index('work_app_slack_channel_agent_configs_channel_idx').on(table.slackChannelId),
+  ]
+);
+
+/**
+ * Scheduled trigger invocations - records each execution of a scheduled trigger.
+ * NOTE: No FK to scheduled_triggers table since it's in a different database (DoltGres).
+ */
+export const scheduledTriggerInvocations = pgTable(
+  'scheduled_trigger_invocations',
+  {
+    ...agentScoped,
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 50 })
+      .notNull()
+      .$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true, mode: 'string' }).notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }),
+    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
+    resolvedPayload: jsonb('resolved_payload').$type<Record<string, unknown> | null>(),
+    conversationIds: jsonb('conversation_ids').$type<string[]>().default([]),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    idempotencyKey: varchar('idempotency_key', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    uniqueIndex('sched_invocations_idempotency_idx').on(table.idempotencyKey),
   ]
 );
 

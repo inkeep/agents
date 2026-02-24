@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import {
   getMcpToolRepositoryAccessWithDetails,
   type WorkAppGitHubRepositorySelect,
@@ -7,12 +8,18 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Octokit } from '@octokit/rest';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { Hono } from 'hono';
-import { z } from 'zod/v3';
 import runDbClient from '../../db/runDbClient';
 import { githubMcpAuth } from './auth';
+import { ReactionContentSchema } from './schemas';
 import {
   commitFileChanges,
   commitNewFile,
+  createIssueCommentReaction,
+  createPullRequestReviewCommentReaction,
+  deleteIssueCommentReaction,
+  deletePullRequestReviewCommentReaction,
+  fetchBranchChangedFiles,
+  fetchComments,
   fetchPrFileDiffs,
   fetchPrFiles,
   fetchPrInfo,
@@ -20,6 +27,8 @@ import {
   generatePrMarkdown,
   getGitHubClientFromRepo,
   type LLMUpdateOperation,
+  listIssueCommentReactions,
+  listPullRequestReviewCommentReactions,
   visualizeUpdateOperations,
 } from './utils';
 
@@ -148,6 +157,32 @@ const getServer = async (toolId: string) => {
           ],
         };
       } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & {
+            status: number;
+            response?: { headers?: Record<string, string> };
+          };
+          if (apiError.status === 403 || apiError.status === 429) {
+            const retryAfter = apiError.response?.headers?.['retry-after'];
+            const resetHeader = apiError.response?.headers?.['x-ratelimit-reset'];
+            let waitMessage = '';
+            if (retryAfter) {
+              waitMessage = ` Try again in ${retryAfter} seconds.`;
+            } else if (resetHeader) {
+              const resetTime = new Date(Number(resetHeader) * 1000);
+              waitMessage = ` Rate limit resets at ${resetTime.toISOString()}.`;
+            }
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `GitHub Search API rate limit exceeded.${waitMessage} The search API is limited to 30 requests per minute. Please wait before retrying.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
         return {
           content: [
             {
@@ -177,8 +212,12 @@ const getServer = async (toolId: string) => {
         .describe(
           'The name of the branch to get the file content for (defaults to master/main branch). If you are analyzing a pr you created, you should use the branch name from the pr.'
         ),
+      include_line_numbers: z
+        .boolean()
+        .optional()
+        .describe('Whether to include line numbers in the response (defaults to false)'),
     },
-    async ({ owner, repo, file_path, branch_name }) => {
+    async ({ owner, repo, file_path, branch_name, include_line_numbers = false }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -202,22 +241,32 @@ const getServer = async (toolId: string) => {
           path: file_path,
           ref: branch_name,
         });
-
-        // Handle single file response
         if ('content' in response.data && !Array.isArray(response.data)) {
-          const fileData = response.data;
-          const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-          const lines = content.split('\n');
-          const output_mapping = lines.map((line, index) => ({
-            line: index + 1,
-            content: line,
-          }));
+          if (include_line_numbers) {
+            // Handle single file response
+            const fileData = response.data;
+            const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+            const lines = content.split('\n');
+            const output_mapping = lines.map((line, index) => ({
+              line: index + 1,
+              content: line,
+            }));
 
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(output_mapping),
+                },
+              ],
+            };
+          }
+          const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(output_mapping),
+                text: content,
               },
             ],
           };
@@ -270,10 +319,13 @@ const getServer = async (toolId: string) => {
             isError: true,
           };
         }
-        const pr = await fetchPrInfo(githubClient, owner, repo, pull_request_number);
-        const fileDiffs = await fetchPrFileDiffs(githubClient, owner, repo, pull_request_number);
+        const [pr, fileDiffs, comments] = await Promise.all([
+          fetchPrInfo(githubClient, owner, repo, pull_request_number),
+          fetchPrFileDiffs(githubClient, owner, repo, pull_request_number),
+          fetchComments(githubClient, owner, repo, pull_request_number),
+        ]);
 
-        const markdown = generatePrMarkdown(pr, fileDiffs, owner, repo);
+        const markdown = generatePrMarkdown(pr, fileDiffs, comments, owner, repo);
 
         return {
           content: [
@@ -409,6 +461,109 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error getting file patches: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'get-changed-files-for-branch',
+    `Get the list of files changed on a branch compared to a base ref, without requiring a pull request. Returns file paths, status, additions/deletions, and optionally patches and full file contents. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      head: z.string().describe('The branch or ref to check for changes (e.g. "feat/my-feature")'),
+      base: z
+        .string()
+        .optional()
+        .describe(
+          'The base branch or ref to compare against (defaults to the repository default branch)'
+        ),
+      file_paths: z
+        .array(z.string())
+        .optional()
+        .describe('Optional list of file path glob patterns to filter results'),
+      include_contents: z
+        .boolean()
+        .default(false)
+        .describe('Whether to include full file contents for each changed file'),
+      include_patch: z
+        .boolean()
+        .default(false)
+        .describe('Whether to include the patch/diff text for each changed file'),
+    },
+    async ({ owner, repo, head, base, file_paths, include_contents, include_patch }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const baseRef =
+          base ?? (await githubClient.rest.repos.get({ owner, repo })).data.default_branch;
+
+        const files = await fetchBranchChangedFiles(githubClient, owner, repo, baseRef, head, {
+          pathFilters: file_paths ?? [],
+          includeContents: include_contents,
+          includePatch: include_patch,
+        });
+
+        if (files.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No changed files found between ${baseRef} and ${head} in ${owner}/${repo}.${file_paths?.length ? `\n\nFilters applied: ${file_paths.join(', ')}` : ''}`,
+              },
+            ],
+          };
+        }
+
+        const output = await formatFileDiff(0, files, include_contents);
+        const header = `## Changed files: ${baseRef}...${head} in ${owner}/${repo}\n\nFound ${files.length} changed file(s).\n\n`;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: header + output,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Repository ${owner}/${repo} not found, or one of the refs ("${base ?? 'default'}", "${head}") does not exist.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error fetching changed files: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,
@@ -942,6 +1097,276 @@ const getServer = async (toolId: string) => {
     }
   );
 
+  server.tool(
+    'add-comment-reaction',
+    `Add a reaction to a comment on a pull request. Supports general pull request comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      comment_id: z.number().describe('The ID of the comment to react to'),
+      comment_type: z
+        .enum(['issue_comment', 'review_comment'])
+        .describe(
+          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+        ),
+      reaction: ReactionContentSchema.describe(
+        'The reaction emoji to add: +1, -1, laugh, hooray, confused, heart, rocket, or eyes'
+      ),
+    },
+    async ({ owner, repo, comment_id, comment_type, reaction }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const result =
+          comment_type === 'issue_comment'
+            ? await createIssueCommentReaction(githubClient, owner, repo, comment_id, reaction)
+            : await createPullRequestReviewCommentReaction(
+                githubClient,
+                owner,
+                repo,
+                comment_id,
+                reaction
+              );
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully added ${reaction} reaction to ${comment_type} comment ${comment_id} in ${owner}/${repo}\n\nReaction ID: ${result.id}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 422) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Invalid reaction. Ensure the reaction type is valid and the comment exists.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 403) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Access denied when adding reaction to comment ${comment_id} in ${owner}/${repo}. Your GitHub App may not have sufficient permissions to create reactions.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error adding reaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'remove-comment-reaction',
+    `Remove a reaction from a comment on a pull request. Requires the reaction ID (returned when adding a reaction or available from comment data). ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      comment_id: z.number().describe('The ID of the comment the reaction belongs to'),
+      comment_type: z
+        .enum(['issue_comment', 'review_comment'])
+        .describe(
+          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+        ),
+      reaction_id: z.number().describe('The ID of the reaction to remove'),
+    },
+    async ({ owner, repo, comment_id, comment_type, reaction_id }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        if (comment_type === 'issue_comment') {
+          await deleteIssueCommentReaction(githubClient, owner, repo, comment_id, reaction_id);
+        } else {
+          await deletePullRequestReviewCommentReaction(
+            githubClient,
+            owner,
+            repo,
+            comment_id,
+            reaction_id
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully removed reaction ${reaction_id} from ${comment_type} comment ${comment_id} in ${owner}/${repo}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Comment ${comment_id} or reaction ${reaction_id} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error removing reaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'list-comment-reactions',
+    `List all reactions on a comment, including each reaction's ID (needed for removal). Supports both general issue/PR comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      comment_id: z.number().describe('The ID of the comment to list reactions for'),
+      comment_type: z
+        .enum(['issue_comment', 'review_comment'])
+        .describe(
+          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+        ),
+    },
+    async ({ owner, repo, comment_id, comment_type }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const reactions =
+          comment_type === 'issue_comment'
+            ? await listIssueCommentReactions(githubClient, owner, repo, comment_id)
+            : await listPullRequestReviewCommentReactions(githubClient, owner, repo, comment_id);
+
+        if (reactions.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No reactions found on ${comment_type} comment ${comment_id} in ${owner}/${repo}.`,
+              },
+            ],
+          };
+        }
+
+        const formatted = reactions
+          .map((r) => `• ${r.content} by @${r.user} (reaction_id: ${r.id})`)
+          .join('\n');
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${reactions.length} reaction(s) on ${comment_type} comment ${comment_id} in ${owner}/${repo}:\n\n${formatted}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error listing reactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
   // Register visualize update operations tool
   server.tool(
     'visualize-update-operations',
@@ -1072,18 +1497,20 @@ app.post('/', async (c) => {
 
   const server = await getServer(toolId);
 
-  // Create fresh transport and server for this request
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
 
-  server.connect(transport);
+  await server.connect(transport);
 
   const { req, res } = toReqRes(c.req.raw);
 
-  await transport.handleRequest(req, res, body);
-
-  return toFetchResponse(res);
+  try {
+    await transport.handleRequest(req, res, body);
+    return toFetchResponse(res);
+  } finally {
+    await server.close();
+  }
 });
 
 app.delete('/', async (c) => {

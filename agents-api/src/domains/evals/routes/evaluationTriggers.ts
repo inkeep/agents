@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -14,10 +14,12 @@ import {
   TriggerEvaluationJobSchema,
   withRef,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { start } from 'workflow/api';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { evalApiKeyAuth } from '../../../middleware/evalsAuth';
 import { queueEvaluationJobConversations } from '../services/evaluationJob';
 import { evaluateConversationWorkflow } from '../workflow';
 
@@ -29,12 +31,13 @@ const TriggerConversationSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/evaluate-conversation',
     summary: 'Trigger evaluation on a single conversation',
     operationId: 'evaluate-conversation',
     tags: ['Evaluations'],
+    permission: evalApiKeyAuth(),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -69,10 +72,7 @@ app.openapi(
     const { conversationId } = body;
 
     try {
-      logger.info(
-        { tenantId, projectId, conversationId },
-        'Triggering conversation evaluation (eval-api handling all logic)'
-      );
+      logger.info({ tenantId, projectId, conversationId }, 'Triggering conversation evaluation');
 
       // Get the conversation
       const conversation = await getConversation(runDbClient)({
@@ -222,12 +222,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/evaluate-conversations',
     summary: 'Trigger evaluations on conversations with specified evaluators',
     operationId: 'start-conversations-evaluations',
     tags: ['Evaluations'],
+    permission: evalApiKeyAuth(),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -358,10 +359,11 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/evaluate-conversations-by-job',
     summary: 'Trigger evaluations on conversations by evaluation job config',
+    permission: evalApiKeyAuth(),
     description:
       'Filters conversations based on job filters, creates an evaluation run, and enqueues workflows',
     operationId: 'evaluate-conversations-by-job',

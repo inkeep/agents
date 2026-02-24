@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
-const { verifyTempTokenMock, listUsableProjectIdsMock, listAgentsAcrossProjectBranchesMock } =
+const { verifyTempTokenMock, listUsableProjectIdsMock, listAgentsAcrossProjectMainBranchesMock } =
   vi.hoisted(() => ({
     verifyTempTokenMock: vi.fn(),
     listUsableProjectIdsMock: vi.fn(),
-    listAgentsAcrossProjectBranchesMock: vi.fn(),
+    listAgentsAcrossProjectMainBranchesMock: vi.fn(),
   }));
 
 // Mock the dependencies before imports
@@ -15,7 +15,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...original,
     verifyTempToken: verifyTempTokenMock,
     listUsableProjectIds: listUsableProjectIdsMock,
-    listAgentsAcrossProjectBranches: listAgentsAcrossProjectBranchesMock,
+    listAgentsAcrossProjectMainBranches: listAgentsAcrossProjectMainBranchesMock,
     getLogger: () => ({
       debug: vi.fn(),
       error: vi.fn(),
@@ -63,7 +63,7 @@ describe('Available Agents Route - /manage/available-agents', () => {
     // Default: User has access to some projects
     listUsableProjectIdsMock.mockResolvedValue(['project-1', 'project-2']);
     // Default: Some agents exist
-    listAgentsAcrossProjectBranchesMock.mockResolvedValue(mockAgents);
+    listAgentsAcrossProjectMainBranchesMock.mockResolvedValue(mockAgents);
   });
 
   afterEach(() => {
@@ -149,11 +149,14 @@ describe('Available Agents Route - /manage/available-agents', () => {
         // Verify JWT was verified
         expect(verifyTempTokenMock).toHaveBeenCalledWith(expect.any(String), mockJwtToken);
 
-        // Verify SpiceDB was called with the user ID from JWT
-        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({ userId: 'user-123' });
+        // Verify SpiceDB was called with the user ID and tenant ID from JWT
+        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({
+          userId: 'user-123',
+          tenantId: 'test-tenant',
+        });
 
         // Verify agents were fetched with correct params
-        expect(listAgentsAcrossProjectBranchesMock).toHaveBeenCalledWith(expect.anything(), {
+        expect(listAgentsAcrossProjectMainBranchesMock).toHaveBeenCalledWith(expect.anything(), {
           tenantId: 'test-tenant',
           projectIds: ['project-1', 'project-2'],
         });
@@ -173,14 +176,17 @@ describe('Available Agents Route - /manage/available-agents', () => {
         expect(body.data).toEqual([]);
 
         // Verify SpiceDB was called
-        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({ userId: 'user-123' });
+        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({
+          userId: 'user-123',
+          tenantId: 'test-tenant',
+        });
 
         // Verify agents query was NOT called (short-circuit when no projects)
-        expect(listAgentsAcrossProjectBranchesMock).not.toHaveBeenCalled();
+        expect(listAgentsAcrossProjectMainBranchesMock).not.toHaveBeenCalled();
       });
 
       it('should return empty array when no agents exist in accessible projects', async () => {
-        listAgentsAcrossProjectBranchesMock.mockResolvedValue([]);
+        listAgentsAcrossProjectMainBranchesMock.mockResolvedValue([]);
 
         const res = await availableAgentsRoutes.request('/', {
           headers: {
@@ -198,7 +204,7 @@ describe('Available Agents Route - /manage/available-agents', () => {
         const singleProjectAgents = [
           { agentId: 'agent-1', agentName: 'Agent One', projectId: 'project-1' },
         ];
-        listAgentsAcrossProjectBranchesMock.mockResolvedValue(singleProjectAgents);
+        listAgentsAcrossProjectMainBranchesMock.mockResolvedValue(singleProjectAgents);
 
         const res = await availableAgentsRoutes.request('/', {
           headers: {
@@ -211,7 +217,7 @@ describe('Available Agents Route - /manage/available-agents', () => {
         expect(body.data).toEqual(singleProjectAgents);
         expect(body.data).toHaveLength(1);
 
-        expect(listAgentsAcrossProjectBranchesMock).toHaveBeenCalledWith(expect.anything(), {
+        expect(listAgentsAcrossProjectMainBranchesMock).toHaveBeenCalledWith(expect.anything(), {
           tenantId: 'test-tenant',
           projectIds: ['project-1'],
         });
@@ -254,7 +260,7 @@ describe('Available Agents Route - /manage/available-agents', () => {
       });
 
       it('should handle database errors gracefully', async () => {
-        listAgentsAcrossProjectBranchesMock.mockRejectedValue(
+        listAgentsAcrossProjectMainBranchesMock.mockRejectedValue(
           new Error('Database connection failed')
         );
 
@@ -283,8 +289,11 @@ describe('Available Agents Route - /manage/available-agents', () => {
           },
         });
 
-        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({ userId: 'different-user-456' });
-        expect(listAgentsAcrossProjectBranchesMock).toHaveBeenCalledWith(expect.anything(), {
+        expect(listUsableProjectIdsMock).toHaveBeenCalledWith({
+          userId: 'different-user-456',
+          tenantId: 'different-tenant',
+        });
+        expect(listAgentsAcrossProjectMainBranchesMock).toHaveBeenCalledWith(expect.anything(), {
           tenantId: 'different-tenant',
           projectIds: expect.any(Array),
         });
@@ -301,7 +310,7 @@ describe('Available Agents Route - /manage/available-agents', () => {
         });
 
         expect(res.status).toBe(200);
-        expect(listAgentsAcrossProjectBranchesMock).toHaveBeenCalledWith(expect.anything(), {
+        expect(listAgentsAcrossProjectMainBranchesMock).toHaveBeenCalledWith(expect.anything(), {
           tenantId: 'test-tenant',
           projectIds: manyProjects,
         });

@@ -11,6 +11,7 @@ import {
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types';
 
@@ -353,20 +354,17 @@ async function handleMessageSend(
       }
     }
     if (result.status.state === TaskState.Failed) {
-      const isConnectionRefused = result.status.type === 'connection_refused';
-
-      if (isConnectionRefused) {
-        return c.json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32603,
-            message: result.status.message || 'Agent execution failed',
-            data: {
-              type: 'connection_refused',
-            },
+      return c.json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: result.status.message || 'Agent execution failed',
+          data: {
+            type: result.status.type || 'unknown',
           },
-        } satisfies JsonRpcResponse);
-      }
+        },
+        id: request.id,
+      } satisfies JsonRpcResponse);
     }
 
     const taskStatus = {
@@ -394,7 +392,7 @@ async function handleMessageSend(
       parts: result.artifacts?.[0]?.parts || [
         {
           kind: 'text',
-          text: 'Task completed successfully',
+          text: 'Task completed without an Agent response.',
         },
       ],
       role: 'agent',
@@ -505,6 +503,24 @@ async function handleMessageStream(
 
         const result = await agent.taskHandler(task);
 
+        // Check for failed state and stream error
+        if (result.status.state === TaskState.Failed) {
+          await stream.writeSSE({
+            data: JSON.stringify({
+              jsonrpc: '2.0',
+              error: {
+                code: -32603,
+                message: result.status.message || 'Agent execution failed',
+                data: {
+                  type: result.status.type || 'unknown',
+                },
+              },
+              id: request.id,
+            }),
+          });
+          return;
+        }
+
         const transferArtifact = result.artifacts?.find((artifact) =>
           artifact.parts?.some(
             (part) =>
@@ -552,7 +568,7 @@ async function handleMessageStream(
           parts: result.artifacts?.[0]?.parts || [
             {
               kind: 'text',
-              text: 'Task completed successfully',
+              text: 'Task completed without an Agent response.',
             },
           ],
           role: 'agent',
@@ -599,6 +615,8 @@ async function handleMessageStream(
             id: request.id,
           }),
         });
+      } finally {
+        await flushBatchProcessor();
       }
     });
   } catch (error) {

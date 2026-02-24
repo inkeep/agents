@@ -1,30 +1,27 @@
 'use client';
 
-import {
-  AlertTriangle,
-  FolderKanban,
-  MessageSquare,
-  SparklesIcon,
-  Wrench,
-  Zap,
-} from 'lucide-react';
+import { AlertTriangle, Layers, MessageSquare, SparklesIcon, Wrench, Zap } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
+import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import { ExternalLink } from '@/components/ui/external-link';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import {
@@ -43,7 +40,7 @@ const TIME_RANGES = {
   '30d': { label: 'Last 30 days', hours: 24 * 30 },
 } as const;
 
-export default function ProjectsStatsPage({ params }: { params: Promise<{ tenantId: string }> }) {
+export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/stats'>) {
   const { tenantId } = use(params);
   const router = useRouter();
   const {
@@ -183,29 +180,32 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
         {/* Project Filter */}
-        <Select
-          value={selectedProjectId || 'all'}
-          onValueChange={(value) => setSelectedProjectId(value === 'all' ? undefined : value)}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All projects" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All projects</SelectItem>
-            {projectsLoading ? (
-              <SelectItem value="loading" disabled>
-                Loading...
-              </SelectItem>
-            ) : (
-              projects.map((project) => (
-                <SelectItem key={project.projectId} value={project.projectId}>
-                  {project.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-
+        <Combobox
+          defaultValue={selectedProjectId}
+          notFoundMessage={'No projects found.'}
+          onSelect={(value) => {
+            setSelectedProjectId(value);
+          }}
+          options={projects.map((project) => ({
+            value: project.projectId,
+            label: project.name,
+          }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              disabled={projectsLoading}
+              filterLabel={selectedProjectId ? 'Project' : 'All projects'}
+              isRemovable={true}
+              onDeleteFilter={() => {
+                setSelectedProjectId(undefined);
+              }}
+              multipleCheckboxValues={selectedProjectId ? [selectedProjectId] : []}
+              options={projects.map((project) => ({
+                value: project.projectId,
+                label: project.name,
+              }))}
+            />
+          }
+        />
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"
@@ -324,60 +324,95 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
 
       {/* Most Used Projects */}
       {!selectedProjectId && (
-        <Card>
+        <Card className="shadow-none bg-background mt-8 pb-0">
           <CardHeader>
-            <CardTitle>Projects</CardTitle>
+            <CardTitle className="flex font-medium items-center gap-4 text-foreground">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-gray-400 dark:text-white/40" />
+                Projects
+              </div>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            {projectStatsLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : projectStats.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No project data available for the selected time range.
-              </p>
-            ) : (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                {[...projectStats]
-                  .sort((a, b) => b.totalConversations - a.totalConversations)
-                  .map((stat) => (
-                    <div
-                      key={stat.projectId}
-                      className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-lg border border-border transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FolderKanban className="h-5 w-5 text-blue-600" />
-                        <span className="font-medium text-foreground">
-                          {projectNameMap.get(stat.projectId) || stat.projectId}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-blue-600">
+          <CardContent className="px-0">
+            <Table className="lg:table-fixed">
+              <TableHeader>
+                <TableRow noHover>
+                  <TableHead className="md:w-full min-w-48">Project</TableHead>
+                  <TableHead className="text-right lg:w-40">Conversations</TableHead>
+                  <TableHead className="text-right lg:w-36">AI Calls</TableHead>
+                  <TableHead className="text-right lg:w-36">MCP Calls</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="[&_tr]:border-border/50">
+                {projectStatsLoading ? (
+                  [1, 2, 3].map((row) => (
+                    <TableRow key={row} noHover>
+                      <TableCell className="py-4">
+                        <Skeleton className="h-6 w-32" />
+                      </TableCell>
+                      {[1, 2, 3].map((col) => (
+                        <TableCell key={col} className="text-right py-4">
+                          <Skeleton className="h-6 w-12 ml-auto" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : projectStats.length === 0 ? (
+                  <TableRow noHover>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      No project data available for the selected time range.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  [...projectStats]
+                    .sort((a, b) => b.totalConversations - a.totalConversations)
+                    .map((stat) => (
+                      <TableRow key={stat.projectId}>
+                        <TableCell className="font-medium p-0">
+                          <Link
+                            href={`/${tenantId}/projects/${stat.projectId}/traces`}
+                            className="truncate block w-0 min-w-full py-4 px-4"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {projectNameMap.get(stat.projectId) || stat.projectId}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-right p-0">
+                          <Link
+                            href={`/${tenantId}/projects/${stat.projectId}/traces`}
+                            className="block py-4 px-4 font-mono text-primary text-base font-bold hover:underline underline-offset-2"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             {stat.totalConversations.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-muted-foreground">conversations</div>
-                        </div>
-                        <div className="text-right hidden sm:block">
-                          <div className="text-sm font-medium text-muted-foreground">
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-right p-0">
+                          <Link
+                            href={`/${tenantId}/projects/${stat.projectId}/traces/ai-calls`}
+                            className="block py-4 px-4 font-mono text-muted-foreground text-base hover:underline underline-offset-2"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             {stat.totalAICalls.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-muted-foreground">AI calls</div>
-                        </div>
-                        <div className="text-right hidden sm:block">
-                          <div className="text-sm font-medium text-muted-foreground">
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-right p-0">
+                          <Link
+                            href={`/${tenantId}/projects/${stat.projectId}/traces/tool-calls`}
+                            className="block py-4 px-4 font-mono text-muted-foreground text-base hover:underline underline-offset-2"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             {stat.totalMCPCalls.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-muted-foreground">MCP calls</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

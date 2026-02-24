@@ -3,17 +3,18 @@
 import {
   Activity,
   BarChart3,
-  BookOpen,
+  Blocks,
   Component,
   Globe,
   Key,
   Layers,
   Library,
-  LifeBuoy,
   Lock,
+  LucideHexagon,
   Settings,
   Users,
   Workflow,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -28,26 +29,12 @@ import {
   SidebarHeader,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
+import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 import type { NavItemProps } from './nav-item';
-
-const bottomNavItems: NavItemProps[] = [
-  {
-    title: 'Support',
-    url: 'mailto:support@inkeep.com',
-    icon: LifeBuoy,
-  },
-  {
-    title: 'Documentation',
-    url: DOCS_BASE_URL,
-    icon: BookOpen,
-    isExternal: true,
-  },
-];
 
 interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   open: boolean;
@@ -57,6 +44,8 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const { user } = useAuthSession();
+
+  const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -71,6 +60,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
+        ...(isWorkAppsEnabled
+          ? [
+              {
+                title: STATIC_LABELS['work-apps'],
+                url: `/${tenantId}/work-apps`,
+                icon: Blocks,
+              },
+            ]
+          : []),
       ];
 
   const orgNavItems: NavItemProps[] = [
@@ -87,6 +85,16 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.agents,
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: STATIC_LABELS.skills,
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
+        },
+        {
+          title: STATIC_LABELS.triggers,
+          url: `/${tenantId}/projects/${projectId}/triggers`,
+          icon: Zap,
         },
         {
           title: STATIC_LABELS['api-keys'],
@@ -218,7 +226,6 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
             {user && <NavGroup label="Organization" items={orgNavItems} />}
           </div>
         )}
-        <NavGroup items={bottomNavItems} />
       </SidebarContent>
       {projectId && (
         <SidebarFooter>

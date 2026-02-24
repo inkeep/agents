@@ -80,8 +80,10 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
+    { label: 'Claude Opus 4.6', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_6 },
     { label: 'Claude Opus 4.5', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_5 },
     { label: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
+    { label: 'Claude Sonnet 4.6', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_6 },
     { label: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
     { label: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
     { label: 'Claude Haiku 4.5', value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5 },
@@ -100,6 +102,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   ];
 
   const googleModels = [
+    { label: 'Gemini 3.1 Pro Preview', value: GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW },
     { label: 'Gemini 3 Pro Preview', value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW },
     { label: 'Gemini 3 Flash Preview', value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW },
     { label: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },

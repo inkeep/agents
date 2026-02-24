@@ -1,5 +1,209 @@
 # @inkeep/agents-core
 
+## 0.52.0
+
+### Patch Changes
+
+- 886b2da: Restrict `stopWhen` schema for sub-agents to only allow `stepCountIs` field
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- 65f71b5: Derive scope config types and WHERE helpers from single source of truth (scope-definitions.ts)
+
+## 0.51.0
+
+### Minor Changes
+
+- fe36caa: Add organization service account, preferred auth method, and Slack workspace join-from-workspace schema support
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+
+## 0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- 56fd821: Fix multi-tenant unique constraint on sub_agent_skills table to scope by tenant, project, and agent
+
+## 0.50.4
+
+### Patch Changes
+
+- e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
+
+  - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
+  - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
+  - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
+  - Add `resolveEffectiveAgent` with `grantAccessToMembers` propagation from channel/workspace config
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- d50fa44: Released Gemini 3.1-pro
+
+## 0.50.2
+
+### Patch Changes
+
+- fa71905: Added Oversized Artifact Handling and Context Window Size Management at Provider Options
+- a4ee2d4: Add scope-aware query helpers and scoping isolation tests for junction tables
+- becf184: standardize permission checks in routes
+
+## 0.50.1
+
+### Patch Changes
+
+- e643f0e: Fix incomplete scope filtering in 9 data-access queries that could leak data across project/agent boundaries
+- 561659a: Add shared setup module for unified dev environment bootstrapping
+- 6d31fe6: Fix data and artifact components being shared across agents when subagents share the same ID
+
+## 0.50.0
+
+## 0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- 3532557: The browser silently drops the session cookie because secure: true is set but the site
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+
+## 0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 11f4e14: Add mock AI provider for testing run routes without API keys
+
+## 0.48.3
+
+### Patch Changes
+
+- 24e75fb: Fix peer dependency conflict for @openrouter/ai-sdk-provider with AI SDK v6
+- 79dffed: Add shared getWaitUntil utility for Vercel serverless function lifetime extension
+
+## 0.48.2
+
+## 0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 228d4e2: Fix nested error message display in form validation
+
+  - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
+  - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
+  - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
+  - Rename `HeadersSchema` to `StringRecordSchema` for broader applicability
+
+- 7ad7e21: Refactor artifact and data component validation to use centralized Zod schemas from agents-core. This eliminates duplicate validation logic and improves consistency across the codebase.
+- 95a3abc: Add scheduled/cron trigger support across the full stack — database schema, API routes, Manage UI
+
+## 0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 5f3f5ea: Add keepAlive config to db connections
+
+## 0.47.3
+
+### Patch Changes
+
+- 756a560: Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size
+- 045c405: add TOOL_APPROVAL_REASON to span keys
+
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+### Patch Changes
+
+- 6fbe785: Fixes spicedb for docker
+
+## 0.47.0
+
+### Minor Changes
+
+- 77a45c9: Implements SPICEDB_TLS_ENABLED
+- cfee934: fixes the spicedb type exports
+
+## 0.46.1
+
+### Patch Changes
+
+- f6010a1: Add `HeadersSchema` export for HTTP header validation and remove unused client exports.
+- 07a027d: Add Claude Opus 4.6 to available model constants
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+
 ## 0.45.3
 
 ### Patch Changes

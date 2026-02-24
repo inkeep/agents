@@ -120,6 +120,10 @@ export interface ActivityItem {
   artifactData?: string;
   artifactSubAgentId?: string;
   artifactToolCallId?: string;
+  artifactIsOversized?: boolean;
+  artifactRetrievalBlocked?: boolean;
+  artifactOriginalTokenSize?: number;
+  artifactContextWindowSize?: number;
   // Tool approval fields
   approvalToolName?: string;
   approvalToolCallId?: string;
@@ -216,6 +220,9 @@ export interface ConversationDetail {
     failureReason: string;
     timestamp: string;
   }>;
+  invocationType?: string | null;
+  triggerId?: string | null;
+  triggerInvocationId?: string | null;
 }
 
 export const TOOL_TYPES = {

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -19,6 +19,7 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   updateSubAgentExternalAgentRelation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -26,30 +27,14 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Sub Agent External Agent Relations',
     operationId: 'list-sub-agent-external-agent-relations',
     tags: ['SubAgents', 'External Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -92,12 +77,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Sub Agent External Agent Relation',
     operationId: 'get-sub-agent-external-agent-relation-by-id',
     tags: ['SubAgents', 'External Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
     },
@@ -133,12 +119,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Sub Agent External Agent Relation',
     operationId: 'create-sub-agent-external-agent-relation',
     tags: ['SubAgents', 'External Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
       body: {
@@ -198,12 +185,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
     summary: 'Update Sub Agent External Agent Relation',
     operationId: 'update-sub-agent-external-agent-relation',
     tags: ['SubAgents', 'External Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
       body: {
@@ -249,12 +237,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Sub Agent External Agent Relation',
     operationId: 'delete-sub-agent-external-agent-relation',
     tags: ['SubAgents', 'External Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
     },

@@ -1,41 +1,83 @@
 'use client';
 
 import { AlertCircleIcon, CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
+import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
+import { getSafeReturnUrl } from '@/lib/utils/auth-redirect';
 
 export default function AcceptInvitationPage({
   params,
 }: PageProps<'/accept-invitation/[invitationId]'>) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailFromUrl = searchParams.get('email');
+  const returnUrl = searchParams.get('returnUrl');
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
 
-  const [invitation, setInvitation] = useState<any>(null);
+  const [invitationVerification, setInvitationVerification] =
+    useState<InvitationVerification | null>(null);
+  // Full invitation (fetched with auth)
+  const [invitation, setInvitation] = useState<typeof authClient.$Infer.Invitation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAccepting, setIsAccepting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Fetch invitation details (only when authenticated)
-  useEffect(() => {
-    async function fetchInvitation() {
-      if (!invitationId) return;
+  // Signup form state
+  const [formData, setFormData] = useState({
+    name: '',
+    password: '',
+  });
 
-      // If not authenticated, don't fetch yet - wait for user to sign in
-      if (!user) {
+  // Fetch invitation verification (unauthenticated) when email is provided in URL
+  useEffect(() => {
+    async function fetchInvitationVerification() {
+      if (!invitationId || !emailFromUrl) {
         setIsLoading(false);
         return;
       }
 
+      try {
+        const result = await verifyInvitation(invitationId, emailFromUrl);
+
+        if (result.valid) {
+          setInvitationVerification(result);
+        } else {
+          setError('error' in result ? result.error : 'Invalid invitation');
+        }
+      } catch {
+        setError('Failed to validate invitation');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    // Only fetch verification if not authenticated
+    if (!user && !isAuthLoading) {
+      fetchInvitationVerification();
+    }
+  }, [invitationId, emailFromUrl, user, isAuthLoading]);
+
+  // Fetch full invitation details when authenticated
+  useEffect(() => {
+    async function fetchInvitation() {
+      if (!invitationId || !user) return;
+
+      if (isSubmitting || success) return;
+
+      setIsLoading(true);
       try {
         const result = await authClient.organization.getInvitation({
           query: { id: invitationId },
@@ -57,17 +99,69 @@ export default function AcceptInvitationPage({
       }
     }
 
-    fetchInvitation();
-  }, [invitationId, user, authClient]);
-
-  const handleAccept = async () => {
-    if (!user) {
-      // Redirect to login with invitation param
-      router.push(`/login?invitation=${invitationId}`);
-      return;
+    if (user) {
+      fetchInvitation();
     }
+  }, [invitationId, user, authClient, isSubmitting, success]);
 
-    setIsAccepting(true);
+  // Handle signup + accept invitation
+  const handleSignupAndAccept = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!invitationVerification || !emailFromUrl) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Step 1: Sign up with email/password
+      const signupResult = await authClient.signUp.email({
+        email: emailFromUrl,
+        password: formData.password,
+        name: formData.name,
+      });
+
+      if (signupResult?.error) {
+        setError(signupResult.error.message || 'Failed to create account');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 2: Accept the invitation (user is now signed in due to autoSignIn: true)
+      const acceptResult = await authClient.organization.acceptInvitation({
+        invitationId,
+      });
+
+      if ('error' in acceptResult && acceptResult.error) {
+        setError(acceptResult.error.message || 'Failed to accept invitation');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 3: Set the organization as active
+      const orgId = invitationVerification.organizationId;
+      if (orgId) {
+        await authClient.organization.setActive({
+          organizationId: orgId,
+        });
+      }
+
+      setSuccess(true);
+
+      setTimeout(() => {
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account');
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle accept (for authenticated users)
+  const handleAccept = async () => {
+    if (!user) return;
+
+    setIsSubmitting(true);
     setError(null);
 
     try {
@@ -77,15 +171,13 @@ export default function AcceptInvitationPage({
 
       if ('error' in result && result.error) {
         setError(result.error.message || 'Failed to accept invitation');
-        setIsAccepting(false);
+        setIsSubmitting(false);
         return;
       }
 
-      // Get the organization ID from the result or invitation
       const orgId =
         (result.data as { organizationId?: string })?.organizationId ?? invitation?.organizationId;
 
-      // Set the newly joined organization as active so session is updated
       if (orgId) {
         await authClient.organization.setActive({
           organizationId: orgId,
@@ -94,33 +186,27 @@ export default function AcceptInvitationPage({
 
       setSuccess(true);
 
-      // Redirect to the organization after a short delay
       setTimeout(() => {
-        if (orgId) {
-          router.push(`/${orgId}/projects`);
-        } else {
-          router.push('/');
-        }
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
-      setIsAccepting(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleReject = async () => {
-    setIsAccepting(true);
+    setIsSubmitting(true);
     setError(null);
 
     try {
       await authClient.organization.rejectInvitation({
         invitationId,
       });
-
       router.push('/');
     } catch {
       setError('Failed to reject invitation');
-      setIsAccepting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -137,7 +223,8 @@ export default function AcceptInvitationPage({
     );
   }
 
-  if (error && !invitation) {
+  // Error state (no invitation found)
+  if (error && !invitation && !invitationVerification) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <ErrorContent
@@ -163,7 +250,7 @@ export default function AcceptInvitationPage({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-6 w-6 text-emerald-500 dark:text-emerald-400" />
               <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-                Invitation accepted
+                Welcome!
               </CardTitle>
             </div>
             <CardDescription>
@@ -175,8 +262,10 @@ export default function AcceptInvitationPage({
     );
   }
 
-  // Show simplified view when not authenticated
-  if (!user) {
+  // Unauthenticated: Show signup form
+  if (!user && invitationVerification) {
+    const orgName = invitationVerification.organizationName;
+
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
@@ -185,38 +274,106 @@ export default function AcceptInvitationPage({
           </div>
           <CardHeader>
             <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-              {invitation?.organizationName
-                ? `Join ${invitation.organizationName} on Inkeep`
-                : 'Accept invitation'}
+              {orgName ? `Join ${orgName}` : 'Create your account'}
             </CardTitle>
             <CardDescription>
-              You've been invited to join{' '}
-              {invitation?.organizationName ? (
-                <span className="font-medium">{invitation?.organizationName}</span>
-              ) : (
-                'an organization'
-              )}{' '}
-              on Inkeep, please sign in to continue.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={handleAccept} disabled={isAccepting} className="w-full">
-              {isAccepting ? (
+              {orgName ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Redirecting...
+                  You've been invited to join <span className="font-medium">{orgName}</span>. Create
+                  your account to get started.
                 </>
               ) : (
-                'Sign in to continue'
+                'Set up your account to accept this invitation.'
               )}
-            </Button>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSignupAndAccept} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={emailFromUrl || ''}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Full name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  disabled={isSubmitting}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  disabled={isSubmitting}
+                  minLength={8}
+                />
+                <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+              </div>
+
+              {error && (
+                <Alert variant="destructive" className="border-destructive/10 dark:border-border">
+                  <AlertCircleIcon className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || !formData.name || !formData.password}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  'Create Account & Join'
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Show full invitation details when authenticated
+  // Unauthenticated without email in URL: Show error
+  if (!user && !invitationVerification && !emailFromUrl) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <ErrorContent
+          title="Invalid invitation link"
+          icon={XCircle}
+          showRetry={false}
+          description="This invitation link is incomplete. Please ask the administrator to send you a new invitation link."
+          link="/"
+          linkText="Go home"
+        />
+      </div>
+    );
+  }
+
+  // Authenticated: Show accept/decline buttons
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
@@ -225,19 +382,18 @@ export default function AcceptInvitationPage({
         </div>
         <CardHeader>
           <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-            {invitation?.organizationName
-              ? `Join ${invitation.organizationName} on Inkeep`
-              : 'Accept invitation on Inkeep'}
+            {invitationVerification?.organizationName
+              ? `Join ${invitationVerification.organizationName}`
+              : 'Accept invitation'}
           </CardTitle>
           <CardDescription>
-            {invitation?.organizationName ? (
+            {invitationVerification?.organizationName ? (
               <>
                 You've been invited to join{' '}
-                <span className="font-medium">{invitation.organizationName}</span> on Inkeep by{' '}
-                <span className="font-medium">{invitation.inviterEmail}</span>.
+                <span className="font-medium">{invitationVerification.organizationName}</span>.
               </>
             ) : (
-              "You've been invited to join an organization on Inkeep."
+              "You've been invited to join an organization."
             )}
           </CardDescription>
         </CardHeader>
@@ -250,8 +406,12 @@ export default function AcceptInvitationPage({
           )}
 
           <div className="flex gap-3">
-            <Button onClick={handleAccept} disabled={isAccepting || !invitation} className="flex-1">
-              {isAccepting ? (
+            <Button
+              onClick={handleAccept}
+              disabled={isSubmitting || !invitation}
+              className="flex-1"
+            >
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Accepting...
@@ -263,7 +423,7 @@ export default function AcceptInvitationPage({
             <Button
               onClick={handleReject}
               variant="outline"
-              disabled={isAccepting || !invitation}
+              disabled={isSubmitting || !invitation}
               className="flex-1"
             >
               Decline

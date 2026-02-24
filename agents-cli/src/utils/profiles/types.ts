@@ -4,8 +4,8 @@ import { z } from 'zod';
  * Baked-in URLs for Inkeep Cloud deployment
  */
 export const CLOUD_REMOTE = {
-  api: 'https://agents-api.inkeep.com',
-  manageUi: 'https://manage.inkeep.com',
+  api: 'https://api.agents.inkeep.com',
+  manageUi: 'https://app.inkeep.com',
 } as const;
 
 /**
@@ -124,15 +124,5 @@ export const DEFAULT_PROFILES_CONFIG: ProfilesConfig = {
  */
 export const LOCAL_REMOTE = {
   api: 'http://localhost:3002',
-  manageUi: 'http://localhost:3001',
+  manageUi: 'http://localhost:3000',
 } as const;
-
-/**
- * Default local profile configuration
- * Note: credential is 'none' as local deployments typically don't require auth
- */
-export const DEFAULT_LOCAL_PROFILE: Profile = {
-  remote: LOCAL_REMOTE,
-  credential: 'none',
-  environment: 'development',
-};

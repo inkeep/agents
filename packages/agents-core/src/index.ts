@@ -2,6 +2,7 @@
 
 export * from './api-client/index';
 export * from './auth/authz';
+export * from './auth/password-reset-link-store';
 export * from './constants/context-breakdown';
 export * from './constants/execution-limits-shared';
 export * from './constants/models';
@@ -22,3 +23,4 @@ export * from './types/index';
 export * from './types/server';
 export * from './utils/index';
 export * from './validation/index';
+export type { JsonSchemaForLlmSchemaType } from './validation/json-schemas';

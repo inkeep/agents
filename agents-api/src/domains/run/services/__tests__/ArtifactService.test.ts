@@ -135,6 +135,7 @@ describe('ArtifactService', () => {
           name: 'TestComponent',
           description: 'Test component description',
           props: {
+            type: 'object',
             properties: {
               title: { type: 'string', description: 'Title', inPreview: true },
               summary: { type: 'string', description: 'Summary', inPreview: true },

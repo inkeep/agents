@@ -1,0 +1,84 @@
+---
+title: Get Started with Inkeep Enterprise
+sidebarTitle: Get Started
+description: Get started with Inkeep Enterprise
+icon: LuZap
+---
+
+# Overview 
+
+With Inkeep Enterprise, we manage the infrastructure for you so you can focus on building your agents. In this guide, will walk you through the steps to build your first agent in the Inkeep Enterprise Visual Builder.
+
+### Prerequisites
+
+- An Inkeep Enterprise account - if you don't have one, you can sign up for the [demo](https://inkeep.com/demo?cta_id=docs_nav)
+
+### Step 1: Login using your credentials
+
+<img src="/images/inkeep-cloud-login.png" alt="Inkeep Cloud Enterprise Login" width="600" style={{ borderRadius: '8px' }} />
+
+### Step 2: Enter a project
+
+Once you're logged in, you'll be redirected to the Inkeep Enterprise project overview page. If you are part of a team, you might see a list of existing projects like this:
+
+<img src="/images/inkeep-cloud-project-overview.png" alt="Inkeep Cloud Project Overview" style={{ borderRadius: '8px' }} />
+
+If you are part of a team, click into the project your team has created. If you are not part of a team, you can create a new project by clicking the "Create Project" button.
+
+### Step 3: Inspect the project
+
+Once you're in the project, you'll see the project overview page. You can see the list of agents that are part of the project.
+
+<img src="/images/inkeep-cloud-agent-overview.png" alt="Inkeep Cloud Agent Overview" style={{ borderRadius: '8px' }} />
+
+In the MCP Servers section, you can see the list of MCP servers that are part of the project:
+
+<img src="/images/inkeep-cloud-mcp-overview.png" alt="Inkeep Cloud MCP Servers" style={{ borderRadius: '8px' }} />
+
+<Tip title="MCP Servers">
+  MCP servers are the tools that your agents can use to interact with external APIs and services.
+</Tip>
+
+Notice the Inkeep Enterprise Search MCP server, part of [Inkeep's Enterprise offering](https://inkeep.com/enterprise). It allows your agent to connect to 25+ data sources to create a unified knowledge base that your agents can access.
+
+### Step 4: Build your agent
+
+Back in the agent overview page, click the "Create Agent" button to create a new agent. Give your agent a name, let's call it "Knowledge agent". 
+
+<video src="/videos/inkeep-cloud-create-knowledge-agent.mp4" controls style={{ borderRadius: '10px', width: '100%' }} />
+
+Inkeep will prompt you to build your agent using natural language. Let's ask Inkeep to build a knowledge agent that can answer questions about your knowledge base:
+
+<img src="/images/inkeep-cloud-chat-to-edit.png" alt="Inkeep Cloud Create Agent" style={{ borderRadius: '8px' }} />
+
+### Step 5: Try the agent
+
+Once Inkeep has built your agent, try it out by clicking the "Try it" button.
+
+<video src="/videos/inkeep-cloud-try-it.mp4" controls style={{ borderRadius: '10px', width: '100%' }} />
+
+### Step 6: Edit the agent
+
+You can edit your agent by dragging and dropping new sub agents and tools onto the canvas. Here, we'll extend our knowledge agent to use a web search agent if it needs to find more information.
+
+<video src="/videos/extend-kb.mp4" controls style={{ borderRadius: '10px', width: '100%' }} />
+
+### Next Steps
+
+<Cards>
+  <Card
+    title="Understand MCP Server Scopes"
+    icon="LuUsers"
+    href="/deployment/inkeep-enterprise/user-vs-project-mcp"
+  >
+    Learn about user-level vs project-level MCP servers and how they affect your team workflow.
+  </Card>
+  <Card
+    title="Build a Meeting Prep Agent"
+    icon="LuSparkles"
+    href="https://inkeep.com/visual-guide"
+  >
+    Learn how to build a meeting prep agent that can help you prepare for meetings by researching the company and creating a meeting outline.
+  </Card>
+</Cards>
+

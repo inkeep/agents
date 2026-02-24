@@ -56,9 +56,6 @@ Cypress.Commands.add('login', (email?: string, password?: string) => {
       // Wait for the page to fully load by checking for a stable element
       cy.get('body', { timeout: 10000 }).should('be.visible');
 
-      // Add a small delay to ensure cookies and session are fully set
-      cy.wait(500);
-
       cy.log('✅ Login successful - session established and cached');
     },
     {
@@ -97,7 +94,7 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
 
 Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
   return cy
-    .get(`[data-uri="file:///${uri}"] textarea`)
+    .get(`[data-uri="file:///${uri}"] textarea`, { timeout: 20_000 })
     .type('{selectall}{del}', { force: true })
     .type(value, {
       parseSpecialCharSequences: false,

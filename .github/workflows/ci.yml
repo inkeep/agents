@@ -9,17 +9,27 @@ on:
     branches: ["*"]
   merge_group:
 
+permissions:
+  contents: read
+  actions: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-32gb
+    timeout-minutes: 30
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+      TURBO_CACHE_DIR: .turbo
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -78,25 +88,27 @@ jobs:
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Run all CI checks in parallel with Turborepo
+      # agents-docs build is excluded (causes OOM) — Vercel preview handles the Next.js build
       - name: Run CI checks
         id: ci-check
         run: |
-          # Run all checks in parallel using Turborepo's dependency graph
-          # This will build once and cache, then run lint, typecheck, and test in parallel
-          pnpm check
+          pnpm exec turbo check --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'
         env:
-          TURBO_TELEMETRY_DISABLED: 1
-          TURBO_CACHE_DIR: .turbo
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          NODE_OPTIONS: --max-old-space-size=4096
+          NODE_OPTIONS: --max-old-space-size=8192
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           CI: true
           HUSKY: 0
+
+      # Lint and typecheck agents-docs separately (build excluded above to avoid OOM)
+      - name: Lint and typecheck agents-docs
+        run: |
+          pnpm exec turbo run lint typecheck --filter=@inkeep/agents-docs
+        env:
+          CI: true
 
       - name: Upload Vitest Screenshots
         if: failure()
@@ -136,7 +148,7 @@ jobs:
           fi
 
   create-agents-e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-32gb
     name: Create Agents E2E Tests
 
     services:
@@ -150,7 +162,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -162,7 +174,7 @@ jobs:
           POSTGRES_USER: appuser
           POSTGRES_PASSWORD: password
         options: >-
-          --health-cmd "pg_isready -U appuser"
+          --health-cmd "pg_isready -U appuser -d inkeep_agents"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -171,7 +183,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -215,16 +227,45 @@ jobs:
         env:
           HUSKY: 0
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install Playwright
+        run: pnpx playwright install chromium --with-deps
+
       - name: Build create-agents and dependencies
         run: |
           # Build all packages that the e2e test links to local versions
           # These need dist/ directories for subpath exports like ./factory
-          pnpm turbo run build --filter=@inkeep/create-agents --filter=@inkeep/agents-api --filter=@inkeep/agents-cli
+          pnpm turbo run build --filter=@inkeep/create-agents --filter=@inkeep/agents-api --filter=@inkeep/agents-cli --filter=@inkeep/agents-manage-ui
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+      # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
+      - name: Start SpiceDB
+        run: |
+          docker run -d --name spicedb \
+            --network host \
+            -e SPICEDB_GRPC_PRESHARED_KEY=dev-secret-key \
+            -e SPICEDB_DATASTORE_ENGINE=memory \
+            -e SPICEDB_HTTP_ENABLED=true \
+            authzed/spicedb serve
+          echo "Waiting for SpiceDB to be ready..."
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 50051 2>/dev/null; then
+              echo "SpiceDB is ready!"
+              break
+            fi
+            echo "  Attempt $i/30..."
+            sleep 1
+          done
 
       - name: Run database migrations
         run: pnpm db:migrate
@@ -237,9 +278,15 @@ jobs:
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: e2e-test-bypass-secret-for-ci-testing-only
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: admin@example.com
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
+          BETTER_AUTH_SECRET: test-secret-key-for-ci
+          SPICEDB_PRESHARED_KEY: dev-secret-key
 
       - name: Run agents-api integration tests
         run: pnpm --filter @inkeep/agents-api test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          SPICEDB_PRESHARED_KEY: dev-secret-key

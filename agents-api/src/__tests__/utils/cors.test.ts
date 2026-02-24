@@ -82,6 +82,7 @@ describe('isOriginAllowed', () => {
         env: {
           INKEEP_AGENTS_API_URL: 'http://localhost:3002',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+          ENVIRONMENT: 'development',
         },
       }));
     });
@@ -112,6 +113,7 @@ describe('isOriginAllowed', () => {
         env: {
           INKEEP_AGENTS_API_URL: 'http://127.0.0.1:3002',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+          ENVIRONMENT: 'development',
         },
       }));
     });
@@ -227,6 +229,7 @@ describe('isOriginAllowed', () => {
         env: {
           INKEEP_AGENTS_API_URL: undefined,
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+          ENVIRONMENT: 'development',
         },
       }));
     });

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
@@ -18,6 +18,7 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -25,25 +26,10 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// API key creation requires 'use' permission (can invoke agents)
-// API key update/delete requires 'edit' permission
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('use')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
+    permission: requireProjectPermission('view'),
     path: '/',
     summary: 'List API Keys',
     description: 'List all API keys for a tenant with optional pagination',
@@ -90,13 +76,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get API Key',
     description: 'Get a specific API key by ID (does not return the actual key)',
     operationId: 'get-api-key-by-id',
     tags: ['API Keys'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -140,13 +127,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create API Key',
     description: 'Create a new API key for an agent. Returns the full key (shown only once).',
     operationId: 'create-api-key',
     tags: ['API Keys'],
+    permission: requireProjectPermission('use'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -218,13 +206,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
     summary: 'Update API Key',
     description: 'Update an API key (currently only expiration date can be changed)',
     operationId: 'update-api-key',
     tags: ['API Keys'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -281,13 +270,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete API Key',
     description: 'Delete an API key permanently',
     operationId: 'delete-api-key',
     tags: ['API Keys'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },

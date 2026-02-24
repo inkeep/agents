@@ -1,0 +1,129 @@
+---
+title: Using the Slack App
+sidebarTitle: Usage Guide
+description: How to talk to Inkeep agents in Slack — commands, mentions, and tips.
+---
+
+This guide is for **all team members** using the Inkeep Slack app. You'll learn how to ask questions, understand which agent responds, and get the most out of the integration.
+
+## Before you start
+
+You need to link your Slack account to Inkeep (one-time setup):
+
+1. Type `/inkeep link` in any Slack channel
+2. Click the private link the bot sends
+3. Sign in to Inkeep — the linking completes automatically
+
+Run `/inkeep status` to confirm your account is linked.
+
+## Public responses — `@Inkeep`
+
+Public responses are visible to **everyone in the channel**. They appear as threaded replies.
+
+| Usage | What happens |
+|-------|-------------|
+| `@Inkeep <your question>` | Posts a response in a thread, visible to the whole channel |
+| `@Inkeep <question>` in a thread | Includes the full thread as context for a more relevant answer |
+| `@Inkeep` in a thread (no message) | Uses the entire thread as the question — great for "explain this conversation" |
+| `@Inkeep` with no message (in a channel) | Shows a usage hint |
+
+<Note>
+The `@Inkeep` message itself is posted to the channel by Slack — this is standard Slack behavior and can't be suppressed.
+</Note>
+
+### Thread context
+
+When you use `@Inkeep` inside a thread, the agent automatically receives the full conversation history as context. This is useful for:
+- Getting a summary of a long discussion
+- Asking follow-up questions about something in the thread
+- Having the agent help draft a response
+
+## Private responses — `/inkeep`
+
+Private responses are visible **only to you** — they don't appear in the channel for other users.
+
+<Note>
+Private responses use Slack's **ephemeral messages**. They are visible only to you and do not persist across page reloads, between desktop and mobile apps, or across sessions.
+</Note>
+
+| Command | What it does |
+|---------|-------------|
+| `/inkeep <your question>` | Ask the default agent privately |
+| `/inkeep` | Open a modal to pick a project, agent, and write your prompt |
+| `/inkeep help` | Show the full usage guide |
+| `/inkeep status` | See your linked account and the active agent for this channel |
+| `/inkeep link` | Link your Slack account to Inkeep (one-time) |
+| `/inkeep unlink` | Disconnect your Slack account |
+
+### Multi-turn conversations
+
+When you use `/inkeep` (modal) or `/inkeep <message>`, the response includes a **Follow Up** button. Click it to continue the same conversation — the agent remembers everything from previous turns.
+
+Each follow-up appears as a new private message showing your question and the agent's response.
+
+### Agent picker modal
+
+Running `/inkeep` with no arguments opens a modal where you can:
+
+1. Select a **project** from the dropdown
+2. Select an **agent** from that project (the list updates as you change projects)
+3. Write your **prompt**
+4. Submit to get a private response
+
+## Which agent responds?
+
+The agent that handles your request depends on how your admin configured the workspace:
+
+| Priority | What's checked | Example |
+|----------|---------------|---------|
+| **1st** | Channel default — has an admin assigned a specific agent to this channel? | `#support` → "Support Agent" |
+| **2nd** | Workspace default — the fallback agent for all channels | "General Assistant" |
+
+**In practice:**
+- If you're in `#support` and the admin set a "Support Agent" for that channel → you get the Support Agent
+- If you're in `#random` with no channel-specific agent → you get the workspace default
+- If no agent is configured at all → the bot tells you to ask an admin to set one up
+
+<Tip>
+Run `/inkeep status` to see exactly which agent is active in the current channel and whether it's a channel default or workspace default.
+</Tip>
+
+## Tool approvals
+
+Some agents use tools that require your approval before they run. When this happens, you'll see an interactive message in the thread with the tool name, its inputs, and **Approve** / **Deny** buttons.
+
+### Approving or denying
+
+- Click **Approve** to let the agent run the tool
+- Click **Deny** to block the tool — the agent will acknowledge and may suggest alternatives
+
+Only the person who started the conversation can approve or deny. If you're not the requester, you'll see an error if you try to click the buttons.
+
+### Approval timeout
+
+If you don't respond within a few minutes, the approval request expires. The message updates to show "Expired" and the agent is notified.
+
+<Tip>
+If you frequently use agents that require tool approvals, make sure your account is linked (`/inkeep link`) beforehand to avoid interruptions.
+</Tip>
+
+## Troubleshooting
+
+### "You need to link your account"
+
+Run `/inkeep link` and click the link to connect your Slack and Inkeep accounts. This is a one-time setup per user.
+
+### "No agents configured"
+
+Ask your workspace admin to set a workspace or channel default agent in the Inkeep dashboard at **Work Apps** → **Slack**.
+
+### "Request timed out"
+
+The agent took too long to respond. Try again — if the issue persists, ask your admin to check that the Inkeep deployment is running and healthy.
+
+### Command shows "failed with error"
+
+Check that:
+- The Slack app is properly installed (try `/inkeep help`)
+- Your account is linked (`/inkeep status`)
+- An agent is configured for the workspace

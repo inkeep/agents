@@ -1,22 +1,27 @@
 'use client';
 
+import type { JSX } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
 
-interface GenericTextareaProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
-  label: string;
+interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
+  label: string | JSX.Element;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
   readOnly?: boolean;
   isRequired?: boolean;
   rows?: number;
+  description?: React.ReactNode;
 }
 
-export function GenericTextarea<T extends FieldValues>({
+export function GenericTextarea<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -26,9 +31,16 @@ export function GenericTextarea<T extends FieldValues>({
   readOnly,
   isRequired = false,
   rows,
-}: GenericTextareaProps<T>) {
+  description,
+}: GenericTextareaProps<TFieldValues, TTransformedValues>) {
   return (
-    <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
+    <FormFieldWrapper
+      control={control}
+      name={name}
+      label={label}
+      isRequired={isRequired}
+      description={description}
+    >
       {(field) => (
         <Textarea
           placeholder={placeholder}

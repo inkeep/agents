@@ -19,12 +19,20 @@ export const DEFAULT_GOOGLE_SUMMARIZER_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH_LI
 export const modelOptions = {
   anthropic: [
     {
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_6,
+      label: 'Claude Opus 4.6',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_5,
       label: 'Claude Opus 4.5',
     },
     {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1,
       label: 'Claude Opus 4.1',
+    },
+    {
+      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_6,
+      label: 'Claude Sonnet 4.6',
     },
     {
       value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
@@ -78,6 +86,10 @@ export const modelOptions = {
     },
   ],
   google: [
+    {
+      value: GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW,
+      label: 'Gemini 3.1 Pro Preview',
+    },
     {
       value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
       label: 'Gemini 3 Pro Preview',

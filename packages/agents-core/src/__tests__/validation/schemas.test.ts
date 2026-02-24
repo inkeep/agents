@@ -13,7 +13,7 @@ import {
 } from '../../validation/schemas';
 
 describe('Validation Schemas', () => {
-  describe('resourceIdSchema', () => {
+  describe('ResourceIdSchema', () => {
     it('should accept valid resource IDs', () => {
       const validIds = [
         'test-id',

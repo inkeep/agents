@@ -7,6 +7,7 @@ import {
   type FullExecutionContext,
   generateId,
   generateServiceToken,
+  getInProcessFetch,
   getMcpToolById,
   headers,
   type McpTool,
@@ -361,8 +362,21 @@ export function createDelegateToAgentTool({
           targetAgentId: delegateConfig.config.id,
         })}`;
       } else {
+        // For internal sub-agent calls, check if we're in a team delegation context.
+        // If so, the inherited metadata.apiKey has the wrong audience (targets the parent agent),
+        // so we need to generate a fresh JWT targeting this specific sub-agent.
+        let authToken = metadata.apiKey;
+        if (executionContext.metadata?.teamDelegation && authToken) {
+          authToken = await generateServiceToken({
+            tenantId,
+            projectId,
+            originAgentId: agentId,
+            targetAgentId: delegateConfig.config.id,
+          });
+        }
+
         resolvedHeaders = {
-          Authorization: `Bearer ${metadata.apiKey}`,
+          Authorization: `Bearer ${authToken}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
@@ -383,6 +397,7 @@ export function createDelegateToAgentTool({
             maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
+        ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
       });
 
       const messageToSend = {

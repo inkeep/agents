@@ -10,6 +10,7 @@ import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/ToolSessionManager';
+import { detectOversizedArtifact } from '../utils/artifact-utils';
 import {
   type ExtendedJsonSchema,
   extractFullFields,
@@ -35,6 +36,19 @@ export interface ArtifactFullData {
   description: string;
   type?: string;
   data: any;
+  metadata?: {
+    isOversized?: boolean;
+    retrievalBlocked?: boolean;
+    originalTokenSize?: number;
+    contextWindowSize?: number;
+    toolName?: string;
+    toolArgs?: unknown;
+    toolCallId?: string;
+    baseSelector?: string;
+    detailsSelector?: Record<string, string>;
+    sessionId?: string;
+    artifactType?: string;
+  };
 }
 
 export interface ArtifactCreateRequest {
@@ -128,21 +142,29 @@ export class ArtifactService {
    */
   async createArtifact(
     request: ArtifactCreateRequest,
-    subAgentId?: string
+    subAgentId?: string,
+    contextWindowSize?: number
   ): Promise<ArtifactSummaryData | null> {
     if (!this.context.sessionId) {
       logger.warn({ request }, 'No session ID available for artifact creation');
       return null;
     }
 
-    const toolResult = toolSessionManager.getToolResult(this.context.sessionId, request.toolCallId);
-    if (!toolResult) {
+    const toolResultRecord = toolSessionManager.getToolResult(
+      this.context.sessionId,
+      request.toolCallId
+    );
+    if (!toolResultRecord) {
       logger.warn(
         { request, sessionId: this.context.sessionId },
         'Tool result not found for artifact'
       );
       return null;
     }
+
+    // Extract tool arguments and result
+    const toolArgs = toolResultRecord.args;
+    const toolResult = toolResultRecord.result;
 
     try {
       const toolResultData =
@@ -152,7 +174,13 @@ export class ArtifactService {
             )
           : toolResult;
 
-      const sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
+      let sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
+
+      // Strip 'result.' prefix if it exists (tool results don't have this wrapper)
+      if (sanitizedBaseSelector.startsWith('result.')) {
+        sanitizedBaseSelector = sanitizedBaseSelector.slice('result.'.length);
+      }
+
       let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
 
       if (Array.isArray(selectedData)) {
@@ -241,7 +269,9 @@ export class ArtifactService {
         cleanedSummaryData,
         cleanedFullData,
         subAgentId,
-        schemaValidation
+        schemaValidation,
+        contextWindowSize,
+        toolArgs
       );
 
       await this.cacheArtifact(
@@ -534,6 +564,7 @@ export class ArtifactService {
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
       data,
+      metadata: artifact.metadata,
     };
   }
 
@@ -668,9 +699,26 @@ export class ArtifactService {
     summaryData: Record<string, any>,
     fullData: Record<string, any>,
     subAgentId?: string,
-    schemaValidation?: any
+    schemaValidation?: any,
+    contextWindowSize?: number,
+    toolArgs?: any
   ): Promise<void> {
     const effectiveAgentId = subAgentId || this.context.subAgentId;
+
+    // Detect if artifact data is oversized
+    const oversizedDetection = detectOversizedArtifact(fullData, contextWindowSize, {
+      artifactId: request.artifactId,
+      toolCallId: request.toolCallId,
+    });
+
+    // Enhance summaryData with oversized warning if needed
+    const enhancedSummaryData = oversizedDetection.isOversized
+      ? {
+          ...summaryData,
+          _oversizedWarning: oversizedDetection.oversizedWarning,
+          _structureInfo: oversizedDetection.structureInfo,
+        }
+      : summaryData;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await agentSessionManager.recordEvent(
@@ -682,7 +730,7 @@ export class ArtifactService {
           taskId: this.context.taskId,
           toolCallId: request.toolCallId,
           artifactType: request.type,
-          summaryData: summaryData,
+          summaryData: enhancedSummaryData,
           data: fullData,
           subAgentId: effectiveAgentId,
           metadata: {
@@ -691,6 +739,11 @@ export class ArtifactService {
             detailsSelector: request.detailsSelector,
             sessionId: this.context.sessionId,
             artifactType: request.type,
+            toolArgs: toolArgs,
+            isOversized: oversizedDetection.isOversized,
+            originalTokenSize: oversizedDetection.originalTokenSize,
+            contextWindowSize: oversizedDetection.contextWindowSize,
+            retrievalBlocked: oversizedDetection.retrievalBlocked,
           },
           schemaValidation: schemaValidation || {
             summary: {

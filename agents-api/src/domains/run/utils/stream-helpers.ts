@@ -35,7 +35,12 @@ export interface StreamHelper {
     errorText: string;
     output?: any;
   }): Promise<void>;
-  writeToolApprovalRequest(params: { approvalId: string; toolCallId: string }): Promise<void>;
+  writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+    toolName?: string;
+    input?: Record<string, unknown>;
+  }): Promise<void>;
   writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
 }
 
@@ -301,12 +306,16 @@ export class SSEStreamHelper implements StreamHelper {
   async writeToolApprovalRequest(params: {
     approvalId: string;
     toolCallId: string;
+    toolName?: string;
+    input?: Record<string, unknown>;
   }): Promise<void> {
     await this.writeContent(
       JSON.stringify({
         type: 'tool-approval-request',
         approvalId: params.approvalId,
         toolCallId: params.toolCallId,
+        ...(params.toolName && { toolName: params.toolName }),
+        ...(params.input !== undefined && { input: params.input }),
       })
     );
   }
@@ -617,23 +626,20 @@ export class VercelDataStreamHelper implements StreamHelper {
     });
   }
 
-  async writeToolOutputError(params: {
-    toolCallId: string;
-    errorText: string;
-    output?: any;
-  }): Promise<void> {
+  async writeToolOutputError(params: { toolCallId: string; errorText: string }): Promise<void> {
     if (this.isCompleted) return;
     this.writer.write({
       type: 'tool-output-error',
       toolCallId: params.toolCallId,
       errorText: params.errorText,
-      output: params.output ?? null,
     });
   }
 
   async writeToolApprovalRequest(params: {
     approvalId: string;
     toolCallId: string;
+    toolName?: string;
+    input?: Record<string, unknown>;
   }): Promise<void> {
     if (this.isCompleted) return;
     this.writer.write({
@@ -1002,6 +1008,8 @@ export class BufferingStreamHelper implements StreamHelper {
   async writeToolApprovalRequest(params: {
     approvalId: string;
     toolCallId: string;
+    toolName?: string;
+    input?: Record<string, unknown>;
   }): Promise<void> {
     this.capturedData.push({ type: 'tool-approval-request', ...params });
   }

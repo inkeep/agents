@@ -1,0 +1,181 @@
+---
+title: Pull from remote Inkeep instance
+sidebarTitle: Pull from Remote
+description: Pull agent configurations from remote Inkeep instance to your local TypeScript project
+icon: LuCloudDownload
+---
+
+This tutorial walks you through pulling agent configurations from an remote Inkeep instance to your local project. Use pull to bootstrap a local project from the [Visual Builder](/visual-builder), sync remote changes made by teammates, or set up a new development environment.
+
+## Prerequisites
+
+- Access to a remote Inkeep instance (e.g. [Inkeep Enterprise](https://inkeep.com/enterprise?cta_id=docs_nav) or a [self-hosted deployment](/deployment/vercel))
+- The Inkeep CLI installed globally:
+
+```bash
+npm install -g @inkeep/agents-cli
+```
+
+- A CLI profile configured and authenticated (only needed for remote deployments). If you haven't done this yet, follow the [Set up a CLI profile](/guides/cli/setup-profile) tutorial.
+- An LLM API key set as an environment variable. The pull command uses LLM generation to produce TypeScript files. Set one of the following:
+
+```bash
+export ANTHROPIC_API_KEY=your-key    # Recommended
+export OPENAI_API_KEY=your-key       # Alternative
+export GOOGLE_GENERATIVE_AI_API_KEY=your-key  # Alternative
+```
+
+## Step 1: Choose your pull target
+
+You have two options depending on whether the project already exists locally.
+
+### Option A: Pull into an existing project
+
+If you already have a local project directory with an `index.ts` file, navigate into it:
+
+```bash
+cd my-project
+```
+
+### Option B: Pull a new project from the remote instance
+
+If you don't have the project locally yet, you'll specify the project ID in the next step. The CLI creates a new directory for it automatically.
+
+## Step 2: Run the pull command
+
+<Note>
+Run `inkeep pull` from the directory that contains your `inkeep.config.ts`, or from any subdirectory below it.
+</Note>
+
+### For an existing project
+
+From inside your project directory, run:
+
+```bash
+inkeep pull
+```
+
+The CLI will:
+1. Detect the project from your `index.ts` file
+2. Resolve configuration — your active [CLI profile](/guides/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
+3. Fetch the latest configuration from the remote instance
+4. Compare remote changes against your local files
+5. Generate updated TypeScript files, preserving your local code structure
+
+<Tip>
+The pull command uses smart comparison to detect what changed. If nothing has changed remotely, it tells you the project is already up to date.
+</Tip>
+
+### For a new project
+
+Specify the project ID:
+
+```bash
+inkeep pull --project my-project-id
+```
+
+This creates a `./my-project-id/` directory with the full TypeScript project structure:
+
+```
+my-project-id/
+├── index.ts                 # Project definition and wiring
+├── agents/                  # Agent definitions
+│   ├── my-agent.ts
+│   └── sub-agents/
+│       └── my-sub-agent.ts
+├── tools/                   # Tool definitions
+│   ├── my-tool.ts
+│   └── functions/
+│       └── my-function.ts
+├── credentials/             # Credential references
+│   └── my-credential.ts
+├── environments/            # Environment-specific settings
+│   ├── development.env.ts
+│   └── index.ts
+└── data-components/         # Data component definitions
+    └── my-data-component.ts
+```
+
+## Step 3: Review the generated files
+
+After pulling, the CLI runs a two-stage validation:
+
+1. **File verification** -- checks that all expected files exist with correct naming
+2. **Round-trip validation** -- loads the generated TypeScript, serializes it back to JSON, and compares with the original remote data to ensure no data loss
+
+If validation passes, you'll see:
+
+```
+✓ Basic file verification passed
+✓ Round-trip validation passed - generated TS matches backend data
+```
+
+Review the generated files to confirm they look correct. If validation fails, the CLI reports specific differences so you can investigate.
+
+## Step 4: Use the pulled project
+
+Once pulled, your project is a standard TypeScript project using `@inkeep/agents-sdk` builder APIs. You can:
+
+- Edit agent configurations in code
+- Push changes back with `inkeep push`
+- Run the Visual Builder locally with `inkeep dev`
+
+## Additional options
+
+### Pull all projects
+
+To pull every project from your tenant at once:
+
+```bash
+inkeep pull --all
+```
+
+Each project is created as a subdirectory in the current directory. The CLI handles existing and new projects differently:
+
+- **Existing projects** (local `index.ts` found): Uses smart comparison to merge changes
+- **New projects** (no local directory): Generates files from scratch
+
+### Force a full regeneration
+
+To regenerate all files from scratch, ignoring local changes:
+
+```bash
+inkeep pull --introspect
+```
+
+This bypasses the smart comparison and rebuilds every TypeScript file from the remote configuration. Use this when your local files are in a broken state or you want a clean slate that matches the remote instance exactly.
+
+<Note>
+The `--introspect` flag overwrites all local files. Commit or back up any local changes you want to keep before using it.
+</Note>
+
+### Pull for a specific environment
+
+Generate environment-specific credential files by passing the `--env` flag:
+
+```bash
+inkeep pull --env production
+```
+
+This generates credential configurations in `environments/production.env.ts` instead of the default `environments/development.env.ts`.
+
+### Export as JSON
+
+To inspect the raw project data without generating TypeScript files:
+
+```bash
+inkeep pull --json
+```
+
+This outputs the project configuration as JSON, which is useful for debugging or piping into other tools.
+
+## What's next
+
+<Cards>
+  <Card title="Push to Remote" icon="LuCloudUpload" href="/guides/cli/push-to-remote">
+    Push local changes back to remote instance
+  </Card>
+  <Card title="CLI Reference" icon="LuTerminal" href="/typescript-sdk/cli-reference">
+    Full reference for all CLI commands and options
+  </Card>
+</Cards>

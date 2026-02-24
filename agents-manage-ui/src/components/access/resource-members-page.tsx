@@ -135,8 +135,8 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-full min-h-screen">
+        <Loader2 className="size-4 animate-spin text-muted-foreground" />
       </div>
     );
   }

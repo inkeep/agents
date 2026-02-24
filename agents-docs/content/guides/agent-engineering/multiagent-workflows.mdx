@@ -1,0 +1,54 @@
+---
+title: Designing Multiagent Workflows
+sidebarTitle: Multiagent Workflows
+description: Design multiagent workflows with coordinator sub agents that delegate to specialists, aggregate results and drive the overall process forward.
+icon: LuWorkflow
+---
+
+A multi-agent workflow uses a **coordinator sub agent** that delegates subtasks to specialized sub agents, aggregates their results, and drives the overall process forward.
+
+## Single vs multi-agent
+
+The first design decision is whether your Agent needs one sub agent or several.
+
+A **single sub agent** is usually enough when:
+
+- The task is well-scoped and stays in one domain
+- Required tools are closely related
+- The conversation does not need to switch between specialist domains
+
+A **multi-agent workflow** is worth it when:
+
+- Different phases require different expertise, prompts, or tools
+- A coordinator must combine outputs from several specialists
+- You need parallel specialist work and explicit quality gates
+
+<Tip>If a sub-agent needs more than five tools, split it into smaller, specialized sub-agents to avoid context overload.</Tip>
+
+## Sequential vs parallel delegation
+
+When your coordinator delegates work, you usually choose between two patterns:
+**sequential** (one step at a time) or **parallel** (multiple steps at once).
+Pick based on whether tasks depend on each other.
+
+Use **sequential delegation** when:
+
+- Later tasks need outputs from earlier tasks
+- You want clear phases (plan -> implement -> verify)
+- A mistake early on would affect everything that follows
+
+Use **parallel delegation** when:
+
+- Tasks are independent and can start from the same input
+- You want faster overall turnaround
+- Different specialists can review the same request from different angles
+
+<Tip>Quick rule: if one task changes what the next task should do, use sequential delegation. If tasks can all start with the same context and only need to be combined at the end, use parallel delegation.</Tip>
+
+## Transfers vs delegation relationships
+
+Define the transfer and delegation relationships between the coordinator and the specialized sub agents. See [Sub Agent Relationships](/typescript-sdk/agent-relationships) section for more details.
+
+## Designing the coordinator prompt
+
+The coordinator sub agent is the agent which will delegate tasks to the specialized sub agents. Its prompt should describe the overall workflow: what phases to run, when to delegate, and how to aggregate results. See section on [workflow checklist](/guides/agent-engineering/prompt-structure#4-workflow-checklist) for more details.

@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
-import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
+import { useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 
@@ -36,21 +36,19 @@ export default function TracesOverview({
     timeRange: selectedTimeRange,
     customStartDate,
     customEndDate,
+    agentId: selectedAgent,
     spanName,
     spanAttributes: attributes,
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
+    setAgentFilter: setSelectedAgent,
     setSpanFilter,
   } = useTracesQueryState();
 
   // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
-
-  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
-  const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
@@ -113,20 +111,7 @@ export default function TracesOverview({
     return filters;
   }, [spanName, attributes]);
 
-  const {
-    aggregateStats,
-    loading: aggregateLoading,
-    error: aggregateError,
-  } = useAggregateStats({
-    startTime,
-    endTime,
-    filters: spanFilters,
-    projectId,
-    tenantId,
-    agentId: selectedAgent,
-  });
-
-  const { stats, loading, error, pagination } = useConversationStats({
+  const { stats, loading, error, pagination, aggregateStats } = useConversationStats({
     startTime,
     endTime,
     filters: spanFilters,
@@ -136,6 +121,9 @@ export default function TracesOverview({
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
   });
+
+  const aggregateLoading = loading;
+  const aggregateError = error;
 
   // Aggregate stats now come directly from server-side aggregation
 
@@ -164,35 +152,6 @@ export default function TracesOverview({
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
-    }
-  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
-
-  // Fetch available span names when time range or selected agent changes
-  useEffect(() => {
-    const fetchSpanNames = async () => {
-      if (!startTime || !endTime || !tenantId) return;
-
-      setSpanNamesLoading(true);
-      try {
-        const client = getSigNozStatsClient(tenantId);
-        const spanNames = await client.getAvailableSpanNames(
-          startTime,
-          endTime,
-          selectedAgent,
-          projectId
-        );
-        setAvailableSpanNames(spanNames);
-      } catch (error) {
-        console.error('Failed to fetch span names:', error);
-        setAvailableSpanNames([]);
-      } finally {
-        setSpanNamesLoading(false);
-      }
-    };
-
-    // Only fetch if we have valid time range
-    if (startTime && endTime && tenantId) {
-      fetchSpanNames();
     }
   }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
@@ -295,7 +254,6 @@ export default function TracesOverview({
       <div className="flex flex-col gap-4">
         {/* Span Filter Toggle */}
         <SpanFilters
-          availableSpanNames={availableSpanNames}
           spanName={spanName}
           setSpanFilter={setSpanFilter}
           attributes={attributes}
@@ -303,8 +261,11 @@ export default function TracesOverview({
           removeAttribute={removeAttribute}
           updateAttribute={updateAttribute}
           isNumeric={isNumeric}
-          spanNamesLoading={spanNamesLoading}
           selectedAgent={selectedAgent}
+          tenantId={tenantId}
+          projectId={projectId}
+          startTime={startTime}
+          endTime={endTime}
         />
       </div>
 

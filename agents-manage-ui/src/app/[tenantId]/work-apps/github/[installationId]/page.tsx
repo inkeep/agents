@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Building2, ExternalLink, RefreshCw, User } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Building2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { ErrorContent } from '@/components/errors/full-page-error';
 import { DisconnectInstallationDialog } from '@/components/settings/work-app-github-disconnect-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from '@/components/ui/external-link';
 import {
   Table,
   TableBody,
@@ -26,10 +27,6 @@ import {
 import { formatDate, formatDateTimeTable } from '@/lib/utils/format-date';
 import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import GitHubInstallationDetailLoading from './loading';
-
-interface PageParams {
-  params: Promise<{ tenantId: string; installationId: string }>;
-}
 
 function getStatusBadgeVariant(status: string) {
   switch (status) {
@@ -69,7 +66,9 @@ const ItemValue = ({ children }: { children: React.ReactNode }) => {
   return <div className="flex w-full text-sm text-muted-foreground">{children}</div>;
 };
 
-export default function GitHubInstallationDetailPage({ params }: PageParams) {
+export default function GitHubInstallationDetailPage({
+  params,
+}: PageProps<'/[tenantId]/work-apps/github/[installationId]'>) {
   const { tenantId, installationId } = use(params);
   const router = useRouter();
   const [data, setData] = useState<WorkAppGitHubInstallationDetail | null>(null);
@@ -146,21 +145,23 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
     <div className="space-y-8">
       {/* Back link and Header */}
       <div className="space-y-4">
-        <Link
-          href={`/${tenantId}/work-apps/github`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Back to GitHub Settings
-        </Link>
+        <Button variant="ghost" asChild>
+          <Link
+            href={`/${tenantId}/work-apps/github`}
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back to GitHub Settings
+          </Link>
+        </Button>
 
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <div className="flex size-14 items-center justify-center rounded-lg bg-muted">
               {installation.accountType === 'Organization' ? (
-                <Building2 className="size-7 text-muted-foreground" />
+                <Building2 className="size-7 text-muted-foreground" strokeWidth={1.5} />
               ) : (
-                <User className="size-7 text-muted-foreground" />
+                <User className="size-7 text-muted-foreground" strokeWidth={1.5} />
               )}
             </div>
             <div>
@@ -170,14 +171,10 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={handleSync} disabled={syncing}>
-              <RefreshCw className={`size-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Syncing...' : 'Sync Repositories'}
             </Button>
-            <Button
-              variant="outline"
-              className="text-destructive hover:text-destructive"
-              onClick={() => setDisconnectDialogOpen(true)}
-            >
+            <Button variant="destructive-outline" onClick={() => setDisconnectDialogOpen(true)}>
               Disconnect
             </Button>
           </div>
@@ -186,13 +183,13 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
 
       {/* Installation Info */}
       <div className="rounded-lg border p-6 space-y-6">
-        <h2 className="text-lg font-medium">Installation Details</h2>
+        <h2 className="font-medium">Installation Details</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-2">
             <ItemLabel>Status</ItemLabel>
             <ItemValue>
-              <Badge variant={getStatusBadgeVariant(installation.status)}>
+              <Badge className="uppercase" variant={getStatusBadgeVariant(installation.status)}>
                 {getStatusLabel(installation.status)}
               </Badge>
             </ItemValue>
@@ -217,9 +214,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
           <div className="space-y-2">
             <ItemLabel>Installation ID</ItemLabel>
             <ItemValue>
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                {installation.installationId}
-              </code>
+              <Badge variant="code">{installation.installationId}</Badge>
             </ItemValue>
           </div>
 
@@ -236,19 +231,18 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
           <div className="space-y-2">
             <ItemLabel>GitHub Settings</ItemLabel>
             <ItemValue>
-              <a
+              <ExternalLink
                 href={getGitHubInstallationSettingsUrl(
                   installation.installationId,
                   installation.accountType,
                   installation.accountLogin
                 )}
                 target="_blank"
-                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary hover:underline"
+                iconClassName="text-primary"
               >
                 View on GitHub
-                <ExternalLink className="size-3" />
-              </a>
+              </ExternalLink>
             </ItemValue>
           </div>
         </div>
@@ -257,8 +251,8 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
       {/* Repositories */}
       <div className="rounded-lg border">
         <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-medium">Repositories</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="font-medium">Repositories</h2>
             <Badge variant="count">{repositories.length}</Badge>
           </div>
         </div>
@@ -282,16 +276,16 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
                         href={`https://github.com/${repo.repositoryFullName}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium hover:underline inline-flex items-center gap-1"
+                        className="font-medium hover:underline inline-flex items-center gap-1 group/link"
                       >
                         {repo.repositoryName}
-                        <ExternalLink className="size-3" />
+                        <ArrowUpRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover/link:opacity-100 group-hover/link:text-primary" />
                       </a>
                       <p className="text-xs text-muted-foreground">{repo.repositoryFullName}</p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={repo.private ? 'code' : 'success'}>
+                    <Badge className="uppercase" variant={repo.private ? 'code' : 'primary'}>
                       {repo.private ? 'Private' : 'Public'}
                     </Badge>
                   </TableCell>
@@ -305,7 +299,8 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <ExternalLink className="size-4" />
+                        <span className="sr-only">View on GitHub</span>
+                        <ArrowUpRight className="size-4" />
                       </a>
                     </Button>
                   </TableCell>

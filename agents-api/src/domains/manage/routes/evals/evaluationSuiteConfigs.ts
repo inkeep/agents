@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -16,6 +16,7 @@ import {
   TenantProjectParamsSchema,
   updateEvaluationSuiteConfig,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
@@ -24,27 +25,14 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationSuiteConfigs');
 
 // Require edit permission for write operations
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:configId', async (c, next) => {
-  if (['PATCH', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Evaluation Suite Configs',
     operationId: 'list-evaluation-suite-configs',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -91,12 +79,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{configId}',
     summary: 'Get Evaluation Suite Config by ID',
     operationId: 'get-evaluation-suite-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
     },
@@ -146,12 +135,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Evaluation Suite Config',
     operationId: 'create-evaluation-suite-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -223,12 +213,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{configId}',
     summary: 'Update Evaluation Suite Config',
     operationId: 'update-evaluation-suite-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
       body: {
@@ -288,12 +279,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{configId}',
     summary: 'Delete Evaluation Suite Config',
     operationId: 'delete-evaluation-suite-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
     },

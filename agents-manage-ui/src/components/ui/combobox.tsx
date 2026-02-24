@@ -36,6 +36,7 @@ interface ComboboxProps {
   multipleCheckboxValues?: string[];
   enableSearch?: boolean;
   className?: string;
+  triggerClassName?: string;
 }
 
 export function Combobox({
@@ -51,6 +52,7 @@ export function Combobox({
   multipleCheckboxValues,
   enableSearch = true,
   className,
+  triggerClassName,
 }: ComboboxProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
@@ -78,7 +80,7 @@ export function Combobox({
           <Button
             aria-expanded={isOpen}
             aria-label="Combobox"
-            className="w-[250px] justify-between flex-nowrap"
+            className={cn('min-w-[250px] justify-between flex-nowrap', triggerClassName)}
             role="combobox"
             variant="outline"
           >
@@ -87,7 +89,7 @@ export function Combobox({
           </Button>
         </PopoverTrigger>
       )}
-      <PopoverContent align="start" className={cn('w-[250px] p-0', className)}>
+      <PopoverContent align="start" className={cn('min-w-[250px] p-0', className)}>
         <Command ref={commandRef}>
           {enableSearch && <CommandInput placeholder={searchPlaceholder} />}
           <CommandList className="scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
@@ -125,7 +127,7 @@ export function Combobox({
                       }}
                     />
                   )}
-                  {option.label}
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
                   {!option.showCheckbox && (
                     <Check
                       className={cn(

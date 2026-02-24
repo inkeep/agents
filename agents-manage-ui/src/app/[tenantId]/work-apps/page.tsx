@@ -1,10 +1,14 @@
-import { redirect } from 'next/navigation';
+import { WorkAppsOverview } from '@/features/work-apps/common';
+import { SlackProvider } from '@/features/work-apps/slack';
 
-interface PageParams {
-  params: Promise<{ tenantId: string }>;
-}
-
-export default async function WorkAppsPage({ params }: PageParams) {
+async function WorkAppsPage({ params }: PageProps<'/[tenantId]/work-apps'>) {
   const { tenantId } = await params;
-  redirect(`/${tenantId}/work-apps/github`);
+
+  return (
+    <SlackProvider tenantId={tenantId}>
+      <WorkAppsOverview tenantId={tenantId} />
+    </SlackProvider>
+  );
 }
+
+export default WorkAppsPage;

@@ -30,6 +30,8 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
+import { listScheduledTriggers } from './scheduledTriggers';
+import { getSkillsForSubAgents } from './skills';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
@@ -117,14 +119,14 @@ export type AvailableAgentInfo = {
 const agentsLogger = getLogger('agents-data-access');
 
 /**
- * List agents across multiple project branches for a tenant.
+ * List agents across multiple project main branches for a tenant.
  *
- * Use this when you need to query agents across projects without middleware-provided db.
+ * Uses Dolt AS OF queries against each project's main branch without checkout.
  *
  * @param db - Database client
  * @param params - Tenant and project IDs
  */
-export async function listAgentsAcrossProjectBranches(
+export async function listAgentsAcrossProjectMainBranches(
   db: AgentsManageDatabaseClient,
   params: { tenantId: string; projectIds: string[] }
 ): Promise<AvailableAgentInfo[]> {
@@ -135,7 +137,6 @@ export async function listAgentsAcrossProjectBranches(
     try {
       const branchName = getProjectMainBranchName(tenantId, projectId);
 
-      // Use Dolt's AS OF syntax to query at a specific branch without checkout
       const result = await db.execute(
         sql`
           SELECT id as "agentId", name as "agentName", project_id as "projectId"
@@ -253,7 +254,7 @@ export const deleteAgent =
 export const fetchComponentRelationships =
   (db: AgentsManageDatabaseClient) =>
   async <T extends Record<string, unknown>>(
-    scopes: ProjectScopeConfig,
+    scopes: AgentScopeConfig,
     subAgentIds: string[],
     config: {
       relationTable: PgTable<any>;
@@ -278,6 +279,7 @@ export const fetchComponentRelationships =
           and(
             eq((config.relationTable as any).tenantId, scopes.tenantId),
             eq((config.relationTable as any).projectId, scopes.projectId),
+            eq((config.relationTable as any).agentId, scopes.agentId),
             inArray(config.subAgentIdField as any, subAgentIds)
           )
         );
@@ -332,6 +334,20 @@ export const getAgentSubAgentInfos =
     return agentInfos.filter((agent): agent is NonNullable<typeof agent> => agent !== null);
   };
 
+type SkillWithIndex = {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  alwaysLoaded: boolean;
+  subAgentSkillId: string;
+  subAgentId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const getFullAgentDefinitionInternal =
   (db: AgentsManageDatabaseClient) =>
   async ({
@@ -360,6 +376,8 @@ const getFullAgentDefinitionInternal =
       ),
     });
 
+    const subAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
+
     const externalAgentRelations = await getSubAgentExternalAgentRelationsByAgent(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -376,6 +394,29 @@ const getFullAgentDefinitionInternal =
     const externalSubAgentIds = new Set<string>();
     for (const relation of externalAgentRelations) {
       externalSubAgentIds.add(relation.externalAgentId);
+    }
+
+    const subAgentSkillsList = await getSkillsForSubAgents(db)({
+      scopes: { tenantId, projectId, agentId },
+      subAgentIds,
+    });
+
+    const skillsBySubAgent: Record<string, SkillWithIndex[]> = {};
+    for (const skill of subAgentSkillsList) {
+      skillsBySubAgent[skill.subAgentId] ??= [];
+      skillsBySubAgent[skill.subAgentId].push({
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        metadata: skill.metadata,
+        index: skill.index,
+        alwaysLoaded: skill.alwaysLoaded,
+        subAgentSkillId: skill.subAgentSkillId,
+        subAgentId: skill.subAgentId,
+        createdAt: skill.createdAt,
+        updatedAt: skill.updatedAt,
+      });
     }
 
     const processedSubAgents = await Promise.all(
@@ -516,6 +557,8 @@ const getFullAgentDefinitionInternal =
         const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
           where: and(
             eq(subAgentDataComponents.tenantId, tenantId),
+            eq(subAgentDataComponents.projectId, projectId),
+            eq(subAgentDataComponents.agentId, agentId),
             eq(subAgentDataComponents.subAgentId, agent.id)
           ),
         });
@@ -524,6 +567,8 @@ const getFullAgentDefinitionInternal =
         const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
           where: and(
             eq(subAgentArtifactComponents.tenantId, tenantId),
+            eq(subAgentArtifactComponents.projectId, projectId),
+            eq(subAgentArtifactComponents.agentId, agentId),
             eq(subAgentArtifactComponents.subAgentId, agent.id)
           ),
         });
@@ -558,6 +603,7 @@ const getFullAgentDefinitionInternal =
           stopWhen: agent.stopWhen,
           canTransferTo,
           canDelegateTo,
+          skills: skillsBySubAgent[agent.id] || [],
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
           canUse,
@@ -644,10 +690,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
-      const subAgentIds = Array.from(internalAgentIds);
-
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
         relationIdField: subAgentDataComponents.dataComponentId,
@@ -665,10 +708,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
-      const subAgentIds = Array.from(internalAgentIds);
-
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
         relationIdField: subAgentArtifactComponents.artifactComponentId,
@@ -773,6 +813,7 @@ const getFullAgentDefinitionInternal =
                         and(
                           eq(subAgents.tenantId, tenantId),
                           eq(subAgents.projectId, projectId),
+                          eq(subAgents.agentId, agentId),
                           eq(subAgents.id, subAgentId)
                         )
                       );
@@ -911,6 +952,36 @@ const getFullAgentDefinitionInternal =
       }
     } catch (error) {
       console.warn('Failed to load triggers:', error);
+    }
+
+    // Fetch scheduled triggers (agent-scoped)
+    try {
+      const scheduledTriggersList = await listScheduledTriggers(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+
+      if (scheduledTriggersList.length > 0) {
+        const scheduledTriggersObject: Record<string, any> = {};
+        for (const scheduledTrigger of scheduledTriggersList) {
+          scheduledTriggersObject[scheduledTrigger.id] = {
+            id: scheduledTrigger.id,
+            name: scheduledTrigger.name,
+            description: scheduledTrigger.description,
+            enabled: scheduledTrigger.enabled,
+            cronExpression: scheduledTrigger.cronExpression,
+            cronTimezone: scheduledTrigger.cronTimezone,
+            runAt: scheduledTrigger.runAt,
+            payload: scheduledTrigger.payload,
+            messageTemplate: scheduledTrigger.messageTemplate,
+            maxRetries: scheduledTrigger.maxRetries,
+            retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
+            timeoutSeconds: scheduledTrigger.timeoutSeconds,
+          };
+        }
+        result.scheduledTriggers = scheduledTriggersObject;
+      }
+    } catch (error) {
+      console.warn('Failed to load scheduled triggers:', error);
     }
 
     return result;

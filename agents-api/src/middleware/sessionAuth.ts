@@ -1,4 +1,5 @@
 import { createApiError } from '@inkeep/agents-core';
+import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
@@ -7,8 +8,8 @@ import { HTTPException } from 'hono/http-exception';
  * Requires that a user has already been authenticated via Better Auth session.
  * Used primarily for manage routes that require an active user session.
  */
-export const sessionAuth = () =>
-  createMiddleware(async (c, next) => {
+export const sessionAuth = () => {
+  const mw = createMiddleware(async (c, next) => {
     try {
       const user = c.get('user');
 
@@ -34,6 +35,11 @@ export const sessionAuth = () =>
       });
     }
   });
+  registerAuthzMeta(mw, {
+    description: 'Requires an active user session (cookie-based)',
+  });
+  return mw;
+};
 
 /**
  * Global session middleware - sets user and session in context for all routes

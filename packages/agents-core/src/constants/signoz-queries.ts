@@ -99,6 +99,8 @@ export const QUERY_EXPRESSIONS = {
   LAST_ACTIVITY: 'lastActivity',
   CONVERSATION_METADATA: 'conversationMetadata',
   FILTERED_CONVERSATIONS: 'filteredConversations',
+  PAGE_CONVERSATIONS: 'pageConversations',
+  TOTAL_CONVERSATIONS: 'totalConversations',
   TOOLS: 'tools',
   TRANSFERS: 'transfers',
   DELEGATIONS: 'delegations',

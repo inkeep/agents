@@ -217,6 +217,12 @@ describe('BaseCompressor', () => {
               toolName: 'thinking_complete',
               output: 'skip',
             },
+            {
+              type: 'tool-result',
+              toolCallId: 'skip-3',
+              toolName: 'load_skill',
+              output: 'skip',
+            },
             { type: 'tool-result', toolCallId: 'keep-1', toolName: 'valid-tool', output: 'keep' },
           ],
         },
@@ -383,6 +389,233 @@ describe('BaseCompressor', () => {
       expect(artifactData.tenantId).toBe('tenant-789');
       expect(artifactData.projectId).toBe('project-abc');
       expect(artifactData.data).toBe(toolResultData);
+    });
+  });
+
+  describe('Oversized Artifact Detection', () => {
+    it('should detect oversized artifacts when contextWindowSize is provided', () => {
+      // Create compressor with baseModel to enable oversized detection
+      const compressorWithContext = new TestCompressor(
+        'session-123',
+        'conv-456',
+        'tenant-789',
+        'project-abc',
+        { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
+        { model: 'gpt-4' },
+        { model: 'claude-sonnet-4-5' } // baseModel with 200K context
+      );
+
+      const block = {
+        toolCallId: 'test-call-123',
+        toolName: 'test-tool',
+        input: { query: 'test' },
+        output: 'x'.repeat(250000), // ~62.5K tokens (>30% of 200K context)
+      };
+
+      // Create oversized tool result data
+      const toolResultData = {
+        toolName: 'test-tool',
+        toolInput: { query: 'test' },
+        toolResult: 'x'.repeat(250000),
+        compressedAt: new Date().toISOString(),
+      };
+
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const artifactData = compressorWithContext['buildArtifactData'](
+        'artifact-123',
+        block,
+        toolResultData
+      );
+
+      // Verify oversized detection
+      expect(artifactData.metadata.isOversized).toBe(true);
+      expect(artifactData.metadata.retrievalBlocked).toBe(true);
+      expect(artifactData.metadata.originalTokenSize).toBeGreaterThan(60000); // >30% of 200K
+      expect(artifactData.metadata.contextWindowSize).toBe(200000);
+      expect(artifactData.metadata.toolArgs).toEqual({ query: 'test' });
+
+      // Verify oversized warning in summary data
+      expect(artifactData.summaryData._oversizedWarning).toContain('OVERSIZED');
+      expect(artifactData.summaryData._oversizedWarning).toContain('exceeds safe context limits');
+      // Structure info shows the full toolResultData object structure
+      expect(artifactData.summaryData._structureInfo).toContain('Object with 4 keys');
+    });
+
+    it('should not mark small artifacts as oversized', () => {
+      const compressorWithContext = new TestCompressor(
+        'session-123',
+        'conv-456',
+        'tenant-789',
+        'project-abc',
+        { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
+        { model: 'gpt-4' },
+        { model: 'claude-sonnet-4-5' }
+      );
+
+      const block = {
+        toolCallId: 'test-call-123',
+        toolName: 'test-tool',
+        input: { query: 'test' },
+        output: { data: 'small result' },
+      };
+
+      const toolResultData = {
+        toolName: 'test-tool',
+        toolInput: { query: 'test' },
+        toolResult: { data: 'small result' },
+        compressedAt: new Date().toISOString(),
+      };
+
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const artifactData = compressorWithContext['buildArtifactData'](
+        'artifact-123',
+        block,
+        toolResultData
+      );
+
+      // Verify NOT oversized
+      expect(artifactData.metadata.isOversized).toBe(false);
+      expect(artifactData.metadata.retrievalBlocked).toBe(false);
+      expect(artifactData.summaryData._oversizedWarning).toBeUndefined();
+      expect(artifactData.summaryData._structureInfo).toBeUndefined();
+    });
+
+    it('should include tool arguments for all artifacts regardless of size', () => {
+      const compressorWithContext = new TestCompressor(
+        'session-123',
+        'conv-456',
+        'tenant-789',
+        'project-abc',
+        { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
+        { model: 'gpt-4' },
+        { model: 'claude-sonnet-4-5' }
+      );
+
+      const block = {
+        toolCallId: 'test-call-123',
+        toolName: 'search-tool',
+        input: { query: 'important query', filters: ['active', 'recent'] },
+        output: { results: [] },
+      };
+
+      const toolResultData = {
+        toolName: 'search-tool',
+        toolInput: { query: 'important query', filters: ['active', 'recent'] },
+        toolResult: { results: [] },
+        compressedAt: new Date().toISOString(),
+      };
+
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const artifactData = compressorWithContext['buildArtifactData'](
+        'artifact-123',
+        block,
+        toolResultData
+      );
+
+      // Verify tool arguments are captured
+      expect(artifactData.metadata.toolArgs).toEqual({
+        query: 'important query',
+        filters: ['active', 'recent'],
+      });
+    });
+
+    it('should return ArtifactInfo with oversized metadata from saveToolResultsAsArtifacts', async () => {
+      const compressorWithContext = new TestCompressor(
+        'session-123',
+        'conv-456',
+        'tenant-789',
+        'project-abc',
+        { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
+        { model: 'gpt-4' },
+        { model: 'claude-sonnet-4-5' }
+      );
+
+      const messages = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-oversized',
+              toolName: 'large-tool',
+              input: { query: 'test' },
+              output: 'x'.repeat(250000), // Oversized
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-normal',
+              toolName: 'small-tool',
+              input: { query: 'test' },
+              output: 'small data',
+            },
+          ],
+        },
+      ];
+
+      // Mock empty database response
+      const { getLedgerArtifacts } = await import('@inkeep/agents-core');
+      const mockGetLedgerArtifacts = vi.mocked(getLedgerArtifacts);
+      mockGetLedgerArtifacts.mockReturnValue(vi.fn().mockResolvedValue([]));
+
+      const result = await compressorWithContext.saveToolResultsAsArtifacts(messages);
+
+      // Verify ArtifactInfo structure for oversized artifact
+      const oversizedInfo = result['call-oversized'];
+      expect(oversizedInfo).toBeDefined();
+      expect(oversizedInfo.isOversized).toBe(true);
+      expect(oversizedInfo.toolArgs).toEqual({ query: 'test' });
+      // Structure info shows the full toolResultData object structure
+      expect(oversizedInfo.structureInfo).toContain('Object with 4 keys');
+      expect(oversizedInfo.oversizedWarning).toContain('OVERSIZED');
+
+      // Verify ArtifactInfo structure for normal artifact
+      const normalInfo = result['call-normal'];
+      expect(normalInfo).toBeDefined();
+      expect(normalInfo.isOversized).toBe(false);
+      expect(normalInfo.toolArgs).toEqual({ query: 'test' });
+      expect(normalInfo.structureInfo).toBeUndefined();
+      expect(normalInfo.oversizedWarning).toBeUndefined();
+    });
+
+    it('should handle data just below 30% threshold', () => {
+      const compressorWithContext = new TestCompressor(
+        'session-123',
+        'conv-456',
+        'tenant-789',
+        'project-abc',
+        { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
+        { model: 'gpt-4' },
+        { model: 'claude-sonnet-4-5' }
+      );
+
+      const contextWindowSize = 200000;
+      const maxSafeSize = Math.floor(contextWindowSize * 0.3); // 60,000 tokens
+      // Account for JSON overhead (~100 chars) so create data that stays under threshold
+      const safeData = 'x'.repeat((maxSafeSize - 100) * 4); // Well under limit
+
+      const block = {
+        toolCallId: 'test-call-123',
+        toolName: 'test-tool',
+        input: {},
+        output: safeData,
+      };
+
+      const toolResultData = {
+        toolName: 'test-tool',
+        toolInput: {},
+        toolResult: safeData,
+        compressedAt: new Date().toISOString(),
+      };
+
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const artifactData = compressorWithContext['buildArtifactData'](
+        'artifact-123',
+        block,
+        toolResultData
+      );
+
+      // Should NOT be oversized
+      expect(artifactData.metadata.isOversized).toBe(false);
+      expect(artifactData.metadata.retrievalBlocked).toBe(false);
     });
   });
 

@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/performance/noImgElement: n/a */
+
 import {
   Accordion,
   Accordions,
@@ -23,12 +24,14 @@ import {
 } from '@inkeep/docskit/mdx';
 import { createAPIPage } from 'fumadocs-openapi/ui';
 import { createGenerator } from 'fumadocs-typescript';
+import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { ComparisonTable } from '@/components/comparisons-table';
-import { AutoTypeTable } from '@/components/mdx/auto-type-table';
+import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-table';
 import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card';
+import { OptionCard, OptionCards } from '@/components/mdx/option-cards';
 import { SkillRule } from '@/components/mdx/skill-rule';
 import { openapi } from '@/lib/openapi';
 
@@ -41,14 +44,35 @@ function Snippet({ file }: { file: string }) {
 const generator = createGenerator();
 const APIPage = createAPIPage(openapi);
 
+const defaultTypeLinks: TypeLinksInput = [
+  'InkeepBaseSettings',
+  'ColorModeConfig',
+  'UserProperties',
+  'InkeepAIChatSettings',
+  'AIChatFunctions',
+  'AIChatDisclaimerSettings',
+  'GetHelpOption',
+  'CustomMessageAction',
+  'AIChatToolbarButtonLabels',
+  'SearchAndChatFilters',
+  'ComponentsConfig',
+  'OpenSettingsChatButton',
+  'OpenSettingsSidebar',
+  'OpenSettingsModal',
+  'NestedInkeepConfig',
+  'ApiConfig',
+];
+
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     APIPage,
-    AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
+    AutoTypeTable: (props) => (
+      <AutoTypeTable defaultTypeLinks={defaultTypeLinks} {...props} generator={generator} />
+    ),
     Image: (props) => (
-      <img
+      <ImageZoom
         alt={props.alt ?? 'Image'}
         {...props}
         height={props.height ?? 1200}
@@ -58,6 +82,16 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
       />
     ),
     ...components,
+    img: (props) => (
+      <img
+        alt={props.alt ?? 'Image'}
+        {...props}
+        height={props.height ?? 1200}
+        width={props.width ?? 1200}
+        sizes="100vw"
+        style={{ ...props.style, borderRadius: '10px', width: '100%' }}
+      />
+    ),
     Accordions,
     Accordion,
     BigVideo,
@@ -82,6 +116,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Video,
     Snippet,
     ComparisonTable,
+    OptionCard,
+    OptionCards,
     SkillRule,
   };
 }

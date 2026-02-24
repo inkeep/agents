@@ -5,6 +5,7 @@ You can talk to an Inkeep Agent in a few ways, including:
 - **Via API (Vercel format)**: An API that streams responses over server-side events (SSE). Use from any language/runtime, including the Vercel's `useChat` and AI Element primitives for custom UIs. See [API (Vercel format)](/talk-to-your-agents/api).
 - **Via API (A2A format)**: An API that follows the Agent-to-Agent ('A2A') JSON-RPC protocol. Great for when combining Inkeep with different Agent frameworks that support the A2A format. See [A2A protocol](/talk-to-your-agents/a2a).
 - **Via Webhook Triggers**: Create webhook endpoints that allow external services (GitHub, Slack, Stripe, etc.) to invoke your Agents. See [Triggers](/talk-to-your-agents/triggers).
+- **Slack**: Interact with agents directly in Slack using `@Inkeep` and slash commands. Available for Enterprise. See [Slack](/talk-to-your-agents/slack/overview).
 
 <Cards>
   <Card title="React UI" icon="LuMessageSquare" href="/talk-to-your-agents/react/chat-button">
@@ -19,8 +20,11 @@ You can talk to an Inkeep Agent in a few ways, including:
   <Card title="MCP server" icon="LuServer" href="/talk-to-your-agents/mcp-server">
     HTTP JSON-RPC endpoint at /v1/mcp with session header management.
   </Card>
-  <Card title="Webhook Triggers" icon="LuWebhook" href="/talk-to-your-agents/triggers">
+  <Card title="Webhook Triggers" icon="LuWebhook" href="/talk-to-your-agents/triggers/webhooks">
     Webhook endpoints for event-driven Agent invocation.
+  </Card>
+  <Card title="Slack" icon="LuMessageSquare" href="/talk-to-your-agents/slack/overview">
+    Mention `@Inkeep` or use `/inkeep` commands to talk to agents in Slack.
   </Card>
 </Cards>
 

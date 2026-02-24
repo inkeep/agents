@@ -183,9 +183,33 @@ export default function Chat() {
   history (for example `state: "approval-requested"`), the server ignores them.
 </Note>
 
+## Tool approvals in Slack
+
+When you run agents in Slack (via the Inkeep Slack app), tool approvals appear as interactive messages with **Approve** and **Deny** buttons.
+
+### How it works
+
+1. The agent requests to run a tool that requires approval
+2. Slack posts a message showing the tool name and its input parameters
+3. The user clicks **Approve** or **Deny**
+4. The agent continues based on the user's decision
+
+### Permissions
+
+Only the user who started the conversation can approve or deny a tool request. If another user clicks the buttons, they see an error message.
+
+### Approval timeout
+
+If no one responds to an approval request within the timeout period, the request expires and the message updates to show "Expired". The agent receives a timeout notification and can inform the user.
+
+<Note>
+  Tool approvals in Slack require account linking. Run `/inkeep link` to connect your Slack and Inkeep accounts before using agents with approval-required tools.
+</Note>
+
 ## Related docs
 
 - [Chat API](/talk-to-your-agents/chat-api)
 - [Data operations](/typescript-sdk/data-operations)
+- [Using the Slack App](/talk-to-your-agents/slack/commands)
 
 </SkillRule>

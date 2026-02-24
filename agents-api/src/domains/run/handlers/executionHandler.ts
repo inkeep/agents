@@ -4,11 +4,16 @@ import {
   createTask,
   type FullExecutionContext,
   generateId,
+  generateServiceToken,
   getActiveAgentForConversation,
+  getInProcessFetch,
   getTask,
+  isUniqueConstraintError,
+  type ModelSettings,
   type Part,
   type SendMessageResponse,
   setSpanWithError,
+  unwrapError,
   updateTask,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient.js';
@@ -99,53 +104,54 @@ export class ExecutionHandler {
 
     const agent = project.agents[agentId];
     try {
-      if (agent?.statusUpdates && agent.statusUpdates.enabled !== false) {
-        try {
-          // Get the default sub-agent to resolve models properly with inheritance
+      // Always resolve models for artifact naming, even if status updates are disabled
+      let summarizerModel: ModelSettings | undefined;
+      let baseModel: ModelSettings | undefined;
 
-          if (agent?.defaultSubAgentId) {
-            const resolvedModels = await resolveModelConfig(
-              executionContext,
-              agent.subAgents[agent.defaultSubAgentId]
-            );
-
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agent.statusUpdates,
-              resolvedModels.summarizer,
-              resolvedModels.base
-            );
-          } else {
-            // Fallback to agent-level config if no default sub-agent
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agent.statusUpdates,
-              agent.models?.summarizer
-            );
-          }
-        } catch (modelError) {
-          logger.warn(
-            {
-              error: modelError instanceof Error ? modelError.message : 'Unknown error',
-              agentId,
-            },
-            'Failed to resolve models for status updates, using agent-level config'
+      try {
+        if (agent?.defaultSubAgentId) {
+          const resolvedModels = await resolveModelConfig(
+            executionContext,
+            agent.subAgents[agent.defaultSubAgentId]
           );
-          // Fallback to agent-level config
-          agentSessionManager.initializeStatusUpdates(
-            requestId,
-            agent.statusUpdates,
-            agent.models?.summarizer
-          );
+          summarizerModel = resolvedModels.summarizer;
+          baseModel = resolvedModels.base;
+        } else {
+          // Fallback to agent-level config if no default sub-agent
+          summarizerModel = agent.models?.summarizer;
+          baseModel = agent.models?.base;
         }
+      } catch (modelError) {
+        logger.warn(
+          {
+            error: modelError instanceof Error ? modelError.message : 'Unknown error',
+            agentId,
+          },
+          'Failed to resolve models, using agent-level config'
+        );
+        summarizerModel = agent.models?.summarizer;
+        baseModel = agent.models?.base;
       }
+
+      // Initialize status updates (always call to set models, but only enable events if configured)
+      const statusConfig =
+        agent?.statusUpdates && agent.statusUpdates.enabled !== false
+          ? agent.statusUpdates
+          : { enabled: false }; // Disabled but still sets models
+
+      agentSessionManager.initializeStatusUpdates(
+        requestId,
+        statusConfig,
+        summarizerModel,
+        baseModel
+      );
     } catch (error) {
       logger.error(
         {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         },
-        '❌ Failed to initialize status updates, continuing without them'
+        'Failed to initialize session configuration, continuing with defaults'
       );
     }
 
@@ -194,8 +200,7 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        // Handle duplicate task (PostgreSQL unique constraint violation)
-        if (error?.cause?.code === '23505') {
+        if (isUniqueConstraintError(error)) {
           logger.info(
             { taskId, error: error.message },
             'Task already exists, fetching existing task'
@@ -258,16 +263,30 @@ export class ExecutionHandler {
         }
 
         const agentBaseUrl = `${baseUrl}/run/agents`;
+
+        // For team delegation contexts, generate a fresh JWT for the target sub-agent.
+        // The inherited apiKey has aud=<parent agent>, but we need aud=<current sub-agent>.
+        // This ensures proper auth chain for each hop in agent-to-agent communication.
+        let authToken = apiKey;
+        if (executionContext.metadata?.teamDelegation) {
+          authToken = await generateServiceToken({
+            tenantId,
+            projectId,
+            originAgentId: agentId,
+            targetAgentId: currentAgentId,
+          });
+        }
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${authToken}`,
             'x-inkeep-tenant-id': tenantId,
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
-            // Forward user session headers for MCP tool authentication
             ...(forwardedHeaders || {}),
           },
+          fetchFn: getInProcessFetch(),
         });
 
         let messageResponse: SendMessageResponse | null = null;
@@ -689,8 +708,9 @@ export class ExecutionHandler {
         }
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const rootCause = unwrapError(error);
+      const errorMessage = rootCause.message;
+      const errorStack = rootCause.stack;
       logger.error({ errorMessage, errorStack }, 'Error in execution handler');
 
       // Create a span to mark this error for tracing
@@ -703,7 +723,7 @@ export class ExecutionHandler {
             'subAgent.name': agent?.subAgents[currentAgentId]?.name,
             'subAgent.id': currentAgentId,
           });
-          setSpanWithError(span, error instanceof Error ? error : new Error(errorMessage));
+          setSpanWithError(span, rootCause);
 
           // Stream error operation
           // Send error operation for execution exception

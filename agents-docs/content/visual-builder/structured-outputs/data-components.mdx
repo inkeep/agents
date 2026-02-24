@@ -7,6 +7,8 @@ icon: LuBlocks
 
 <Snippet file="multi-agent-framework/what-are-data-components.mdx" />
 
+<Snippet file="multi-agent-framework/data-components-model-recommendations.mdx" />
+
 ## How to create a data component
 
 1. Go to the Data Components tab in the left sidebar. Then select "New data component".
@@ -41,7 +43,7 @@ To visually add the data component to the Agent, see the [Sub Agents](/visual-bu
 
 ## Frontend Integration
 
-Create a React component matching your data component name:
+Create a React component that receives the props defined by your data component schema:
 
 ```tsx
 const TaskList = ({ tasks, totalCount }) => (
@@ -56,14 +58,24 @@ const TaskList = ({ tasks, totalCount }) => (
 );
 ```
 
-Register it with the Inkeep chat component:
+If you have generated component UI (render code) for this data component in the dashboard, you can add the component file to your app instead via the CLI:
+
+```bash
+inkeep add --ui <component-id>
+```
+
+The CLI writes the component to `apps/agents-ui/src/ui` (or your project’s equivalent).
+
+Register the component with the chat widget. The **key** in `components` must be the component name as shown in the dashboard (exact string), and the **value** is your imported React component:
 
 ```tsx
+import { TaskList } from './ui/TaskList';
+
 <InkeepSidebarChat
   aiChatSettings={{
     agentUrl: "your-agent-url",
     components: {
-      TaskList, // Component name must match data component name
+      "Task List": TaskList, // Key = dashboard component name; value = your component
     },
   }}
 />

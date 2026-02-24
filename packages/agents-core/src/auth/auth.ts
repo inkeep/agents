@@ -8,7 +8,8 @@ import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
-import { type OrgRole, OrgRoles } from './authz/config';
+import { type OrgRole, OrgRoles } from './authz/types';
+import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
 /**
@@ -185,6 +186,7 @@ async function registerSSOProvider(
 
 export function createAuth(config: BetterAuthConfig) {
   const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
+  const isSecure = config.baseURL.startsWith('https://');
 
   const auth = betterAuth({
     baseURL: config.baseURL,
@@ -198,6 +200,10 @@ export function createAuth(config: BetterAuthConfig) {
       maxPasswordLength: 128,
       requireEmailVerification: false,
       autoSignIn: true,
+      resetPasswordTokenExpiresIn: 60 * 30,
+      sendResetPassword: async ({ user, url, token }) => {
+        setPasswordResetLink({ email: user.email, url, token });
+      },
     },
     account: {
       accountLinking: {
@@ -236,7 +242,7 @@ export function createAuth(config: BetterAuthConfig) {
       updateAge: 60 * 60 * 24,
       cookieCache: {
         enabled: true,
-        maxAge: 5 * 60,
+        maxAge: 30,
         strategy: 'compact',
       },
     },
@@ -249,9 +255,10 @@ export function createAuth(config: BetterAuthConfig) {
         },
       }),
       defaultCookieAttributes: {
-        sameSite: 'none',
-        secure: true,
         httpOnly: true,
+        ...(isSecure
+          ? { sameSite: 'none' as const, secure: true }
+          : { sameSite: 'lax' as const, secure: false }),
         ...(cookieDomain && { domain: cookieDomain }),
       },
       ...config.advanced,
@@ -295,6 +302,31 @@ export function createAuth(config: BetterAuthConfig) {
           // - SendGrid: await sgMail.send({ ... })
           // - AWS SES: await ses.sendEmail({ ... })
           // - Postmark: await postmark.sendEmail({ ... })
+        },
+        schema: {
+          invitation: {
+            additionalFields: {
+              authMethod: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+            },
+          },
+          organization: {
+            additionalFields: {
+              preferredAuthMethod: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+              serviceAccountUserId: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+            },
+          },
         },
         organizationHooks: {
           afterAcceptInvitation: async ({ member, user, organization: org }) => {
@@ -345,18 +377,26 @@ export function createAuth(config: BetterAuthConfig) {
               );
             }
           },
-          afterRemoveMember: async ({ member, organization: org }) => {
+          beforeRemoveMember: async ({ member, organization: org }) => {
             try {
-              const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
-              await syncOrgMemberToSpiceDb({
+              const { revokeAllUserRelationships } = await import('./authz/sync');
+
+              // Remove all SpiceDB relationships for this user within the organization
+              // This includes both organization-level and project-level relationships
+              await revokeAllUserRelationships({
                 tenantId: org.id,
                 userId: member.userId,
-                role: member.role as OrgRole,
-                action: 'remove',
               });
-              console.log(`🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`);
+
+              console.log(
+                `🔐 SpiceDB: Preparing to remove member ${member.userId} - revoked all relationships in org ${org.name}`
+              );
             } catch (error) {
-              console.error('❌ SpiceDB sync failed for member removal:', error);
+              console.error('❌ SpiceDB cleanup failed before member removal:', error);
+              // Re-throw to prevent member removal if SpiceDB cleanup fails
+              throw new Error(
+                `Failed to clean up user permissions: ${error instanceof Error ? error.message : 'Unknown error'}`
+              );
             }
           },
         },

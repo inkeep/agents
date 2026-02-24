@@ -1,6 +1,7 @@
 name: Publish
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - ".changeset/**"
@@ -24,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -82,6 +83,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
 
+      # Generate a GitHub App token so the release event triggers downstream
+      # workflows (the default GITHUB_TOKEN cannot do this).
+      - name: Generate GitHub App Token
+        if: steps.changesets.outputs.published == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
       - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'
         shell: bash
@@ -95,31 +106,12 @@ jobs:
           # Extract everything from "# Releases" onward and replace with "# Changelog"
           CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
 
-          # Generate highlights using Claude
-          HIGHLIGHTS=$(curl -s -K <(echo "header = \"x-api-key: $ANTHROPIC_API_KEY\"") \
-            https://api.anthropic.com/v1/messages \
-            -H "Content-Type: application/json" \
-            -H "anthropic-version: 2023-06-01" \
-            -d "$(jq -n \
-              --arg changelog "$CHANGELOG" \
-              '{
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1024,
-                messages: [{
-                  role: "user",
-                  content: "Based on this changelog, write a Highlights section for a GitHub release. Focus on the most impactful user-facing changes. Use markdown with ## headers for major features and bullet points for details. Do not include a top-level heading - start directly with the content.\n\nChangelog:\n\($changelog)"
-                }]
-              }')" | jq -r '.content[0].text')
-
-            RELEASE_NOTES="# Highlights
-
-            ${HIGHLIGHTS}
-
-            ${CHANGELOG}"
-
-            gh release create "v${VERSION}" \
-              --title "${RELEASE_DATE}" \
-              --notes "$RELEASE_NOTES"
+          # Pin the release tag to the exact commit that was built and published.
+          # The app token ensures the release:published event triggers the
+          # downstream Vercel production deploy workflow.
+          gh release create "v${VERSION}" \
+            --target "${{ github.sha }}" \
+            --title "${RELEASE_DATE}" \
+            --notes "$CHANGELOG"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

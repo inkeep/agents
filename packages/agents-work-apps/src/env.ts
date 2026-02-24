@@ -22,8 +22,9 @@ const envSchema = z.object({
   // Database
   INKEEP_AGENTS_RUN_DATABASE_URL: z
     .string()
+    .optional()
     .describe(
-      'PostgreSQL connection URL for the runtime database (Doltgres with Git version control)'
+      'PostgreSQL connection URL for the runtime database. Required in production; tests use PGlite.'
     ),
   INKEEP_AGENTS_MANAGE_UI_URL: z
     .string()
@@ -47,6 +48,31 @@ const envSchema = z.object({
     .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
   GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+
+  // Slack App Configuration
+  SLACK_CLIENT_ID: z.string().optional().describe('Slack App Client ID'),
+  SLACK_CLIENT_SECRET: z.string().optional().describe('Slack App Client Secret'),
+  SLACK_SIGNING_SECRET: z.string().optional().describe('Slack App Signing Secret'),
+  SLACK_BOT_TOKEN: z.string().optional().describe('Slack Bot Token (for testing)'),
+  SLACK_APP_URL: z.string().optional().describe('Slack App Install URL'),
+  SLACK_APP_TOKEN: z.string().optional().describe('Slack App-Level Token for Socket Mode (xapp-*)'),
+
+  // Nango Configuration (Slack uses Nango for OAuth)
+  NANGO_SECRET_KEY: z.string().optional().describe('Nango Secret Key'),
+  NANGO_SLACK_SECRET_KEY: z.string().optional().describe('Nango Slack-specific Secret Key'),
+  NANGO_SLACK_INTEGRATION_ID: z.string().optional().describe('Nango Slack Integration ID'),
+  NANGO_SERVER_URL: z.string().optional().describe('Nango Server URL'),
+
+  // JWT (shared with @inkeep/agents-core — required in production for Slack user/link tokens)
+  INKEEP_AGENTS_JWT_SIGNING_SECRET: z
+    .string()
+    .optional()
+    .describe(
+      'JWT signing secret shared with agents-api. Required in production (min 32 chars). Used for Slack user tokens and link tokens.'
+    ),
+
+  // API URLs
+  INKEEP_AGENTS_API_URL: z.string().optional().describe('Inkeep Agents API URL'),
 });
 
 const parseEnv = () => {

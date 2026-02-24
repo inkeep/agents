@@ -71,6 +71,7 @@ import type {
   SubAgentTeamAgentConfig,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
@@ -100,10 +101,11 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  dataComponentLookup?: Record<string, DataComponent>;
-  artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
-  credentialLookup?: Record<string, Credential>;
+  dataComponentLookup: Record<string, DataComponent>;
+  artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  credentialLookup: Record<string, Credential>;
+  skills: Skill[];
   sandboxEnabled: boolean;
 }
 
@@ -122,11 +124,12 @@ const nonValidationErrors = new Set([
 
 export const Agent: FC<AgentProps> = ({
   agent,
-  dataComponentLookup = {},
-  artifactComponentLookup = {},
-  toolLookup = {},
-  credentialLookup = {},
+  dataComponentLookup,
+  artifactComponentLookup,
+  toolLookup,
+  credentialLookup,
   sandboxEnabled,
+  skills,
 }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
@@ -264,7 +267,7 @@ export const Agent: FC<AgentProps> = ({
     if (!agent.subAgents) return {};
     const lookup: SubAgentTeamAgentConfigLookup = {};
     Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+      if (agentData && 'canDelegateTo' in agentData && agentData.canDelegateTo) {
         const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
         agentData.canDelegateTo
           .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
@@ -332,6 +335,7 @@ export const Agent: FC<AgentProps> = ({
       agentNodes,
       agentEdges,
       extractAgentMetadata(agent),
+      skills,
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
@@ -461,6 +465,7 @@ export const Agent: FC<AgentProps> = ({
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
+        skills,
         updatedDataComponentLookup as Record<string, DataComponent>,
         updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
         updatedToolLookup as unknown as Record<string, MCPTool>,
@@ -564,11 +569,13 @@ export const Agent: FC<AgentProps> = ({
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
-        const subAgentId = params.source;
+        if (edges.some((edge) => edge.target === targetNode.id)) {
+          toast.error('This MCP tool is already connected. Connect to a new MCP server node.');
+          return;
+        }
         updateNodeData(targetNode.id, {
           ...targetNode.data,
-          subAgentId,
-          relationshipId: null, // Will be set after saving to database
+          subAgentId: params.source,
         });
       }
     }
@@ -793,8 +800,9 @@ export const Agent: FC<AgentProps> = ({
                 const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if (res.data.subAgents[subAgentId]?.canUse) {
-                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
+                const savedSubAgent = res.data.subAgents[subAgentId];
+                if (savedSubAgent?.canUse) {
+                  const matchingRelationship = savedSubAgent.canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&
                       tool.agentToolRelationId &&
@@ -975,8 +983,8 @@ export const Agent: FC<AgentProps> = ({
           {!showEmptyState && (
             <Panel
               position="top-right"
-              // width of NodeLibrary
-              className="left-40"
+              // width of NodeLibrary; pointer-events-none so handles below are reachable
+              className="left-40 pointer-events-none"
             >
               <Toolbar
                 onSubmit={onSubmit}
@@ -985,6 +993,11 @@ export const Agent: FC<AgentProps> = ({
                   closeSidePane();
                   setShowPlayground(true);
                 }}
+                tracesHref={
+                  agent.id
+                    ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
+                    : undefined
+                }
               />
             </Panel>
           )}

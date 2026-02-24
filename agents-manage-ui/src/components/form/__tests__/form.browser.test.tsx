@@ -1,5 +1,9 @@
-import { act, render } from '@testing-library/react';
-import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { transformToJson } from '@inkeep/agents-core/client-exports';
+import { render, screen, waitFor } from '@testing-library/react';
+import { type FC, useEffect } from 'react';
+import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -9,54 +13,119 @@ import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
 import '@/lib/utils/test-utils/styles.css';
 
-function TestForm() {
-  const error = 'This field is required';
+const error = 'This field is required';
 
-  const form = useForm({
-    errors: {
-      input: { type: 'string', message: error },
-      textarea: { type: 'string', message: error },
-      select: { type: 'string', message: error },
-      combobox: { type: 'string', message: error },
-      jsonSchemaEditor: { type: 'string', message: error },
-    },
-  });
+function getCommonProps<TFieldValues extends FieldValues, TTransformedValues = TFieldValues>(
+  form: UseFormReturn<TFieldValues, unknown, TTransformedValues>,
+  name: FieldPath<TFieldValues>
+) {
+  const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+  return {
+    name,
+    control: form.control,
+    placeholder: `${capitalizedName} placeholder`,
+    label: `${capitalizedName} label`,
+    isRequired: true,
+  };
+}
 
-  function getCommonProps(name: string) {
-    const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-    return {
-      name,
-      control: form.control,
-      placeholder: `${capitalizedName} placeholder`,
-      label: `${capitalizedName} label`,
-      isRequired: true,
-    };
-  }
+const testSchema = z.strictObject({
+  input: z.string(error),
+  textarea: z.string(error),
+  select: z.string(error),
+  combobox: z.string(error),
+});
+
+const TestForm: FC = () => {
+  const resolver = zodResolver(testSchema);
+  const form = useForm({ resolver });
+
+  useEffect(() => {
+    form.trigger();
+  }, [form]);
+
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
     <Form {...form}>
       <form style={{ width: 320 }}>
-        <GenericInput {...getCommonProps('input')} />
+        <GenericInput {...getCommonProps(form, 'input')} />
         {divider}
-        <GenericTextarea {...getCommonProps('textarea')} />
+        <GenericTextarea {...getCommonProps(form, 'textarea')} />
         {divider}
-        <GenericSelect {...getCommonProps('select')} options={[]} />
+        <GenericSelect {...getCommonProps(form, 'select')} options={[]} />
         {divider}
-        <GenericComboBox {...getCommonProps('combobox')} options={[]} />
-        {divider}
-        <JsonSchemaInput {...getCommonProps('jsonSchemaEditor')} />
+        <GenericComboBox {...getCommonProps(form, 'combobox')} options={[]} />
       </form>
     </Form>
   );
-}
+};
+
+const nestedTestSchema = z.strictObject({
+  jsonSchemaEditor: z
+    .string()
+    .transform(transformToJson)
+    .pipe(
+      z.strictObject({
+        foo: z.strictObject({
+          bar: z.strictObject({
+            qux: z.string(error),
+          }),
+        }),
+      })
+    ),
+});
+
+const NestedTestForm: FC = () => {
+  const resolver = zodResolver(nestedTestSchema);
+  const form = useForm({
+    defaultValues: {
+      jsonSchemaEditor: JSON.stringify({ foo: { bar: {} } }),
+    },
+    resolver,
+  });
+
+  useEffect(() => {
+    form.trigger();
+  }, [form]);
+
+  return (
+    <Form {...form}>
+      <form style={{ width: 320 }}>
+        <JsonSchemaInput {...getCommonProps(form, 'jsonSchemaEditor')} />
+      </form>
+    </Form>
+  );
+};
 
 describe('Form', () => {
+  afterEach(() => {
+    agentStore.setState({ jsonSchemaMode: false });
+  });
+
   test('should properly highlight error state', async () => {
-    agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
 
-    await act(async () => {
-      await expect(container).toMatchScreenshot();
+    await waitFor(() => {
+      expect(screen.getAllByText(error)).toHaveLength(4);
     });
-  }, 20_000);
+
+    await expect(container).toMatchScreenshot();
+  }, 30_000);
+
+  test('should properly highlight nested error state', async () => {
+    agentStore.setState({ jsonSchemaMode: true });
+    const { container } = render(<NestedTestForm />);
+
+    await waitFor(
+      () => {
+        // Wait for Monaco editor to fully initialize (not just the skeleton loading state)
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
+        // Wait for form validation error message to render
+        expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+      },
+      { timeout: 45_000 }
+    );
+
+    await expect(container).toMatchScreenshot();
+  }, 60_000);
 });

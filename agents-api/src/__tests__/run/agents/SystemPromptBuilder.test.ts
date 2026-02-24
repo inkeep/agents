@@ -1,8 +1,8 @@
 import type { McpTool } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
-import type { SystemPromptV1 } from '../../../domains/run/agents/types';
-import { Phase1Config } from '../../../domains/run/agents/versions/v1/Phase1Config';
+import type { SkillData, SystemPromptV1 } from '../../../domains/run/agents/types';
+import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
 // Helper to create mock McpTool
 function createMockMcpTool(name: string, availableTools: any[]): McpTool {
@@ -30,27 +30,26 @@ describe('SystemPromptBuilder', () => {
 
   describe('Generic Builder Functionality', () => {
     test('should successfully create builder with version config', () => {
-      expect(() => new SystemPromptBuilder('v1', new Phase1Config())).not.toThrow();
+      expect(() => new SystemPromptBuilder('v1', new PromptConfig())).not.toThrow();
     });
 
     test('should successfully load templates on first buildSystemPrompt call', () => {
-      const builder = new SystemPromptBuilder('v1', new Phase1Config());
+      const builder = new SystemPromptBuilder('v1', new PromptConfig());
       const config: SystemPromptV1 = {
         corePrompt: 'Test instructions',
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
       expect(result).toBeDefined();
       expect(builder.isLoaded()).toBe(true);
-      expect(builder.getLoadedTemplates()).toHaveLength(5);
+      expect(builder.getLoadedTemplates()).toHaveLength(4);
     });
 
     test('should handle invalid configuration', () => {
-      const builder = new SystemPromptBuilder('v1', new Phase1Config());
+      const builder = new SystemPromptBuilder('v1', new PromptConfig());
 
       expect(() => builder.buildSystemPrompt(null as any)).toThrow(
         'Configuration object is required'
@@ -64,7 +63,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle version parameter correctly', () => {
-      const builder = new SystemPromptBuilder('v2', new Phase1Config());
+      const builder = new SystemPromptBuilder('v2', new PromptConfig());
       expect(builder.isLoaded()).toBe(false);
     });
   });
@@ -73,7 +72,7 @@ describe('SystemPromptBuilder', () => {
     let builder: SystemPromptBuilder<SystemPromptV1>;
 
     beforeEach(() => {
-      builder = new SystemPromptBuilder('v1', new Phase1Config());
+      builder = new SystemPromptBuilder('v1', new PromptConfig());
     });
 
     test('should generate basic system prompt with no tools', () => {
@@ -82,7 +81,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -120,7 +118,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -152,7 +149,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -162,6 +158,121 @@ describe('SystemPromptBuilder', () => {
       expect(result.prompt).toContain('<name>tool_two</name>');
       expect(result.prompt).toContain('First tool');
       expect(result.prompt).toContain('Second tool');
+    });
+
+    const baseSkill = {
+      subAgentSkillId: '',
+      metadata: null,
+      description: '',
+      alwaysLoaded: true,
+    } satisfies Partial<SkillData>;
+
+    test('should include skills section in order when provided', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        skills: [
+          {
+            ...baseSkill,
+            id: 'second-skill',
+            name: 'second-skill',
+            content: 'Second content',
+            index: 1,
+          },
+          {
+            ...baseSkill,
+            id: 'first-skill',
+            name: 'first-skill',
+            content: 'First content',
+            index: 0,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain('<skills>');
+      expect(prompt).toContain(
+        '<skill mode="always" name="first-skill" description="">First content</skill>'
+      );
+      expect(prompt).toContain(
+        '<skill mode="always" name="second-skill" description="">Second content</skill>'
+      );
+      expect(prompt.indexOf('first-skill')).toBeLessThan(prompt.indexOf('second-skill'));
+    });
+
+    test('should include on-demand skills outline and exclude their content', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        skills: [
+          {
+            ...baseSkill,
+            id: 'always-loaded-skill',
+            name: 'always-loaded-skill',
+            content: 'Always content',
+            index: 0,
+          },
+          {
+            ...baseSkill,
+            id: 'on-demand-skill',
+            name: 'on-demand-skill',
+            content: 'On demand content',
+            description: 'On demand description',
+            alwaysLoaded: false,
+            index: 1,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain(
+        '<skill mode="on_demand" name="on-demand-skill" description="On demand description" />'
+      );
+      expect(prompt).not.toContain('On demand content');
+    });
+
+    test('should exclude skills that are not always loaded', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        skills: [
+          {
+            id: 'always-loaded-skill',
+            name: 'always-loaded-skill',
+            content: 'Always content',
+            description: 'Always description',
+            metadata: null,
+            subAgentSkillId: 'foo',
+            index: 1,
+            alwaysLoaded: true,
+          },
+          {
+            id: 'on-demand-skill',
+            name: 'on-demand-skill',
+            content: 'On demand content',
+            description: 'On demand description',
+            metadata: null,
+            subAgentSkillId: 'bar',
+            index: 2,
+            alwaysLoaded: false,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain(
+        '<skill mode="always" name="always-loaded-skill" description="Always description">Always content</skill>'
+      );
+      expect(prompt).toContain(
+        '<skill mode="on_demand" name="on-demand-skill" description="On demand description" />'
+      );
+      expect(prompt).not.toContain('On demand content');
     });
 
     test('should handle tools with complex parameter schemas', () => {
@@ -195,7 +306,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -230,7 +340,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -253,7 +362,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -269,7 +377,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -301,7 +408,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -356,7 +462,6 @@ describe('SystemPromptBuilder', () => {
             createdAt: '2024-01-15T19:30:00.000Z',
           },
         ],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -373,7 +478,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -404,14 +508,12 @@ describe('SystemPromptBuilder', () => {
             createdAt: '2024-01-15T20:30:00.000Z',
           },
         ],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
 
       expect(result.prompt).toContain('<name>Incomplete Artifact</name>');
       expect(result.prompt).toContain('<description>Artifact without metadata</description>');
-      expect(result).toBeDefined();
     });
   });
 });

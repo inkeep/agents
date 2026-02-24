@@ -66,7 +66,7 @@ function Nodes() {
       {divider}
       <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
       {divider}
-      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true }} />
+      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true, skills: [] }} />
       {divider}
       <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
     </ReactFlowProvider>
@@ -79,5 +79,5 @@ describe('Nodes', () => {
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });
-  }, 20_000);
+  }, 30_000);
 });

@@ -143,7 +143,6 @@ export const ToolOutputErrorEventSchema = z.object({
   type: z.literal('tool-output-error'),
   toolCallId: z.string(),
   errorText: z.string(),
-  output: z.any().nullable(),
 });
 
 /**
@@ -153,6 +152,8 @@ export const ToolApprovalRequestEventSchema = z.object({
   type: z.literal('tool-approval-request'),
   approvalId: z.string(),
   toolCallId: z.string(),
+  toolName: z.string().optional(),
+  input: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

@@ -6,6 +6,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -89,6 +90,9 @@ interface TimelineWrapperProps {
   onCopyFullTrace?: () => void;
   onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
+  onRerunTrigger?: () => void;
+  isRerunning?: boolean;
+  showRerunTrigger?: boolean;
 }
 
 function EmptyTimeline({
@@ -183,6 +187,9 @@ export function TimelineWrapper({
   onCopyFullTrace,
   onCopySummarizedTrace,
   isCopying = false,
+  onRerunTrigger,
+  isRerunning = false,
+  showRerunTrigger = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -402,13 +409,63 @@ export function TimelineWrapper({
     setPanelVisible(false);
     setTimeout(() => {
       setSelected(null);
+      setLazySpan(null);
     }, 300);
   };
 
-  const findSpanById = (id?: string) =>
-    conversation?.allSpanAttributes?.find(
-      (s: NonNullable<ConversationDetail['allSpanAttributes']>[number]) => s.spanId === id
-    );
+  // Lazy-loaded span attributes — fetched on-demand when an activity is clicked
+  const [lazySpan, setLazySpan] = useState<
+    NonNullable<ConversationDetail['allSpanAttributes']>[number] | null
+  >(null);
+  const [lazySpanLoading, setLazySpanLoading] = useState(false);
+
+  // Fetch span details when a panel is selected
+  useEffect(() => {
+    if (!selected || selected.type === 'mcp_tool_error') {
+      setLazySpan(null);
+      return;
+    }
+    const activityId = selected.item.id;
+    if (!activityId || !conversationId || !tenantId) {
+      setLazySpan(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLazySpan(null);
+    setLazySpanLoading(true);
+
+    fetch(
+      `/api/signoz/spans/${activityId}?conversationId=${encodeURIComponent(conversationId)}&tenantId=${encodeURIComponent(tenantId)}`
+    )
+      .then((res) => {
+        if (!res.ok) {
+          console.warn(`Span fetch failed: ${res.status} ${res.statusText}`);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled && data?.spanId) {
+          setLazySpan(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch span details:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLazySpanLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, conversationId, tenantId]);
+
+  const findSpanById = useCallback(
+    (id?: string) => (id && lazySpan?.spanId === id ? lazySpan : undefined),
+    [lazySpan]
+  );
 
   const determinePanelType = (a: ActivityItem): Exclude<PanelType, 'mcp_tool_error'> => {
     if (a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.TRANSFER)
@@ -450,6 +507,23 @@ export function TimelineWrapper({
                 <div className="text-foreground text-md font-medium">Activity timeline</div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Rerun Trigger Button */}
+                {showRerunTrigger && onRerunTrigger && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRerunTrigger}
+                    disabled={isRerunning}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {isRerunning ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                    )}
+                    {isRerunning ? 'Rerunning...' : 'Rerun Trigger'}
+                  </Button>
+                )}
                 {/* Copy Trace Dropdown */}
                 {(onCopyFullTrace || onCopySummarizedTrace) && (
                   <DropdownMenu onOpenChange={(open) => open && calculateTokenEstimates()}>
@@ -617,6 +691,7 @@ export function TimelineWrapper({
             {renderPanelContent({
               selected,
               findSpanById,
+              spanLoading: lazySpanLoading,
             })}
           </ActivityDetailsSidePane>
         </ResizablePanel>

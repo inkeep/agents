@@ -1,6 +1,7 @@
 ---
 name: product-surface-areas
-description: Consolidated dependency graph of Inkeep customer-facing surface areas (UIs, CLIs, SDKs, APIs, protocols, config formats). Example use: as a prd-time (planning/brainstorming phase) or post-change checklist to understand the full scope of side-effects or what making one change to the product means for the rest. Use whenever you need to understand the "ripple" out effects of any change.
+description: |
+  Consolidated dependency graph of Inkeep customer-facing surface areas (UIs, CLIs, SDKs, APIs, protocols, config formats). Example use: as a prd-time (planning/brainstorming phase) or post-change checklist to understand the full scope of side-effects or what making one change to the product means for the rest. Use whenever you need to understand the "ripple" out effects of any change.
 ---
 
 # Inkeep Product Surface Area Inventory
@@ -67,10 +68,8 @@ Customer goal: connect MCP clients to Inkeep capabilities via servers/endpoints 
 
 | Surface | Description | Depends On | Source Code |
 |---|---|---|---|
-| **Unified MCP Server (`@inkeep/agents-mcp`)** | Standalone MCP server package wrapping multiple APIs (transcript: “all APIs (manage, run, evals)”). | MCP Protocol, Management API, Run API (OpenAI Chat Completions) | `packages/agents-mcp/src/` |
-| **Manage MCP Server (`@inkeep/agents-manage-mcp`)** | Standalone MCP server package for Manage API only. | MCP Protocol, Management API | `packages/agents-manage-mcp/src/` |
+| **Unified MCP Server (`@inkeep/agents-mcp`)** | Standalone MCP server package wrapping multiple APIs (manage, run, evals). | MCP Protocol, Management API, Run API (OpenAI Chat Completions) | `packages/agents-mcp/src/` |
 | **Unified MCP Endpoint (`/mcp`)** | Hosted unified MCP server endpoint. | Unified MCP Server (`@inkeep/agents-mcp`) | `agents-api/src/domains/mcp/routes/mcp.ts` |
-| **Manage MCP Endpoint (`/manage/mcp`)** | Hosted manage MCP endpoint. | Manage MCP Server (`@inkeep/agents-manage-mcp`) | `agents-api/src/domains/manage/routes/mcp.ts` |
 | **Runtime MCP Endpoint (`/run/v1/mcp`)** | Hosted runtime MCP endpoint for per-agent chat MCP. | MCP Protocol | `agents-api/src/domains/run/routes/mcp.ts` |
 | **GitHub MCP Server (`/work-apps/github/mcp`)** | Hosted MCP surface for GitHub operations. | MCP Protocol, GitHub Integration | `packages/agents-work-apps/src/github/mcp/` |
 | **MCP Templates** | Example MCP integrations (Slack, Zendesk, Vercel template). | MCP Protocol | `agents-cookbook/template-mcps/` |
@@ -104,7 +103,7 @@ Customer goal: talk to agents (and, for Copilot, edit/build agents) via chat int
 |---|---|---|---|
 | **Chat Widget** | Embeddable chat components for end-user chat. | Chat API (Vercel AI SDK Data Stream) | `agents-ui/src/` |
 | **Playground (“Try it”)** | In-dashboard agent testing chat panel with optional debug/traces. | Chat API (Vercel AI SDK Data Stream), Management API, OpenTelemetry Schema | `agents-manage-ui/src/components/agent/playground/`, `agents-api/src/domains/manage/routes/playgroundToken.ts` |
-| **Chat-to-Edit (Copilot)** | “Build/Edit with AI” chat-driven agent creation/modification experience in the builder. | Chat API (Vercel AI SDK Data Stream), Manage MCP Server (`@inkeep/agents-manage-mcp`), Management API | `agents-manage-ui/src/components/agent/copilot/`, `agents-manage-ui/src/contexts/copilot.tsx` |
+| **Chat-to-Edit (Copilot)** | "Build/Edit with AI" chat-driven agent creation/modification experience in the builder. | Chat API (Vercel AI SDK Data Stream), Unified MCP Server (`@inkeep/agents-mcp`), Management API | `agents-manage-ui/src/components/agent/copilot/`, `agents-manage-ui/src/contexts/copilot.tsx` |
 
 ### Observability UI
 Customer goal: understand what agents did and why (traces, analytics, debugging).
@@ -161,11 +160,11 @@ Customer goal: learn the platform and track changes.
 
 | If This Changes... | These Surfaces Break |
 |---|---|
-| **Management API** | **Webhook Format (Trigger Invocation)**, **OAuth Routes**, **OpenAPI Docs**, **TypeScript SDK (`@inkeep/agents-sdk`)**, **Inkeep CLI (`inkeep` / `agents-cli`)**, **Unified MCP Server (`@inkeep/agents-mcp`)**, **Manage MCP Server (`@inkeep/agents-manage-mcp`)**, **Visual Agent Builder**, **Projects Dashboard**, **Team Members**, **API Keys**, **Organization Settings**, **GitHub Integration**, **MCP Tools UI**, **Function Tools UI**, **Credentials UI**, **Data Components UI**, **Artifacts UI**, **External Agents UI**, **Triggers UI**, **Trigger Invocations UI**, **Playground (“Try it”)**, **Chat-to-Edit (Copilot)**, **Traces Dashboard**, **Stats Dashboard**, **Datasets UI**, **Dataset Runs UI**, **Evaluators UI**, **Evaluation Jobs UI**, **Run Configs UI**, **Evaluation Results UI**, **API Reference** |
+| **Management API** | **Webhook Format (Trigger Invocation)**, **OAuth Routes**, **OpenAPI Docs**, **TypeScript SDK (`@inkeep/agents-sdk`)**, **Inkeep CLI (`inkeep` / `agents-cli`)**, **Unified MCP Server (`@inkeep/agents-mcp`)**, **Visual Agent Builder**, **Projects Dashboard**, **Team Members**, **API Keys**, **Organization Settings**, **GitHub Integration**, **MCP Tools UI**, **Function Tools UI**, **Credentials UI**, **Data Components UI**, **Artifacts UI**, **External Agents UI**, **Triggers UI**, **Trigger Invocations UI**, **Playground ("Try it")**, **Chat-to-Edit (Copilot)**, **Traces Dashboard**, **Stats Dashboard**, **Datasets UI**, **Dataset Runs UI**, **Evaluators UI**, **Evaluation Jobs UI**, **Run Configs UI**, **Evaluation Results UI**, **API Reference** |
 | **Run API (OpenAI Chat Completions)** | **Webhook Format (Trigger Invocation)**, **OpenAPI Docs**, **TypeScript SDK (`@inkeep/agents-sdk`)**, **Unified MCP Server (`@inkeep/agents-mcp`)**, **Evaluation Jobs UI**, **API Reference** |
 | **Chat API (Vercel AI SDK Data Stream)** | **OpenAPI Docs**, **Vercel AI SDK Provider (`@inkeep/ai-sdk-provider`)**, **Chat Widget**, **Playground (“Try it”)**, **Chat-to-Edit (Copilot)**, **API Reference** |
 | **A2A Protocol** | **Agent Discovery** |
-| **MCP Protocol** | **Unified MCP Server (`@inkeep/agents-mcp`)**, **Manage MCP Server (`@inkeep/agents-manage-mcp`)**, **Runtime MCP Endpoint (`/run/v1/mcp`)**, **GitHub MCP Server (`/work-apps/github/mcp`)**, **MCP Templates** |
+| **MCP Protocol** | **Unified MCP Server (`@inkeep/agents-mcp`)**, **Runtime MCP Endpoint (`/run/v1/mcp`)**, **GitHub MCP Server (`/work-apps/github/mcp`)**, **MCP Templates** |
 | **OpenTelemetry Schema** | **Playground (“Try it”)**, **Traces Dashboard**, **Conversation Inspector**, **AI Calls View**, **Tool Calls View**, **Stats Dashboard** |
 | **`inkeep.config.ts` format** | **Inkeep CLI (`inkeep` / `agents-cli`)** |
 | **Environment Variables** | **Create-Agents Template**, **Docker Images**, **Inkeep Cloud** |
@@ -173,7 +172,6 @@ Customer goal: learn the platform and track changes.
 | **TypeScript SDK (`@inkeep/agents-sdk`)** | **Inkeep CLI (`inkeep` / `agents-cli`)**, **Create-Agents Template**, **Cookbook Templates**, **Tutorials** |
 | **Inkeep CLI (`inkeep` / `agents-cli`)** | **Tutorials** |
 | **Unified MCP Server (`@inkeep/agents-mcp`)** | **Unified MCP Endpoint (`/mcp`)** |
-| **Manage MCP Server (`@inkeep/agents-manage-mcp`)** | **Manage MCP Endpoint (`/manage/mcp`)**, **Chat-to-Edit (Copilot)** |
 | **GitHub Integration** | **GitHub MCP Server (`/work-apps/github/mcp`)** |
 | **Create-Agents Template** | **Create-Agents CLI (`@inkeep/create-agents`)** |
 
@@ -210,7 +208,6 @@ graph TD
     DISCOVERY[Agent Discovery]
     OPENAPI[OpenAPI Docs]
     MCP_RUN[Runtime MCP Endpoint (/run/v1/mcp)]
-    MCP_MANAGE[Manage MCP Endpoint (/manage/mcp)]
     MCP_UNIFIED[Unified MCP Endpoint (/mcp)]
     MCP_GITHUB[GitHub MCP Server (/work-apps/github/mcp)]
   end
@@ -232,7 +229,6 @@ graph TD
   A2A --> DISCOVERY
   MCPPROTO --> MCP_RUN
   MCPPROTO --> MCP_UNIFIED
-  MCPPROTO --> MCP_MANAGE
   MCPPROTO --> MCP_GITHUB
 
   %% APIs -> consumer groups

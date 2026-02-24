@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiUpdateSchema,
@@ -15,40 +15,25 @@ import {
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH' || c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Artifact Components',
     operationId: 'list-artifact-components',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -81,12 +66,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Artifact Component',
     operationId: 'get-artifact-component-by-id',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -122,12 +108,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Artifact Component',
     operationId: 'create-artifact-component',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -186,13 +173,7 @@ app.openapi(
 
       return c.json({ data: artifactComponent }, 201);
     } catch (error: any) {
-      // Handle duplicate artifact component (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
-        throw createApiError({
-          code: 'conflict',
-          message: `Artifact component with ID '${finalId}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(error, `Artifact component with ID '${finalId}' already exists`);
 
       // Re-throw other errors to be handled by the global error handler
       throw error;
@@ -201,12 +182,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{id}',
     summary: 'Update Artifact Component',
     operationId: 'update-artifact-component',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -281,12 +263,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Artifact Component',
     operationId: 'delete-artifact-component',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
