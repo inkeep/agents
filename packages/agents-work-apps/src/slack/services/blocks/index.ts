@@ -424,7 +424,8 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   const lines = shown
     .map((c) => {
       const url = c.url;
-      const title = c.title || url;
+      const rawTitle = c.title || url;
+      const title = rawTitle?.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       return url ? `• <${url}|${title}>` : null;
     })
     .filter((l): l is string => l !== null);
