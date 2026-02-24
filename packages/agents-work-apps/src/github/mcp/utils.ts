@@ -1232,6 +1232,31 @@ export async function listPullRequestReviewCommentReactions(
   return reactions;
 }
 
+export async function listIssueReactions(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<ReactionDetail[]> {
+  const reactions: ReactionDetail[] = [];
+  for await (const response of octokit.paginate.iterator(octokit.rest.reactions.listForIssue, {
+    owner,
+    repo,
+    issue_number: issueNumber,
+    per_page: 100,
+  })) {
+    for (const r of response.data) {
+      reactions.push({
+        id: r.id,
+        content: r.content as ReactionContent,
+        user: r.user?.login ?? 'unknown',
+        createdAt: r.created_at,
+      });
+    }
+  }
+  return reactions;
+}
+
 export async function formatFileDiff(
   pullRequestNumber: number,
   files: ChangedFile[],
