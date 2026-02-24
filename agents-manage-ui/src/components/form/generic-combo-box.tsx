@@ -52,7 +52,7 @@ export function GenericComboBox<
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between text-gray-700 "
+              className="w-full justify-between font-normal"
               disabled={disabled}
             >
               {field.value ? (
@@ -60,10 +60,10 @@ export function GenericComboBox<
               ) : (
                 <div className="text-muted-foreground">{placeholder}</div>
               )}
-              <ChevronsUpDown className="opacity-50" />
+              <ChevronsUpDown className="opacity-50 text-muted-foreground" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)] ">
+          <PopoverContent className="p-0 w-(--radix-popover-trigger-width) ">
             <Command>
               <CommandInput placeholder={searchPlaceholder} className="h-9" />
               <CommandList>
