@@ -2,7 +2,7 @@
 
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useEffect, useId, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Editor } from '@/components/editors/editor';
 import { TEMPLATE_VARIABLE_REGEX } from '@/constants/theme';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
@@ -99,22 +99,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     >
       <div className="absolute end-2 top-2 flex gap-2 z-1">
         {children}
-
-        {!props.readOnly && (
-          <Button
-            type="button"
-            onClick={() => {
-              const formatAction = editor?.getAction('editor.action.formatDocument');
-              formatAction?.run();
-            }}
-            variant="outline"
-            size="sm"
-            className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-            disabled={!props.value?.trim()}
-          >
-            Format
-          </Button>
-        )}
+        {!props.readOnly && <Editor.FormatAction disabled={!props.value?.trim()} />}
       </div>
     </MonacoEditor>
   );
