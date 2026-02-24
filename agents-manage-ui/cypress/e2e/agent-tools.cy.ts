@@ -32,6 +32,7 @@ describe('Agent Tools', () => {
     dragNode('[aria-label="Drag MCP node"]');
     cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
+    cy.contains('Connecting...').should('not.exist');
     saveAndAssert();
     cy.get('.react-flow__node-agent').click();
     cy.get('[name=id]').clear().type('TEST', { delay: 0 });
@@ -70,7 +71,7 @@ describe('Agent Tools', () => {
     });
 
     it('Prompt', () => {
-      const uri = 'agent-prompt.template';
+      const uri = 'prompt.template';
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       cy.typeInMonaco(uri, '#   hello   {{name}}');
