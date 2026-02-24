@@ -136,10 +136,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
       monaco.languages.registerDocumentFormattingEditProvider('javascript', {
         provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatJS),
       });
-      monaco.languages.registerDocumentFormattingEditProvider('markdown', {
-        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatMarkdown),
-      });
-      monaco.languages.registerDocumentFormattingEditProvider(TEMPLATE_LANGUAGE, {
+      monaco.languages.registerDocumentFormattingEditProvider(['markdown', TEMPLATE_LANGUAGE], {
         provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatMarkdown),
       });
 
