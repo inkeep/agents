@@ -227,7 +227,7 @@ export interface ToolApprovalButtonValue {
   agentId: string;
   slackUserId: string;
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   toolName: string;
 }
 
@@ -238,7 +238,7 @@ export const ToolApprovalButtonValueSchema = z.object({
   agentId: z.string(),
   slackUserId: z.string(),
   channel: z.string(),
-  threadTs: z.string(),
+  threadTs: z.string().optional(),
   toolName: z.string(),
 });
 

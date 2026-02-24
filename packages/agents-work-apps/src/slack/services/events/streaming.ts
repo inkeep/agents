@@ -59,7 +59,7 @@ export interface StreamResult {
 export async function streamAgentResponse(params: {
   slackClient: ReturnType<typeof getSlackClient>;
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   thinkingMessageTs: string;
   slackUserId: string;
   teamId: string;
@@ -86,13 +86,15 @@ export async function streamAgentResponse(params: {
       conversationId,
     } = params;
 
+    const threadParam = threadTs ? { thread_ts: threadTs } : {};
+
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
     span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
     span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
     span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
     span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
     if (conversationId) span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
-    span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, threadTs);
+    if (threadTs) span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, threadTs);
 
     const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
@@ -141,7 +143,7 @@ export async function streamAgentResponse(params: {
 
         await slackClient.chat.postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         });
 
@@ -162,7 +164,7 @@ export async function streamAgentResponse(params: {
       await slackClient.chat
         .postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         })
         .catch((e) => logger.warn({ error: e }, 'Failed to send fetch error notification'));
@@ -193,7 +195,7 @@ export async function streamAgentResponse(params: {
 
       await slackClient.chat.postMessage({
         channel,
-        thread_ts: threadTs,
+        ...threadParam,
         text: errorMessage,
       });
 
@@ -220,7 +222,7 @@ export async function streamAgentResponse(params: {
 
       await slackClient.chat.postMessage({
         channel,
-        thread_ts: threadTs,
+        ...threadParam,
         text: errorMessage,
       });
 
@@ -241,12 +243,13 @@ export async function streamAgentResponse(params: {
     let buffer = '';
     let fullText = '';
 
-    const streamer = slackClient.chatStream({
+    const chatStreamArgs = {
       channel,
       recipient_team_id: teamId,
       recipient_user_id: slackUserId,
-      thread_ts: threadTs,
-    });
+      ...(threadTs ? { thread_ts: threadTs } : {}),
+    } as Parameters<typeof slackClient.chatStream>[0];
+    const streamer = slackClient.chatStream(chatStreamArgs);
 
     const pendingApprovalMessages: Array<{
       messageTs: string;
@@ -308,7 +311,7 @@ export async function streamAgentResponse(params: {
               const approvalPost = await slackClient.chat
                 .postMessage({
                   channel,
-                  thread_ts: threadTs,
+                  ...threadParam,
                   text: `Tool approval required: \`${toolName}\``,
                   blocks: buildToolApprovalBlocks({
                     toolName,
@@ -367,7 +370,7 @@ export async function streamAgentResponse(params: {
                     () =>
                       slackClient.files.uploadV2({
                         channel_id: channel,
-                        thread_ts: threadTs,
+                        ...threadParam,
                         filename: `${label}.json`,
                         content: overflowJson,
                         initial_comment: `📊 ${label}`,
@@ -383,7 +386,7 @@ export async function streamAgentResponse(params: {
                   await slackClient.chat
                     .postMessage({
                       channel,
-                      thread_ts: threadTs,
+                      ...threadParam,
                       text: '📊 Data component',
                       blocks,
                     })
@@ -422,7 +425,7 @@ export async function streamAgentResponse(params: {
                     () =>
                       slackClient.files.uploadV2({
                         channel_id: channel,
-                        thread_ts: threadTs,
+                        ...threadParam,
                         filename: `${label}.md`,
                         content: overflowContent,
                         initial_comment: `📄 ${label}`,
@@ -436,7 +439,7 @@ export async function streamAgentResponse(params: {
                   );
                 } else {
                   await slackClient.chat
-                    .postMessage({ channel, thread_ts: threadTs, text: '📄 Data', blocks })
+                    .postMessage({ channel, ...threadParam, text: '📄 Data', blocks })
                     .catch((e) => logger.warn({ error: e }, 'Failed to post data artifact'));
                 }
                 richMessageCount++;
@@ -602,7 +605,7 @@ export async function streamAgentResponse(params: {
           await slackClient.chat
             .postMessage({
               channel,
-              thread_ts: threadTs,
+              ...threadParam,
               text: `Approval for \`${toolName}\` has expired.`,
             })
             .catch((e) =>
@@ -646,7 +649,7 @@ export async function streamAgentResponse(params: {
       try {
         await slackClient.chat.postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         });
       } catch (notifyError) {

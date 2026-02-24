@@ -60,12 +60,14 @@ export async function handleToolApproval(params: {
       const tenantId = workspaceConnection.tenantId;
       const slackClient = getSlackClient(workspaceConnection.botToken);
 
+      const approvalThreadParam = buttonValue.threadTs ? { thread_ts: buttonValue.threadTs } : {};
+
       if (slackUserId !== buttonValue.slackUserId) {
         await slackClient.chat
           .postEphemeral({
             channel: buttonValue.channel,
             user: slackUserId,
-            thread_ts: buttonValue.threadTs,
+            ...approvalThreadParam,
             text: 'Only the user who started this conversation can approve or deny this action.',
           })
           .catch((e) => logger.warn({ error: e }, 'Failed to send ownership error notification'));
@@ -79,7 +81,7 @@ export async function handleToolApproval(params: {
           .postEphemeral({
             channel: buttonValue.channel,
             user: slackUserId,
-            thread_ts: buttonValue.threadTs,
+            ...approvalThreadParam,
             text: 'You need to link your Inkeep account first. Use `/inkeep link`.',
           })
           .catch((e) => logger.warn({ error: e }, 'Failed to send not-linked notification'));
@@ -132,7 +134,7 @@ export async function handleToolApproval(params: {
           .postEphemeral({
             channel: buttonValue.channel,
             user: slackUserId,
-            thread_ts: buttonValue.threadTs,
+            ...approvalThreadParam,
             text: `Failed to ${approved ? 'approve' : 'deny'} \`${toolName}\`. Please try again.`,
           })
           .catch((e) => logger.warn({ error: e }, 'Failed to send approval error notification'));

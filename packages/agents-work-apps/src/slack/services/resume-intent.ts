@@ -163,9 +163,7 @@ async function resumeMention(
 
   const conversationId = generateSlackConversationId({
     teamId,
-    threadTs: replyThreadTs,
-    channel: intent.channelId,
-    isDM: false,
+    messageTs: intent.messageTs || replyThreadTs,
     agentId: intent.agentId,
   });
 

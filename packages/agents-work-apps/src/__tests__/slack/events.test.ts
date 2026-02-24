@@ -5,6 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   extractApiErrorMessage,
+  generateSlackConversationId,
   getChannelAgentConfig,
   getThreadContext,
   getWorkspaceDefaultAgent,
@@ -476,6 +477,50 @@ describe('getChannelAgentConfig', () => {
 
     const result = await getChannelAgentConfig('T123', 'C456');
     expect(result?.agentId).toBe('workspace-agent');
+  });
+});
+
+describe('generateSlackConversationId', () => {
+  it('should generate trigger format with agentId', () => {
+    const result = generateSlackConversationId({
+      teamId: 'T123',
+      messageTs: '1234.5678',
+      agentId: 'agent-1',
+    });
+    expect(result).toBe('slack-trigger-T123-1234.5678-agent-1');
+  });
+
+  it('should generate trigger format without agentId', () => {
+    const result = generateSlackConversationId({
+      teamId: 'T123',
+      messageTs: '1234.5678',
+    });
+    expect(result).toBe('slack-trigger-T123-1234.5678');
+  });
+
+  it('should generate DM format with agentId', () => {
+    const result = generateSlackConversationId({
+      teamId: 'T123',
+      messageTs: '9999.0001',
+      isDM: true,
+      agentId: 'dm-agent',
+    });
+    expect(result).toBe('slack-dm-T123-9999.0001-dm-agent');
+  });
+
+  it('should generate DM format without agentId', () => {
+    const result = generateSlackConversationId({
+      teamId: 'T123',
+      messageTs: '9999.0001',
+      isDM: true,
+    });
+    expect(result).toBe('slack-dm-T123-9999.0001');
+  });
+
+  it('should produce unique IDs for different messageTs values', () => {
+    const id1 = generateSlackConversationId({ teamId: 'T1', messageTs: '1.1', agentId: 'a1' });
+    const id2 = generateSlackConversationId({ teamId: 'T1', messageTs: '1.2', agentId: 'a1' });
+    expect(id1).not.toBe(id2);
   });
 });
 

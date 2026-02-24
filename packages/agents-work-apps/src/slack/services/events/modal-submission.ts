@@ -180,9 +180,7 @@ export async function handleModalSubmission(view: {
 
       const conversationId = generateSlackConversationId({
         teamId: metadata.teamId,
-        channel: metadata.channel,
-        threadTs: metadata.threadTs || metadata.messageTs,
-        isDM: false,
+        messageTs: metadata.messageTs,
         agentId,
       });
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);

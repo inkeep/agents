@@ -294,9 +294,7 @@ export async function handleAppMention(params: {
 
         const conversationId = generateSlackConversationId({
           teamId,
-          threadTs,
-          channel,
-          isDM: false,
+          messageTs,
           agentId: agentConfig.agentId,
         });
         span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
@@ -405,9 +403,7 @@ Respond naturally as if you're joining the conversation to help.`;
 
       const conversationId = generateSlackConversationId({
         teamId,
-        threadTs: replyThreadTs,
-        channel,
-        isDM: false,
+        messageTs,
         agentId: agentConfig.agentId,
       });
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
