@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.52.0",
+  "version": "0.53.0",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -51,6 +51,7 @@
     "test:e2e:ci": "start-server-and-test start http-get://localhost:3000/default/projects test:e2e:run"
   },
   "dependencies": {
+    "prettier": "^3.8.1",
     "@better-auth/sso": "catalog:",
     "@hookform/resolvers": "^5.2.1",
     "@inkeep/agents-core": "workspace:^",
