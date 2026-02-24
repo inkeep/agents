@@ -133,7 +133,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
 }
 
 /**
- * Main pull-v3 command
+ * Main pull v4 command
  * @returns PullResult when in batch mode, otherwise void (exits process)
  */
 export async function pullV4Command(options: PullV3Options): Promise<PullResult | undefined> {
