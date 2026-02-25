@@ -35,6 +35,23 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   const { canEdit } = useProjectPermissions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
+  const form = useFullAgentFormContext();
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: 'functionTools',
+    keyName: '_rhfKey2',
+  });
+  const functionToolIndex = 0; //fields.findIndex(
+  // (s) => s.id === (selectedNode.data.id ?? selectedNode.id)
+  // );
+
+  const functionTool = useWatch({
+    control: form.control,
+    name: `functionTools.${functionToolIndex}`,
+  });
+  // if (functionToolIndex < 0) return null;
+
+  const path = <K extends string>(k: K) => `functionTools.${functionToolIndex}.${k}` as const;
 
   const nodeData = selectedNode.data;
 
@@ -149,7 +166,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   }, [chatFunctionsRef, name, writeWithAIInstructions, openCopilot]);
 
   const canWriteWithAI = isCopilotConfigured && canEdit;
-
+  console.log({ functionTool });
   return (
     <div className="space-y-8">
       <InputField

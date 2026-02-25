@@ -3,6 +3,7 @@ import {
   transformToJson,
   type AgentWithinContextOfProjectResponse,
   SubAgentStopWhenSchema,
+  StringRecordSchema,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
@@ -134,6 +135,8 @@ export function serializeAgentForm(data: FullAgentResponse) {
     stopWhen,
     models = {},
     subAgents,
+    functions = {},
+    functionTools = {},
   } = data;
 
   return {
@@ -172,5 +175,11 @@ export function serializeAgentForm(data: FullAgentResponse) {
       },
     },
     subAgents: [subAgents['websearch-agent']],
+    functionTools: [
+      {
+        ...functions['rn5612qh26zghl18rwjbn'],
+        name: functionTools['rn5612qh26zghl18rwjbn'].name,
+      },
+    ],
   };
 }
