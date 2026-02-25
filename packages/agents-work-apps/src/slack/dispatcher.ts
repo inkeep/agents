@@ -78,7 +78,13 @@ export async function dispatchSlackEvent(
       return { outcome };
     }
 
-    if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
+    if (
+      event?.type === 'app_mention' &&
+      event.channel_type !== 'im' &&
+      event.channel &&
+      event.user &&
+      teamId
+    ) {
       outcome = 'handled';
       span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
       const question = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
