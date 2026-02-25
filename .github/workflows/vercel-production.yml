@@ -2,9 +2,9 @@ name: Deploy to Vercel Production
 
 # This workflow deploys to Vercel production when a GitHub release is published,
 # or manually via workflow_dispatch (deploys latest main).
-# 1. Deploy to production (builds with production env vars, assigns production domains)
+# 1. Deploy both projects to production (builds with production env vars, creates staged deployments)
 # 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
-# 3. Promote the deployment to active production (handles projects with staged deployments)
+# 3. Once BOTH projects pass checks, promote both to current production
 #
 # Required secrets (configure in GitHub Repository Settings > Secrets):
 # - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
@@ -21,16 +21,11 @@ env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
 jobs:
-  deploy:
-    name: Deploy ${{ matrix.project.name }}
+  deploy-agents-api:
+    name: Deploy agents-api
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project:
-          - name: agents-api
-            project_id_secret: VERCEL_API_PROJECT_ID
-          - name: agents-manage-ui
-            project_id_secret: VERCEL_MANAGE_UI_PROJECT_ID
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -38,7 +33,7 @@ jobs:
           ref: ${{ github.event.release.tag_name || 'main' }}
 
       - name: Set Project ID
-        run: echo "VERCEL_PROJECT_ID=${{ secrets[matrix.project.project_id_secret] }}" >> $GITHUB_ENV
+        run: echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
 
       - name: Install Vercel CLI
         run: npm install -g vercel
@@ -62,7 +57,56 @@ jobs:
           echo "Waiting for Vercel deployment checks to complete..."
           vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
 
-      - name: Promote to Active Production
+  deploy-agents-manage-ui:
+    name: Deploy agents-manage-ui
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || 'main' }}
+
+      - name: Set Project ID
+        run: echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}" >> $GITHUB_ENV
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        id: deploy
         run: |
-          echo "Promoting ${{ matrix.project.name }} to active production..."
-          vercel promote ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
+          DEPLOYMENT_URL=$(vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }})
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Failed to capture deployment URL"
+            exit 1
+          fi
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
+
+  promote:
+    name: Promote all to production
+    needs: [deploy-agents-api, deploy-agents-manage-ui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Promote agents-api
+        run: |
+          echo "Promoting agents-api to production..."
+          vercel promote ${{ needs.deploy-agents-api.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Promote agents-manage-ui
+        run: |
+          echo "Promoting agents-manage-ui to production..."
+          vercel promote ${{ needs.deploy-agents-manage-ui.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
