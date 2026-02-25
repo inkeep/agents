@@ -7812,7 +7812,7 @@
             "description": "The maximum number of steps to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "number"
+            "type": "integer"
           }
         },
         "type": "object"
