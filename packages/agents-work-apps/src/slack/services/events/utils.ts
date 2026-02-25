@@ -93,6 +93,24 @@ export async function findCachedUserMapping(
 }
 
 /**
+ * Escape special characters in Slack mrkdwn link display text.
+ * In Slack's <url|text> format, `>` terminates the link, `<` opens a new one,
+ * and `&` begins an HTML entity — all must be escaped.
+ */
+export function escapeSlackLinkText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Escape special characters in Slack mrkdwn text.
+ * In Slack's mrkdwn, `&`, `<`, and `>` are treated as HTML entities/tags
+ * and must be escaped in all dynamic mrkdwn text fields.
+ */
+export function escapeSlackMrkdwn(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
  * Convert standard Markdown to Slack's mrkdwn format
  *
  * Key differences:
@@ -111,7 +129,10 @@ export function markdownToMrkdwn(markdown: string): string {
   result = result.replace(/^#{1,6}\s+(.+)$/gm, '*$1*');
 
   // Convert markdown links [text](url) to Slack links <url|text>
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<$2|$1>');
+  result = result.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, text, url) => `<${url}|${escapeSlackLinkText(text)}>`
+  );
 
   // Convert bold: **text** or __text__ to *text*
   // Do this before italic to avoid conflicts

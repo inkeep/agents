@@ -449,6 +449,14 @@ export async function streamAgentResponse(params: {
                   | undefined;
                 if (summary?.url && !citations.some((c) => c.url === summary.url)) {
                   citations.push({ title: summary.title, url: summary.url });
+                  const citationIndex = citations.length;
+                  if (fullText.length > 0) {
+                    await withTimeout(
+                      streamer.append({ markdown_text: `<${summary.url}|[${citationIndex}]>` }),
+                      CHATSTREAM_OP_TIMEOUT_MS,
+                      'streamer.append'
+                    ).catch((e) => logger.warn({ error: e }, 'Failed to append inline citation'));
+                  }
                 }
               } else if (richMessageCount < MAX_RICH_MESSAGES) {
                 const { blocks, overflowContent, artifactName } = buildDataArtifactBlocks({

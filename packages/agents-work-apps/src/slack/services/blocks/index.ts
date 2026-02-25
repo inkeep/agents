@@ -1,6 +1,7 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
 import { z } from 'zod';
 import { SlackStrings } from '../../i18n';
+import { escapeSlackLinkText, escapeSlackMrkdwn } from '../events/utils';
 
 export function createErrorMessage(message: string) {
   return Message().blocks(Blocks.Section().text(message)).buildToObject();
@@ -13,7 +14,7 @@ export interface ContextBlockParams {
 export function createContextBlock(params: ContextBlockParams) {
   const { agentName } = params;
 
-  const text = SlackStrings.context.poweredBy(agentName);
+  const text = SlackStrings.context.poweredBy(escapeSlackMrkdwn(agentName));
 
   return {
     type: 'context' as const,
@@ -197,7 +198,7 @@ export function buildToolApprovalBlocks(params: {
   const blocks: any[] = [
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Approval required - \`${toolName}\`*` },
+      text: { type: 'mrkdwn', text: `*Approval required - \`${escapeSlackMrkdwn(toolName)}\`*` },
     },
   ];
 
@@ -207,7 +208,10 @@ export function buildToolApprovalBlocks(params: {
       .map(([k, v]) => {
         const val = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
         const truncated = val.length > 80 ? `${val.slice(0, 80)}…` : val;
-        return { type: 'mrkdwn', text: `*${k}:*\n${truncated}` };
+        return {
+          type: 'mrkdwn',
+          text: `*${escapeSlackMrkdwn(k)}:*\n${escapeSlackMrkdwn(truncated)}`,
+        };
       });
     blocks.push({ type: 'section', fields });
   }
@@ -242,8 +246,8 @@ export function buildToolApprovalDoneBlocks(params: {
 }) {
   const { toolName, approved, actorUserId } = params;
   const statusText = approved
-    ? `✅ Approved \`${toolName}\` · <@${actorUserId}>`
-    : `❌ Denied \`${toolName}\` · <@${actorUserId}>`;
+    ? `✅ Approved \`${escapeSlackMrkdwn(toolName)}\` · <@${actorUserId}>`
+    : `❌ Denied \`${escapeSlackMrkdwn(toolName)}\` · <@${actorUserId}>`;
 
   return [{ type: 'context', elements: [{ type: 'mrkdwn', text: statusText }] }];
 }
@@ -252,7 +256,7 @@ export function buildToolApprovalExpiredBlocks(params: { toolName: string }) {
   return [
     {
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `⏱️ Expired · \`${params.toolName}\`` }],
+      elements: [{ type: 'mrkdwn', text: `⏱️ Expired · \`${escapeSlackMrkdwn(params.toolName)}\`` }],
     },
   ];
 }
@@ -261,14 +265,19 @@ export function buildToolOutputErrorBlock(toolName: string, errorText: string) {
   const truncated = errorText.length > 100 ? `${errorText.slice(0, 100)}…` : errorText;
   return {
     type: 'context' as const,
-    elements: [{ type: 'mrkdwn' as const, text: `⚠️ *${toolName}* · failed: ${truncated}` }],
+    elements: [
+      {
+        type: 'mrkdwn' as const,
+        text: `⚠️ *${escapeSlackMrkdwn(toolName)}* · failed: ${escapeSlackMrkdwn(truncated)}`,
+      },
+    ],
   };
 }
 
 export function buildSummaryBreadcrumbBlock(labels: string[]) {
   return {
     type: 'context' as const,
-    elements: [{ type: 'mrkdwn' as const, text: labels.join(' → ') }],
+    elements: [{ type: 'mrkdwn' as const, text: labels.map(escapeSlackMrkdwn).join(' → ') }],
   };
 }
 
@@ -317,9 +326,10 @@ export function buildDataComponentBlocks(component: {
         .slice(0, 10)
         .map(([k, v]) => {
           const val = String(v ?? '');
+          const truncated = val.length > 80 ? `${val.slice(0, 80)}…` : val;
           return {
             type: 'mrkdwn',
-            text: `*${k}*\n${val.length > 80 ? `${val.slice(0, 80)}…` : val}`,
+            text: `*${escapeSlackMrkdwn(k)}*\n${escapeSlackMrkdwn(truncated)}`,
           };
         });
       blocks.push({ type: 'section', fields });
@@ -339,7 +349,9 @@ export function buildDataComponentBlocks(component: {
   if (componentType) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `data component · type: ${componentType}` }],
+      elements: [
+        { type: 'mrkdwn', text: `data component · type: ${escapeSlackMrkdwn(componentType)}` },
+      ],
     });
   }
 
@@ -360,7 +372,8 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
     const lines = shown
       .map((s) => {
         const url = s.url || s.href;
-        const title = s.title || s.name || url;
+        const rawTitle = s.title || s.name || url;
+        const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
         return url ? `• <${url}|${title}>` : null;
       })
       .filter((l): l is string => l !== null);
@@ -391,7 +404,7 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
   if (artifactType) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `type: ${artifactType}` }],
+      elements: [{ type: 'mrkdwn', text: `type: ${escapeSlackMrkdwn(artifactType)}` }],
     });
   }
 
@@ -411,10 +424,11 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   const MAX_CITATIONS = 10;
   const shown = citations.slice(0, MAX_CITATIONS);
   const lines = shown
-    .map((c) => {
+    .map((c, i) => {
       const url = c.url;
-      const title = c.title || url;
-      return url ? `• <${url}|${title}>` : null;
+      const rawTitle = c.title || url;
+      const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
+      return url ? `<${url}|[${i + 1}] ${title}>` : null;
     })
     .filter((l): l is string => l !== null);
 
