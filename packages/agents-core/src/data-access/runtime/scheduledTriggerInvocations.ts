@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gte, inArray, lte, ne, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { scheduledTriggerInvocations } from '../../db/runtime/runtime-schema';
-import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
 import type {
   ScheduledTriggerInvocation,
   ScheduledTriggerInvocationInsert,
@@ -587,4 +587,71 @@ export const listProjectScheduledTriggerInvocationsPaginated =
       data,
       pagination: { page, limit, total, pages },
     };
+  };
+
+/**
+ * Get status summary for all invocations with a given scheduledTriggerId.
+ * Used for dataset run status aggregation where scheduledTriggerId = datasetRunId.
+ */
+export const getScheduledTriggerInvocationStatusSummary =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    scheduledTriggerId: string;
+  }): Promise<{ pending: number; running: number; completed: number; failed: number }> => {
+    const rows = await db
+      .select({ status: scheduledTriggerInvocations.status, cnt: count() })
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId)
+        )
+      )
+      .groupBy(scheduledTriggerInvocations.status);
+
+    const summary = { pending: 0, running: 0, completed: 0, failed: 0 };
+    for (const row of rows) {
+      const s = row.status as string;
+      if (s === 'pending' || s === 'running' || s === 'completed') {
+        summary[s] = Number(row.cnt);
+      } else if (s === 'failed' || s === 'cancelled') {
+        summary.failed += Number(row.cnt);
+      }
+    }
+    return summary;
+  };
+
+/**
+ * List invocations by scheduledTriggerId without agentId filter (project-scoped).
+ * Used for dataset run items listing where scheduledTriggerId = datasetRunId.
+ */
+export const listScheduledTriggerInvocationsByTriggerId =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    scheduledTriggerId: string;
+    filters?: { status?: string };
+  }) => {
+    const conditions = [
+      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+      eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+    ];
+
+    if (params.filters?.status) {
+      conditions.push(
+        eq(
+          scheduledTriggerInvocations.status,
+          params.filters.status as ScheduledTriggerInvocationStatus
+        )
+      );
+    }
+
+    return await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(and(...conditions))
+      .orderBy(asc(scheduledTriggerInvocations.createdAt));
   };
