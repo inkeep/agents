@@ -81,6 +81,10 @@ export class McpClient {
     return this.connected;
   }
 
+  getInstructions(): string | undefined {
+    return this.client.getInstructions();
+  }
+
   async connect() {
     if (this.connected) return;
 

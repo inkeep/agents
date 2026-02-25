@@ -1,25 +1,24 @@
-import type { McpTool } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
-import type { SkillData, SystemPromptV1 } from '../../../domains/run/agents/types';
+import type {
+  McpServerGroupData,
+  SkillData,
+  SystemPromptV1,
+} from '../../../domains/run/agents/types';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
-// Helper to create mock McpTool
-function createMockMcpTool(name: string, availableTools: any[]): McpTool {
+// Helper to create mock McpServerGroupData
+function createMockMcpServerGroup(
+  serverName: string,
+  tools: Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }>
+): McpServerGroupData {
   return {
-    id: `tool-${name}`,
-    name,
-    tenantId: 'test-tenant',
-    projectId: 'test-project',
-    description: '',
-    config: {
-      type: 'mcp',
-      mcp: { server: { url: 'http://example.com' } },
-    },
-    availableTools,
-    status: 'healthy',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    serverName,
+    tools: tools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
   };
 }
 
@@ -92,7 +91,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should generate system prompt with single tool', () => {
-      const mockTool = createMockMcpTool('knowledge-server', [
+      const mockGroup = createMockMcpServerGroup('knowledge-server', [
         {
           name: 'search_knowledge',
           description: 'Search the knowledge base for relevant information',
@@ -115,7 +114,8 @@ describe('SystemPromptBuilder', () => {
 
       const config: SystemPromptV1 = {
         corePrompt: 'You are a knowledge assistant.',
-        tools: [mockTool],
+        tools: [],
+        mcpServerGroups: [mockGroup],
         dataComponents: [],
         artifacts: [],
       };
@@ -131,7 +131,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should generate system prompt with multiple tools', () => {
-      const mockTool = createMockMcpTool('multi-server', [
+      const mockGroup = createMockMcpServerGroup('multi-server', [
         {
           name: 'tool_one',
           description: 'First tool',
@@ -146,7 +146,8 @@ describe('SystemPromptBuilder', () => {
 
       const config: SystemPromptV1 = {
         corePrompt: 'You are a multi-tool assistant.',
-        tools: [mockTool],
+        tools: [],
+        mcpServerGroups: [mockGroup],
         dataComponents: [],
         artifacts: [],
       };
@@ -276,7 +277,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle tools with complex parameter schemas', () => {
-      const mockTool = createMockMcpTool('complex-server', [
+      const mockGroup = createMockMcpServerGroup('complex-server', [
         {
           name: 'complex_tool',
           description: 'A tool with complex parameters',
@@ -303,7 +304,8 @@ describe('SystemPromptBuilder', () => {
 
       const config: SystemPromptV1 = {
         corePrompt: 'You are an assistant with complex tools.',
-        tools: [mockTool],
+        tools: [],
+        mcpServerGroups: [mockGroup],
         dataComponents: [],
         artifacts: [],
       };
@@ -318,7 +320,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle tools with no required parameters', () => {
-      const mockTool = createMockMcpTool('optional-server', [
+      const mockGroup = createMockMcpServerGroup('optional-server', [
         {
           name: 'optional_tool',
           description: 'A tool with optional parameters',
@@ -337,7 +339,8 @@ describe('SystemPromptBuilder', () => {
 
       const config: SystemPromptV1 = {
         corePrompt: 'You are an assistant.',
-        tools: [mockTool],
+        tools: [],
+        mcpServerGroups: [mockGroup],
         dataComponents: [],
         artifacts: [],
       };
@@ -349,7 +352,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle tools with empty parameter schema', () => {
-      const mockTool = createMockMcpTool('simple-server', [
+      const mockGroup = createMockMcpServerGroup('simple-server', [
         {
           name: 'empty_tool',
           description: 'A tool with no parameters',
@@ -359,7 +362,8 @@ describe('SystemPromptBuilder', () => {
 
       const config: SystemPromptV1 = {
         corePrompt: 'You are an assistant.',
-        tools: [mockTool],
+        tools: [],
+        mcpServerGroups: [mockGroup],
         dataComponents: [],
         artifacts: [],
       };
@@ -391,7 +395,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle special characters in instructions and descriptions', () => {
-      const mockTool = createMockMcpTool('special-server', [
+      const mockGroup = createMockMcpServerGroup('special-server', [
         {
           name: 'special_tool',
           description: 'Tool with <tags> & "quotes" and \'apostrophes\'.',
@@ -405,7 +409,8 @@ describe('SystemPromptBuilder', () => {
 
       const config: SystemPromptV1 = {
         corePrompt: 'Instructions with <special> & "characters" and \'quotes\'.',
-        tools: [mockTool],
+        tools: [],
+        mcpServerGroups: [mockGroup],
         dataComponents: [],
         artifacts: [],
       };
@@ -414,7 +419,6 @@ describe('SystemPromptBuilder', () => {
 
       expect(result.prompt).toContain('Instructions with <special> & "characters" and \'quotes\'.');
       expect(result.prompt).toContain('Tool with <tags> & "quotes" and \'apostrophes\'.');
-      expect(result.prompt).toContain('Use this tool from special-server server when appropriate.');
     });
 
     test('should include artifacts in system prompt', () => {

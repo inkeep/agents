@@ -1,4 +1,4 @@
-import type { Artifact, McpTool } from '@inkeep/agents-core';
+import type { Artifact } from '@inkeep/agents-core';
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
@@ -16,7 +16,13 @@ import {
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { SkillData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
+import type {
+  McpServerGroupData,
+  SkillData,
+  SystemPromptV1,
+  ToolData,
+  VersionConfig,
+} from '../../types';
 
 // Re-export for Agent.ts
 export { V1_BREAKDOWN_SCHEMA };
@@ -34,39 +40,6 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
   getBreakdownSchema(): BreakdownComponentDef[] {
     return V1_BREAKDOWN_SCHEMA;
-  }
-
-  static convertMcpToolsToToolData(mcpTools: McpTool[] | undefined): ToolData[] {
-    if (!mcpTools || mcpTools.length === 0) {
-      return [];
-    }
-    const toolData: ToolData[] = [];
-    for (const mcpTool of mcpTools) {
-      if (mcpTool.availableTools) {
-        for (const toolDef of mcpTool.availableTools) {
-          // Build usage guidelines with custom prompt as additional context
-          let usageGuidelines = '';
-          if (mcpTool.config.mcp.prompt) {
-            usageGuidelines = `${mcpTool.config.mcp.prompt}\n\n`;
-          }
-          usageGuidelines += `Use this tool from ${mcpTool.name} server when appropriate.`;
-
-          toolData.push({
-            name: toolDef.name,
-            description: toolDef.description || 'No description available',
-            inputSchema: toolDef.inputSchema || {},
-            usageGuidelines,
-          });
-        }
-      }
-    }
-    return toolData;
-  }
-
-  private isToolDataArray(tools: ToolData[] | McpTool[]): tools is ToolData[] {
-    if (!tools || tools.length === 0) return true; // Default to ToolData[] for empty arrays
-    const firstItem = tools[0];
-    return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
 
   private normalizeSchema(inputSchema: any): Record<string, unknown> {
@@ -142,12 +115,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       .replace('{{SKILLS_SECTION}}', skillsSection)
       .replace('{{SKILLS_GUIDELINES}}', skillsGuidelines);
 
-    const rawToolData = this.isToolDataArray(config.tools)
-      ? config.tools
-      : PromptConfig.convertMcpToolsToToolData(config.tools as McpTool[]);
-
-    // Normalize any Zod schemas to JSON schemas
-    const toolData = rawToolData.map((tool) => ({
+    const toolData = config.tools.map((tool) => ({
       ...tool,
       inputSchema: this.normalizeSchema(tool.inputSchema),
     }));
@@ -190,7 +158,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
-    const toolsSection = this.generateToolsSection(templates, toolData);
+    const toolsSection = this.generateToolsSection(templates, toolData, config.mcpServerGroups);
     breakdown.components.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
@@ -664,14 +632,43 @@ ${creationInstructions}
     return artifactXml;
   }
 
-  private generateToolsSection(templates: Map<string, string>, tools: ToolData[]): string {
-    if (tools.length === 0) {
+  private generateMcpServerGroupXml(
+    templates: Map<string, string>,
+    group: McpServerGroupData
+  ): string {
+    const toolsXml = group.tools
+      .map((tool) => this.generateToolXml(templates, tool))
+      .join('\n    ');
+    const instructionsSection = group.serverInstructions
+      ? `\n    <instructions>${group.serverInstructions}</instructions>`
+      : '';
+    return `<mcp_server name="${group.serverName}">${instructionsSection}
+    ${toolsXml}
+  </mcp_server>`;
+  }
+
+  private generateToolsSection(
+    templates: Map<string, string>,
+    tools: ToolData[],
+    mcpServerGroups?: McpServerGroupData[]
+  ): string {
+    const hasRegularTools = tools.length > 0;
+    const hasMcpGroups = mcpServerGroups && mcpServerGroups.length > 0;
+
+    if (!hasRegularTools && !hasMcpGroups) {
       return '<available_tools description="No tools are currently available"></available_tools>';
     }
 
-    const toolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
+    const regularToolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
+    const mcpGroupsXml = hasMcpGroups
+      ? mcpServerGroups
+          .map((group) => this.generateMcpServerGroupXml(templates, group))
+          .join('\n  ')
+      : '';
+
+    const parts = [regularToolsXml, mcpGroupsXml].filter(Boolean).join('\n  ');
     return `<available_tools description="These are the tools available for you to use to accomplish tasks">
-  ${toolsXml}
+  ${parts}
 </available_tools>`;
   }
 

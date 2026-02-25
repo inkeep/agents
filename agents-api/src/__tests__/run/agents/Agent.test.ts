@@ -9,7 +9,6 @@ import {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -198,6 +197,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       connect: vi.fn().mockResolvedValue(undefined),
       tools: vi.fn().mockImplementation(() => Promise.resolve(mockMcpTools)),
       disconnect: vi.fn().mockResolvedValue(undefined),
+      getInstructions: vi.fn().mockReturnValue(undefined),
     })),
     CredentialStuffer: vi.fn().mockImplementation(function CredentialStuffer() {
       return {
@@ -543,25 +543,31 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      tools: [
+      tools: [],
+      mcpServerGroups: [
         {
-          name: 'search_database',
-          description: 'Search the database for information',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'The search query',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results',
+          serverName: 'Test Tool',
+          serverInstructions: undefined,
+          tools: [
+            {
+              name: 'search_database',
+              description: 'Search the database for information',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'The search query',
+                  },
+                  limit: {
+                    type: 'number',
+                    description: 'Maximum number of results',
+                  },
+                },
+                required: ['query'],
               },
             },
-            required: ['query'],
-          },
-          usageGuidelines: 'Use this tool when appropriate for the task at hand.',
+          ],
         },
       ],
       skills: [],
@@ -590,6 +596,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       prompt: undefined,
       skills: [],
       tools: [],
+      mcpServerGroups: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -615,6 +622,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       prompt: undefined,
       skills: [],
       tools: [],
+      mcpServerGroups: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -649,7 +657,14 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      tools: [], // Empty tools array since availableTools is undefined
+      tools: [],
+      mcpServerGroups: [
+        {
+          serverName: 'Test Tool',
+          serverInstructions: undefined,
+          tools: [],
+        },
+      ],
       skills: [],
       dataComponents: [],
       artifacts: [],
@@ -670,119 +685,6 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder).toBeDefined();
     // The constructor should have been called with 'v1' and a PromptConfig instance
     // This is tested implicitly by the fact that the agent creates successfully
-  });
-});
-
-describe('PromptConfig Tool Conversion', () => {
-  test('should convert McpTool availableTools to ToolData format correctly', () => {
-    const mockTools: McpTool[] = [
-      {
-        id: 'tool1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        name: 'Test Server',
-        description: 'A test server',
-        status: 'healthy',
-        config: {
-          type: 'mcp',
-          mcp: { server: { url: 'http://example.com' } },
-        },
-        capabilities: {
-          tools: true,
-          resources: false,
-          prompts: false,
-          logging: false,
-        },
-        availableTools: [
-          {
-            name: 'search',
-            description: 'Search for information',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: 'Search query' },
-              },
-              required: ['query'],
-            },
-          },
-          {
-            name: 'analyze',
-            description: 'Analyze data',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                data: { type: 'string', description: 'Data to analyze' },
-              },
-              required: ['data'],
-            },
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as McpTool,
-    ];
-
-    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
-
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({
-      name: 'search',
-      description: 'Search for information',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Search query' },
-        },
-        required: ['query'],
-      },
-      usageGuidelines: 'Use this tool from Test Server server when appropriate.',
-    });
-    expect(result[1]).toEqual({
-      name: 'analyze',
-      description: 'Analyze data',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          data: { type: 'string', description: 'Data to analyze' },
-        },
-        required: ['data'],
-      },
-      usageGuidelines: 'Use this tool from Test Server server when appropriate.',
-    });
-  });
-
-  test('should handle empty or undefined McpTool arrays', () => {
-    expect(PromptConfig.convertMcpToolsToToolData([])).toEqual([]);
-    expect(PromptConfig.convertMcpToolsToToolData(undefined)).toEqual([]);
-  });
-
-  test('should handle McpTools without availableTools', () => {
-    const mockTools: McpTool[] = [
-      {
-        id: 'tool1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        name: 'Test Server',
-        description: 'A test server',
-        status: 'healthy',
-        config: {
-          type: 'mcp',
-          mcp: { server: { url: 'http://example.com' } },
-        },
-        capabilities: {
-          tools: true,
-          resources: false,
-          prompts: false,
-          logging: false,
-        },
-        availableTools: undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as McpTool,
-    ];
-
-    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
-    expect(result).toEqual([]);
   });
 });
 
