@@ -1,8 +1,20 @@
-import { StringRecordSchema, transformToJson } from '@inkeep/agents-core/client-exports';
+import {
+  AgentApiInsertSchema,
+  StringRecordSchema,
+  transformToJson,
+} from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 type HeadersValue = z.output<typeof StringRecordSchema>;
 type HeadersPipeSchema = z.ZodType<HeadersValue, HeadersValue>;
+
+export type AgentInput = z.input<typeof AgentSchema>;
+
+export const AgentSchema = AgentApiInsertSchema.pick({
+  name: true,
+  id: true,
+  description: true,
+});
 
 /**
  * Reusable ID validation schema for database primary keys.

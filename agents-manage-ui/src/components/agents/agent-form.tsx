@@ -4,24 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
-import { idSchema } from '@/lib/validation';
+import { isRequired } from '@/lib/utils';
+import { type AgentInput, AgentSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
 import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';
 import { Form } from '../ui/form';
 
-const agentSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  id: idSchema,
-  description: z.string().optional(),
-});
-
-export type AgentFormData = z.infer<typeof agentSchema>;
-
-const defaultValues: AgentFormData = {
+const defaultValues: AgentInput = {
   name: '',
   id: '',
   description: '',
@@ -31,7 +23,7 @@ interface AgentFormProps {
   tenantId: string;
   projectId: string;
   onSuccess?: () => void;
-  initialData?: AgentFormData;
+  initialData?: AgentInput;
   agentId?: string;
 }
 
@@ -40,12 +32,12 @@ export const AgentForm = ({
   projectId,
   agentId,
   onSuccess,
-  initialData,
+  initialData = defaultValues,
 }: AgentFormProps) => {
   const router = useRouter();
-  const form = useForm<AgentFormData>({
-    resolver: zodResolver(agentSchema),
-    defaultValues: initialData ?? defaultValues,
+  const form = useForm({
+    resolver: zodResolver(AgentSchema),
+    defaultValues: initialData,
   });
 
   const { isSubmitting } = form.formState;
@@ -65,7 +57,7 @@ export const AgentForm = ({
     isEditing: !!agentId,
   });
 
-  const onSubmit = async (data: AgentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       if (agentId) {
         const res = await updateAgentAction(tenantId, projectId, agentId, data);
@@ -91,17 +83,17 @@ export const AgentForm = ({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-8" onSubmit={onSubmit}>
         <GenericInput
           control={form.control}
           name="name"
           label="Name"
           placeholder="My agent"
-          isRequired
+          isRequired={isRequired(AgentSchema, 'name')}
         />
         <GenericInput
           control={form.control}
@@ -109,7 +101,7 @@ export const AgentForm = ({
           label="Id"
           placeholder="my-agent"
           disabled={!!agentId}
-          isRequired
+          isRequired={isRequired(AgentSchema, 'id')}
         />
         <GenericTextarea
           control={form.control}
@@ -117,6 +109,7 @@ export const AgentForm = ({
           label="Description"
           placeholder="This agent is used to..."
           className="min-h-[100px]"
+          isRequired={isRequired(AgentSchema, 'description')}
         />
         <div className="flex justify-end">
           <Button disabled={isSubmitting} type="submit">
