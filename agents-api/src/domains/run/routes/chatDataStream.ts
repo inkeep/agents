@@ -352,6 +352,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
         if (invocationType) {
           messageSpan.setAttribute('invocation.type', invocationType);
         }
+        const invocationEntryPoint = c.req.header('x-inkeep-invocation-entry-point');
+        if (invocationEntryPoint) {
+          messageSpan.setAttribute('invocation.entryPoint', invocationEntryPoint);
+        }
 
         // Add user information from execution context metadata if available
         if (executionContext.metadata?.initiatedBy) {

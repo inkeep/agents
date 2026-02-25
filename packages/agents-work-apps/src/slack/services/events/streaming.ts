@@ -110,6 +110,7 @@ export async function streamAgentResponse(params: {
   question: string;
   agentName: string;
   conversationId: string;
+  entryPoint?: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -125,6 +126,7 @@ export async function streamAgentResponse(params: {
       question,
       agentName,
       conversationId,
+      entryPoint,
     } = params;
 
     const threadParam = threadTs ? { thread_ts: threadTs } : {};
@@ -178,6 +180,7 @@ export async function streamAgentResponse(params: {
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
           'x-inkeep-invocation-type': 'slack',
+          ...(entryPoint && { 'x-inkeep-invocation-entry-point': entryPoint }),
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],

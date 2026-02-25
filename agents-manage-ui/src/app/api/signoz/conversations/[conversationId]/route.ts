@@ -541,6 +541,7 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             // Trigger-related attributes
             { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.INVOCATION_ENTRY_POINT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ],
@@ -1278,6 +1279,7 @@ export async function GET(
     let agentId: string | null = null;
     let agentName: string | null = null;
     let invocationType: string | null = null;
+    let invocationEntryPoint: string | null = null;
     let triggerId: string | null = null;
     let triggerInvocationId: string | null = null;
     for (const s of userMessageSpans) {
@@ -1286,6 +1288,7 @@ export async function GET(
       const spanInvocationType = getString(s, SPAN_KEYS.INVOCATION_TYPE, '');
       if (spanInvocationType && !invocationType) {
         invocationType = spanInvocationType;
+        invocationEntryPoint = getString(s, SPAN_KEYS.INVOCATION_ENTRY_POINT, '') || null;
         triggerId = getString(s, SPAN_KEYS.TRIGGER_ID, '') || null;
         triggerInvocationId = getString(s, SPAN_KEYS.TRIGGER_INVOCATION_ID, '') || null;
       }
@@ -1365,6 +1368,7 @@ export async function GET(
       messageParts?: string;
       // trigger/invocation attributes
       invocationType?: string;
+      invocationEntryPoint?: string;
       triggerId?: string;
       triggerInvocationId?: string;
       // context resolution
@@ -1563,16 +1567,18 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       const invocationType = getString(span, SPAN_KEYS.INVOCATION_TYPE, '');
+      const spanEntryPoint = getString(span, SPAN_KEYS.INVOCATION_ENTRY_POINT, '');
       const triggerId = getString(span, SPAN_KEYS.TRIGGER_ID, '');
       const triggerInvocationId = getString(span, SPAN_KEYS.TRIGGER_INVOCATION_ID, '');
 
       // Determine description based on invocation type
       const isTriggerInvocation = invocationType === 'trigger';
       const isSlackMessage = invocationType === 'slack';
+      const entryPointLabel = spanEntryPoint ? ` (${spanEntryPoint.replace(/_/g, ' ')})` : '';
       const description = isTriggerInvocation
         ? 'Trigger invocation received'
         : isSlackMessage
-          ? 'Slack message received'
+          ? `Slack message received${entryPointLabel}`
           : 'User sent a message';
 
       activities.push({
@@ -1595,6 +1601,7 @@ export async function GET(
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
         // Trigger-specific attributes
         invocationType: invocationType || undefined,
+        invocationEntryPoint: spanEntryPoint || undefined,
         triggerId: triggerId || undefined,
         triggerInvocationId: triggerInvocationId || undefined,
       });
@@ -2084,6 +2091,7 @@ export async function GET(
       warningCount: finalWarningCount,
       // Trigger-specific info (null if not a trigger invocation)
       invocationType,
+      invocationEntryPoint,
       triggerId,
       triggerInvocationId,
     });

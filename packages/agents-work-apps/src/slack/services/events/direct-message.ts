@@ -149,6 +149,7 @@ export async function handleDirectMessage(params: {
         agentName: agentDisplayName,
         question: queryText,
         conversationId,
+        entryPoint: 'direct_message',
       });
       span.end();
     } catch (error) {

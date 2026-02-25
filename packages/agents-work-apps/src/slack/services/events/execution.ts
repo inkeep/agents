@@ -6,6 +6,14 @@ import { streamAgentResponse } from './streaming';
 
 const logger = getLogger('slack-execution');
 
+export type SlackEntryPoint =
+  | 'app_mention'
+  | 'direct_message'
+  | 'slash_command'
+  | 'message_shortcut'
+  | 'modal_submission'
+  | 'smart_link_resume';
+
 export interface PublicExecutionParams {
   slackClient: ReturnType<typeof getSlackClient>;
   channel: string;
@@ -18,6 +26,7 @@ export interface PublicExecutionParams {
   agentName: string;
   question: string;
   conversationId: string;
+  entryPoint?: SlackEntryPoint;
 }
 
 export async function executeAgentPublicly(params: PublicExecutionParams): Promise<StreamResult> {
@@ -62,5 +71,6 @@ export async function executeAgentPublicly(params: PublicExecutionParams): Promi
     question: params.question,
     agentName,
     conversationId: params.conversationId,
+    entryPoint: params.entryPoint,
   });
 }
