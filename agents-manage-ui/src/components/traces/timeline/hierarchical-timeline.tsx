@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { TimelineItem } from '@/components/traces/timeline/timeline-item';
 import { buildActivityTree, type TreeNode } from '@/components/traces/timeline/tree-utils';
 import type { ActivityItem } from '@/components/traces/timeline/types';
@@ -9,6 +8,8 @@ interface HierarchicalTimelineProps {
   selectedActivityId?: string | null;
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
+  collapsedNodes: Set<string>;
+  onToggleNodeCollapse: (nodeId: string) => void;
 }
 
 interface TreeNodeItemProps {
@@ -112,21 +113,9 @@ export function HierarchicalTimeline({
   selectedActivityId,
   collapsedAiMessages,
   onToggleAiMessageCollapse,
+  collapsedNodes,
+  onToggleNodeCollapse,
 }: HierarchicalTimelineProps) {
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
-
-  const toggleNodeCollapse = (nodeId: string) => {
-    setCollapsedNodes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(nodeId)) {
-        newSet.delete(nodeId);
-      } else {
-        newSet.add(nodeId);
-      }
-      return newSet;
-    });
-  };
-
   const tree = buildActivityTree(activities);
 
   return (
@@ -142,7 +131,7 @@ export function HierarchicalTimeline({
             collapsedAiMessages={collapsedAiMessages}
             onToggleAiMessageCollapse={onToggleAiMessageCollapse}
             collapsedNodes={collapsedNodes}
-            toggleNodeCollapse={toggleNodeCollapse}
+            toggleNodeCollapse={onToggleNodeCollapse}
           />
         ))}
       </div>
