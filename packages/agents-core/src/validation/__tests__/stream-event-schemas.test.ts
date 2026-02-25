@@ -87,13 +87,16 @@ describe('ToolAuthRequiredEventSchema', () => {
 });
 
 describe('StreamEventSchema discriminated union', () => {
-  it('parses tool-auth-required as a valid stream event', () => {
+  it('parses data-tool-auth-required as a valid stream event', () => {
     const event = {
       type: 'data-tool-auth-required' as const,
-      toolCallId: 'call_abc123',
-      toolName: 'Linear Ticketing',
-      toolId: 'tool_linear_01',
-      message: 'Authentication required.',
+      data: {
+        type: 'data-tool-auth-required' as const,
+        toolCallId: 'call_abc123',
+        toolName: 'Linear Ticketing',
+        toolId: 'tool_linear_01',
+        message: 'Authentication required.',
+      },
     };
     const result = StreamEventSchema.safeParse(event);
     expect(result.success).toBe(true);

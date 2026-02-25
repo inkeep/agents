@@ -102,6 +102,12 @@ describe('VercelDataStreamHelper Memory Management', () => {
     await helper.streamText('should not work');
     await helper.writeError('should not work');
     await helper.mergeStream('should not work');
+    await helper.writeToolAuthRequired({
+      toolCallId: 'call_after_complete',
+      toolName: 'Linear',
+      toolId: 'tool_linear_01',
+      message: 'Auth required.',
+    });
 
     // Should have warned for each attempted write
     expect(consoleWarnSpy).toHaveBeenCalledWith('Attempted to write content to completed stream');
@@ -245,11 +251,14 @@ describe('VercelDataStreamHelper Memory Management', () => {
 
     expect(mockWriter.write).toHaveBeenCalledWith({
       type: 'data-tool-auth-required',
-      toolCallId: 'call_vercel_123',
-      toolName: 'Linear Ticketing',
-      toolId: 'tool_linear_01',
-      mcpServerUrl: 'https://mcp.example.com/linear',
-      message: 'Linear Ticketing requires authentication.',
+      data: {
+        type: 'data-tool-auth-required',
+        toolCallId: 'call_vercel_123',
+        toolName: 'Linear Ticketing',
+        toolId: 'tool_linear_01',
+        mcpServerUrl: 'https://mcp.example.com/linear',
+        message: 'Linear Ticketing requires authentication.',
+      },
     });
   });
 
@@ -263,10 +272,13 @@ describe('VercelDataStreamHelper Memory Management', () => {
 
     expect(mockWriter.write).toHaveBeenCalledWith({
       type: 'data-tool-auth-required',
-      toolCallId: 'call_vercel_456',
-      toolName: 'GitHub',
-      toolId: 'tool_github_01',
-      message: 'GitHub requires authentication.',
+      data: {
+        type: 'data-tool-auth-required',
+        toolCallId: 'call_vercel_456',
+        toolName: 'GitHub',
+        toolId: 'tool_github_01',
+        message: 'GitHub requires authentication.',
+      },
     });
   });
 

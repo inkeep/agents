@@ -215,7 +215,7 @@ export const StreamEventSchema = z.discriminatedUnion('type', [
   ToolOutputErrorEventSchema,
   ToolApprovalRequestEventSchema,
   ToolOutputDeniedEventSchema,
-  ToolAuthRequiredEventSchema,
+  DataToolAuthRequiredEventSchema,
 ]);
 
 // =============================================================================
@@ -240,6 +240,7 @@ export type ToolOutputErrorEvent = z.infer<typeof ToolOutputErrorEventSchema>;
 export type ToolApprovalRequestEvent = z.infer<typeof ToolApprovalRequestEventSchema>;
 export type ToolOutputDeniedEvent = z.infer<typeof ToolOutputDeniedEventSchema>;
 export type ToolAuthRequiredEvent = z.infer<typeof ToolAuthRequiredEventSchema>;
+export type DataToolAuthRequiredEvent = z.infer<typeof DataToolAuthRequiredEventSchema>;
 
 /**
  * Union type of all possible stream events

@@ -220,11 +220,12 @@ describe('Tool auth error short-circuit behavior', () => {
       const innerContent = JSON.parse(outerData.choices[0].delta.content);
 
       expect(innerContent.type).toBe('data-tool-auth-required');
-      expect(innerContent.toolCallId).toBe('call_abc');
-      expect(innerContent.toolName).toBe('Linear Ticketing');
-      expect(innerContent.toolId).toBe('tool_linear_01');
-      expect(innerContent.mcpServerUrl).toBe('https://mcp.example.com/linear');
-      expect(innerContent.message).toContain('requires authentication');
+      expect(innerContent.data.type).toBe('data-tool-auth-required');
+      expect(innerContent.data.toolCallId).toBe('call_abc');
+      expect(innerContent.data.toolName).toBe('Linear Ticketing');
+      expect(innerContent.data.toolId).toBe('tool_linear_01');
+      expect(innerContent.data.mcpServerUrl).toBe('https://mcp.example.com/linear');
+      expect(innerContent.data.message).toContain('requires authentication');
     });
 
     it('omits optional fields when not provided', async () => {
@@ -259,11 +260,14 @@ describe('Tool auth error short-circuit behavior', () => {
       expect(response.data).toHaveLength(1);
       expect(response.data[0]).toEqual({
         type: 'data-tool-auth-required',
-        toolCallId: 'call_buf',
-        toolName: 'Linear Ticketing',
-        toolId: 'tool_linear_01',
-        mcpServerUrl: 'https://mcp.example.com/linear',
-        message: 'Linear Ticketing requires authentication.',
+        data: {
+          type: 'data-tool-auth-required',
+          toolCallId: 'call_buf',
+          toolName: 'Linear Ticketing',
+          toolId: 'tool_linear_01',
+          mcpServerUrl: 'https://mcp.example.com/linear',
+          message: 'Linear Ticketing requires authentication.',
+        },
       });
     });
 
@@ -286,8 +290,8 @@ describe('Tool auth error short-circuit behavior', () => {
 
       const response = helper.getCapturedResponse();
       expect(response.data).toHaveLength(2);
-      expect(response.data[0].toolName).toBe('Linear');
-      expect(response.data[1].toolName).toBe('GitHub');
+      expect(response.data[0].data.toolName).toBe('Linear');
+      expect(response.data[1].data.toolName).toBe('GitHub');
     });
   });
 });

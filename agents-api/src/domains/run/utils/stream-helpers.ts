@@ -348,12 +348,15 @@ export class SSEStreamHelper implements StreamHelper {
     await this.writeContent(
       JSON.stringify({
         type: 'data-tool-auth-required',
-        toolCallId: params.toolCallId,
-        toolName: params.toolName,
-        toolId: params.toolId,
-        ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
-        message: params.message,
-        ...(params.authLink && { authLink: params.authLink }),
+        data: {
+          type: 'data-tool-auth-required',
+          toolCallId: params.toolCallId,
+          toolName: params.toolName,
+          toolId: params.toolId,
+          ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
+          message: params.message,
+          ...(params.authLink && { authLink: params.authLink }),
+        },
       })
     );
   }
@@ -697,12 +700,15 @@ export class VercelDataStreamHelper implements StreamHelper {
     if (this.isCompleted) return;
     this.writer.write({
       type: 'data-tool-auth-required',
-      toolCallId: params.toolCallId,
-      toolName: params.toolName,
-      toolId: params.toolId,
-      ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
-      message: params.message,
-      ...(params.authLink && { authLink: params.authLink }),
+      data: {
+        type: 'data-tool-auth-required',
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        toolId: params.toolId,
+        ...(params.mcpServerUrl && { mcpServerUrl: params.mcpServerUrl }),
+        message: params.message,
+        ...(params.authLink && { authLink: params.authLink }),
+      },
     });
   }
 
@@ -1075,7 +1081,10 @@ export class BufferingStreamHelper implements StreamHelper {
     message: string;
     authLink?: string;
   }): Promise<void> {
-    this.capturedData.push({ type: 'data-tool-auth-required', ...params });
+    this.capturedData.push({
+      type: 'data-tool-auth-required',
+      data: { type: 'data-tool-auth-required', ...params },
+    });
   }
 
   async complete(): Promise<void> {
