@@ -124,8 +124,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         placeholder="This sub agent is responsible for..."
       />
       <SkillSelector
-        selectedSkills={selectedNode.data.skills}
-        onChange={(value) => updatePath('skills', value)}
+        // @ts-expect-error -- fixme
+        selectedSkills={subAgent.skills}
+        onChange={(value) => form.setValue(path('skills'), value)}
         error={getFieldError('skills')}
       />
       <GenericPromptEditor
