@@ -1,7 +1,9 @@
 import {
   createFullAgentServerSide,
   createScheduledTriggerInvocation,
+  deleteScheduledTriggersByRunAsUserId,
   generateId,
+  listScheduledTriggers,
   OrgRoles,
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
@@ -840,6 +842,109 @@ describe('User-Scoped Scheduled Triggers', () => {
           })
         ).toThrow(/You can only modify triggers/);
       });
+    });
+  });
+
+  describe('deleteScheduledTriggersByRunAsUserId', () => {
+    it('should delete triggers matching runAsUserId and leave others', async () => {
+      const tenantId = await createTestTenantWithOrg('del-by-user');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      canUseProjectStrictMock.mockResolvedValue(true);
+
+      const userA = 'user-a-del';
+      const userB = 'user-b-del';
+      const resA = await createTriggerWithUserId({
+        tenantId,
+        projectId,
+        agentId,
+        runAsUserId: userA,
+      });
+      expect(resA.status).toBe(201);
+      const resB = await createTriggerWithUserId({
+        tenantId,
+        projectId,
+        agentId,
+        runAsUserId: userB,
+      });
+      expect(resB.status).toBe(201);
+
+      const beforeList = await listScheduledTriggers(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      expect(beforeList.length).toBe(2);
+
+      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+        tenantId,
+        projectId,
+        runAsUserId: userA,
+      });
+
+      const afterList = await listScheduledTriggers(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      expect(afterList.length).toBe(1);
+      expect(afterList[0].runAsUserId).toBe(userB);
+    });
+
+    it('should be a no-op when no triggers match', async () => {
+      const tenantId = await createTestTenantWithOrg('del-noop');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      canUseProjectStrictMock.mockResolvedValue(true);
+
+      const res = await createTriggerWithUserId({
+        tenantId,
+        projectId,
+        agentId,
+        runAsUserId: 'existing-user',
+      });
+      expect(res.status).toBe(201);
+
+      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+        tenantId,
+        projectId,
+        runAsUserId: 'nonexistent-user',
+      });
+
+      const afterList = await listScheduledTriggers(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      expect(afterList.length).toBe(1);
+    });
+
+    it('should delete across multiple agents in the same project', async () => {
+      const tenantId = await createTestTenantWithOrg('del-multi-agent');
+      const userId = 'shared-user';
+      canUseProjectStrictMock.mockResolvedValue(true);
+
+      const { agentId: agent1, projectId } = await createTestAgent(tenantId);
+
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const agent2Id = `test-agent-${generateId(6)}`;
+      const agent2Data = createFullAgentData(agent2Id);
+      await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agent2Data);
+
+      await createTriggerWithUserId({ tenantId, projectId, agentId: agent1, runAsUserId: userId });
+      await createTriggerWithUserId({
+        tenantId,
+        projectId,
+        agentId: agent2Id,
+        runAsUserId: userId,
+      });
+
+      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+        tenantId,
+        projectId,
+        runAsUserId: userId,
+      });
+
+      const list1 = await listScheduledTriggers(manageDbClient)({
+        scopes: { tenantId, projectId, agentId: agent1 },
+      });
+      const list2 = await listScheduledTriggers(manageDbClient)({
+        scopes: { tenantId, projectId, agentId: agent2Id },
+      });
+      expect(list1.length).toBe(0);
+      expect(list2.length).toBe(0);
     });
   });
 });

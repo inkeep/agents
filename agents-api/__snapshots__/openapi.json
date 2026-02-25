@@ -6076,7 +6076,7 @@
             "type": "string"
           },
           "createdBy": {
-            "maxLength": 256,
+            "description": "User ID of the user who created this trigger",
             "nullable": true,
             "type": "string"
           },
@@ -6169,7 +6169,7 @@
             "type": "string"
           },
           "createdBy": {
-            "maxLength": 256,
+            "description": "User ID of the user who created this trigger",
             "nullable": true,
             "type": "string"
           },
@@ -6259,7 +6259,7 @@
             "type": "string"
           },
           "createdBy": {
-            "maxLength": 256,
+            "description": "User ID of the user who created this trigger",
             "nullable": true,
             "type": "string"
           },
@@ -6489,7 +6489,7 @@
             "type": "string"
           },
           "createdBy": {
-            "maxLength": 256,
+            "description": "User ID of the user who created this trigger",
             "nullable": true,
             "type": "string"
           },
