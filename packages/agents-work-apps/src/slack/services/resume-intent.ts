@@ -5,6 +5,7 @@ import { getLogger } from '../../logger';
 import { type ResolvedAgentConfig, resolveEffectiveAgent } from './agent-resolution';
 import { createContextBlock } from './blocks';
 import { getSlackClient } from './client';
+import { executeAgentPublicly } from './events/execution';
 import { streamAgentResponse } from './events/streaming';
 import { generateSlackConversationId, sendResponseUrlMessage } from './events/utils';
 import { findWorkspaceConnectionByTeamId } from './nango';
@@ -78,6 +79,11 @@ export async function resumeSmartLinkIntent(params: ResumeSmartLinkIntentParams)
       case 'run_command':
         deliveryMethod = intent.responseUrl ? 'response_url' : 'bot_token';
         await resumeRunCommand(intent, slackClient, tokenCtx, teamId, tenantId);
+        break;
+      case 'dm':
+        resolvedAgentId = intent.agentId;
+        deliveryMethod = 'streaming';
+        await resumeDirectMessage(intent, slackClient, tokenCtx, teamId);
         break;
     }
 
@@ -179,6 +185,55 @@ async function resumeMention(
     agentId: intent.agentId,
     question: intent.question,
     agentName: intent.agentId,
+    conversationId,
+  });
+}
+
+async function resumeDirectMessage(
+  intent: SlackLinkIntent,
+  slackClient: ReturnType<typeof getSlackClient>,
+  tokenCtx: TokenSigningContext,
+  teamId: string
+): Promise<void> {
+  const { slackUserId } = tokenCtx;
+
+  if (!intent.agentId || !intent.projectId) {
+    logger.error(
+      {
+        entryPoint: intent.entryPoint,
+        channelId: intent.channelId,
+        hasAgentId: !!intent.agentId,
+        hasProjectId: !!intent.projectId,
+      },
+      'DM intent missing agentId or projectId'
+    );
+    await postErrorToChannel(slackClient, intent.channelId, slackUserId);
+    return;
+  }
+
+  const slackUserToken = await signSlackUserToken({
+    ...tokenCtx,
+    slackAuthorized: false,
+  });
+
+  const conversationId = generateSlackConversationId({
+    teamId,
+    messageTs: intent.messageTs || '',
+    agentId: intent.agentId,
+    isDM: true,
+  });
+
+  await executeAgentPublicly({
+    slackClient,
+    channel: intent.channelId,
+    threadTs: intent.messageTs,
+    slackUserId,
+    teamId,
+    jwtToken: slackUserToken,
+    projectId: intent.projectId,
+    agentId: intent.agentId,
+    agentName: intent.agentId,
+    question: intent.question,
     conversationId,
   });
 }

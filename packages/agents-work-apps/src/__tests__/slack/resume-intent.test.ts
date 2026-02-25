@@ -34,6 +34,10 @@ vi.mock('../../slack/services/events/streaming', () => ({
   streamAgentResponse: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('../../slack/services/events/execution', () => ({
+  executeAgentPublicly: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 vi.mock('../../slack/services/events/utils', () => ({
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
   generateSlackConversationId: vi.fn().mockReturnValue('mock-conversation-id'),
@@ -58,6 +62,7 @@ vi.mock('../../logger', () => ({
 const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
 const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 const { streamAgentResponse } = await import('../../slack/services/events/streaming');
+const { executeAgentPublicly } = await import('../../slack/services/events/execution');
 const { sendResponseUrlMessage } = await import('../../slack/services/events/utils');
 
 const baseParams = {
@@ -350,6 +355,61 @@ describe('resumeSmartLinkIntent', () => {
     );
 
     vi.unstubAllGlobals();
+  });
+
+  it('should handle dm entry point with executeAgentPublicly and no channel auth', async () => {
+    const intent: SlackLinkIntent = {
+      entryPoint: 'dm',
+      question: 'How do I reset my password?',
+      channelId: 'D99999999',
+      messageTs: '1234567890.999999',
+      agentId: 'agent_dm',
+      projectId: 'project_dm',
+    };
+
+    await resumeSmartLinkIntent({ ...baseParams, intent });
+
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthorized: false,
+      })
+    );
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        slackChannelId: expect.anything(),
+        slackAuthSource: expect.anything(),
+        slackAuthorizedProjectId: expect.anything(),
+      })
+    );
+    expect(executeAgentPublicly).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'D99999999',
+        threadTs: '1234567890.999999',
+        agentId: 'agent_dm',
+        projectId: 'project_dm',
+        question: 'How do I reset my password?',
+      })
+    );
+    expect(streamAgentResponse).not.toHaveBeenCalled();
+  });
+
+  it('should post error when dm intent has no agentId', async () => {
+    const intent: SlackLinkIntent = {
+      entryPoint: 'dm',
+      question: 'test',
+      channelId: 'D99999999',
+      messageTs: '1234567890.999999',
+    };
+
+    await resumeSmartLinkIntent({ ...baseParams, intent });
+
+    expect(mockPostEphemeral).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'D99999999',
+        user: 'U87654321',
+      })
+    );
+    expect(executeAgentPublicly).not.toHaveBeenCalled();
   });
 
   it('should post error when run_command agent identifier not found', async () => {
