@@ -4,7 +4,11 @@ import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type UseFormReturn, useFormState, useWatch } from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
-import { type ProjectInput, ProjectSchema } from '@/components/projects/form/validation';
+import {
+  type ProjectInput,
+  type ProjectOutput,
+  ProjectSchema,
+} from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -20,7 +24,7 @@ import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 
 interface ProjectModelsSectionProps {
-  form: UseFormReturn<ProjectInput>;
+  form: UseFormReturn<ProjectInput, unknown, ProjectOutput>;
   disabled?: boolean;
 }
 
@@ -31,6 +35,7 @@ function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
   return (
     <div className="space-y-4">
       <FormFieldWrapper
+        label=""
         control={form.control}
         // Show validation errors of provider options editor
         name="models.base.providerOptions"
@@ -71,6 +76,7 @@ function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionPr
 
   return (
     <FormFieldWrapper
+      label=""
       control={form.control}
       // Show validation errors of provider options editor
       name="models.structuredOutput.providerOptions"
@@ -115,6 +121,7 @@ function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
 
   return (
     <FormFieldWrapper
+      label=""
       control={form.control}
       // Show validation errors of provider options editor
       name="models.summarizer.providerOptions"

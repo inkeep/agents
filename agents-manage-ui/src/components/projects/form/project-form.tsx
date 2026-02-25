@@ -28,60 +28,6 @@ interface ProjectFormProps {
   className?: string;
 }
 
-const cleanProviderOptions = (options: ProjectInput['models']['base']['providerOptions']) => {
-  if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
-    return undefined;
-  }
-  return options;
-};
-const cleanStopWhen = (stopWhen: ProjectInput['stopWhen']) => {
-  // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
-  if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
-    return {};
-  }
-
-  // Clean the individual properties - remove null/undefined values
-  const cleaned: any = {};
-  if (stopWhen.transferCountIs !== null && stopWhen.transferCountIs !== undefined) {
-    cleaned.transferCountIs = stopWhen.transferCountIs;
-  }
-  if (stopWhen.stepCountIs !== null && stopWhen.stepCountIs !== undefined) {
-    cleaned.stepCountIs = stopWhen.stepCountIs;
-  }
-
-  if (Object.keys(cleaned).length === 0) {
-    return {};
-  }
-
-  return cleaned;
-};
-
-const serializeData = (data: ProjectInput) => {
-  return {
-    ...data,
-    models: {
-      ...data.models,
-      base: {
-        model: data.models.base.model,
-        providerOptions: cleanProviderOptions(data.models.base.providerOptions),
-      },
-      structuredOutput: data.models?.structuredOutput?.model
-        ? {
-            model: data.models.structuredOutput.model,
-            providerOptions: cleanProviderOptions(data.models.structuredOutput.providerOptions),
-          }
-        : undefined,
-      summarizer: data.models?.summarizer?.model
-        ? {
-            model: data.models.summarizer.model,
-            providerOptions: cleanProviderOptions(data.models.summarizer.providerOptions),
-          }
-        : undefined,
-    },
-    stopWhen: cleanStopWhen(data.stopWhen),
-  };
-};
-
 const createDefaultValues = (initialData?: ProjectInput) => {
   return {
     ...initialData,
@@ -118,21 +64,17 @@ export function ProjectForm({
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    const serializedData = serializeData(data);
-
     try {
       if (projectId) {
-        const res = await updateProjectAction(tenantId, projectId, serializedData);
+        const res = await updateProjectAction(tenantId, projectId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to update project');
           return;
         }
         toast.success('Project updated successfully');
-        if (onSuccess) {
-          onSuccess(data.id);
-        }
+        onSuccess?.(data.id);
       } else {
-        const res = await createProjectAction(tenantId, serializedData);
+        const res = await createProjectAction(tenantId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to create project');
           return;
