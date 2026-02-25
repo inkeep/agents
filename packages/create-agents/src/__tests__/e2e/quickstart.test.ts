@@ -277,8 +277,12 @@ describe('create-agents quickstart e2e', () => {
       }
 
       // --- Dashboard Lap ---
+      // Start the dashboard with ENVIRONMENT=development so the proxy middleware
+      // auto-logs in using the bypass secret — this mirrors the real quickstart
+      // experience where users never see a login form.
       console.log('Starting dashboard lap');
       const dashboardProcess = await startDashboardServer(projectDir, {
+        ENVIRONMENT: 'development',
         INKEEP_AGENTS_API_URL: dashboardApiUrl,
         NEXT_PUBLIC_API_URL: dashboardApiUrl,
         PUBLIC_INKEEP_AGENTS_API_URL: dashboardApiUrl,
@@ -291,23 +295,20 @@ describe('create-agents quickstart e2e', () => {
       try {
         const page = await browser.newPage();
 
-        console.log('Navigating to login page');
-        await page.goto('http://localhost:3000/login', {
+        // Navigate to root — the proxy middleware auto-logs in via the bypass
+        // secret and sets a session cookie, so no manual login is needed.
+        console.log('Navigating to dashboard (auto-login via proxy)');
+        await page.goto('http://localhost:3000/', {
           waitUntil: 'networkidle',
-          timeout: 15000,
+          timeout: 30000,
         });
-
-        console.log('Filling login form');
-        await page.fill('input[type="email"]', 'admin@example.com');
-        await page.fill('input[type="password"]', 'adminADMIN!@12');
-        await page.click('button[type="submit"]');
 
         console.log('Waiting for redirect to projects page');
         await page.waitForURL('**/default/projects**', {
-          timeout: 15000,
+          timeout: 30000,
           waitUntil: 'domcontentloaded',
         });
-        console.log('Redirected to projects page');
+        console.log('Auto-login succeeded — redirected to projects page');
 
         console.log('Clicking activities-planner project');
         // Use force:true because card uses a linkoverlay pattern that intercepts pointer events
