@@ -333,26 +333,27 @@ describe('AgentMcpManager', () => {
   });
 
   describe('credential stuffer integration', () => {
+    function createCredentialedManager(credentialStuffer: any, credentialReferences: Record<string, any> = {}) {
+      return new AgentMcpManager(
+        { id: 'sub-1', agentId: 'agent-1', tenantId: 'tenant-abc', projectId: 'project-xyz', name: 'Agent' } as any,
+        { project: { agents: {}, credentialReferences } } as any,
+        credentialStuffer,
+        () => 'conv-1',
+        () => 'stream-1',
+        () => undefined
+      );
+    }
+
     test('passes tenantId, projectId, and storeReference to buildMcpServerConfig', async () => {
       const mockCredentialStuffer = {
-        buildMcpServerConfig: vi.fn().mockResolvedValue({
-          type: MCPTransportType.sse,
-          url: 'https://api.nango.dev/mcp',
-          headers: {},
-        }),
+        buildMcpServerConfig: vi.fn().mockResolvedValue({ type: MCPTransportType.sse, url: 'https://api.nango.dev/mcp', headers: {} }),
       };
 
       const mcpTool = createMcpTool({
         id: 'cred-tool',
         name: 'Credentialed Tool',
         credentialReferenceId: 'cred-ref-1',
-        config: {
-          type: 'mcp',
-          mcp: {
-            server: { url: 'https://api.nango.dev/mcp' },
-            transport: { type: MCPTransportType.sse },
-          },
-        },
+        config: { type: 'mcp', mcp: { server: { url: 'https://api.nango.dev/mcp' }, transport: { type: MCPTransportType.sse } } },
       });
 
       const manager = new AgentMcpManager(
@@ -381,6 +382,9 @@ describe('AgentMcpManager', () => {
       );
 
       await manager.getToolSet(mcpTool);
+      await createCredentialedManager(mockCredentialStuffer, {
+        'cred-ref-1': { credentialStoreId: 'store-1', retrievalParams: { connectionId: 'conn-1' } },
+      }).getToolSet(mcpTool);
 
       expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: 'tenant-abc', projectId: 'project-xyz' }),
@@ -392,6 +396,34 @@ describe('AgentMcpManager', () => {
         { credentialStoreId: 'store-1', retrievalParams: { connectionId: 'conn-1' } },
         undefined
       );
+    });
+
+    test('passes undefined storeReference when tool has no credentialReferenceId', async () => {
+      const mockCredentialStuffer = {
+        buildMcpServerConfig: vi.fn().mockResolvedValue({ type: MCPTransportType.streamableHttp, url: 'https://mcp.example.com', headers: {} }),
+      };
+
+      await createCredentialedManager(mockCredentialStuffer).getToolSet(createMcpTool());
+
+      expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        undefined,
+        undefined
+      );
+    });
+
+    test('getToolSet returns tools, toolPolicies, mcpServerId, and mcpServerName', async () => {
+      const mockTools = { search: { description: 'Search', execute: vi.fn() } };
+      mockMcpClient.tools.mockResolvedValue(mockTools);
+
+      const mcpTool = createMcpTool({ id: 'srv-id', name: 'My Server' });
+      const result = await createManager().getToolSet(mcpTool);
+
+      expect(result.mcpServerId).toBe('srv-id');
+      expect(result.mcpServerName).toBe('My Server');
+      expect(result.toolPolicies).toEqual({});
+      expect(result.tools).toBe(mockTools);
     });
   });
 });
