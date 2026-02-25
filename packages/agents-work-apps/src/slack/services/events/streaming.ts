@@ -72,7 +72,9 @@ async function cleanupThinkingMessage(params: {
 
   try {
     if (thinkingMessageTs === threadTs) {
-      const text = question ? question : `<@${slackUserId}> invoked _${agentName}_`;
+      const text = question
+        ? `<@${slackUserId}> to ${agentName}: "${question}"`
+        : `<@${slackUserId}> invoked _${agentName}_`;
       await slackClient.chat.update({
         channel,
         ts: thinkingMessageTs,

@@ -385,7 +385,7 @@ describe('streamAgentResponse', () => {
           expect.objectContaining({
             channel: 'C456',
             ts: '1234.9999',
-            text: 'What is Inkeep?',
+            text: '<@U123> to Test Agent: "What is Inkeep?"',
           })
         );
         expect(mockChatDelete).not.toHaveBeenCalledWith(
