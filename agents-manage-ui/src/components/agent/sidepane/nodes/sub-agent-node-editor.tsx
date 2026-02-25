@@ -200,7 +200,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         componentLookup={dataComponentLookup}
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
-          updatePath('dataComponents', newSelection);
+          form.setValue(path('dataComponents'), newSelection);
         }}
         emptyStateMessage="No components found."
         emptyStateActionText="Create component"
@@ -213,7 +213,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         componentLookup={artifactComponentLookup}
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
-          updatePath('artifactComponents', newSelection);
+          form.setValue(path('artifactComponents'), newSelection);
         }}
         emptyStateMessage="No artifacts found."
         emptyStateActionText="Create artifact"
