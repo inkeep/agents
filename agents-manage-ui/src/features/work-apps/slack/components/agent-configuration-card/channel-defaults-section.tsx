@@ -5,6 +5,7 @@ import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { Globe, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
@@ -111,9 +112,7 @@ export function ChannelDefaultsSection({
   onBulkResetToDefault,
   onClearFilters,
 }: ChannelDefaultsSectionProps) {
-  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([
-    { id: 'memberCount', desc: true },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'memberCount', desc: true }]);
 
   const columns = useMemo<ColumnDef<Channel>[]>(
     () => [
@@ -359,32 +358,30 @@ export function ChannelDefaultsSection({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length
-                  ? table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={selectedChannels.has(row.original.id) ? 'selected' : ''}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedChannels.has(row.original.id)}
-                            onCheckedChange={() => onToggleChannel(row.original.id)}
-                            aria-label={`Select ${row.original.name}`}
-                          />
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={selectedChannels.has(row.original.id) ? 'selected' : ''}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedChannels.has(row.original.id)}
+                        onCheckedChange={() => onToggleChannel(row.original.id)}
+                        aria-label={`Select ${row.original.name}`}
+                      />
+                    </TableCell>
+                    {row.getVisibleCells().map((cell) =>
+                      cell.column.id === 'select' ? null : (
+                        <TableCell
+                          key={cell.id}
+                          className={cell.column.id !== 'name' ? 'text-right' : undefined}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
-                        {row.getVisibleCells().map((cell) =>
-                          cell.column.id === 'select' ? null : (
-                            <TableCell
-                              key={cell.id}
-                              className={cell.column.id !== 'name' ? 'text-right' : undefined}
-                            >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </TableCell>
-                          )
-                        )}
-                      </TableRow>
-                    ))
-                  : null}
+                      )
+                    )}
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
