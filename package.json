@@ -89,7 +89,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.3.11",
     "@changesets/cli": "2.29.7",
-    "drizzle-kit": "^0.31.5",
+    "drizzle-kit": "^0.31.9",
     "husky": "^9.1.6",
     "knip": "5.82.0",
     "lint-staged": "^16.1.5",
