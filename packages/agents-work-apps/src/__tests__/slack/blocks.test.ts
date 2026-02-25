@@ -9,6 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildCitationsBlock,
   buildDataComponentBlocks,
   buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
@@ -391,5 +392,50 @@ describe('mrkdwn special character escaping', () => {
       expect(text).toContain('&amp;');
       expect(text).not.toContain('<X>');
     });
+  });
+});
+
+describe('buildCitationsBlock', () => {
+  it('should return empty array when citations is empty', () => {
+    expect(buildCitationsBlock([])).toHaveLength(0);
+  });
+
+  it('should return empty array when no citation has a url', () => {
+    expect(buildCitationsBlock([{ title: 'No URL' }])).toHaveLength(0);
+  });
+
+  it('should render each citation as a [N] Title link', () => {
+    const blocks = buildCitationsBlock([
+      { url: 'https://example.com/1', title: 'First Source' },
+      { url: 'https://example.com/2', title: 'Second Source' },
+    ]);
+    expect(blocks).toHaveLength(1);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('<https://example.com/1|[1] First Source>');
+    expect(text).toContain('<https://example.com/2|[2] Second Source>');
+  });
+
+  it('should use the url as title when title is absent', () => {
+    const blocks = buildCitationsBlock([{ url: 'https://example.com/1' }]);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('<https://example.com/1|[1] https://example.com/1>');
+  });
+
+  it('should escape special characters in the title', () => {
+    const blocks = buildCitationsBlock([{ url: 'https://example.com', title: 'A & B <title>' }]);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('A &amp; B &lt;title&gt;');
+  });
+
+  it('should append "and N more" suffix when citations exceed cap', () => {
+    const citations = Array.from({ length: 12 }, (_, i) => ({
+      url: `https://example.com/${i + 1}`,
+      title: `Source ${i + 1}`,
+    }));
+    const blocks = buildCitationsBlock(citations);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('[10]');
+    expect(text).not.toContain('[11]');
+    expect(text).toContain('_and 2 more_');
   });
 });

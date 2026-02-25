@@ -424,11 +424,11 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   const MAX_CITATIONS = 10;
   const shown = citations.slice(0, MAX_CITATIONS);
   const lines = shown
-    .map((c) => {
+    .map((c, i) => {
       const url = c.url;
       const rawTitle = c.title || url;
       const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
-      return url ? `• <${url}|${title}>` : null;
+      return url ? `<${url}|[${i + 1}] ${title}>` : null;
     })
     .filter((l): l is string => l !== null);
 
