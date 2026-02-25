@@ -456,6 +456,8 @@ export async function executeScheduledTriggerStep(params: {
   messageTemplate?: string | null;
   payload?: Record<string, unknown> | null;
   timeoutSeconds: number;
+  messages?: Array<{ role: string; content: unknown }> | null;
+  datasetRunId?: string;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -468,6 +470,8 @@ export async function executeScheduledTriggerStep(params: {
     messageTemplate,
     payload,
     timeoutSeconds,
+    messages,
+    datasetRunId,
   } = params;
 
   logger.info(
@@ -491,27 +495,6 @@ export async function executeScheduledTriggerStep(params: {
       };
     }
 
-    // Build user message from template
-    const effectivePayload = payload ?? {};
-    let userMessage: string;
-    if (messageTemplate) {
-      userMessage = interpolateTemplate(messageTemplate, effectivePayload);
-    } else {
-      userMessage = JSON.stringify(effectivePayload);
-    }
-
-    // Create message parts
-    const messageParts: Part[] = [];
-    if (messageTemplate) {
-      messageParts.push({ kind: 'text', text: userMessage });
-    }
-    messageParts.push({
-      kind: 'data',
-      data: effectivePayload,
-      metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
-    });
-
-    // Execute with timeout
     const timeoutMs = timeoutSeconds * 1000;
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(
@@ -520,20 +503,41 @@ export async function executeScheduledTriggerStep(params: {
       );
     });
 
-    await Promise.race([
-      executeAgentAsync({
-        tenantId,
-        projectId,
-        agentId,
-        triggerId: scheduledTriggerId,
-        invocationId,
-        conversationId,
-        userMessage,
-        messageParts,
-        resolvedRef,
-      }),
-      timeoutPromise,
-    ]);
+    const baseParams = {
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: scheduledTriggerId,
+      invocationId,
+      conversationId,
+      resolvedRef,
+      ...(datasetRunId && { datasetRunId }),
+    };
+
+    if (messages && messages.length > 0) {
+      await Promise.race([executeAgentAsync({ ...baseParams, messages }), timeoutPromise]);
+    } else {
+      const effectivePayload = payload ?? {};
+      let userMessage: string;
+      if (messageTemplate) {
+        userMessage = interpolateTemplate(messageTemplate, effectivePayload);
+      } else {
+        userMessage = JSON.stringify(effectivePayload);
+      }
+      const messageParts: Part[] = [];
+      if (messageTemplate) {
+        messageParts.push({ kind: 'text', text: userMessage });
+      }
+      messageParts.push({
+        kind: 'data',
+        data: effectivePayload,
+        metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
+      });
+      await Promise.race([
+        executeAgentAsync({ ...baseParams, userMessage, messageParts }),
+        timeoutPromise,
+      ]);
+    }
 
     logger.info(
       { scheduledTriggerId, invocationId, conversationId },
