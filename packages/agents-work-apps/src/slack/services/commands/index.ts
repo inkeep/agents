@@ -373,8 +373,22 @@ export async function handleQuestionCommand(
     question,
     conversationId,
   })
-    .catch((error) => {
+    .catch(async (error) => {
       logger.error({ error }, 'Background execution promise rejected');
+      if (payload.responseUrl) {
+        try {
+          await fetch(payload.responseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              response_type: 'ephemeral',
+              text: SlackStrings.errors.generic,
+            }),
+          });
+        } catch (e) {
+          logger.warn({ e }, 'Failed to send error via response_url');
+        }
+      }
     })
     .finally(() => flushTraces());
 

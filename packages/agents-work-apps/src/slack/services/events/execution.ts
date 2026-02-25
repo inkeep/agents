@@ -1,4 +1,5 @@
 import { getLogger } from '../../../logger';
+import { SlackStrings } from '../../i18n';
 import type { getSlackClient } from '../client';
 import type { StreamResult } from './streaming';
 import { streamAgentResponse } from './streaming';
@@ -22,22 +23,28 @@ export interface PublicExecutionParams {
 export async function executeAgentPublicly(params: PublicExecutionParams): Promise<StreamResult> {
   const { slackClient, channel, threadTs, agentName } = params;
 
-  const ackMessage = await slackClient.chat.postMessage({
-    channel,
-    ...(threadTs ? { thread_ts: threadTs } : {}),
-    text: `_${agentName} is thinking..._`,
-  });
+  let thinkingMessageTs = '';
+  try {
+    const ackMessage = await slackClient.chat.postMessage({
+      channel,
+      ...(threadTs ? { thread_ts: threadTs } : {}),
+      text: SlackStrings.status.thinking(agentName),
+    });
+    thinkingMessageTs = ackMessage.ts || '';
+  } catch (error) {
+    logger.warn({ error, channel }, 'Failed to post thinking acknowledgment - proceeding anyway');
+  }
 
   logger.info(
     { channel, threadTs, agentId: params.agentId, conversationId: params.conversationId },
-    'Posted thinking acknowledgment, starting stream'
+    'Starting stream'
   );
 
   return streamAgentResponse({
     slackClient: params.slackClient,
     channel,
     threadTs,
-    thinkingMessageTs: ackMessage.ts || '',
+    thinkingMessageTs,
     slackUserId: params.slackUserId,
     teamId: params.teamId,
     jwtToken: params.jwtToken,

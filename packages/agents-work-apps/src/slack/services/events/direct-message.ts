@@ -1,6 +1,7 @@
 import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { signSlackUserToken } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
+import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import { getSlackClient } from '../client';
 import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
@@ -62,7 +63,7 @@ export async function handleDirectMessage(params: {
         await slackClient.chat.postMessage({
           channel,
           thread_ts: replyThreadTs,
-          text: 'No agent is configured for this workspace. Ask your admin to set up a default agent in the Inkeep dashboard.',
+          text: SlackStrings.errors.noAgentConfigured,
         });
         span.end();
         return;
@@ -98,7 +99,7 @@ export async function handleDirectMessage(params: {
         await slackClient.chat.postMessage({
           channel,
           thread_ts: replyThreadTs,
-          text: "To get started, let's connect your Inkeep account with Slack.",
+          text: SlackStrings.linkPrompt.intro,
           blocks: message.blocks,
         });
         span.end();

@@ -69,8 +69,15 @@ export const SlackStrings = {
 
   // Error messages
   errors: {
-    generic: 'Something went wrong. Please try again.',
+    generic: 'Something went wrong processing your request. Please try again.',
     failedToOpenSelector: 'Failed to open agent selector. Please try again.',
+    noAgentConfigured:
+      'No agent is configured for this workspace. Ask your admin to set up a default agent in the Inkeep dashboard.',
+  },
+
+  // Link prompt
+  linkPrompt: {
+    intro: "To get started, let's connect your Inkeep account with Slack.",
   },
 
   // Help message
