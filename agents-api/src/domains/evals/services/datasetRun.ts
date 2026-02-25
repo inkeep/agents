@@ -1,4 +1,4 @@
-import type { DatasetRunItem } from '@inkeep/agents-core';
+import type { DatasetItemInput, DatasetRunItem } from '@inkeep/agents-core';
 import {
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
@@ -21,46 +21,46 @@ export async function queueDatasetRunItems(params: {
   const { tenantId, projectId, datasetRunId, items, evaluatorIds, evaluationRunId } = params;
   const logger = getLogger('workflow-triggers');
 
-  let queued = 0;
-  let failed = 0;
-
-  for (const item of items) {
-    try {
+  const results = await Promise.allSettled(
+    items.map(async (item) => {
       await markScheduledTriggerInvocationRunning(runDbClient)({
         scopes: { tenantId, projectId, agentId: item.agentId },
         scheduledTriggerId: datasetRunId,
         invocationId: item.scheduledTriggerInvocationId,
       });
 
-      const payload = {
-        tenantId,
-        projectId,
-        agentId: item.agentId,
-        datasetItemId: item.id ?? '',
-        datasetItemInput: item.input,
-        datasetItemExpectedOutput: item.expectedOutput,
-        datasetItemSimulationAgent: item.simulationAgent as any,
-        datasetRunId,
-        scheduledTriggerInvocationId: item.scheduledTriggerInvocationId,
-        evaluatorIds,
-        evaluationRunId,
-      };
+      await start(runDatasetItemWorkflow, [
+        {
+          tenantId,
+          projectId,
+          agentId: item.agentId,
+          datasetItemId: item.id ?? '',
+          datasetItemInput: item.input as DatasetItemInput,
+          datasetItemExpectedOutput: item.expectedOutput,
+          datasetItemSimulationAgent: item.simulationAgent as any,
+          datasetRunId,
+          scheduledTriggerInvocationId: item.scheduledTriggerInvocationId,
+          evaluatorIds,
+          evaluationRunId,
+        },
+      ]);
+    })
+  );
 
-      await start(runDatasetItemWorkflow, [payload]);
-      queued++;
-    } catch (err) {
-      logger.error(
-        { err, datasetItemId: item.id, agentId: item.agentId },
-        'Failed to queue dataset item workflow'
-      );
-      await markScheduledTriggerInvocationFailed(runDbClient)({
+  const failures = results
+    .map((r, i) => (r.status === 'rejected' ? { item: items[i], reason: r.reason } : null))
+    .filter((f): f is NonNullable<typeof f> => f !== null);
+
+  await Promise.all(
+    failures.map(({ item, reason }) => {
+      logger.error({ err: reason, datasetItemId: item.id, agentId: item.agentId }, 'Failed to queue dataset item workflow');
+      return markScheduledTriggerInvocationFailed(runDbClient)({
         scopes: { tenantId, projectId, agentId: item.agentId },
         scheduledTriggerId: datasetRunId,
         invocationId: item.scheduledTriggerInvocationId,
       }).catch(() => {});
-      failed++;
-    }
-  }
+    })
+  );
 
-  return { queued, failed };
+  return { queued: results.length - failures.length, failed: failures.length };
 }
