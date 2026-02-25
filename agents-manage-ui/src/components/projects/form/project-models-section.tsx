@@ -27,12 +27,9 @@ interface ProjectModelsSectionProps {
 function BaseModelSection({
   form,
   disabled,
-}: {
-  control: Control<ProjectInput>;
-  disabled?: boolean;
-}) {
+}: ProjectModelsSectionProps) {
   'use memo';
-  const baseModel = useWatch({ control, name: 'models.base.model' });
+  const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
 
   return (
     <div className="space-y-4">
@@ -66,10 +63,7 @@ function BaseModelSection({
 function StructuredOutputModelSection({
   form,
   disabled,
-}: {
-  control: Control<ProjectInput>;
-  disabled?: boolean;
-}) {
+}: ProjectModelsSectionProps) {
   'use memo';
   const providerOptionsField = useWatch({
     control,
@@ -115,35 +109,33 @@ function StructuredOutputModelSection({
 function SummarizerModelSection({
   form,
   disabled,
-}: {
-  control: Control<ProjectInput>;
-  disabled?: boolean;
-}) {
+}: ProjectModelsSectionProps) {
   'use memo';
-  const providerOptionsField = useWatch({ control, name: 'models.summarizer.providerOptions' });
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
+  const summarizerModel = useWatch({ control: form.control, name: 'models.summarizer.model' });
+  const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
+  const baseProviderOptions = useWatch({ control: form.control, name: 'models.base.providerOptions' });
 
   return (
     <FormFieldWrapper
-      control={control}
-      name="models.summarizer.model"
+      control={form.control}
+        // Show validation errors of provider options editor
+      name="models.summarizer.providerOptions"
       description="Model for summarization tasks (defaults to base model)"
     >
       {(field) => (
         <ModelConfiguration
-          value={field.value || ''}
-          providerOptions={providerOptionsField ?? ''}
+          value={summarizerModel ?? ''}
+          providerOptions={field.value}
           isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
           label="Summarizer model"
           placeholder="Select summarizer model (optional)"
           inheritedValue={baseModel}
           inheritedProviderOptions={baseProviderOptions}
           canClear
-          onModelChange={field.onChange}
-          onProviderOptionsChange={(value) => {
-            form.setValue('models.summarizer.providerOptions', value, { shouldDirty: true });
+          onModelChange={value => {
+            form.setValue('models.summarizer.model', value, { shouldDirty: true });
           }}
+          onProviderOptionsChange={field.onChange}
           editorNamePrefix="project-summarizer"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
