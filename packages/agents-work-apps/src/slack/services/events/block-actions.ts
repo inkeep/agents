@@ -10,13 +10,7 @@ import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
 import { getSlackClient } from '../client';
-import {
-  buildAgentSelectorModal,
-  buildFollowUpModal,
-  buildMessageShortcutModal,
-  type FollowUpModalMetadata,
-  type ModalMetadata,
-} from '../modals';
+import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
 import {
@@ -289,59 +283,6 @@ export async function handleOpenAgentSelectorModal(params: {
           text: SlackStrings.errors.failedToOpenSelector,
           response_type: 'ephemeral',
         }).catch((e) => logger.warn({ error: e }, 'Failed to send selector error notification'));
-      }
-      span.end();
-    }
-  });
-}
-
-/**
- * Handle "Follow Up" button click.
- * Opens a prompt-only modal that carries the conversationId for multi-turn context.
- */
-export async function handleOpenFollowUpModal(params: {
-  triggerId: string;
-  actionValue: string;
-  teamId: string;
-  responseUrl?: string;
-}): Promise<void> {
-  return tracer.startActiveSpan(SLACK_SPAN_NAMES.OPEN_FOLLOW_UP_MODAL, async (span) => {
-    const { triggerId, actionValue, teamId, responseUrl } = params;
-    span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
-
-    try {
-      const metadata = JSON.parse(actionValue) as FollowUpModalMetadata;
-      span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, metadata.conversationId || '');
-      span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, metadata.agentId || '');
-
-      const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
-      if (!workspaceConnection?.botToken) {
-        logger.error({ teamId }, 'No bot token for follow-up modal');
-        span.end();
-        return;
-      }
-
-      const slackClient = getSlackClient(workspaceConnection.botToken);
-      const modal = buildFollowUpModal(metadata);
-
-      await slackClient.views.open({
-        trigger_id: triggerId,
-        view: modal,
-      });
-
-      logger.info(
-        { teamId, conversationId: metadata.conversationId, agentId: metadata.agentId },
-        'Opened follow-up modal'
-      );
-      span.end();
-    } catch (error) {
-      if (error instanceof Error) setSpanWithError(span, error);
-      logger.error({ error, teamId }, 'Failed to open follow-up modal');
-      if (responseUrl) {
-        await sendResponseUrlMessage(responseUrl, {
-          text: 'Failed to open follow-up dialog. Please try again.',
-          response_type: 'ephemeral',
-        }).catch((e) => logger.warn({ error: e }, 'Failed to send follow-up error notification'));
       }
       span.end();
     }

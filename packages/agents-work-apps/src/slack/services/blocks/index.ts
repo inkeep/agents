@@ -25,57 +25,6 @@ export function createContextBlock(params: ContextBlockParams) {
   };
 }
 
-export interface FollowUpButtonParams {
-  conversationId: string;
-  agentId: string;
-  agentName?: string;
-  projectId: string;
-  tenantId: string;
-  teamId: string;
-  slackUserId: string;
-  channel: string;
-}
-
-export function buildFollowUpButton(params: FollowUpButtonParams) {
-  return [
-    {
-      type: 'button' as const,
-      text: { type: 'plain_text' as const, text: SlackStrings.buttons.followUp, emoji: true },
-      action_id: 'open_follow_up_modal',
-      value: JSON.stringify(params),
-    },
-  ];
-}
-
-/**
- * Build Block Kit blocks for a private conversational response.
- * Shows the user's message, a divider, the agent response, context, and a Follow Up button.
- */
-export function buildConversationResponseBlocks(params: {
-  userMessage: string;
-  responseText: string;
-  agentName: string;
-  isError: boolean;
-  followUpParams: FollowUpButtonParams;
-}) {
-  const { responseText, agentName, isError, followUpParams } = params;
-
-  const blocks: any[] = [
-    {
-      type: 'section',
-      text: { type: 'mrkdwn', text: responseText },
-    },
-  ];
-
-  if (!isError) {
-    const contextBlock = createContextBlock({ agentName });
-    blocks.push(contextBlock);
-    blocks.push({ type: 'actions', elements: buildFollowUpButton(followUpParams) });
-  }
-
-  return blocks;
-}
-
 export function createUpdatedHelpMessage() {
   return Message()
     .blocks(

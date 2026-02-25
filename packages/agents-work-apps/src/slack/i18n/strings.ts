@@ -10,7 +10,6 @@ export const SlackStrings = {
   buttons: {
     triggerAgent: 'Trigger Agent',
     send: 'Send',
-    followUp: 'Follow Up',
     cancel: 'Cancel',
     openDashboard: 'Open Dashboard',
   },
@@ -20,7 +19,6 @@ export const SlackStrings = {
     triggerAgent: 'Trigger Agent',
     triggerAgentThread: 'Trigger Agent (Thread)',
     askAboutMessage: 'Ask About Message',
-    followUp: 'Follow Up',
   },
 
   // Modal labels

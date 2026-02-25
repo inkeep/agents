@@ -15,16 +15,6 @@ import {
 
 const logger = getLogger('slack-modal-submission');
 
-/**
- * @deprecated Follow-up flow is removed. This stub remains until the dispatcher route is cleaned up (US-006).
- */
-export async function handleFollowUpSubmission(_view: {
-  private_metadata?: string;
-  state?: { values?: Record<string, Record<string, unknown>> };
-}): Promise<void> {
-  logger.warn({}, 'handleFollowUpSubmission called but follow-up flow has been removed');
-}
-
 export async function handleModalSubmission(view: {
   private_metadata?: string;
   callback_id?: string;

@@ -43,11 +43,9 @@ vi.mock('../../env', () => ({
 
 vi.mock('../../slack/services/events', () => ({
   handleAppMention: vi.fn().mockResolvedValue(undefined),
-  handleFollowUpSubmission: vi.fn().mockResolvedValue(undefined),
   handleMessageShortcut: vi.fn().mockResolvedValue(undefined),
   handleModalSubmission: vi.fn().mockResolvedValue(undefined),
   handleOpenAgentSelectorModal: vi.fn().mockResolvedValue(undefined),
-  handleOpenFollowUpModal: vi.fn().mockResolvedValue(undefined),
   handleToolApproval: vi.fn().mockResolvedValue(undefined),
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
@@ -243,27 +241,6 @@ describe('dispatchSlackEvent', () => {
                 },
               },
             },
-          },
-        },
-        options,
-        span
-      );
-
-      expect(result.outcome).toBe('handled');
-      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
-    });
-
-    it('should handle follow_up_modal submission', async () => {
-      const span = createMockSpan();
-      const options = createMockOptions();
-
-      const result = await dispatchSlackEvent(
-        'view_submission',
-        {
-          view: {
-            callback_id: 'follow_up_modal',
-            private_metadata: '{}',
-            state: { values: {} },
           },
         },
         options,

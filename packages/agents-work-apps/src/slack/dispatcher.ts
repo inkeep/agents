@@ -3,11 +3,9 @@ import { getLogger } from '../logger';
 import { findWorkspaceConnectionByTeamId, getSlackClient } from './services';
 import {
   handleAppMention,
-  handleFollowUpSubmission,
   handleMessageShortcut,
   handleModalSubmission,
   handleOpenAgentSelectorModal,
-  handleOpenFollowUpModal,
   handleToolApproval,
   sendResponseUrlMessage,
 } from './services/events';
@@ -292,37 +290,6 @@ export async function dispatchSlackEvent(
             .finally(() => flushTraces());
           registerBackgroundWork(approvalWork);
         }
-
-        if (action.action_id === 'open_follow_up_modal' && action.value && triggerId) {
-          anyHandled = true;
-          logger.info(
-            { teamId, actionId: action.action_id },
-            'Handling block_action: open_follow_up_modal'
-          );
-          const followUpModalWork = handleOpenFollowUpModal({
-            triggerId,
-            actionValue: action.value,
-            teamId,
-            responseUrl: responseUrl || undefined,
-          })
-            .catch(async (err: unknown) => {
-              const errorMessage = err instanceof Error ? err.message : String(err);
-              logger.error(
-                { errorMessage, actionId: action.action_id },
-                'Failed to open follow-up modal'
-              );
-              if (responseUrl) {
-                await sendResponseUrlMessage(responseUrl, {
-                  text: 'Sorry, something went wrong while opening the follow-up form. Please try again.',
-                  response_type: 'ephemeral',
-                }).catch((e) =>
-                  logger.warn({ error: e }, 'Failed to send error notification via response URL')
-                );
-              }
-            })
-            .finally(() => flushTraces());
-          registerBackgroundWork(followUpModalWork);
-        }
       }
 
       outcome = anyHandled ? 'handled' : 'ignored_no_action_match';
@@ -448,27 +415,6 @@ export async function dispatchSlackEvent(
         })
         .finally(() => flushTraces());
       registerBackgroundWork(modalWork);
-
-      return { outcome };
-    }
-
-    if (callbackId === 'follow_up_modal') {
-      const view = payload.view as {
-        private_metadata?: string;
-        state?: { values?: Record<string, Record<string, unknown>> };
-      };
-
-      outcome = 'handled';
-      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-      logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
-
-      const followUpWork = handleFollowUpSubmission(view)
-        .catch((err: unknown) => {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
-        })
-        .finally(() => flushTraces());
-      registerBackgroundWork(followUpWork);
 
       return { outcome };
     }
