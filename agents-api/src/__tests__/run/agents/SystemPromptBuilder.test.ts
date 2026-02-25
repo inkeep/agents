@@ -123,11 +123,11 @@ describe('SystemPromptBuilder', () => {
       const result = builder.buildSystemPrompt(config);
 
       expect(result.prompt).toContain('You are a knowledge assistant.');
-      expect(result.prompt).toContain('<name>search_knowledge</name>');
+      expect(result.prompt).toContain('<tool name="search_knowledge">');
       expect(result.prompt).toContain('Search the knowledge base for relevant information');
-      expect(result.prompt).toContain('"type": "string"');
-      expect(result.prompt).toContain('"type": "number"');
-      expect(result.prompt).toContain('["query"]');
+      expect(result.prompt).toContain('type="string"');
+      expect(result.prompt).toContain('type="number"');
+      expect(result.prompt).toContain('required="true"');
     });
 
     test('should generate system prompt with multiple tools', () => {
@@ -155,8 +155,8 @@ describe('SystemPromptBuilder', () => {
       const result = builder.buildSystemPrompt(config);
 
       expect(result.prompt).toContain('You are a multi-tool assistant.');
-      expect(result.prompt).toContain('<name>tool_one</name>');
-      expect(result.prompt).toContain('<name>tool_two</name>');
+      expect(result.prompt).toContain('<tool name="tool_one">');
+      expect(result.prompt).toContain('<tool name="tool_two">');
       expect(result.prompt).toContain('First tool');
       expect(result.prompt).toContain('Second tool');
     });
@@ -312,11 +312,11 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.prompt).toContain('<name>complex_tool</name>');
-      expect(result.prompt).toContain('"type": "string"');
-      expect(result.prompt).toContain('"type": "number"');
-      expect(result.prompt).toContain('"type": "boolean"');
-      expect(result.prompt).toContain('["name","count"]');
+      expect(result.prompt).toContain('<tool name="complex_tool">');
+      expect(result.prompt).toContain('type="string"');
+      expect(result.prompt).toContain('type="number"');
+      expect(result.prompt).toContain('type="boolean"');
+      expect(result.prompt).toContain('required="true"');
     });
 
     test('should handle tools with no required parameters', () => {
@@ -347,8 +347,8 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.prompt).toContain('<name>optional_tool</name>');
-      expect(result.prompt).toContain('<required>[]</required>');
+      expect(result.prompt).toContain('<tool name="optional_tool">');
+      expect(result.prompt).not.toContain('required="true"');
     });
 
     test('should handle tools with empty parameter schema', () => {
@@ -370,9 +370,8 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.prompt).toContain('<name>empty_tool</name>');
-      expect(result.prompt).toContain('<type>object</type>');
-      expect(result.prompt).toContain('<required>[]</required>');
+      expect(result.prompt).toContain('<tool name="empty_tool">');
+      expect(result.prompt).not.toContain('<parameters>');
     });
 
     test('should preserve XML structure and formatting', () => {

@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import {
   buildComposioMCPUrl,
-  CredentialStuffer,
+  type CredentialStuffer,
   type FullExecutionContext,
   isGithubWorkAppTool,
   JsonTransformer,

@@ -158,7 +158,14 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
-    const toolsSection = this.generateToolsSection(templates, toolData, config.mcpServerGroups);
+    const normalizedMcpServerGroups = config.mcpServerGroups?.map((group) => ({
+      ...group,
+      tools: group.tools.map((t) => ({
+        ...t,
+        inputSchema: this.normalizeSchema(t.inputSchema),
+      })),
+    }));
+    const toolsSection = this.generateToolsSection(templates, toolData, normalizedMcpServerGroups);
     breakdown.components.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
@@ -632,19 +639,47 @@ ${creationInstructions}
     return artifactXml;
   }
 
+  private renderPropertyXml(name: string, prop: any, required: string[], indent: string): string {
+    const type = prop?.type || 'string';
+    const isRequired = required.includes(name);
+    const desc = prop?.description?.trim();
+    const descAttr = desc ? ` description="${desc}"` : '';
+    const requiredAttr = isRequired ? ' required="true"' : '';
+    return `${indent}<property name="${name}" type="${type}"${requiredAttr}${descAttr} />`;
+  }
+
+  private generateMcpToolXml(tool: ToolData): string {
+    const schema = tool.inputSchema as any;
+    const properties: Record<string, any> = schema?.properties || {};
+    const required: string[] = Array.isArray(schema?.required) ? schema.required : [];
+    const propertyEntries = Object.entries(properties);
+
+    const descriptionXml = tool.description?.trim()
+      ? `\n    <description>${tool.description.trim()}</description>`
+      : '';
+
+    let parametersXml = '';
+    if (propertyEntries.length > 0) {
+      const propsXml = propertyEntries
+        .map(([name, prop]: [string, any]) => this.renderPropertyXml(name, prop, required, '      '))
+        .join('\n');
+      parametersXml = `\n    <parameters>\n${propsXml}\n    </parameters>`;
+    }
+
+    return `<tool name="${tool.name}">${descriptionXml}${parametersXml}\n  </tool>`;
+  }
+
   private generateMcpServerGroupXml(
-    templates: Map<string, string>,
+    _templates: Map<string, string>,
     group: McpServerGroupData
   ): string {
-    const toolsXml = group.tools
-      .map((tool) => this.generateToolXml(templates, tool))
-      .join('\n    ');
+    const toolsXml = group.tools.map((tool) => this.generateMcpToolXml(tool)).join('\n  ');
     const instructionsSection = group.serverInstructions
-      ? `\n    <instructions>${group.serverInstructions}</instructions>`
+      ? `\n  <instructions>${group.serverInstructions}</instructions>`
       : '';
     return `<mcp_server name="${group.serverName}">${instructionsSection}
-    ${toolsXml}
-  </mcp_server>`;
+  ${toolsXml}
+</mcp_server>`;
   }
 
   private generateToolsSection(
@@ -690,10 +725,35 @@ ${creationInstructions}
       tool.usageGuidelines || 'Use this tool when appropriate.'
     );
 
-    const parametersXml = this.generateParametersXml(tool.inputSchema);
+    const parametersXml = this.generatePropertiesXml(tool.inputSchema);
     toolXml = toolXml.replace('{{TOOL_PARAMETERS_SCHEMA}}', parametersXml);
 
     return toolXml;
+  }
+
+  private generatePropertiesXml(inputSchema: Record<string, unknown> | null | undefined): string {
+    if (!inputSchema) return '';
+
+    const properties = (inputSchema.properties as Record<string, any>) || {};
+    const required: string[] = Array.isArray(inputSchema.required)
+      ? (inputSchema.required as string[])
+      : [];
+    const propertyEntries = Object.entries(properties);
+
+    if (propertyEntries.length === 0) return '';
+
+    const propsXml = propertyEntries
+      .map(([name, prop]: [string, any]) => {
+        const type = prop?.type || 'string';
+        const isRequired = required.includes(name);
+        const desc = prop?.description?.trim();
+        const descAttr = desc ? ` description="${desc}"` : '';
+        const requiredAttr = isRequired ? ' required="true"' : '';
+        return `    <property name="${name}" type="${type}"${requiredAttr}${descAttr} />`;
+      })
+      .join('\n');
+
+    return `<parameters>\n${propsXml}\n  </parameters>`;
   }
 
   private generateParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
