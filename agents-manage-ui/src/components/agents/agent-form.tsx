@@ -14,7 +14,7 @@ import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';
 import { Form } from '../ui/form';
 
-export const AgentSchema = AgentApiInsertSchema.pick({
+const AgentSchema = AgentApiInsertSchema.pick({
   name: true,
   id: true,
   description: true,
