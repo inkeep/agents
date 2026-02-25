@@ -2,12 +2,14 @@ import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resumeSmartLinkIntent } from '../../slack/services/resume-intent';
 
-const { mockSignSlackUserToken } = vi.hoisted(() => ({
+const { mockSignSlackUserToken, mockInProcessFetch } = vi.hoisted(() => ({
   mockSignSlackUserToken: vi.fn().mockResolvedValue('mock-slack-user-token'),
+  mockInProcessFetch: vi.fn(),
 }));
 
 vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: mockSignSlackUserToken,
+  getInProcessFetch: () => mockInProcessFetch,
 }));
 
 const mockPostMessage = vi.fn().mockResolvedValue({ ts: '1234567890.000001' });
@@ -147,14 +149,13 @@ describe('resumeSmartLinkIntent', () => {
       grantAccessToMembers: true,
     });
 
-    const mockFetch = vi.fn().mockResolvedValue({
+    mockInProcessFetch.mockResolvedValue({
       ok: true,
       json: () =>
         Promise.resolve({
           choices: [{ message: { content: 'The rate limit is 100 req/min.' } }],
         }),
     });
-    vi.stubGlobal('fetch', mockFetch);
 
     const intent: SlackLinkIntent = {
       entryPoint: 'question_command',
@@ -186,8 +187,6 @@ describe('resumeSmartLinkIntent', () => {
         text: 'The rate limit is 100 req/min.',
       })
     );
-
-    vi.unstubAllGlobals();
   });
 
   it('should not throw when bot token is missing', async () => {
@@ -251,14 +250,13 @@ describe('resumeSmartLinkIntent', () => {
       grantAccessToMembers: true,
     });
 
-    const mockFetch = vi.fn().mockResolvedValue({
+    mockInProcessFetch.mockResolvedValue({
       ok: true,
       json: () =>
         Promise.resolve({
           choices: [{ message: { content: 'Response text' } }],
         }),
     });
-    vi.stubGlobal('fetch', mockFetch);
 
     const { sendResponseUrlMessage: mockedSend } = await import(
       '../../slack/services/events/utils'
@@ -288,8 +286,6 @@ describe('resumeSmartLinkIntent', () => {
         text: 'Response text',
       })
     );
-
-    vi.unstubAllGlobals();
   });
 
   it('should handle run_command entry point with agent lookup and channel auth', async () => {
@@ -313,15 +309,16 @@ describe('resumeSmartLinkIntent', () => {
           Promise.resolve({
             data: [{ id: 'agent_found', name: 'My Custom Agent' }],
           }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            choices: [{ message: { content: 'Run command response' } }],
-          }),
       });
     vi.stubGlobal('fetch', mockFetch);
+
+    mockInProcessFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: 'Run command response' } }],
+        }),
+    });
 
     const intent: SlackLinkIntent = {
       entryPoint: 'run_command',

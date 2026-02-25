@@ -142,6 +142,7 @@ export interface ActivityItem {
   compressionSummary?: string;
   // Trigger invocation fields
   invocationType?: string;
+  invocationEntryPoint?: string;
   triggerId?: string;
   triggerInvocationId?: string;
   maxStepsReached?: boolean;
@@ -221,6 +222,7 @@ export interface ConversationDetail {
     timestamp: string;
   }>;
   invocationType?: string | null;
+  invocationEntryPoint?: string | null;
   triggerId?: string | null;
   triggerInvocationId?: string | null;
 }

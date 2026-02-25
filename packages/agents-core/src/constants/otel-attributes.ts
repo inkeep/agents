@@ -109,6 +109,7 @@ export const SPAN_KEYS = {
 
   // Trigger/Invocation attributes
   INVOCATION_TYPE: 'invocation.type',
+  INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
 

@@ -1,5 +1,5 @@
 import type { SlackLinkIntent } from '@inkeep/agents-core';
-import { signSlackUserToken } from '@inkeep/agents-core';
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
 import { type ResolvedAgentConfig, resolveEffectiveAgent } from './agent-resolution';
@@ -186,6 +186,7 @@ async function resumeMention(
     question: intent.question,
     agentName: intent.agentId,
     conversationId,
+    entryPoint: 'smart_link_resume',
   });
 }
 
@@ -235,6 +236,7 @@ async function resumeDirectMessage(
     agentName: intent.agentId,
     question: intent.question,
     conversationId,
+    entryPoint: 'smart_link_resume',
   });
 }
 
@@ -454,13 +456,15 @@ async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void>
 
   let response: Response;
   try {
-    response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+    response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${slackUserToken}`,
         'x-inkeep-project-id': projectId,
         'x-inkeep-agent-id': agentId,
+        'x-inkeep-invocation-type': 'slack',
+        'x-inkeep-invocation-entry-point': 'smart_link_resume',
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: intent.question }],
