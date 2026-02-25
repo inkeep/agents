@@ -47,6 +47,7 @@ export const AgentForm = ({
   const form = useForm({
     resolver: zodResolver(AgentSchema),
     defaultValues,
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
