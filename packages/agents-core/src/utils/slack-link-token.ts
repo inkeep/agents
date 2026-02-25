@@ -10,7 +10,7 @@ const TOKEN_USE = 'slackLinkCode';
 const TOKEN_TTL = '10m';
 
 export const SlackLinkIntentSchema = z.object({
-  entryPoint: z.enum(['mention', 'question_command', 'run_command']),
+  entryPoint: z.enum(['mention', 'question_command', 'run_command', 'dm']),
   question: z.string().min(1).max(2000),
   channelId: z.string().min(1),
   threadTs: z.string().optional(),

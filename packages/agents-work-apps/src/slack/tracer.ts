@@ -7,6 +7,7 @@ export { setSpanWithError };
 export const SLACK_SPAN_NAMES = {
   WEBHOOK: 'slack.webhook',
   APP_MENTION: 'slack.app_mention',
+  DIRECT_MESSAGE: 'slack.direct_message',
   BLOCK_ACTION: 'slack.block_action',
   MODAL_SUBMISSION: 'slack.modal_submission',
   MESSAGE_SHORTCUT: 'slack.message_shortcut',

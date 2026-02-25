@@ -3,6 +3,7 @@ import { getLogger } from '../logger';
 import { findWorkspaceConnectionByTeamId, getSlackClient } from './services';
 import {
   handleAppMention,
+  handleDirectMessage,
   handleMessageShortcut,
   handleModalSubmission,
   handleOpenAgentSelectorModal,
@@ -40,6 +41,7 @@ export async function dispatchSlackEvent(
     const event = payload.event as
       | {
           type?: string;
+          channel_type?: string;
           user?: string;
           text?: string;
           channel?: string;
@@ -108,6 +110,41 @@ export async function dispatchSlackEvent(
         .finally(() => flushTraces());
       registerBackgroundWork(mentionWork);
       logger.info({ teamId, channel: event.channel, dispatchedAt }, 'app_mention work registered');
+    } else if (
+      event?.type === 'message' &&
+      event.channel_type === 'im' &&
+      event.channel &&
+      event.user &&
+      teamId
+    ) {
+      outcome = 'handled';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      if (event.thread_ts) span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, event.thread_ts);
+      if (event.ts) span.setAttribute(SLACK_SPAN_KEYS.MESSAGE_TS, event.ts);
+
+      logger.info(
+        { userId: event.user, channel: event.channel, teamId },
+        'Handling event: message.im'
+      );
+
+      const dmWork = handleDirectMessage({
+        slackUserId: event.user,
+        channel: event.channel,
+        text: event.text || '',
+        threadTs: event.thread_ts,
+        messageTs: event.ts || '',
+        teamId,
+      })
+        .catch((err: unknown) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const errorStack = err instanceof Error ? err.stack : undefined;
+          logger.error(
+            { errorMessage, errorStack },
+            'Failed to handle direct message (outer catch)'
+          );
+        })
+        .finally(() => flushTraces());
+      registerBackgroundWork(dmWork);
     } else {
       outcome = 'ignored_unknown_event';
       span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);

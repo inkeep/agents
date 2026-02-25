@@ -43,6 +43,7 @@ vi.mock('../../env', () => ({
 
 vi.mock('../../slack/services/events', () => ({
   handleAppMention: vi.fn().mockResolvedValue(undefined),
+  handleDirectMessage: vi.fn().mockResolvedValue(undefined),
   handleMessageShortcut: vi.fn().mockResolvedValue(undefined),
   handleModalSubmission: vi.fn().mockResolvedValue(undefined),
   handleOpenAgentSelectorModal: vi.fn().mockResolvedValue(undefined),
@@ -188,6 +189,98 @@ describe('dispatchSlackEvent', () => {
       );
 
       expect(result.outcome).toBe('ignored_unknown_event');
+    });
+
+    it('should handle message.im events (DM)', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'message',
+            channel_type: 'im',
+            user: 'U123',
+            channel: 'D123',
+            text: 'hello bot',
+            ts: '111.222',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+      const { handleDirectMessage } = await import('../../slack/services/events');
+      expect(vi.mocked(handleDirectMessage)).toHaveBeenCalledWith({
+        slackUserId: 'U123',
+        channel: 'D123',
+        text: 'hello bot',
+        threadTs: undefined,
+        messageTs: '111.222',
+        teamId: 'T123',
+      });
+    });
+
+    it('should handle message.im events in a DM thread', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'message',
+            channel_type: 'im',
+            user: 'U123',
+            channel: 'D123',
+            text: 'follow up',
+            ts: '333.444',
+            thread_ts: '111.222',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      const { handleDirectMessage } = await import('../../slack/services/events');
+      expect(vi.mocked(handleDirectMessage)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          threadTs: '111.222',
+          messageTs: '333.444',
+        })
+      );
+    });
+
+    it('should ignore bot DM messages', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'message',
+            channel_type: 'im',
+            bot_id: 'B123',
+            user: 'U123',
+            channel: 'D123',
+            text: 'bot self-message',
+            ts: '111.222',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('ignored_bot_message');
+      expect(options.registerBackgroundWork).not.toHaveBeenCalled();
     });
   });
 

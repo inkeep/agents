@@ -5,6 +5,7 @@ export {
   handleOpenAgentSelectorModal,
   handleToolApproval,
 } from './block-actions';
+export { handleDirectMessage } from './direct-message';
 export type { PublicExecutionParams } from './execution';
 export { executeAgentPublicly } from './execution';
 export { handleModalSubmission } from './modal-submission';
