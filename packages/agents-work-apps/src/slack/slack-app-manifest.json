@@ -25,14 +25,14 @@
         "name": "Talk to an Inkeep Agent",
         "type": "message",
         "callback_id": "ask_agent_shortcut",
-        "description": "Talk to an Inkeep agent about this message"
+        "description": "Talk to an Inkeep agent with this message"
       }
     ],
     "slash_commands": [
       {
         "command": "/inkeep",
         "url": "https://<YOUR_API_DOMAIN>/work-apps/slack/commands",
-        "description": "Ask AI agents questions and manage your Inkeep integration",
+        "description": "Talk to an Inkeep agent or manage your Inkeep integration",
         "usage_hint": "[question] | link | unlink | status | help",
         "should_escape": false
       }
