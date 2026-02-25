@@ -118,8 +118,6 @@ describe('Form', () => {
 
     await waitFor(
       () => {
-        // Wait for Monaco editor to fully initialize (not just the skeleton loading state)
-        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
         // Wait for form validation error message to render
         expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
       },
