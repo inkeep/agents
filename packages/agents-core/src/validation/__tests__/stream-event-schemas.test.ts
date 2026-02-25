@@ -52,6 +52,17 @@ describe('ToolAuthRequiredEventSchema', () => {
     }
   });
 
+  it('rejects event missing required toolCallId', () => {
+    const event = {
+      type: 'data-tool-auth-required' as const,
+      toolName: 'Linear Ticketing',
+      toolId: 'tool_linear_01',
+      message: 'Auth required.',
+    };
+    const result = ToolAuthRequiredEventSchema.safeParse(event);
+    expect(result.success).toBe(false);
+  });
+
   it('rejects event missing required toolName', () => {
     const event = {
       type: 'data-tool-auth-required' as const,

@@ -1211,10 +1211,13 @@ export class Agent {
           'User-scoped tool has no credential connected for this user'
         );
 
+        // LLM-facing: verbose with DO NOT RETRY to suppress retry loops
         const authErrorMessage =
           `Authentication required: ${tool.name} requires you to connect your account. ` +
           "This tool uses user-scoped credentials and you haven't connected yours yet. " +
           'DO NOT RETRY this tool — the user must authenticate first.';
+        // UI-facing: concise message surfaced in stream events / UI components
+        const authErrorUiMessage = `${tool.name} requires authentication. Connect your account to use this tool.`;
         const mcpServerUrl = tool.config.type === 'mcp' ? tool.config.mcp.server.url : undefined;
 
         const authErrorExecute = async (_args: any, context?: any) => {
@@ -1226,7 +1229,7 @@ export class Agent {
               toolName: tool.name,
               toolId: tool.id,
               mcpServerUrl,
-              message: `${tool.name} requires authentication. Connect your account to use this tool.`,
+              message: authErrorUiMessage,
             });
           }
           return authErrorMessage;
