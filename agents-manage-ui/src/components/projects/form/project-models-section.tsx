@@ -93,7 +93,7 @@ function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionPr
           inheritedProviderOptions={baseProviderOptions}
           canClear={!disabled}
           onModelChange={(value) => {
-            form.setValue('models.structuredOutput.providerOptions', value, { shouldDirty: true });
+            form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
           }}
           onProviderOptionsChange={field.onChange}
           editorNamePrefix="project-structured"
