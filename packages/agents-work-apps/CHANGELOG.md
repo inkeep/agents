@@ -1,5 +1,14 @@
 # @inkeep/agents-work-apps
 
+## 0.53.4
+
+### Patch Changes
+
+- 16d775c: Use users.conversations API for channel listing to return only bot-member channels, reducing API calls for large workspaces
+- be72c29: Add move-file tool to GitHub MCP
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
 ## 0.53.3
 
 ### Patch Changes
