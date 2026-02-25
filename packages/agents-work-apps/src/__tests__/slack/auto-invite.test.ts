@@ -37,6 +37,13 @@ vi.mock('@inkeep/agents-core', () => ({
   getPendingInvitationsByEmail: () => mockGetPendingInvitationsByEmail,
   createInvitationInDb: () => mockCreateInvitationInDb,
   signSlackLinkToken: mockSignSlackLinkToken,
+  getTracer: () => ({
+    startActiveSpan: (_name: string, fn: (span: unknown) => unknown) =>
+      fn({ setAttribute: vi.fn(), setStatus: vi.fn(), end: vi.fn() }),
+  }),
+  setSpanWithError: vi.fn(),
+  getInProcessFetch: () => globalThis.fetch,
+  retryWithBackoff: vi.fn((fn: () => unknown) => fn()),
 }));
 
 vi.mock('../../db/runDbClient', () => ({ default: {} }));

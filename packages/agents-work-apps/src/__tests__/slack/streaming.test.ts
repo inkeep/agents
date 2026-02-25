@@ -353,6 +353,100 @@ describe('streamAgentResponse', () => {
       expect(result.errorMessage).toContain('Authentication error');
     });
 
+    describe('thinking message cleanup as thread anchor', () => {
+      it('should update thinking message with question when it is the thread anchor', async () => {
+        const sseData = 'data: {"type":"text-delta","delta":"Hello"}\n' + 'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        // thinkingMessageTs === threadTs means the thinking message IS the thread anchor
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1234.9999',
+          thinkingMessageTs: '1234.9999',
+          question: 'What is Inkeep?',
+        });
+
+        expect(mockChatUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            ts: '1234.9999',
+            text: '<@U123> to Test Agent: "What is Inkeep?"',
+          })
+        );
+        expect(mockChatDelete).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '1234.9999' })
+        );
+      });
+
+      it('should update thinking message with invocation attribution when question is empty', async () => {
+        const sseData = 'data: {"type":"text-delta","delta":"Hello"}\n' + 'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1234.9999',
+          thinkingMessageTs: '1234.9999',
+          question: '',
+        });
+
+        expect(mockChatUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            ts: '1234.9999',
+            text: '<@U123> invoked _Test Agent_',
+          })
+        );
+        expect(mockChatDelete).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '1234.9999' })
+        );
+      });
+
+      it('should delete thinking message when it is NOT the thread anchor', async () => {
+        mockFetch.mockResolvedValue(new Response('Error', { status: 500 }));
+
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1111.2222',
+          thinkingMessageTs: '3333.4444',
+        });
+
+        expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '3333.4444' }));
+        expect(mockChatUpdate).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '3333.4444' })
+        );
+      });
+    });
+
     describe('contentAlreadyDelivered error suppression', () => {
       it('should return success and suppress error message when content was already streamed', async () => {
         // Simulate a stream that delivers content then throws on the next read

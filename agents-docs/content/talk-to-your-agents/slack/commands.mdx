@@ -49,20 +49,33 @@ The `/inkeep` slash command lets you ask questions and manage your account. Agen
 | `/inkeep link` | Link your Slack account to Inkeep (one-time) |
 | `/inkeep unlink` | Disconnect your Slack account |
 
-### Multi-turn conversations
-
-When you use `/inkeep` (modal) or `/inkeep <message>`, the response includes a **Follow Up** button. Click it to continue the same conversation — the agent remembers everything from previous turns.
-
-Each follow-up appears as a new message in the channel showing your question and the agent's response.
-
 ### Agent picker modal
 
 Running `/inkeep` with no arguments opens a modal where you can:
 
 1. Select a **project** from the dropdown
 2. Select an **agent** from that project (the list updates as you change projects)
-3. Write your **prompt**
-4. Submit to get a private response
+3. Optionally write a **prompt** (you can also submit without a message to invoke the agent directly)
+4. Submit to get a public response at the channel root
+
+<Tip>
+To continue a conversation, `@Inkeep` the bot in the response thread — the agent receives the full thread as context.
+</Tip>
+
+## Message shortcuts
+
+Right-click (or long-press on mobile) any message in a channel and select **Ask Agent** from the shortcuts menu. This opens a modal where you pick a project and agent, then submit. The agent's response appears as a **threaded reply on the target message**, with the original message text as context.
+
+## Direct messages
+
+You can DM the Inkeep bot directly for private one-on-one conversations.
+
+| Usage | What happens |
+|-------|-------------|
+| Send a message to `@Inkeep` in DMs | The workspace default agent responds in a thread |
+| Reply in a DM thread | The agent receives the full DM thread as context |
+
+DMs use your **workspace default agent**. Channel-specific agent overrides do not apply in DMs. You must have your account linked and have access to the agent's project.
 
 ## Which agent responds?
 

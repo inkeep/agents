@@ -13,7 +13,7 @@
   "features": {
     "app_home": {
       "home_tab_enabled": false,
-      "messages_tab_enabled": false,
+      "messages_tab_enabled": true,
       "messages_tab_read_only_enabled": false
     },
     "bot_user": {
@@ -55,6 +55,9 @@
         "files:write",
         "groups:history",
         "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
         "team:read",
         "users:read",
         "users:read.email"
@@ -64,7 +67,7 @@
   "settings": {
     "event_subscriptions": {
       "request_url": "https://<YOUR_API_DOMAIN>/work-apps/slack/events",
-      "bot_events": ["app_mention", "message.channels", "message.groups"]
+      "bot_events": ["app_mention", "message.channels", "message.groups", "message.im"]
     },
     "interactivity": {
       "is_enabled": true,

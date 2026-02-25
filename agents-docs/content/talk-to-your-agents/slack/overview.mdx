@@ -17,8 +17,8 @@ The Slack Work App brings your Inkeep agents directly into Slack. Team members c
 
 ## Key features
 
-- **Public responses** — `@Inkeep <message>` in any channel to get an agent response visible to everyone in a thread
-- **Private responses** — `/inkeep <message>` for private responses only you can see, with multi-turn follow-up support
+- **Public responses** — All agent responses are visible to everyone. `@Inkeep` replies in a thread, `/inkeep` posts at the channel root, and message shortcuts reply in a thread on the target message
+- **Direct messages** — DM the bot for private one-on-one conversations using your workspace default agent
 - **Thread context** — Mention `@Inkeep` in a thread to give the agent full conversation context
 - **Agent configuration** — Set a workspace-wide default agent, or assign specific agents to individual channels
 - **Account linking** — Unlinked users are automatically prompted to connect their Inkeep account when they first interact with the bot, and their original question resumes after linking
@@ -28,16 +28,16 @@ The Slack Work App brings your Inkeep agents directly into Slack. Team members c
 
 ```mermaid
 graph LR
-    A[Slack User] -->|"@Inkeep or /inkeep"| B[Inkeep API]
+    A[Slack User] -->|"@Inkeep, /inkeep, or DM"| B[Inkeep API]
     B -->|Resolve agent| C[Channel or Workspace Default]
     C -->|Execute| D[AI Agent]
-    D -->|Stream response| E[Slack Thread or Ephemeral]
+    D -->|Stream response| E[Slack Thread or Channel]
 ```
 
-1. A user sends a message via `@Inkeep` or `/inkeep` in Slack
-2. The Inkeep API verifies the user's identity and resolves the configured agent for that channel
-3. The agent processes the message (with optional thread context) and returns a response
-4. The response appears as a public thread reply (`@Inkeep`) or a private ephemeral message (`/inkeep`)
+1. A user sends a message via `@Inkeep`, `/inkeep`, a message shortcut, or a direct message
+2. The Inkeep API verifies the user's identity and resolves the configured agent
+3. The agent processes the message (with optional thread context) and streams a response
+4. The response appears publicly — as a threaded reply (`@Inkeep`, message shortcuts, DMs) or at the channel root (`/inkeep`)
 
 ## Which agent handles my request?
 

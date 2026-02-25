@@ -4,7 +4,6 @@ import {
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingBySlackUser,
   flushTraces,
-  getInProcessFetch,
   getWaitUntil,
   signSlackUserToken,
 } from '@inkeep/agents-core';
@@ -15,7 +14,6 @@ import { SlackStrings } from '../../i18n';
 import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   createAlreadyLinkedMessage,
-  createContextBlock,
   createErrorMessage,
   createNotLinkedMessage,
   createStatusMessage,
@@ -23,12 +21,12 @@ import {
   createUpdatedHelpMessage,
 } from '../blocks';
 import { getSlackClient } from '../client';
+import { executeAgentPublicly } from '../events/execution';
 import {
-  extractApiErrorMessage,
   fetchAgentsForProject,
   fetchProjectsForTenant,
+  generateSlackConversationId,
   getChannelAgentConfig,
-  sendResponseUrlMessage,
 } from '../events/utils';
 import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { buildAgentSelectorModal, type ModalMetadata } from '../modals';
@@ -308,7 +306,6 @@ export async function handleQuestionCommand(
   tenantId: string,
   botToken: string
 ): Promise<SlackCommandResponse> {
-  // Find user mapping without tenant filter to get the correct tenant
   const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
     payload.userId,
     payload.teamId,
@@ -325,7 +322,6 @@ export async function handleQuestionCommand(
     return generateLinkCodeWithIntent(payload, tenantId, botToken, intent);
   }
 
-  // Use the tenant from the user's mapping
   const userTenantId = existingLink.tenantId;
 
   const resolvedAgent = await resolveEffectiveAgent({
@@ -342,157 +338,64 @@ export async function handleQuestionCommand(
     return { response_type: 'ephemeral', ...message };
   }
 
-  const targetAgent = {
-    id: resolvedAgent.agentId,
-    name: resolvedAgent.agentName || null,
-    projectId: resolvedAgent.projectId,
-  };
+  const slackClient = getSlackClient(botToken);
 
-  const questionWork = executeAgentInBackground(
-    payload,
-    existingLink,
-    targetAgent,
+  const slackUserToken = await signSlackUserToken({
+    inkeepUserId: existingLink.inkeepUserId,
+    tenantId: userTenantId,
+    slackTeamId: payload.teamId,
+    slackUserId: payload.userId,
+    slackEnterpriseId: payload.enterpriseId,
+    slackAuthorized: resolvedAgent.grantAccessToMembers,
+    slackAuthSource: resolvedAgent.source === 'none' ? undefined : resolvedAgent.source,
+    slackChannelId: payload.channelId,
+    slackAuthorizedProjectId: resolvedAgent.projectId,
+  });
+
+  const now = Date.now();
+  const messageTs = `${Math.floor(now / 1000)}.${String(now % 1000).padStart(3, '0')}000`;
+
+  const conversationId = generateSlackConversationId({
+    teamId: payload.teamId,
+    messageTs,
+    agentId: resolvedAgent.agentId,
+  });
+
+  const questionWork = executeAgentPublicly({
+    slackClient,
+    channel: payload.channelId,
+    slackUserId: payload.userId,
+    teamId: payload.teamId,
+    jwtToken: slackUserToken,
+    projectId: resolvedAgent.projectId,
+    agentId: resolvedAgent.agentId,
+    agentName: resolvedAgent.agentName || resolvedAgent.agentId,
     question,
-    userTenantId,
-    {
-      slackAuthorized: resolvedAgent.grantAccessToMembers,
-      slackAuthSource: resolvedAgent.source === 'none' ? undefined : resolvedAgent.source,
-      slackChannelId: payload.channelId,
-      slackAuthorizedProjectId: resolvedAgent.projectId,
-    }
-  )
-    .catch((error) => {
+    conversationId,
+  })
+    .catch(async (error) => {
       logger.error({ error }, 'Background execution promise rejected');
+      if (payload.responseUrl) {
+        try {
+          await fetch(payload.responseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              response_type: 'ephemeral',
+              text: SlackStrings.errors.generic,
+            }),
+          });
+        } catch (e) {
+          logger.warn({ e }, 'Failed to send error via response_url');
+        }
+      }
     })
     .finally(() => flushTraces());
+
   const waitUntil = await getWaitUntil();
   if (waitUntil) waitUntil(questionWork);
 
-  // Return empty object - Slack will just acknowledge the command without showing a message
-  // The background task will send the actual response via response_url
   return {};
-}
-
-async function executeAgentInBackground(
-  payload: SlackCommandPayload,
-  existingLink: { inkeepUserId: string },
-  targetAgent: { id: string; name: string | null; projectId: string },
-  question: string,
-  tenantId: string,
-  channelAuth?: {
-    slackAuthorized?: boolean;
-    slackAuthSource?: 'channel' | 'workspace';
-    slackChannelId?: string;
-    slackAuthorizedProjectId?: string;
-  }
-): Promise<void> {
-  try {
-    const slackUserToken = await signSlackUserToken({
-      inkeepUserId: existingLink.inkeepUserId,
-      tenantId,
-      slackTeamId: payload.teamId,
-      slackUserId: payload.userId,
-      slackEnterpriseId: payload.enterpriseId,
-      ...channelAuth,
-    });
-
-    const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
-
-    let response: Response;
-    try {
-      response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${slackUserToken}`,
-          'x-inkeep-project-id': targetAgent.projectId,
-          'x-inkeep-agent-id': targetAgent.id,
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: question }],
-          stream: false,
-        }),
-        signal: controller.signal,
-      });
-    } catch (error) {
-      clearTimeout(timeout);
-      if ((error as Error).name === 'AbortError') {
-        logger.warn(
-          { teamId: payload.teamId, timeoutMs: 30000 },
-          'Background agent execution timed out'
-        );
-        await sendResponseUrlMessage(payload.responseUrl, {
-          response_type: 'ephemeral',
-          text: 'Request timed out. Please try again.',
-        });
-        return;
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error(
-        {
-          status: response.status,
-          error: errorText,
-          agentId: targetAgent.id,
-          projectId: targetAgent.projectId,
-        },
-        'Run API call failed'
-      );
-      const apiMessage = extractApiErrorMessage(errorText);
-      const errorMessage = apiMessage
-        ? `*Error.* ${apiMessage}`
-        : `Failed to run agent: ${response.status} ${response.statusText}`;
-      await sendResponseUrlMessage(payload.responseUrl, {
-        response_type: 'ephemeral',
-        text: errorMessage,
-      });
-    } else {
-      const result = await response.json();
-      const assistantMessage =
-        result.choices?.[0]?.message?.content || result.message?.content || 'No response received';
-
-      logger.info(
-        {
-          slackUserId: payload.userId,
-          agentId: targetAgent.id,
-          projectId: targetAgent.projectId,
-          tenantId,
-        },
-        'Agent execution completed via Slack'
-      );
-
-      const contextBlock = createContextBlock({ agentName: targetAgent.name || targetAgent.id });
-      await sendResponseUrlMessage(payload.responseUrl, {
-        response_type: 'in_channel',
-        text: assistantMessage,
-        blocks: [
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: assistantMessage,
-            },
-          },
-          contextBlock,
-        ],
-      });
-    }
-  } catch (error) {
-    logger.error({ error, slackUserId: payload.userId }, 'Background agent execution failed');
-
-    await sendResponseUrlMessage(payload.responseUrl, {
-      response_type: 'ephemeral',
-      text: 'An error occurred while running the agent. Please try again.',
-    });
-  }
 }
 
 export async function handleCommand(payload: SlackCommandPayload): Promise<SlackCommandResponse> {
