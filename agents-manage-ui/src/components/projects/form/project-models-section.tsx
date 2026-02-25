@@ -4,6 +4,7 @@ import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { type ProjectFormData, ProjectSchema } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -15,8 +16,8 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import type { ProjectFormData } from './validation';
 
 interface ProjectModelsSectionProps {
   control: Control<ProjectFormData>;
@@ -30,6 +31,7 @@ function BaseModelSection({
   control: Control<ProjectFormData>;
   disabled?: boolean;
 }) {
+  'use memo';
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.base.providerOptions',
@@ -42,7 +44,7 @@ function BaseModelSection({
         name="models.base.model"
         label="Base model"
         description="Primary model for general agent responses"
-        isRequired
+        isRequired={isRequired(ProjectSchema, 'models.base.model')}
       >
         {(field) => (
           <ModelConfiguration
@@ -83,6 +85,7 @@ function StructuredOutputModelSection({
   control: Control<ProjectFormData>;
   disabled?: boolean;
 }) {
+  'use memo';
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.structuredOutput.providerOptions',
@@ -96,6 +99,7 @@ function StructuredOutputModelSection({
       <FormFieldWrapper
         control={control}
         name="models.structuredOutput.model"
+        isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
         label="Structured output model"
         description="Model for structured outputs and components (defaults to base model)"
       >
@@ -147,6 +151,7 @@ function SummarizerModelSection({
   control: Control<ProjectFormData>;
   disabled?: boolean;
 }) {
+  'use memo';
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.summarizer.providerOptions',
@@ -160,6 +165,7 @@ function SummarizerModelSection({
       <FormFieldWrapper
         control={control}
         name="models.summarizer.model"
+        isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
         label="Summarizer model"
         description="Model for summarization tasks (defaults to base model)"
       >
@@ -205,6 +211,7 @@ function SummarizerModelSection({
 }
 
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
+  'use memo';
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
 
