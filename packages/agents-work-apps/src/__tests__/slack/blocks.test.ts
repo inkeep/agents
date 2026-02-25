@@ -56,7 +56,7 @@ describe('Slack Block Builders', () => {
       expect(result.blocks).toBeDefined();
       expect(JSON.stringify(result)).toContain('How to Use');
       expect(JSON.stringify(result)).toContain('Public');
-      expect(JSON.stringify(result)).toContain('Private');
+      expect(JSON.stringify(result)).toContain('Slash Commands');
       expect(JSON.stringify(result)).toContain('/inkeep status');
       expect(JSON.stringify(result)).toContain('Learn more');
     });
