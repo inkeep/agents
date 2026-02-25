@@ -137,7 +137,14 @@ export async function handleModalSubmission(view: {
       });
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
 
-      const threadTs = metadata.isInThread ? metadata.threadTs || metadata.messageTs : undefined;
+      // For message shortcuts, always thread on the original message so the reply
+      // appears as a thread reply rather than a new channel-root message.
+      // For agent selector modals (no messageContext), only thread if already in a thread.
+      const threadTs = metadata.messageContext
+        ? metadata.threadTs || metadata.messageTs
+        : metadata.isInThread
+          ? metadata.threadTs || metadata.messageTs
+          : undefined;
 
       await executeAgentPublicly({
         slackClient,

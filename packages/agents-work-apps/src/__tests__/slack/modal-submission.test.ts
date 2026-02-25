@@ -242,6 +242,26 @@ describe('handleModalSubmission', () => {
     );
   });
 
+  it('should thread on messageTs for message shortcuts on main-channel messages', async () => {
+    setupDefaults();
+
+    const shortcutMetadata = {
+      ...baseMetadata,
+      isInThread: false,
+      messageTs: '5555.6666',
+      messageContext: 'what is PRD-4208 about?',
+    };
+
+    const { handleModalSubmission } = await import('../../slack/services/events/modal-submission');
+    await handleModalSubmission(buildView(shortcutMetadata));
+
+    expect(mockExecuteAgentPublicly).toHaveBeenCalledWith(
+      expect.objectContaining({
+        threadTs: '5555.6666',
+      })
+    );
+  });
+
   it('should include message context for message shortcuts', async () => {
     setupDefaults();
 
