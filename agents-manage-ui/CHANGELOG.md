@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.2
+
+### Patch Changes
+
+- 090bedc: Fix dev auto-login proxy to check ENVIRONMENT instead of NODE_ENV, enabling auto-login when running via inkeep dev standalone build
+  - @inkeep/agents-core@0.53.2
+
 ## 0.53.1
 
 ### Patch Changes
