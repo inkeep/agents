@@ -8,16 +8,12 @@ export function createErrorMessage(message: string) {
 
 export interface ContextBlockParams {
   agentName: string;
-  isPrivate?: boolean;
 }
 
 export function createContextBlock(params: ContextBlockParams) {
-  const { agentName, isPrivate = false } = params;
+  const { agentName } = params;
 
-  let text = SlackStrings.context.poweredBy(agentName);
-  if (isPrivate) {
-    text = `${SlackStrings.context.privateResponse} • ${text}`;
-  }
+  const text = SlackStrings.context.poweredBy(agentName);
 
   return {
     type: 'context' as const,
@@ -31,7 +27,7 @@ export function createUpdatedHelpMessage() {
       Blocks.Header().text(SlackStrings.help.title),
       Blocks.Section().text(SlackStrings.help.publicSection),
       Blocks.Divider(),
-      Blocks.Section().text(SlackStrings.help.privateSection),
+      Blocks.Section().text(SlackStrings.help.slashSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.otherCommands),
       Blocks.Divider(),

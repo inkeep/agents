@@ -47,7 +47,6 @@ export const SlackStrings = {
   // Context block text
   context: {
     poweredBy: (agentName: string) => `Powered by *${agentName}* via Inkeep`,
-    privateResponse: '_Private response_',
   },
 
   // Usage hints
@@ -82,8 +81,8 @@ export const SlackStrings = {
       '• `@Inkeep <message>` — Message the default agent in this channel\n' +
       '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
       '• `@Inkeep` in a thread — Uses the full thread as context',
-    privateSection:
-      '*Private* — only visible to you\n\n' +
+    slashSection:
+      '*Slash Commands* — visible to everyone in the channel\n\n' +
       '• `/inkeep <message>` — Message the default agent in this channel\n' +
       '• `/inkeep` — Open the agent picker to choose an agent and write a prompt',
     otherCommands:
