@@ -6,7 +6,7 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
-// Mock SpiceDB sync functions for integration tests
+// Mock SpiceDB sync functions and permission checks for integration tests
 // These are not needed for integration tests as they test the API/DB layer only
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -15,6 +15,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     syncProjectToSpiceDb: vi.fn().mockResolvedValue(undefined),
     removeProjectFromSpiceDb: vi.fn().mockResolvedValue(undefined),
     syncOrgMemberToSpiceDb: vi.fn().mockResolvedValue(undefined),
+    canUseProjectStrict: vi.fn().mockResolvedValue(true),
   };
 });
 
@@ -635,7 +636,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const trigger = agentData.scheduledTriggers[triggerId];
       expect(trigger).toBeDefined();
       expect(trigger.runAsUserId).toBe('anonymous');
-      expect(trigger.createdBy).toBe('anonymous');
+      expect(trigger.createdBy).toBe('system');
     });
 
     it('should allow no-op push of unchanged triggers', async () => {
