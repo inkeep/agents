@@ -3,7 +3,6 @@
   "icon": "LuHammer",
   "pages": [
     "mcp-servers",
-    "user-vs-project-mcp",
     "credentials",
     "function-tools",
     "tool-approvals",
