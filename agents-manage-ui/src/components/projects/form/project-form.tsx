@@ -103,7 +103,7 @@ export function ProjectForm({
   const form = useForm({
     resolver: zodResolver(ProjectSchema),
     defaultValues: initialData ? createDefaultValues(initialData) : defaultValues,
-    mode: 'onChange'
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
