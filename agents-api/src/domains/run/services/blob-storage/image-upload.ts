@@ -4,10 +4,11 @@ import { getLogger } from '../../../../logger';
 import { downloadExternalImage } from './external-image-downloader';
 import { normalizeInlineImageBytes } from './image-content-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
+import { buildStorageKey } from './storage-keys';
 
 const logger = getLogger('image-upload');
 
-interface UploadContext {
+export interface UploadContext {
   tenantId: string;
   projectId: string;
   conversationId: string;
@@ -28,10 +29,6 @@ function getExtensionFromMimeType(mimeType?: string): string {
     'image/*': 'bin',
   };
   return map[mimeType] || mimeType.split('/')[1] || 'bin';
-}
-
-function buildStorageKey(ctx: UploadContext, hash: string, ext: string): string {
-  return `${ctx.tenantId}/${ctx.projectId}/${ctx.conversationId}/${ctx.messageId}/${hash}.${ext}`;
 }
 
 async function uploadFilePart(
@@ -58,9 +55,17 @@ async function uploadFilePart(
     return part;
   }
 
-  const hash = createHash('sha256').update(data).digest('hex').slice(0, 16);
+  const contentHash = createHash('sha256').update(data).digest('hex');
   const ext = getExtensionFromMimeType(mimeType.split(';')[0]?.trim().toLowerCase());
-  const key = buildStorageKey(ctx, `${index}-${hash}`, ext);
+  const key = buildStorageKey({
+    category: 'media',
+    tenantId: ctx.tenantId,
+    projectId: ctx.projectId,
+    conversationId: ctx.conversationId,
+    messageId: ctx.messageId,
+    contentHash,
+    ext,
+  });
 
   await storage.upload({ key, data, contentType: mimeType });
 
