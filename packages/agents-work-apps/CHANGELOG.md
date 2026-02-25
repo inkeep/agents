@@ -1,5 +1,12 @@
 # @inkeep/agents-work-apps
 
+## 0.53.5
+
+### Patch Changes
+
+- 7abd1bd: Dont stream tool errors that were successfully retried
+  - @inkeep/agents-core@0.53.5
+
 ## 0.53.4
 
 ### Patch Changes
