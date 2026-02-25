@@ -139,19 +139,18 @@ export function GenericKeyValueInput<
                 control={control}
                 name={`${name}.${index}.value` as FieldPath<TFieldValues>}
                 render={({ field }) => (
-                    <FormControl>
-                      <Input
-                        {...field}
-                        data-index={index}
-                        data-field="value"
-                        placeholder={valuePlaceholder}
-                        onKeyDown={(e) => handleKeyDown(e, index, 'value')}
-                        className="flex-1"
-                        disabled={disabled}
-                      />
-                    </FormControl>
-                  )
-                }
+                  <FormControl>
+                    <Input
+                      {...field}
+                      data-index={index}
+                      data-field="value"
+                      placeholder={valuePlaceholder}
+                      onKeyDown={(e) => handleKeyDown(e, index, 'value')}
+                      className="flex-1"
+                      disabled={disabled}
+                    />
+                  </FormControl>
+                )}
               />
               {!disabled && (
                 <Button

@@ -48,24 +48,24 @@ export function GenericComboBox<
     <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Popover open={open} onOpenChange={setOpen}>
-            <FormControl>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className="w-full justify-between font-normal"
-              disabled={disabled}
-            >
-              {field.value ? (
-                options.find((option) => option.value === field.value)?.label
-              ) : (
-                <div className="text-muted-foreground">{placeholder}</div>
-              )}
-              <ChevronsUpDown className="opacity-50 text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-            </FormControl>
+          <FormControl>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between font-normal"
+                disabled={disabled}
+              >
+                {field.value ? (
+                  options.find((option) => option.value === field.value)?.label
+                ) : (
+                  <div className="text-muted-foreground">{placeholder}</div>
+                )}
+                <ChevronsUpDown className="opacity-50 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+          </FormControl>
           <PopoverContent className="p-0 w-(--radix-popover-trigger-width) ">
             <Command>
               <CommandInput placeholder={searchPlaceholder} className="h-9" />

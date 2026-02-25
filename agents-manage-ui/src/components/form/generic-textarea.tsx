@@ -2,9 +2,9 @@
 
 import type { JSX } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { FormControl } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
-import { FormControl } from '@/components/ui/form';
 
 interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
   control: Control<FV, unknown, TV>;

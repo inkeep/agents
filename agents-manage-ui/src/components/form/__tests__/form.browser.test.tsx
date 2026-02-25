@@ -5,14 +5,14 @@ import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
+import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
-import { GenericJsonEditor } from '@/components/form/generic-json-editor';
-import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
