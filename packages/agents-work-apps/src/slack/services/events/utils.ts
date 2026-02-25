@@ -100,6 +100,15 @@ export function escapeSlackLinkText(text: string): string {
 }
 
 /**
+ * Escape special characters in Slack mrkdwn text.
+ * In Slack's mrkdwn, `&`, `<`, and `>` are treated as HTML entities/tags
+ * and must be escaped in all dynamic mrkdwn text fields.
+ */
+export function escapeSlackMrkdwn(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
  * Convert standard Markdown to Slack's mrkdwn format
  *
  * Key differences:
