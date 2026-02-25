@@ -1,0 +1,92 @@
+---
+title: Connect to the manage database in DataGrip
+sidebarTitle: DataGrip
+description: This guide explains how to connect DataGrip to the local Inkeep manage database and run branch-scoped queries on a project branch.
+keywords: DataGrip, PostgreSQL, Doltgres, manage database, contributors, local development
+icon: LuDatabase
+---
+
+<Steps>
+<Step>
+## Download DataGrip
+
+Install the latest version of DataGrip from JetBrains:
+[DataGrip download](https://jetbrains.com/datagrip/download).
+</Step>
+<Step>
+## Create a PostgreSQL data source
+
+In DataGrip, go to:
+`File -> New -> Data Source -> PostgreSQL -> PostgreSQL`.
+
+<>![Create a PostgreSQL data source](./create-a-postgresql-data-source.png)</>
+</Step>
+<Step>
+## Fill data source details
+
+Use this URL:
+
+```text
+jdbc:postgresql://localhost:5432/inkeep_agents?user=appuser&password=password
+```
+
+Or fill the fields with these values:
+
+- Name: `Inkeep Manage API`
+- User: `appuser`
+- Password: `password`
+- Database: `inkeep_agents`
+
+<>![Fill data source details](./fill-data-source-details.png)</>
+</Step>
+<Step>
+## Test the connection
+
+Click **Test Connection** and confirm it succeeds.
+
+<>![Test connection](./test-connection.png)</>
+</Step>
+<Step>
+## Select databases
+
+In **Database Explorer**, click the 3 dots next to **No databases selected** and select all databases.
+
+<>![Select databases](./select-databases.png)</>
+</Step>
+<Step>
+## Go to DDL
+
+Select the `inkeep_agents` database and click **Go to DDL**.
+
+<>![Click go to DDL](./click-go-to-ddl.png)</>
+</Step>
+<Step>
+## Check out a Dolt branch and run a query
+
+In the query console, check out the project branch first, then run your SQL.
+
+Example for the default sample project:
+
+```sql
+SELECT DOLT_CHECKOUT('default_activities-planner_main');
+SELECT * FROM skills;
+```
+
+General branch pattern:
+
+```sql
+SELECT DOLT_CHECKOUT('{tenant_id}_{project_id}_{branch}');
+```
+
+Run queries with `Cmd/Ctrl + Enter`, then choose the statement to execute.
+
+<>![Run checkout and query](./run-checkout-and-query.png)</>
+</Step>
+<Step>
+## View results
+
+Query results appear in the bottom panel of the IDE.
+
+<>![Query results](./query-results.png)</>
+</Step>
+</Steps>
