@@ -39,15 +39,14 @@ function BaseModelSection({
       <FormFieldWrapper
         control={control}
         name="models.base.model"
-        label="Base model"
         description="Primary model for general agent responses"
-        isRequired={isRequired(ProjectSchema, 'models.base.model')}
       >
         {(field) => (
           <ModelConfiguration
             value={field.value}
             providerOptions={providerOptionsField ?? ''}
-            label=""
+            label="Base model"
+            isRequired={isRequired(ProjectSchema, 'models.base.model')}
             placeholder="Select base model"
             canClear={false}
             onModelChange={field.onChange}
@@ -82,15 +81,14 @@ function StructuredOutputModelSection({
     <FormFieldWrapper
       control={control}
       name="models.structuredOutput.model"
-      isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
-      label="Structured output model"
       description="Model for structured outputs and components (defaults to base model)"
     >
       {(field) => (
         <ModelConfiguration
           value={field.value || ''}
           providerOptions={providerOptionsField ?? ''}
-          label=""
+          label="Structured output model"
+          isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
           placeholder="Select structured output model (optional)"
           inheritedValue={baseModel}
           inheritedProviderOptions={baseProviderOptions}
@@ -129,15 +127,14 @@ function SummarizerModelSection({
     <FormFieldWrapper
       control={control}
       name="models.summarizer.model"
-      isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
-      label="Summarizer model"
       description="Model for summarization tasks (defaults to base model)"
     >
       {(field) => (
         <ModelConfiguration
           value={field.value || ''}
           providerOptions={providerOptionsField ?? ''}
-          label=""
+          isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
+          label="Summarizer model"
           placeholder="Select summarizer model (optional)"
           inheritedValue={baseModel}
           inheritedProviderOptions={baseProviderOptions}
