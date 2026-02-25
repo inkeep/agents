@@ -44,6 +44,8 @@ const execAsync = promisify(exec);
 
 const agentsApiPort = '3002';
 
+const DIVERGENT_PACKAGES = new Set(['@inkeep/agents-ui']);
+
 function getCliVersion(): string {
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -54,26 +56,63 @@ function getCliVersion(): string {
   }
 }
 
+async function fetchLatestVersion(packageName: string): Promise<string | null> {
+  try {
+    const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`);
+    if (!response.ok) return null;
+    const data = (await response.json()) as { version?: string };
+    return data.version ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function syncTemplateDependencies(templatePath: string): Promise<void> {
   const cliVersion = getCliVersion();
   if (!cliVersion) return;
 
   const packageJsonPaths = await findPackageJsonFiles(templatePath);
 
-  await Promise.all(
-    packageJsonPaths.map(async (pkgPath) => {
-      const pkg = await fs.readJson(pkgPath);
+  const divergentVersions = new Map<string, string>();
+  const allDeps = new Set<string>();
+  const pkgDataList: { pkgPath: string; pkg: Record<string, unknown> }[] = [];
 
+  for (const pkgPath of packageJsonPaths) {
+    const pkg = await fs.readJson(pkgPath);
+    pkgDataList.push({ pkgPath, pkg });
+    for (const depType of ['dependencies', 'devDependencies'] as const) {
+      const deps = pkg[depType] as Record<string, string> | undefined;
+      if (!deps) continue;
+      for (const name of Object.keys(deps)) {
+        if (name.startsWith('@inkeep/') && DIVERGENT_PACKAGES.has(name)) {
+          allDeps.add(name);
+        }
+      }
+    }
+  }
+
+  await Promise.all(
+    [...allDeps].map(async (name) => {
+      const version = await fetchLatestVersion(name);
+      if (version) divergentVersions.set(name, version);
+    })
+  );
+
+  await Promise.all(
+    pkgDataList.map(async ({ pkgPath, pkg }) => {
       for (const depType of ['dependencies', 'devDependencies'] as const) {
-        const deps = pkg[depType];
+        const deps = pkg[depType] as Record<string, string> | undefined;
         if (!deps) continue;
         for (const name of Object.keys(deps)) {
-          if (name.startsWith('@inkeep/') && name !== '@inkeep/agents-ui') {
+          if (!name.startsWith('@inkeep/')) continue;
+          if (DIVERGENT_PACKAGES.has(name)) {
+            const resolved = divergentVersions.get(name);
+            if (resolved) deps[name] = `^${resolved}`;
+          } else {
             deps[name] = `^${cliVersion}`;
           }
         }
       }
-
       await fs.writeJson(pkgPath, pkg, { spaces: 2 });
     })
   );
