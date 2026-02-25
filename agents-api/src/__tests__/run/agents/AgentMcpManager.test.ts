@@ -1,4 +1,4 @@
-import { McpClient, MCPServerType, MCPTransportType } from '@inkeep/agents-core';
+import { MCPServerType, MCPTransportType, McpClient } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { AgentMcpManager } from '../../../domains/run/agents/AgentMcpManager';
 
@@ -356,7 +356,13 @@ describe('AgentMcpManager', () => {
       });
 
       const manager = new AgentMcpManager(
-        { id: 'sub-1', agentId: 'agent-1', tenantId: 'tenant-abc', projectId: 'project-xyz', name: 'Agent' } as any,
+        {
+          id: 'sub-1',
+          agentId: 'agent-1',
+          tenantId: 'tenant-abc',
+          projectId: 'project-xyz',
+          name: 'Agent',
+        } as any,
         {
           project: {
             agents: {},
@@ -378,7 +384,11 @@ describe('AgentMcpManager', () => {
 
       expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: 'tenant-abc', projectId: 'project-xyz' }),
-        expect.objectContaining({ id: 'cred-tool', name: 'Credentialed Tool', mcpType: MCPServerType.nango }),
+        expect.objectContaining({
+          id: 'cred-tool',
+          name: 'Credentialed Tool',
+          mcpType: MCPServerType.nango,
+        }),
         { credentialStoreId: 'store-1', retrievalParams: { connectionId: 'conn-1' } },
         undefined
       );

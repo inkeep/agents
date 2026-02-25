@@ -852,7 +852,6 @@ describe('Agent conversationHistoryConfig Functionality', () => {
   });
 });
 
-
 describe('Two-Pass Generation System', () => {
   let mockAgentConfig: AgentConfig;
   let mockDataComponent: DataComponentSelect;
