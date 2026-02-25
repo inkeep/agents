@@ -18,12 +18,10 @@ import { ApiKeyDisplay } from './api-key-display';
 import { ApiKeyForm } from './form/api-key-form';
 
 interface NewApiKeyDialogProps {
-  tenantId: string;
-  projectId: string;
   agentsOptions: SelectOption[];
 }
 
-export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKeyDialogProps) {
+export function NewApiKeyDialog({ agentsOptions }: NewApiKeyDialogProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<ApiKeyCreateResponse | null>(null);
 
@@ -64,12 +62,7 @@ export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKe
             <DialogDescription className="sr-only">Create a new API key.</DialogDescription>
           </DialogHeader>
           <div className="pt-6">
-            <ApiKeyForm
-              tenantId={tenantId}
-              projectId={projectId}
-              agentsOptions={agentsOptions}
-              onApiKeyCreated={handleApiKeyCreated}
-            />
+            <ApiKeyForm agentsOptions={agentsOptions} onApiKeyCreated={handleApiKeyCreated} />
           </div>
         </DialogContent>
       </Dialog>

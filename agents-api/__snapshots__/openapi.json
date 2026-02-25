@@ -752,7 +752,7 @@
           },
           "name": {
             "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -760,7 +760,8 @@
           }
         },
         "required": [
-          "agentId"
+          "agentId",
+          "name"
         ],
         "type": "object"
       },
@@ -808,7 +809,7 @@
           },
           "name": {
             "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
