@@ -12,16 +12,12 @@ export const defaultValues: ProjectInput = {
   models: {
     base: {
       model: DEFAULT_ANTHROPIC_BASE_MODEL,
-      providerOptions: undefined,
     },
     structuredOutput: {
       model: DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
-      providerOptions: undefined,
     },
     summarizer: {
       model: DEFAULT_ANTHROPIC_SUMMARIZER_MODEL,
-      providerOptions: undefined,
     },
   },
-  stopWhen: undefined,
 };
