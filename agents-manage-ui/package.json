@@ -54,7 +54,7 @@
     "@better-auth/sso": "catalog:",
     "@hookform/resolvers": "^5.2.1",
     "@inkeep/agents-core": "workspace:^",
-    "@inkeep/agents-ui": "^0.15.10",
+    "@inkeep/agents-ui": "^0.15.13",
     "@nangohq/frontend": "^0.69.5",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
