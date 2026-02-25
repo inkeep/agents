@@ -1,4 +1,4 @@
-import { McpClient } from '@inkeep/agents-core';
+import { McpClient, MCPServerType, MCPTransportType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { AgentMcpManager } from '../../../domains/run/agents/AgentMcpManager';
 
@@ -280,6 +280,108 @@ describe('AgentMcpManager', () => {
       const result = await createManager().getToolSet(mcpTool);
 
       expect(result.tools['search']).toBe(originalTool);
+    });
+  });
+
+  describe('convertToMCPToolConfig', () => {
+    test('maps McpTool fields correctly and detects Nango URL', () => {
+      const mcpTool = createMcpTool({
+        id: 'nango-tool',
+        name: 'Nango Tool',
+        headers: { 'x-custom': 'value' },
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.nango.dev/mcp' },
+            transport: { type: MCPTransportType.sse },
+            activeTools: ['tool_a'],
+            toolOverrides: { tool_a: { description: 'Override' } },
+          },
+        },
+      });
+
+      const result = (createManager() as any).convertToMCPToolConfig(mcpTool);
+
+      expect(result).toMatchObject({
+        id: 'nango-tool',
+        name: 'Nango Tool',
+        description: 'Nango Tool',
+        serverUrl: 'https://api.nango.dev/mcp',
+        activeTools: ['tool_a'],
+        mcpType: MCPServerType.nango,
+        transport: { type: MCPTransportType.sse },
+        headers: { 'x-custom': 'value' },
+      });
+    });
+
+    test('detects non-Nango URL as generic MCPServerType', () => {
+      const mcpTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://mcp.example.com' },
+            transport: { type: MCPTransportType.streamableHttp },
+          },
+        },
+      });
+
+      const result = (createManager() as any).convertToMCPToolConfig(mcpTool);
+
+      expect(result.mcpType).toBe(MCPServerType.generic);
+      expect(result.serverUrl).toBe('https://mcp.example.com');
+    });
+  });
+
+  describe('credential stuffer integration', () => {
+    test('passes tenantId, projectId, and storeReference to buildMcpServerConfig', async () => {
+      const mockCredentialStuffer = {
+        buildMcpServerConfig: vi.fn().mockResolvedValue({
+          type: MCPTransportType.sse,
+          url: 'https://api.nango.dev/mcp',
+          headers: {},
+        }),
+      };
+
+      const mcpTool = createMcpTool({
+        id: 'cred-tool',
+        name: 'Credentialed Tool',
+        credentialReferenceId: 'cred-ref-1',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.nango.dev/mcp' },
+            transport: { type: MCPTransportType.sse },
+          },
+        },
+      });
+
+      const manager = new AgentMcpManager(
+        { id: 'sub-1', agentId: 'agent-1', tenantId: 'tenant-abc', projectId: 'project-xyz', name: 'Agent' } as any,
+        {
+          project: {
+            agents: {},
+            credentialReferences: {
+              'cred-ref-1': {
+                credentialStoreId: 'store-1',
+                retrievalParams: { connectionId: 'conn-1' },
+              },
+            },
+          },
+        } as any,
+        mockCredentialStuffer as any,
+        () => 'conv-1',
+        () => 'stream-1',
+        () => undefined
+      );
+
+      await manager.getToolSet(mcpTool);
+
+      expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-abc', projectId: 'project-xyz' }),
+        expect.objectContaining({ id: 'cred-tool', name: 'Credentialed Tool', mcpType: MCPServerType.nango }),
+        { credentialStoreId: 'store-1', retrievalParams: { connectionId: 'conn-1' } },
+        undefined
+      );
     });
   });
 });
