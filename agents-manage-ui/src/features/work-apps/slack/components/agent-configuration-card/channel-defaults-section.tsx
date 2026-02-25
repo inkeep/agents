@@ -280,7 +280,8 @@ export function ChannelDefaultsSection({
         ) : channels.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-sm text-muted-foreground">
-              No channels found. Make sure the bot is invited to channels.
+              No channels found. Add the bot to channels in Slack, then return here to configure
+              per-channel agents.
             </p>
           </div>
         ) : filteredChannels.length === 0 ? (
