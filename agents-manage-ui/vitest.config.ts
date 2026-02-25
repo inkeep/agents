@@ -16,17 +16,17 @@ declare module 'vitest/browser' {
 }
 
 function cropRgba(
-    data: ArrayLike<number>,
-    srcWidth: number,
-    targetWidth: number,
-    targetHeight: number
+  data: ArrayLike<number>,
+  srcWidth: number,
+  targetWidth: number,
+  targetHeight: number
 ): Uint8Array {
   const rowBytes = targetWidth * 4;
   if (srcWidth === targetWidth) {
     return new Uint8Array(
-        (data as Uint8Array).buffer,
-        (data as Uint8Array).byteOffset,
-        rowBytes * targetHeight
+      (data as Uint8Array).buffer,
+      (data as Uint8Array).byteOffset,
+      rowBytes * targetHeight
     );
   }
   const out = new Uint8Array(rowBytes * targetHeight);
@@ -43,12 +43,12 @@ function cropRgba(
 const BROWSER_TESTS_PATTERN = '**/*.browser.test.tsx';
 
 const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] = ({
-                                                                                    root,
-                                                                                    screenshotDirectory,
-                                                                                    arg,
-                                                                                    browserName,
-                                                                                    ext,
-                                                                                  }) => {
+  root,
+  screenshotDirectory,
+  arg,
+  browserName,
+  ext,
+}) => {
   return [root, 'src', screenshotDirectory, `${arg}-${browserName}${ext}`].join('/');
 };
 
@@ -58,7 +58,7 @@ export default defineConfig({
     globals: true,
     onUnhandledError(error) {
       const message =
-          (error as { message?: string })?.message ?? (typeof error === 'string' ? error : '');
+        (error as { message?: string })?.message ?? (typeof error === 'string' ? error : '');
       if (message.includes('Closing rpc while')) {
         return false;
       }
@@ -66,8 +66,8 @@ export default defineConfig({
         return false;
       }
       if (
-          message.includes('is not a valid name') ||
-          (error as { name?: string })?.name === 'InvalidCharacterError'
+        message.includes('is not a valid name') ||
+        (error as { name?: string })?.name === 'InvalidCharacterError'
       ) {
         return false;
       }
@@ -108,8 +108,8 @@ export default defineConfig({
                     const aH = actual.metadata.height;
 
                     if (
-                        Math.abs(rW - aW) > maxDimensionDiff ||
-                        Math.abs(rH - aH) > maxDimensionDiff
+                      Math.abs(rW - aW) > maxDimensionDiff ||
+                      Math.abs(rH - aH) > maxDimensionDiff
                     ) {
                       return {
                         pass: false,
@@ -122,13 +122,13 @@ export default defineConfig({
                     const h = Math.min(rH, aH);
 
                     const refData =
-                        rW === w && rH === h
-                            ? (reference.data as Uint8Array)
-                            : cropRgba(reference.data, rW, w, h);
+                      rW === w && rH === h
+                        ? (reference.data as Uint8Array)
+                        : cropRgba(reference.data, rW, w, h);
                     const actData =
-                        aW === w && aH === h
-                            ? (actual.data as Uint8Array)
-                            : cropRgba(actual.data, aW, w, h);
+                      aW === w && aH === h
+                        ? (actual.data as Uint8Array)
+                        : cropRgba(actual.data, aW, w, h);
 
                     const diffBuf = createDiff ? new Uint8Array(w * h * 4) : undefined;
                     const mismatched = pixelmatch(refData, actData, diffBuf, w, h, { threshold });
@@ -140,9 +140,9 @@ export default defineConfig({
                       pass: ratio <= allowedMismatchedPixelRatio,
                       diff: diffBuf ?? null,
                       message:
-                          ratio > allowedMismatchedPixelRatio
-                              ? `${mismatched} pixels (${(ratio * 100).toFixed(2)}%) mismatched, allowed: ${(allowedMismatchedPixelRatio * 100).toFixed(2)}%`
-                              : null,
+                        ratio > allowedMismatchedPixelRatio
+                          ? `${mismatched} pixels (${(ratio * 100).toFixed(2)}%) mismatched, allowed: ${(allowedMismatchedPixelRatio * 100).toFixed(2)}%`
+                          : null,
                     };
                   },
                 },
