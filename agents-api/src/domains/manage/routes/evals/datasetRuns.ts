@@ -30,9 +30,8 @@ function deriveRunStatus(summary: {
 }): string {
   const { pending, running, completed, failed } = summary;
   const total = pending + running + completed + failed;
-  if (total === 0 || pending === total) return 'pending';
-  if (running > 0 || pending > 0) return 'running';
-  return 'completed';
+  if (total > 0 && pending + running === 0) return 'completed';
+  return 'pending';
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();

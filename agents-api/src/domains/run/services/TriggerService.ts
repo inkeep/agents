@@ -599,21 +599,27 @@ export async function dispatchExecution(params: {
  * Execute the agent asynchronously.
  * This runs after the webhook response is sent.
  */
-export async function executeAgentAsync(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  triggerId: string;
-  invocationId: string;
-  conversationId: string;
-  resolvedRef: ResolvedRef;
-  dispatchedAt?: number;
-  runAsUserId?: string;
-  datasetRunId?: string;
-} & (
-  | { userMessage: string; messageParts: Part[]; messages?: undefined }
-  | { messages: Array<{ role: string; content: unknown }>; userMessage?: undefined; messageParts?: undefined }
-)): Promise<void> {
+export async function executeAgentAsync(
+  params: {
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    triggerId: string;
+    invocationId: string;
+    conversationId: string;
+    resolvedRef: ResolvedRef;
+    dispatchedAt?: number;
+    runAsUserId?: string;
+    datasetRunId?: string;
+  } & (
+    | { userMessage: string; messageParts: Part[]; messages?: undefined }
+    | {
+        messages: Array<{ role: string; content: unknown }>;
+        userMessage?: undefined;
+        messageParts?: undefined;
+      }
+  )
+): Promise<void> {
   const {
     tenantId,
     projectId,
