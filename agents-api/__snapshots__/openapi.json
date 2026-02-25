@@ -5802,19 +5802,16 @@
       "ProjectCreate": {
         "properties": {
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "stopWhen": {
             "$ref": "#/components/schemas/StopWhen"
@@ -5854,7 +5851,23 @@
         "nullable": true,
         "properties": {
           "base": {
-            "$ref": "#/components/schemas/ModelSettings"
+            "properties": {
+              "model": {
+                "description": "The model to use for the project.",
+                "type": "string"
+              },
+              "providerOptions": {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "description": "The provider options to use for the project.",
+                "type": "object"
+              }
+            },
+            "required": [
+              "model"
+            ],
+            "type": "object"
           },
           "structuredOutput": {
             "$ref": "#/components/schemas/ModelSettings"
@@ -5882,15 +5895,13 @@
       "ProjectUpdate": {
         "properties": {
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "stopWhen": {
             "$ref": "#/components/schemas/StopWhen"
