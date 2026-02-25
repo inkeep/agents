@@ -50,6 +50,45 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   }
 }
 
+/**
+ * Clean up the thinking acknowledgment message after streaming completes or fails.
+ * When the thinking message IS the thread anchor (slash commands at channel root),
+ * update it to show the user's question or invocation attribution instead of deleting,
+ * since deleting a thread anchor leaves "This message was deleted." as the root.
+ */
+async function cleanupThinkingMessage(params: {
+  slackClient: ReturnType<typeof getSlackClient>;
+  channel: string;
+  thinkingMessageTs: string;
+  threadTs?: string;
+  slackUserId: string;
+  agentName: string;
+  question: string;
+}): Promise<void> {
+  const { slackClient, channel, thinkingMessageTs, threadTs, slackUserId, agentName, question } =
+    params;
+
+  if (!thinkingMessageTs) return;
+
+  try {
+    if (thinkingMessageTs === threadTs) {
+      const text = question ? question : `<@${slackUserId}> invoked _${agentName}_`;
+      await slackClient.chat.update({
+        channel,
+        ts: thinkingMessageTs,
+        text,
+      });
+    } else {
+      await slackClient.chat.delete({
+        channel,
+        ts: thinkingMessageTs,
+      });
+    }
+  } catch (error) {
+    logger.warn({ error, channel, thinkingMessageTs }, 'Failed to clean up thinking message');
+  }
+}
+
 export interface StreamResult {
   success: boolean;
   errorType?: SlackErrorType;
@@ -87,6 +126,15 @@ export async function streamAgentResponse(params: {
     } = params;
 
     const threadParam = threadTs ? { thread_ts: threadTs } : {};
+    const cleanupParams = {
+      slackClient,
+      channel,
+      thinkingMessageTs,
+      threadTs,
+      slackUserId,
+      agentName,
+      question,
+    };
 
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
     span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
@@ -147,13 +195,7 @@ export async function streamAgentResponse(params: {
           text: errorMessage,
         });
 
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore delete errors
-          }
-        }
+        await cleanupThinkingMessage(cleanupParams);
 
         span.end();
         return { success: false, errorType, errorMessage };
@@ -169,13 +211,7 @@ export async function streamAgentResponse(params: {
         })
         .catch((e) => logger.warn({ error: e }, 'Failed to send fetch error notification'));
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       if (fetchError instanceof Error) setSpanWithError(span, fetchError);
       span.end();
@@ -199,13 +235,7 @@ export async function streamAgentResponse(params: {
         text: errorMessage,
       });
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       span.end();
       return { success: false, errorType, errorMessage };
@@ -226,13 +256,7 @@ export async function streamAgentResponse(params: {
         text: errorMessage,
       });
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       span.end();
       return { success: false, errorType, errorMessage };
@@ -532,16 +556,7 @@ export async function streamAgentResponse(params: {
         );
       }
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({
-            channel,
-            ts: thinkingMessageTs,
-          });
-        } catch (deleteError) {
-          logger.warn({ deleteError }, 'Failed to delete acknowledgement message');
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       logger.info(
         {
@@ -594,13 +609,7 @@ export async function streamAgentResponse(params: {
           );
         }
 
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore delete errors in error path
-          }
-        }
+        await cleanupThinkingMessage(cleanupParams);
 
         span.end();
         return { success: true };
@@ -626,13 +635,7 @@ export async function streamAgentResponse(params: {
             (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
           );
         }
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore
-          }
-        }
+        await cleanupThinkingMessage(cleanupParams);
         span.end();
         return { success: true };
       }
@@ -642,16 +645,7 @@ export async function streamAgentResponse(params: {
       // would call chat.startStream() creating a phantom message with buffered content.
       logger.error({ streamError }, 'Error during Slack streaming');
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({
-            channel,
-            ts: thinkingMessageTs,
-          });
-        } catch {
-          // Ignore delete errors in error path
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       const errorType = classifyError(streamError);
       const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
