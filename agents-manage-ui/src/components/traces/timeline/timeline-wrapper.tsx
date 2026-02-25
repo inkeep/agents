@@ -439,13 +439,10 @@ export function TimelineWrapper({
     const hasAiMessages = aiMessageIds.length > 0;
     const hasParentNodes = parentNodeIds.size > 0;
     if (!hasAiMessages && !hasParentNodes) return false;
-    if (hasAiMessages && !aiMessagesGloballyCollapsed) return false;
-    if (hasParentNodes) {
-      for (const id of parentNodeIds) {
-        if (!collapsedNodes.has(id)) return false;
-      }
-    }
-    return true;
+    const allAiCollapsed = !hasAiMessages || aiMessagesGloballyCollapsed;
+    const allNodesCollapsed =
+      !hasParentNodes || [...parentNodeIds].every((id) => collapsedNodes.has(id));
+    return allAiCollapsed && allNodesCollapsed;
   }, [aiMessageIds, aiMessagesGloballyCollapsed, parentNodeIds, collapsedNodes]);
 
   const closePanel = () => {

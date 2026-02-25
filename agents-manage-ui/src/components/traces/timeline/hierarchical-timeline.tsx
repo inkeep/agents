@@ -20,7 +20,7 @@ interface TreeNodeItemProps {
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
   collapsedNodes: Set<string>;
-  onToggleNodeCollapse: (nodeId: string) => void;
+  toggleNodeCollapse: (nodeId: string) => void;
 }
 
 function TreeNodeItem({
@@ -31,7 +31,7 @@ function TreeNodeItem({
   collapsedAiMessages,
   onToggleAiMessageCollapse,
   collapsedNodes,
-  onToggleNodeCollapse,
+  toggleNodeCollapse,
 }: TreeNodeItemProps) {
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsedNodes.has(node.activity.id);
@@ -80,7 +80,7 @@ function TreeNodeItem({
               onToggleAiMessageCollapse={onToggleAiMessageCollapse}
               hasChildren={hasChildren}
               isCollapsed={isCollapsed}
-              onToggleCollapse={() => onToggleNodeCollapse(node.activity.id)}
+              onToggleCollapse={() => toggleNodeCollapse(node.activity.id)}
             />
           </div>
         </div>
