@@ -68,11 +68,12 @@ Right-click (or long-press on mobile) any message in a channel and select **Ask 
 
 ## Direct messages
 
-You can DM the Inkeep bot directly for private one-on-one conversations.
+You can mention `@Inkeep` or use `/inkeep` commands in your DMs for private conversations. Direct messaging the bot without a mention or command is not currently supported.
 
 | Usage | What happens |
 |-------|-------------|
-| Send a message to `@Inkeep` in DMs | The workspace default agent responds in a thread |
+| `@Inkeep <your question>` in a DM | The workspace default agent responds in a thread |
+| `/inkeep <your question>` in a DM | The workspace default agent responds |
 | Reply in a DM thread | The agent receives the full DM thread as context |
 
 DMs use your **workspace default agent**. Channel-specific agent overrides do not apply in DMs. You must have your account linked and have access to the agent's project.
