@@ -57,7 +57,7 @@ describe('Agent Tools', () => {
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       cy.typeInMonaco(uri, '{"foo":123}');
-      cy.contains('Format').click();
+      cy.get(`[data-uri="file:///${uri}"]`).prev().contains('Format').click();
       cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
     });
     it('JavaScript', () => {
@@ -65,9 +65,23 @@ describe('Agent Tools', () => {
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       dragNode('[aria-label="Drag Function Tool node"]');
-      cy.typeInMonaco(uri, 'function(){return"foo"}');
+      cy.typeInMonaco(uri, 'function qux(){return"foo"}');
       cy.contains('Format').click();
-      cy.assertMonacoContent(uri, 'function() { return "foo" }');
+      cy.assertMonacoContent(
+        uri,
+        `function qux() {
+  return "foo";
+}`
+      );
+    });
+
+    it('Prompt', () => {
+      const uri = 'agent-prompt.template';
+
+      cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
+      cy.typeInMonaco(uri, '#   hello   {{name}}');
+      cy.contains('Format').click();
+      cy.assertMonacoContent(uri, '# hello {{name}}');
     });
   });
 });

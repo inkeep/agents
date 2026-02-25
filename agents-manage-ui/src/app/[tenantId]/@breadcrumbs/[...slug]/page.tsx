@@ -17,7 +17,6 @@ import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
-import { sentry } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 
@@ -150,9 +149,8 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
           : undefined;
         label = fetcher ? await fetcher(segment) : getStaticLabel(segment);
         if (!label) {
-          const error = new Error(`Unknown breadcrumb segment "${segment}"`);
-          sentry.captureException(error);
-          throw error;
+          // If segment is not defined in fetchers or in static labels -> skip it
+          continue;
         }
       }
     } catch (error) {

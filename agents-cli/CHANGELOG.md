@@ -1,5 +1,69 @@
 # @inkeep/agents-cli
 
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.53.5
+- @inkeep/agents-core@0.53.5
+- @inkeep/agents-sdk@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 1bcedce: Fix `imageUrl: null` handling in MCP tool generator in `inkeep pull`
+- Updated dependencies [35ca5cb]
+- Updated dependencies [df4b020]
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-manage-ui@0.53.4
+  - @inkeep/agents-sdk@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-manage-ui@0.53.3
+  - @inkeep/agents-sdk@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- Updated dependencies [090bedc]
+  - @inkeep/agents-manage-ui@0.53.2
+  - @inkeep/agents-core@0.53.2
+  - @inkeep/agents-sdk@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- Updated dependencies [e06a945]
+- Updated dependencies [2222e08]
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-manage-ui@0.53.1
+  - @inkeep/agents-core@0.53.1
+  - @inkeep/agents-sdk@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- ef0f287: Remove deprecated pull-v3 code and consolidate tests into pull-v4
+- ac63aa8: Fix `inkeep pull` for create mode: missing generation for MCP tools, sub-agent dependency imports, and project import alias collisions
+- Updated dependencies [f54846b]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [08ba7c2]
+- Updated dependencies [9c293ff]
+- Updated dependencies [a5f8f24]
+- Updated dependencies [f868a96]
+  - @inkeep/agents-manage-ui@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-sdk@0.53.0
+
 ## 0.52.0
 
 ### Minor Changes

@@ -23,7 +23,7 @@ import { ManagementApiClient } from '../../../api';
 import { performBackgroundVersionCheck } from '../../../utils/background-version-check';
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
-import { extractSubAgents } from '../../pull-v3/utils/component-registry';
+import { extractSubAgents } from '../component-registry';
 import { introspectGenerate } from '../introspect-generator';
 
 export interface PullV3Options {
@@ -133,7 +133,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
 }
 
 /**
- * Main pull-v3 command
+ * Main pull v4 command
  * @returns PullResult when in batch mode, otherwise void (exits process)
  */
 export async function pullV4Command(options: PullV3Options): Promise<PullResult | undefined> {
@@ -377,7 +377,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     const paths = createProjectStructure(projectDir);
 
     if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
-      const { generateSkills } = await import('../../pull-v3/components/skill-generator');
+      const { generateSkills } = await import('../generators/skill-generator');
       await generateSkills(remoteProject.skills, paths.skillsDir);
     }
 

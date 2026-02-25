@@ -1,5 +1,62 @@
 # @inkeep/agents-work-apps
 
+## 0.53.5
+
+### Patch Changes
+
+- 7abd1bd: Dont stream tool errors that were successfully retried
+  - @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 16d775c: Use users.conversations API for channel listing to return only bot-member channels, reducing API calls for large workspaces
+- be72c29: Add move-file tool to GitHub MCP
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 8063da9: Add attachment content to slack messages
+- bd3aab5: Add randomness to generated branch names to prevent collisions
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- c4d8a7b: Add project name and link to /inkeep status command response.
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
+## 0.53.0
+
+### Minor Changes
+
+- 901ff0a: Add PR body reactions to GitHub MCP. BREAKING: Renamed `add-comment-reaction` → `add-reaction`, `remove-comment-reaction` → `remove-reaction` and `list-comment-reactions` → `list-reactions`. Parameters `comment_id`/`comment_type` renamed to `target_id`/`target_type`.
+
+### Patch Changes
+
+- 6d435a6: Refactor lookupAgentName to reuse fetchAgentsForProject instead of duplicating API call logic
+- 41ed409: Fix Slack responses showing agent ID instead of agent name in thinking messages and signatures across all interaction types
+- 38506a8: Show agent name and ID in Slack modal dropdowns for disambiguation
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- 4d4fa33: Update slack user metadata in thread context
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
 ## 0.52.0
 
 ### Patch Changes

@@ -66,7 +66,7 @@ export class ArtifactParser {
     '<artifact:create',
   ];
   private static readonly INCOMPLETE_CREATE_REGEX =
-    /<artifact:create(?![^>]*(?:\/>|<\/artifact:create>))/;
+    /<artifact:create(?!(?:"[^"]*"|'[^']*'|[^>])*(?:\/>|<\/artifact:create>))/;
 
   private artifactService: ArtifactService;
   private contextWindowSize?: number;
@@ -110,7 +110,8 @@ export class ArtifactParser {
   hasArtifactMarkers(text: string): boolean {
     const refMatch = ArtifactParser.ARTIFACT_CHECK_REGEX.test(text);
 
-    const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
+    const createRegex =
+      /<artifact:create\s+((?:"[^"]*"|'[^']*'|[^>])+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
     const createMatch = createRegex.test(text);
 
     return refMatch || createMatch;
@@ -128,7 +129,7 @@ export class ArtifactParser {
     return (
       endsWithPattern ||
       /<artifact:ref[^>]+$/.test(text) || // Incomplete artifact ref at end
-      /<artifact:create[^>]*$/.test(text) || // Incomplete artifact create at end
+      /<artifact:create(?:"[^"]*"|'[^']*'|[^>])*$/.test(text) || // Incomplete artifact create at end
       (ArtifactParser.INCOMPLETE_CREATE_REGEX.test(text) && !text.includes('</artifact:create>')) ||
       this.findSafeTextBoundary(text) < text.length
     );
@@ -141,7 +142,7 @@ export class ArtifactParser {
   findSafeTextBoundary(text: string): number {
     const endPatterns = [
       /<artifact:ref(?![^>]*\/>).*$/, // artifact:ref that doesn't end with />
-      /<artifact:create(?![^>]*(?:\/>|<\/artifact:create>)).*$/, // incomplete artifact:create
+      /<artifact:create(?!(?:"[^"]*"|'[^']*'|[^>])*(?:\/>|<\/artifact:create>)).*$/, // incomplete artifact:create
     ];
 
     for (const pattern of endPatterns) {
@@ -212,7 +213,8 @@ export class ArtifactParser {
   private parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
     const annotations: ArtifactCreateAnnotation[] = [];
 
-    const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
+    const createRegex =
+      /<artifact:create\s+((?:"[^"]*"|'[^']*'|[^>])+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
 
     const matches = [...text.matchAll(createRegex)];
 
@@ -301,7 +303,8 @@ export class ArtifactParser {
 
     const parts: StreamPart[] = [];
 
-    const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
+    const createRegex =
+      /<artifact:create\s+((?:"[^"]*"|'[^']*'|[^>])+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
     const refRegex = /<artifact:ref\s+id=(["'])([^"']*?)\1\s+tool=(["'])([^"']*?)\3\s*\/>/gs;
 
     const createMatches = [...text.matchAll(createRegex)];
