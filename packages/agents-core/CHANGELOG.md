@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.53.7
+
+### Patch Changes
+
+- aa37d3f: Bump Slack user token and A2A service token TTL from 5 minutes to 1 hour to prevent 401 failures during long-running agent delegations
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+
 ## 0.53.6
 
 ## 0.53.5

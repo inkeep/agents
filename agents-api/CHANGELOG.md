@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+  - @inkeep/agents-work-apps@0.53.7
+  - @inkeep/agents-mcp@0.53.7
+
 ## 0.53.6
 
 ### Patch Changes
