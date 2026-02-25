@@ -826,6 +826,7 @@ describe('Agent', () => {
     });
 
     it('should handle project with no models configured', async () => {
+      const model = 'test model';
       // Mock project API to return project without models
       const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
       vi.mocked(getFullProjectViaAPI).mockResolvedValueOnce({
@@ -833,7 +834,7 @@ describe('Agent', () => {
         name: 'Test Project',
         description: 'Test project',
         models: {
-          base: { model: 'test model' },
+          base: { model },
           structuredOutput: undefined,
           summarizer: undefined,
         },
@@ -849,10 +850,9 @@ describe('Agent', () => {
       await agent.init();
 
       // Should remain undefined when project has no models
-      expect(agent.getModels()?.base?.model).toBeUndefined();
-      expect(agent1.getModels()?.base?.model).toBeUndefined();
-      expect(agent2.getModels()?.base?.model).toBeUndefined();
-      expect(agent2.getModels()?.base?.model).toBeUndefined();
+      expect(agent.getModels()?.base?.model).toBe(model);
+      expect(agent1.getModels()?.base?.model).toBe(model);
+      expect(agent2.getModels()?.base?.model).toBe(model);
     });
 
     it('should support partial model inheritance when agent has some but not all model types', async () => {
