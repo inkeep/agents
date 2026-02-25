@@ -48,7 +48,7 @@ pnpm dev
 
 The Visual Builder will auto-open at http://localhost:3000.
 
-### Step 4: Chat with your agent
+### Step 4: Login to the Visual Builder
 
 Use the credentials from your root `.env` file (`INKEEP_AGENTS_MANAGE_UI_USERNAME` and `INKEEP_AGENTS_MANAGE_UI_PASSWORD`) to log in when the Visual Builder opens.
 

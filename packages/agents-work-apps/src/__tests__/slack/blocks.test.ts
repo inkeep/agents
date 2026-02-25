@@ -29,25 +29,6 @@ describe('Slack Block Builders', () => {
       expect(result.elements[0].type).toBe('mrkdwn');
       expect(result.elements[0].text).toBe('Powered by *Test Agent* via Inkeep');
     });
-
-    it('should add private response prefix when isPrivate is true', () => {
-      const result = createContextBlock({ agentName: 'Test Agent', isPrivate: true });
-
-      expect(result.elements[0].text).toBe(
-        '_Private response_ • Powered by *Test Agent* via Inkeep'
-      );
-    });
-
-    it('should combine isPrivate correctly', () => {
-      const result = createContextBlock({
-        agentName: 'Test Agent',
-        isPrivate: true,
-      });
-
-      expect(result.elements[0].text).toBe(
-        '_Private response_ • Powered by *Test Agent* via Inkeep'
-      );
-    });
   });
 
   describe('createErrorMessage', () => {
@@ -75,7 +56,7 @@ describe('Slack Block Builders', () => {
       expect(result.blocks).toBeDefined();
       expect(JSON.stringify(result)).toContain('How to Use');
       expect(JSON.stringify(result)).toContain('Public');
-      expect(JSON.stringify(result)).toContain('Private');
+      expect(JSON.stringify(result)).toContain('Slash Commands');
       expect(JSON.stringify(result)).toContain('/inkeep status');
       expect(JSON.stringify(result)).toContain('Learn more');
     });

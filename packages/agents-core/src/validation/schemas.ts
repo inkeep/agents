@@ -1778,6 +1778,7 @@ export const ApiKeySelectSchema = createSelectSchema(apiKeys);
 export const ApiKeyInsertSchema = createInsertSchema(apiKeys).extend({
   id: ResourceIdSchema,
   agentId: ResourceIdSchema,
+  name: z.string().trim().nonempty('Please enter a name.').max(256),
 });
 
 export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({

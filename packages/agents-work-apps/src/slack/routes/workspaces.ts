@@ -41,6 +41,7 @@ import {
   computeWorkspaceConnectionId,
   deleteWorkspaceInstallation,
   findWorkspaceConnectionByTeamId,
+  getBotMemberChannels,
   getSlackChannels,
   getSlackClient,
   getWorkspaceDefaultAgentFromNango,
@@ -590,7 +591,7 @@ app.openapi(
     method: 'get',
     path: '/{teamId}/channels',
     summary: 'List Channels',
-    description: 'List Slack channels in the workspace that the bot can see',
+    description: 'List Slack channels where the bot is a member',
     operationId: 'slack-list-channels',
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: inheritedWorkAppsAuth(),
@@ -644,7 +645,7 @@ app.openapi(
     const slackClient = getSlackClient(workspace.botToken);
 
     try {
-      const channels = await getSlackChannels(slackClient, limit);
+      const channels = await getBotMemberChannels(slackClient, limit);
 
       let channelConfigs: Awaited<
         ReturnType<ReturnType<typeof listWorkAppSlackChannelAgentConfigsByTeam>>

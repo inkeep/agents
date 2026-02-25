@@ -13,6 +13,7 @@
  *    - Thread + query → Execute agent with thread context included
  */
 
+import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -25,12 +26,15 @@ import {
   getSlackUserInfo,
   postMessageInThread,
 } from '../client';
+import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { findWorkspaceConnectionByTeamId } from '../nango';
-import { streamAgentResponse } from './streaming';
+import { executeAgentPublicly } from './execution';
+import type { SlackAttachment } from './utils';
 import {
   checkIfBotThread,
   classifyError,
   findCachedUserMapping,
+  formatAttachments,
   formatChannelContext,
   generateSlackConversationId,
   getThreadContext,
@@ -60,13 +64,15 @@ export async function handleAppMention(params: {
   slackUserId: string;
   channel: string;
   text: string;
+  attachments?: SlackAttachment[];
   threadTs: string;
   messageTs: string;
   teamId: string;
   dispatchedAt?: number;
 }): Promise<void> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.APP_MENTION, async (span) => {
-    const { slackUserId, channel, text, threadTs, messageTs, teamId, dispatchedAt } = params;
+    const { slackUserId, channel, text, attachments, threadTs, messageTs, teamId, dispatchedAt } =
+      params;
     const handlerStartedAt = Date.now();
     const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 
@@ -130,8 +136,6 @@ export async function handleAppMention(params: {
     const replyThreadTs = threadTs || messageTs;
     const isInThread = Boolean(threadTs && threadTs !== messageTs);
     const hasQuery = Boolean(text && text.trim().length > 0);
-    let thinkingMessageTs: string | undefined;
-
     try {
       // Step 2: Parallel lookup — agent config + user mapping (independent queries)
       const {
@@ -167,13 +171,43 @@ export async function handleAppMention(params: {
 
       if (!existingLink) {
         logger.info({ slackUserId, teamId, channel }, 'User not linked — prompting account link');
+
+        const intent: SlackLinkIntent = {
+          entryPoint: 'mention',
+          question: text.slice(0, 2000),
+          channelId: channel,
+          threadTs: isInThread ? threadTs : undefined,
+          messageTs,
+          agentId: agentConfig.agentId,
+          projectId: agentConfig.projectId,
+        };
+
+        const linkResult = await resolveUnlinkedUserAction({
+          tenantId,
+          teamId,
+          slackUserId,
+          botToken,
+          intent,
+        });
+        const message = buildLinkPromptMessage(linkResult);
+
+        logger.info(
+          {
+            event: 'smart_link_intent_captured',
+            entryPoint: 'mention',
+            linkType: linkResult.type,
+            questionLength: intent.question.length,
+            channelId: channel,
+          },
+          'Smart link intent captured'
+        );
+
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
           thread_ts: isInThread ? threadTs : undefined,
-          text:
-            `*Link your account to use @Inkeep*\n\n` +
-            `Run \`/inkeep link\` to connect your Slack and Inkeep accounts.`,
+          text: "To get started, let's connect your Inkeep account with Slack.",
+          blocks: message.blocks,
         });
         span.end();
         return;
@@ -248,19 +282,9 @@ export async function handleAppMention(params: {
           slackAuthorizedProjectId: agentConfig?.projectId,
         });
 
-        // Post acknowledgement message
-        const ackMessage = await slackClient.chat.postMessage({
-          channel,
-          thread_ts: threadTs,
-          text: SlackStrings.status.readingThread(agentDisplayName),
-        });
-        thinkingMessageTs = ackMessage.ts || undefined;
-
         const conversationId = generateSlackConversationId({
           teamId,
-          threadTs,
-          channel,
-          isDM: false,
+          messageTs,
           agentId: agentConfig.agentId,
         });
         span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
@@ -284,18 +308,17 @@ Respond naturally as if you're joining the conversation to help.`;
           'Auto-executing agent with thread context'
         );
 
-        await streamAgentResponse({
+        await executeAgentPublicly({
           slackClient,
           channel,
           threadTs,
-          thinkingMessageTs: thinkingMessageTs || '',
           slackUserId,
           teamId,
           jwtToken: slackUserToken,
           projectId: agentConfig.projectId,
           agentId: agentConfig.agentId,
-          question: threadQuery,
           agentName: agentDisplayName,
+          question: threadQuery,
           conversationId,
         });
         span.end();
@@ -304,6 +327,7 @@ Respond naturally as if you're joining the conversation to help.`;
 
       // Has query → Execute agent with streaming
       let queryText = text;
+      const attachmentContext = formatAttachments(attachments);
 
       // Include thread context if in a thread
       if (isInThread && threadTs) {
@@ -321,7 +345,11 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         if (contextMessages) {
           const channelContext = formatChannelContext(channelInfo);
-          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${text}`;
+          let messageContent = text;
+          if (attachmentContext) {
+            messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+          }
+          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${messageContent}`;
         }
       } else {
         const {
@@ -335,7 +363,11 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         const channelContext = formatChannelContext(channelInfo);
         const userName = userInfo?.displayName || 'User';
-        queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
+        if (attachmentContext) {
+          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+        } else {
+          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
+        }
       }
 
       // Sign JWT token for authentication with channel auth context
@@ -350,19 +382,9 @@ Respond naturally as if you're joining the conversation to help.`;
         slackAuthorizedProjectId: agentConfig?.projectId,
       });
 
-      // Post acknowledgement message
-      const ackMessage = await slackClient.chat.postMessage({
-        channel,
-        thread_ts: replyThreadTs,
-        text: SlackStrings.status.thinking(agentDisplayName),
-      });
-      thinkingMessageTs = ackMessage.ts || undefined;
-
       const conversationId = generateSlackConversationId({
         teamId,
-        threadTs: replyThreadTs,
-        channel,
-        isDM: false,
+        messageTs,
         agentId: agentConfig.agentId,
       });
       span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
@@ -379,18 +401,17 @@ Respond naturally as if you're joining the conversation to help.`;
         'Executing agent'
       );
 
-      await streamAgentResponse({
+      await executeAgentPublicly({
         slackClient,
         channel,
         threadTs: replyThreadTs,
-        thinkingMessageTs: thinkingMessageTs || '',
         slackUserId,
         teamId,
         jwtToken: slackUserToken,
         projectId: agentConfig.projectId,
         agentId: agentConfig.agentId,
-        question: queryText,
         agentName: agentDisplayName,
+        question: queryText,
         conversationId,
       });
       span.end();
@@ -400,14 +421,6 @@ Respond naturally as if you're joining the conversation to help.`;
 
       if (error instanceof Error) {
         setSpanWithError(span, error);
-      }
-
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Best-effort cleanup
-        }
       }
 
       const errorType = classifyError(error);

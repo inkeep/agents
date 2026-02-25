@@ -9,6 +9,8 @@ description: |
 ## Overview
 This is a consolidated inventory of customer-facing “surface areas”: anything a customer can directly use, interact with, or take a dependency on. Use it to conceptually understand the surface area of what one change may mean for the whole product (i.e. the entire feature dependency tree/propagation chain end-to-end).
 
+**Companion skills:** For *who* is affected and how changes propagate per audience, load `audience-impact`. For internal/infra surfaces, load `internal-surface-areas`.
+
 ## Summary
 
 | Category | Count |
