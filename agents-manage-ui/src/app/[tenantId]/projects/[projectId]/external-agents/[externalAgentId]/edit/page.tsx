@@ -1,6 +1,6 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
-import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
+import type { ExternalAgentInput } from '@/components/external-agents/form/validation';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
@@ -51,7 +51,7 @@ async function EditExternalAgentPage({
   }
 
   // Convert ExternalAgent to ExternalAgentFormData format
-  const initialFormData: ExternalAgentFormData = {
+  const initialFormData: ExternalAgentInput = {
     name: externalAgent.name,
     description: externalAgent.description || '',
     baseUrl: externalAgent.baseUrl,
@@ -61,7 +61,7 @@ async function EditExternalAgentPage({
   return (
     <ExternalAgentForm
       className="max-w-2xl mx-auto"
-      initialData={initialFormData}
+      defaultValues={initialFormData}
       externalAgent={externalAgent}
       credentials={credentials}
       tenantId={tenantId}

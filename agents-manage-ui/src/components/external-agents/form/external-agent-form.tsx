@@ -5,6 +5,10 @@ import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import {
+  ExternalAgentFormSchema,
+  type ExternalAgentInput,
+} from '@/components/external-agents/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -14,11 +18,10 @@ import { InfoCard } from '@/components/ui/info-card';
 import type { Credential } from '@/lib/api/credentials';
 import { createExternalAgent, updateExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-import { cn } from '@/lib/utils';
-import { type ExternalAgentFormData, externalAgentSchema } from './validation';
+import { cn, isRequired } from '@/lib/utils';
 
 interface ExternalAgentFormProps {
-  initialData?: ExternalAgentFormData;
+  defaultValues?: ExternalAgentInput;
   externalAgent?: ExternalAgent;
   credentials: Credential[];
   tenantId: string;
@@ -26,7 +29,7 @@ interface ExternalAgentFormProps {
   className?: string;
 }
 
-const defaultValues: ExternalAgentFormData = {
+const initialData: ExternalAgentInput = {
   name: '',
   description: '',
   baseUrl: '',
@@ -34,7 +37,7 @@ const defaultValues: ExternalAgentFormData = {
 };
 
 export function ExternalAgentForm({
-  initialData,
+  defaultValues = initialData,
   externalAgent,
   credentials,
   tenantId,
@@ -44,34 +47,23 @@ export function ExternalAgentForm({
   const router = useRouter();
 
   const form = useForm({
-    resolver: zodResolver(externalAgentSchema),
-    defaultValues: {
-      ...defaultValues,
-      ...initialData,
-    },
+    resolver: zodResolver(ExternalAgentFormSchema),
+    defaultValues,
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ExternalAgentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const mode = externalAgent ? 'update' : 'create';
-
     try {
-      // Transform form data to API format
-      const transformedData = {
-        ...data,
-        description: data.description || '',
-        credentialReferenceId:
-          data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
-      };
-
       if (externalAgent) {
-        await updateExternalAgent(tenantId, projectId, externalAgent.id, transformedData);
+        await updateExternalAgent(tenantId, projectId, externalAgent.id, data);
         toast.success('External agent updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`);
       } else {
         const newExternalAgent = await createExternalAgent(tenantId, projectId, {
-          ...transformedData,
+          ...data,
           id: nanoid(),
         });
         toast.success('External agent created successfully');
@@ -81,30 +73,31 @@ export function ExternalAgentForm({
       console.error(`Failed to ${mode} external agent:`, error);
       toast.error(`Failed to ${mode} external agent. Please try again.`);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
+      <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"
           label="Name"
           placeholder="My External Agent"
-          isRequired
+          isRequired={isRequired(ExternalAgentFormSchema, 'name')}
         />
         <GenericTextarea
           control={form.control}
           name="description"
-          label="Description (optional)"
+          label="Description"
           placeholder="A brief description of what this external agent does..."
+          isRequired={isRequired(ExternalAgentFormSchema, 'description')}
         />
         <GenericInput
           control={form.control}
           name="baseUrl"
           label="Base URL"
           placeholder="https://api.example.com"
-          isRequired
+          isRequired={isRequired(ExternalAgentFormSchema, 'baseUrl')}
         />
 
         <div className="space-y-3">
@@ -121,6 +114,7 @@ export function ExternalAgentForm({
                 label: credential.id,
               })),
             ]}
+            isRequired={isRequired(ExternalAgentFormSchema, 'credentialReferenceId')}
           />
           <InfoCard title="How this works">
             <div className="space-y-2">

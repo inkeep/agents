@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
 ## 0.53.5
 
 ### Patch Changes
