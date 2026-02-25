@@ -355,13 +355,11 @@ describe('AgentMcpManager', () => {
 
     test('passes tenantId, projectId, and storeReference to buildMcpServerConfig', async () => {
       const mockCredentialStuffer = {
-        buildMcpServerConfig: vi
-          .fn()
-          .mockResolvedValue({
-            type: MCPTransportType.sse,
-            url: 'https://api.nango.dev/mcp',
-            headers: {},
-          }),
+        buildMcpServerConfig: vi.fn().mockResolvedValue({
+          type: MCPTransportType.sse,
+          url: 'https://api.nango.dev/mcp',
+          headers: {},
+        }),
       };
 
       const mcpTool = createMcpTool({
@@ -421,13 +419,11 @@ describe('AgentMcpManager', () => {
 
     test('passes undefined storeReference when tool has no credentialReferenceId', async () => {
       const mockCredentialStuffer = {
-        buildMcpServerConfig: vi
-          .fn()
-          .mockResolvedValue({
-            type: MCPTransportType.streamableHttp,
-            url: 'https://mcp.example.com',
-            headers: {},
-          }),
+        buildMcpServerConfig: vi.fn().mockResolvedValue({
+          type: MCPTransportType.streamableHttp,
+          url: 'https://mcp.example.com',
+          headers: {},
+        }),
       };
 
       await createCredentialedManager(mockCredentialStuffer).getToolSet(createMcpTool());
