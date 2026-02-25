@@ -8,9 +8,21 @@ const END = Date.now();
 const ENDPOINT = `${SIGNOZ_URL}/api/v4/query_range`;
 
 const scopeFilters = [
-  { key: { key: 'tenant.id', dataType: 'string', type: 'tag', isColumn: false }, op: '=', value: 'posthog' },
-  { key: { key: 'project.id', dataType: 'string', type: 'tag', isColumn: false }, op: '=', value: 'content-team-project' },
-  { key: { key: 'agent.id', dataType: 'string', type: 'tag', isColumn: false }, op: '=', value: 'docs-writer-agent' },
+  {
+    key: { key: 'tenant.id', dataType: 'string', type: 'tag', isColumn: false },
+    op: '=',
+    value: 'posthog',
+  },
+  {
+    key: { key: 'project.id', dataType: 'string', type: 'tag', isColumn: false },
+    op: '=',
+    value: 'content-team-project',
+  },
+  {
+    key: { key: 'agent.id', dataType: 'string', type: 'tag', isColumn: false },
+    op: '=',
+    value: 'docs-writer-agent',
+  },
 ];
 
 const aiOpFilter = {
@@ -19,7 +31,9 @@ const aiOpFilter = {
   value: ['ai.generateText.doGenerate', 'ai.streamText.doStream'],
 };
 
-const groupByConversation = [{ key: 'conversation.id', dataType: 'string', type: 'tag', isColumn: false }];
+const groupByConversation = [
+  { key: 'conversation.id', dataType: 'string', type: 'tag', isColumn: false },
+];
 const groupByModel = [{ key: 'ai.model.id', dataType: 'string', type: 'tag', isColumn: false }];
 const groupByConvAndModel = [
   { key: 'conversation.id', dataType: 'string', type: 'tag', isColumn: false },
@@ -57,7 +71,13 @@ const payload = {
         queryName: 'inputByConv',
         expression: 'inputByConv',
         aggregateOperator: 'sum',
-        aggregateAttribute: { key: 'gen_ai.usage.input_tokens', dataType: 'float64', type: 'tag', isColumn: false, isJSON: false },
+        aggregateAttribute: {
+          key: 'gen_ai.usage.input_tokens',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: false,
+          isJSON: false,
+        },
         reduceTo: 'sum',
         filters: { op: 'AND', items: [...scopeFilters, aiOpFilter] },
         groupBy: groupByConversation,
@@ -74,7 +94,13 @@ const payload = {
         queryName: 'outputByConv',
         expression: 'outputByConv',
         aggregateOperator: 'sum',
-        aggregateAttribute: { key: 'gen_ai.usage.output_tokens', dataType: 'float64', type: 'tag', isColumn: false, isJSON: false },
+        aggregateAttribute: {
+          key: 'gen_ai.usage.output_tokens',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: false,
+          isJSON: false,
+        },
         reduceTo: 'sum',
         filters: { op: 'AND', items: [...scopeFilters, aiOpFilter] },
         groupBy: groupByConversation,
@@ -97,8 +123,16 @@ const payload = {
           op: 'AND',
           items: [
             ...scopeFilters,
-            { key: { key: 'name', dataType: 'string', type: 'tag', isColumn: true }, op: '=', value: 'ai.toolCall' },
-            { key: { key: 'ai.toolCall.name', dataType: 'string', type: 'tag', isColumn: false }, op: '=', value: 'create-pull-request' },
+            {
+              key: { key: 'name', dataType: 'string', type: 'tag', isColumn: true },
+              op: '=',
+              value: 'ai.toolCall',
+            },
+            {
+              key: { key: 'ai.toolCall.name', dataType: 'string', type: 'tag', isColumn: false },
+              op: '=',
+              value: 'create-pull-request',
+            },
           ],
         },
         groupBy: groupByConversation,
@@ -115,7 +149,13 @@ const payload = {
         queryName: 'convStart',
         expression: 'convStart',
         aggregateOperator: 'min',
-        aggregateAttribute: { key: 'timestamp', dataType: 'float64', type: 'tag', isColumn: true, isJSON: false },
+        aggregateAttribute: {
+          key: 'timestamp',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: true,
+          isJSON: false,
+        },
         reduceTo: 'min',
         filters: { op: 'AND', items: [...scopeFilters] },
         groupBy: groupByConversation,
@@ -132,7 +172,13 @@ const payload = {
         queryName: 'inputByModel',
         expression: 'inputByModel',
         aggregateOperator: 'sum',
-        aggregateAttribute: { key: 'gen_ai.usage.input_tokens', dataType: 'float64', type: 'tag', isColumn: false, isJSON: false },
+        aggregateAttribute: {
+          key: 'gen_ai.usage.input_tokens',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: false,
+          isJSON: false,
+        },
         reduceTo: 'sum',
         filters: { op: 'AND', items: [...scopeFilters, aiOpFilter] },
         groupBy: groupByModel,
@@ -149,7 +195,13 @@ const payload = {
         queryName: 'outputByModel',
         expression: 'outputByModel',
         aggregateOperator: 'sum',
-        aggregateAttribute: { key: 'gen_ai.usage.output_tokens', dataType: 'float64', type: 'tag', isColumn: false, isJSON: false },
+        aggregateAttribute: {
+          key: 'gen_ai.usage.output_tokens',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: false,
+          isJSON: false,
+        },
         reduceTo: 'sum',
         filters: { op: 'AND', items: [...scopeFilters, aiOpFilter] },
         groupBy: groupByModel,
@@ -166,7 +218,13 @@ const payload = {
         queryName: 'inputByConvModel',
         expression: 'inputByConvModel',
         aggregateOperator: 'sum',
-        aggregateAttribute: { key: 'gen_ai.usage.input_tokens', dataType: 'float64', type: 'tag', isColumn: false, isJSON: false },
+        aggregateAttribute: {
+          key: 'gen_ai.usage.input_tokens',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: false,
+          isJSON: false,
+        },
         reduceTo: 'sum',
         filters: { op: 'AND', items: [...scopeFilters, aiOpFilter] },
         groupBy: groupByConvAndModel,
@@ -183,7 +241,13 @@ const payload = {
         queryName: 'outputByConvModel',
         expression: 'outputByConvModel',
         aggregateOperator: 'sum',
-        aggregateAttribute: { key: 'gen_ai.usage.output_tokens', dataType: 'float64', type: 'tag', isColumn: false, isJSON: false },
+        aggregateAttribute: {
+          key: 'gen_ai.usage.output_tokens',
+          dataType: 'float64',
+          type: 'tag',
+          isColumn: false,
+          isJSON: false,
+        },
         reduceTo: 'sum',
         filters: { op: 'AND', items: [...scopeFilters, aiOpFilter] },
         groupBy: groupByConvAndModel,
@@ -220,7 +284,9 @@ function weekOf(timestampNano: number): string {
   const ms = timestampNano > 1e15 ? timestampNano / 1e6 : timestampNano;
   const d = new Date(ms);
   const diffToMonday = (d.getUTCDay() + 6) % 7;
-  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diffToMonday));
+  const monday = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diffToMonday)
+  );
   return monday.toISOString().slice(0, 10);
 }
 
@@ -247,11 +313,26 @@ async function main() {
   const hasPR = new Set<string>();
   const startTsMap = new Map<string, number>();
 
-  for (const s of getSeries(json, 'allConvs'))     { const id = s.labels?.['conversation.id']; if (id) allConvIds.add(id); }
-  for (const s of getSeries(json, 'inputByConv'))   { const id = s.labels?.['conversation.id']; if (id) inputMap.set(id, val(s)); }
-  for (const s of getSeries(json, 'outputByConv'))  { const id = s.labels?.['conversation.id']; if (id) outputMap.set(id, val(s)); }
-  for (const s of getSeries(json, 'prToolCalls'))   { const id = s.labels?.['conversation.id']; if (id && val(s) > 0) hasPR.add(id); }
-  for (const s of getSeries(json, 'convStart'))     { const id = s.labels?.['conversation.id']; if (id) startTsMap.set(id, val(s)); }
+  for (const s of getSeries(json, 'allConvs')) {
+    const id = s.labels?.['conversation.id'];
+    if (id) allConvIds.add(id);
+  }
+  for (const s of getSeries(json, 'inputByConv')) {
+    const id = s.labels?.['conversation.id'];
+    if (id) inputMap.set(id, val(s));
+  }
+  for (const s of getSeries(json, 'outputByConv')) {
+    const id = s.labels?.['conversation.id'];
+    if (id) outputMap.set(id, val(s));
+  }
+  for (const s of getSeries(json, 'prToolCalls')) {
+    const id = s.labels?.['conversation.id'];
+    if (id && val(s) > 0) hasPR.add(id);
+  }
+  for (const s of getSeries(json, 'convStart')) {
+    const id = s.labels?.['conversation.id'];
+    if (id) startTsMap.set(id, val(s));
+  }
 
   console.log(`Total conversations: ${allConvIds.size}`);
 
@@ -308,17 +389,28 @@ async function main() {
   function printModelTable(models: Map<string, { input: number; output: number }>) {
     console.log('  ' + 'model'.padEnd(35) + ' |      input |     output |      total');
     console.log('  ' + '-'.repeat(83));
-    for (const [model, { input: mi, output: mo }] of [...models.entries()].sort((a, b) => (b[1].input + b[1].output) - (a[1].input + a[1].output))) {
-      console.log(`  ${model.padEnd(35)} | ${mi.toLocaleString().padStart(10)} | ${mo.toLocaleString().padStart(10)} | ${(mi + mo).toLocaleString().padStart(10)}`);
+    for (const [model, { input: mi, output: mo }] of [...models.entries()].sort(
+      (a, b) => b[1].input + b[1].output - (a[1].input + a[1].output)
+    )) {
+      console.log(
+        `  ${model.padEnd(35)} | ${mi.toLocaleString().padStart(10)} | ${mo.toLocaleString().padStart(10)} | ${(mi + mo).toLocaleString().padStart(10)}`
+      );
     }
   }
 
-  for (const [label, runs] of [['No-op (create-pull-request NOT called)', noOps], ['Changes made (create-pull-request called)', changes]] as const) {
+  for (const [label, runs] of [
+    ['No-op (create-pull-request NOT called)', noOps],
+    ['Changes made (create-pull-request called)', changes],
+  ] as const) {
     const totalIn = runs.reduce((s, r) => s + r.in, 0);
     const totalOut = runs.reduce((s, r) => s + r.out, 0);
     console.log(`\n=== ${label} (${runs.length} runs) ===`);
-    console.log(`  Avg input:    ${runs.length ? Math.round(totalIn / runs.length).toLocaleString() : 0}`);
-    console.log(`  Avg output:   ${runs.length ? Math.round(totalOut / runs.length).toLocaleString() : 0}`);
+    console.log(
+      `  Avg input:    ${runs.length ? Math.round(totalIn / runs.length).toLocaleString() : 0}`
+    );
+    console.log(
+      `  Avg output:   ${runs.length ? Math.round(totalOut / runs.length).toLocaleString() : 0}`
+    );
     console.log(`  Total input:  ${totalIn.toLocaleString()}`);
     console.log(`  Total output: ${totalOut.toLocaleString()}`);
     console.log(`  Total:        ${(totalIn + totalOut).toLocaleString()}`);
@@ -327,15 +419,33 @@ async function main() {
   }
 
   const allModels = new Map<string, { input: number; output: number }>();
-  for (const s of getSeries(json, 'inputByModel'))  { const m = s.labels?.['ai.model.id'] ?? 'unknown'; const e = allModels.get(m) ?? { input: 0, output: 0 }; e.input += val(s);  allModels.set(m, e); }
-  for (const s of getSeries(json, 'outputByModel')) { const m = s.labels?.['ai.model.id'] ?? 'unknown'; const e = allModels.get(m) ?? { input: 0, output: 0 }; e.output += val(s); allModels.set(m, e); }
+  for (const s of getSeries(json, 'inputByModel')) {
+    const m = s.labels?.['ai.model.id'] ?? 'unknown';
+    const e = allModels.get(m) ?? { input: 0, output: 0 };
+    e.input += val(s);
+    allModels.set(m, e);
+  }
+  for (const s of getSeries(json, 'outputByModel')) {
+    const m = s.labels?.['ai.model.id'] ?? 'unknown';
+    const e = allModels.get(m) ?? { input: 0, output: 0 };
+    e.output += val(s);
+    allModels.set(m, e);
+  }
 
   console.log('\n=== By Model (all) ===');
   printModelTable(allModels);
 
   const weeks = new Map<string, { noOp: number; changes: number }>();
-  for (const r of noOps)   { const w = weeks.get(r.week) ?? { noOp: 0, changes: 0 }; w.noOp++;    weeks.set(r.week, w); }
-  for (const r of changes) { const w = weeks.get(r.week) ?? { noOp: 0, changes: 0 }; w.changes++; weeks.set(r.week, w); }
+  for (const r of noOps) {
+    const w = weeks.get(r.week) ?? { noOp: 0, changes: 0 };
+    w.noOp++;
+    weeks.set(r.week, w);
+  }
+  for (const r of changes) {
+    const w = weeks.get(r.week) ?? { noOp: 0, changes: 0 };
+    w.changes++;
+    weeks.set(r.week, w);
+  }
 
   const sorted = [...weeks.entries()].sort(([a], [b]) => a.localeCompare(b));
 
@@ -345,10 +455,16 @@ async function main() {
   let n = 0;
   for (const [key, { noOp, changes: ch }] of sorted) {
     n++;
-    console.log(`Week ${n} (${key})`.padEnd(19) + ` | ${String(noOp).padStart(5)} | ${String(ch).padStart(7)} | ${String(noOp + ch).padStart(5)}`);
+    console.log(
+      `Week ${n} (${key})`.padEnd(19) +
+        ` | ${String(noOp).padStart(5)} | ${String(ch).padStart(7)} | ${String(noOp + ch).padStart(5)}`
+    );
   }
   console.log('-'.repeat(55));
-  console.log('TOTAL'.padEnd(19) + ` | ${String(noOps.length).padStart(5)} | ${String(changes.length).padStart(7)} | ${String(allConvIds.size).padStart(5)}`);
+  console.log(
+    'TOTAL'.padEnd(19) +
+      ` | ${String(noOps.length).padStart(5)} | ${String(changes.length).padStart(7)} | ${String(allConvIds.size).padStart(5)}`
+  );
 }
 
 main().catch((err) => {
