@@ -2,11 +2,17 @@ import {
   createFullAgentServerSide,
   createScheduledTriggerInvocation,
   generateId,
+  OrgRoles,
+  type ScheduledTrigger,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
+import {
+  assertCanMutateTrigger,
+  isScheduledTriggerChanged,
+} from '../../../../domains/manage/routes/scheduledTriggers';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
@@ -606,6 +612,234 @@ describe('User-Scoped Scheduled Triggers', () => {
 
       expect(metadata.initiatedBy.type).toBe('api_key');
       expect(metadata.initiatedBy.id).toBe('trigger-456');
+    });
+  });
+
+  describe('Push flow authorization (isScheduledTriggerChanged + assertCanMutateTrigger)', () => {
+    const baseTrigger: ScheduledTrigger = {
+      tenantId: 'tenant-1',
+      id: 'trigger-1',
+      projectId: 'project-1',
+      agentId: 'agent-1',
+      name: 'Daily sync',
+      description: 'Runs daily',
+      enabled: true,
+      cronExpression: '0 9 * * *',
+      cronTimezone: 'UTC',
+      runAt: null,
+      payload: null,
+      messageTemplate: 'Hello',
+      maxRetries: 1,
+      retryDelaySeconds: 60,
+      timeoutSeconds: 780,
+      runAsUserId: 'user-a',
+      createdBy: 'user-a',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    };
+
+    describe('isScheduledTriggerChanged', () => {
+      it('should return false when no fields changed', () => {
+        const incoming = {
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          runAt: null,
+          payload: null,
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+      });
+
+      it('should return false when incoming undefined matches existing null', () => {
+        const incoming = {
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+      });
+
+      it('should return true when a scalar field changed', () => {
+        const incoming = {
+          name: 'Weekly sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+      });
+
+      it('should return true when runAsUserId changed', () => {
+        const incoming = {
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-b',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+      });
+
+      it('should return true when payload changed', () => {
+        const incoming = {
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          payload: { key: 'value' },
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+      });
+
+      it('should return false when payload objects are deeply equal', () => {
+        const triggerWithPayload = { ...baseTrigger, payload: { key: 'value', nested: { a: 1 } } };
+        const incoming = {
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          payload: { key: 'value', nested: { a: 1 } },
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, triggerWithPayload)).toBe(false);
+      });
+
+      it('should ignore identity fields (id, tenantId, projectId, agentId)', () => {
+        const incoming = {
+          id: 'different-id',
+          tenantId: 'different-tenant',
+          projectId: 'different-project',
+          agentId: 'different-agent',
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+      });
+
+      it('should ignore server-stamped fields (createdBy, createdAt, updatedAt)', () => {
+        const incoming = {
+          createdBy: 'different-creator',
+          createdAt: '2099-01-01T00:00:00Z',
+          updatedAt: '2099-01-01T00:00:00Z',
+          name: 'Daily sync',
+          description: 'Runs daily',
+          enabled: true,
+          cronExpression: '0 9 * * *',
+          cronTimezone: 'UTC',
+          messageTemplate: 'Hello',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+          runAsUserId: 'user-a',
+        };
+        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+      });
+    });
+
+    describe('assertCanMutateTrigger', () => {
+      it('should allow admins to mutate any trigger', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'other-user', runAsUserId: 'other-user' },
+            callerId: 'admin-user',
+            tenantRole: OrgRoles.ADMIN,
+          })
+        ).not.toThrow();
+      });
+
+      it('should allow owners to mutate any trigger', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'other-user', runAsUserId: 'other-user' },
+            callerId: 'owner-user',
+            tenantRole: OrgRoles.OWNER,
+          })
+        ).not.toThrow();
+      });
+
+      it('should allow non-admin to mutate trigger they created', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'member-user', runAsUserId: 'other-user' },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).not.toThrow();
+      });
+
+      it('should allow non-admin to mutate trigger that runs as them', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'admin-user', runAsUserId: 'member-user' },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).not.toThrow();
+      });
+
+      it('should reject non-admin mutating trigger they did not create and does not run as them', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'other-user', runAsUserId: 'other-user' },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).toThrow(/You can only modify triggers/);
+      });
+
+      it('should reject non-admin mutating trigger with null createdBy and different runAsUserId', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: null, runAsUserId: 'other-user' },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).toThrow(/You can only modify triggers/);
+      });
     });
   });
 });

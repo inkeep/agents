@@ -28,6 +28,7 @@ import {
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
+  type ScheduledTrigger,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
@@ -56,7 +57,7 @@ import { executeAgentAsync } from '../../run/services/TriggerService';
 
 const logger = getLogger('scheduled-triggers');
 
-async function validateRunAsUserId(params: {
+export async function validateRunAsUserId(params: {
   runAsUserId: string;
   callerId: string;
   tenantId: string;
@@ -117,7 +118,7 @@ function validateRunNowDelegation(params: {
  * Check if a non-admin user is allowed to mutate a trigger.
  * Admins can mutate any trigger. Non-admins can only mutate triggers they created or that run as them.
  */
-function assertCanMutateTrigger(params: {
+export function assertCanMutateTrigger(params: {
   trigger: { createdBy: string | null; runAsUserId: string | null };
   callerId: string;
   tenantRole: OrgRole;
@@ -130,6 +131,36 @@ function assertCanMutateTrigger(params: {
     code: 'forbidden',
     message: 'You can only modify triggers that you created or that are configured to run as you.',
   });
+}
+
+const TRIGGER_IGNORED_FIELDS = new Set([
+  'tenantId',
+  'id',
+  'projectId',
+  'agentId',
+  'createdBy',
+  'createdAt',
+  'updatedAt',
+]);
+
+export function isScheduledTriggerChanged(
+  incoming: Record<string, unknown>,
+  existing: ScheduledTrigger
+): boolean {
+  for (const key of Object.keys(existing) as (keyof ScheduledTrigger)[]) {
+    if (TRIGGER_IGNORED_FIELDS.has(key)) continue;
+    if (!(key in incoming)) continue;
+
+    const incomingVal = incoming[key] ?? null;
+    const existingVal = existing[key] ?? null;
+
+    if (typeof incomingVal === 'object' || typeof existingVal === 'object') {
+      if (JSON.stringify(incomingVal) !== JSON.stringify(existingVal)) return true;
+    } else if (incomingVal !== existingVal) {
+      return true;
+    }
+  }
+  return false;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
