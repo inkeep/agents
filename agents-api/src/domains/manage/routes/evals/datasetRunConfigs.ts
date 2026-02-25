@@ -36,7 +36,6 @@ import type { ManageAppVariables } from '../../../../types/app';
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
 
-
 app.openapi(
   createProtectedRoute({
     method: 'get',

@@ -50,8 +50,15 @@ type RunDatasetItemPayload = {
 async function executeDatasetItemStep(payload: RunDatasetItemPayload) {
   'use step';
 
-  const { tenantId, projectId, agentId, datasetItemInput, datasetRunId, scheduledTriggerInvocationId, timeoutSeconds } =
-    payload;
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    datasetItemInput,
+    datasetRunId,
+    scheduledTriggerInvocationId,
+    timeoutSeconds,
+  } = payload;
 
   return executeScheduledTriggerStep({
     tenantId,

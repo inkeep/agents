@@ -611,16 +611,14 @@ export const getScheduledTriggerInvocationStatusSummary =
       )
       .groupBy(scheduledTriggerInvocations.status);
 
-    const summary = { pending: 0, running: 0, completed: 0, failed: 0 };
-    for (const row of rows) {
-      const s = row.status as string;
-      if (s === 'pending' || s === 'running' || s === 'completed') {
-        summary[s] = Number(row.cnt);
-      } else if (s === 'failed' || s === 'cancelled') {
-        summary.failed += Number(row.cnt);
-      }
-    }
-    return summary;
+    return rows.reduce(
+      (acc, { status, cnt }) => {
+        const key = status === 'cancelled' ? 'failed' : (status as keyof typeof acc);
+        if (key in acc) acc[key] += Number(cnt);
+        return acc;
+      },
+      { pending: 0, running: 0, completed: 0, failed: 0 }
+    );
   };
 
 /**

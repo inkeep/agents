@@ -515,10 +515,7 @@ export async function executeScheduledTriggerStep(params: {
     };
 
     if (messages && messages.length > 0) {
-      await Promise.race([
-        executeAgentAsync({ ...baseParams, messages }),
-        timeoutPromise,
-      ]);
+      await Promise.race([executeAgentAsync({ ...baseParams, messages }), timeoutPromise]);
     } else {
       const effectivePayload = payload ?? {};
       let userMessage: string;
