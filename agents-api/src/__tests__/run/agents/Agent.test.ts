@@ -1,8 +1,8 @@
-import {
-  type DataComponentSelect,
-  type JsonSchemaForLlmSchemaType,
-  type McpTool,
-  type MessageType,
+import type {
+  DataComponentSelect,
+  JsonSchemaForLlmSchemaType,
+  McpTool,
+  MessageType,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
