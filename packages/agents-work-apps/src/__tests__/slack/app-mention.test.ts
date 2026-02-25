@@ -108,8 +108,8 @@ vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),
 }));
 
-vi.mock('../../slack/services/events/streaming', () => ({
-  streamAgentResponse: vi.fn().mockResolvedValue({ success: true }),
+vi.mock('../../slack/services/events/execution', () => ({
+  executeAgentPublicly: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('../../slack/services/events/utils', async (importOriginal) => {
@@ -277,11 +277,11 @@ describe('handleAppMention', () => {
     );
   });
 
-  it('should stream response for channel mention with query', async () => {
+  it('should call executeAgentPublicly for channel mention with query', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
     const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
-    const { streamAgentResponse } = await import('../../slack/services/events/streaming');
+    const { executeAgentPublicly } = await import('../../slack/services/events/execution');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -324,14 +324,13 @@ describe('handleAppMention', () => {
         slackAuthorizedProjectId: 'proj-1',
       })
     );
-    expect(mockPostMessage).toHaveBeenCalledWith(
+    expect(executeAgentPublicly).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('is thinking'),
-      })
-    );
-    expect(streamAgentResponse).toHaveBeenCalledWith(
-      expect.objectContaining({
+        channel: 'C456',
+        threadTs: '1234.5678',
         agentId: 'agent-1',
+        agentName: 'Test Agent',
+        projectId: 'proj-1',
         question: expect.stringContaining('What is Inkeep?'),
       })
     );
@@ -343,7 +342,7 @@ describe('handleAppMention', () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
     const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
-    const { streamAgentResponse } = await import('../../slack/services/events/streaming');
+    const { executeAgentPublicly } = await import('../../slack/services/events/execution');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -390,14 +389,125 @@ describe('handleAppMention', () => {
       ],
     });
 
-    expect(streamAgentResponse).toHaveBeenCalledWith(
+    expect(executeAgentPublicly).toHaveBeenCalledWith(
       expect.objectContaining({
         question: expect.stringContaining('https://github.com/inkeep/agents/pull/2291'),
       })
     );
-    expect(streamAgentResponse).toHaveBeenCalledWith(
+    expect(executeAgentPublicly).toHaveBeenCalledWith(
       expect.objectContaining({
         question: expect.stringContaining('whats the link in this message?'),
+      })
+    );
+  });
+
+  it('should call executeAgentPublicly with thread context for in-thread mention without query', async () => {
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping, generateSlackConversationId } = await import(
+      '../../slack/services/events/utils'
+    );
+    const { executeAgentPublicly } = await import('../../slack/services/events/execution');
+
+    vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
+      connectionId: 'conn-1',
+      teamId: 'T789',
+      botToken: 'xoxb-123',
+      tenantId: 'default',
+    });
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'channel',
+      grantAccessToMembers: true,
+    });
+    vi.mocked(findCachedUserMapping).mockResolvedValue({
+      id: 'map-1',
+      tenantId: 'default',
+      slackUserId: 'U123',
+      slackTeamId: 'T789',
+      slackEnterpriseId: null,
+      inkeepUserId: 'user-1',
+      clientId: 'work-apps-slack',
+      slackUsername: null,
+      slackEmail: null,
+      linkedAt: '2026-01-01',
+      lastUsedAt: null,
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+    });
+
+    await handleAppMention({
+      ...baseParams,
+      text: '',
+      threadTs: '1111.0000',
+      messageTs: '1234.5678',
+    });
+
+    expect(generateSlackConversationId).toHaveBeenCalledWith({
+      teamId: 'T789',
+      messageTs: '1234.5678',
+      agentId: 'agent-1',
+    });
+    expect(executeAgentPublicly).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'C456',
+        threadTs: '1111.0000',
+        agentId: 'agent-1',
+        question: expect.stringContaining('slack_thread_context'),
+      })
+    );
+  });
+
+  it('should call executeAgentPublicly with threadTs for in-thread mention with query', async () => {
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    const { findCachedUserMapping } = await import('../../slack/services/events/utils');
+    const { executeAgentPublicly } = await import('../../slack/services/events/execution');
+
+    vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
+      connectionId: 'conn-1',
+      teamId: 'T789',
+      botToken: 'xoxb-123',
+      tenantId: 'default',
+    });
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'channel',
+      grantAccessToMembers: true,
+    });
+    vi.mocked(findCachedUserMapping).mockResolvedValue({
+      id: 'map-1',
+      tenantId: 'default',
+      slackUserId: 'U123',
+      slackTeamId: 'T789',
+      slackEnterpriseId: null,
+      inkeepUserId: 'user-1',
+      clientId: 'work-apps-slack',
+      slackUsername: null,
+      slackEmail: null,
+      linkedAt: '2026-01-01',
+      lastUsedAt: null,
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+    });
+
+    await handleAppMention({
+      ...baseParams,
+      text: 'explain this',
+      threadTs: '1111.0000',
+      messageTs: '1234.5678',
+    });
+
+    expect(executeAgentPublicly).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'C456',
+        threadTs: '1111.0000',
+        agentId: 'agent-1',
+        question: expect.stringContaining('explain this'),
       })
     );
   });
