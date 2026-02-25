@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
-  type ExternalAgentFormData,
+  type ExternalAgentInput,
   ExternalAgentFormSchema,
 } from '@/components/external-agents/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
@@ -21,7 +21,7 @@ import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn, isRequired } from '@/lib/utils';
 
 interface ExternalAgentFormProps {
-  defaultValues?: ExternalAgentFormData;
+  defaultValues?: ExternalAgentInput;
   externalAgent?: ExternalAgent;
   credentials: Credential[];
   tenantId: string;
@@ -29,7 +29,7 @@ interface ExternalAgentFormProps {
   className?: string;
 }
 
-const initialData: ExternalAgentFormData = {
+const initialData: ExternalAgentInput = {
   name: '',
   description: '',
   baseUrl: '',

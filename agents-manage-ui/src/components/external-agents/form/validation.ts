@@ -10,4 +10,4 @@ export const ExternalAgentFormSchema = ExternalAgentApiInsertSchema.pick({
     (value) => (value === 'none' ? null : value)
   ),
 });
-export type ExternalAgentFormData = z.infer<typeof ExternalAgentFormSchema>;
+export type ExternalAgentInput = z.input<typeof ExternalAgentFormSchema>;
