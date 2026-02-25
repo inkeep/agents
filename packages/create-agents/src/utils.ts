@@ -1,4 +1,5 @@
 import { exec } from 'node:child_process';
+import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -573,6 +574,8 @@ async function createWorkspaceStructure() {
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
+  const bypassSecret = crypto.randomBytes(32).toString('hex');
+
   let envExampleContent: string;
   try {
     envExampleContent = await fs.readFile('.env.example', 'utf-8');
@@ -589,6 +592,7 @@ async function createEnvironmentFiles(config: FileConfig) {
     GOOGLE_GENERATIVE_AI_API_KEY: config.googleKey || '',
     AZURE_API_KEY: config.azureKey || '',
     DEFAULT_PROJECT_ID: config.projectId,
+    INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: bypassSecret,
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -608,7 +612,9 @@ async function createInkeepConfig(config: FileConfig) {
 const config = defineConfig({
   tenantId: "${config.tenantId}",
   agentsApi: {
-    url: 'http://localhost:3002',
+    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+    url: 'http://127.0.0.1:3002',
+    apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
   },
 });
     
