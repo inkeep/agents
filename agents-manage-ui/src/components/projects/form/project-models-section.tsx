@@ -2,7 +2,7 @@
 
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type Control, useFormState, useWatch } from 'react-hook-form';
+import { type UseFormReturn, useFormState, useWatch} from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { type ProjectInput, ProjectSchema } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -20,12 +20,12 @@ import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 
 interface ProjectModelsSectionProps {
-  control: Control<ProjectInput>;
+  form: UseFormReturn<ProjectInput>;
   disabled?: boolean;
 }
 
 function BaseModelSection({
-  control,
+  form,
   disabled,
 }: {
   control: Control<ProjectInput>;
@@ -37,7 +37,7 @@ function BaseModelSection({
   return (
     <div className="space-y-4">
       <FormFieldWrapper
-        control={control}
+        control={form.control}
         // Show validation errors of provider options editor
         name="models.base.providerOptions"
         description="Primary model for general agent responses"
@@ -64,7 +64,7 @@ function BaseModelSection({
 }
 
 function StructuredOutputModelSection({
-  control,
+  form,
   disabled,
 }: {
   control: Control<ProjectInput>;
@@ -113,7 +113,7 @@ function StructuredOutputModelSection({
 }
 
 function SummarizerModelSection({
-  control,
+  form,
   disabled,
 }: {
   control: Control<ProjectInput>;
@@ -158,10 +158,10 @@ function SummarizerModelSection({
   );
 }
 
-export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
+export function ProjectModelsSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
   const [isOpen, setIsOpen] = useState(false);
-  const { errors } = useFormState({ control });
+  const { errors } = useFormState({ control: form.control });
 
   const hasModelsErrors = !!(
     errors.models?.base?.model ||
@@ -206,13 +206,11 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
           {/* Base Model */}
-          <BaseModelSection control={control} disabled={disabled} />
-
+          <BaseModelSection form={form} disabled={disabled} />
           {/* Structured Output Model */}
-          <StructuredOutputModelSection control={control} disabled={disabled} />
-
+          <StructuredOutputModelSection form={form} disabled={disabled} />
           {/* Summarizer Model */}
-          <SummarizerModelSection control={control} disabled={disabled} />
+          <SummarizerModelSection form={form} disabled={disabled} />
           <InfoCard title="How model inheritance works:" Icon={Info}>
             <ModelInheritanceInfo />
           </InfoCard>
