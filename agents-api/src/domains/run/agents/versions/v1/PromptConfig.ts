@@ -661,7 +661,9 @@ ${creationInstructions}
     let parametersXml = '';
     if (propertyEntries.length > 0) {
       const propsXml = propertyEntries
-        .map(([name, prop]: [string, any]) => this.renderPropertyXml(name, prop, required, '      '))
+        .map(([name, prop]: [string, any]) =>
+          this.renderPropertyXml(name, prop, required, '      ')
+        )
         .join('\n');
       parametersXml = `\n    <parameters>\n${propsXml}\n    </parameters>`;
     }
