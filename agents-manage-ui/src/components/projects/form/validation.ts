@@ -1,7 +1,4 @@
-import {
-  ProjectApiInsertSchema,
-  transformToJson,
-} from '@inkeep/agents-core/client-exports';
+import { ProjectApiInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 const ModelsSchema = ProjectApiInsertSchema.shape.models.shape;
