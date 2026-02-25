@@ -226,47 +226,7 @@ export class AgentMcpManager {
     const tools = await this.applyToolOverrides(originalTools, tool);
 
     if (!tools || Object.keys(tools).length === 0) {
-      const streamRequestId = this.getStreamRequestId();
-      if (streamRequestId) {
-        tracer.startActiveSpan(
-          'ai.toolCall',
-          {
-            attributes: {
-              'ai.toolCall.name': tool.name,
-              'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
-              'ai.toolCall.result': JSON.stringify({
-                status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
-                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
-                originalToolName: tool.name,
-              }),
-              'ai.toolType': 'mcp',
-              'subAgent.name': this.config.name || 'unknown',
-              'subAgent.id': this.config.id || 'unknown',
-              'conversation.id': conversationId || 'unknown',
-              'agent.id': this.config.agentId || 'unknown',
-              'tenant.id': this.config.tenantId || 'unknown',
-              'project.id': this.config.projectId || 'unknown',
-            },
-          },
-          (span) => {
-            setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
-            const relationshipId = this.getRelationshipIdForTool(tool.name, 'mcp');
-            agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
-              message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
-              code: 'no_tools_available',
-              severity: 'error',
-              context: {
-                toolName: tool.name,
-                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
-                operation: 'mcp_tool_discovery',
-              },
-              relationshipId,
-            });
-            span.end();
-          }
-        );
-      }
+      this.reportEmptyToolSet(tool, conversationId);
     }
 
     return {
@@ -277,6 +237,48 @@ export class AgentMcpManager {
       // Config prompt overrides take precedence over values sent by the MCP server's initialize response
       serverInstructions: tool.config.mcp.prompt ?? client.getInstructions(),
     };
+  }
+
+  private reportEmptyToolSet(mcpTool: McpTool, conversationId: string | undefined): void {
+    const streamRequestId = this.getStreamRequestId();
+    if (!streamRequestId) return;
+
+    const serverUrl = mcpTool.config.type === 'mcp' ? mcpTool.config.mcp.server.url : 'unknown';
+
+    tracer.startActiveSpan(
+      'ai.toolCall',
+      {
+        attributes: {
+          'ai.toolCall.name': mcpTool.name,
+          'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
+          'ai.toolCall.result': JSON.stringify({
+            status: 'no_tools_available',
+            message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
+            serverUrl,
+            originalToolName: mcpTool.name,
+          }),
+          'ai.toolType': 'mcp',
+          'subAgent.name': this.config.name || 'unknown',
+          'subAgent.id': this.config.id || 'unknown',
+          'conversation.id': conversationId || 'unknown',
+          'agent.id': this.config.agentId || 'unknown',
+          'tenant.id': this.config.tenantId || 'unknown',
+          'project.id': this.config.projectId || 'unknown',
+        },
+      },
+      (span) => {
+        setSpanWithError(span, new Error(`0 effective tools available for ${mcpTool.name}`));
+        const relationshipId = this.getRelationshipIdForTool(mcpTool.name, 'mcp');
+        agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
+          message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+          code: 'no_tools_available',
+          severity: 'error',
+          context: { toolName: mcpTool.name, serverUrl, operation: 'mcp_tool_discovery' },
+          relationshipId,
+        });
+        span.end();
+      }
+    );
   }
 
   private convertToMCPToolConfig(
@@ -318,14 +320,6 @@ export class AgentMcpManager {
       await client.connect();
       return client;
     } catch (error) {
-      logger.error(
-        {
-          toolName: tool.name,
-          subAgentId: this.config.id,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'Agent failed to connect to MCP server'
-      );
       if (error instanceof Error) {
         if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
           throw new Error('Connection refused. Please check if the MCP server is running.');
@@ -335,22 +329,110 @@ export class AgentMcpManager {
         }
         throw new Error(`MCP server connection failed: ${error.message}`);
       }
-
       throw error;
     }
+  }
+
+  private buildOverriddenTool(
+    toolName: string,
+    toolDef: any,
+    override: any,
+    mcpToolName: string
+  ): { finalName: string; definition: any } {
+    let inputSchema: any;
+    try {
+      inputSchema = override.schema
+        ? z.fromJSONSchema(override.schema)
+        : (toolDef as any).inputSchema;
+    } catch (schemaError) {
+      logger.error(
+        {
+          mcpToolName,
+          toolName,
+          schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
+          overrideSchema: override.schema,
+        },
+        'Failed to convert override schema, using original'
+      );
+      inputSchema = (toolDef as any).inputSchema;
+    }
+
+    const finalName = override.displayName || toolName;
+    const description = override.description || (toolDef as any).description || `Tool ${finalName}`;
+
+    const definition = tool({
+      description,
+      inputSchema,
+      execute: async (simpleArgs: any) => {
+        let complexArgs = simpleArgs;
+        if (override.transformation) {
+          try {
+            const startTime = Date.now();
+            if (typeof override.transformation === 'string') {
+              complexArgs = await JsonTransformer.transform(simpleArgs, override.transformation, {
+                timeout: 10000,
+              });
+            } else if (typeof override.transformation === 'object' && override.transformation !== null) {
+              complexArgs = await JsonTransformer.transformWithConfig(
+                simpleArgs,
+                { objectTransformation: override.transformation },
+                { timeout: 10000 }
+              );
+            } else {
+              logger.warn(
+                { mcpToolName, toolName, transformationType: typeof override.transformation },
+                'Invalid transformation type, skipping transformation'
+              );
+            }
+            logger.debug(
+              {
+                mcpToolName,
+                toolName,
+                transformationDuration: Date.now() - startTime,
+                transformation:
+                  typeof override.transformation === 'string'
+                    ? `${override.transformation.substring(0, 100)}...`
+                    : 'object-transformation',
+              },
+              'Successfully transformed tool arguments'
+            );
+          } catch (transformError) {
+            const errorMessage =
+              transformError instanceof Error ? transformError.message : String(transformError);
+            logger.error(
+              { mcpToolName, toolName, transformError: errorMessage, transformation: override.transformation, simpleArgs },
+              'Failed to transform tool arguments, using original arguments'
+            );
+            complexArgs = simpleArgs;
+          }
+        }
+
+        if (typeof (toolDef as any).execute !== 'function') {
+          throw new Error(`Original tool ${toolName} does not have a valid execute function`);
+        }
+
+        try {
+          return await (toolDef as any).execute(complexArgs);
+        } catch (executeError) {
+          const errorMessage =
+            executeError instanceof Error ? executeError.message : String(executeError);
+          logger.error(
+            { mcpToolName, toolName, executeError: errorMessage, complexArgs },
+            'Failed to execute original tool'
+          );
+          throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
+        }
+      },
+    });
+
+    return { finalName, definition };
   }
 
   private async applyToolOverrides(originalTools: any, mcpTool: McpTool): Promise<any> {
     const toolOverrides =
       mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
 
-    if (!toolOverrides) {
-      logger.debug(
-        { mcpToolName: mcpTool.name },
-        'No tool overrides configured, using original tools'
-      );
-      return originalTools;
-    }
+    if (!toolOverrides) return originalTools;
 
     if (!originalTools || typeof originalTools !== 'object') {
       logger.warn(
@@ -360,7 +442,6 @@ export class AgentMcpManager {
       return originalTools || {};
     }
 
-    const processedTools: any = {};
     const availableToolNames = Object.keys(originalTools);
     const overrideNames = Object.keys(toolOverrides);
 
@@ -372,16 +453,7 @@ export class AgentMcpManager {
       );
     }
 
-    logger.info(
-      {
-        mcpToolName: mcpTool.name,
-        totalTools: availableToolNames.length,
-        toolsWithOverrides: overrideNames.length,
-        availableTools: availableToolNames,
-        overrideTools: overrideNames,
-      },
-      'Starting tool override application'
-    );
+    const processedTools: any = {};
 
     for (const [toolName, toolDef] of Object.entries(originalTools)) {
       if (!toolDef || typeof toolDef !== 'object') {
@@ -393,145 +465,20 @@ export class AgentMcpManager {
       }
 
       const override = toolOverrides[toolName];
-
       if (override && (override.schema || override.description || override.displayName)) {
         try {
-          logger.debug(
-            {
-              mcpToolName: mcpTool.name,
-              toolName,
-              override: {
-                hasSchema: !!override.schema,
-                hasDescription: !!override.description,
-                hasDisplayName: !!override.displayName,
-                hasTransformation: !!override.transformation,
-                transformationType: typeof override.transformation,
-              },
-            },
-            'Processing tool override'
+          const { finalName, definition } = this.buildOverriddenTool(
+            toolName,
+            toolDef,
+            override,
+            mcpTool.name
           );
-
-          let inputSchema: any;
-          try {
-            inputSchema = override.schema
-              ? z.fromJSONSchema(override.schema)
-              : (toolDef as any).inputSchema;
-          } catch (schemaError) {
-            logger.error(
-              {
-                mcpToolName: mcpTool.name,
-                toolName,
-                schemaError:
-                  schemaError instanceof Error ? schemaError.message : String(schemaError),
-                overrideSchema: override.schema,
-              },
-              'Failed to convert override schema, using original'
-            );
-            inputSchema = (toolDef as any).inputSchema;
-          }
-
-          const toolId = override.displayName || toolName;
-          const toolDescription =
-            override.description || (toolDef as any).description || `Tool ${toolId}`;
-
-          const simplifiedTool = tool({
-            description: toolDescription,
-            inputSchema,
-            execute: async (simpleArgs: any) => {
-              let complexArgs = simpleArgs;
-              if (override.transformation) {
-                try {
-                  const startTime = Date.now();
-
-                  if (typeof override.transformation === 'string') {
-                    complexArgs = await JsonTransformer.transform(
-                      simpleArgs,
-                      override.transformation,
-                      {
-                        timeout: 10000,
-                      }
-                    );
-                  } else if (
-                    typeof override.transformation === 'object' &&
-                    override.transformation !== null
-                  ) {
-                    complexArgs = await JsonTransformer.transformWithConfig(
-                      simpleArgs,
-                      { objectTransformation: override.transformation },
-                      { timeout: 10000 }
-                    );
-                  } else {
-                    logger.warn(
-                      {
-                        mcpToolName: mcpTool.name,
-                        toolName,
-                        transformationType: typeof override.transformation,
-                      },
-                      'Invalid transformation type, skipping transformation'
-                    );
-                  }
-
-                  logger.debug(
-                    {
-                      mcpToolName: mcpTool.name,
-                      toolName,
-                      transformationDuration: Date.now() - startTime,
-                      transformation:
-                        typeof override.transformation === 'string'
-                          ? `${override.transformation.substring(0, 100)}...`
-                          : 'object-transformation',
-                    },
-                    'Successfully transformed tool arguments'
-                  );
-                } catch (transformError) {
-                  const errorMessage =
-                    transformError instanceof Error
-                      ? transformError.message
-                      : String(transformError);
-                  logger.error(
-                    {
-                      mcpToolName: mcpTool.name,
-                      toolName,
-                      transformError: errorMessage,
-                      transformation: override.transformation,
-                      simpleArgs,
-                    },
-                    'Failed to transform tool arguments, using original arguments'
-                  );
-                  complexArgs = simpleArgs;
-                }
-              }
-
-              if (typeof (toolDef as any).execute !== 'function') {
-                throw new Error(`Original tool ${toolName} does not have a valid execute function`);
-              }
-
-              try {
-                logger.debug(
-                  { mcpToolName: mcpTool.name, toolName },
-                  'Executing original tool with processed arguments'
-                );
-                return await (toolDef as any).execute(complexArgs);
-              } catch (executeError) {
-                const errorMessage =
-                  executeError instanceof Error ? executeError.message : String(executeError);
-                logger.error(
-                  { mcpToolName: mcpTool.name, toolName, executeError: errorMessage, complexArgs },
-                  'Failed to execute original tool'
-                );
-                throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
-              }
-            },
-          });
-
-          const finalToolName = override.displayName || toolName;
-          processedTools[finalToolName] = simplifiedTool;
-
+          processedTools[finalName] = definition;
           logger.info(
             {
               mcpToolName: mcpTool.name,
               originalToolName: toolName,
-              finalToolName,
+              finalToolName: finalName,
               hasSchemaOverride: !!override.schema,
               hasDescriptionOverride: !!override.description,
               hasTransformation: !!override.transformation,
@@ -552,10 +499,6 @@ export class AgentMcpManager {
         }
       } else {
         processedTools[toolName] = toolDef;
-        logger.debug(
-          { mcpToolName: mcpTool.name, toolName },
-          'No overrides configured for tool, using original'
-        );
       }
     }
 

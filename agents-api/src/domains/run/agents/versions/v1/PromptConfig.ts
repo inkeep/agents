@@ -639,11 +639,15 @@ ${creationInstructions}
     return artifactXml;
   }
 
+  private escapeXml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   private renderPropertyXml(name: string, prop: any, required: string[], indent: string): string {
     const type = prop?.type || 'string';
     const isRequired = required.includes(name);
     const desc = prop?.description?.trim();
-    const descAttr = desc ? ` description="${desc}"` : '';
+    const descAttr = desc ? ` description="${this.escapeXml(desc)}"` : '';
     const requiredAttr = isRequired ? ' required="true"' : '';
     return `${indent}<property name="${name}" type="${type}"${requiredAttr}${descAttr} />`;
   }
@@ -671,13 +675,10 @@ ${creationInstructions}
     return `<tool name="${tool.name}">${descriptionXml}${parametersXml}\n  </tool>`;
   }
 
-  private generateMcpServerGroupXml(
-    _templates: Map<string, string>,
-    group: McpServerGroupData
-  ): string {
+  private generateMcpServerGroupXml(group: McpServerGroupData): string {
     const toolsXml = group.tools.map((tool) => this.generateMcpToolXml(tool)).join('\n  ');
     const instructionsSection = group.serverInstructions
-      ? `\n  <instructions>${group.serverInstructions}</instructions>`
+      ? `\n  <instructions>${this.escapeXml(group.serverInstructions)}</instructions>`
       : '';
     return `<mcp_server name="${group.serverName}">${instructionsSection}
   ${toolsXml}
@@ -699,7 +700,7 @@ ${creationInstructions}
     const regularToolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
     const mcpGroupsXml = hasMcpGroups
       ? mcpServerGroups
-          .map((group) => this.generateMcpServerGroupXml(templates, group))
+          .map((group) => this.generateMcpServerGroupXml(group))
           .join('\n  ')
       : '';
 
@@ -751,7 +752,7 @@ ${creationInstructions}
     return `<parameters>\n${propsXml}\n  </parameters>`;
   }
 
-  private generateParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
+  private generateDataComponentParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
     if (!inputSchema) {
       return '<type>object</type>\n      <properties>\n      </properties>\n      <required>[]</required>';
     }
@@ -825,7 +826,7 @@ ${creationInstructions}
     );
     dataComponentXml = dataComponentXml.replace(
       '{{COMPONENT_PROPS_SCHEMA}}',
-      this.generateParametersXml(dataComponent.props)
+      this.generateDataComponentParametersXml(dataComponent.props)
     );
 
     return dataComponentXml;
