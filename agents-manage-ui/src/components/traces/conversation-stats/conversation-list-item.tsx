@@ -43,7 +43,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                   className="flex items-center gap-1"
                   style={{ color: SLACK_BRAND_COLOR, borderColor: `${SLACK_BRAND_COLOR}4D` }}
                 >
-                  <Hash className="h-3 w-3" />
+                  <Hash className="h-3 w-3" aria-hidden="true" />
                   Slack
                 </Badge>
               )}
