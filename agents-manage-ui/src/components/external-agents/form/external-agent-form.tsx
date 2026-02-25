@@ -21,7 +21,7 @@ import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn, isRequired } from '@/lib/utils';
 
 interface ExternalAgentFormProps {
-  initialData?: ExternalAgentFormData;
+  defaultValues?: ExternalAgentFormData;
   externalAgent?: ExternalAgent;
   credentials: Credential[];
   tenantId: string;
@@ -29,7 +29,7 @@ interface ExternalAgentFormProps {
   className?: string;
 }
 
-const defaultValues: ExternalAgentFormData = {
+const initialData: ExternalAgentFormData = {
   name: '',
   description: '',
   baseUrl: '',
@@ -37,7 +37,7 @@ const defaultValues: ExternalAgentFormData = {
 };
 
 export function ExternalAgentForm({
-  initialData = defaultValues,
+  defaultValues = initialData,
   externalAgent,
   credentials,
   tenantId,
@@ -48,7 +48,7 @@ export function ExternalAgentForm({
 
   const form = useForm({
     resolver: zodResolver(ExternalAgentFormSchema),
-    defaultValues: initialData,
+    defaultValues,
     mode: 'onChange',
   });
 

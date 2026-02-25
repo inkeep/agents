@@ -61,7 +61,7 @@ async function EditExternalAgentPage({
   return (
     <ExternalAgentForm
       className="max-w-2xl mx-auto"
-      initialData={initialFormData}
+      defaultValues={initialFormData}
       externalAgent={externalAgent}
       credentials={credentials}
       tenantId={tenantId}
