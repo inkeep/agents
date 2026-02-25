@@ -207,5 +207,10 @@
     "source": "/guides/agent-engineering/failure-modes",
     "destination": "/guides/agent-engineering/prompt-troubleshooting",
     "permanent": true
+  },
+  {
+    "source": "/visual-builder/tools/user-vs-project-mcp",
+    "destination": "/deployment/inkeep-enterprise/user-vs-project-mcp",
+    "permanent": true
   }
 ]
