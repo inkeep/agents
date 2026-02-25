@@ -42,7 +42,7 @@ export type VerifyServiceTokenResult = JwtVerifyResult<ServiceTokenPayload>;
 
 /**
  * Generate a JWT token for agent-to-agent authentication.
- * Token expires in 5 minutes.
+ * Token expires in 1 hour.
  */
 export async function generateServiceToken(params: GenerateServiceTokenParams): Promise<string> {
   try {
@@ -50,7 +50,7 @@ export async function generateServiceToken(params: GenerateServiceTokenParams): 
       issuer: ISSUER,
       subject: params.originAgentId,
       audience: params.targetAgentId,
-      expiresIn: '5m',
+      expiresIn: '1h',
       claims: {
         tenantId: params.tenantId,
         projectId: params.projectId,
