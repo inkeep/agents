@@ -10,7 +10,11 @@ import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
 import type { FullAgentResponse } from '@/components/agent/form/validation';
 
-export type { FullAgentDefinition, FullAgentResponse } from '@/components/agent/form/validation';
+export type {
+  FullAgentDefinition,
+  FullAgentResponse,
+  PartialFullAgentDefinition,
+} from '@/components/agent/form/validation';
 
 // Re-export types and schemas
 export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
