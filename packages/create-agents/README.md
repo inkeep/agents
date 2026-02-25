@@ -40,23 +40,19 @@ Ensure Docker Desktop (or Docker daemon) is running before running the setup scr
 pnpm setup-dev
 ```
 
-Or if you are using a cloud database, you can skip the local Docker database startup by running:
-
-```bash
-pnpm setup-dev:cloud
-```
-
-Make sure your `INKEEP_AGENTS_MANAGE_DATABASE_URL` and `INKEEP_AGENTS_RUN_DATABASE_URL` environment variables are configured in `.env` for your cloud databases.
-
 ### Step 3: Launch the dev environment
 
 ```bash
 pnpm dev
 ```
 
-The Visual Builder will auto-open at http://localhost:3000. You'll be signed in automatically.
+The Visual Builder will auto-open at http://localhost:3000.
 
-### Step 4: Chat with your agent
+### Step 4: Login to the Visual Builder
+
+Use the credentials from your root `.env` file (`INKEEP_AGENTS_MANAGE_UI_USERNAME` and `INKEEP_AGENTS_MANAGE_UI_PASSWORD`) to log in when the Visual Builder opens.
+
+### Step 5: Chat with your agent
 
 Navigate to the **Activities Planner** agent at http://localhost:3000 and ask about fun activities at a location of your choice:
 

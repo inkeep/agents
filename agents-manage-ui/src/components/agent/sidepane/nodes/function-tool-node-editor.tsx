@@ -1,7 +1,9 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
+import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,10 +45,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const [name, setName] = useState(String(nodeData.name || ''));
   const [description, setDescription] = useState(String(nodeData.description || ''));
   const [code, setCode] = useState(String(nodeData.code || ''));
-  const [inputSchema, setInputSchema] = useState(
+  const [inputSchema, setInputSchema] = useState(() =>
     nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : ''
   );
-  const [dependencies, setDependencies] = useState(
+  const [dependencies, setDependencies] = useState(() =>
     nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : ''
   );
   const [needsApproval, setNeedsApproval] = useState(
@@ -243,14 +245,12 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           </div>
         </DialogContent>
       </Dialog>
-      <div className="space-y-2">
-        <div className="text-sm font-medium">
-          Input Schema <span className="text-red-500">*</span>
-        </div>
-
-        <StandaloneJsonEditor
+      <div className="space-y-2 relative">
+        <FieldLabel label="Input Schema" isRequired />
+        <JsonSchemaEditor
           value={inputSchema}
           onChange={handleInputSchemaChange}
+          aria-invalid={!!getFieldError('inputSchema')}
           placeholder={`{
   "type": "object",
   "properties": {

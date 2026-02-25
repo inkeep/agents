@@ -87,14 +87,199 @@ export const weatherMcpTool = mcpTool({
     await expect(agentDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
   });
 
+  it('generates MCP tool files and wires sub-agent tool imports for fresh projects', async () => {
+    const project = createProjectFixture();
+    project.id = 'docs-assistant';
+    project.name = 'Docs Assistant';
+    project.description = 'Docs assistant for introspect tool regression coverage';
+    project.tools = {
+      'inkeep-rag-mcp': {
+        id: 'inkeep-rag-mcp',
+        name: 'Inkeep RAG MCP',
+        config: {
+          mcp: {
+            server: {
+              url: 'https://mcp.inkeep.com',
+            },
+            transport: {
+              type: 'streamable_http',
+            },
+          },
+        },
+      },
+    };
+    project.agents = {
+      'docs-assistant': {
+        id: 'docs-assistant',
+        name: 'Docs Assistant',
+        description: 'A sub-agent routed docs assistant',
+        defaultSubAgentId: 'docs-assistant',
+        subAgents: {
+          'docs-assistant': {
+            id: 'docs-assistant',
+            description: 'Answers questions about docs',
+            prompt: 'Use the Inkeep RAG MCP tool to find relevant information.',
+            canUse: [{ toolId: 'inkeep-rag-mcp' }],
+          },
+        },
+      },
+    };
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const toolFilePath = join(testDir, 'tools', 'inkeep-rag-mcp.ts');
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'docs-assistant.ts');
+    const indexFilePath = join(testDir, 'index.ts');
+
+    expect(fs.existsSync(toolFilePath)).toBe(true);
+    expect(fs.existsSync(subAgentFilePath)).toBe(true);
+
+    const { default: generatedToolFile } = await import(`${toolFilePath}?raw`);
+    const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
+    const { default: generatedProjectFile } = await import(`${indexFilePath}?raw`);
+
+    expect(generatedToolFile).toContain('export const inkeepRagMcp = mcpTool({');
+    expect(generatedSubAgentFile).toContain(
+      "import { inkeepRagMcp } from '../../tools/inkeep-rag-mcp';"
+    );
+    expect(generatedSubAgentFile).toContain('canUse: () => [inkeepRagMcp]');
+    expect(generatedProjectFile).toContain(
+      "import { inkeepRagMcp } from './tools/inkeep-rag-mcp';"
+    );
+    expect(generatedProjectFile).toContain('tools: () => [inkeepRagMcp],');
+  });
+
+  it('aliases agent import when project variable name collides with agent name', async () => {
+    const project = createProjectFixture();
+    project.id = 'docs-assistant';
+    project.name = 'Docs Assistant';
+    project.agents = {
+      'docs-assistant': {
+        id: 'docs-assistant',
+        name: 'Docs Assistant Agent',
+        defaultSubAgentId: 'docs-sub',
+        subAgents: {
+          'docs-sub': {
+            id: 'docs-sub',
+            name: 'Docs Sub',
+          },
+        },
+      },
+    };
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const indexFilePath = join(testDir, 'index.ts');
+    const { default: generatedProjectFile } = await import(`${indexFilePath}?raw`);
+
+    expect(generatedProjectFile).toContain(
+      "import { docsAssistant as docsAssistantAgent } from './agents/docs-assistant';"
+    );
+    expect(generatedProjectFile).toContain('export const docsAssistant = project({');
+    expect(generatedProjectFile).toContain('agents: () => [docsAssistantAgent],');
+    expect(generatedProjectFile).not.toContain('agents: () => [docsAssistant],');
+  });
+
+  it('generates sub-agent component imports for fresh projects', async () => {
+    const project = createProjectFixture();
+    const supportAgent = project.agents?.['support-agent'];
+    if (!supportAgent?.subAgents?.['tier-one']) {
+      throw new Error('Expected support-agent fixture to include tier-one sub-agent');
+    }
+
+    supportAgent.subAgents['tier-one'].dataComponents = ['customer-profile'];
+    supportAgent.subAgents['tier-one'].artifactComponents = ['ticket-summary'];
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'tier-one.ts');
+    const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
+
+    expect(generatedSubAgentFile).toContain(
+      "import { customerProfile } from '../../data-components/customer-profile';"
+    );
+    expect(generatedSubAgentFile).toContain(
+      "import { ticketSummary } from '../../artifact-components/ticket-summary';"
+    );
+    expect(generatedSubAgentFile).toContain('dataComponents: () => [customerProfile],');
+    expect(generatedSubAgentFile).toContain('artifactComponents: () => [ticketSummary],');
+  });
+
+  it('generates canDelegateTo imports for sub-agent and agent targets', async () => {
+    const project = createProjectFixture();
+    project.agents = {
+      ...project.agents,
+      'router-agent': {
+        id: 'router-agent',
+        name: 'Router Agent',
+        defaultSubAgentId: 'router-tier',
+        subAgents: {
+          'router-tier': {
+            id: 'router-tier',
+            name: 'Router Tier',
+          },
+        },
+      },
+    };
+
+    const supportAgent = project.agents?.['support-agent'];
+    if (!supportAgent?.subAgents?.['tier-one']) {
+      throw new Error('Expected support-agent fixture to include tier-one sub-agent');
+    }
+
+    supportAgent.subAgents['tier-one'].canDelegateTo = [
+      { subAgentId: 'tier-two' },
+      { agentId: 'router-agent' },
+    ];
+    supportAgent.subAgents['tier-two'] = {
+      id: 'tier-two',
+      name: 'Tier Two',
+    };
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'tier-one.ts');
+    const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
+
+    expect(generatedSubAgentFile).toContain("import { tierTwo } from './tier-two';");
+    expect(generatedSubAgentFile).toContain("import { routerAgent } from '../router-agent';");
+    expect(generatedSubAgentFile).toContain('canDelegateTo: () => [tierTwo, routerAgent],');
+  });
+
+  it('generates canTransferTo imports for sub-agent targets', async () => {
+    const project = createProjectFixture();
+    const supportAgent = project.agents?.['support-agent'];
+    if (!supportAgent?.subAgents?.['tier-one']) {
+      throw new Error('Expected support-agent fixture to include tier-one sub-agent');
+    }
+
+    supportAgent.subAgents['tier-one'].canTransferTo = ['tier-two'];
+    supportAgent.subAgents['tier-two'] = {
+      id: 'tier-two',
+      name: 'Tier Two',
+    };
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
+
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'tier-one.ts');
+    const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
+
+    expect(generatedSubAgentFile).toContain("import { tierTwo } from './tier-two';");
+    expect(generatedSubAgentFile).toContain('canTransferTo: () => [tierTwo],');
+  });
+
   it('preserves existing tool reference names in project index', async () => {
     const project = createProjectFixture();
     project.tools = {
       'weather-mcp': {
         id: 'weather-mcp',
+        name: 'foo',
+        serverUrl: 'https://foo.com',
       },
       'exa-mcp': {
         id: 'exa-mcp',
+        name: 'bar',
+        serverUrl: 'https://bar.com',
       },
     };
 
@@ -163,6 +348,8 @@ export const exaMcpTool = mcpTool({
     project.tools = {
       'ad1dRlGjxH7FgdTcRn-qr': {
         id: 'ad1dRlGjxH7FgdTcRn-qr',
+        name: 'foo',
+        serverUrl: 'https://foo.com',
       },
     };
 

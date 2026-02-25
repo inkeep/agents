@@ -1,5 +1,71 @@
 # @inkeep/agents-cli
 
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-manage-ui@0.53.3
+  - @inkeep/agents-sdk@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- Updated dependencies [090bedc]
+  - @inkeep/agents-manage-ui@0.53.2
+  - @inkeep/agents-core@0.53.2
+  - @inkeep/agents-sdk@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- Updated dependencies [e06a945]
+- Updated dependencies [2222e08]
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-manage-ui@0.53.1
+  - @inkeep/agents-core@0.53.1
+  - @inkeep/agents-sdk@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- ef0f287: Remove deprecated pull-v3 code and consolidate tests into pull-v4
+- ac63aa8: Fix `inkeep pull` for create mode: missing generation for MCP tools, sub-agent dependency imports, and project import alias collisions
+- Updated dependencies [f54846b]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [08ba7c2]
+- Updated dependencies [9c293ff]
+- Updated dependencies [a5f8f24]
+- Updated dependencies [f868a96]
+  - @inkeep/agents-manage-ui@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-sdk@0.53.0
+
+## 0.52.0
+
+### Minor Changes
+
+- 886b2da: Refactor pull command to use ts-morph for improved code generation and smart merging
+
+  - Migrates from string-based code generation to AST-based manipulation using ts-morph
+  - Adds intelligent merge mode that preserves user customizations when pulling updates
+  - Improves handling of imports, comments, and custom code during regeneration
+  - Adds comprehensive test coverage for the new pull command implementation
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+- Updated dependencies [d717f54]
+  - @inkeep/agents-core@0.52.0
+  - @inkeep/agents-manage-ui@0.52.0
+  - @inkeep/agents-sdk@0.52.0
+
 ## 0.51.0
 
 ### Patch Changes

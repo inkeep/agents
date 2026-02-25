@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.51.0",
+  "version": "0.53.3",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -36,9 +36,6 @@
   "author": "Inkeep <support@inkeep.com>",
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.7",
-    "@ai-sdk/google": "3.0.4",
-    "@ai-sdk/openai": "3.0.7",
     "@clack/prompts": "^0.11.0",
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-sdk": "workspace:^",

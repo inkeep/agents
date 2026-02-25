@@ -8,6 +8,7 @@ import {
   getActiveAgentForConversation,
   getInProcessFetch,
   getTask,
+  isUniqueConstraintError,
   type ModelSettings,
   type Part,
   type SendMessageResponse,
@@ -199,8 +200,7 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        // Handle duplicate task (PostgreSQL unique constraint violation)
-        if (error?.cause?.code === '23505') {
+        if (isUniqueConstraintError(error)) {
           logger.info(
             { taskId, error: error.message },
             'Task already exists, fetching existing task'

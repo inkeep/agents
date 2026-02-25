@@ -8,11 +8,9 @@ This guide is for **all team members** using the Inkeep Slack app. You'll learn 
 
 ## Before you start
 
-You need to link your Slack account to Inkeep (one-time setup):
+You need to link your Slack account to Inkeep (one-time setup). The first time you interact with the bot — via `@Inkeep` or any `/inkeep` command — you'll automatically receive a **Link Account** button. Click it, sign in to Inkeep, and your original question will be answered automatically.
 
-1. Type `/inkeep link` in any Slack channel
-2. Click the private link the bot sends
-3. Sign in to Inkeep — the linking completes automatically
+You can also link proactively by running `/inkeep link` in any channel.
 
 Run `/inkeep status` to confirm your account is linked.
 
@@ -38,24 +36,18 @@ When you use `@Inkeep` inside a thread, the agent automatically receives the ful
 - Asking follow-up questions about something in the thread
 - Having the agent help draft a response
 
-## Private responses — `/inkeep`
+## Slash command — `/inkeep`
 
-Private responses are **ephemeral** — only you can see them. They don't appear in the channel for other users.
+The `/inkeep` slash command lets you ask questions and manage your account. Agent responses to `/inkeep <your question>` are posted **publicly in the channel**, visible to everyone. Administrative commands (`link`, `unlink`, `status`, `help`) respond privately using Slack's ephemeral messages.
 
 | Command | What it does |
 |---------|-------------|
-| `/inkeep <your question>` | Ask the default agent privately |
+| `/inkeep <your question>` | Ask the default agent — response is posted in the channel |
 | `/inkeep` | Open a modal to pick a project, agent, and write your prompt |
 | `/inkeep help` | Show the full usage guide |
 | `/inkeep status` | See your linked account and the active agent for this channel |
 | `/inkeep link` | Link your Slack account to Inkeep (one-time) |
 | `/inkeep unlink` | Disconnect your Slack account |
-
-### Multi-turn conversations
-
-When you use `/inkeep` (modal) or `/inkeep <message>`, the response includes a **Follow Up** button. Click it to continue the same conversation — the agent remembers everything from previous turns.
-
-Each follow-up appears as a new ephemeral message showing your question and the agent's response.
 
 ### Agent picker modal
 
@@ -63,8 +55,28 @@ Running `/inkeep` with no arguments opens a modal where you can:
 
 1. Select a **project** from the dropdown
 2. Select an **agent** from that project (the list updates as you change projects)
-3. Write your **prompt**
-4. Submit to get a private response
+3. Optionally write a **prompt** (you can also submit without a message to invoke the agent directly)
+4. Submit to get a public response at the channel root
+
+<Tip>
+To continue a conversation, `@Inkeep` the bot in the response thread — the agent receives the full thread as context.
+</Tip>
+
+## Message shortcuts
+
+Right-click (or long-press on mobile) any message in a channel and select **Ask Agent** from the shortcuts menu. This opens a modal where you pick a project and agent, then submit. The agent's response appears as a **threaded reply on the target message**, with the original message text as context.
+
+## Direct messages
+
+You can mention `@Inkeep` or use `/inkeep` commands in your DMs for private conversations.
+
+| Usage | What happens |
+|-------|-------------|
+| `@Inkeep <your question>` in a DM | The workspace default agent responds in a thread |
+| `/inkeep <your question>` in a DM | The workspace default agent responds |
+| Reply in a DM thread | The agent receives the full DM thread as context |
+
+DMs use your **workspace default agent**. Channel-specific agent overrides do not apply in DMs. You must have your account linked and have access to the agent's project.
 
 ## Which agent responds?
 
@@ -107,7 +119,7 @@ If you frequently use agents that require tool approvals, make sure your account
 
 ### "You need to link your account"
 
-Run `/inkeep link` and click the link to connect your Slack and Inkeep accounts. This is a one-time setup per user.
+Click the **Link Account** button in the prompt to connect your Slack and Inkeep accounts. This is a one-time setup per user. If you don't see the button, run `/inkeep link` to get a new link.
 
 ### "No agents configured"
 

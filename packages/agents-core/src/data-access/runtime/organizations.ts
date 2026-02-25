@@ -59,6 +59,7 @@ export const getPendingInvitationsByEmail =
         status: invitation.status,
         expiresAt: invitation.expiresAt,
         inviterId: invitation.inviterId,
+        authMethod: invitation.authMethod,
       })
       .from(invitation)
       .leftJoin(organization, eq(invitation.organizationId, organization.id))
@@ -185,7 +186,10 @@ export const getUserProvidersFromDb =
  */
 export const createInvitationInDb =
   (db: AgentsRunDatabaseClient) =>
-  async (data: { organizationId: string; email: string }): Promise<{ id: string }> => {
+  async (data: {
+    organizationId: string;
+    email: string;
+  }): Promise<{ id: string; authMethod: string }> => {
     const org = await db
       .select({
         serviceAccountUserId: organization.serviceAccountUserId,
@@ -223,5 +227,5 @@ export const createInvitationInDb =
       authMethod: orgSettings.preferredAuthMethod,
     });
 
-    return { id: inviteId };
+    return { id: inviteId, authMethod: orgSettings.preferredAuthMethod };
   };

@@ -31,6 +31,7 @@ The Slack integration is only available for [Inkeep Enterprise](https://inkeep.c
     The bot requests the following permissions:
     - Read messages in channels where it's mentioned
     - Post messages and replies
+    - Read and write direct messages
     - Access channel and user information
     - Register slash commands
   </Step>
@@ -42,6 +43,10 @@ The Slack integration is only available for [Inkeep Enterprise](https://inkeep.c
     Verify the bot is active by typing `/inkeep help` in any Slack channel.
   </Step>
 </Steps>
+
+<Note>
+Only one Slack workspace can be connected to your Inkeep tenant. To switch workspaces, uninstall the existing one first.
+</Note>
 
 ## Configure agents
 
@@ -56,15 +61,13 @@ Channel defaults take priority over the workspace default. If you remove a chann
 
 ## Onboard your team
 
-Team members can start using `@Inkeep` and `/inkeep` immediately, and you can point them to the [Using the Slack App](/talk-to-your-agents/slack/commands) usage guide.
+Account linking happens automatically — when an unlinked user first interacts with the bot (via `@Inkeep` or `/inkeep`), they receive a prompt with a **Link Account** button. After clicking it and signing in to Inkeep, their original question is automatically answered. This only needs to happen once per user.
 
-The first time they interact with the bot, they'll be prompted to link their Slack account. They can also link proactively:
-1. Type `/inkeep link` in any Slack channel
-2. Click the private link the bot sends (expires in 10 minutes)
-3. Sign in to Inkeep if not already signed in
-4. Verify with `/inkeep status`
+Alternatively, users can link proactively by running `/inkeep link` in any channel.
 
-## Next steps
+<Tip>
+The link button uses a short-lived JWT token (10 minutes) for security. If it expires, the user can simply ask their question again to get a new prompt, or run `/inkeep link` manually.
+</Tip>
 
 <Cards>
   <Card title="Configuration" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">

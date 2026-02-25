@@ -290,6 +290,24 @@ export const errorSchemaFactory = (code: ErrorCodes, description: string) => ({
   },
 });
 
+export function isUniqueConstraintError(error: unknown): boolean {
+  const err = error as
+    | { cause?: { code?: string; message?: string }; message?: string }
+    | null
+    | undefined;
+  return (
+    err?.cause?.code === '23505' || // standard PostgreSQL unique violation
+    !!err?.cause?.message?.includes('1062') || // Doltgres wraps MySQL errno 1062 (duplicate entry)
+    !!err?.message?.includes('already exists') // generic fallback
+  );
+}
+
+export function throwIfUniqueConstraintError(error: unknown, message: string): void {
+  if (isUniqueConstraintError(error)) {
+    throw createApiError({ code: 'conflict', message });
+  }
+}
+
 export const commonCreateErrorResponses = {
   400: errorSchemaFactory('bad_request', 'Bad Request'),
   401: errorSchemaFactory('unauthorized', 'Unauthorized'),

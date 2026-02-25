@@ -10,7 +10,6 @@ export const SlackStrings = {
   buttons: {
     triggerAgent: 'Trigger Agent',
     send: 'Send',
-    followUp: 'Follow Up',
     cancel: 'Cancel',
     openDashboard: 'Open Dashboard',
   },
@@ -20,7 +19,6 @@ export const SlackStrings = {
     triggerAgent: 'Trigger Agent',
     triggerAgentThread: 'Trigger Agent (Thread)',
     askAboutMessage: 'Ask About Message',
-    followUp: 'Follow Up',
   },
 
   // Modal labels
@@ -49,7 +47,6 @@ export const SlackStrings = {
   // Context block text
   context: {
     poweredBy: (agentName: string) => `Powered by *${agentName}* via Inkeep`,
-    privateResponse: '_Private response_',
   },
 
   // Usage hints
@@ -72,8 +69,15 @@ export const SlackStrings = {
 
   // Error messages
   errors: {
-    generic: 'Something went wrong. Please try again.',
+    generic: 'Something went wrong processing your request. Please try again.',
     failedToOpenSelector: 'Failed to open agent selector. Please try again.',
+    noAgentConfigured:
+      'No agent is configured for this workspace. Ask your admin to set up a default agent in the Inkeep dashboard.',
+  },
+
+  // Link prompt
+  linkPrompt: {
+    intro: "To get started, let's connect your Inkeep account with Slack.",
   },
 
   // Help message
@@ -84,8 +88,8 @@ export const SlackStrings = {
       '• `@Inkeep <message>` — Message the default agent in this channel\n' +
       '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
       '• `@Inkeep` in a thread — Uses the full thread as context',
-    privateSection:
-      '*Private* — only visible to you\n\n' +
+    slashSection:
+      '*Slash Commands* — visible to everyone in the channel\n\n' +
       '• `/inkeep <message>` — Message the default agent in this channel\n' +
       '• `/inkeep` — Open the agent picker to choose an agent and write a prompt',
     otherCommands:

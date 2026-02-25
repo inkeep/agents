@@ -1,8 +1,8 @@
 'use client';
 
-import { Check, ChevronDown, Loader2, ShieldCheck, SlackIcon } from 'lucide-react';
-import { InkeepIconMono } from '@/components/icons/inkeep';
+import { Check, ChevronDown, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
   Command,
   CommandEmpty,
@@ -11,10 +11,11 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ChannelAccessPopover } from './channel-access-popover';
 import type { DefaultAgentConfig, SlackAgentOption } from './types';
 
 interface WorkspaceDefaultSectionProps {
@@ -25,6 +26,7 @@ interface WorkspaceDefaultSectionProps {
   canEdit: boolean;
   onSetDefaultAgent: (agent: SlackAgentOption) => void;
   onToggleGrantAccess: (grantAccess: boolean) => void;
+  onRemoveDefaultAgent: () => void;
   onFetchAgents: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +40,7 @@ export function WorkspaceDefaultSection({
   canEdit,
   onSetDefaultAgent,
   onToggleGrantAccess,
+  onRemoveDefaultAgent,
   onFetchAgents,
   open,
   onOpenChange,
@@ -48,34 +51,51 @@ export function WorkspaceDefaultSection({
     <div className="space-y-3">
       {canEdit ? (
         <Popover open={open} onOpenChange={onOpenChange}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between h-11 bg-background"
-              onClick={() => {
-                if (agents.length === 0) onFetchAgents();
-              }}
-            >
-              {savingDefault ? (
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : defaultAgent ? (
-                <span className="flex items-center gap-2">
-                  <span className="font-medium">{defaultAgent.agentName}</span>
-                  <span className="text-gray-400 font-normal dark:text-white/40"> / </span>
-                  <span className="text-gray-400 font-normal dark:text-white/40">
-                    {defaultAgent.projectName}
+          <ButtonGroup className="w-full">
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="min-w-0 grid flex-1 grid-cols-[minmax(0,1fr)_auto] overflow-hidden text-left"
+                onClick={() => {
+                  if (agents.length === 0) onFetchAgents();
+                }}
+              >
+                {savingDefault ? (
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
                   </span>
-                </span>
-              ) : (
-                <span className="text-muted-foreground">Select a default agent...</span>
-              )}
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0" align="start">
+                ) : defaultAgent ? (
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{defaultAgent.agentName}</span>
+                    <span className="text-gray-400 font-normal dark:text-white/40"> / </span>
+                    <span className="text-gray-400 font-normal dark:text-white/40">
+                      {defaultAgent.projectName}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Select a default agent...</span>
+                )}
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            {defaultAgent && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={onRemoveDefaultAgent}
+                    variant="outline"
+                    aria-label="Remove default agent"
+                    type="button"
+                  >
+                    <X />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove the default agent for this workspace.</TooltipContent>
+              </Tooltip>
+            )}
+          </ButtonGroup>
+          <PopoverContent className="w-full p-0" align="start">
             <Command>
               <CommandInput placeholder="Search agents..." />
               <CommandList>
@@ -92,15 +112,17 @@ export function WorkspaceDefaultSection({
                 <CommandGroup>
                   {agents.map((agent) => (
                     <CommandItem
-                      key={agent.id}
+                      key={`${agent.id}-${agent.projectId}`}
                       value={`${agent.name} ${agent.projectName}`}
                       onSelect={() => onSetDefaultAgent(agent)}
-                      className="py-3"
                     >
                       <Check
                         className={cn(
-                          'mr-2 h-4 w-4',
-                          defaultAgent?.agentId === agent.id ? 'opacity-100' : 'opacity-0'
+                          'h-4 w-4',
+                          defaultAgent?.agentId === agent.id &&
+                            defaultAgent?.projectId === agent.projectId
+                            ? 'opacity-100'
+                            : 'opacity-0'
                         )}
                       />
                       <div className="flex flex-col">
@@ -131,33 +153,11 @@ export function WorkspaceDefaultSection({
       )}
       {defaultAgent && canEdit && (
         <div className="flex items-center justify-between gap-2 px-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <label
-                htmlFor="workspace-grant-access"
-                className="flex items-center gap-2 text-sm cursor-pointer"
-              >
-                <span className="inline-flex items-center gap-0.5 text-muted-foreground">
-                  {grantAccess ? (
-                    <SlackIcon aria-hidden="true" className="h-3.5 w-3.5" />
-                  ) : (
-                    <InkeepIconMono aria-hidden="true" className="h-3.5 w-3.5" />
-                  )}
-                  <ShieldCheck aria-hidden="true" className="h-3 w-3" />
-                </span>
-                <span>Authorize via Slack</span>
-              </label>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[280px]">
-              When enabled, any member of this Slack workspace can use this agent without an
-              explicit Inkeep project invite. When disabled, only users with direct project access
-              can use it.
-            </TooltipContent>
-          </Tooltip>
-          <Switch
-            id="workspace-grant-access"
-            checked={grantAccess}
-            onCheckedChange={onToggleGrantAccess}
+          <Label>Member Access</Label>
+          <ChannelAccessPopover
+            grantAccess={grantAccess}
+            onToggleGrantAccess={onToggleGrantAccess}
+            idPrefix="workspace-grant-access"
           />
         </div>
       )}

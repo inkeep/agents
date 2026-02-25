@@ -24,9 +24,9 @@ Here's an overview of the important environment variables when deploying to prod
 ```bash
 NANGO_ENCRYPTION_KEY=<nango_encryption_key>
 
-# Replace these with your <vm_external_ip> in production!
-NANGO_SERVER_URL=http://<vm_external_ip>:3050
-NANGO_PUBLIC_CONNECT_URL=http://<vm_external_ip>:3051
+# Replace these with your <vm_ip> in production!
+NANGO_SERVER_URL=http://<vm_ip>:3050
+NANGO_PUBLIC_CONNECT_URL=http://<vm_ip>:3051
 
 # Modify these in production environments!
 NANGO_DASHBOARD_USERNAME=admin@example.com
@@ -42,13 +42,17 @@ This may take up to 5 minutes to start.
 ### Retrieve your SigNoz and Nango API Keys
 
 To get your SigNoz API key `SIGNOZ_API_KEY`:
-- Open SigNoz in a browser at `http://<vm_external_ip>:3080`
+- Open SigNoz in a browser at `http://<vm_ip>:3080`
 - On first login, you will be prompted to create an admin account.
 - Navigate to Settings → Account Settings → API Keys → New Key
 - Choose a role, Viewer is sufficient for observability
 - Set the expiration field to "No Expiry" to prevent the key from expiring
 
+<Note>
+By default, the retention period for conversation data and traces is set to **15 days**. To set a longer retention period, navigate to the **General** tab on the **Settings** page in SigNoz.
+</Note>
+
 To get your Nango secret key `NANGO_SECRET_KEY`:
-- Open Nango in a browser at `http://<vm_external_ip>:3050`
+- Open Nango in a browser at `http://<vm_ip>:3050`
 - Nango auto-creates two environments, Prod and Dev. Select the one you will use.
 - Navigate to Environment Settings to find the secret key

@@ -175,7 +175,8 @@ describe('streamAgentResponse', () => {
   describe('tool-approval-request event handling', () => {
     it('should post an approval message when tool-approval-request event is received', async () => {
       const sseData =
-        'data: {"type":"tool-approval-request","toolCallId":"tc-1","toolName":"search_web","input":{"query":"hello"}}\n' +
+        'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{"query":"hello"}}\n' +
+        'data: {"type":"tool-approval-request","toolCallId":"tc-1","approvalId":"aitxt-tc-1"}\n' +
         'data: {"type":"data-operation","data":{"type":"completion"}}\n';
 
       const stream = new ReadableStream({
@@ -194,7 +195,7 @@ describe('streamAgentResponse', () => {
           channel: 'C456',
           thread_ts: '1234.5678',
           text: expect.stringContaining('search_web'),
-          blocks: expect.arrayContaining([expect.objectContaining({ type: 'header' })]),
+          blocks: expect.arrayContaining([expect.objectContaining({ type: 'section' })]),
         })
       );
     });
@@ -224,7 +225,8 @@ describe('streamAgentResponse', () => {
 
     it('should embed conversationId and toolCallId in the button value', async () => {
       const sseData =
-        'data: {"type":"tool-approval-request","toolCallId":"tc-3","toolName":"run_code"}\n' +
+        'data: {"type":"tool-input-available","toolCallId":"tc-3","toolName":"run_code","input":{}}\n' +
+        'data: {"type":"tool-approval-request","toolCallId":"tc-3","approvalId":"aitxt-tc-3"}\n' +
         'data: {"type":"data-operation","data":{"type":"completion"}}\n';
 
       const stream = new ReadableStream({
@@ -274,7 +276,8 @@ describe('streamAgentResponse', () => {
       mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
 
       const sseData =
-        'data: {"type":"tool-approval-request","toolCallId":"tc-5","toolName":"run_code"}\n';
+        'data: {"type":"tool-input-available","toolCallId":"tc-5","toolName":"run_code","input":{}}\n' +
+        'data: {"type":"tool-approval-request","toolCallId":"tc-5","approvalId":"aitxt-tc-5"}\n';
 
       let readCount = 0;
       const stream = new ReadableStream({
@@ -348,6 +351,100 @@ describe('streamAgentResponse', () => {
 
       expect(result.success).toBe(false);
       expect(result.errorMessage).toContain('Authentication error');
+    });
+
+    describe('thinking message cleanup as thread anchor', () => {
+      it('should update thinking message with question when it is the thread anchor', async () => {
+        const sseData = 'data: {"type":"text-delta","delta":"Hello"}\n' + 'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        // thinkingMessageTs === threadTs means the thinking message IS the thread anchor
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1234.9999',
+          thinkingMessageTs: '1234.9999',
+          question: 'What is Inkeep?',
+        });
+
+        expect(mockChatUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            ts: '1234.9999',
+            text: '<@U123> to Test Agent: "What is Inkeep?"',
+          })
+        );
+        expect(mockChatDelete).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '1234.9999' })
+        );
+      });
+
+      it('should update thinking message with invocation attribution when question is empty', async () => {
+        const sseData = 'data: {"type":"text-delta","delta":"Hello"}\n' + 'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1234.9999',
+          thinkingMessageTs: '1234.9999',
+          question: '',
+        });
+
+        expect(mockChatUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            ts: '1234.9999',
+            text: '<@U123> invoked _Test Agent_',
+          })
+        );
+        expect(mockChatDelete).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '1234.9999' })
+        );
+      });
+
+      it('should delete thinking message when it is NOT the thread anchor', async () => {
+        mockFetch.mockResolvedValue(new Response('Error', { status: 500 }));
+
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1111.2222',
+          thinkingMessageTs: '3333.4444',
+        });
+
+        expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '3333.4444' }));
+        expect(mockChatUpdate).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '3333.4444' })
+        );
+      });
     });
 
     describe('contentAlreadyDelivered error suppression', () => {
