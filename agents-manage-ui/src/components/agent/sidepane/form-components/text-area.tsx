@@ -37,6 +37,7 @@ export const TextareaField: FC<TextareaFieldProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         aria-invalid={error ? 'true' : undefined}
+        className={cn(maxHeight, className)}
         disabled={disabled}
         readOnly={readOnly}
       />
