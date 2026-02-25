@@ -12,7 +12,8 @@ export type SlackEntryPoint =
   | 'slash_command'
   | 'message_shortcut'
   | 'modal_submission'
-  | 'smart_link_resume';
+  | 'smart_link_resume'
+  | 'tool_approval';
 
 export interface PublicExecutionParams {
   slackClient: ReturnType<typeof getSlackClient>;
