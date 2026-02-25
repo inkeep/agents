@@ -528,17 +528,20 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Environment file generation', () => {
-    it('should contain INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET from .env.example', async () => {
+    it('should generate a unique INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
         anthropicKey: 'test-anthropic-key',
       });
 
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        '.env',
-        expect.stringContaining('INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=test-bypass-secret-for-ci')
-      );
+      const envWriteCall = vi.mocked(fs.writeFile).mock.calls.find((call) => call[0] === '.env');
+      expect(envWriteCall).toBeDefined();
+      const envContent = envWriteCall?.[1] as string;
+      const match = envContent.match(/INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=(.+)/);
+      expect(match).not.toBeNull();
+      expect(match?.[1]).not.toBe('test-bypass-secret-for-ci');
+      expect(match?.[1]).toHaveLength(64);
     });
 
     it('should inject CLI-prompted API keys into the .env', async () => {
