@@ -3971,6 +3971,7 @@
             "type": "string"
           },
           "credentialReferenceId": {
+            "maxLength": 256,
             "minLength": 1,
             "nullable": true,
             "type": "string"
@@ -3982,6 +3983,7 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
+            "maxLength": 256,
             "minLength": 1,
             "type": "string"
           },
@@ -4035,6 +4037,7 @@
             "type": "string"
           },
           "credentialReferenceId": {
+            "maxLength": 256,
             "minLength": 1,
             "nullable": true,
             "type": "string"
@@ -4046,6 +4049,7 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
+            "maxLength": 256,
             "minLength": 1,
             "type": "string"
           },
