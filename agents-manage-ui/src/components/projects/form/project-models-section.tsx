@@ -49,25 +49,14 @@ function BaseModelSection({
         {(field) => (
           <ModelConfiguration
             value={field.value || ''}
-            providerOptions={
-              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-            }
+            providerOptions={providerOptionsField.value ?? ''}
             label=""
             placeholder="Select base model"
             canClear={false}
-            isRequired={true}
+            isRequired
             onModelChange={field.onChange}
             onProviderOptionsChange={(value) => {
-              if (!value?.trim()) {
-                providerOptionsField.onChange(undefined);
-                return;
-              }
-              try {
-                const parsed = JSON.parse(value);
-                providerOptionsField.onChange(parsed);
-              } catch {
-                // Invalid JSON - don't update the field value
-              }
+              providerOptionsField.onChange(value);
             }}
             editorNamePrefix="project-base"
             disabled={disabled}
@@ -106,28 +95,15 @@ function StructuredOutputModelSection({
         {(field) => (
           <ModelConfiguration
             value={field.value || ''}
-            providerOptions={
-              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-            }
+            providerOptions={providerOptionsField.value ?? ''}
             label=""
             placeholder="Select structured output model (optional)"
             inheritedValue={baseModel}
-            inheritedProviderOptions={
-              baseProviderOptions ? JSON.stringify(baseProviderOptions, null, 2) : undefined
-            }
+            inheritedProviderOptions={baseProviderOptions}
             canClear={!disabled}
             onModelChange={field.onChange}
             onProviderOptionsChange={(value) => {
-              if (!value?.trim()) {
-                providerOptionsField.onChange(undefined);
-                return;
-              }
-              try {
-                const parsed = JSON.parse(value);
-                providerOptionsField.onChange(parsed);
-              } catch {
-                // Invalid JSON - don't update the field value
-              }
+              providerOptionsField.onChange(value);
             }}
             editorNamePrefix="project-structured"
             getJsonPlaceholder={(model) => {
@@ -172,28 +148,15 @@ function SummarizerModelSection({
         {(field) => (
           <ModelConfiguration
             value={field.value || ''}
-            providerOptions={
-              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-            }
+            providerOptions={providerOptionsField.value ?? ''}
             label=""
             placeholder="Select summarizer model (optional)"
             inheritedValue={baseModel}
-            inheritedProviderOptions={
-              baseProviderOptions ? JSON.stringify(baseProviderOptions, null, 2) : undefined
-            }
-            canClear={true}
+            inheritedProviderOptions={baseProviderOptions}
+            canClear
             onModelChange={field.onChange}
             onProviderOptionsChange={(value) => {
-              if (!value?.trim()) {
-                providerOptionsField.onChange(undefined);
-                return;
-              }
-              try {
-                const parsed = JSON.parse(value);
-                providerOptionsField.onChange(parsed);
-              } catch {
-                // Invalid JSON - don't update the field value
-              }
+              providerOptionsField.onChange(value);
             }}
             editorNamePrefix="project-summarizer"
             getJsonPlaceholder={(model) => {
