@@ -745,14 +745,7 @@ ${creationInstructions}
     if (propertyEntries.length === 0) return '';
 
     const propsXml = propertyEntries
-      .map(([name, prop]: [string, any]) => {
-        const type = prop?.type || 'string';
-        const isRequired = required.includes(name);
-        const desc = prop?.description?.trim();
-        const descAttr = desc ? ` description="${desc}"` : '';
-        const requiredAttr = isRequired ? ' required="true"' : '';
-        return `    <property name="${name}" type="${type}"${requiredAttr}${descAttr} />`;
-      })
+      .map(([name, prop]: [string, any]) => this.renderPropertyXml(name, prop, required, '    '))
       .join('\n');
 
     return `<parameters>\n${propsXml}\n  </parameters>`;
