@@ -1069,6 +1069,92 @@ describe('github mcp utils', () => {
     });
   });
 
+  describe('listIssueReactions', () => {
+    let listIssueReactions: typeof import('../../../github/mcp/utils').listIssueReactions;
+
+    beforeEach(async () => {
+      ({ listIssueReactions } = await import('../../../github/mcp/utils'));
+    });
+
+    function createPaginateIterator(items: any[]) {
+      return async function* () {
+        yield { data: items };
+      };
+    }
+
+    it('should return reaction details for an issue/PR body', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() =>
+            createPaginateIterator([
+              {
+                id: 401,
+                content: '+1',
+                user: { login: 'alice' },
+                created_at: '2026-03-01T00:00:00Z',
+              },
+              {
+                id: 402,
+                content: 'heart',
+                user: { login: 'bob' },
+                created_at: '2026-03-02T00:00:00Z',
+              },
+            ])()
+          ),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 401,
+        content: '+1',
+        user: 'alice',
+        createdAt: '2026-03-01T00:00:00Z',
+      });
+      expect(result[1]).toEqual({
+        id: 402,
+        content: 'heart',
+        user: 'bob',
+        createdAt: '2026-03-02T00:00:00Z',
+      });
+    });
+
+    it('should handle missing user gracefully', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi
+            .fn()
+            .mockImplementation(() =>
+              createPaginateIterator([
+                { id: 501, content: 'eyes', user: null, created_at: '2026-03-01T00:00:00Z' },
+              ])()
+            ),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result[0].user).toBe('unknown');
+    });
+
+    it('should return empty array when no reactions exist', async () => {
+      const mockOctokit = {
+        paginate: {
+          iterator: vi.fn().mockImplementation(() => createPaginateIterator([])()),
+        },
+        rest: { reactions: { listForIssue: vi.fn() } },
+      } as any;
+
+      const result = await listIssueReactions(mockOctokit, 'owner', 'repo', 42);
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe('fetchBranchChangedFiles', () => {
     let fetchBranchChangedFiles: typeof import('../../../github/mcp/utils').fetchBranchChangedFiles;
 
@@ -1325,6 +1411,149 @@ describe('github mcp utils', () => {
 
       expect(result).toHaveLength(101);
       expect(result[100].path).toBe('file-100.ts');
+    });
+  });
+
+  describe('moveFile', () => {
+    let moveFile: typeof import('../../../github/mcp/utils').moveFile;
+
+    beforeEach(async () => {
+      ({ moveFile } = await import('../../../github/mcp/utils'));
+    });
+
+    function createMockOctokit({
+      blobSha = 'blob-sha-123',
+      branchSha = 'branch-sha-456',
+      treeSha = 'tree-sha-789',
+      newTreeSha = 'new-tree-sha-abc',
+      newCommitSha = 'new-commit-sha-def',
+      getContentResponse = undefined as any,
+    } = {}) {
+      return {
+        rest: {
+          repos: {
+            getContent: vi.fn().mockResolvedValue({
+              data: getContentResponse ?? { sha: blobSha, type: 'file', content: '' },
+            }),
+          },
+          git: {
+            getRef: vi.fn().mockResolvedValue({
+              data: { object: { sha: branchSha } },
+            }),
+            getCommit: vi.fn().mockResolvedValue({
+              data: { tree: { sha: treeSha } },
+            }),
+            createTree: vi.fn().mockResolvedValue({
+              data: { sha: newTreeSha },
+            }),
+            createCommit: vi.fn().mockResolvedValue({
+              data: { sha: newCommitSha },
+            }),
+            updateRef: vi.fn().mockResolvedValue({}),
+          },
+        },
+      } as any;
+    }
+
+    it('should move a file and return the new commit SHA', async () => {
+      const mockOctokit = createMockOctokit();
+
+      const result = await moveFile({
+        githubClient: mockOctokit,
+        owner: 'owner',
+        repo: 'repo',
+        sourcePath: 'docs/old.md',
+        destinationPath: 'docs/new.md',
+        branchName: 'feat/rename',
+        commitMessage: 'Move old.md to new.md',
+      });
+
+      expect(result).toBe('new-commit-sha-def');
+
+      expect(mockOctokit.rest.repos.getContent).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        path: 'docs/old.md',
+        ref: 'feat/rename',
+      });
+
+      expect(mockOctokit.rest.git.createTree).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        base_tree: 'tree-sha-789',
+        tree: [
+          { path: 'docs/new.md', mode: '100644', type: 'blob', sha: 'blob-sha-123' },
+          { path: 'docs/old.md', mode: '100644', type: 'blob', sha: null },
+        ],
+      });
+
+      expect(mockOctokit.rest.git.createCommit).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        message: 'Move old.md to new.md',
+        tree: 'new-tree-sha-abc',
+        parents: ['branch-sha-456'],
+      });
+
+      expect(mockOctokit.rest.git.updateRef).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        ref: 'heads/feat/rename',
+        sha: 'new-commit-sha-def',
+      });
+    });
+
+    it('should throw when source path is a directory', async () => {
+      const mockOctokit = createMockOctokit({
+        getContentResponse: [{ name: 'child.md', type: 'file' }],
+      });
+
+      await expect(
+        moveFile({
+          githubClient: mockOctokit,
+          owner: 'owner',
+          repo: 'repo',
+          sourcePath: 'docs/',
+          destinationPath: 'new-docs/',
+          branchName: 'main',
+          commitMessage: 'move',
+        })
+      ).rejects.toThrow('Source path "docs/" is not a file');
+    });
+
+    it('should propagate API errors from getContent', async () => {
+      const error = Object.assign(new Error('Not Found'), { status: 404 });
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.getContent.mockRejectedValue(error);
+
+      await expect(
+        moveFile({
+          githubClient: mockOctokit,
+          owner: 'owner',
+          repo: 'repo',
+          sourcePath: 'missing.md',
+          destinationPath: 'dest.md',
+          branchName: 'main',
+          commitMessage: 'move',
+        })
+      ).rejects.toThrow('Not Found');
+    });
+
+    it('should propagate API errors from createTree', async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.git.createTree.mockRejectedValue(new Error('Validation failed'));
+
+      await expect(
+        moveFile({
+          githubClient: mockOctokit,
+          owner: 'owner',
+          repo: 'repo',
+          sourcePath: 'a.md',
+          destinationPath: 'b.md',
+          branchName: 'main',
+          commitMessage: 'move',
+        })
+      ).rejects.toThrow('Validation failed');
     });
   });
 

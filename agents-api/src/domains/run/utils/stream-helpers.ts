@@ -646,8 +646,6 @@ export class VercelDataStreamHelper implements StreamHelper {
       type: 'tool-approval-request',
       approvalId: params.approvalId,
       toolCallId: params.toolCallId,
-      ...(params.toolName && { toolName: params.toolName }),
-      ...(params.input !== undefined && { input: params.input }),
     });
   }
 

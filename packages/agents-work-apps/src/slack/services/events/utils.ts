@@ -73,19 +73,21 @@ export async function findCachedUserMapping(
     clientId
   );
 
-  // Evict before insertion to prevent unbounded growth during traffic spikes
-  if (userMappingCache.size >= USER_MAPPING_CACHE_MAX_SIZE) {
-    evictExpiredEntries();
-    // If still over limit after TTL eviction, evict oldest entry
+  // Only cache positive hits — don't cache null so that newly-linked users
+  // are recognized immediately on their next message instead of waiting for TTL expiry.
+  if (mapping) {
     if (userMappingCache.size >= USER_MAPPING_CACHE_MAX_SIZE) {
-      const oldestKey = userMappingCache.keys().next().value;
-      if (oldestKey) userMappingCache.delete(oldestKey);
+      evictExpiredEntries();
+      if (userMappingCache.size >= USER_MAPPING_CACHE_MAX_SIZE) {
+        const oldestKey = userMappingCache.keys().next().value;
+        if (oldestKey) userMappingCache.delete(oldestKey);
+      }
     }
+    userMappingCache.set(cacheKey, {
+      mapping,
+      expiresAt: Date.now() + USER_MAPPING_CACHE_TTL_MS,
+    });
   }
-  userMappingCache.set(cacheKey, {
-    mapping,
-    expiresAt: Date.now() + USER_MAPPING_CACHE_TTL_MS,
-  });
 
   return mapping;
 }
@@ -459,29 +461,16 @@ export async function sendResponseUrlMessage(
   }
 }
 
-/**
- * Generate a deterministic conversation ID for Slack threads/DMs.
- * This ensures the same thread + agent combination gets the same conversation ID,
- * allowing the agent to maintain conversation history.
- *
- * Including agentId ensures switching agents in the same thread starts a fresh
- * conversation, avoiding sub-agent conflicts when the Run API tries to resume
- * a conversation that was started by a different agent.
- *
- * Format: slack-thread-{teamId}-{identifier}[-{agentId}]
- */
 export function generateSlackConversationId(params: {
   teamId: string;
-  threadTs?: string;
-  channel: string;
+  messageTs: string;
   isDM?: boolean;
   agentId?: string;
 }): string {
-  const { teamId, threadTs, channel, isDM, agentId } = params;
+  const { teamId, messageTs, isDM, agentId } = params;
 
-  const base = isDM
-    ? `slack-dm-${teamId}-${channel}`
-    : `slack-thread-${teamId}-${threadTs || channel}`;
+  const prefix = isDM ? 'slack-dm' : 'slack-trigger';
+  const base = `${prefix}-${teamId}-${messageTs}`;
 
   return agentId ? `${base}-${agentId}` : base;
 }
@@ -531,6 +520,57 @@ export async function checkIfBotThread(
   }
 }
 
+export interface SlackAttachment {
+  text?: string;
+  fallback?: string;
+  pretext?: string;
+  author_name?: string;
+  author_id?: string;
+  channel_name?: string;
+  channel_id?: string;
+  title?: string;
+  is_msg_unfurl?: boolean;
+  is_share?: boolean;
+  from_url?: string;
+  fields?: Array<{ title?: string; value?: string }>;
+}
+
+export function formatAttachments(attachments: SlackAttachment[] | undefined): string {
+  if (!attachments || attachments.length === 0) return '';
+
+  const parts: string[] = [];
+
+  for (const att of attachments) {
+    const content = att.text || att.fallback;
+    if (!content) continue;
+
+    const isSharedMessage = att.is_msg_unfurl || att.is_share;
+
+    const meta: string[] = [];
+    if (att.author_name) meta.push(`from ${att.author_name}`);
+    if (att.channel_name) {
+      meta.push(`in #${att.channel_name}`);
+    } else if (att.channel_id) {
+      meta.push(`in channel ${att.channel_id}`);
+    }
+
+    const label = isSharedMessage ? 'Shared message' : 'Attachment';
+    const metaSuffix = meta.length > 0 ? ` (${meta.join(', ')})` : '';
+    const sourceLine = att.from_url ? `\n[Source: ${att.from_url}]` : '';
+    parts.push(`[${label}${metaSuffix}]:\n\`\`\`\n${content}\n\`\`\`${sourceLine}`);
+
+    if (att.fields && att.fields.length > 0) {
+      for (const field of att.fields) {
+        if (field.title && field.value) {
+          parts.push(`${field.title}: ${field.value}`);
+        }
+      }
+    }
+  }
+
+  return parts.join('\n\n');
+}
+
 interface ThreadContextOptions {
   includeLastMessage?: boolean;
   resolveUserNames?: boolean;
@@ -545,12 +585,16 @@ export async function getThreadContext(
           user?: string;
           text?: string;
           ts?: string;
+          attachments?: SlackAttachment[];
         }>;
       }>;
     };
     users?: {
       info: (params: { user: string }) => Promise<{
-        user?: { real_name?: string; display_name?: string; name?: string };
+        user?: {
+          real_name?: string;
+          profile?: { display_name?: string; email?: string };
+        };
       }>;
     };
   },
@@ -585,7 +629,7 @@ export async function getThreadContext(
     // Build a cache of user IDs to their Slack profile names
     const userNameCache = new Map<
       string,
-      { displayName: string | undefined; fullName: string | undefined; name: string | undefined }
+      { displayName: string | undefined; fullName: string | undefined; email: string | undefined }
     >();
 
     if (resolveUserNames && slackClient.users) {
@@ -600,15 +644,15 @@ export async function getThreadContext(
           try {
             const userInfo = await slackClient.users?.info({ user: userId });
             userNameCache.set(userId, {
-              displayName: userInfo?.user?.display_name,
+              displayName: userInfo?.user?.profile?.display_name,
               fullName: userInfo?.user?.real_name,
-              name: userInfo?.user?.name,
+              email: userInfo?.user?.profile?.email,
             });
           } catch {
             userNameCache.set(userId, {
               displayName: undefined,
               fullName: undefined,
-              name: undefined,
+              email: undefined,
             });
           }
         })
@@ -621,13 +665,13 @@ export async function getThreadContext(
       const parts = [`userId: ${userId}`];
       if (info.displayName) parts.push(`"${info.displayName}"`);
       if (info.fullName) parts.push(`"${info.fullName}"`);
-      if (info.name) parts.push(`"${info.name}"`);
+      if (info.email) parts.push(info.email);
       userDirectoryLines.push(`- ${parts.join(', ')}`);
     }
 
     const userDirectory =
       userDirectoryLines.length > 0
-        ? `Users in this thread (UserId - DisplayName, FullName, Name):\n${userDirectoryLines.join('\n')}\n\n`
+        ? `Users in this thread (UserId - DisplayName, FullName, Email):\n${userDirectoryLines.join('\n')}\n\n`
         : '';
 
     // Format messages using only user IDs
@@ -646,8 +690,10 @@ export async function getThreadContext(
 
       const prefix = isParent ? '[Thread Start] ' : '';
       const messageText = msg.text || '';
+      const attachmentText = formatAttachments(msg.attachments);
+      const fullText = attachmentText ? `${messageText}\n${attachmentText}` : messageText;
 
-      return `${prefix}${role}: """${messageText}"""`;
+      return `${prefix}${role}: """${fullText}"""`;
     });
 
     return `${userDirectory}Messages in this thread:\n${formattedMessages.join('\n\n')}`;

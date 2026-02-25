@@ -87,19 +87,28 @@ describe('create-agents quickstart e2e', () => {
     console.log('Directory structure verified');
 
     // Verify .env file has required variables
+    // After createEnvironmentFiles(), .env is a copy of .env.example with CLI-prompted
+    // values injected. Secrets (JWT keys, signing secret, etc.) remain as placeholders
+    // until setup-dev runs generateSecrets().
     console.log('Verifying .env file...');
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
       /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
-      /INKEEP_AGENTS_API_URL="http:\/\/127\.0\.0\.1:3002"/,
-      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/,
+      /INKEEP_AGENTS_API_URL=http:\/\/localhost:3002/,
     ]);
     console.log('.env file verified');
 
     // Verify inkeep.config.ts was created
     console.log('Verifying inkeep.config.ts...');
-    await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
+    await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'), [
+      /defineConfig/,
+      /tenantId:/,
+      /agentsApi:/,
+      /apiKey:/,
+      /url:/,
+      /manageUiUrl:/,
+    ]);
     console.log('inkeep.config.ts verified');
 
     // Link to local monorepo packages (also runs pnpm install --no-frozen-lockfile)
@@ -205,7 +214,7 @@ describe('create-agents quickstart e2e', () => {
       try {
         const signupRes = await fetch(`${manageApiUrl}/api/auth/sign-up/email`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Origin: manageApiUrl },
+          headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
             password: 'adminADMIN!@12',
@@ -259,7 +268,7 @@ describe('create-agents quickstart e2e', () => {
       try {
         const loginTestRes = await fetch(`${manageApiUrl}/api/auth/sign-in/email`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Origin: manageApiUrl },
+          headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
             password: 'adminADMIN!@12',
@@ -275,8 +284,12 @@ describe('create-agents quickstart e2e', () => {
       }
 
       // --- Dashboard Lap ---
+      // Start the dashboard with ENVIRONMENT=development so the proxy middleware
+      // auto-logs in using the bypass secret — this mirrors the real quickstart
+      // experience where users never see a login form.
       console.log('Starting dashboard lap');
       const dashboardProcess = await startDashboardServer(projectDir, {
+        ENVIRONMENT: 'development',
         INKEEP_AGENTS_API_URL: dashboardApiUrl,
         NEXT_PUBLIC_API_URL: dashboardApiUrl,
         PUBLIC_INKEEP_AGENTS_API_URL: dashboardApiUrl,
@@ -289,23 +302,20 @@ describe('create-agents quickstart e2e', () => {
       try {
         const page = await browser.newPage();
 
-        console.log('Navigating to login page');
-        await page.goto('http://localhost:3000/login', {
+        // Navigate to root — the proxy middleware auto-logs in via the bypass
+        // secret and sets a session cookie, so no manual login is needed.
+        console.log('Navigating to dashboard (auto-login via proxy)');
+        await page.goto('http://localhost:3000/', {
           waitUntil: 'networkidle',
-          timeout: 15000,
+          timeout: 30000,
         });
-
-        console.log('Filling login form');
-        await page.fill('input[type="email"]', 'admin@example.com');
-        await page.fill('input[type="password"]', 'adminADMIN!@12');
-        await page.click('button[type="submit"]');
 
         console.log('Waiting for redirect to projects page');
         await page.waitForURL('**/default/projects**', {
-          timeout: 15000,
+          timeout: 30000,
           waitUntil: 'domcontentloaded',
         });
-        console.log('Redirected to projects page');
+        console.log('Auto-login succeeded — redirected to projects page');
 
         console.log('Clicking activities-planner project');
         // Use force:true because card uses a linkoverlay pattern that intercepts pointer events

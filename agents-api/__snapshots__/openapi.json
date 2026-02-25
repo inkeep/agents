@@ -752,7 +752,7 @@
           },
           "name": {
             "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -760,7 +760,8 @@
           }
         },
         "required": [
-          "agentId"
+          "agentId",
+          "name"
         ],
         "type": "object"
       },
@@ -808,7 +809,7 @@
           },
           "name": {
             "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -38559,7 +38560,7 @@
     },
     "/work-apps/slack/workspaces/{teamId}/channels": {
       "get": {
-        "description": "List Slack channels in the workspace that the bot can see",
+        "description": "List Slack channels where the bot is a member",
         "operationId": "slack-list-channels",
         "parameters": [
           {
