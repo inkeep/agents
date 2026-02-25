@@ -64,7 +64,9 @@ export class AgentMcpManager {
     let serverConfig: McpServerConfig;
 
     if (this.credentialStuffer) {
-      let storeReference: { credentialStoreId: string; retrievalParams: Record<string, unknown> } | undefined;
+      let storeReference:
+        | { credentialStoreId: string; retrievalParams: Record<string, unknown> }
+        | undefined;
 
       if (isUserScoped && userId) {
         const userCredRef = project.credentialReferences
@@ -73,14 +75,23 @@ export class AgentMcpManager {
             )
           : undefined;
         if (userCredRef) {
-          storeReference = { credentialStoreId: userCredRef.credentialStoreId, retrievalParams: userCredRef.retrievalParams || {} };
+          storeReference = {
+            credentialStoreId: userCredRef.credentialStoreId,
+            retrievalParams: userCredRef.retrievalParams || {},
+          };
         } else {
-          logger.warn({ toolId: tool.id, userId }, 'User-scoped tool has no credential connected for this user');
+          logger.warn(
+            { toolId: tool.id, userId },
+            'User-scoped tool has no credential connected for this user'
+          );
         }
       } else if (credentialReferenceId) {
         const credRef = project.credentialReferences?.[credentialReferenceId];
         if (!credRef) throw new Error(`Credential reference not found: ${credentialReferenceId}`);
-        storeReference = { credentialStoreId: credRef.credentialStoreId, retrievalParams: credRef.retrievalParams || {} };
+        storeReference = {
+          credentialStoreId: credRef.credentialStoreId,
+          retrievalParams: credRef.retrievalParams || {},
+        };
       }
 
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
@@ -380,7 +391,10 @@ export class AgentMcpManager {
           return await (toolDef as any).execute(complexArgs);
         } catch (executeError) {
           const msg = AgentMcpManager.errMsg(executeError);
-          logger.error({ mcpToolName, toolName, executeError: msg, complexArgs }, 'Failed to execute original tool');
+          logger.error(
+            { mcpToolName, toolName, executeError: msg, complexArgs },
+            'Failed to execute original tool'
+          );
           throw new Error(`Tool execution failed for ${toolName}: ${msg}`);
         }
       },
