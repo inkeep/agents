@@ -640,7 +640,11 @@ ${creationInstructions}
   }
 
   private escapeXml(value: string): string {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   private renderPropertyXml(name: string, prop: any, required: string[], indent: string): string {
@@ -699,9 +703,7 @@ ${creationInstructions}
 
     const regularToolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
     const mcpGroupsXml = hasMcpGroups
-      ? mcpServerGroups
-          .map((group) => this.generateMcpServerGroupXml(group))
-          .join('\n  ')
+      ? mcpServerGroups.map((group) => this.generateMcpServerGroupXml(group)).join('\n  ')
       : '';
 
     const parts = [regularToolsXml, mcpGroupsXml].filter(Boolean).join('\n  ');
@@ -752,7 +754,9 @@ ${creationInstructions}
     return `<parameters>\n${propsXml}\n  </parameters>`;
   }
 
-  private generateDataComponentParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
+  private generateDataComponentParametersXml(
+    inputSchema: Record<string, unknown> | null | undefined
+  ): string {
     if (!inputSchema) {
       return '<type>object</type>\n      <properties>\n      </properties>\n      <required>[]</required>';
     }

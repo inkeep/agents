@@ -372,7 +372,10 @@ export class AgentMcpManager {
               complexArgs = await JsonTransformer.transform(simpleArgs, override.transformation, {
                 timeout: 10000,
               });
-            } else if (typeof override.transformation === 'object' && override.transformation !== null) {
+            } else if (
+              typeof override.transformation === 'object' &&
+              override.transformation !== null
+            ) {
               complexArgs = await JsonTransformer.transformWithConfig(
                 simpleArgs,
                 { objectTransformation: override.transformation },
@@ -400,7 +403,13 @@ export class AgentMcpManager {
             const errorMessage =
               transformError instanceof Error ? transformError.message : String(transformError);
             logger.error(
-              { mcpToolName, toolName, transformError: errorMessage, transformation: override.transformation, simpleArgs },
+              {
+                mcpToolName,
+                toolName,
+                transformError: errorMessage,
+                transformation: override.transformation,
+                simpleArgs,
+              },
               'Failed to transform tool arguments, using original arguments'
             );
             complexArgs = simpleArgs;
