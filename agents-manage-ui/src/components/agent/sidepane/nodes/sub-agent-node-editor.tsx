@@ -2,7 +2,7 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
-import { useWatch } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,6 +28,9 @@ import { TextareaField } from '../form-components/text-area';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ModelSection } from './model-section';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericTextarea } from '@/components/form/generic-textarea';
+import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
@@ -107,6 +110,18 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
     isEditing: false,
   });
 
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: 'subAgents',
+    keyName: '_rhfKey',
+  });
+
+  const subAgentIndex = fields.findIndex((s) => s.id === (selectedNode.data.id ?? selectedNode.id));
+  const subAgent = useWatch({ control: form.control, name: `subAgents.${subAgentIndex}` });
+  // if (subAgentIndex < 0) return null;
+
+  const path = <K extends string>(k: K) => `subAgents.${subAgentIndex}.${k}` as const;
+  console.log(subAgent);
   return (
     <div className="space-y-8 flex flex-col">
       <InputField
@@ -130,29 +145,22 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         error={getFieldError('id')}
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
       />
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={selectedNode.data.description || ''}
-        onChange={(e) => updatePath('description', e.target.value)}
         placeholder="This sub agent is responsible for..."
-        error={getFieldError('description')}
       />
       <SkillSelector
         selectedSkills={selectedNode.data.skills}
         onChange={(value) => updatePath('skills', value)}
         error={getFieldError('skills')}
       />
-      <ExpandablePromptEditor
-        key={selectedNode.id}
-        name="prompt"
-        value={selectedNode.data.prompt}
-        onChange={(value) => updatePath('prompt', value)}
-        placeholder="You are a helpful assistant..."
-        error={getFieldError('prompt')}
+      <GenericPromptEditor
+        control={form.control}
+        name={path('prompt')}
         label="Prompt"
+        placeholder="You are a helpful assistant..."
       />
       <div className="space-y-2">
         <div className="flex items-center space-x-2">

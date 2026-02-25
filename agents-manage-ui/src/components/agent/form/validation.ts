@@ -11,7 +11,7 @@ const OriginalContextConfigSchema =
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 const StopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
-const SubAgentsSchema = AgentWithinContextOfProjectSchema.shape.subAgents;
+// const SubAgentsSchema = AgentWithinContextOfProjectSchema.shape.subAgents;
 
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
@@ -58,45 +58,44 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
-})
-  .extend({
-    // nodes: z.array(z.any()).optional(),
-    // subAgents: SubAgentsSchema,
-    subAgents: z.array(
-      z.strictObject({
+}).extend({
+  // nodes: z.array(z.any()).optional(),
+  // subAgents: SubAgentsSchema,
+  subAgents: z.array(
+    z.strictObject({
+      id: z.string().trim(),
+      name: z.string().trim(),
+      description: z.string().trim(),
+      skills: z.strictObject({
         id: z.string().trim(),
-        name: z.string().trim(),
-        description: z.string().trim(),
-        skills: z.strictObject({
-          id: z.string().trim(),
-          index: z.int().positive(),
-          alwaysLoaded: z.boolean(),
+        index: z.int().positive(),
+        alwaysLoaded: z.boolean(),
 
-          description: z.string().trim(),
-        }),
-        prompt: z.string().trim(),
-        isDefault: z.boolean(),
-        models: MyModelsSchema,
-        stopWhen: z.unknown(),
-        dataComponents: z.array(z.string()),
-        artifactComponents: z.array(z.string()),
-      })
-    ),
-    stopWhen: StopWhenSchema.extend({
-      transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
-    }).optional(),
-    contextConfig: ContextConfigSchema,
-    statusUpdates: z.strictObject({
-      ...StatusUpdatesSchema,
-      numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
-      timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
-      statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
-    }),
-    models: ModelsSchema,
-  })
-  .transform(({ nodes, ...rest }) => {
-    return rest;
-  });
+        description: z.string().trim(),
+      }),
+      prompt: z.string().trim(),
+      isDefault: z.boolean(),
+      models: MyModelsSchema,
+      stopWhen: z.unknown(),
+      dataComponents: z.array(z.string()),
+      artifactComponents: z.array(z.string()),
+    })
+  ),
+  stopWhen: StopWhenSchema.extend({
+    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
+  }).optional(),
+  contextConfig: ContextConfigSchema,
+  statusUpdates: z.strictObject({
+    ...StatusUpdatesSchema,
+    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
+    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
+  }),
+  models: MyModelsSchema,
+});
+// .transform(({ nodes, ...rest }) => {
+//   return rest;
+// });
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
@@ -159,5 +158,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
         providerOptions: serializeJson(models.summarizer?.providerOptions),
       },
     },
+    subAgents: [{ id: 'websearch-agent' }],
   };
 }
