@@ -3964,25 +3964,25 @@
       "ExternalAgentCreate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
             "type": "string"
           },
           "credentialReferenceId": {
-            "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -4028,25 +4028,25 @@
       "ExternalAgentUpdate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
             "type": "string"
           },
           "credentialReferenceId": {
-            "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -38559,7 +38559,7 @@
     },
     "/work-apps/slack/workspaces/{teamId}/channels": {
       "get": {
-        "description": "List Slack channels in the workspace that the bot can see",
+        "description": "List Slack channels where the bot is a member",
         "operationId": "slack-list-channels",
         "parameters": [
           {
