@@ -14,6 +14,7 @@ import {
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
+  getUserById,
   getWaitUntil,
   interpolateTemplate,
   listScheduledTriggerInvocationsPaginated,
@@ -70,6 +71,14 @@ export async function validateRunAsUserId(params: {
     throw createApiError({
       code: 'bad_request',
       message: 'runAsUserId must be a real user ID, not a system identifier',
+    });
+  }
+
+  const targetUser = await getUserById(runDbClient)(runAsUserId);
+  if (!targetUser) {
+    throw createApiError({
+      code: 'bad_request',
+      message: `User ${runAsUserId} does not exist`,
     });
   }
 

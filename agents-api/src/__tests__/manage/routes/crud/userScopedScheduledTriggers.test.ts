@@ -24,11 +24,15 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     canUseProjectStrict: vi.fn(() => Promise.resolve(true)),
+    getUserById: vi.fn(() =>
+      vi.fn(() => Promise.resolve({ id: 'mock-user', name: 'Mock', email: 'mock@test.com' }))
+    ),
   };
 });
 
-const { canUseProjectStrict } = await import('@inkeep/agents-core');
+const { canUseProjectStrict, getUserById } = await import('@inkeep/agents-core');
 const canUseProjectStrictMock = vi.mocked(canUseProjectStrict);
+const getUserByIdMock = vi.mocked(getUserById);
 
 describe('User-Scoped Scheduled Triggers', () => {
   const createFullAgentData = (agentId: string) => {
@@ -152,6 +156,24 @@ describe('User-Scoped Scheduled Triggers', () => {
         const body = await res.json();
         expect(body.error.message).toContain('system identifier');
       }
+    });
+
+    it('should reject nonexistent user as runAsUserId', async () => {
+      const tenantId = await createTestTenantWithOrg('us-no-exist');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      canUseProjectStrictMock.mockResolvedValue(true);
+      getUserByIdMock.mockReturnValueOnce(vi.fn(() => Promise.resolve(null)) as any);
+
+      const res = await createTriggerWithUserId({
+        tenantId,
+        projectId,
+        agentId,
+        runAsUserId: 'nonexistent-user-id-12345',
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('does not exist');
     });
 
     it('should normalize empty string runAsUserId to null (legacy behavior)', async () => {
