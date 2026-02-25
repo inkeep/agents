@@ -98,7 +98,7 @@ function TreeNodeItem({
               collapsedAiMessages={collapsedAiMessages}
               onToggleAiMessageCollapse={onToggleAiMessageCollapse}
               collapsedNodes={collapsedNodes}
-              toggleNodeCollapse={toggleNodeCollapse}
+              onToggleNodeCollapse={onToggleNodeCollapse}
             />
           ))}
         </div>
@@ -131,7 +131,7 @@ export function HierarchicalTimeline({
             collapsedAiMessages={collapsedAiMessages}
             onToggleAiMessageCollapse={onToggleAiMessageCollapse}
             collapsedNodes={collapsedNodes}
-            toggleNodeCollapse={onToggleNodeCollapse}
+            onToggleNodeCollapse={onToggleNodeCollapse}
           />
         ))}
       </div>
