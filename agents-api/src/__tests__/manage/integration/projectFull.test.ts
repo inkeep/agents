@@ -16,6 +16,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     removeProjectFromSpiceDb: vi.fn().mockResolvedValue(undefined),
     syncOrgMemberToSpiceDb: vi.fn().mockResolvedValue(undefined),
     canUseProjectStrict: vi.fn().mockResolvedValue(true),
+    getUserById: vi.fn(() =>
+      vi.fn(() => Promise.resolve({ id: 'mock-user', name: 'Mock', email: 'mock@test.com' }))
+    ),
   };
 });
 
