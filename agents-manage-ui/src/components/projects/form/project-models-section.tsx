@@ -2,7 +2,7 @@
 
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type UseFormReturn, useFormState, useWatch} from 'react-hook-form';
+import { type UseFormReturn, useFormState, useWatch } from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { type ProjectInput, ProjectSchema } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -24,10 +24,7 @@ interface ProjectModelsSectionProps {
   disabled?: boolean;
 }
 
-function BaseModelSection({
-  form,
-  disabled,
-}: ProjectModelsSectionProps) {
+function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
   const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
 
@@ -47,7 +44,7 @@ function BaseModelSection({
             isRequired={isRequired(ProjectSchema, 'models.base.model')}
             placeholder="Select base model"
             canClear={false}
-            onModelChange={value => {
+            onModelChange={(value) => {
               form.setValue('models.base.model', value, { shouldDirty: true });
             }}
             onProviderOptionsChange={field.onChange}
@@ -60,38 +57,39 @@ function BaseModelSection({
   );
 }
 
-function StructuredOutputModelSection({
-  form,
-  disabled,
-}: ProjectModelsSectionProps) {
+function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
-  const providerOptionsField = useWatch({
-    control,
-    name: 'models.structuredOutput.providerOptions',
+  const structuredOutputModel = useWatch({
+    control: form.control,
+    name: 'models.structuredOutput.model',
   });
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
+  const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
+  const baseProviderOptions = useWatch({
+    control: form.control,
+    name: 'models.base.providerOptions',
+  });
 
   return (
     <FormFieldWrapper
-      control={control}
-      name="models.structuredOutput.model"
+      control={form.control}
+      // Show validation errors of provider options editor
+      name="models.structuredOutput.providerOptions"
       description="Model for structured outputs and components (defaults to base model)"
     >
       {(field) => (
         <ModelConfiguration
-          value={field.value || ''}
-          providerOptions={providerOptionsField ?? ''}
+          value={structuredOutputModel || ''}
+          providerOptions={field.value}
           label="Structured output model"
           isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
           placeholder="Select structured output model (optional)"
           inheritedValue={baseModel}
           inheritedProviderOptions={baseProviderOptions}
           canClear={!disabled}
-          onModelChange={field.onChange}
-          onProviderOptionsChange={(value) => {
+          onModelChange={value => {
             form.setValue('models.structuredOutput.providerOptions', value, { shouldDirty: true });
           }}
+          onProviderOptionsChange={field.onChange}
           editorNamePrefix="project-structured"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
@@ -106,19 +104,19 @@ function StructuredOutputModelSection({
   );
 }
 
-function SummarizerModelSection({
-  form,
-  disabled,
-}: ProjectModelsSectionProps) {
+function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
   const summarizerModel = useWatch({ control: form.control, name: 'models.summarizer.model' });
   const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control: form.control, name: 'models.base.providerOptions' });
+  const baseProviderOptions = useWatch({
+    control: form.control,
+    name: 'models.base.providerOptions',
+  });
 
   return (
     <FormFieldWrapper
       control={form.control}
-        // Show validation errors of provider options editor
+      // Show validation errors of provider options editor
       name="models.summarizer.providerOptions"
       description="Model for summarization tasks (defaults to base model)"
     >
@@ -132,7 +130,7 @@ function SummarizerModelSection({
           inheritedValue={baseModel}
           inheritedProviderOptions={baseProviderOptions}
           canClear
-          onModelChange={value => {
+          onModelChange={(value) => {
             form.setValue('models.summarizer.model', value, { shouldDirty: true });
           }}
           onProviderOptionsChange={field.onChange}
