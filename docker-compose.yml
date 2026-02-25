@@ -1,6 +1,6 @@
 services:
   inkeep-agents-manage-ui:
-    image: inkeep/agents-manage-ui:0.53.1
+    image: inkeep/agents-manage-ui:0.53.2
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
@@ -21,7 +21,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-api:
-    image: inkeep/agents-api:0.53.1
+    image: inkeep/agents-api:0.53.2
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
@@ -60,7 +60,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-migrate:
-    image: inkeep/agents-migrate:0.53.1
+    image: inkeep/agents-migrate:0.53.2
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
