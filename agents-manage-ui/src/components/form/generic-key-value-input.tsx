@@ -85,16 +85,16 @@ export function GenericKeyValueInput<
       if (e.key === 'Enter') {
         e.preventDefault();
         if (field === 'key') {
-          const valueInput = document.querySelector(
+          const valueInput = document.querySelector<HTMLInputElement>(
             `[data-index="${index}"][data-field="value"]`
-          ) as HTMLInputElement;
+          );
           valueInput?.focus();
         } else {
           append({ key: '', value: '' } as never);
           setTimeout(() => {
-            const keyInput = document.querySelector(
+            const keyInput = document.querySelector<HTMLInputElement>(
               `[data-index="${index + 1}"][data-field="key"]`
-            ) as HTMLInputElement;
+            );
             keyInput?.focus();
           }, 0);
         }
@@ -138,19 +138,20 @@ export function GenericKeyValueInput<
               <FormField
                 control={control}
                 name={`${name}.${index}.value` as FieldPath<TFieldValues>}
-                render={({ field: valueField }) => (
-                  <FormControl>
-                    <Input
-                      {...valueField}
-                      data-index={index}
-                      data-field="value"
-                      placeholder={valuePlaceholder}
-                      onKeyDown={(e) => handleKeyDown(e, index, 'value')}
-                      className="flex-1"
-                      disabled={disabled}
-                    />
-                  </FormControl>
-                )}
+                render={({ field }) => (
+                    <FormControl>
+                      <Input
+                        {...field}
+                        data-index={index}
+                        data-field="value"
+                        placeholder={valuePlaceholder}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'value')}
+                        className="flex-1"
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                  )
+                }
               />
               {!disabled && (
                 <Button

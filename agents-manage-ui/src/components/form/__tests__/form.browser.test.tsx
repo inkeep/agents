@@ -12,7 +12,6 @@ import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
-import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import '@/lib/utils/test-utils/styles.css';
 
@@ -38,7 +37,6 @@ const testSchema = z.strictObject({
   select: z.string(error),
   combobox: z.string(error),
   jsonEditor: z.string(error),
-  keyValueInput: z.string(error),
   promptEditor: z.string(error),
 });
 
@@ -54,19 +52,17 @@ const TestForm: FC = () => {
   return (
     <Form {...form}>
       <form style={{ width: 320 }}>
-        <GenericComboBox {...getCommonProps(form, 'combobox')} options={[]} />
-        {divider}
         <GenericInput {...getCommonProps(form, 'input')} />
         {divider}
-        <GenericJsonEditor {...getCommonProps(form, 'jsonEditor')} />
-        {divider}
-        <GenericKeyValueInput {...getCommonProps(form, 'keyValueInput')} />
-        {divider}
-        <GenericPromptEditor {...getCommonProps(form, 'promptEditor')} />
+        <GenericTextarea {...getCommonProps(form, 'textarea')} />
         {divider}
         <GenericSelect {...getCommonProps(form, 'select')} options={[]} />
         {divider}
-        <GenericTextarea {...getCommonProps(form, 'textarea')} />
+        <GenericComboBox {...getCommonProps(form, 'combobox')} options={[]} />
+        {divider}
+        <GenericJsonEditor {...getCommonProps(form, 'jsonEditor')} />
+        {divider}
+        <GenericPromptEditor {...getCommonProps(form, 'promptEditor')} />
       </form>
     </Form>
   );
