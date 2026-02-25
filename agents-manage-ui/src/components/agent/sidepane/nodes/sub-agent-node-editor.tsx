@@ -5,7 +5,6 @@ import type { FC } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -27,6 +26,7 @@ import { ModelSection } from './model-section';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
@@ -78,11 +78,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const form = useFullAgentFormContext();
   const models = useWatch({ control: form.control, name: 'models' });
 
-  const { updatePath, updateNestedPath, getFieldError, updateDefaultSubAgent, deleteNode } =
-    useNodeEditor({
-      selectedNodeId: selectedNode.id,
-      errorHelpers,
-    });
+  const { updatePath, updateNestedPath, getFieldError, deleteNode } = useNodeEditor({
+    selectedNodeId: selectedNode.id,
+    errorHelpers,
+  });
 
   const updateModelPath = (path: string, value: any) => {
     updateNestedPath(path, value, selectedNode.data);
@@ -93,6 +92,12 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
     name: 'subAgents',
     keyName: '_rhfKey',
   });
+  // useEffect(() => {
+  //   form.setError(`subAgents.${subAgentIndex}.isDefault`, {
+  //     type: 'manual',
+  //     message: 'This field is invalid',
+  //   });
+  // }, []);
 
   const subAgentIndex = fields.findIndex((s) => s.id === (selectedNode.data.id ?? selectedNode.id));
   const subAgent = useWatch({ control: form.control, name: `subAgents.${subAgentIndex}` });
@@ -132,21 +137,12 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         label="Prompt"
         placeholder="You are a helpful assistant..."
       />
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="is-default-sub-agent"
-            checked={isDefaultSubAgent}
-            onCheckedChange={(checked) => {
-              updateDefaultSubAgent(checked === true);
-            }}
-          />
-          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          The default sub agent is the initial entry point for conversations.
-        </p>
-      </div>
+      <GenericCheckbox
+        control={form.control}
+        name={path('isDefault')}
+        label="Is default sub agent"
+        description="The default sub agent is the initial entry point for conversations."
+      />
       <Separator />
       <ModelSection
         models={selectedNode.data.models}

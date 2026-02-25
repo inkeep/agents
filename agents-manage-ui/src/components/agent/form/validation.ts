@@ -82,6 +82,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
           description: z.string().trim(),
         }),
         prompt: z.string().trim(),
+        // TODO: use updateDefaultSubAgent logic
         isDefault: z.boolean(),
         models: MyModelsSchema,
         stopWhen: z.unknown(),
