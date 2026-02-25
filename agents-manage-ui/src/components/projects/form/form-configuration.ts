@@ -3,9 +3,9 @@ import {
   DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
   DEFAULT_ANTHROPIC_SUMMARIZER_MODEL,
 } from '@/components/agent/configuration/model-options';
-import type { ProjectFormData } from './validation';
+import type { ProjectInput } from './validation';
 
-export const defaultValues: ProjectFormData = {
+export const defaultValues: ProjectInput = {
   id: '',
   name: '',
   description: '',

@@ -3,4 +3,4 @@ import type { z } from 'zod';
 
 export const ProjectSchema = ProjectApiInsertSchema;
 
-export type ProjectFormData = z.infer<typeof ProjectSchema>;
+export type ProjectInput = z.input<typeof ProjectSchema>;

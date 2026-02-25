@@ -16,25 +16,25 @@ import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { ProjectWorkAppGitHubAccessSection } from './project-work-app-github-access-section';
-import { type ProjectFormData, ProjectSchema } from './validation';
+import { type ProjectInput, ProjectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;
   projectId?: string;
   onSuccess?: (projectId: string) => void;
   onCancel?: () => void;
-  initialData?: ProjectFormData;
+  initialData?: ProjectInput;
   readOnly?: boolean;
   className?: string;
 }
 
-const cleanProviderOptions = (options: ProjectFormData['models']['base']['providerOptions']) => {
+const cleanProviderOptions = (options: ProjectInput['models']['base']['providerOptions']) => {
   if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
     return undefined;
   }
   return options;
 };
-const cleanStopWhen = (stopWhen: ProjectFormData['stopWhen']) => {
+const cleanStopWhen = (stopWhen: ProjectInput['stopWhen']) => {
   // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
   if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
     return {};
@@ -56,7 +56,7 @@ const cleanStopWhen = (stopWhen: ProjectFormData['stopWhen']) => {
   return cleaned;
 };
 
-const serializeData = (data: ProjectFormData) => {
+const serializeData = (data: ProjectInput) => {
   return {
     ...data,
     models: {
@@ -82,7 +82,7 @@ const serializeData = (data: ProjectFormData) => {
   };
 };
 
-const createDefaultValues = (initialData?: ProjectFormData) => {
+const createDefaultValues = (initialData?: ProjectInput) => {
   return {
     ...initialData,
     // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object

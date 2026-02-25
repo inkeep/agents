@@ -4,7 +4,7 @@ import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
-import { type ProjectFormData, ProjectSchema } from '@/components/projects/form/validation';
+import { type ProjectInput, ProjectSchema } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -20,7 +20,7 @@ import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 
 interface ProjectModelsSectionProps {
-  control: Control<ProjectFormData>;
+  control: Control<ProjectInput>;
   disabled?: boolean;
 }
 
@@ -28,7 +28,7 @@ function BaseModelSection({
   control,
   disabled,
 }: {
-  control: Control<ProjectFormData>;
+  control: Control<ProjectInput>;
   disabled?: boolean;
 }) {
   'use memo';
@@ -82,7 +82,7 @@ function StructuredOutputModelSection({
   control,
   disabled,
 }: {
-  control: Control<ProjectFormData>;
+  control: Control<ProjectInput>;
   disabled?: boolean;
 }) {
   'use memo';
@@ -148,7 +148,7 @@ function SummarizerModelSection({
   control,
   disabled,
 }: {
-  control: Control<ProjectFormData>;
+  control: Control<ProjectInput>;
   disabled?: boolean;
 }) {
   'use memo';
