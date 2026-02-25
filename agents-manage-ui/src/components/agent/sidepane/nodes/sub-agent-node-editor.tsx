@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import type { FC } from 'react';
+import { type FC, useEffect } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -88,7 +87,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const { project } = useProjectData();
   const models = useWatch({ control: form.control, name: 'models' });
 
-  const { updatePath, updateNestedPath, getFieldError, deleteNode } = useNodeEditor({
+  const { updateNestedPath, getFieldError, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
   });
@@ -97,7 +96,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
     updateNestedPath(path, value, selectedNode.data);
   };
   // useEffect(() => {
-  //   form.setError(`subAgents.${subAgentIndex}.isDefault`, {
+  //   form.setError(path('stopWhen.stepCountIs'), {
   //     type: 'manual',
   //     message: 'This field is invalid',
   //   });
@@ -161,38 +160,27 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
             </div>
           }
         />
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="step-count">Max steps</Label>
-            <InheritanceIndicator
-              {...getExecutionLimitInheritanceStatus(
-                'agent',
-                'stepCountIs',
-                selectedNode.data.stopWhen?.stepCountIs,
-                project?.stopWhen?.stepCountIs
-              )}
-              size="sm"
-            />
-          </div>
-          <Input
-            id="step-count"
-            type="number"
-            min="1"
-            max="1000"
-            value={selectedNode.data.stopWhen?.stepCountIs || ''}
-            onChange={(e) => {
-              const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-              updatePath('stopWhen', {
-                ...(selectedNode.data.stopWhen || {}),
-                stepCountIs: value,
-              });
-            }}
-            placeholder="50"
-          />
-          <p className="text-xs text-muted-foreground">
-            Maximum number of execution steps for this sub agent (defaults to 50 if not set)
-          </p>
-        </div>
+        <GenericInput
+          control={form.control}
+          name={path('stopWhen.stepCountIs')}
+          type="number"
+          placeholder="50"
+          label={
+            <div className="flex items-center gap-2">
+              <Label htmlFor="step-count">Max steps</Label>
+              <InheritanceIndicator
+                {...getExecutionLimitInheritanceStatus(
+                  'agent',
+                  'stepCountIs',
+                  subAgent.stopWhen?.stepCountIs,
+                  project?.stopWhen?.stepCountIs
+                )}
+                size="sm"
+              />
+            </div>
+          }
+          description="Maximum number of execution steps for this sub agent (defaults to 50 if not set)"
+        />
       </div>
       <Separator />
       <ComponentSelector

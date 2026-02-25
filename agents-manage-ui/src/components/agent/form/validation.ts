@@ -2,6 +2,7 @@ import {
   AgentWithinContextOfProjectSchema,
   transformToJson,
   type AgentWithinContextOfProjectResponse,
+  SubAgentStopWhenSchema,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
@@ -86,7 +87,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       // TODO: use updateDefaultSubAgent logic
       isDefault: z.boolean(),
       models: MyModelsSchema,
-      stopWhen: z.unknown(),
+      stopWhen: SubAgentStopWhenSchema,
       dataComponents: z.array(z.string()),
       artifactComponents: z.array(z.string()),
     })
