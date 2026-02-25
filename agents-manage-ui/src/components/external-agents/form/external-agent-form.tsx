@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
-  type ExternalAgentInput,
   ExternalAgentFormSchema,
+  type ExternalAgentInput,
 } from '@/components/external-agents/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
