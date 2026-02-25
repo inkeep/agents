@@ -77,7 +77,7 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
                 <CommandGroup>
                   {agents.map((agent) => (
                     <CommandItem
-                      key={agent.id}
+                      key={`${agent.id}-${agent.projectId}`}
                       value={`${agent.name} ${agent.projectName}`}
                       onSelect={() => {
                         onBulkSetAgent(agent);
@@ -85,7 +85,7 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
                       }}
                     >
                       <div className="flex flex-col">
-                        <span>{agent.name || agent.id}</span>
+                        <span className="font-medium">{agent.name || agent.id}</span>
                         <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                       </div>
                     </CommandItem>

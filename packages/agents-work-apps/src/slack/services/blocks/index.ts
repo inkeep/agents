@@ -8,72 +8,17 @@ export function createErrorMessage(message: string) {
 
 export interface ContextBlockParams {
   agentName: string;
-  isPrivate?: boolean;
 }
 
 export function createContextBlock(params: ContextBlockParams) {
-  const { agentName, isPrivate = false } = params;
+  const { agentName } = params;
 
-  let text = SlackStrings.context.poweredBy(agentName);
-  if (isPrivate) {
-    text = `${SlackStrings.context.privateResponse} • ${text}`;
-  }
+  const text = SlackStrings.context.poweredBy(agentName);
 
   return {
     type: 'context' as const,
     elements: [{ type: 'mrkdwn' as const, text }],
   };
-}
-
-export interface FollowUpButtonParams {
-  conversationId: string;
-  agentId: string;
-  agentName?: string;
-  projectId: string;
-  tenantId: string;
-  teamId: string;
-  slackUserId: string;
-  channel: string;
-}
-
-export function buildFollowUpButton(params: FollowUpButtonParams) {
-  return [
-    {
-      type: 'button' as const,
-      text: { type: 'plain_text' as const, text: SlackStrings.buttons.followUp, emoji: true },
-      action_id: 'open_follow_up_modal',
-      value: JSON.stringify(params),
-    },
-  ];
-}
-
-/**
- * Build Block Kit blocks for a private conversational response.
- * Shows the user's message, a divider, the agent response, context, and a Follow Up button.
- */
-export function buildConversationResponseBlocks(params: {
-  userMessage: string;
-  responseText: string;
-  agentName: string;
-  isError: boolean;
-  followUpParams: FollowUpButtonParams;
-}) {
-  const { responseText, agentName, isError, followUpParams } = params;
-
-  const blocks: any[] = [
-    {
-      type: 'section',
-      text: { type: 'mrkdwn', text: responseText },
-    },
-  ];
-
-  if (!isError) {
-    const contextBlock = createContextBlock({ agentName });
-    blocks.push(contextBlock);
-    blocks.push({ type: 'actions', elements: buildFollowUpButton(followUpParams) });
-  }
-
-  return blocks;
 }
 
 export function createUpdatedHelpMessage() {
@@ -82,7 +27,7 @@ export function createUpdatedHelpMessage() {
       Blocks.Header().text(SlackStrings.help.title),
       Blocks.Section().text(SlackStrings.help.publicSection),
       Blocks.Divider(),
-      Blocks.Section().text(SlackStrings.help.privateSection),
+      Blocks.Section().text(SlackStrings.help.slashSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.otherCommands),
       Blocks.Divider(),
@@ -227,7 +172,7 @@ export interface ToolApprovalButtonValue {
   agentId: string;
   slackUserId: string;
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   toolName: string;
 }
 
@@ -238,7 +183,7 @@ export const ToolApprovalButtonValueSchema = z.object({
   agentId: z.string(),
   slackUserId: z.string(),
   channel: z.string(),
-  threadTs: z.string(),
+  threadTs: z.string().optional(),
   toolName: z.string(),
 });
 

@@ -1,17 +1,12 @@
-/**
- * Tests for handleQuestionCommand — the default `/inkeep <question>` handler
- *
- * Specifically covers the grantAccessToMembers authorization path:
- * - grantAccessToMembers: true → slackAuthorized: true in JWT
- * - grantAccessToMembers: false → slackAuthorized: false in JWT
- */
-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSignSlackUserToken = vi.fn().mockResolvedValue('mock-jwt-token');
+const mockExecuteAgentPublicly = vi.fn().mockResolvedValue(undefined);
+const mockGetSlackClient = vi.fn().mockReturnValue({ chat: { postMessage: vi.fn() } });
+const mockFindWorkAppSlackUserMappingBySlackUser = vi.fn(() => vi.fn());
 
 vi.mock('@inkeep/agents-core', () => ({
-  findWorkAppSlackUserMappingBySlackUser: vi.fn(() => vi.fn()),
+  findWorkAppSlackUserMappingBySlackUser: mockFindWorkAppSlackUserMappingBySlackUser,
   flushTraces: vi.fn().mockReturnValue(Promise.resolve()),
   getWaitUntil: vi.fn().mockResolvedValue(null),
   signSlackUserToken: mockSignSlackUserToken,
@@ -57,14 +52,18 @@ vi.mock('../../slack/services/blocks', () => ({
 }));
 
 vi.mock('../../slack/services/client', () => ({
-  getSlackClient: vi.fn(),
+  getSlackClient: mockGetSlackClient,
+}));
+
+vi.mock('../../slack/services/events/execution', () => ({
+  executeAgentPublicly: mockExecuteAgentPublicly,
 }));
 
 vi.mock('../../slack/services/events/utils', () => ({
   fetchAgentsForProject: vi.fn(),
   fetchProjectsForTenant: vi.fn(),
+  generateSlackConversationId: vi.fn().mockReturnValue('slack-trigger-T789-123.456000-agent-1'),
   getChannelAgentConfig: vi.fn(),
-  sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../slack/services/link-prompt', () => ({
@@ -97,34 +96,33 @@ const basePayload = {
   triggerId: '123.456.abc',
 };
 
+const mockUserMapping = {
+  id: 'map-1',
+  tenantId: 'default',
+  slackUserId: 'U123',
+  slackTeamId: 'T789',
+  inkeepUserId: 'user-1',
+  clientId: 'work-apps-slack',
+};
+
+function setupLinkedUser() {
+  mockFindWorkAppSlackUserMappingBySlackUser.mockReturnValue(
+    vi.fn().mockResolvedValue(mockUserMapping)
+  );
+}
+
+function setupUnlinkedUser() {
+  mockFindWorkAppSlackUserMappingBySlackUser.mockReturnValue(vi.fn().mockResolvedValue(null));
+}
+
 describe('handleQuestionCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock fetch globally for the background agent call
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'Agent response' } }],
-        }),
-      text: () => Promise.resolve('Agent response'),
-    });
   });
 
   it('should pass slackAuthorized: true when grantAccessToMembers is true', async () => {
-    const { findWorkAppSlackUserMappingBySlackUser } = await import('@inkeep/agents-core');
+    setupLinkedUser();
     const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
-
-    vi.mocked(findWorkAppSlackUserMappingBySlackUser).mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'map-1',
-        tenantId: 'default',
-        slackUserId: 'U123',
-        slackTeamId: 'T789',
-        inkeepUserId: 'user-1',
-        clientId: 'work-apps-slack',
-      })
-    );
     vi.mocked(resolveEffectiveAgent).mockResolvedValue({
       agentId: 'agent-1',
       agentName: 'Test Agent',
@@ -142,34 +140,19 @@ describe('handleQuestionCommand', () => {
       'xoxb-mock-bot-token'
     );
 
-    // Wait for background execution
-    await vi.waitFor(() => {
-      expect(mockSignSlackUserToken).toHaveBeenCalled();
-    });
-
     expect(mockSignSlackUserToken).toHaveBeenCalledWith(
       expect.objectContaining({
         slackAuthorized: true,
         slackAuthSource: 'channel',
         slackAuthorizedProjectId: 'proj-1',
+        slackChannelId: 'C456',
       })
     );
   });
 
   it('should pass slackAuthorized: false when grantAccessToMembers is false', async () => {
-    const { findWorkAppSlackUserMappingBySlackUser } = await import('@inkeep/agents-core');
+    setupLinkedUser();
     const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
-
-    vi.mocked(findWorkAppSlackUserMappingBySlackUser).mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'map-1',
-        tenantId: 'default',
-        slackUserId: 'U123',
-        slackTeamId: 'T789',
-        inkeepUserId: 'user-1',
-        clientId: 'work-apps-slack',
-      })
-    );
     vi.mocked(resolveEffectiveAgent).mockResolvedValue({
       agentId: 'agent-1',
       agentName: 'Test Agent',
@@ -187,16 +170,159 @@ describe('handleQuestionCommand', () => {
       'xoxb-mock-bot-token'
     );
 
-    // Wait for background execution
-    await vi.waitFor(() => {
-      expect(mockSignSlackUserToken).toHaveBeenCalled();
-    });
-
     expect(mockSignSlackUserToken).toHaveBeenCalledWith(
       expect.objectContaining({
         slackAuthorized: false,
         slackAuthSource: 'channel',
         slackAuthorizedProjectId: 'proj-1',
+      })
+    );
+  });
+
+  it('should call executeAgentPublicly with correct params at channel root', async () => {
+    setupLinkedUser();
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'workspace',
+      grantAccessToMembers: true,
+    });
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(mockGetSlackClient).toHaveBeenCalledWith('xoxb-mock-bot-token');
+    expect(mockExecuteAgentPublicly).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'C456',
+        slackUserId: 'U123',
+        teamId: 'T789',
+        jwtToken: 'mock-jwt-token',
+        projectId: 'proj-1',
+        agentId: 'agent-1',
+        agentName: 'Test Agent',
+        question: 'What is Inkeep?',
+        conversationId: 'slack-trigger-T789-123.456000-agent-1',
+      })
+    );
+    expect(mockExecuteAgentPublicly).toHaveBeenCalledWith(
+      expect.not.objectContaining({ threadTs: expect.anything() })
+    );
+  });
+
+  it('should return empty object for Slack 3-second ack', async () => {
+    setupLinkedUser();
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'workspace',
+      grantAccessToMembers: false,
+    });
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    const result = await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(result).toEqual({});
+  });
+
+  it('should return ephemeral error when no agent configured', async () => {
+    setupLinkedUser();
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue(null);
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    const result = await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(result).toEqual({ response_type: 'ephemeral', text: 'Error' });
+    expect(mockExecuteAgentPublicly).not.toHaveBeenCalled();
+  });
+
+  it('should prompt link when user is not linked', async () => {
+    setupUnlinkedUser();
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    const result = await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(result).toEqual({ response_type: 'ephemeral', text: 'Link account', blocks: [] });
+    expect(mockExecuteAgentPublicly).not.toHaveBeenCalled();
+  });
+
+  it('should use agentId as agentName fallback', async () => {
+    setupLinkedUser();
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: '',
+      projectId: 'proj-1',
+      source: 'none',
+      grantAccessToMembers: false,
+    });
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(mockExecuteAgentPublicly).toHaveBeenCalledWith(
+      expect.objectContaining({ agentName: 'agent-1' })
+    );
+  });
+
+  it('should omit slackAuthSource when agent source is none', async () => {
+    setupLinkedUser();
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'none',
+      grantAccessToMembers: false,
+    });
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(mockSignSlackUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slackAuthSource: undefined,
       })
     );
   });

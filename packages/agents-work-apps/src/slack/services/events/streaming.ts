@@ -50,6 +50,47 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   }
 }
 
+/**
+ * Clean up the thinking acknowledgment message after streaming completes or fails.
+ * When the thinking message IS the thread anchor (slash commands at channel root),
+ * update it to show the user's question or invocation attribution instead of deleting,
+ * since deleting a thread anchor leaves "This message was deleted." as the root.
+ */
+async function cleanupThinkingMessage(params: {
+  slackClient: ReturnType<typeof getSlackClient>;
+  channel: string;
+  thinkingMessageTs: string;
+  threadTs?: string;
+  slackUserId: string;
+  agentName: string;
+  question: string;
+}): Promise<void> {
+  const { slackClient, channel, thinkingMessageTs, threadTs, slackUserId, agentName, question } =
+    params;
+
+  if (!thinkingMessageTs) return;
+
+  try {
+    if (thinkingMessageTs === threadTs) {
+      const text = question
+        ? `<@${slackUserId}> to ${agentName}: "${question}"`
+        : `<@${slackUserId}> invoked _${agentName}_`;
+      await slackClient.chat.update({
+        channel,
+        ts: thinkingMessageTs,
+        text,
+      });
+    } else {
+      await slackClient.chat.delete({
+        channel,
+        ts: thinkingMessageTs,
+      });
+    }
+  } catch (error) {
+    logger.warn({ error, channel, thinkingMessageTs }, 'Failed to clean up thinking message');
+  }
+}
+
 export interface StreamResult {
   success: boolean;
   errorType?: SlackErrorType;
@@ -59,7 +100,7 @@ export interface StreamResult {
 export async function streamAgentResponse(params: {
   slackClient: ReturnType<typeof getSlackClient>;
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   thinkingMessageTs: string;
   slackUserId: string;
   teamId: string;
@@ -86,13 +127,24 @@ export async function streamAgentResponse(params: {
       conversationId,
     } = params;
 
+    const threadParam = threadTs ? { thread_ts: threadTs } : {};
+    const cleanupParams = {
+      slackClient,
+      channel,
+      thinkingMessageTs,
+      threadTs,
+      slackUserId,
+      agentName,
+      question,
+    };
+
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
     span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
     span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
     span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
     span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
     if (conversationId) span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
-    span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, threadTs);
+    if (threadTs) span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, threadTs);
 
     const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
@@ -141,17 +193,11 @@ export async function streamAgentResponse(params: {
 
         await slackClient.chat.postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         });
 
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore delete errors
-          }
-        }
+        await cleanupThinkingMessage(cleanupParams);
 
         span.end();
         return { success: false, errorType, errorMessage };
@@ -162,18 +208,12 @@ export async function streamAgentResponse(params: {
       await slackClient.chat
         .postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         })
         .catch((e) => logger.warn({ error: e }, 'Failed to send fetch error notification'));
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       if (fetchError instanceof Error) setSpanWithError(span, fetchError);
       span.end();
@@ -193,17 +233,11 @@ export async function streamAgentResponse(params: {
 
       await slackClient.chat.postMessage({
         channel,
-        thread_ts: threadTs,
+        ...threadParam,
         text: errorMessage,
       });
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       span.end();
       return { success: false, errorType, errorMessage };
@@ -220,17 +254,11 @@ export async function streamAgentResponse(params: {
 
       await slackClient.chat.postMessage({
         channel,
-        thread_ts: threadTs,
+        ...threadParam,
         text: errorMessage,
       });
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       span.end();
       return { success: false, errorType, errorMessage };
@@ -241,12 +269,15 @@ export async function streamAgentResponse(params: {
     let buffer = '';
     let fullText = '';
 
-    const streamer = slackClient.chatStream({
+    const chatStreamArgs = {
       channel,
       recipient_team_id: teamId,
       recipient_user_id: slackUserId,
-      thread_ts: threadTs,
-    });
+      ...(threadTs ? { thread_ts: threadTs } : {}),
+    } as Parameters<typeof slackClient.chatStream>[0];
+    const streamer = slackClient.chatStream(chatStreamArgs);
+    /** Tracks whether `chat.startStream` was called (i.e. a Slack streaming message exists). */
+    let streamerStarted = false;
 
     const pendingApprovalMessages: Array<{
       messageTs: string;
@@ -256,6 +287,7 @@ export async function streamAgentResponse(params: {
     const toolCallIdToName = new Map<string, string>();
     const toolCallIdToInput = new Map<string, Record<string, unknown>>();
     const toolErrors: Array<{ toolName: string; errorText: string }> = [];
+    const successfulToolNames = new Set<string>();
     const citations: Array<{ title?: string; url?: string }> = [];
     const summaryLabels: string[] = [];
     let richMessageCount = 0;
@@ -308,7 +340,7 @@ export async function streamAgentResponse(params: {
               const approvalPost = await slackClient.chat
                 .postMessage({
                   channel,
-                  thread_ts: threadTs,
+                  ...threadParam,
                   text: `Tool approval required: \`${toolName}\``,
                   blocks: buildToolApprovalBlocks({
                     toolName,
@@ -355,6 +387,12 @@ export async function streamAgentResponse(params: {
               continue;
             }
 
+            if (data.type === 'tool-output-available' && data.toolCallId) {
+              const toolName = toolCallIdToName.get(String(data.toolCallId));
+              if (toolName) successfulToolNames.add(toolName);
+              continue;
+            }
+
             if (data.type === 'data-component' && data.data && typeof data.data === 'object') {
               if (richMessageCount < MAX_RICH_MESSAGES) {
                 const { blocks, overflowJson, componentType } = buildDataComponentBlocks({
@@ -367,7 +405,7 @@ export async function streamAgentResponse(params: {
                     () =>
                       slackClient.files.uploadV2({
                         channel_id: channel,
-                        thread_ts: threadTs,
+                        ...threadParam,
                         filename: `${label}.json`,
                         content: overflowJson,
                         initial_comment: `📊 ${label}`,
@@ -383,7 +421,7 @@ export async function streamAgentResponse(params: {
                   await slackClient.chat
                     .postMessage({
                       channel,
-                      thread_ts: threadTs,
+                      ...threadParam,
                       text: '📊 Data component',
                       blocks,
                     })
@@ -422,7 +460,7 @@ export async function streamAgentResponse(params: {
                     () =>
                       slackClient.files.uploadV2({
                         channel_id: channel,
-                        thread_ts: threadTs,
+                        ...threadParam,
                         filename: `${label}.md`,
                         content: overflowContent,
                         initial_comment: `📄 ${label}`,
@@ -436,7 +474,7 @@ export async function streamAgentResponse(params: {
                   );
                 } else {
                   await slackClient.chat
-                    .postMessage({ channel, thread_ts: threadTs, text: '📄 Data', blocks })
+                    .postMessage({ channel, ...threadParam, text: '📄 Data', blocks })
                     .catch((e) => logger.warn({ error: e }, 'Failed to post data artifact'));
                 }
                 richMessageCount++;
@@ -461,11 +499,12 @@ export async function streamAgentResponse(params: {
 
             if (data.type === 'text-delta' && data.delta) {
               fullText += data.delta;
-              await withTimeout(
+              const appendResult = await withTimeout(
                 streamer.append({ markdown_text: data.delta }),
                 CHATSTREAM_OP_TIMEOUT_MS,
                 'streamer.append'
               );
+              if (appendResult != null) streamerStarted = true;
             } else if (
               data.object === 'chat.completion.chunk' &&
               data.choices?.[0]?.delta?.content
@@ -480,11 +519,12 @@ export async function streamAgentResponse(params: {
                 // Not JSON, use as-is
               }
               fullText += content;
-              await withTimeout(
+              const appendResult = await withTimeout(
                 streamer.append({ markdown_text: content }),
                 CHATSTREAM_OP_TIMEOUT_MS,
                 'streamer.append'
               );
+              if (appendResult != null) streamerStarted = true;
             }
           } catch {
             // Skip invalid JSON
@@ -498,6 +538,7 @@ export async function streamAgentResponse(params: {
 
       const stopBlocks: any[] = [];
       for (const { toolName, errorText } of toolErrors) {
+        if (successfulToolNames.has(toolName)) continue;
         stopBlocks.push(buildToolOutputErrorBlock(toolName, errorText));
       }
       if (summaryLabels.length > 0) {
@@ -525,16 +566,7 @@ export async function streamAgentResponse(params: {
         );
       }
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({
-            channel,
-            ts: thinkingMessageTs,
-          });
-        } catch (deleteError) {
-          logger.warn({ deleteError }, 'Failed to delete acknowledgement message');
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       logger.info(
         {
@@ -578,17 +610,16 @@ export async function streamAgentResponse(params: {
           { streamError, channel, threadTs, responseLength: fullText.length },
           'Error during Slack streaming after content was already delivered — suppressing user-facing error'
         );
-        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-        );
-
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore delete errors in error path
-          }
+        // Only finalize if the streamer was started (a Slack message exists).
+        // Calling stop() on an unstarted streamer would call chat.startStream(),
+        // creating a phantom duplicate message.
+        if (streamerStarted) {
+          await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
+            (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+          );
         }
+
+        await cleanupThinkingMessage(cleanupParams);
 
         span.end();
         return { success: true };
@@ -602,43 +633,29 @@ export async function streamAgentResponse(params: {
           await slackClient.chat
             .postMessage({
               channel,
-              thread_ts: threadTs,
+              ...threadParam,
               text: `Approval for \`${toolName}\` has expired.`,
             })
             .catch((e) =>
               logger.warn({ error: e }, 'Failed to send approval expired notification')
             );
         }
-        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-        );
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore
-          }
+        if (streamerStarted) {
+          await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
+            (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+          );
         }
+        await cleanupThinkingMessage(cleanupParams);
         span.end();
         return { success: true };
       }
 
-      // No content was delivered — surface the error to the user
+      // No content was delivered — surface the error to the user.
+      // Do NOT call streamer.stop() here: the streamer was never started, so stop()
+      // would call chat.startStream() creating a phantom message with buffered content.
       logger.error({ streamError }, 'Error during Slack streaming');
-      await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-        logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-      );
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({
-            channel,
-            ts: thinkingMessageTs,
-          });
-        } catch {
-          // Ignore delete errors in error path
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       const errorType = classifyError(streamError);
       const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
@@ -646,7 +663,7 @@ export async function streamAgentResponse(params: {
       try {
         await slackClient.chat.postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         });
       } catch (notifyError) {

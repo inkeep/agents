@@ -1,5 +1,52 @@
 # @inkeep/agents-api
 
+## 0.53.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.6
+- @inkeep/agents-mcp@0.53.6
+- @inkeep/agents-work-apps@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- Updated dependencies [7abd1bd]
+  - @inkeep/agents-work-apps@0.53.5
+  - @inkeep/agents-core@0.53.5
+  - @inkeep/agents-mcp@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- Updated dependencies [16d775c]
+- Updated dependencies [35ca5cb]
+- Updated dependencies [be72c29]
+  - @inkeep/agents-work-apps@0.53.4
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-mcp@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- 60cb0fd: Fix dev-session crash with better-auth >= 1.4.13 by handling renamed authCookies property
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-work-apps@0.53.3
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-mcp@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+- @inkeep/agents-mcp@0.53.2
+- @inkeep/agents-work-apps@0.53.2
+
 ## 0.53.1
 
 ### Patch Changes

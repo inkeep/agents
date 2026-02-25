@@ -353,6 +353,228 @@ describe('streamAgentResponse', () => {
       expect(result.errorMessage).toContain('Authentication error');
     });
 
+    describe('thinking message cleanup as thread anchor', () => {
+      it('should update thinking message with question when it is the thread anchor', async () => {
+        const sseData = 'data: {"type":"text-delta","delta":"Hello"}\n' + 'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        // thinkingMessageTs === threadTs means the thinking message IS the thread anchor
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1234.9999',
+          thinkingMessageTs: '1234.9999',
+          question: 'What is Inkeep?',
+        });
+
+        expect(mockChatUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            ts: '1234.9999',
+            text: '<@U123> to Test Agent: "What is Inkeep?"',
+          })
+        );
+        expect(mockChatDelete).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '1234.9999' })
+        );
+      });
+
+      it('should update thinking message with invocation attribution when question is empty', async () => {
+        const sseData = 'data: {"type":"text-delta","delta":"Hello"}\n' + 'data: [DONE]\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({
+          append: localAppend,
+          stop: localStop,
+        });
+
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1234.9999',
+          thinkingMessageTs: '1234.9999',
+          question: '',
+        });
+
+        expect(mockChatUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: 'C456',
+            ts: '1234.9999',
+            text: '<@U123> invoked _Test Agent_',
+          })
+        );
+        expect(mockChatDelete).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '1234.9999' })
+        );
+      });
+
+      it('should delete thinking message when it is NOT the thread anchor', async () => {
+        mockFetch.mockResolvedValue(new Response('Error', { status: 500 }));
+
+        await streamAgentResponse({
+          ...baseParams,
+          threadTs: '1111.2222',
+          thinkingMessageTs: '3333.4444',
+        });
+
+        expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '3333.4444' }));
+        expect(mockChatUpdate).not.toHaveBeenCalledWith(
+          expect.objectContaining({ ts: '3333.4444' })
+        );
+      });
+    });
+
+    describe('tool error classification', () => {
+      it('should show tool-output-error in stop blocks when tool has no successful calls', async () => {
+        const sseData =
+          'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-error","toolCallId":"tc-1","errorText":"Connection refused"}\n' +
+          'data: {"type":"text-delta","delta":"Sorry"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        expect(localStop).toHaveBeenCalledWith(
+          expect.objectContaining({
+            blocks: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'context',
+                elements: expect.arrayContaining([
+                  expect.objectContaining({ text: expect.stringContaining('search_web') }),
+                ]),
+              }),
+            ]),
+          })
+        );
+      });
+
+      it('should suppress tool error when the same tool also had a successful call', async () => {
+        const sseData =
+          'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-error","toolCallId":"tc-1","errorText":"Timeout"}\n' +
+          'data: {"type":"tool-input-available","toolCallId":"tc-2","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-available","toolCallId":"tc-2","output":"results"}\n' +
+          'data: {"type":"text-delta","delta":"Here are results"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const stopCall = localStop.mock.calls[0][0];
+        const errorBlocks = stopCall.blocks.filter(
+          (b: any) =>
+            b.type === 'context' &&
+            b.elements?.some(
+              (e: any) => e.text?.includes('search_web') && e.text?.includes('failed')
+            )
+        );
+        expect(errorBlocks).toHaveLength(0);
+      });
+
+      it('should still show error for tool A when only tool B had successful calls', async () => {
+        const sseData =
+          'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-error","toolCallId":"tc-1","errorText":"Timeout"}\n' +
+          'data: {"type":"tool-input-available","toolCallId":"tc-2","toolName":"get_file","input":{}}\n' +
+          'data: {"type":"tool-output-available","toolCallId":"tc-2","output":"content"}\n' +
+          'data: {"type":"text-delta","delta":"Here is the file"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const stopCall = localStop.mock.calls[0][0];
+        const errorBlocks = stopCall.blocks.filter(
+          (b: any) =>
+            b.type === 'context' &&
+            b.elements?.some(
+              (e: any) => e.text?.includes('search_web') && e.text?.includes('failed')
+            )
+        );
+        expect(errorBlocks).toHaveLength(1);
+      });
+
+      it('should handle tool-output-available for unknown toolCallId gracefully', async () => {
+        const sseData =
+          'data: {"type":"tool-output-available","toolCallId":"unknown-id","output":"data"}\n' +
+          'data: {"type":"text-delta","delta":"Hello"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        const result = await streamAgentResponse(baseParams);
+
+        expect(result.success).toBe(true);
+      });
+    });
+
     describe('contentAlreadyDelivered error suppression', () => {
       it('should return success and suppress error message when content was already streamed', async () => {
         // Simulate a stream that delivers content then throws on the next read

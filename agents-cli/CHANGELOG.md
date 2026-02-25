@@ -1,5 +1,51 @@
 # @inkeep/agents-cli
 
+## 0.53.6
+
+### Patch Changes
+
+- Updated dependencies [946d729]
+  - @inkeep/agents-manage-ui@0.53.6
+  - @inkeep/agents-core@0.53.6
+  - @inkeep/agents-sdk@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.53.5
+- @inkeep/agents-core@0.53.5
+- @inkeep/agents-sdk@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 1bcedce: Fix `imageUrl: null` handling in MCP tool generator in `inkeep pull`
+- Updated dependencies [35ca5cb]
+- Updated dependencies [df4b020]
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-manage-ui@0.53.4
+  - @inkeep/agents-sdk@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-manage-ui@0.53.3
+  - @inkeep/agents-sdk@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- Updated dependencies [090bedc]
+  - @inkeep/agents-manage-ui@0.53.2
+  - @inkeep/agents-core@0.53.2
+  - @inkeep/agents-sdk@0.53.2
+
 ## 0.53.1
 
 ### Patch Changes

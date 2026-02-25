@@ -3,11 +3,10 @@ import { getLogger } from '../logger';
 import { findWorkspaceConnectionByTeamId, getSlackClient } from './services';
 import {
   handleAppMention,
-  handleFollowUpSubmission,
+  handleDirectMessage,
   handleMessageShortcut,
   handleModalSubmission,
   handleOpenAgentSelectorModal,
-  handleOpenFollowUpModal,
   handleToolApproval,
   sendResponseUrlMessage,
 } from './services/events';
@@ -15,6 +14,29 @@ import type { SlackAttachment } from './services/events/utils';
 import { SLACK_SPAN_KEYS, type SlackOutcome } from './tracer';
 
 const logger = getLogger('slack-dispatcher');
+
+/**
+ * Simple in-memory deduplication for Slack events.
+ * Slack may deliver the same event more than once (Socket Mode reconnections,
+ * edge cases in the Events API). We track recent event IDs to prevent
+ * duplicate processing. Entries expire after 5 minutes.
+ */
+const DEDUP_TTL_MS = 5 * 60 * 1000;
+const recentEventIds = new Map<string, number>();
+
+function isDuplicateEvent(eventId: string | undefined): boolean {
+  if (!eventId) return false;
+  const now = Date.now();
+  if (recentEventIds.has(eventId)) return true;
+  recentEventIds.set(eventId, now);
+  // Prune expired entries periodically (when map grows beyond threshold)
+  if (recentEventIds.size > 500) {
+    for (const [id, ts] of recentEventIds) {
+      if (now - ts > DEDUP_TTL_MS) recentEventIds.delete(id);
+    }
+  }
+  return false;
+}
 
 export interface SlackEventDispatchResult {
   outcome: SlackOutcome;
@@ -38,10 +60,19 @@ export async function dispatchSlackEvent(
   let outcome: SlackOutcome = 'ignored_unknown_event';
 
   if (eventType === 'event_callback') {
+    const eventId = payload.event_id as string | undefined;
+    if (isDuplicateEvent(eventId)) {
+      outcome = 'ignored_duplicate_event';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      logger.info({ eventId }, 'Ignoring duplicate event');
+      return { outcome };
+    }
+
     const teamId = payload.team_id as string | undefined;
     const event = payload.event as
       | {
           type?: string;
+          channel_type?: string;
           user?: string;
           text?: string;
           channel?: string;
@@ -78,7 +109,13 @@ export async function dispatchSlackEvent(
       return { outcome };
     }
 
-    if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
+    if (
+      event?.type === 'app_mention' &&
+      event.channel_type !== 'im' &&
+      event.channel &&
+      event.user &&
+      teamId
+    ) {
       outcome = 'handled';
       span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
       const question = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
@@ -110,6 +147,41 @@ export async function dispatchSlackEvent(
         .finally(() => flushTraces());
       registerBackgroundWork(mentionWork);
       logger.info({ teamId, channel: event.channel, dispatchedAt }, 'app_mention work registered');
+    } else if (
+      event?.type === 'message' &&
+      event.channel_type === 'im' &&
+      event.channel &&
+      event.user &&
+      teamId
+    ) {
+      outcome = 'handled';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      if (event.thread_ts) span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, event.thread_ts);
+      if (event.ts) span.setAttribute(SLACK_SPAN_KEYS.MESSAGE_TS, event.ts);
+
+      logger.info(
+        { userId: event.user, channel: event.channel, teamId },
+        'Handling event: message.im'
+      );
+
+      const dmWork = handleDirectMessage({
+        slackUserId: event.user,
+        channel: event.channel,
+        text: event.text || '',
+        threadTs: event.thread_ts,
+        messageTs: event.ts || '',
+        teamId,
+      })
+        .catch((err: unknown) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const errorStack = err instanceof Error ? err.stack : undefined;
+          logger.error(
+            { errorMessage, errorStack },
+            'Failed to handle direct message (outer catch)'
+          );
+        })
+        .finally(() => flushTraces());
+      registerBackgroundWork(dmWork);
     } else {
       outcome = 'ignored_unknown_event';
       span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
@@ -292,37 +364,6 @@ export async function dispatchSlackEvent(
             .finally(() => flushTraces());
           registerBackgroundWork(approvalWork);
         }
-
-        if (action.action_id === 'open_follow_up_modal' && action.value && triggerId) {
-          anyHandled = true;
-          logger.info(
-            { teamId, actionId: action.action_id },
-            'Handling block_action: open_follow_up_modal'
-          );
-          const followUpModalWork = handleOpenFollowUpModal({
-            triggerId,
-            actionValue: action.value,
-            teamId,
-            responseUrl: responseUrl || undefined,
-          })
-            .catch(async (err: unknown) => {
-              const errorMessage = err instanceof Error ? err.message : String(err);
-              logger.error(
-                { errorMessage, actionId: action.action_id },
-                'Failed to open follow-up modal'
-              );
-              if (responseUrl) {
-                await sendResponseUrlMessage(responseUrl, {
-                  text: 'Sorry, something went wrong while opening the follow-up form. Please try again.',
-                  response_type: 'ephemeral',
-                }).catch((e) =>
-                  logger.warn({ error: e }, 'Failed to send error notification via response URL')
-                );
-              }
-            })
-            .finally(() => flushTraces());
-          registerBackgroundWork(followUpModalWork);
-        }
       }
 
       outcome = anyHandled ? 'handled' : 'ignored_no_action_match';
@@ -448,27 +489,6 @@ export async function dispatchSlackEvent(
         })
         .finally(() => flushTraces());
       registerBackgroundWork(modalWork);
-
-      return { outcome };
-    }
-
-    if (callbackId === 'follow_up_modal') {
-      const view = payload.view as {
-        private_metadata?: string;
-        state?: { values?: Record<string, Record<string, unknown>> };
-      };
-
-      outcome = 'handled';
-      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-      logger.info({ callbackId }, 'Handling view_submission: follow_up_modal');
-
-      const followUpWork = handleFollowUpSubmission(view)
-        .catch((err: unknown) => {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          logger.error({ errorMessage, callbackId }, 'Failed to handle follow-up submission');
-        })
-        .finally(() => flushTraces());
-      registerBackgroundWork(followUpWork);
 
       return { outcome };
     }
