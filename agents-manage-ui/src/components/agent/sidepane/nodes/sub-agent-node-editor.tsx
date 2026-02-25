@@ -16,15 +16,11 @@ import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
-import { InputField } from '../form-components/input';
-import { TextareaField } from '../form-components/text-area';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ModelSection } from './model-section';
@@ -82,33 +78,15 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const form = useFullAgentFormContext();
   const models = useWatch({ control: form.control, name: 'models' });
 
-  const {
-    updatePath,
-    updateNestedPath,
-    getFieldError,
-    setFieldRef,
-    updateDefaultSubAgent,
-    deleteNode,
-  } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
-  });
+  const { updatePath, updateNestedPath, getFieldError, updateDefaultSubAgent, deleteNode } =
+    useNodeEditor({
+      selectedNodeId: selectedNode.id,
+      errorHelpers,
+    });
 
   const updateModelPath = (path: string, value: any) => {
     updateNestedPath(path, value, selectedNode.data);
   };
-
-  const handleIdChange = (generatedId: string) => {
-    updatePath('id', generatedId);
-  };
-
-  // Auto-prefill ID based on name field (always enabled for agent nodes)
-  useAutoPrefillIdZustand({
-    nameValue: selectedNode.data.name,
-    idValue: selectedNode.data.id,
-    onIdChange: handleIdChange,
-    isEditing: false,
-  });
 
   const { fields } = useFieldArray({
     control: form.control,
@@ -124,25 +102,17 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   console.log(subAgent);
   return (
     <div className="space-y-8 flex flex-col">
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
+      <GenericInput
+        control={form.control}
+        name={path('name')}
         label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={(e) => updatePath('name', e.target.value)}
         placeholder="Support agent"
-        error={getFieldError('name')}
       />
-      <InputField
-        ref={(el) => setFieldRef('id', el)}
-        id="id"
-        name="id"
+      <GenericInput
+        control={form.control}
+        name={path('id')}
         label="Id"
-        value={selectedNode.data.id || ''}
-        onChange={(e) => updatePath('id', e.target.value)}
         placeholder="my-agent"
-        error={getFieldError('id')}
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
       />
       <GenericTextarea

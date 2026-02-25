@@ -5,6 +5,7 @@ import {
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
+import { generateIdFromName } from '@/lib/utils/generate-id';
 
 const OriginalContextConfigSchema =
   AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
@@ -62,24 +63,32 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   // nodes: z.array(z.any()).optional(),
   // subAgents: SubAgentsSchema,
   subAgents: z.array(
-    z.strictObject({
-      id: z.string().trim(),
-      name: z.string().trim(),
-      description: z.string().trim(),
-      skills: z.strictObject({
+    z.preprocess(
+      (value: any) => {
+        return {
+          id: generateIdFromName(value.name),
+          ...value,
+        };
+      },
+      z.strictObject({
         id: z.string().trim(),
-        index: z.int().positive(),
-        alwaysLoaded: z.boolean(),
-
+        name: z.string().trim(),
         description: z.string().trim(),
-      }),
-      prompt: z.string().trim(),
-      isDefault: z.boolean(),
-      models: MyModelsSchema,
-      stopWhen: z.unknown(),
-      dataComponents: z.array(z.string()),
-      artifactComponents: z.array(z.string()),
-    })
+        skills: z.strictObject({
+          id: z.string().trim(),
+          index: z.int().positive(),
+          alwaysLoaded: z.boolean(),
+
+          description: z.string().trim(),
+        }),
+        prompt: z.string().trim(),
+        isDefault: z.boolean(),
+        models: MyModelsSchema,
+        stopWhen: z.unknown(),
+        dataComponents: z.array(z.string()),
+        artifactComponents: z.array(z.string()),
+      })
+    )
   ),
   stopWhen: StopWhenSchema.extend({
     transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
@@ -121,6 +130,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     statusUpdates = {},
     stopWhen,
     models = {},
+    subAgents,
   } = data;
 
   return {
@@ -158,6 +168,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
         providerOptions: serializeJson(models.summarizer?.providerOptions),
       },
     },
-    subAgents: [{ id: 'websearch-agent' }],
+    subAgents: [subAgents['websearch-agent']],
   };
 }
