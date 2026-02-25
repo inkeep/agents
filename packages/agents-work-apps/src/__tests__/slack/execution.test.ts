@@ -69,7 +69,7 @@ describe('executeAgentPublicly', () => {
     );
   });
 
-  it('should post thinking message at channel root when threadTs is undefined', async () => {
+  it('should use thinking message ts as thread anchor when threadTs is undefined', async () => {
     await executeAgentPublicly({
       slackClient: mockSlackClient,
       channel: 'C123',
@@ -91,7 +91,7 @@ describe('executeAgentPublicly', () => {
     expect(mockStreamAgentResponse).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: 'C123',
-        threadTs: undefined,
+        threadTs: '1234.ack',
         thinkingMessageTs: '1234.ack',
       })
     );

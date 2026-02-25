@@ -35,15 +35,24 @@ export async function executeAgentPublicly(params: PublicExecutionParams): Promi
     logger.warn({ error, channel }, 'Failed to post thinking acknowledgment - proceeding anyway');
   }
 
+  // When no threadTs is provided (e.g. slash command at channel root), the thinking
+  // message becomes the thread anchor so all subsequent streaming updates reply to it.
+  const effectiveThreadTs = threadTs || thinkingMessageTs || undefined;
+
   logger.info(
-    { channel, threadTs, agentId: params.agentId, conversationId: params.conversationId },
+    {
+      channel,
+      threadTs: effectiveThreadTs,
+      agentId: params.agentId,
+      conversationId: params.conversationId,
+    },
     'Starting stream'
   );
 
   return streamAgentResponse({
     slackClient: params.slackClient,
     channel,
-    threadTs,
+    threadTs: effectiveThreadTs,
     thinkingMessageTs,
     slackUserId: params.slackUserId,
     teamId: params.teamId,
