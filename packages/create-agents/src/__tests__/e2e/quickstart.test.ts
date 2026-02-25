@@ -101,7 +101,14 @@ describe('create-agents quickstart e2e', () => {
 
     // Verify inkeep.config.ts was created
     console.log('Verifying inkeep.config.ts...');
-    await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
+    await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'), [
+      /defineConfig/,
+      /tenantId:/,
+      /agentsApi:/,
+      /apiKey:/,
+      /url:/,
+      /manageUiUrl:/,
+    ]);
     console.log('inkeep.config.ts verified');
 
     // Link to local monorepo packages (also runs pnpm install --no-frozen-lockfile)
