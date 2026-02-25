@@ -48,12 +48,11 @@ function BaseModelSection({
       >
         {(field) => (
           <ModelConfiguration
-            value={field.value || ''}
+            value={field.value}
             providerOptions={providerOptionsField.value ?? ''}
             label=""
             placeholder="Select base model"
             canClear={false}
-            isRequired
             onModelChange={field.onChange}
             onProviderOptionsChange={(value) => {
               providerOptionsField.onChange(value);
@@ -84,39 +83,37 @@ function StructuredOutputModelSection({
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
 
   return (
-    <div className="space-y-4">
-      <FormFieldWrapper
-        control={control}
-        name="models.structuredOutput.model"
-        isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
-        label="Structured output model"
-        description="Model for structured outputs and components (defaults to base model)"
-      >
-        {(field) => (
-          <ModelConfiguration
-            value={field.value || ''}
-            providerOptions={providerOptionsField.value ?? ''}
-            label=""
-            placeholder="Select structured output model (optional)"
-            inheritedValue={baseModel}
-            inheritedProviderOptions={baseProviderOptions}
-            canClear={!disabled}
-            onModelChange={field.onChange}
-            onProviderOptionsChange={(value) => {
-              providerOptionsField.onChange(value);
-            }}
-            editorNamePrefix="project-structured"
-            getJsonPlaceholder={(model) => {
-              if (model?.startsWith('azure/')) {
-                return azureModelProviderOptionsTemplate;
-              }
-              return structuredOutputModelProviderOptionsTemplate;
-            }}
-            disabled={disabled}
-          />
-        )}
-      </FormFieldWrapper>
-    </div>
+    <FormFieldWrapper
+      control={control}
+      name="models.structuredOutput.model"
+      isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
+      label="Structured output model"
+      description="Model for structured outputs and components (defaults to base model)"
+    >
+      {(field) => (
+        <ModelConfiguration
+          value={field.value || ''}
+          providerOptions={providerOptionsField.value ?? ''}
+          label=""
+          placeholder="Select structured output model (optional)"
+          inheritedValue={baseModel}
+          inheritedProviderOptions={baseProviderOptions}
+          canClear={!disabled}
+          onModelChange={field.onChange}
+          onProviderOptionsChange={(value) => {
+            providerOptionsField.onChange(value);
+          }}
+          editorNamePrefix="project-structured"
+          getJsonPlaceholder={(model) => {
+            if (model?.startsWith('azure/')) {
+              return azureModelProviderOptionsTemplate;
+            }
+            return structuredOutputModelProviderOptionsTemplate;
+          }}
+          disabled={disabled}
+        />
+      )}
+    </FormFieldWrapper>
   );
 }
 
@@ -137,39 +134,37 @@ function SummarizerModelSection({
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
 
   return (
-    <div className="space-y-4">
-      <FormFieldWrapper
-        control={control}
-        name="models.summarizer.model"
-        isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
-        label="Summarizer model"
-        description="Model for summarization tasks (defaults to base model)"
-      >
-        {(field) => (
-          <ModelConfiguration
-            value={field.value || ''}
-            providerOptions={providerOptionsField.value ?? ''}
-            label=""
-            placeholder="Select summarizer model (optional)"
-            inheritedValue={baseModel}
-            inheritedProviderOptions={baseProviderOptions}
-            canClear
-            onModelChange={field.onChange}
-            onProviderOptionsChange={(value) => {
-              providerOptionsField.onChange(value);
-            }}
-            editorNamePrefix="project-summarizer"
-            getJsonPlaceholder={(model) => {
-              if (model?.startsWith('azure/')) {
-                return azureModelSummarizerProviderOptionsTemplate;
-              }
-              return summarizerModelProviderOptionsTemplate;
-            }}
-            disabled={disabled}
-          />
-        )}
-      </FormFieldWrapper>
-    </div>
+    <FormFieldWrapper
+      control={control}
+      name="models.summarizer.model"
+      isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
+      label="Summarizer model"
+      description="Model for summarization tasks (defaults to base model)"
+    >
+      {(field) => (
+        <ModelConfiguration
+          value={field.value || ''}
+          providerOptions={providerOptionsField.value ?? ''}
+          label=""
+          placeholder="Select summarizer model (optional)"
+          inheritedValue={baseModel}
+          inheritedProviderOptions={baseProviderOptions}
+          canClear
+          onModelChange={field.onChange}
+          onProviderOptionsChange={(value) => {
+            providerOptionsField.onChange(value);
+          }}
+          editorNamePrefix="project-summarizer"
+          getJsonPlaceholder={(model) => {
+            if (model?.startsWith('azure/')) {
+              return azureModelSummarizerProviderOptionsTemplate;
+            }
+            return summarizerModelProviderOptionsTemplate;
+          }}
+          disabled={disabled}
+        />
+      )}
+    </FormFieldWrapper>
   );
 }
 
