@@ -57,64 +57,31 @@ export class AgentMcpManager {
     const selectedTools = toolRelation?.toolSelection || undefined;
     const toolPolicies = toolRelation?.toolPolicies || {};
 
-    let serverConfig: McpServerConfig;
-
     const isUserScoped = tool.credentialScope === 'user';
     const userId = this.config.userId;
     const conversationId = this.getConversationId();
 
-    if (isUserScoped && userId && this.credentialStuffer) {
-      const userCredentialReference = project.credentialReferences
-        ? Object.values(project.credentialReferences).find(
-            (c) => c.toolId === tool.id && c.userId === userId
-          )
-        : undefined;
+    let serverConfig: McpServerConfig;
 
-      if (userCredentialReference) {
-        const storeReference = {
-          credentialStoreId: userCredentialReference.credentialStoreId,
-          retrievalParams: userCredentialReference.retrievalParams || {},
-        };
+    if (this.credentialStuffer) {
+      let storeReference: { credentialStoreId: string; retrievalParams: Record<string, unknown> } | undefined;
 
-        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-          {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-            contextConfigId: this.config.contextConfigId || undefined,
-            conversationId: conversationId || undefined,
-          },
-          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-          storeReference,
-          selectedTools
-        );
-      } else {
-        logger.warn(
-          { toolId: tool.id, userId },
-          'User-scoped tool has no credential connected for this user'
-        );
-        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-          {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-            contextConfigId: this.config.contextConfigId || undefined,
-            conversationId: conversationId || undefined,
-          },
-          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-          undefined,
-          selectedTools
-        );
+      if (isUserScoped && userId) {
+        const userCredRef = project.credentialReferences
+          ? Object.values(project.credentialReferences).find(
+              (c) => c.toolId === tool.id && c.userId === userId
+            )
+          : undefined;
+        if (userCredRef) {
+          storeReference = { credentialStoreId: userCredRef.credentialStoreId, retrievalParams: userCredRef.retrievalParams || {} };
+        } else {
+          logger.warn({ toolId: tool.id, userId }, 'User-scoped tool has no credential connected for this user');
+        }
+      } else if (credentialReferenceId) {
+        const credRef = project.credentialReferences?.[credentialReferenceId];
+        if (!credRef) throw new Error(`Credential reference not found: ${credentialReferenceId}`);
+        storeReference = { credentialStoreId: credRef.credentialStoreId, retrievalParams: credRef.retrievalParams || {} };
       }
-    } else if (credentialReferenceId && this.credentialStuffer) {
-      const credentialReference = project.credentialReferences?.[credentialReferenceId];
-
-      if (!credentialReference) {
-        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
-      }
-
-      const storeReference = {
-        credentialStoreId: credentialReference.credentialStoreId,
-        retrievalParams: credentialReference.retrievalParams || {},
-      };
 
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
@@ -127,23 +94,10 @@ export class AgentMcpManager {
         storeReference,
         selectedTools
       );
-    } else if (this.credentialStuffer) {
-      serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-        {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          contextConfigId: this.config.contextConfigId || undefined,
-          conversationId: conversationId || undefined,
-        },
-        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-        undefined,
-        selectedTools
-      );
     } else {
       if (tool.config.type !== 'mcp') {
         throw new Error(`Cannot build server config for non-MCP tool: ${tool.id}`);
       }
-
       serverConfig = {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
         url: tool.config.mcp.server.url,
@@ -214,7 +168,7 @@ export class AgentMcpManager {
             toolName: tool.name,
             subAgentId: this.config.id,
             cacheKey,
-            error: error instanceof Error ? error.message : String(error),
+            error: AgentMcpManager.errMsg(error),
           },
           'MCP connection failed'
         );
@@ -333,6 +287,10 @@ export class AgentMcpManager {
     }
   }
 
+  private static errMsg(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
   private buildOverriddenTool(
     toolName: string,
     toolDef: any,
@@ -349,7 +307,7 @@ export class AgentMcpManager {
         {
           mcpToolName,
           toolName,
-          schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
+          schemaError: AgentMcpManager.errMsg(schemaError),
           overrideSchema: override.schema,
         },
         'Failed to convert override schema, using original'
@@ -400,13 +358,11 @@ export class AgentMcpManager {
               'Successfully transformed tool arguments'
             );
           } catch (transformError) {
-            const errorMessage =
-              transformError instanceof Error ? transformError.message : String(transformError);
             logger.error(
               {
                 mcpToolName,
                 toolName,
-                transformError: errorMessage,
+                transformError: AgentMcpManager.errMsg(transformError),
                 transformation: override.transformation,
                 simpleArgs,
               },
@@ -423,13 +379,9 @@ export class AgentMcpManager {
         try {
           return await (toolDef as any).execute(complexArgs);
         } catch (executeError) {
-          const errorMessage =
-            executeError instanceof Error ? executeError.message : String(executeError);
-          logger.error(
-            { mcpToolName, toolName, executeError: errorMessage, complexArgs },
-            'Failed to execute original tool'
-          );
-          throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
+          const msg = AgentMcpManager.errMsg(executeError);
+          logger.error({ mcpToolName, toolName, executeError: msg, complexArgs }, 'Failed to execute original tool');
+          throw new Error(`Tool execution failed for ${toolName}: ${msg}`);
         }
       },
     });
@@ -499,7 +451,7 @@ export class AgentMcpManager {
             {
               mcpToolName: mcpTool.name,
               toolName,
-              error: error instanceof Error ? error.message : String(error),
+              error: AgentMcpManager.errMsg(error),
               override,
             },
             'Failed to apply tool overrides, using original tool'
