@@ -174,6 +174,52 @@ export async function getSlackChannels(client: WebClient, limit = 200) {
 }
 
 /**
+ * Fetch only channels where the bot is a member using the `users.conversations` API.
+ *
+ * Compared to `getSlackChannels()` (which uses `conversations.list` and returns ALL visible channels),
+ * this function returns only channels the bot has been added to. It uses Tier 3 rate limits (50+ req/min)
+ * and supports up to 999 items per page, making it significantly more efficient for large workspaces.
+ *
+ * Use this for the Channel Defaults UI. Keep `getSlackChannels()` for other purposes (e.g., health checks).
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param limit - Maximum number of channels to return. Fetches in pages of up to 999 until the limit is reached or all channels are returned.
+ * @returns Array of channel objects with id, name, member count, and privacy status
+ */
+export async function getBotMemberChannels(client: WebClient, limit = 999) {
+  return paginateSlack({
+    fetchPage: (cursor) =>
+      client.users.conversations({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: Math.min(limit, 999),
+        cursor,
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        logger.warn(
+          { error: result.error },
+          'Slack API returned ok: false during bot member channel pagination'
+        );
+        return [];
+      }
+      return result.channels
+        ? result.channels.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            // num_members is returned by the Slack API but missing from the SDK's UsersConversationsResponse type
+            memberCount: (ch as Record<string, unknown>).num_members as number | undefined,
+            isPrivate: ch.is_private ?? false,
+            isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
+          }))
+        : [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+    limit,
+  });
+}
+
+/**
  * Post a message to a Slack channel.
  *
  * @param client - Authenticated Slack WebClient
