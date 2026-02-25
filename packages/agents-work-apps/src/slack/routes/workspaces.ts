@@ -591,7 +591,7 @@ app.openapi(
     method: 'get',
     path: '/{teamId}/channels',
     summary: 'List Channels',
-    description: 'List Slack channels in the workspace that the bot can see',
+    description: 'List Slack channels where the bot is a member',
     operationId: 'slack-list-channels',
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: inheritedWorkAppsAuth(),

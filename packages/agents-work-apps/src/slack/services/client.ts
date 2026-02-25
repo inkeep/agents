@@ -173,6 +173,13 @@ export async function getSlackChannels(client: WebClient, limit = 200) {
   });
 }
 
+// num_members is returned by the Slack API but missing from the SDK's UsersConversationsResponse type.
+// This helper safely extracts it with a runtime type check.
+function safeNumMembers(ch: unknown): number | undefined {
+  const record = ch as Record<string, unknown>;
+  return typeof record.num_members === 'number' ? record.num_members : undefined;
+}
+
 /**
  * Fetch only channels where the bot is a member using the `users.conversations` API.
  *
@@ -207,8 +214,7 @@ export async function getBotMemberChannels(client: WebClient, limit = 999) {
         ? result.channels.map((ch) => ({
             id: ch.id,
             name: ch.name,
-            // num_members is returned by the Slack API but missing from the SDK's UsersConversationsResponse type
-            memberCount: (ch as Record<string, unknown>).num_members as number | undefined,
+            memberCount: safeNumMembers(ch),
             isPrivate: ch.is_private ?? false,
             isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
           }))
