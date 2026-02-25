@@ -48,8 +48,8 @@ const McpToolSchema = z
     // Null is not a valid value
     imageUrl: z
       .string()
-      .transform((value) => (value == null ? undefined : value))
-      .optional(),
+      .nullish()
+      .transform((value) => value ?? undefined),
     headers: z.unknown().optional(),
     credential: z.unknown().optional(),
     credentialReferenceId: z.string().nullish(),
