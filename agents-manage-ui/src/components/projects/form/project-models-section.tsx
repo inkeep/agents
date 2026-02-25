@@ -32,27 +32,28 @@ function BaseModelSection({
   disabled?: boolean;
 }) {
   'use memo';
-  const providerOptionsField = useWatch({ control, name: 'models.base.providerOptions' });
+  const baseModel = useWatch({ control, name: 'models.base.model' });
 
   return (
     <div className="space-y-4">
       <FormFieldWrapper
         control={control}
-        name="models.base.model"
+        // Show validation errors of provider options editor
+        name="models.base.providerOptions"
         description="Primary model for general agent responses"
       >
         {(field) => (
           <ModelConfiguration
-            value={field.value}
-            providerOptions={providerOptionsField ?? ''}
+            value={baseModel}
+            providerOptions={field.value}
             label="Base model"
             isRequired={isRequired(ProjectSchema, 'models.base.model')}
             placeholder="Select base model"
             canClear={false}
-            onModelChange={field.onChange}
-            onProviderOptionsChange={(value) => {
-              form.setValue('models.base.providerOptions', value, { shouldDirty: true });
+            onModelChange={value => {
+              form.setValue('models.base.model', value, { shouldDirty: true });
             }}
+            onProviderOptionsChange={field.onChange}
             editorNamePrefix="project-base"
             disabled={disabled}
           />
