@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+
 ## 0.53.3
 
 ### Patch Changes

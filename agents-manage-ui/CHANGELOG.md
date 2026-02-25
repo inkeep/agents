@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- df4b020: fix breadcrumb `Error` on trigger invocations page
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
 ## 0.53.3
 
 ### Patch Changes
