@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.53.3
+
+### Patch Changes
+
+- 60cb0fd: Fix dev-session crash with better-auth >= 1.4.13 by handling renamed authCookies property
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-work-apps@0.53.3
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-mcp@0.53.3
+
 ## 0.53.2
 
 ### Patch Changes

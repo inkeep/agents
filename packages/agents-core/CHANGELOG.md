@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+
 ## 0.53.2
 
 ## 0.53.1
