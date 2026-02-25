@@ -48,6 +48,7 @@ export type SlackOutcome =
   | 'ignored_unknown_event'
   | 'ignored_no_action_match'
   | 'ignored_slack_retry'
+  | 'ignored_duplicate_event'
   | 'url_verification'
   | 'validation_error'
   | 'signature_invalid'

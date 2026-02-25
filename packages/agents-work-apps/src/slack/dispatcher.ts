@@ -15,6 +15,29 @@ import { SLACK_SPAN_KEYS, type SlackOutcome } from './tracer';
 
 const logger = getLogger('slack-dispatcher');
 
+/**
+ * Simple in-memory deduplication for Slack events.
+ * Slack may deliver the same event more than once (Socket Mode reconnections,
+ * edge cases in the Events API). We track recent event IDs to prevent
+ * duplicate processing. Entries expire after 5 minutes.
+ */
+const DEDUP_TTL_MS = 5 * 60 * 1000;
+const recentEventIds = new Map<string, number>();
+
+function isDuplicateEvent(eventId: string | undefined): boolean {
+  if (!eventId) return false;
+  const now = Date.now();
+  if (recentEventIds.has(eventId)) return true;
+  recentEventIds.set(eventId, now);
+  // Prune expired entries periodically (when map grows beyond threshold)
+  if (recentEventIds.size > 500) {
+    for (const [id, ts] of recentEventIds) {
+      if (now - ts > DEDUP_TTL_MS) recentEventIds.delete(id);
+    }
+  }
+  return false;
+}
+
 export interface SlackEventDispatchResult {
   outcome: SlackOutcome;
   response?: Record<string, unknown>;
@@ -37,6 +60,14 @@ export async function dispatchSlackEvent(
   let outcome: SlackOutcome = 'ignored_unknown_event';
 
   if (eventType === 'event_callback') {
+    const eventId = payload.event_id as string | undefined;
+    if (isDuplicateEvent(eventId)) {
+      outcome = 'ignored_duplicate_event';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      logger.info({ eventId }, 'Ignoring duplicate event');
+      return { outcome };
+    }
+
     const teamId = payload.team_id as string | undefined;
     const event = payload.event as
       | {

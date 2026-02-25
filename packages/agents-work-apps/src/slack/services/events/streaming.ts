@@ -250,6 +250,8 @@ export async function streamAgentResponse(params: {
       ...(threadTs ? { thread_ts: threadTs } : {}),
     } as Parameters<typeof slackClient.chatStream>[0];
     const streamer = slackClient.chatStream(chatStreamArgs);
+    /** Tracks whether `chat.startStream` was called (i.e. a Slack streaming message exists). */
+    let streamerStarted = false;
 
     const pendingApprovalMessages: Array<{
       messageTs: string;
@@ -464,11 +466,12 @@ export async function streamAgentResponse(params: {
 
             if (data.type === 'text-delta' && data.delta) {
               fullText += data.delta;
-              await withTimeout(
+              const appendResult = await withTimeout(
                 streamer.append({ markdown_text: data.delta }),
                 CHATSTREAM_OP_TIMEOUT_MS,
                 'streamer.append'
               );
+              if (appendResult != null) streamerStarted = true;
             } else if (
               data.object === 'chat.completion.chunk' &&
               data.choices?.[0]?.delta?.content
@@ -483,11 +486,12 @@ export async function streamAgentResponse(params: {
                 // Not JSON, use as-is
               }
               fullText += content;
-              await withTimeout(
+              const appendResult = await withTimeout(
                 streamer.append({ markdown_text: content }),
                 CHATSTREAM_OP_TIMEOUT_MS,
                 'streamer.append'
               );
+              if (appendResult != null) streamerStarted = true;
             }
           } catch {
             // Skip invalid JSON
@@ -581,9 +585,14 @@ export async function streamAgentResponse(params: {
           { streamError, channel, threadTs, responseLength: fullText.length },
           'Error during Slack streaming after content was already delivered — suppressing user-facing error'
         );
-        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-        );
+        // Only finalize if the streamer was started (a Slack message exists).
+        // Calling stop() on an unstarted streamer would call chat.startStream(),
+        // creating a phantom duplicate message.
+        if (streamerStarted) {
+          await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
+            (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+          );
+        }
 
         if (thinkingMessageTs) {
           try {
@@ -612,9 +621,11 @@ export async function streamAgentResponse(params: {
               logger.warn({ error: e }, 'Failed to send approval expired notification')
             );
         }
-        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-        );
+        if (streamerStarted) {
+          await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
+            (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+          );
+        }
         if (thinkingMessageTs) {
           try {
             await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
@@ -626,11 +637,10 @@ export async function streamAgentResponse(params: {
         return { success: true };
       }
 
-      // No content was delivered — surface the error to the user
+      // No content was delivered — surface the error to the user.
+      // Do NOT call streamer.stop() here: the streamer was never started, so stop()
+      // would call chat.startStream() creating a phantom message with buffered content.
       logger.error({ streamError }, 'Error during Slack streaming');
-      await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-        logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-      );
 
       if (thinkingMessageTs) {
         try {
