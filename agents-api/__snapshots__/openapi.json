@@ -38605,7 +38605,7 @@
     },
     "/work-apps/slack/workspaces/{teamId}/channels": {
       "get": {
-        "description": "List Slack channels where the bot is a member",
+        "description": "List Slack channels in the workspace that the bot can see",
         "operationId": "slack-list-channels",
         "parameters": [
           {
