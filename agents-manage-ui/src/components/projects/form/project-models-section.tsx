@@ -2,7 +2,7 @@
 
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
+import { type Control, useFormState, useWatch } from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { type ProjectInput, ProjectSchema } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -32,10 +32,7 @@ function BaseModelSection({
   disabled?: boolean;
 }) {
   'use memo';
-  const { field: providerOptionsField } = useController({
-    control,
-    name: 'models.base.providerOptions',
-  });
+  const providerOptionsField = useWatch({ control, name: 'models.base.providerOptions' });
 
   return (
     <div className="space-y-4">
@@ -49,13 +46,13 @@ function BaseModelSection({
         {(field) => (
           <ModelConfiguration
             value={field.value}
-            providerOptions={providerOptionsField.value ?? ''}
+            providerOptions={providerOptionsField ?? ''}
             label=""
             placeholder="Select base model"
             canClear={false}
             onModelChange={field.onChange}
             onProviderOptionsChange={(value) => {
-              providerOptionsField.onChange(value);
+              form.setValue('models.base.providerOptions', value, { shouldDirty: true });
             }}
             editorNamePrefix="project-base"
             disabled={disabled}
@@ -74,11 +71,10 @@ function StructuredOutputModelSection({
   disabled?: boolean;
 }) {
   'use memo';
-  const { field: providerOptionsField } = useController({
+  const providerOptionsField = useWatch({
     control,
     name: 'models.structuredOutput.providerOptions',
   });
-
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
 
@@ -93,7 +89,7 @@ function StructuredOutputModelSection({
       {(field) => (
         <ModelConfiguration
           value={field.value || ''}
-          providerOptions={providerOptionsField.value ?? ''}
+          providerOptions={providerOptionsField ?? ''}
           label=""
           placeholder="Select structured output model (optional)"
           inheritedValue={baseModel}
@@ -101,7 +97,7 @@ function StructuredOutputModelSection({
           canClear={!disabled}
           onModelChange={field.onChange}
           onProviderOptionsChange={(value) => {
-            providerOptionsField.onChange(value);
+            form.setValue('models.structuredOutput.providerOptions', value, { shouldDirty: true });
           }}
           editorNamePrefix="project-structured"
           getJsonPlaceholder={(model) => {
@@ -125,11 +121,7 @@ function SummarizerModelSection({
   disabled?: boolean;
 }) {
   'use memo';
-  const { field: providerOptionsField } = useController({
-    control,
-    name: 'models.summarizer.providerOptions',
-  });
-
+  const providerOptionsField = useWatch({ control, name: 'models.summarizer.providerOptions' });
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
 
@@ -144,7 +136,7 @@ function SummarizerModelSection({
       {(field) => (
         <ModelConfiguration
           value={field.value || ''}
-          providerOptions={providerOptionsField.value ?? ''}
+          providerOptions={providerOptionsField ?? ''}
           label=""
           placeholder="Select summarizer model (optional)"
           inheritedValue={baseModel}
@@ -152,7 +144,7 @@ function SummarizerModelSection({
           canClear
           onModelChange={field.onChange}
           onProviderOptionsChange={(value) => {
-            providerOptionsField.onChange(value);
+            form.setValue('models.summarizer.providerOptions', value, { shouldDirty: true });
           }}
           editorNamePrefix="project-summarizer"
           getJsonPlaceholder={(model) => {
