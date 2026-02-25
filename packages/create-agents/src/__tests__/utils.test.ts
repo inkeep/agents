@@ -851,7 +851,10 @@ describe('syncTemplateDependencies', () => {
 
     await syncTemplateDependencies('/test/path');
 
-    expect(mockFetch).toHaveBeenCalledWith('https://registry.npmjs.org/@inkeep/agents-ui/latest');
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://registry.npmjs.org/@inkeep/agents-ui/latest',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(fs.writeJson).toHaveBeenCalledWith(
       '/test/path/package.json',
@@ -864,8 +867,6 @@ describe('syncTemplateDependencies', () => {
       }),
       { spaces: 2 }
     );
-
-    vi.unstubAllGlobals();
   });
 
   it('should leave divergent package specifier unchanged when registry fetch fails', async () => {
@@ -893,8 +894,6 @@ describe('syncTemplateDependencies', () => {
       }),
       { spaces: 2 }
     );
-
-    vi.unstubAllGlobals();
   });
 
   it('should leave divergent package specifier unchanged when registry returns non-ok', async () => {
@@ -923,8 +922,32 @@ describe('syncTemplateDependencies', () => {
       }),
       { spaces: 2 }
     );
+  });
 
-    vi.unstubAllGlobals();
+  it('should resolve divergent package version in devDependencies from npm registry', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: '0.16.0' }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+      devDependencies: { '@inkeep/agents-ui': '^0.15.12' },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: { '@inkeep/agents-core': '^1.2.3' },
+        devDependencies: { '@inkeep/agents-ui': '^0.16.0' },
+      }),
+      { spaces: 2 }
+    );
   });
 
   it('should only fetch once when same divergent package appears in multiple files', async () => {

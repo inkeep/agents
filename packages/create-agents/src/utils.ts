@@ -57,13 +57,19 @@ function getCliVersion(): string {
 }
 
 async function fetchLatestVersion(packageName: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
-    const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`);
+    const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`, {
+      signal: controller.signal,
+    });
     if (!response.ok) return null;
     const data = (await response.json()) as { version?: string };
     return data.version ?? null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
