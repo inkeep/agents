@@ -188,26 +188,19 @@ const envSchema = z
       .optional()
       .describe('Number of concurrent workflow workers'),
 
-    // Blob Storage (local filesystem, S3-compatible, or Vercel Blob)
-    BLOB_STORAGE_PROVIDER: z
-      .enum(['local', 's3', 'vercel'])
-      .optional()
-      .default('local')
-      .describe(
-        'Blob storage provider for media uploads: local (filesystem, default for dev), s3 (AWS or S3-compatible), vercel (Vercel Blob). Do not switch after uploads exist—existing media keys are not provider-scoped and may 404.'
-      ),
+    // Blob Storage (local filesystem fallback, or inferred S3/Vercel)
     BLOB_STORAGE_LOCAL_PATH: z
       .string()
       .optional()
       .default('.blob-storage')
       .describe(
-        'Directory path for local blob storage (used when BLOB_STORAGE_PROVIDER=local). Resolved relative to process cwd. Default .blob-storage.'
+        'Directory path for local blob storage fallback. Resolved relative to process cwd. Default .blob-storage.'
       ),
     BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: z
       .string()
       .optional()
       .describe(
-        'Vercel Blob read-write token. Required when BLOB_STORAGE_PROVIDER=vercel. From Blob store settings or env BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN on Vercel.'
+        'Vercel Blob read-write token. Used when S3 is not configured and this token is set.'
       ),
     BLOB_STORAGE_S3_ENDPOINT: z
       .string()
@@ -216,21 +209,16 @@ const envSchema = z
     BLOB_STORAGE_S3_BUCKET: z
       .string()
       .optional()
-      .default('inkeep-agents-media')
       .describe('S3 bucket name for storing uploaded media'),
-    BLOB_STORAGE_S3_REGION: z
-      .string()
-      .optional()
-      .default('us-east-1')
-      .describe('AWS region for the S3 bucket'),
+    BLOB_STORAGE_S3_REGION: z.string().optional().describe('AWS region for the S3 bucket'),
     BLOB_STORAGE_S3_ACCESS_KEY_ID: z
       .string()
       .optional()
-      .describe('AWS access key ID for S3 (required when BLOB_STORAGE_PROVIDER=s3)'),
+      .describe('AWS access key ID for S3 (required when S3 storage is inferred).'),
     BLOB_STORAGE_S3_SECRET_ACCESS_KEY: z
       .string()
       .optional()
-      .describe('AWS secret access key for S3 (required when BLOB_STORAGE_PROVIDER=s3)'),
+      .describe('AWS secret access key for S3 (required when S3 storage is inferred).'),
     BLOB_STORAGE_S3_FORCE_PATH_STYLE: z
       .string()
       .optional()
@@ -241,21 +229,11 @@ const envSchema = z
       ),
   })
   .superRefine((data, ctx) => {
-    const provider = data.BLOB_STORAGE_PROVIDER ?? 'local';
-    if (provider === 'local') {
-      if (
-        data.BLOB_STORAGE_LOCAL_PATH === undefined ||
-        String(data.BLOB_STORAGE_LOCAL_PATH).trim() === ''
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['BLOB_STORAGE_LOCAL_PATH'],
-          message:
-            'When BLOB_STORAGE_PROVIDER is "local", BLOB_STORAGE_LOCAL_PATH must be set and non-empty. Default is .blob-storage.',
-        });
-      }
-    }
-    if (provider === 's3') {
+    const hasS3Bucket =
+      data.BLOB_STORAGE_S3_BUCKET !== undefined &&
+      String(data.BLOB_STORAGE_S3_BUCKET).trim() !== '';
+
+    if (hasS3Bucket) {
       const required = [
         { key: 'BLOB_STORAGE_S3_BUCKET', val: data.BLOB_STORAGE_S3_BUCKET },
         { key: 'BLOB_STORAGE_S3_REGION', val: data.BLOB_STORAGE_S3_REGION },
@@ -267,23 +245,21 @@ const envSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [key],
-            message: `When BLOB_STORAGE_PROVIDER is "s3", ${key} must be set and non-empty.`,
+            message: `When S3 storage is inferred from BLOB_STORAGE_S3_BUCKET, ${key} must be set and non-empty.`,
           });
         }
       }
     }
-    if (provider === 'vercel') {
-      if (
-        !data.BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN ||
-        data.BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN.trim() === ''
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN'],
-          message:
-            'When BLOB_STORAGE_PROVIDER is "vercel", BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN must be set and non-empty.',
-        });
-      }
+
+    if (
+      data.BLOB_STORAGE_LOCAL_PATH === undefined ||
+      String(data.BLOB_STORAGE_LOCAL_PATH).trim() === ''
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['BLOB_STORAGE_LOCAL_PATH'],
+        message: 'BLOB_STORAGE_LOCAL_PATH must be set and non-empty. Default is .blob-storage.',
+      });
     }
   });
 

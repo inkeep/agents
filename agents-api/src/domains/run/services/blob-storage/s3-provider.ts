@@ -24,22 +24,34 @@ export class S3BlobStorageProvider implements BlobStorageProvider {
     const accessKeyId = env.BLOB_STORAGE_S3_ACCESS_KEY_ID;
     const secretAccessKey = env.BLOB_STORAGE_S3_SECRET_ACCESS_KEY;
     const region = env.BLOB_STORAGE_S3_REGION;
-    if (!bucket || !accessKeyId || !secretAccessKey || !region) {
-      throw new Error(
-        'S3 blob storage requires BLOB_STORAGE_S3_BUCKET, BLOB_STORAGE_S3_ACCESS_KEY_ID, BLOB_STORAGE_S3_SECRET_ACCESS_KEY, and BLOB_STORAGE_S3_REGION'
-      );
+    const requiredEnvVars = [
+      ['BLOB_STORAGE_S3_BUCKET', bucket],
+      ['BLOB_STORAGE_S3_ACCESS_KEY_ID', accessKeyId],
+      ['BLOB_STORAGE_S3_SECRET_ACCESS_KEY', secretAccessKey],
+      ['BLOB_STORAGE_S3_REGION', region],
+    ] as const;
+    const missing = requiredEnvVars.filter(([, value]) => !value).map(([key]) => key);
+    if (missing.length > 0) {
+      throw new Error(`S3 blob storage requires ${missing.join(', ')}`);
     }
-    this.bucket = bucket;
+    this.bucket = bucket as string;
     this.client = new S3Client({
       endpoint: env.BLOB_STORAGE_S3_ENDPOINT,
-      region,
-      credentials: { accessKeyId, secretAccessKey },
+      region: region as string,
+      credentials: {
+        accessKeyId: accessKeyId as string,
+        secretAccessKey: secretAccessKey as string,
+      },
       forcePathStyle: env.BLOB_STORAGE_S3_FORCE_PATH_STYLE,
       requestHandler: new NodeHttpHandler({
         connectionTimeout: 5000, // 5s to establish connection
         requestTimeout: 30000, // 30s for the full request
       }),
     });
+    logger.info(
+      { bucket: this.bucket, endpoint: env.BLOB_STORAGE_S3_ENDPOINT, region },
+      'Initializing S3 blob storage provider'
+    );
   }
 
   async upload(params: BlobStorageUploadParams): Promise<void> {
