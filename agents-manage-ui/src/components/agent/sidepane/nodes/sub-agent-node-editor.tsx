@@ -65,17 +65,27 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   errorHelpers,
 }) => {
   'use memo';
+  const form = useFullAgentFormContext();
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: 'subAgents',
+    keyName: '_rhfKey',
+  });
+  const subAgentIndex = fields.findIndex((s) => s.id === (selectedNode.data.id ?? selectedNode.id));
+  const subAgent = useWatch({ control: form.control, name: `subAgents.${subAgentIndex}` });
+  // if (subAgentIndex < 0) return null;
+
+  const path = <K extends string>(k: K) => `subAgents.${subAgentIndex}.${k}` as const;
+  console.log(subAgent);
 
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
   const { canEdit } = useProjectPermissions();
-  const selectedDataComponents = selectedNode.data.dataComponents ?? [];
-  const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
-  const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
+  const selectedDataComponents = subAgent.dataComponents;
+  const selectedArtifactComponents = subAgent.artifactComponents;
   const { project } = useProjectData();
-  const form = useFullAgentFormContext();
   const models = useWatch({ control: form.control, name: 'models' });
 
   const { updatePath, updateNestedPath, getFieldError, deleteNode } = useNodeEditor({
@@ -86,25 +96,12 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const updateModelPath = (path: string, value: any) => {
     updateNestedPath(path, value, selectedNode.data);
   };
-
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'subAgents',
-    keyName: '_rhfKey',
-  });
   // useEffect(() => {
   //   form.setError(`subAgents.${subAgentIndex}.isDefault`, {
   //     type: 'manual',
   //     message: 'This field is invalid',
   //   });
   // }, []);
-
-  const subAgentIndex = fields.findIndex((s) => s.id === (selectedNode.data.id ?? selectedNode.id));
-  const subAgent = useWatch({ control: form.control, name: `subAgents.${subAgentIndex}` });
-  // if (subAgentIndex < 0) return null;
-
-  const path = <K extends string>(k: K) => `subAgents.${subAgentIndex}.${k}` as const;
-  console.log(subAgent);
   return (
     <div className="space-y-8 flex flex-col">
       <GenericInput
@@ -223,7 +220,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         placeholder="Select artifacts..."
         commandInputPlaceholder="Search artifacts..."
       />
-      {!isDefaultSubAgent && canEdit && (
+      {!subAgent.isDefault && canEdit && (
         <>
           <Separator />
           <div className="flex justify-end">
