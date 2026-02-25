@@ -41,7 +41,7 @@ export function GenericCheckbox<
             </FormControl>
             <FormLabel isRequired={isRequired}>{label}</FormLabel>
           </div>
-          {description && <FormDescription>{description}</FormDescription>}
+          {description && <FormDescription className="text-xs">{description}</FormDescription>}
           <FormMessage />
         </FormItem>
       )}
