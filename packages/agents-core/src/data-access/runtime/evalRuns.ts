@@ -4,7 +4,6 @@ import {
   conversations,
   datasetRun,
   datasetRunConversationRelations,
-  datasetRunInvocations,
   evaluationResult,
   evaluationRun,
 } from '../../db/runtime/runtime-schema';
@@ -13,8 +12,6 @@ import type {
   DatasetRunConversationRelationInsert,
   DatasetRunConversationRelationSelect,
   DatasetRunInsert,
-  DatasetRunInvocationInsert,
-  DatasetRunInvocationSelect,
   DatasetRunSelect,
   EvaluationResultInsert,
   EvaluationResultSelect,
@@ -623,93 +620,4 @@ export const filterConversationsForJob =
       .where(and(...whereConditions));
 
     return filteredConversations;
-  };
-
-// ============================================================================
-// DATASET RUN INVOCATIONS
-// ============================================================================
-
-export const createDatasetRunInvocations =
-  (db: AgentsRunDatabaseClient) =>
-  async (data: DatasetRunInvocationInsert[]): Promise<DatasetRunInvocationSelect[]> => {
-    const now = new Date().toISOString();
-    const values = data.map((item) => ({
-      ...item,
-      createdAt: now,
-      updatedAt: now,
-    }));
-    return await db.insert(datasetRunInvocations).values(values).returning();
-  };
-
-export const updateDatasetRunInvocationStatus =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { invocationId: string };
-    data: {
-      status: 'pending' | 'running' | 'completed' | 'failed';
-      startedAt?: string;
-      completedAt?: string;
-    };
-  }): Promise<DatasetRunInvocationSelect | null> => {
-    const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = { updatedAt: now, status: params.data.status };
-    if (params.data.startedAt !== undefined) updateData.startedAt = params.data.startedAt;
-    if (params.data.completedAt !== undefined) updateData.completedAt = params.data.completedAt;
-
-    const [updated] = await db
-      .update(datasetRunInvocations)
-      .set(updateData)
-      .where(
-        and(
-          eq(datasetRunInvocations.tenantId, params.scopes.tenantId),
-          eq(datasetRunInvocations.id, params.scopes.invocationId)
-        )
-      )
-      .returning();
-    return updated ?? null;
-  };
-
-export const getDatasetRunInvocations =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunId: string };
-    filters?: { status?: 'pending' | 'running' | 'completed' | 'failed' };
-  }): Promise<DatasetRunInvocationSelect[]> => {
-    const conditions = [
-      eq(datasetRunInvocations.tenantId, params.scopes.tenantId),
-      eq(datasetRunInvocations.projectId, params.scopes.projectId),
-      eq(datasetRunInvocations.datasetRunId, params.scopes.datasetRunId),
-    ];
-    if (params.filters?.status) {
-      conditions.push(eq(datasetRunInvocations.status, params.filters.status));
-    }
-    return await db
-      .select()
-      .from(datasetRunInvocations)
-      .where(and(...conditions));
-  };
-
-export const getDatasetRunStatusSummary =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunId: string };
-  }): Promise<{ pending: number; running: number; completed: number; failed: number }> => {
-    const rows = await db
-      .select({ status: datasetRunInvocations.status, cnt: count() })
-      .from(datasetRunInvocations)
-      .where(
-        and(
-          eq(datasetRunInvocations.tenantId, params.scopes.tenantId),
-          eq(datasetRunInvocations.projectId, params.scopes.projectId),
-          eq(datasetRunInvocations.datasetRunId, params.scopes.datasetRunId)
-        )
-      )
-      .groupBy(datasetRunInvocations.status);
-
-    const summary = { pending: 0, running: 0, completed: 0, failed: 0 };
-    for (const row of rows) {
-      const s = row.status as keyof typeof summary;
-      if (s in summary) summary[s] = Number(row.cnt);
-    }
-    return summary;
   };

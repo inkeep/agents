@@ -3,17 +3,16 @@ import {
   commonGetErrorResponses,
   createApiError,
   DatasetRunApiSelectSchema,
-  DatasetRunInvocationApiSelectSchema,
   getConversation,
   getDatasetRunById,
   getDatasetRunConfigById,
   getDatasetRunConversationRelations,
-  getDatasetRunInvocations,
-  getDatasetRunStatusSummary,
   getMessagesByConversation,
+  getScheduledTriggerInvocationStatusSummary,
   ListResponseSchema,
   listDatasetItems,
   listDatasetRuns,
+  listScheduledTriggerInvocationsByTriggerId,
   SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
@@ -78,8 +77,9 @@ app.openapi(
                   scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
                 })
               : Promise.resolve(null),
-            getDatasetRunStatusSummary(runDbClient)({
-              scopes: { tenantId, projectId, datasetRunId: run.id },
+            getScheduledTriggerInvocationStatusSummary(runDbClient)({
+              scopes: { tenantId, projectId },
+              scheduledTriggerId: run.id,
             }),
           ]);
           const total = summary.pending + summary.running + summary.completed + summary.failed;
@@ -199,8 +199,9 @@ app.openapi(
               scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
             })
           : Promise.resolve(null),
-        getDatasetRunStatusSummary(runDbClient)({
-          scopes: { tenantId, projectId, datasetRunId: runId },
+        getScheduledTriggerInvocationStatusSummary(runDbClient)({
+          scopes: { tenantId, projectId },
+          scheduledTriggerId: runId,
         }),
         getDatasetRunConversationRelations(runDbClient)({
           scopes: { tenantId, projectId, datasetRunId: runId },
@@ -373,6 +374,21 @@ app.openapi(
   }
 );
 
+const DatasetRunItemResponseSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  projectId: z.string(),
+  agentId: z.string(),
+  datasetRunId: z.string(),
+  datasetItemId: z.string(),
+  status: z.string(),
+  startedAt: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
+  attemptNumber: z.number(),
+  createdAt: z.string(),
+  conversationId: z.string().nullable().optional(),
+});
+
 app.openapi(
   createProtectedRoute({
     method: 'get',
@@ -390,11 +406,7 @@ app.openapi(
         description: 'List of dataset run invocations',
         content: {
           'application/json': {
-            schema: ListResponseSchema(
-              DatasetRunInvocationApiSelectSchema.extend({
-                conversationId: z.string().nullable().optional(),
-              })
-            ),
+            schema: ListResponseSchema(DatasetRunItemResponseSchema),
           },
         },
       },
@@ -406,25 +418,35 @@ app.openapi(
     const { status } = c.req.valid('query');
 
     try {
-      const invocations = await getDatasetRunInvocations(runDbClient)({
-        scopes: { tenantId, projectId, datasetRunId: runId },
-        filters: status
-          ? {
-              status: status as 'pending' | 'running' | 'completed' | 'failed',
-            }
-          : undefined,
-      });
-
-      const relations = await getDatasetRunConversationRelations(runDbClient)({
-        scopes: { tenantId, projectId, datasetRunId: runId },
-      });
+      const [invocations, relations] = await Promise.all([
+        listScheduledTriggerInvocationsByTriggerId(runDbClient)({
+          scopes: { tenantId, projectId },
+          scheduledTriggerId: runId,
+          filters: status ? { status } : undefined,
+        }),
+        getDatasetRunConversationRelations(runDbClient)({
+          scopes: { tenantId, projectId, datasetRunId: runId },
+        }),
+      ]);
 
       const items = invocations.map((inv) => {
+        const datasetItemId = (inv.resolvedPayload as Record<string, unknown> | null)
+          ?.datasetItemId as string | undefined;
         const rel = relations.find(
-          (r) => r.datasetItemId === inv.datasetItemId && r.conversationId !== undefined
+          (r) => r.datasetItemId === datasetItemId && r.conversationId !== undefined
         );
         return {
-          ...inv,
+          id: inv.id,
+          tenantId: inv.tenantId,
+          projectId: inv.projectId,
+          agentId: inv.agentId,
+          datasetRunId: inv.scheduledTriggerId,
+          datasetItemId: datasetItemId ?? '',
+          status: inv.status,
+          startedAt: inv.startedAt ?? null,
+          completedAt: inv.completedAt ?? null,
+          attemptNumber: inv.attemptNumber,
+          createdAt: inv.createdAt,
           conversationId: rel?.conversationId ?? null,
         };
       });

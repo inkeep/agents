@@ -5,10 +5,10 @@ import {
   createDatasetRun,
   createDatasetRunConfig,
   createDatasetRunConfigAgentRelation,
-  createDatasetRunInvocations,
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   createEvaluationRun,
+  createScheduledTriggerInvocation,
   DatasetRunConfigApiInsertSchema,
   DatasetRunConfigApiSelectSchema,
   DatasetRunConfigApiUpdateSchema,
@@ -35,6 +35,7 @@ import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
+
 
 app.openapi(
   createProtectedRoute({
@@ -337,27 +338,37 @@ app.openapi(
       const invocationPairs = agentRelations.flatMap((agentRelation) =>
         datasetItems.map((datasetItem) => ({
           agentId: agentRelation.agentId,
-          datasetItemId: datasetItem.id,
+          datasetItem,
         }))
       );
 
-      const invocations = await createDatasetRunInvocations(runDbClient)(
-        invocationPairs.map(({ agentId, datasetItemId }) => ({
-          id: generateId(),
-          tenantId,
-          projectId,
-          agentId,
-          datasetRunId,
-          datasetItemId,
-          status: 'pending' as const,
-          attemptNumber: 1,
-        }))
+      const invocations = await Promise.all(
+        invocationPairs.map(({ agentId, datasetItem }) =>
+          createScheduledTriggerInvocation(runDbClient)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId,
+            scheduledTriggerId: datasetRunId,
+            status: 'pending',
+            scheduledFor: new Date().toISOString(),
+            resolvedPayload: {
+              datasetItemId: datasetItem.id,
+              datasetRunId,
+              messages: datasetItem.input.messages,
+            },
+            idempotencyKey: `${datasetRunId}-${agentId}-${datasetItem.id}`,
+            attemptNumber: 1,
+          })
+        )
       );
 
       const items: DatasetRunQueueItem[] = agentRelations.flatMap((agentRelation) =>
         datasetItems.map((datasetItem) => {
           const inv = invocations.find(
-            (i) => i.agentId === agentRelation.agentId && i.datasetItemId === datasetItem.id
+            (i) =>
+              i.agentId === agentRelation.agentId &&
+              (i.resolvedPayload as Record<string, unknown>)?.datasetItemId === datasetItem.id
           );
           return {
             agentId: agentRelation.agentId,
@@ -365,7 +376,7 @@ app.openapi(
             input: datasetItem.input,
             expectedOutput: datasetItem.expectedOutput,
             simulationAgent: datasetItem.simulationAgent,
-            invocationId: inv?.id ?? generateId(),
+            scheduledTriggerInvocationId: inv?.id ?? generateId(),
           };
         })
       );

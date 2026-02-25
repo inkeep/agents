@@ -1,11 +1,14 @@
 import type { DatasetRunItem } from '@inkeep/agents-core';
-import { updateDatasetRunInvocationStatus } from '@inkeep/agents-core';
+import {
+  markScheduledTriggerInvocationFailed,
+  markScheduledTriggerInvocationRunning,
+} from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { runDatasetItemWorkflow } from '../workflow/functions/runDatasetItem';
 
-export type DatasetRunQueueItem = DatasetRunItem & { invocationId: string };
+export type DatasetRunQueueItem = DatasetRunItem & { scheduledTriggerInvocationId: string };
 
 export async function queueDatasetRunItems(params: {
   tenantId: string;
@@ -23,9 +26,10 @@ export async function queueDatasetRunItems(params: {
 
   for (const item of items) {
     try {
-      await updateDatasetRunInvocationStatus(runDbClient)({
-        scopes: { tenantId, projectId, invocationId: item.invocationId },
-        data: { status: 'running', startedAt: new Date().toISOString() },
+      await markScheduledTriggerInvocationRunning(runDbClient)({
+        scopes: { tenantId, projectId, agentId: item.agentId },
+        scheduledTriggerId: datasetRunId,
+        invocationId: item.scheduledTriggerInvocationId,
       });
 
       const payload = {
@@ -37,7 +41,7 @@ export async function queueDatasetRunItems(params: {
         datasetItemExpectedOutput: item.expectedOutput,
         datasetItemSimulationAgent: item.simulationAgent as any,
         datasetRunId,
-        invocationId: item.invocationId,
+        scheduledTriggerInvocationId: item.scheduledTriggerInvocationId,
         evaluatorIds,
         evaluationRunId,
       };
@@ -49,9 +53,10 @@ export async function queueDatasetRunItems(params: {
         { err, datasetItemId: item.id, agentId: item.agentId },
         'Failed to queue dataset item workflow'
       );
-      await updateDatasetRunInvocationStatus(runDbClient)({
-        scopes: { tenantId, projectId, invocationId: item.invocationId },
-        data: { status: 'failed', completedAt: new Date().toISOString() },
+      await markScheduledTriggerInvocationFailed(runDbClient)({
+        scopes: { tenantId, projectId, agentId: item.agentId },
+        scheduledTriggerId: datasetRunId,
+        invocationId: item.scheduledTriggerInvocationId,
       }).catch(() => {});
       failed++;
     }
