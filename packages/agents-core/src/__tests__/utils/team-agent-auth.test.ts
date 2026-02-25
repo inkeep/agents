@@ -45,7 +45,7 @@ describe('Team Agent Authentication', () => {
       expect(token1).not.toBe(token2);
     });
 
-    it('should generate tokens that expire in 5 minutes', async () => {
+    it('should generate tokens that expire in 1 hour', async () => {
       const beforeGeneration = Math.floor(Date.now() / 1000);
       const token = await generateServiceToken(mockParams);
       const result = await verifyServiceToken(token);
@@ -55,9 +55,9 @@ describe('Team Agent Authentication', () => {
 
       if (result.payload) {
         const expiryTime = result.payload.exp - result.payload.iat;
-        expect(expiryTime).toBe(300); // 5 minutes = 300 seconds
+        expect(expiryTime).toBe(3600); // 1 hour = 3600 seconds
         expect(result.payload.exp).toBeGreaterThan(beforeGeneration);
-        expect(result.payload.exp).toBeLessThanOrEqual(beforeGeneration + 301); // Allow 1 second tolerance
+        expect(result.payload.exp).toBeLessThanOrEqual(beforeGeneration + 3601); // Allow 1 second tolerance
       }
     });
   });
