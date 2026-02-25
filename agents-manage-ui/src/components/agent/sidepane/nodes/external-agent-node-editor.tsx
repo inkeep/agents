@@ -68,9 +68,7 @@ export function ExternalAgentNodeEditor({
     }
   };
 
-  const { edges } = useAgentStore((state) => ({
-    edges: state.edges,
-  }));
+  const edges = useAgentStore((state) => state.edges);
 
   const handleIdChange = useCallback(
     (generatedId: string) => {

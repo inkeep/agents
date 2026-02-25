@@ -1,9 +1,9 @@
 import {
   AgentWithinContextOfProjectSchema,
   transformToJson,
+  type AgentWithinContextOfProjectResponse,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import type { FullAgentResponse } from '@/lib/types/agent-full';
 import { serializeJson } from '@/lib/utils';
 
 const OriginalContextConfigSchema =
@@ -11,6 +11,7 @@ const OriginalContextConfigSchema =
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 const StopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
+const SubAgentsSchema = AgentWithinContextOfProjectSchema.shape.subAgents;
 
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
@@ -41,33 +42,53 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
-}).extend({
-  stopWhen: StopWhenSchema.extend({
-    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
-  }).optional(),
-  contextConfig: ContextConfigSchema,
-  statusUpdates: z.strictObject({
-    ...StatusUpdatesSchema,
-    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
-    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
-    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
-  }),
-  models: z.strictObject({
-    base: ModelsBaseSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions).optional(),
+})
+  .extend({
+    nodes: z.array(z.any()),
+    subAgents: SubAgentsSchema,
+    stopWhen: StopWhenSchema.extend({
+      transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
+    }).optional(),
+    contextConfig: ContextConfigSchema,
+    statusUpdates: z.strictObject({
+      ...StatusUpdatesSchema,
+      numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+      timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
+      statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
     }),
-    structuredOutput: ModelsStructuredOutputSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(
-        ModelsStructuredOutputSchema.shape.providerOptions
-      ).optional(),
+    models: z.strictObject({
+      base: ModelsBaseSchema.extend({
+        providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions).optional(),
+      }),
+      structuredOutput: ModelsStructuredOutputSchema.extend({
+        providerOptions: StringToJsonSchema.pipe(
+          ModelsStructuredOutputSchema.shape.providerOptions
+        ).optional(),
+      }),
+      summarizer: ModelsSummarizerSchema.extend({
+        providerOptions: StringToJsonSchema.pipe(
+          ModelsSummarizerSchema.shape.providerOptions
+        ).optional(),
+      }),
     }),
-    summarizer: ModelsSummarizerSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(
-        ModelsSummarizerSchema.shape.providerOptions
-      ).optional(),
-    }),
-  }),
-});
+  })
+  .transform(({ nodes, ...rest }) => {
+    return rest;
+  });
+
+export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
+
+export type FullAgentDefinition = z.input<typeof AgentWithinContextOfProjectSchema>;
+
+/**
+ * Partial fields excluding keys from zod schema which is handled by react-hook-form
+ * which isn't yet migrated to react hook form.
+ * @deprecated
+ */
+export type PartialFullAgentDefinition = Omit<
+  FullAgentDefinition,
+  keyof z.input<typeof FullAgentUpdateSchema>
+>;
 
 export function serializeAgentForm(data: FullAgentResponse) {
   const {

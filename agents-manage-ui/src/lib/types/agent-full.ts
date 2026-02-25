@@ -6,28 +6,11 @@
  */
 
 // Import core types and schemas
-import type {
-  AgentApiInsert,
-  AgentWithinContextOfProjectResponse,
-  AgentWithinContextOfProjectSchema,
-} from '@inkeep/agents-core/client-exports';
-import type { z } from 'zod';
-import type { FullAgentUpdateSchema } from '@/components/agent/form/validation';
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
+import type { FullAgentResponse } from '@/components/agent/form/validation';
 
-export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
-
-export type FullAgentDefinition = z.input<typeof AgentWithinContextOfProjectSchema>;
-
-/**
- * Partial fields excluding keys from zod schema which is handled by react-hook-form
- * which isn't yet migrated to react hook form.
- * @deprecated
- */
-export type PartialFullAgentDefinition = Omit<
-  FullAgentDefinition,
-  keyof z.input<typeof FullAgentUpdateSchema>
->;
+export type { FullAgentDefinition, FullAgentResponse } from '@/components/agent/form/validation';
 
 // Re-export types and schemas
 export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
