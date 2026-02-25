@@ -3977,15 +3977,13 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
@@ -4043,15 +4041,13 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
