@@ -333,9 +333,18 @@ describe('AgentMcpManager', () => {
   });
 
   describe('credential stuffer integration', () => {
-    function createCredentialedManager(credentialStuffer: any, credentialReferences: Record<string, any> = {}) {
+    function createCredentialedManager(
+      credentialStuffer: any,
+      credentialReferences: Record<string, any> = {}
+    ) {
       return new AgentMcpManager(
-        { id: 'sub-1', agentId: 'agent-1', tenantId: 'tenant-abc', projectId: 'project-xyz', name: 'Agent' } as any,
+        {
+          id: 'sub-1',
+          agentId: 'agent-1',
+          tenantId: 'tenant-abc',
+          projectId: 'project-xyz',
+          name: 'Agent',
+        } as any,
         { project: { agents: {}, credentialReferences } } as any,
         credentialStuffer,
         () => 'conv-1',
@@ -346,14 +355,26 @@ describe('AgentMcpManager', () => {
 
     test('passes tenantId, projectId, and storeReference to buildMcpServerConfig', async () => {
       const mockCredentialStuffer = {
-        buildMcpServerConfig: vi.fn().mockResolvedValue({ type: MCPTransportType.sse, url: 'https://api.nango.dev/mcp', headers: {} }),
+        buildMcpServerConfig: vi
+          .fn()
+          .mockResolvedValue({
+            type: MCPTransportType.sse,
+            url: 'https://api.nango.dev/mcp',
+            headers: {},
+          }),
       };
 
       const mcpTool = createMcpTool({
         id: 'cred-tool',
         name: 'Credentialed Tool',
         credentialReferenceId: 'cred-ref-1',
-        config: { type: 'mcp', mcp: { server: { url: 'https://api.nango.dev/mcp' }, transport: { type: MCPTransportType.sse } } },
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.nango.dev/mcp' },
+            transport: { type: MCPTransportType.sse },
+          },
+        },
       });
 
       const manager = new AgentMcpManager(
@@ -400,7 +421,13 @@ describe('AgentMcpManager', () => {
 
     test('passes undefined storeReference when tool has no credentialReferenceId', async () => {
       const mockCredentialStuffer = {
-        buildMcpServerConfig: vi.fn().mockResolvedValue({ type: MCPTransportType.streamableHttp, url: 'https://mcp.example.com', headers: {} }),
+        buildMcpServerConfig: vi
+          .fn()
+          .mockResolvedValue({
+            type: MCPTransportType.streamableHttp,
+            url: 'https://mcp.example.com',
+            headers: {},
+          }),
       };
 
       await createCredentialedManager(mockCredentialStuffer).getToolSet(createMcpTool());
