@@ -2466,6 +2466,7 @@ class SigNozStatsAPI {
     avgUserMessagesPerConversation: number;
     totalUserMessages: number;
     totalTriggerInvocations: number;
+    totalSlackMessages: number;
     totalAICalls: number;
     totalMCPCalls: number;
   }> {
@@ -2478,6 +2479,7 @@ class SigNozStatsAPI {
       const totalConversationsSeries = this.extractSeries(resp, 'totalConversations');
       const totalUserMessagesSeries = this.extractSeries(resp, 'totalUserMessages');
       const totalTriggerInvocationsSeries = this.extractSeries(resp, 'totalTriggerInvocations');
+      const totalSlackMessagesSeries = this.extractSeries(resp, 'totalSlackMessages');
       const totalAICallsSeries = this.extractSeries(resp, 'totalAICalls');
       const totalMCPCallsSeries = this.extractSeries(resp, 'totalMCPCalls');
 
@@ -2490,6 +2492,9 @@ class SigNozStatsAPI {
       const totalTriggerInvocations = countFromSeries(
         totalTriggerInvocationsSeries[0] || { values: [{ value: '0' }] }
       );
+      const totalSlackMessages = countFromSeries(
+        totalSlackMessagesSeries[0] || { values: [{ value: '0' }] }
+      );
       const totalAICalls = countFromSeries(totalAICallsSeries[0] || { values: [{ value: '0' }] });
       const totalMCPCalls = countFromSeries(totalMCPCallsSeries[0] || { values: [{ value: '0' }] });
 
@@ -2501,6 +2506,7 @@ class SigNozStatsAPI {
         avgUserMessagesPerConversation,
         totalUserMessages,
         totalTriggerInvocations,
+        totalSlackMessages,
         totalAICalls,
         totalMCPCalls,
       };
@@ -2511,6 +2517,7 @@ class SigNozStatsAPI {
         avgUserMessagesPerConversation: 0,
         totalUserMessages: 0,
         totalTriggerInvocations: 0,
+        totalSlackMessages: 0,
         totalAICalls: 0,
         totalMCPCalls: 0,
       };
@@ -2765,6 +2772,48 @@ class SigNozStatsAPI {
             },
             groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
             expression: 'totalTriggerInvocations',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+
+          totalSlackMessages: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'totalSlackMessages',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: {
+              op: OPERATORS.AND,
+              items: [
+                tenantFilter,
+                ...projectFilters,
+                {
+                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EXISTS,
+                  value: '',
+                },
+                {
+                  key: { key: SPAN_KEYS.MESSAGE_CONTENT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EXISTS,
+                  value: '',
+                },
+                {
+                  key: { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EQUALS,
+                  value: 'slack',
+                },
+              ],
+            },
+            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
+            expression: 'totalSlackMessages',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [],

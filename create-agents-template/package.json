@@ -26,16 +26,16 @@
     "db:auth:init": "node node_modules/@inkeep/agents-core/dist/auth/init.js"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.50.3",
-    "@inkeep/agents-manage-ui": "^0.50.3",
-    "@inkeep/agents-sdk": "^0.50.3",
+    "@inkeep/agents-core": "^0.53.7",
+    "@inkeep/agents-manage-ui": "^0.53.7",
+    "@inkeep/agents-sdk": "^0.53.7",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
     "tailwindcss": "^4.1.14",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@inkeep/agents-cli": "^0.50.3",
+    "@inkeep/agents-cli": "^0.53.7",
     "@types/node": "^22.13.14",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",

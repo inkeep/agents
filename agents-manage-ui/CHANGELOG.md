@@ -1,5 +1,90 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale session cookie blocking dev auto-login after setup re-run
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 7e60710: Update @inkeep/agents-ui package to version 0.15.13
+- a879934: Fix Collapse All / Expand All on traces page to collapse and expand all tree hierarchy nodes in addition to AI message content
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- df4b020: fix breadcrumb `Error` on trigger invocations page
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- 090bedc: Fix dev auto-login proxy to check ENVIRONMENT instead of NODE_ENV, enabling auto-login when running via inkeep dev standalone build
+  - @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- e06a945: fix generic combobox text color and chevron color, fix select hover color on light mode
+- 2222e08: Show MCP tool overrides in agent editor sidepane — display name, description, and schema overrides are now reflected in the tool configuration table
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- f54846b: Add code formatting action button for Prompt, Markdown and JavaScript Monaco editors
+- 08ba7c2: rename `JsonSchemaInput` to `GenericJsonSchemaEditor` and add `JsonSchemaEditor` component
+- 9c293ff: Improve function tool form, add a toggle between visual and JSON editing modes for Input Schema field
+- a5f8f24: Fix double skeleton rendering in header menus
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
 ## 0.52.0
 
 ### Patch Changes

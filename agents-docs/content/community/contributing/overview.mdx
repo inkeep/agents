@@ -5,11 +5,9 @@ description: How to contribute to the Inkeep Agent Framework
 icon: LuZap
 ---
 
-# Making a Contribution
-
 Thank you for your interest in contributing to the Agent Framework! This document provides guidelines and information for contributors.
 
-# Launch the Visual Builder
+## Launch the Visual Builder
 
 ### Prerequisites
 
@@ -37,7 +35,7 @@ pnpm setup-dev
 This will:
 
 - Create `.env` from `.env.example` if missing
-- Generate JWT keys if not already configured
+- Generate secrets (JWT keys, signing secret, auth secret, UI password) if not already configured
 - Check that Docker is running and required ports (5432, 5433, 5434) are free
 - Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml`
 - Run database migrations (manage + runtime)
@@ -68,7 +66,7 @@ pnpm dev
 
 Open `http://localhost:3000` in the browser — you'll be signed in automatically. Start building agents right away.
 
-# Push your project
+## Push your project
 
 A key advantage of the Inkeep agent framework is its seamless code-to-visual workflow: define your agents programmatically, push them to the Visual Builder, and continue developing with the intuitive drag-and-drop interface.
 
@@ -101,7 +99,7 @@ inkeep push
   style={{ border: "1px solid #e1e5e9" }}
 />
 
-# Set up optional services (traces + credentials)
+## Set up optional services (traces + credentials)
 
 Set up all optional local services — Nango (credential store), SigNoz (traces), OTEL Collector, and Jaeger — with one command:
 
@@ -122,7 +120,7 @@ This clones [`agents-optional-local-dev`](https://github.com/inkeep/agents-optio
   style={{ border: "1px solid #e1e5e9" }}
 />
 
-# Development Workflow
+## Development Workflow
 
 ### Conductor
 
@@ -162,7 +160,7 @@ git commit --no-verify -m "emergency: hotfix for production"
 - `pnpm check` mirrors the full CI merge gate: lint, typecheck, tests, format verification, env-description validation, and dead code detection (knip).
 - For package-specific commands, see `AGENTS.md` below.
 
-# CLI Development
+## CLI Development
 
 ## Running the CLI Locally
 
@@ -216,7 +214,7 @@ inkeep --version
 For more CLI setup options, see the CLI docs:
 https://docs.inkeep.com/guides/cli/overview
 
-# Commit Messages
+## Commit Messages
 
 We recommend conventional commit format (not enforced by tooling):
 
@@ -238,7 +236,7 @@ Types:
 - `test`: Test changes
 - `chore`: Build process or auxiliary tool changes
 
-# Pull Requests
+## Pull Requests
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feat/amazing-feature`)
@@ -255,7 +253,7 @@ Types:
 - Update documentation as needed
 - Ensure CI passes before requesting review
 
-# Continuous Integration
+## Continuous Integration
 
 Our CI pipeline runs on all pull requests and includes:
 
@@ -264,7 +262,7 @@ Our CI pipeline runs on all pull requests and includes:
 
 These checks must pass before a PR can be merged. Pre-commit uses lint-staged, pre-push runs `pnpm format`, and CI is the source of truth.
 
-# AI coding assistants and coding practices
+## AI coding assistants and coding practices
 
 Many of our best coding practices for AI assistants live in `AGENTS.md`. We render it below for reference.
 
@@ -274,7 +272,7 @@ Many of our best coding practices for AI assistants live in `AGENTS.md`. We rend
 
 Human-only workflows (process, PR etiquette, roadmap context) belong in this guide and the broader contributing docs above.
 
-# Questions?
+## Questions?
 
 If you have questions about contributing, please:
 

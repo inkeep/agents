@@ -1,5 +1,5 @@
 import { exec, spawn } from 'node:child_process';
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
@@ -265,58 +265,125 @@ async function ensureEnvFile() {
   }
 }
 
-async function generateJwtKeys() {
+async function generateSecrets() {
   const envContent = await readFile('.env', 'utf-8').catch(() => '');
-  if (
+  const lines = envContent.split('\n');
+  let modified = false;
+
+  const jwtKeyHasValue =
     envContent.includes('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=') &&
-    !envContent.includes('# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=')
-  ) {
-    const match = envContent.match(/INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=(.+)/);
-    if (match && match[1].trim().length > 0) {
-      logInfo('JWT keys already configured, skipping generation');
-      return;
+    !envContent.includes('# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=') &&
+    !!envContent.match(/INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=(.+)/)?.[1]?.trim();
+
+  if (!jwtKeyHasValue) {
+    try {
+      const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+      });
+
+      const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
+      const publicKeyBase64 = Buffer.from(publicKey).toString('base64');
+
+      let privateKeyFound = false;
+      let publicKeyFound = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        if (
+          lines[i].startsWith('# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=') ||
+          lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=')
+        ) {
+          lines[i] = `INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`;
+          process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
+          privateKeyFound = true;
+        }
+        if (
+          lines[i].startsWith('# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=') ||
+          lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=')
+        ) {
+          lines[i] = `INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`;
+          process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
+          publicKeyFound = true;
+        }
+      }
+
+      if (!privateKeyFound) {
+        lines.push(`INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`);
+        process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
+      }
+      if (!publicKeyFound) {
+        lines.push(`INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`);
+        process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
+      }
+
+      modified = true;
+      logSuccess('JWT keys generated and added to .env');
+    } catch (error) {
+      logError('Failed to generate JWT keys - playground may not work', error);
+      logInfo('You can manually run: pnpm run generate-jwt-keys');
+    }
+  } else {
+    logInfo('JWT keys already configured, skipping generation');
+  }
+
+  const secretDefs: Array<{
+    varName: string;
+    placeholders: string[];
+    generate: () => string;
+  }> = [
+    {
+      varName: 'INKEEP_AGENTS_JWT_SIGNING_SECRET',
+      placeholders: [],
+      generate: () => randomBytes(32).toString('hex'),
+    },
+    {
+      varName: 'BETTER_AUTH_SECRET',
+      placeholders: ['your-secret-key-change-in-production'],
+      generate: () => randomBytes(32).toString('hex'),
+    },
+    {
+      varName: 'INKEEP_AGENTS_MANAGE_UI_PASSWORD',
+      placeholders: ['adminADMIN!@12'],
+      generate: () => randomBytes(6).toString('base64url'),
+    },
+  ];
+
+  for (const { varName, placeholders, generate } of secretDefs) {
+    let found = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith(`# ${varName}=`) || lines[i].startsWith(`${varName}=`)) {
+        found = true;
+        const isCommented = lines[i].startsWith(`# ${varName}=`);
+        if (isCommented) {
+          const value = generate();
+          lines[i] = `${varName}=${value}`;
+          process.env[varName] = value;
+          modified = true;
+          break;
+        }
+        const eqIdx = lines[i].indexOf('=');
+        const currentValue = lines[i].substring(eqIdx + 1).trim();
+        if (currentValue === '' || placeholders.includes(currentValue)) {
+          const value = generate();
+          lines[i] = `${varName}=${value}`;
+          process.env[varName] = value;
+          modified = true;
+        }
+        break;
+      }
+    }
+    if (!found) {
+      const value = generate();
+      lines.push(`${varName}=${value}`);
+      process.env[varName] = value;
+      modified = true;
     }
   }
 
-  try {
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-    });
-
-    const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
-    const publicKeyBase64 = Buffer.from(publicKey).toString('base64');
-
-    const lines = envContent.split('\n');
-    let privateKeyFound = false;
-    let publicKeyFound = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      if (
-        lines[i].startsWith('# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=') ||
-        lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=')
-      ) {
-        lines[i] = `INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`;
-        privateKeyFound = true;
-      }
-      if (
-        lines[i].startsWith('# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=') ||
-        lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=')
-      ) {
-        lines[i] = `INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`;
-        publicKeyFound = true;
-      }
-    }
-
-    if (!privateKeyFound) lines.push(`INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`);
-    if (!publicKeyFound) lines.push(`INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`);
-
+  if (modified) {
     await writeFile('.env', lines.join('\n'));
-    logSuccess('JWT keys generated and added to .env');
-  } catch (error) {
-    logError('Failed to generate JWT keys - playground may not work', error);
-    logInfo('You can manually run: pnpm run generate-jwt-keys');
+    logSuccess('Secrets generated and added to .env');
   }
 }
 
@@ -665,9 +732,9 @@ export async function runSetup(config: SetupConfig) {
     }
   }
 
-  // Step 2: Generate JWT keys
-  logStep(2, 'Checking JWT keys');
-  await generateJwtKeys();
+  // Step 2: Generate secrets
+  logStep(2, 'Checking secrets');
+  await generateSecrets();
 
   // Step 3: Start databases
   if (config.isCloud) {

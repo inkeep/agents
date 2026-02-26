@@ -28,7 +28,10 @@ import {
   getGitHubClientFromRepo,
   type LLMUpdateOperation,
   listIssueCommentReactions,
+  listIssueReactions,
   listPullRequestReviewCommentReactions,
+  moveFile,
+  type ReactionDetail,
   visualizeUpdateOperations,
 } from './utils';
 
@@ -585,7 +588,8 @@ const getServer = async (toolId: string) => {
         .describe('Branch to create from (defaults to default branch)'),
     },
     async ({ owner, repo, from_branch }) => {
-      const branch_name = `docs-writer-ai-update-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      const suffix = Math.random().toString(36).slice(2, 8);
+      const branch_name = `docs-writer-ai-update-${new Date().toISOString().replace(/[:.]/g, '-')}-${suffix}`;
       try {
         const githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
 
@@ -870,6 +874,92 @@ const getServer = async (toolId: string) => {
     }
   );
 
+  server.tool(
+    'move-file',
+    `Move (rename) a file within a repository in a single atomic commit. The file content is preserved and the old path is deleted. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      branch_name: z.string().describe('Branch to commit the move to'),
+      source_path: z.string().describe('Current path of the file (relative to repository root)'),
+      destination_path: z.string().describe('New path for the file (relative to repository root)'),
+      commit_message: z.string().describe('Commit message for the move'),
+    },
+    async ({ owner, repo, branch_name, source_path, destination_path, commit_message }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const commitSha = await moveFile({
+          githubClient,
+          owner,
+          repo,
+          sourcePath: source_path,
+          destinationPath: destination_path,
+          branchName: branch_name,
+          commitMessage: commit_message,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully moved "${source_path}" to "${destination_path}" in ${owner}/${repo} on branch "${branch_name}"\n\nCommit SHA: ${commitSha}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Repository ${owner}/${repo}, branch "${branch_name}", or source file "${source_path}" not found.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 422) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Invalid move operation. The destination path "${destination_path}" may already exist or the path is invalid.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error moving file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
   // Register GitHub create pull request tool
   server.tool(
     'create-pull-request',
@@ -1098,22 +1188,26 @@ const getServer = async (toolId: string) => {
   );
 
   server.tool(
-    'add-comment-reaction',
-    `Add a reaction to a comment on a pull request. Supports general pull request comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    'add-reaction',
+    `Add a reaction to a pull request body, a general PR comment, or an inline PR review comment. ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
-      comment_id: z.number().describe('The ID of the comment to react to'),
-      comment_type: z
-        .enum(['issue_comment', 'review_comment'])
+      target_id: z
+        .number()
         .describe(
-          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+          'The target to react to: a comment ID for issue_comment/review_comment, or the pull request number for pull_request'
+        ),
+      target_type: z
+        .enum(['pull_request', 'issue_comment', 'review_comment'])
+        .describe(
+          'The type of target: "pull_request" for the PR body itself, "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
         ),
       reaction: ReactionContentSchema.describe(
         'The reaction emoji to add: +1, -1, laugh, hooray, confused, heart, rocket, or eyes'
       ),
     },
-    async ({ owner, repo, comment_id, comment_type, reaction }) => {
+    async ({ owner, repo, target_id, target_type, reaction }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -1130,22 +1224,35 @@ const getServer = async (toolId: string) => {
           };
         }
 
-        const result =
-          comment_type === 'issue_comment'
-            ? await createIssueCommentReaction(githubClient, owner, repo, comment_id, reaction)
-            : await createPullRequestReviewCommentReaction(
-                githubClient,
-                owner,
-                repo,
-                comment_id,
-                reaction
-              );
+        let result: { id: number; content: string };
+        if (target_type === 'pull_request') {
+          const { data } = await githubClient.rest.reactions.createForIssue({
+            owner,
+            repo,
+            issue_number: target_id,
+            content: reaction,
+          });
+          result = { id: data.id, content: data.content };
+        } else if (target_type === 'issue_comment') {
+          result = await createIssueCommentReaction(githubClient, owner, repo, target_id, reaction);
+        } else {
+          result = await createPullRequestReviewCommentReaction(
+            githubClient,
+            owner,
+            repo,
+            target_id,
+            reaction
+          );
+        }
+
+        const label =
+          target_type === 'pull_request' ? `PR #${target_id}` : `${target_type} ${target_id}`;
 
         return {
           content: [
             {
               type: 'text',
-              text: `Successfully added ${reaction} reaction to ${comment_type} comment ${comment_id} in ${owner}/${repo}\n\nReaction ID: ${result.id}`,
+              text: `Successfully added ${reaction} reaction to ${label} in ${owner}/${repo}\n\nReaction ID: ${result.id}`,
             },
           ],
         };
@@ -1157,7 +1264,7 @@ const getServer = async (toolId: string) => {
               content: [
                 {
                   type: 'text',
-                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                  text: `Target ${target_id} (${target_type}) not found in ${owner}/${repo}.`,
                 },
               ],
               isError: true,
@@ -1168,7 +1275,7 @@ const getServer = async (toolId: string) => {
               content: [
                 {
                   type: 'text',
-                  text: `Invalid reaction. Ensure the reaction type is valid and the comment exists.`,
+                  text: `Invalid reaction. Ensure the reaction type is valid and the target exists.`,
                 },
               ],
               isError: true,
@@ -1179,7 +1286,7 @@ const getServer = async (toolId: string) => {
               content: [
                 {
                   type: 'text',
-                  text: `Access denied when adding reaction to comment ${comment_id} in ${owner}/${repo}. Your GitHub App may not have sufficient permissions to create reactions.`,
+                  text: `Access denied when adding reaction to ${target_type} ${target_id} in ${owner}/${repo}. Your GitHub App may not have sufficient permissions to create reactions.`,
                 },
               ],
               isError: true,
@@ -1201,20 +1308,24 @@ const getServer = async (toolId: string) => {
   );
 
   server.tool(
-    'remove-comment-reaction',
-    `Remove a reaction from a comment on a pull request. Requires the reaction ID (returned when adding a reaction or available from comment data). ${getAvailableRepositoryString(repositoryAccess)}`,
+    'remove-reaction',
+    `Remove a reaction from a pull request body, a general PR comment, or an inline PR review comment. Requires the reaction ID (returned when adding a reaction or from list-reactions). ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
-      comment_id: z.number().describe('The ID of the comment the reaction belongs to'),
-      comment_type: z
-        .enum(['issue_comment', 'review_comment'])
+      target_id: z
+        .number()
         .describe(
-          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+          'The target the reaction belongs to: a comment ID for issue_comment/review_comment, or the pull request number for pull_request'
+        ),
+      target_type: z
+        .enum(['pull_request', 'issue_comment', 'review_comment'])
+        .describe(
+          'The type of target: "pull_request" for the PR body itself, "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
         ),
       reaction_id: z.number().describe('The ID of the reaction to remove'),
     },
-    async ({ owner, repo, comment_id, comment_type, reaction_id }) => {
+    async ({ owner, repo, target_id, target_type, reaction_id }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -1231,23 +1342,33 @@ const getServer = async (toolId: string) => {
           };
         }
 
-        if (comment_type === 'issue_comment') {
-          await deleteIssueCommentReaction(githubClient, owner, repo, comment_id, reaction_id);
+        if (target_type === 'pull_request') {
+          await githubClient.rest.reactions.deleteForIssue({
+            owner,
+            repo,
+            issue_number: target_id,
+            reaction_id,
+          });
+        } else if (target_type === 'issue_comment') {
+          await deleteIssueCommentReaction(githubClient, owner, repo, target_id, reaction_id);
         } else {
           await deletePullRequestReviewCommentReaction(
             githubClient,
             owner,
             repo,
-            comment_id,
+            target_id,
             reaction_id
           );
         }
+
+        const label =
+          target_type === 'pull_request' ? `PR #${target_id}` : `${target_type} ${target_id}`;
 
         return {
           content: [
             {
               type: 'text',
-              text: `Successfully removed reaction ${reaction_id} from ${comment_type} comment ${comment_id} in ${owner}/${repo}`,
+              text: `Successfully removed reaction ${reaction_id} from ${label} in ${owner}/${repo}`,
             },
           ],
         };
@@ -1259,7 +1380,7 @@ const getServer = async (toolId: string) => {
               content: [
                 {
                   type: 'text',
-                  text: `Comment ${comment_id} or reaction ${reaction_id} not found in ${owner}/${repo}.`,
+                  text: `Target ${target_id} (${target_type}) or reaction ${reaction_id} not found in ${owner}/${repo}.`,
                 },
               ],
               isError: true,
@@ -1281,19 +1402,23 @@ const getServer = async (toolId: string) => {
   );
 
   server.tool(
-    'list-comment-reactions',
-    `List all reactions on a comment, including each reaction's ID (needed for removal). Supports both general issue/PR comments and inline PR review comments. ${getAvailableRepositoryString(repositoryAccess)}`,
+    'list-reactions',
+    `List all reactions on a pull request body, a general PR comment, or an inline PR review comment. Returns each reaction's ID (needed for removal). ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
-      comment_id: z.number().describe('The ID of the comment to list reactions for'),
-      comment_type: z
-        .enum(['issue_comment', 'review_comment'])
+      target_id: z
+        .number()
         .describe(
-          'The type of comment: "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
+          'The target to list reactions for: a comment ID for issue_comment/review_comment, or the pull request number for pull_request'
+        ),
+      target_type: z
+        .enum(['pull_request', 'issue_comment', 'review_comment'])
+        .describe(
+          'The type of target: "pull_request" for the PR body itself, "issue_comment" for general pull request comments, "review_comment" for inline PR review comments'
         ),
     },
-    async ({ owner, repo, comment_id, comment_type }) => {
+    async ({ owner, repo, target_id, target_type }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -1310,17 +1435,29 @@ const getServer = async (toolId: string) => {
           };
         }
 
-        const reactions =
-          comment_type === 'issue_comment'
-            ? await listIssueCommentReactions(githubClient, owner, repo, comment_id)
-            : await listPullRequestReviewCommentReactions(githubClient, owner, repo, comment_id);
+        let reactions: ReactionDetail[] = [];
+        if (target_type === 'pull_request') {
+          reactions = await listIssueReactions(githubClient, owner, repo, target_id);
+        } else if (target_type === 'issue_comment') {
+          reactions = await listIssueCommentReactions(githubClient, owner, repo, target_id);
+        } else {
+          reactions = await listPullRequestReviewCommentReactions(
+            githubClient,
+            owner,
+            repo,
+            target_id
+          );
+        }
+
+        const label =
+          target_type === 'pull_request' ? `PR #${target_id}` : `${target_type} ${target_id}`;
 
         if (reactions.length === 0) {
           return {
             content: [
               {
                 type: 'text',
-                text: `No reactions found on ${comment_type} comment ${comment_id} in ${owner}/${repo}.`,
+                text: `No reactions found on ${label} in ${owner}/${repo}.`,
               },
             ],
           };
@@ -1334,7 +1471,7 @@ const getServer = async (toolId: string) => {
           content: [
             {
               type: 'text',
-              text: `Found ${reactions.length} reaction(s) on ${comment_type} comment ${comment_id} in ${owner}/${repo}:\n\n${formatted}`,
+              text: `Found ${reactions.length} reaction(s) on ${label} in ${owner}/${repo}:\n\n${formatted}`,
             },
           ],
         };
@@ -1346,7 +1483,7 @@ const getServer = async (toolId: string) => {
               content: [
                 {
                   type: 'text',
-                  text: `Comment ${comment_id} not found in ${owner}/${repo}.`,
+                  text: `Target ${target_id} (${target_type}) not found in ${owner}/${repo}.`,
                 },
               ],
               isError: true,

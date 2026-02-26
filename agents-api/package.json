@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.52.0",
+  "version": "0.53.9",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -74,12 +74,12 @@
     "@workflow/world-postgres": "^4.1.0-beta.32",
     "@workflow/world-vercel": "^4.1.0-beta.31",
     "ai": "6.0.14",
-    "ajv": "^8.17.1",
-    "axios": "^1.13.2",
+    "ajv": "^8.18.0",
+    "axios": "^1.13.5",
     "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.11.7",
+    "hono": "^4.12.2",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",

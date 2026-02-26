@@ -24,7 +24,7 @@ import {
   type ToolUpdate,
 } from '../../types/index';
 import {
-  buildComposioMCPUrl,
+  configureComposioMCPServer,
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
@@ -209,16 +209,14 @@ const discoverToolsFromServer = async (
       }
     }
 
-    // Inject user_id for Composio servers at discovery time
-    if (serverConfig.url) {
-      serverConfig.url = buildComposioMCPUrl(
-        serverConfig.url.toString(),
-        tool.tenantId,
-        tool.projectId,
-        tool.credentialScope === 'user' ? 'user' : 'project',
-        userId
-      );
-    }
+    // Inject user_id and x-api-key for Composio servers at discovery time
+    configureComposioMCPServer(
+      serverConfig,
+      tool.tenantId,
+      tool.projectId,
+      tool.credentialScope === 'user' ? 'user' : 'project',
+      userId
+    );
 
     if (isGithubWorkAppTool(tool)) {
       serverConfig.headers = {

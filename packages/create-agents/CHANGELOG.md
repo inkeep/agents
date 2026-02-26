@@ -1,5 +1,78 @@
 # @inkeep/create-agents
 
+## 0.53.9
+
+### Patch Changes
+
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- cbf2b8a: Resolve divergent @inkeep/\* package versions from npm registry instead of skipping them
+- 090bedc: Fix auto-login and inkeep push for quickstart users by generating INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET in .env and adding apiKey to inkeep.config.ts
+  - @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- 0a0cb6e: Unify .env generation between quickstart CLI and contributor flows
+- 3e3efd2: Sync template @inkeep/\* dependency versions to match CLI version after clone
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
 ## 0.52.0
 
 ### Patch Changes

@@ -70,7 +70,7 @@ export function JoinFromWorkspaceToggle() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
             <span className="text-base font-medium">Join from Workspace</span>
           </CardTitle>
-          <Badge variant={isEnabled ? 'default' : 'secondary'}>
+          <Badge className="uppercase" variant={isEnabled ? 'primary' : 'code'}>
             {isEnabled ? 'Enabled' : 'Disabled'}
           </Badge>
         </div>

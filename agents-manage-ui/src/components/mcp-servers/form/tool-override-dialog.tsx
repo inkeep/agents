@@ -4,9 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { GenericInput } from '@/components/form/generic-input';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +17,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 
 const toolSchemaTemplate = `{
   "type": "object",
@@ -114,7 +113,7 @@ export function ToolOverrideDialog({
   onSave,
   originalTool,
 }: ToolOverrideDialogProps) {
-  const form = useForm<ToolOverrideFormData>({
+  const form = useForm({
     resolver: zodResolver(toolOverrideSchema),
     defaultValues: formatFormData(override),
   });
@@ -181,24 +180,15 @@ export function ToolOverrideDialog({
               placeholder={originalTool?.name || toolName}
               description="Override the tool name shown to the agent"
             />
-
-            <FormFieldWrapper
+            <GenericTextarea
               control={form.control}
               name="description"
               label="Description"
               description="Override the tool description shown to the agent"
-            >
-              {(field) => (
-                <Textarea
-                  placeholder={originalTool?.description || 'Enter a custom description...'}
-                  rows={3}
-                  {...field}
-                  value={field.value ?? ''}
-                />
-              )}
-            </FormFieldWrapper>
+              placeholder={originalTool?.description || 'Enter a custom description...'}
+            />
 
-            <JsonSchemaInput
+            <GenericJsonSchemaEditor
               control={form.control}
               name="schema"
               label="Schema Override"

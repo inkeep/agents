@@ -8,8 +8,8 @@ import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector'
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,7 +20,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/evaluators';
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
@@ -78,7 +77,7 @@ export function EvaluatorFormDialog({
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
-  const form = useForm<EvaluatorFormData>({
+  const form = useForm({
     resolver: zodResolver(evaluatorSchema),
     defaultValues: formatFormData(initialData),
   });
@@ -208,25 +207,16 @@ export function EvaluatorFormDialog({
               label="Description"
               placeholder="Describe what this evaluator measures..."
             />
-
-            <FormFieldWrapper
+            <GenericTextarea
               control={form.control}
               name="prompt"
               label="Prompt"
               description="Instructions for the evaluator LLM on how to evaluate conversations"
               isRequired
-            >
-              {(field) => (
-                <Textarea
-                  placeholder="You are an evaluator. Analyze the conversation and provide feedback..."
-                  className="min-h-[150px] font-mono text-sm"
-                  {...field}
-                  value={field.value ?? ''}
-                />
-              )}
-            </FormFieldWrapper>
+              placeholder="You are an evaluator. Analyze the conversation and provide feedback..."
+            />
 
-            <JsonSchemaInput
+            <GenericJsonSchemaEditor
               control={form.control}
               name="schema"
               label="Output Schema"

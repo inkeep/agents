@@ -1,4 +1,5 @@
 import type * as Monaco from 'monaco-editor';
+import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
@@ -28,6 +29,47 @@ interface MonacoState extends MonacoStateData {
 }
 
 let wasInitialized = false;
+
+async function formatJS(value: string): Promise<string> {
+  const [{ default: prettier }, { default: parserBabel }, { default: parserEstree }] =
+    await Promise.all([
+      import('prettier/standalone'),
+      import('prettier/plugins/babel'),
+      import('prettier/plugins/estree'),
+    ]);
+
+  const formatted = await prettier.format(value, {
+    parser: 'babel',
+    plugins: [parserBabel, parserEstree],
+  });
+  return formatted.trimEnd();
+}
+async function formatMarkdown(value: string): Promise<string> {
+  const [{ default: prettier }, { default: parserMarkdown }] = await Promise.all([
+    import('prettier/standalone'),
+    import('prettier/plugins/markdown'),
+  ]);
+
+  const formatted = await prettier.format(value, {
+    parser: 'mdx',
+    plugins: [parserMarkdown],
+  });
+  return formatted.trimEnd();
+}
+
+function provideDocumentFormattingEdits(
+  formatter: typeof formatJS
+): Monaco.languages.DocumentFormattingEditProvider['provideDocumentFormattingEdits'] {
+  return async (model) => {
+    let text = model.getValue();
+    try {
+      text = await formatter(text);
+    } catch (error) {
+      toast.error(`Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`);
+    }
+    return [{ text, range: model.getFullModelRange() }];
+  };
+}
 
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
   monaco: null,
@@ -88,6 +130,14 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         documentFormattingEdits: true,
         /** Enable formatting of only a selected range */
         documentRangeFormattingEdits: true,
+      });
+
+      // Setup formatters
+      monaco.languages.registerDocumentFormattingEditProvider('javascript', {
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatJS),
+      });
+      monaco.languages.registerDocumentFormattingEditProvider(['markdown', TEMPLATE_LANGUAGE], {
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatMarkdown),
       });
 
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
