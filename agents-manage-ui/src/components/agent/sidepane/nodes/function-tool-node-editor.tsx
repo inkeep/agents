@@ -25,6 +25,7 @@ import { useFieldArray, useWatch } from 'react-hook-form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
@@ -231,13 +232,11 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           </div>
         </DialogContent>
       </Dialog>
-      <div className="space-y-2 relative">
-        <FieldLabel label="Input Schema" isRequired />
-        <JsonSchemaEditor
-          value={inputSchema}
-          onChange={handleInputSchemaChange}
-          aria-invalid={!!getFieldError('inputSchema')}
-          placeholder={`{
+      <GenericJsonSchemaEditor
+        control={form.control}
+        name={path('inputSchema')}
+        label="Input Schema"
+        placeholder={`{
   "type": "object",
   "properties": {
     "param1": {
@@ -251,15 +250,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   },
   "required": ["param1"]
 }`}
-        />
-        <p className="text-xs text-muted-foreground">
-          JSON schema defining the parameters that the function will receive. This defines the
-          structure and validation rules for the function's input arguments.
-        </p>
-        {getFieldError('inputSchema') && (
-          <p className="text-sm text-red-600">{getFieldError('inputSchema')}</p>
-        )}
-      </div>
+        description="JSON schema defining the parameters that the function will receive. This defines the structure and validation rules for the function's input arguments."
+        isRequired
+      />
       <div className="space-y-2">
         <div className="text-sm font-medium">Dependencies</div>
 

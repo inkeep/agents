@@ -61,54 +61,68 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
-}).extend({
-  // nodes: z.array(z.any()).optional(),
-  // subAgents: SubAgentsSchema,
-  subAgents: z.array(
-    // z.preprocess(
-    //   (value: any) => {
-    //     return {
-    //       id: generateIdFromName(value.name),
-    //       ...value,
-    //     };
-    //   },
-    z.strictObject({
-      id: z.string().trim(),
-      name: z.string().trim(),
-      description: z.string().trim(),
-      skills: z.array(
-        z.strictObject({
-          id: z.string().trim(),
-          index: z.int().positive(),
-          alwaysLoaded: z.boolean().optional(),
-          // description: z.string().trim(),
-        })
-      ),
-      prompt: z.string().trim(),
-      // TODO: use updateDefaultSubAgent logic
-      isDefault: z.boolean(),
-      models: MyModelsSchema,
-      stopWhen: SubAgentStopWhenSchema,
-      dataComponents: z.array(z.string()),
-      artifactComponents: z.array(z.string()),
-    })
-    // )
-  ),
-  stopWhen: StopWhenSchema.extend({
-    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
-  }).optional(),
-  contextConfig: ContextConfigSchema,
-  statusUpdates: z.strictObject({
-    ...StatusUpdatesSchema,
-    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
-    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
-    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
-  }),
-  models: MyModelsSchema,
-});
-// .transform(({ nodes, ...rest }) => {
-//   return rest;
-// });
+})
+  .extend({
+    // nodes: z.array(z.any()).optional(),
+    // subAgents: SubAgentsSchema,
+    subAgents: z.array(
+      // z.preprocess(
+      //   (value: any) => {
+      //     return {
+      //       id: generateIdFromName(value.name),
+      //       ...value,
+      //     };
+      //   },
+      z.looseObject({
+        id: z.string().trim(),
+        name: z.string().trim(),
+        description: z.string().trim(),
+        skills: z.array(
+          z.strictObject({
+            id: z.string().trim(),
+            index: z.int().positive(),
+            alwaysLoaded: z.boolean().optional(),
+            // description: z.string().trim(),
+          })
+        ),
+        prompt: z.string().trim(),
+        // TODO: use updateDefaultSubAgent logic
+        isDefault: z.boolean().optional(),
+        // models: MyModelsSchema,
+        // stopWhen: SubAgentStopWhenSchema,
+        dataComponents: z.array(z.string()),
+        artifactComponents: z.array(z.string()),
+      })
+      // )
+    ),
+    functionTools: z.array(
+      z.looseObject({
+        name: z.string().trim().nonempty(),
+        description: z.string().trim().nonempty(),
+        executeCode: z.string().trim(),
+        inputSchema: z
+          .string()
+          .trim()
+          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+          .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
+        dependencies: StringRecordSchema,
+      })
+    ),
+    stopWhen: StopWhenSchema.extend({
+      transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
+    }).optional(),
+    contextConfig: ContextConfigSchema,
+    statusUpdates: z.strictObject({
+      ...StatusUpdatesSchema,
+      numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+      timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
+      statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
+    }),
+    models: MyModelsSchema,
+  })
+  .transform(({ subAgents, ...rest }) => {
+    return rest;
+  });
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
@@ -138,6 +152,12 @@ export function serializeAgentForm(data: FullAgentResponse) {
     functions = {},
     functionTools = {},
   } = data;
+
+  const functionTool = {
+    ...functions['rn5612qh26zghl18rwjbn'],
+    name: functionTools['rn5612qh26zghl18rwjbn'].name,
+  };
+  functionTool.inputSchema = serializeJson(functionTool.inputSchema);
 
   return {
     id,
@@ -175,11 +195,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
       },
     },
     subAgents: [subAgents['websearch-agent']],
-    functionTools: [
-      {
-        ...functions['rn5612qh26zghl18rwjbn'],
-        name: functionTools['rn5612qh26zghl18rwjbn'].name,
-      },
-    ],
+    functionTools: [functionTool],
   };
 }
