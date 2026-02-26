@@ -41,6 +41,7 @@ vi.mock('../../slack/services/agent-resolution', () => ({
 }));
 
 vi.mock('../../slack/services/blocks', () => ({
+  createContextBlockFromText: vi.fn().mockReturnValue({ type: 'context', elements: [] }),
   createErrorMessage: vi.fn().mockReturnValue({ text: 'Error' }),
   createSmartLinkMessage: vi.fn().mockReturnValue({ text: 'Link account' }),
   createContextBlock: vi.fn().mockReturnValue({ type: 'context' }),

@@ -14,6 +14,7 @@ import { SlackStrings } from '../../i18n';
 import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   createAlreadyLinkedMessage,
+  createContextBlockFromText,
   createErrorMessage,
   createNotLinkedMessage,
   createStatusMessage,
@@ -195,8 +196,12 @@ export async function handleAgentPickerCommand(
     }
 
     if (projectList.length === 0) {
-      const message = createErrorMessage(SlackStrings.status.noProjectsConfigured);
-      return { response_type: 'ephemeral', ...message };
+      const noProjectsText = SlackStrings.status.noProjectsConfigured;
+      return {
+        response_type: 'ephemeral',
+        blocks: [createContextBlockFromText(noProjectsText)],
+        text: noProjectsText,
+      };
     }
 
     // Fetch agents for first project (modal updates dynamically on project change)

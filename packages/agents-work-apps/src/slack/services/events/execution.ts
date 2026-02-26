@@ -1,5 +1,6 @@
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
+import { createContextBlockFromText } from '../blocks';
 import type { getSlackClient } from '../client';
 import type { StreamResult } from './streaming';
 import { streamAgentResponse } from './streaming';
@@ -35,10 +36,12 @@ export async function executeAgentPublicly(params: PublicExecutionParams): Promi
 
   let thinkingMessageTs = '';
   try {
+    const thinkingText = SlackStrings.status.thinking(agentName);
     const ackMessage = await slackClient.chat.postMessage({
       channel,
       ...(threadTs ? { thread_ts: threadTs } : {}),
-      text: SlackStrings.status.thinking(agentName),
+      blocks: [createContextBlockFromText(thinkingText)],
+      text: thinkingText,
     });
     thinkingMessageTs = ackMessage.ts || '';
   } catch (error) {
