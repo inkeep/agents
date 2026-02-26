@@ -122,12 +122,22 @@ DEBUGGING — if the result is null:
         const parsed = parseJsonArg(data);
         const result = jmespath.search(parsed, query);
         logger.info(
-          { query, dataType: typeof parsed, dataKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed as object) : null, resultType: typeof result, resultIsNull: result === null, resultIsArray: Array.isArray(result) },
+          {
+            query,
+            dataType: typeof parsed,
+            dataKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed as object) : null,
+            resultType: typeof result,
+            resultIsNull: result === null,
+            resultIsArray: Array.isArray(result),
+          },
           'json_query executed'
         );
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
-        logger.error({ query, error: err instanceof Error ? err.message : String(err) }, 'json_query failed');
+        logger.error(
+          { query, error: err instanceof Error ? err.message : String(err) },
+          'json_query failed'
+        );
         return {
           content: [
             {
