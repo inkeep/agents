@@ -11,7 +11,6 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';

@@ -241,14 +241,14 @@ export function serializeAgentForm(data: FullAgentResponse) {
     subAgents,
     functionTools: Object.fromEntries(
       Object.values(functions).map((tool) => [
-          tool.id,
-          {
-            ...tool,
-            name: functionTools[tool.id].name,
-            inputSchema: serializeJson(tool.inputSchema),
-            dependencies: serializeJson(tool.dependencies),
-          },
-        ])
+        tool.id,
+        {
+          ...tool,
+          name: functionTools[tool.id].name,
+          inputSchema: serializeJson(tool.inputSchema),
+          dependencies: serializeJson(tool.dependencies),
+        },
+      ])
     ),
     externalAgents,
     teamAgents,

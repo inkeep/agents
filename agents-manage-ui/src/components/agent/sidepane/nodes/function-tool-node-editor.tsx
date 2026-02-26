@@ -1,6 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
@@ -36,7 +36,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { canEdit } = useProjectPermissions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
-  const id = selectedNode.data.toolId
+  const id = selectedNode.data.toolId;
   const functionTool = useWatch({
     control: form.control,
     name: `functionTools.${id}`,

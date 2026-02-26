@@ -63,14 +63,14 @@ export function SidePane({
   credentialLookup,
   disabled = false,
 }: SidePaneProps) {
-  'use memo'
+  'use memo';
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
 
-  const selectedEdge = (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null)
+  const selectedEdge = selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null;
 
-  const { heading, HeadingIcon } = (function ()  {
+  const { heading, HeadingIcon } = (function () {
     let heading = '';
     let HeadingIcon: LucideIcon | undefined;
 
@@ -90,10 +90,9 @@ export function SidePane({
     }
 
     return { heading, HeadingIcon };
-  })()
+  })();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
-  const editorContent = (function ()  {
+  const editorContent = (function () {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }

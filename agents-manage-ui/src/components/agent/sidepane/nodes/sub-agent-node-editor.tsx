@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { type FC } from 'react';
+import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
@@ -183,7 +183,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         componentLookup={dataComponentLookup}
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
-          form.setValue(path('dataComponents'), newSelection);
+          form.setValue(path('dataComponents'), newSelection, { shouldDirty: true });
         }}
         emptyStateMessage="No components found."
         emptyStateActionText="Create component"
@@ -196,7 +196,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         componentLookup={artifactComponentLookup}
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
-          form.setValue(path('artifactComponents'), newSelection);
+          form.setValue(path('artifactComponents'), newSelection, { shouldDirty: true });
         }}
         emptyStateMessage="No artifacts found."
         emptyStateActionText="Create artifact"
