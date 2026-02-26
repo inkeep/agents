@@ -26,7 +26,6 @@ export interface PublicExecutionParams {
   agentId: string;
   agentName: string;
   question: string;
-  /** Original unformatted user text shown publicly in Slack thread anchors. Falls back to `question`. */
   rawMessageText?: string;
   conversationId: string;
   entryPoint?: SlackEntryPoint;
