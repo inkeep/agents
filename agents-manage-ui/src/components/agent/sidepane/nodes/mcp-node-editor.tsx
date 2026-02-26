@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
@@ -42,6 +42,7 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  'use memo';
   const form = useFullAgentFormContext();
   const { fields } = useFieldArray({
     control: form.control,
@@ -77,9 +78,9 @@ export function MCPServerNodeEditor({
   const skeletonToolData = toolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
+  const getCurrentHeaders = (): Record<string, string> => {
     return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
-  }, [selectedNode, agentToolConfigLookup]);
+  };
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
@@ -464,10 +465,7 @@ export function MCPServerNodeEditor({
                   className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 bg-amber-50 dark:bg-amber-950/20 border-b last:border-b-0 border-amber-200 dark:border-amber-800"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <Checkbox
-                      checked={true}
-                      onCheckedChange={() => toggleToolSelection(toolName)}
-                    />
+                    <Checkbox checked onCheckedChange={() => toggleToolSelection(toolName)} />
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex-1 min-w-0 flex items-center gap-2">
