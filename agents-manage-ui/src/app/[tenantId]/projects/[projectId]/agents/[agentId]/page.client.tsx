@@ -714,14 +714,20 @@ export const Agent: FC<AgentProps> = ({
       return;
     }
 
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-      ...serializedData,
-      ...data,
-      externalAgents: undefined,
-      tools: undefined,
-      teamAgents: undefined,
-      functionTools: undefined,
-    });
+    const res = await updateFullAgentAction(
+      tenantId,
+      projectId,
+      agentId,
+      // @ts-expect-error -- TODO: remove undefined fields
+      {
+        ...serializedData,
+        ...data,
+        externalAgents: undefined,
+        tools: undefined,
+        teamAgents: undefined,
+        functionTools: undefined,
+      }
+    );
 
     if (res.success) {
       toast.success('Agent saved', { closeButton: true });
