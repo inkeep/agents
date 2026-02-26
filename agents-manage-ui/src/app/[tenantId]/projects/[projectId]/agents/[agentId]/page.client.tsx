@@ -700,13 +700,13 @@ export const Agent: FC<AgentProps> = ({
     );
 
     const functionToolNodeMap = new Map<string, string>();
-    nodes.forEach((node) => {
+    for (const node of nodes) {
       if (node.type === NodeType.FunctionTool) {
         const nodeData = node.data as any;
         const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
         functionToolNodeMap.set(toolId, node.id);
       }
-    });
+    }
 
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length) {
