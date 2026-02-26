@@ -2,9 +2,11 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
@@ -29,7 +32,6 @@ import {
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
-import { FieldLabel } from '../form-components/label';
 import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
@@ -41,16 +43,24 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  const form = useFullAgentFormContext();
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: 'tools',
+    keyName: '_rhfKey5',
+  });
+  const toolIndex = fields.findIndex((s) => s.id === selectedNode.data.toolId);
+  const tool = useWatch({ control: form.control, name: `tools.${toolIndex}` });
+
+  const path = <K extends string>(k: K) => `tools.${toolIndex}.${k}` as const;
+
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
   const { updateNodeData } = useReactFlow();
 
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { markUnsaved } = useAgentActions();
 
   // Get skeleton data from store
@@ -61,7 +71,7 @@ export function MCPServerNodeEditor({
     tenantId,
     projectId,
     toolId: selectedNode.data.toolId,
-    enabled: !!selectedNode.data.toolId && !!tenantId && !!projectId,
+    enabled: !!selectedNode.data.toolId,
   });
 
   // Use live data if available, fall back to skeleton from store
@@ -72,14 +82,11 @@ export function MCPServerNodeEditor({
     return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
   }, [selectedNode, agentToolConfigLookup]);
 
-  // Local state for headers input (allows invalid JSON while typing)
-  const [headersInputValue, setHeadersInputValue] = useState('{}');
-
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
-    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
   const availableTools = toolData?.availableTools;
@@ -120,7 +127,9 @@ export function MCPServerNodeEditor({
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
-
+  if (!tool) {
+    return;
+  }
   // Handle missing tool data
   if (!toolData) {
     return (
@@ -228,32 +237,6 @@ export function MCPServerNodeEditor({
     }
   };
 
-  const handleHeadersChange = (value: string) => {
-    // Always update the input state (allows user to type invalid JSON)
-    setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
-    } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
-    }
-  };
-
   return (
     <div className="space-y-8">
       {toolData?.imageUrl && (
@@ -287,22 +270,17 @@ export function MCPServerNodeEditor({
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="node-id">Id</Label>
-        <Input id="node-id" value={selectedNode.data.toolId} disabled />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          name="name"
-          value={toolData?.name || ''}
-          onChange={handleInputChange}
-          placeholder="MCP server"
-          className="w-full"
-          disabled
-        />
-      </div>
+      <GenericInput control={form.control} name={path('id')} label="Id" disabled isRequired />
+
+      <GenericInput
+        control={form.control}
+        name={path('name')}
+        label="Name"
+        placeholder="MCP server"
+        disabled
+        isRequired
+      />
+
       <div className="space-y-2">
         <Label htmlFor="url">URL</Label>
         <Input
@@ -544,16 +522,13 @@ export function MCPServerNodeEditor({
         )}
       </div>
 
-      <div className="space-y-2">
-        <FieldLabel id="headers" label="Headers" />
-        <StandaloneJsonEditor
-          name="headers"
-          value={headersInputValue}
-          onChange={handleHeadersChange}
-          placeholder={headersTemplate}
-          customTemplate={headersTemplate}
-        />
-      </div>
+      <GenericJsonEditor
+        control={form.control}
+        name={path('headers')}
+        label="Headers"
+        placeholder={headersTemplate}
+        customTemplate={headersTemplate}
+      />
 
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}

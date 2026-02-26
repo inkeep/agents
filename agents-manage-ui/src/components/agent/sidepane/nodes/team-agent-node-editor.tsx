@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
@@ -15,8 +17,6 @@ import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
-import { GenericTextarea } from '@/components/form/generic-textarea';
-import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;

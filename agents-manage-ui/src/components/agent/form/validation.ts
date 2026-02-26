@@ -172,7 +172,8 @@ export function serializeAgentForm(data: FullAgentResponse) {
     functions = {},
     functionTools = {},
     externalAgents = {},
-    teamAgents,
+    teamAgents = {},
+    tools = {},
   } = data;
 
   const functionTool = {
@@ -217,9 +218,10 @@ export function serializeAgentForm(data: FullAgentResponse) {
         providerOptions: serializeJson(models.summarizer?.providerOptions),
       },
     },
-    subAgents: [subAgents['websearch-agent']],
+    subAgents: Object.values(subAgents),
     functionTools: [functionTool],
-    externalAgents: [externalAgents['4W7KdQdOHkfeMRHEOgGyK']],
-    teamAgents: [teamAgents['demo']],
+    externalAgents: Object.values(externalAgents),
+    teamAgents: Object.values(teamAgents),
+    tools: Object.values(tools),
   };
 }
