@@ -65,17 +65,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 }) => {
   'use memo';
   const form = useFullAgentFormContext();
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'subAgents',
-    keyName: '_rhfKey',
-  });
-  const subAgentIndex = fields.findIndex((s) => s.id === (selectedNode.data.id ?? selectedNode.id));
-  const subAgent = useWatch({ control: form.control, name: `subAgents.${subAgentIndex}` });
-  // if (subAgentIndex < 0) return null;
+  const id = (selectedNode.data.id ?? selectedNode.id)
+  const subAgent = useWatch({ control: form.control, name: `subAgents.${id}` });
 
-  const path = <K extends string>(k: K) => `subAgents.${subAgentIndex}.${k}` as const;
-  console.log(subAgent);
+  const path = <K extends string>(k: K) => `subAgents.${id}.${k}` as const;
 
   const { tenantId, projectId } = useParams<{
     tenantId: string;
@@ -101,6 +94,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   //     message: 'This field is invalid',
   //   });
   // }, []);
+  console.log({subAgent})
+  if (!subAgent) {
+      return;
+  }
   return (
     <div className="space-y-8 flex flex-col">
       <GenericInput

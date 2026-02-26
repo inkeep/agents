@@ -17,6 +17,8 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
+import {useFullAgentFormContext} from "@/contexts/full-agent-form";
+import {useWatch} from "react-hook-form";
 
 const ListSection = ({
   title,
@@ -44,12 +46,17 @@ const ListSection = ({
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   const { name, isDefault, description, models, status } = data;
+
+  const form = useFullAgentFormContext();
+  const subAgent = useWatch({ control: form.control, name: `subAgents.${data.id}` });
+
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
     dataComponentLookup: state.dataComponentLookup,
     artifactComponentLookup: state.artifactComponentLookup,
   }));
+
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -89,7 +96,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{name || 'Sub Agent'}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>{subAgent.name}</BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
             Sub Agent
@@ -102,7 +109,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
           <div
             className={`text-sm ${description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
           >
-            {description || 'No description'}
+            {subAgent.description || <i>No description</i>}
           </div>
           {models && modelName ? (
             <Badge className="text-xs max-w-full flex-1" variant="code">
