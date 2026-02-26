@@ -259,7 +259,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should handle null tempSelectedTools (all tools selected) by removing from selectedTools', () => {
+    it('should handle null selectedTools (all tools selected)', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -279,7 +279,6 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             name: 'Test MCP Server',
-            tempSelectedTools: null, // null means all tools selected
           },
         },
       ];
@@ -293,9 +292,22 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          mcp1: {
+            selectedTools: null,
+          },
+        }
+      );
 
-      // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
+      // When selectedTools is null, all tools should be selected (toolSelection: null)
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
       expect(result.subAgents.agent1.canUse[0]).toEqual({
