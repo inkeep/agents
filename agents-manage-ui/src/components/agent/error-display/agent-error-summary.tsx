@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, ChevronDown, ChevronRight, Code, X, Zap } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import {type ComponentProps, type ReactNode, useEffect, useRef, useState} from 'react';
 import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,21 +105,9 @@ function getErrors() {
   const { control } = useFullAgentFormContext();
   const { errors } = useFormState({ control });
 
-  const { subAgents = {}, functionTools = {}, ...rest } = errors;
-
-  const subAgentErrors = processMessagesWithNodeId(subAgents);
-  const functionToolErrors = processMessagesWithNodeId(functionTools);
-  // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
-  const agentErrors = Object.entries(rest).map(([key, value]) => ({
-    field: key,
-    message: firstNestedMessage(value),
-  }));
-
   return {
     errorCount: Object.keys(errors).length,
-    subAgentErrors,
-    functionToolErrors,
-    agentErrors,
+    errors,
   };
 }
 
@@ -144,22 +132,20 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
   //   });
   //   onNavigateToEdge?.(edgeId);
   // };
-
-  const getAgentLabel = (error: ProcessedAgentError) => {
-    // You might want to get the actual agent name from the agent data
-    return `Agent (${error.nodeId})`;
-  };
-
-  const getFunctionToolLabel = (error: ProcessedAgentError) => {
-    // You might want to get the actual function tool name from the agent data
-    return `Function Tool (${error.nodeId})`;
-  };
-
   // const getConnectionLabel = (error: ProcessedAgentError) => {
   //   return `Connection (${error.edgeId})`;
   // };
 
-  const { errorCount, subAgentErrors, functionToolErrors, agentErrors } = getErrors();
+  const { errorCount, errors } = getErrors();
+  const { subAgents = {}, functionTools = {}, ...rest } = errors;
+
+  const subAgentErrors = processMessagesWithNodeId(subAgents);
+  const functionToolErrors = processMessagesWithNodeId(functionTools);
+  // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
+  const agentErrors = Object.entries(rest).map(([key, value]) => ({
+    field: key,
+    message: firstNestedMessage(value),
+  }));
   const [showErrors, setShowErrors] = useState(true);
   const previousErrorSignatureRef = useRef('');
   const errorSignature = [
@@ -186,6 +172,26 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
     return;
   }
 
+  const data: ComponentProps<typeof ErrorGroup>[] = [
+    {
+      title: 'Sub Agent Errors',
+      errors: subAgentErrors,
+      icon: <Zap className="w-3 h-3" />,
+      onNavigate: handleNavigateToNode,
+      getItemLabel: (error) =>  `Agent (${error.nodeId})`,
+    },
+    {
+      title: "Function Tool Errors",
+      errors: functionToolErrors,
+      icon: <Code className="w-3 h-3" />,
+      onNavigate:handleNavigateToNode,
+      getItemLabel:  (error) => `Function Tool (${error.nodeId})`;
+    },
+    {
+      title: "Agent Configuration Errors",
+      errors: agentErrors,
+    }
+  ]
   return (
     <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl gap-2 py-4 max-h-[80vh] animate-in slide-in-from-bottom-2 duration-300">
       <CardHeader className="px-3">
@@ -211,21 +217,9 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
           Fix these issues to save your agent:
         </div>
 
-        <ErrorGroup
-          title="Sub Agent Errors"
-          errors={subAgentErrors}
-          icon={<Zap className="w-3 h-3" />}
-          onNavigate={handleNavigateToNode}
-          getItemLabel={getAgentLabel}
-        />
-
-        <ErrorGroup
-          title="Function Tool Errors"
-          errors={functionToolErrors}
-          icon={<Code className="w-3 h-3" />}
-          onNavigate={handleNavigateToNode}
-          getItemLabel={getFunctionToolLabel}
-        />
+        {data.map((o) => (
+          <ErrorGroup key={o.title} {...o} icon={o.icon ?? <AlertCircle className="w-3 h-3" />} />
+        ))}
 
         {/*<ErrorGroup*/}
         {/*  title="Connection Errors"*/}
@@ -234,12 +228,6 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
         {/*  onNavigate={handleNavigateToEdge}*/}
         {/*  getItemLabel={getConnectionLabel}*/}
         {/*/>*/}
-
-        <ErrorGroup
-          title="Agent Configuration Errors"
-          errors={agentErrors}
-          icon={<AlertCircle className="w-3 h-3" />}
-        />
 
         <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
           <div className="text-xs text-red-500 dark:text-red-400">
