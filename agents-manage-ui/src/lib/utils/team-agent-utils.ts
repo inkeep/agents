@@ -11,11 +11,6 @@ export function getCurrentHeadersForTeamAgentNode(
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup,
   _edges: Edge[]
 ): Record<string, string> {
-  // First check if we have temporary headers stored on the node (from recent edits)
-  if ((node.data as any).tempHeaders !== undefined) {
-    return (node.data as any).tempHeaders;
-  }
-
   // If node has relationshipId, find config by relationshipId
   const relationshipId = (node.data as any).relationshipId;
   if (relationshipId) {
