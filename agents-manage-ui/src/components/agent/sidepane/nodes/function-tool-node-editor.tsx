@@ -42,7 +42,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     name: `functionTools.${id}`,
   });
 
-  const path = <K extends string>(k: K) => `functionTools.${id}.${k}` as const;
+  const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
 
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');

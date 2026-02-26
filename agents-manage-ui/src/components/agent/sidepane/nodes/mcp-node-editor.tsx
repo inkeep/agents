@@ -47,7 +47,7 @@ export function MCPServerNodeEditor({
   const id = selectedNode.data.toolId;
   const tool = useWatch({ control: form.control, name: `tools.${id}` });
 
-  const path = <K extends string>(k: K) => `tools.${id}.${k}` as const;
+  const path = <K extends string>(key: K) => `tools.${id}.${key}` as const;
 
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);

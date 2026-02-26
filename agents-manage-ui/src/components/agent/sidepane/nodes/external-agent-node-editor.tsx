@@ -39,7 +39,7 @@ export function ExternalAgentNodeEditor({
     name: `externalAgents.${id}`,
   });
 
-  const path = <K extends string>(k: K) => `externalAgents.${id}.${k}` as const;
+  const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
 
   const edges = useAgentStore((state) => state.edges);
 

@@ -65,7 +65,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const id = selectedNode.data.id ?? selectedNode.id;
   const subAgent = useWatch({ control: form.control, name: `subAgents.${id}` });
 
-  const path = <K extends string>(k: K) => `subAgents.${id}.${k}` as const;
+  const path = <K extends string>(key: K) => `subAgents.${id}.${key}` as const;
 
   const { tenantId, projectId } = useParams<{
     tenantId: string;

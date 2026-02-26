@@ -45,7 +45,7 @@ export function TeamAgentNodeEditor({
   const id = selectedNode.data.id;
   const teamAgent = useWatch({ control: form.control, name: `teamAgents.${id}` });
 
-  const path = <K extends string>(k: K) => `teamAgents.${id}.${k}` as const;
+  const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
   console.log(teamAgent);
   if (!teamAgent) {
     return;
