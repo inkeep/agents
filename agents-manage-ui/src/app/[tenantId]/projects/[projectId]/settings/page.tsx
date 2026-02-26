@@ -1,6 +1,6 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectForm } from '@/components/projects/form/project-form';
-import type { ProjectFormData } from '@/components/projects/form/validation';
+import type { ProjectInput } from '@/components/projects/form/validation';
 import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -25,7 +25,7 @@ export default async function SettingsPage({
           {
             ...projectData.data,
             id: projectData.data.id as string,
-          } as ProjectFormData
+          } as ProjectInput
         }
         tenantId={tenantId}
         readOnly={!permissions.canEdit}

@@ -10,11 +10,11 @@ import {
 } from '@/components/ui/dialog';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { ProjectForm } from './form/project-form';
-import type { ProjectFormData } from './form/validation';
+import type { ProjectInput } from './form/validation';
 
 interface EditProjectDialogProps {
   tenantId: string;
-  projectData: ProjectFormData;
+  projectData: ProjectInput;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }

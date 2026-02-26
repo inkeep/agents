@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
-import type { ProjectFormData } from './validation';
+import type { ProjectInput, ProjectOutput } from './validation';
 
 interface ProjectStopWhenSectionProps {
-  control: Control<ProjectFormData>;
+  control: Control<ProjectInput, unknown, ProjectOutput>;
   disabled?: boolean;
 }
 
