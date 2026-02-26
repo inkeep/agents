@@ -53,6 +53,8 @@ vi.mock('../../slack/services/blocks', () => ({
 
 vi.mock('../../slack/services/client', () => ({
   getSlackClient: mockGetSlackClient,
+  getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
+  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
 }));
 
 vi.mock('../../slack/services/events/execution', () => ({
@@ -64,6 +66,11 @@ vi.mock('../../slack/services/events/utils', () => ({
   fetchProjectsForTenant: vi.fn(),
   generateSlackConversationId: vi.fn().mockReturnValue('slack-trigger-T789-123.456000-agent-1'),
   getChannelAgentConfig: vi.fn(),
+  formatChannelContext: vi.fn().mockReturnValue('Slack'),
+  formatSlackQuery: vi.fn((opts: { text: string; threadContext?: string }) => {
+    if (opts.threadContext) return `${opts.threadContext}\n\n${opts.text}`;
+    return opts.text;
+  }),
 }));
 
 vi.mock('../../slack/services/link-prompt', () => ({

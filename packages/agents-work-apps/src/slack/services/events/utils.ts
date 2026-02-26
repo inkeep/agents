@@ -725,3 +725,46 @@ export function formatChannelContext(channelInfo: { name?: string } | null): str
   const label = formatChannelLabel(channelInfo);
   return label ? `the Slack channel ${label}` : 'Slack';
 }
+
+export interface FormatSlackQueryOptions {
+  text: string;
+  channelContext: string;
+  userName: string;
+  attachmentContext?: string;
+  threadContext?: string;
+  isAutoExecute?: boolean;
+}
+
+export function formatSlackQuery(options: FormatSlackQueryOptions): string {
+  const { text, channelContext, userName, attachmentContext, threadContext, isAutoExecute } =
+    options;
+
+  if (isAutoExecute && threadContext) {
+    return `A user mentioned you in a thread in ${channelContext}.
+
+<slack_thread_context>
+${threadContext}
+</slack_thread_context>
+
+Based on the thread above, provide a helpful response. Consider:
+- What is the main topic or question being discussed?
+- Is there anything that needs clarification or a direct answer?
+- If appropriate, summarize key points or provide relevant information.
+
+Respond naturally as if you're joining the conversation to help.`;
+  }
+
+  if (threadContext) {
+    let messageContent = text;
+    if (attachmentContext) {
+      messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+    }
+    return `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${threadContext}\n</slack_thread_context>\n\nMessage from ${userName}: ${messageContent}`;
+  }
+
+  if (attachmentContext) {
+    return `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+  }
+
+  return `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
+}

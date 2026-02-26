@@ -22,6 +22,8 @@ vi.mock('../../slack/services/client', () => ({
       postEphemeral: mockPostEphemeral,
     },
   })),
+  getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
+  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -44,6 +46,11 @@ vi.mock('../../slack/services/events/utils', () => ({
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
   generateSlackConversationId: vi.fn().mockReturnValue('mock-conversation-id'),
   escapeSlackMrkdwn: vi.fn((t: string) => t),
+  formatChannelContext: vi.fn().mockReturnValue('Slack'),
+  formatSlackQuery: vi.fn((opts: { text: string; threadContext?: string }) => {
+    if (opts.threadContext) return `${opts.threadContext}\n\n${opts.text}`;
+    return opts.text;
+  }),
 }));
 
 vi.mock('../../env', () => ({

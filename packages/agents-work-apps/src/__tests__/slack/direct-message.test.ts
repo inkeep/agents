@@ -58,6 +58,7 @@ vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     chat: { postMessage: mockPostMessage },
   })),
+  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -203,7 +204,7 @@ describe('handleDirectMessage', () => {
         projectId: 'proj-1',
         agentId: 'agent-1',
         agentName: 'Test Agent',
-        question: 'hello bot',
+        question: expect.stringContaining('hello bot'),
       })
     );
   });

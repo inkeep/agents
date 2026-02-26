@@ -36,6 +36,7 @@ import {
   findCachedUserMapping,
   formatAttachments,
   formatChannelContext,
+  formatSlackQuery,
   generateSlackConversationId,
   getThreadContext,
   getUserFriendlyErrorMessage,
@@ -290,18 +291,13 @@ export async function handleAppMention(params: {
         span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
 
         const channelContext = formatChannelContext(channelInfo);
-        const threadQuery = `A user mentioned you in a thread in ${channelContext}.
-
-<slack_thread_context>
-${contextMessages}
-</slack_thread_context>
-
-Based on the thread above, provide a helpful response. Consider:
-- What is the main topic or question being discussed?
-- Is there anything that needs clarification or a direct answer?
-- If appropriate, summarize key points or provide relevant information.
-
-Respond naturally as if you're joining the conversation to help.`;
+        const threadQuery = formatSlackQuery({
+          text: '',
+          channelContext,
+          userName: slackUserId,
+          threadContext: contextMessages,
+          isAutoExecute: true,
+        });
 
         logger.info(
           { projectId: agentConfig.projectId, agentId: agentConfig.agentId, conversationId },
@@ -346,11 +342,13 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         if (contextMessages) {
           const channelContext = formatChannelContext(channelInfo);
-          let messageContent = text;
-          if (attachmentContext) {
-            messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
-          }
-          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${messageContent}`;
+          queryText = formatSlackQuery({
+            text,
+            channelContext,
+            userName: slackUserId,
+            attachmentContext: attachmentContext || undefined,
+            threadContext: contextMessages,
+          });
         }
       } else {
         const {
@@ -364,11 +362,12 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         const channelContext = formatChannelContext(channelInfo);
         const userName = userInfo?.displayName || 'User';
-        if (attachmentContext) {
-          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
-        } else {
-          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
-        }
+        queryText = formatSlackQuery({
+          text,
+          channelContext,
+          userName,
+          attachmentContext: attachmentContext || undefined,
+        });
       }
 
       // Sign JWT token for authentication with channel auth context
