@@ -83,8 +83,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       //   },
       z.string(),
       z.looseObject({
-        id: z.string().trim(),
-        name: z.string().trim(),
+        id: z.string().trim().nonempty(),
+        name: z.string().trim().nonempty(),
         description: z.string().trim(),
         skills: z.array(
           z.strictObject({

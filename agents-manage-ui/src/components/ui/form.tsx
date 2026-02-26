@@ -126,7 +126,7 @@ function FormDescription({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-function firstNestedMessage(node: unknown, path: string[] = []): string | undefined {
+export function firstNestedMessage(node: unknown, path: string[] = []): string | undefined {
   if (!node || typeof node !== 'object') return;
 
   if ('message' in node && typeof node.message === 'string') {

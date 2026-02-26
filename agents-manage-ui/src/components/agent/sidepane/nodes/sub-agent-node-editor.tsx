@@ -65,7 +65,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 }) => {
   'use memo';
   const form = useFullAgentFormContext();
-  const id = (selectedNode.data.id ?? selectedNode.id)
+  const id = selectedNode.data.id ?? selectedNode.id;
   const subAgent = useWatch({ control: form.control, name: `subAgents.${id}` });
 
   const path = <K extends string>(k: K) => `subAgents.${id}.${k}` as const;
@@ -94,9 +94,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   //     message: 'This field is invalid',
   //   });
   // }, []);
-  console.log({subAgent})
+  console.log({ subAgent });
   if (!subAgent) {
-      return;
+    return;
   }
   return (
     <div className="space-y-8 flex flex-col">

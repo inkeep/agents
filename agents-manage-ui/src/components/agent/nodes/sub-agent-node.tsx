@@ -1,15 +1,17 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import { useFormState, useWatch } from 'react-hook-form';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
+import { firstNestedMessage } from '@/components/ui/form';
 import { STATIC_LABELS } from '@/constants/theme';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { cn } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
@@ -17,8 +19,6 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
-import {useFullAgentFormContext} from "@/contexts/full-agent-form";
-import {useWatch} from "react-hook-form";
 
 const ListSection = ({
   title,
@@ -48,7 +48,21 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const { models, status } = data;
 
   const form = useFullAgentFormContext();
-  const subAgent = useWatch({ control: form.control, name: `subAgents.${data.id}` });
+  const formKey = `subAgents.${data.id}` as const;
+  const subAgent = useWatch({ control: form.control, name: formKey });
+  const { errors } = useFormState({
+    control: form.control,
+    name: formKey,
+  });
+  const fieldErrors = errors?.subAgents?.[data.id];
+  const processedErrors = fieldErrors
+    ? Object.entries(fieldErrors).map(([key, value]) => ({
+        field: key,
+        message: firstNestedMessage(value),
+      }))
+    : [];
+  const hasErrors = processedErrors.length > 0;
+
   const { name, description, isDefault } = subAgent;
   const modelName = models?.base?.model;
 
@@ -56,13 +70,6 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     dataComponentLookup: state.dataComponentLookup,
     artifactComponentLookup: state.artifactComponentLookup,
   }));
-
-  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
-
-  // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-  const subAgentId = data.id || id;
-  const nodeErrors = getNodeErrors(subAgentId);
-  const hasErrors = hasNodeErrors(subAgentId);
 
   const dataComponentNames = useMemo(
     () =>
@@ -96,13 +103,19 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>
+              {name || <i className="text-muted-foreground/50">No name</i>}
+            </BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
             Sub Agent
           </Badge>
           {hasErrors && (
-            <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
+            <ErrorIndicator
+              // @ts-expect-error fixme
+              errors={processedErrors}
+              className="absolute -top-2 -right-2 w-6 h-6"
+            />
           )}
         </BaseNodeHeader>
         <BaseNodeContent>
