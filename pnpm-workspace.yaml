@@ -39,3 +39,9 @@ overrides:
   "@modelcontextprotocol/sdk>zod": ^3.25.7
   "@anthropic-ai/mcpb>zod": ^3.25.7
   preact: "-" # we don't use preact, this removes pnpm audit warnings from posthog-js>preact
+  # Security overrides — upstream packages haven't released fixes
+  devalue: ">=5.6.3" # @workflow/core pins 5.6.0; DoS + prototype pollution
+  rollup: ">=4.59.0" # vite lockfile pins 4.54.0; arbitrary file write
+  undici: ">=6.23.0" # @workflow/web pins 6.22.0; unbounded decompression DoS
+  fast-xml-parser: ">=5.3.6" # @aws-sdk/xml-builder@3.969.0 pins 5.2.5; entity injection + DoS
+  qs: ">=6.14.2" # body-parser/cypress resolve stale versions; arrayLimit bypass DoS
