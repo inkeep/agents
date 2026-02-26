@@ -45,3 +45,8 @@ overrides:
   undici: ">=6.23.0" # @workflow/web pins 6.22.0; unbounded decompression DoS
   fast-xml-parser: ">=5.3.6" # @aws-sdk/xml-builder@3.969.0 pins 5.2.5; entity injection + DoS
   qs: ">=6.14.2" # body-parser/cypress resolve stale versions; arrayLimit bypass DoS
+  axios: ">=1.13.5" # @nangohq/types pins 1.12.0; DoS via __proto__ in mergeConfig
+  ajv: ">=6.14.0" # eslint resolves 6.12.6; ReDoS with $data option
+  "minimatch@<3.1.3": ">=3.1.3" # @eslint/config-array resolves 3.1.2; ReDoS via wildcards
+  "minimatch@>=9 <9.0.6": ">=9.0.6" # @hono/vite-dev-server resolves 9.0.5; ReDoS via wildcards
+  "minimatch@>=10 <10.2.1": ">=10.2.1" # glob@13 lockfile pins 10.1.1; ReDoS via wildcards
