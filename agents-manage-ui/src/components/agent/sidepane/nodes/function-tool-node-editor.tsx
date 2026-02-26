@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 
 interface FunctionToolNodeEditorProps {
@@ -31,7 +31,7 @@ interface FunctionToolNodeEditorProps {
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
   'use memo';
-  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
+  const { deleteNode } = useDeleteNode(selectedNode.id);
 
   const { canEdit } = useProjectPermissions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();

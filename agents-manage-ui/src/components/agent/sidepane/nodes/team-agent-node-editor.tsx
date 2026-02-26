@@ -11,7 +11,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
@@ -27,11 +27,8 @@ export function TeamAgentNodeEditor({
   subAgentTeamAgentConfigLookup,
 }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { deleteNode } = useDeleteNode(selectedNode.id);
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string; }>();
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);

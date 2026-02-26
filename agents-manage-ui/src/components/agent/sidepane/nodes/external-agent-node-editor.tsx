@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
@@ -30,11 +30,8 @@ export function ExternalAgentNodeEditor({
   subAgentExternalAgentConfigLookup,
 }: ExternalAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { deleteNode } = useDeleteNode(selectedNode.id);
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.id;
   const externalAgent = useWatch({

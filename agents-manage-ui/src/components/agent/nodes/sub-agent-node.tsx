@@ -47,10 +47,10 @@ const ListSection = ({
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   const { models, status } = data;
 
-  const form = useFullAgentFormContext();
-  const formKey = `subAgents.${data.id}` as const;
-  const subAgent = useWatch({ control: form.control, name: formKey });
-  const processedErrors = useProcessedErrors('subAgents', data.id);
+  const { control } = useFullAgentFormContext();
+  const formKey = `subAgents.${id}` as const;
+  const subAgent = useWatch({ control, name: formKey });
+  const processedErrors = useProcessedErrors('subAgents', id);
   const hasErrors = processedErrors.length > 0;
 
   const { name, description, isDefault } = subAgent;

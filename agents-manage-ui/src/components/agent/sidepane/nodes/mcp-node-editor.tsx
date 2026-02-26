@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
@@ -50,7 +50,7 @@ export function MCPServerNodeEditor({
   const path = <K extends string>(k: K) => `tools.${id}.${k}` as const;
 
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
+  const { deleteNode } = useDeleteNode(selectedNode.id);
   const { updateNodeData } = useReactFlow();
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
