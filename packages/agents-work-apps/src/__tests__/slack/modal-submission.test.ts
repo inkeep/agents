@@ -187,6 +187,7 @@ describe('handleModalSubmission', () => {
         question: 'Test question',
         conversationId: 'conv-123',
         threadTs: undefined,
+        userTimezone: 'America/New_York',
       })
     );
   });

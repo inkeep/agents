@@ -45,6 +45,10 @@ vi.mock('../../slack/services/events/utils', () => ({
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
   generateSlackConversationId: vi.fn().mockReturnValue('mock-conversation-id'),
   escapeSlackMrkdwn: vi.fn((t: string) => t),
+  getClientTimezoneHeaders: (tz?: string) => ({
+    'x-inkeep-client-timezone': tz || 'UTC',
+    'x-inkeep-client-timestamp': new Date().toISOString(),
+  }),
 }));
 
 vi.mock('../../env', () => ({
@@ -387,6 +391,7 @@ describe('resumeSmartLinkIntent', () => {
         agentId: 'agent_dm',
         projectId: 'project_dm',
         question: 'How do I reset my password?',
+        userTimezone: 'America/New_York',
       })
     );
     expect(streamAgentResponse).not.toHaveBeenCalled();

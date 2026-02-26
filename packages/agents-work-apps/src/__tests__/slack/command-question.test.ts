@@ -212,6 +212,7 @@ describe('handleQuestionCommand', () => {
         agentName: 'Test Agent',
         question: 'What is Inkeep?',
         conversationId: 'slack-trigger-T789-123.456000-agent-1',
+        userTimezone: 'America/New_York',
       })
     );
     expect(mockExecuteAgentPublicly).toHaveBeenCalledWith(

@@ -100,7 +100,7 @@ vi.mock('../../slack/services/client', () => ({
     chatStream: mockChatStream,
   })),
   getSlackChannelInfo: vi.fn().mockResolvedValue(null),
-  getSlackUserInfo: vi.fn().mockResolvedValue(null),
+  getSlackUserInfo: vi.fn().mockResolvedValue({ tz: 'America/New_York' }),
   postMessageInThread: vi.fn(),
 }));
 
@@ -332,6 +332,7 @@ describe('handleAppMention', () => {
         agentName: 'Test Agent',
         projectId: 'proj-1',
         question: expect.stringContaining('What is Inkeep?'),
+        userTimezone: 'America/New_York',
       })
     );
     expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.authorized', true);
@@ -456,6 +457,7 @@ describe('handleAppMention', () => {
         threadTs: '1111.0000',
         agentId: 'agent-1',
         question: expect.stringContaining('slack_thread_context'),
+        userTimezone: 'America/New_York',
       })
     );
   });
@@ -508,6 +510,7 @@ describe('handleAppMention', () => {
         threadTs: '1111.0000',
         agentId: 'agent-1',
         question: expect.stringContaining('explain this'),
+        userTimezone: 'America/New_York',
       })
     );
   });

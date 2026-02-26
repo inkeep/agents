@@ -24,6 +24,7 @@ import type { getSlackClient } from '../client';
 import {
   classifyError,
   extractApiErrorMessage,
+  getClientTimezoneHeaders,
   getUserFriendlyErrorMessage,
   SlackErrorType,
 } from './utils';
@@ -182,8 +183,7 @@ export async function streamAgentResponse(params: {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-invocation-type': 'slack',
           ...(entryPoint && { 'x-inkeep-invocation-entry-point': entryPoint }),
-          'x-inkeep-client-timezone': params.userTimezone || 'UTC',
-          'x-inkeep-client-timestamp': new Date().toISOString(),
+          ...getClientTimezoneHeaders(params.userTimezone),
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],

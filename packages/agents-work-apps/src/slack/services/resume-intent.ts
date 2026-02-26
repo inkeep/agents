@@ -7,7 +7,11 @@ import { createContextBlock } from './blocks';
 import { getSlackClient, getSlackUserInfo } from './client';
 import { executeAgentPublicly } from './events/execution';
 import { streamAgentResponse } from './events/streaming';
-import { generateSlackConversationId, sendResponseUrlMessage } from './events/utils';
+import {
+  generateSlackConversationId,
+  getClientTimezoneHeaders,
+  sendResponseUrlMessage,
+} from './events/utils';
 import { findWorkspaceConnectionByTeamId } from './nango';
 
 const logger = getLogger('slack-resume-intent');
@@ -482,8 +486,7 @@ async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void>
         'x-inkeep-agent-id': agentId,
         'x-inkeep-invocation-type': 'slack',
         'x-inkeep-invocation-entry-point': 'smart_link_resume',
-        'x-inkeep-client-timezone': params.userTimezone || 'UTC',
-        'x-inkeep-client-timestamp': new Date().toISOString(),
+        ...getClientTimezoneHeaders(params.userTimezone),
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: intent.question }],

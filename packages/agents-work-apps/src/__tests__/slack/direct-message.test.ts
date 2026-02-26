@@ -205,6 +205,7 @@ describe('handleDirectMessage', () => {
         agentId: 'agent-1',
         agentName: 'Test Agent',
         question: 'hello bot',
+        userTimezone: 'America/New_York',
       })
     );
   });

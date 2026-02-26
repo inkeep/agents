@@ -18,6 +18,7 @@ import {
   fetchProjectsForTenant,
   findCachedUserMapping,
   getChannelAgentConfig,
+  getClientTimezoneHeaders,
   sendResponseUrlMessage,
 } from './utils';
 
@@ -104,8 +105,7 @@ export async function handleToolApproval(params: {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-invocation-type': 'slack',
           'x-inkeep-invocation-entry-point': 'tool_approval',
-          'x-inkeep-client-timezone': userInfo?.tz || 'UTC',
-          'x-inkeep-client-timestamp': new Date().toISOString(),
+          ...getClientTimezoneHeaders(userInfo?.tz),
         },
         body: JSON.stringify({
           conversationId,

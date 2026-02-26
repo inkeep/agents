@@ -725,3 +725,9 @@ export function formatChannelContext(channelInfo: { name?: string } | null): str
   const label = formatChannelLabel(channelInfo);
   return label ? `the Slack channel ${label}` : 'Slack';
 }
+
+// TODO: Consolidate with widget `getClientHeaders` pattern once agents-ui is in same monorepo
+export const getClientTimezoneHeaders = (tz?: string) => ({
+  'x-inkeep-client-timezone': tz || 'UTC',
+  'x-inkeep-client-timestamp': new Date().toISOString(),
+});
