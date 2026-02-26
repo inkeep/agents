@@ -222,4 +222,46 @@ describe('generateSecrets (via runSetup)', () => {
     expect(writtenEnvContent).toContain(`BETTER_AUTH_SECRET=${MOCK_HEX_32}`);
     expect(writtenEnvContent).toContain(`INKEEP_AGENTS_MANAGE_UI_PASSWORD=${MOCK_BASE64URL_6}`);
   });
+
+  it('should sync process.env when replacing placeholder secrets', async () => {
+    process.env.BETTER_AUTH_SECRET = 'your-secret-key-change-in-production';
+    process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD = 'adminADMIN!@12';
+    delete process.env.INKEEP_AGENTS_JWT_SIGNING_SECRET;
+
+    mockEnvFileContent = [
+      '# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=',
+      '# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=',
+      '# INKEEP_AGENTS_JWT_SIGNING_SECRET=',
+      'BETTER_AUTH_SECRET=your-secret-key-change-in-production',
+      'INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12',
+    ].join('\n');
+
+    const { runSetup } = await import('../setup.js');
+    await runSetup(baseConfig());
+
+    expect(process.env.BETTER_AUTH_SECRET).toBe(MOCK_HEX_32);
+    expect(process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD).toBe(MOCK_BASE64URL_6);
+    expect(process.env.INKEEP_AGENTS_JWT_SIGNING_SECRET).toBe(MOCK_HEX_32);
+    expect(process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY).toBeDefined();
+    expect(process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY).toBeDefined();
+  });
+
+  it('should not overwrite process.env for non-placeholder values', async () => {
+    process.env.BETTER_AUTH_SECRET = 'my-real-secret';
+    process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD = 'my-strong-password';
+
+    mockEnvFileContent = [
+      'INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=my-real-private-key',
+      'INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=my-real-public-key',
+      'INKEEP_AGENTS_JWT_SIGNING_SECRET=my-custom-signing-secret',
+      'BETTER_AUTH_SECRET=my-real-secret',
+      'INKEEP_AGENTS_MANAGE_UI_PASSWORD=my-strong-password',
+    ].join('\n');
+
+    const { runSetup } = await import('../setup.js');
+    await runSetup(baseConfig());
+
+    expect(process.env.BETTER_AUTH_SECRET).toBe('my-real-secret');
+    expect(process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD).toBe('my-strong-password');
+  });
 });
