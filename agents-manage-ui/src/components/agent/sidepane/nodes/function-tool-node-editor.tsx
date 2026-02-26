@@ -1,8 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -24,13 +23,14 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
-  const { updatePath, deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
 
   const { canEdit } = useProjectPermissions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
@@ -52,20 +52,8 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   const path = <K extends string>(k: K) => `functionTools.${functionToolIndex}.${k}` as const;
 
-  const nodeData = selectedNode.data;
-
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
-
-  // Local state for form fields - initialize from node data
-  const [needsApproval, setNeedsApproval] = useState(
-    !!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false)
-  );
-
-  // Sync local state with node data when node changes
-  useEffect(() => {
-    setNeedsApproval(!!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false));
-  }, [nodeData]);
 
   const handleWriteWithAISubmit = useCallback(() => {
     if (!chatFunctionsRef?.current) return;
@@ -193,32 +181,25 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 }`}
         description="External npm packages that the function code requires. These packages will be installed before executing the function."
       />
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="function-tool-needs-approval"
-            checked={needsApproval}
-            onCheckedChange={(checked) => {
-              const value = checked === true;
-              setNeedsApproval(value);
-              updatePath('tempToolPolicies', value ? { '*': { needsApproval: true } } : {});
-            }}
-          />
-          <Label htmlFor="function-tool-needs-approval">Require approval</Label>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          When enabled, the agent will pause and request user approval before running this function
-          tool.{' '}
-          <a
-            href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:no-underline"
-          >
-            Learn more
-          </a>
-        </p>
-      </div>
+      <GenericCheckbox
+        control={form.control}
+        name={path('tempToolPolicies.*.needsApproval')}
+        label="Require approval"
+        description={
+          <>
+            When enabled, the agent will pause and request user approval before running this
+            function tool.{' '}
+            <a
+              href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:no-underline"
+            >
+              Learn more
+            </a>
+          </>
+        }
+      />
       {canEdit && (
         <>
           <Separator />

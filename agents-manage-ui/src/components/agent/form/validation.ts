@@ -4,6 +4,7 @@ import {
   type AgentWithinContextOfProjectResponse,
   SubAgentStopWhenSchema,
   StringRecordSchema,
+  FunctionApiInsertSchema,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
@@ -99,7 +100,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       z.looseObject({
         name: z.string().trim().nonempty(),
         description: z.string().trim().nonempty(),
-        executeCode: z.string().trim(),
+        executeCode: FunctionApiInsertSchema.shape.executeCode,
         inputSchema: z
           .string()
           .trim()
@@ -110,6 +111,11 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
           .trim()
           .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
           .pipe(StringRecordSchema.optional()),
+        tempToolPolicies: z.strictObject({
+          '*': z.strictObject({
+            needsApproval: z.boolean(),
+          }),
+        }),
       })
     ),
     stopWhen: StopWhenSchema.extend({
