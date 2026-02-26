@@ -46,7 +46,10 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs normal-case font-normal">
+        <Button
+          variant="ghost"
+          className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs normal-case font-normal"
+        >
           {icon}
           {`${title} (${errors.length})`}
           <IconToUse />
@@ -66,7 +69,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
                   size="sm"
                   variant="outline"
                   onClick={() => onNavigate(itemId)}
-                  className="h-5 px-1.5 text-xs"
+                  className="h-5 px-1.5 text-xs normal-case"
                 >
                   Go to
                 </Button>
@@ -78,8 +81,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
                   key={`${itemId}-${index}`}
                   className="text-xs text-red-700 dark:text-red-300 bg-red-50/90 dark:bg-red-950/40 p-2 rounded border border-red-200 dark:border-red-700"
                 >
-                  <b>{error.field}:</b>{' '}
-                  <span className="leading-relaxed">{error.message}</span>
+                  <b>{error.field}</b>: {error.message}
                 </div>
               ))}
             </div>
