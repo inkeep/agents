@@ -1,7 +1,8 @@
 'use client';
 
-import { Check, ChevronDown, Loader2 } from 'lucide-react';
+import { Check, ChevronDown, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
   Command,
   CommandEmpty,
@@ -10,8 +11,11 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ChannelAccessPopover } from './channel-access-popover';
 import type { DefaultAgentConfig, SlackAgentOption } from './types';
 
 interface WorkspaceDefaultSectionProps {
@@ -21,6 +25,8 @@ interface WorkspaceDefaultSectionProps {
   savingDefault: boolean;
   canEdit: boolean;
   onSetDefaultAgent: (agent: SlackAgentOption) => void;
+  onToggleGrantAccess: (grantAccess: boolean) => void;
+  onRemoveDefaultAgent: () => void;
   onFetchAgents: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,42 +39,63 @@ export function WorkspaceDefaultSection({
   savingDefault,
   canEdit,
   onSetDefaultAgent,
+  onToggleGrantAccess,
+  onRemoveDefaultAgent,
   onFetchAgents,
   open,
   onOpenChange,
 }: WorkspaceDefaultSectionProps) {
+  const grantAccess = defaultAgent?.grantAccessToMembers ?? true;
+
   return (
-    <div>
+    <div className="space-y-3">
       {canEdit ? (
         <Popover open={open} onOpenChange={onOpenChange}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between h-11 bg-background"
-              onClick={() => {
-                if (agents.length === 0) onFetchAgents();
-              }}
-            >
-              {savingDefault ? (
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : defaultAgent ? (
-                <span className="flex items-center gap-2">
-                  <span className="font-medium">{defaultAgent.agentName}</span>
-                  <span className="text-gray-400 font-normal dark:text-white/40"> / </span>
-                  <span className="text-gray-400 font-normal dark:text-white/40">
-                    {defaultAgent.projectName}
+          <ButtonGroup className="w-full">
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="min-w-0 grid flex-1 grid-cols-[minmax(0,1fr)_auto] overflow-hidden text-left"
+                onClick={() => {
+                  if (agents.length === 0) onFetchAgents();
+                }}
+              >
+                {savingDefault ? (
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
                   </span>
-                </span>
-              ) : (
-                <span className="text-muted-foreground">Select a default agent...</span>
-              )}
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0" align="start">
+                ) : defaultAgent ? (
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{defaultAgent.agentName}</span>
+                    <span className="text-gray-400 font-normal dark:text-white/40"> / </span>
+                    <span className="text-gray-400 font-normal dark:text-white/40">
+                      {defaultAgent.projectName}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Select a default agent...</span>
+                )}
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            {defaultAgent && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={onRemoveDefaultAgent}
+                    variant="outline"
+                    aria-label="Remove default agent"
+                    type="button"
+                  >
+                    <X />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove the default agent for this workspace.</TooltipContent>
+              </Tooltip>
+            )}
+          </ButtonGroup>
+          <PopoverContent className="w-full p-0" align="start">
             <Command>
               <CommandInput placeholder="Search agents..." />
               <CommandList>
@@ -85,15 +112,17 @@ export function WorkspaceDefaultSection({
                 <CommandGroup>
                   {agents.map((agent) => (
                     <CommandItem
-                      key={agent.id}
+                      key={`${agent.id}-${agent.projectId}`}
                       value={`${agent.name} ${agent.projectName}`}
                       onSelect={() => onSetDefaultAgent(agent)}
-                      className="py-3"
                     >
                       <Check
                         className={cn(
-                          'mr-2 h-4 w-4',
-                          defaultAgent?.agentId === agent.id ? 'opacity-100' : 'opacity-0'
+                          'h-4 w-4',
+                          defaultAgent?.agentId === agent.id &&
+                            defaultAgent?.projectId === agent.projectId
+                            ? 'opacity-100'
+                            : 'opacity-0'
                         )}
                       />
                       <div className="flex flex-col">
@@ -120,6 +149,16 @@ export function WorkspaceDefaultSection({
           ) : (
             <span className="text-muted-foreground">No default agent configured.</span>
           )}
+        </div>
+      )}
+      {defaultAgent && canEdit && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <Label>Member Access</Label>
+          <ChannelAccessPopover
+            grantAccess={grantAccess}
+            onToggleGrantAccess={onToggleGrantAccess}
+            idPrefix="workspace-grant-access"
+          />
         </div>
       )}
     </div>

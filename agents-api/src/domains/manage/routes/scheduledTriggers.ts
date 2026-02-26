@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   addConversationIdToInvocation,
   cancelPendingInvocationsForTrigger,
@@ -36,6 +36,8 @@ import {
   updateScheduledTrigger,
   updateScheduledTriggerInvocationStatus,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { CronExpressionParser } from 'cron-parser';
 import { manageDbClient } from '../../../data/db';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -57,34 +59,17 @@ const ScheduledTriggerIdParamsSchema = TenantProjectAgentParamsSchema.extend({
   id: z.string().describe('Scheduled Trigger ID'),
 });
 
-// Apply permission middleware by HTTP method
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 /**
  * List Scheduled Triggers for an Agent
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Scheduled Triggers',
     operationId: 'list-scheduled-triggers',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -131,6 +116,34 @@ app.openapi(
         lastRunConversationIds: [],
         nextRunAt: null,
       };
+
+      // Calculate nextRunAt if it's null and trigger is enabled
+      if (!runInfo.nextRunAt && trigger.enabled) {
+        if (trigger.runAt) {
+          // One-time trigger - use runAt if it's in the future
+          const runAtDate = new Date(trigger.runAt);
+          if (runAtDate > new Date()) {
+            runInfo.nextRunAt = trigger.runAt;
+          }
+        } else if (trigger.cronExpression) {
+          // Cron trigger - calculate next execution time
+          try {
+            const baseDate = runInfo.lastRunAt ? new Date(runInfo.lastRunAt) : new Date();
+            const interval = CronExpressionParser.parse(trigger.cronExpression, {
+              currentDate: baseDate,
+              tz: trigger.cronTimezone || 'UTC',
+            });
+            const nextDate = interval.next();
+            runInfo.nextRunAt = nextDate.toISOString();
+          } catch (error) {
+            logger.warn(
+              { triggerId: trigger.id, cronExpression: trigger.cronExpression, error },
+              'Failed to calculate nextRunAt from cron expression'
+            );
+          }
+        }
+      }
+
       return {
         ...rest,
         ...runInfo,
@@ -158,12 +171,13 @@ const UpcomingRunsQueryParamsSchema = PaginationQueryParamsSchema.extend({
  * Dashboard endpoint to view all pending/running invocations for an agent
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/upcoming-runs',
     summary: 'List Upcoming Runs',
     operationId: 'list-upcoming-scheduled-runs',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: UpcomingRunsQueryParamsSchema,
@@ -217,12 +231,13 @@ app.openapi(
  * Get Scheduled Trigger by ID
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Scheduled Trigger',
     operationId: 'get-scheduled-trigger-by-id',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: ScheduledTriggerIdParamsSchema,
     },
@@ -266,12 +281,13 @@ app.openapi(
  * Create Scheduled Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Scheduled Trigger',
     operationId: 'create-scheduled-trigger',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -349,12 +365,13 @@ app.openapi(
  * Update Scheduled Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{id}',
     summary: 'Update Scheduled Trigger',
     operationId: 'update-scheduled-trigger',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ScheduledTriggerIdParamsSchema,
       body: {
@@ -523,12 +540,13 @@ app.openapi(
  * Delete Scheduled Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Scheduled Trigger',
     operationId: 'delete-scheduled-trigger',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ScheduledTriggerIdParamsSchema,
     },
@@ -607,12 +625,13 @@ const ScheduledTriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.
  * List Scheduled Trigger Invocations
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/invocations',
     summary: 'List Scheduled Trigger Invocations',
     operationId: 'list-scheduled-trigger-invocations',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: ScheduledTriggerIdParamsSchema,
       query: ScheduledTriggerInvocationQueryParamsSchema,
@@ -666,12 +685,13 @@ app.openapi(
  * Get Scheduled Trigger Invocation by ID
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/invocations/{invocationId}',
     summary: 'Get Scheduled Trigger Invocation',
     operationId: 'get-scheduled-trigger-invocation-by-id',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: ScheduledTriggerIdParamsSchema.extend({
         invocationId: z.string().describe('Scheduled Trigger Invocation ID'),
@@ -733,12 +753,13 @@ app.openapi(
  * Cancel Scheduled Trigger Invocation
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{id}/invocations/{invocationId}/cancel',
     summary: 'Cancel Scheduled Trigger Invocation',
     operationId: 'cancel-scheduled-trigger-invocation',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ScheduledTriggerIdParamsSchema.extend({
         invocationId: z.string().describe('Scheduled Trigger Invocation ID'),
@@ -831,12 +852,13 @@ app.openapi(
  * Creates a new invocation and executes it immediately (manual rerun of a past run)
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{id}/invocations/{invocationId}/rerun',
     summary: 'Rerun Scheduled Trigger Invocation',
     operationId: 'rerun-scheduled-trigger-invocation',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ScheduledTriggerIdParamsSchema.extend({
         invocationId: z.string().describe('Scheduled Trigger Invocation ID to rerun'),
@@ -1148,12 +1170,13 @@ app.openapi(
  * Creates a new invocation and executes it immediately (manual trigger)
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{id}/run',
     summary: 'Run Scheduled Trigger Now',
     operationId: 'run-scheduled-trigger-now',
     tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ScheduledTriggerIdParamsSchema,
     },

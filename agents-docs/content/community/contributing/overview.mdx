@@ -28,7 +28,7 @@ cd agents
 
 ### Step 2: Run the setup script
 
-For first-time setup, run:
+Ensure Docker Desktop (or Docker daemon) is running, then run:
 
 ```bash
 pnpm setup-dev
@@ -37,10 +37,18 @@ pnpm setup-dev
 This will:
 
 - Create `.env` from `.env.example` if missing
-- Create `~/.inkeep/config` for user-global settings if missing
-- Add `.env` to `.gitignore` if needed
-- Install dependencies
-- Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml` and run migrations
+- Generate secrets (JWT keys, signing secret, auth secret, UI password) if not already configured
+- Check that Docker is running and required ports (5432, 5433, 5434) are free
+- Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml`
+- Run database migrations (manage + runtime)
+- Initialize the default organization and admin user
+- Push a sample project (activities-planner) so the UI is pre-seeded
+
+<Tip>
+Safe to re-run at any time. Each step is additive — it won't drop tables, delete projects, or reset credentials. Migrations apply only what's new, and existing data is preserved. If Docker containers are already running, setup skips startup and proceeds to migrations.
+</Tip>
+
+If another Docker Compose project is using the required ports, setup tells you exactly which project is blocking and the command to stop it.
 
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
@@ -75,7 +83,7 @@ pnpm add -g @inkeep/agents-cli
 ### Step 2: Push the project
 
 ```bash
-cd agents-cookbook/template-projects/weather-project
+cd agents-cookbook/template-projects/activities-planner
 inkeep push
 ```
 
@@ -93,27 +101,26 @@ inkeep push
   style={{ border: "1px solid #e1e5e9" }}
 />
 
-# Set up live traces
+# Set up optional services (traces + credentials)
 
-For full instructions, see [Traces](/get-started/traces). Short version:
+Set up all optional local services — Nango (credential store), SigNoz (traces), OTEL Collector, and Jaeger — with one command:
 
-- For local SigNoz, clone `agents-optional-local-dev` and run `docker-compose --profile signoz up -d`.
-- Set `SIGNOZ_URL`, `SIGNOZ_API_KEY`, and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` in the root `.env` (see `.env.example`).
-- Restart `pnpm dev`, then open `http://localhost:3080` to view traces.
+```bash
+pnpm setup-dev:optional
+```
+
+This clones [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) into `.optional-services/`, starts services via Docker Compose, and writes the required env vars to your `.env`. Restart `pnpm dev` to pick up the new variables.
+
+- **Traces**: Open `http://localhost:3080` for SigNoz. See [Traces](/get-started/traces) for details.
+- **Credentials**: Create a credential in the Visual Builder using Nango Store. See [Nango](/typescript-sdk/credentials/nango) for details.
+
+<Snippet file="setup-dev-optional-lifecycle.mdx" />
 
 <Image
   src="/images/live-traces.png"
   alt="Live traces showing"
   style={{ border: "1px solid #e1e5e9" }}
 />
-
-# Set up credentials
-
-For Nango setup (cloud or local), follow [Use Nango as a credential store](/typescript-sdk/credentials/nango). Short version:
-
-- Set `NANGO_SECRET_KEY` in the root `.env`.
-- For local Nango, start services from `agents-optional-local-dev` (`docker-compose --profile nango up -d`) and set `NANGO_SERVER_URL` / `PUBLIC_NANGO_CONNECT_BASE_URL` as needed (see `.env.example`).
-- Restart `pnpm dev`, then create a credential in the Visual Builder (Credentials tab).
 
 # Development Workflow
 
@@ -134,7 +141,7 @@ The pre-commit hook runs `pnpm lint-staged`, which:
 
 #### Pre-push Hook
 
-The pre-push hook runs `pnpm check:prepush` (lint, typecheck, and tests) for all packages except docs and cookbook templates.
+The pre-push hook runs `pnpm format` to auto-format code before pushing.
 
 ##### Bypassing Checks
 
@@ -152,8 +159,7 @@ git commit --no-verify -m "emergency: hotfix for production"
 
 ### Local checks (CI parity)
 
-- `pnpm check` runs lint, typecheck, and tests (the same set CI runs).
-- CI also runs `pnpm format:check` and `pnpm knip`.
+- `pnpm check` mirrors the full CI merge gate: lint, typecheck, tests, format verification, env-description validation, and dead code detection (knip).
 - For package-specific commands, see `AGENTS.md` below.
 
 # CLI Development
@@ -184,7 +190,7 @@ pnpm build
 
 ```bash
 # From repository root
-node agents-cli/dist/index.js push agents-cookbook/template-projects/weather-project
+node agents-cli/dist/index.js push agents-cookbook/template-projects/activities-planner
 node agents-cli/dist/index.js --help
 ```
 
@@ -253,12 +259,10 @@ Types:
 
 Our CI pipeline runs on all pull requests and includes:
 
-- `pnpm check` (lint, typecheck, tests)
-- `pnpm format:check`
-- `pnpm knip`
+- `pnpm check` (lint, typecheck, tests, format verification, env-description validation, knip)
 - Create Agents E2E tests (separate job)
 
-These checks must pass before a PR can be merged. Pre-commit uses lint-staged, pre-push runs `pnpm check:prepush`, and CI is the source of truth.
+These checks must pass before a PR can be merged. Pre-commit uses lint-staged, pre-push runs `pnpm format`, and CI is the source of truth.
 
 # AI coding assistants and coding practices
 

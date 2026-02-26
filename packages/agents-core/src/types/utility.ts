@@ -41,18 +41,13 @@ export type PaginationResult = {
   pages: number;
 };
 
-export type ProjectScopeConfig = {
-  tenantId: string;
-  projectId: string;
-};
-
-export type AgentScopeConfig = ProjectScopeConfig & {
-  agentId: string;
-};
-
-export type SubAgentScopeConfig = AgentScopeConfig & {
-  subAgentId: string;
-};
+// Scope config types are derived from SCOPE_KEYS in scope-definitions.ts.
+// Re-exported here to keep existing import paths working.
+export type {
+  AgentScopeConfig,
+  ProjectScopeConfig,
+  SubAgentScopeConfig,
+} from '../db/manage/scope-definitions';
 export interface ConversationScopeOptions {
   taskId?: string;
   subAgentId?: string;
@@ -305,6 +300,12 @@ export interface BaseExecutionContext {
     initiatedBy?: {
       type: 'user' | 'api_key';
       id: string;
+    };
+    slack?: {
+      authorized: true;
+      authSource: 'channel' | 'workspace';
+      channelId?: string;
+      teamId: string;
     };
   };
 }

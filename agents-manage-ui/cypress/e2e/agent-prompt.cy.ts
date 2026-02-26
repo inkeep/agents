@@ -2,7 +2,7 @@
 
 describe('Agent Prompt', () => {
   it('should suggest autocomplete in prompt editor from context variables editor and headers JSON schema editor', () => {
-    cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+    cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
 
     cy.typeInMonaco('contextVariables.json', '{"contextVariablesValue":123}');
     const headersJsonSchema = {
@@ -21,7 +21,7 @@ describe('Agent Prompt', () => {
   });
 
   it('should highlight as error unknown variables', () => {
-    cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+    cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
     cy.typeInMonaco('agent-prompt.template', 'Hello {{unknown}} {{$env.MY_ENV}}');
     cy.get('.squiggly-error').should('have.length', 1);
   });

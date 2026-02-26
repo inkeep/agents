@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { execa } from 'execa';
+import { chromium } from 'playwright';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   cleanupDir,
@@ -7,6 +8,7 @@ import {
   linkLocalPackages,
   runCommand,
   runCreateAgentsCLI,
+  startDashboardServer,
   verifyDirectoryStructure,
   verifyFile,
   waitForServerReady,
@@ -14,6 +16,9 @@ import {
 
 // Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
 const manageApiUrl = 'http://127.0.0.1:3002';
+// Dashboard must use localhost (not 127.0.0.1) so auth cookies share the same domain
+// between the dashboard (localhost:3000) and the API (localhost:3002).
+const dashboardApiUrl = 'http://localhost:3002';
 
 // Use a test bypass secret for authentication in CI
 // This bypasses the need for a real login/API key
@@ -45,16 +50,15 @@ describe('create-agents quickstart e2e', () => {
     const result = await runCreateAgentsCLI(
       [
         workspaceName,
-        '--openai-key',
-        'test-openai-key',
-        '--disable-git', // Skip git init for faster tests
+        '--skip-provider',
+        '--disable-git',
         '--local-agents-prefix',
         createAgentsPrefix,
         '--local-templates-prefix',
         projectTemplatesPrefix,
         '--skip-inkeep-cli',
         '--skip-inkeep-mcp',
-        '--skip-install', // Skip initial install so we can link local packages first
+        '--skip-install',
       ],
       testDir
     );
@@ -83,20 +87,28 @@ describe('create-agents quickstart e2e', () => {
     console.log('Directory structure verified');
 
     // Verify .env file has required variables
+    // After createEnvironmentFiles(), .env is a copy of .env.example with CLI-prompted
+    // values injected. Secrets (JWT keys, signing secret, etc.) remain as placeholders
+    // until setup-dev runs generateSecrets().
     console.log('Verifying .env file...');
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
-      /OPENAI_API_KEY=test-openai-key/,
       /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
-      /INKEEP_AGENTS_API_URL="http:\/\/127\.0\.0\.1:3002"/,
-      /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
+      /INKEEP_AGENTS_API_URL=http:\/\/localhost:3002/,
     ]);
     console.log('.env file verified');
 
     // Verify inkeep.config.ts was created
     console.log('Verifying inkeep.config.ts...');
-    await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
+    await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'), [
+      /defineConfig/,
+      /tenantId:/,
+      /agentsApi:/,
+      /apiKey:/,
+      /url:/,
+      /manageUiUrl:/,
+    ]);
     console.log('inkeep.config.ts verified');
 
     // Link to local monorepo packages (also runs pnpm install --no-frozen-lockfile)
@@ -119,6 +131,36 @@ describe('create-agents quickstart e2e', () => {
       },
       stream: true,
     });
+
+    // Run auth init separately to create the "default" organization and admin user.
+    // setup-dev:cloud may exit early if its internal migrations fail (e.g. when CI
+    // already applied migrations from the monorepo root), skipping auth init entirely.
+    console.log('Running auth init to ensure default organization exists');
+    const authInitResult = await runCommand({
+      command: 'node',
+      args: ['node_modules/@inkeep/agents-core/dist/auth/init.js'],
+      cwd: projectDir,
+      timeout: 120000, // 2 min: SpiceDB schema write retries up to 30x at 1s each
+      env: {
+        INKEEP_AGENTS_MANAGE_UI_USERNAME: 'admin@example.com',
+        INKEEP_AGENTS_MANAGE_UI_PASSWORD: 'adminADMIN!@12',
+        BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
+        SPICEDB_PRESHARED_KEY: 'dev-secret-key',
+        // Explicit DB URLs in case process.env doesn't carry them
+        INKEEP_AGENTS_RUN_DATABASE_URL:
+          process.env.INKEEP_AGENTS_RUN_DATABASE_URL ||
+          'postgresql://appuser:password@localhost:5433/inkeep_agents',
+        INKEEP_AGENTS_MANAGE_DATABASE_URL:
+          process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL ||
+          'postgresql://appuser:password@localhost:5432/inkeep_agents',
+      },
+      stream: true,
+    });
+    if (authInitResult.exitCode !== 0) {
+      console.warn(
+        `Auth init exited with code ${authInitResult.exitCode}\nstdout: ${authInitResult.stdout}\nstderr: ${authInitResult.stderr}`
+      );
+    }
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -164,6 +206,30 @@ describe('create-agents quickstart e2e', () => {
       await waitForServerReady(`${manageApiUrl}/health`, 120000); // Increased to 2 minutes for CI
       console.log('Manage API is ready');
 
+      // Ensure admin user exists for dashboard login.
+      // Auth init may fail in CI (SpiceDB schema write, module resolution), so
+      // create the user directly via the API's Better Auth signup endpoint as a
+      // reliable fallback. Signup is idempotent — returns 200 if user exists.
+      console.log('Ensuring admin user exists via API signup');
+      try {
+        const signupRes = await fetch(`${manageApiUrl}/api/auth/sign-up/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
+          body: JSON.stringify({
+            email: 'admin@example.com',
+            password: 'adminADMIN!@12',
+            name: 'admin',
+          }),
+        });
+        const signupData = await signupRes.json().catch(() => null);
+        console.log(
+          `Signup response: ${signupRes.status}`,
+          signupData ? JSON.stringify(signupData).slice(0, 200) : ''
+        );
+      } catch (signupError) {
+        console.warn('Signup request failed (non-fatal):', signupError);
+      }
+
       console.log('Pushing project');
       const pushResult = await runCommand({
         command: 'pnpm',
@@ -196,6 +262,117 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
+
+      // Verify login works at the API level before starting dashboard
+      console.log('Testing login API directly');
+      try {
+        const loginTestRes = await fetch(`${manageApiUrl}/api/auth/sign-in/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
+          body: JSON.stringify({
+            email: 'admin@example.com',
+            password: 'adminADMIN!@12',
+          }),
+        });
+        const loginBody = await loginTestRes.text().catch(() => '');
+        console.log(`Login API test: ${loginTestRes.status} ${loginBody.slice(0, 300)}`);
+        if (!loginTestRes.ok) {
+          console.error('Login API test failed — dashboard login will likely fail');
+        }
+      } catch (loginTestError) {
+        console.warn('Login API test failed (non-fatal):', loginTestError);
+      }
+
+      // --- Dashboard Lap ---
+      // Start the dashboard with ENVIRONMENT=development so the proxy middleware
+      // auto-logs in using the bypass secret — this mirrors the real quickstart
+      // experience where users never see a login form.
+      console.log('Starting dashboard lap');
+      const dashboardProcess = await startDashboardServer(projectDir, {
+        ENVIRONMENT: 'development',
+        INKEEP_AGENTS_API_URL: dashboardApiUrl,
+        NEXT_PUBLIC_API_URL: dashboardApiUrl,
+        PUBLIC_INKEEP_AGENTS_API_URL: dashboardApiUrl,
+        BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
+      });
+      console.log('Dashboard server started');
+
+      const browser = await chromium.launch({ headless: true });
+      try {
+        const page = await browser.newPage();
+
+        // Navigate to root — the proxy middleware auto-logs in via the bypass
+        // secret and sets a session cookie, so no manual login is needed.
+        console.log('Navigating to dashboard (auto-login via proxy)');
+        await page.goto('http://localhost:3000/', {
+          waitUntil: 'networkidle',
+          timeout: 30000,
+        });
+
+        console.log('Waiting for redirect to projects page');
+        await page.waitForURL('**/default/projects**', {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+        console.log('Auto-login succeeded — redirected to projects page');
+
+        console.log('Clicking activities-planner project');
+        // Use force:true because card uses a linkoverlay pattern that intercepts pointer events
+        await page.click(`a[href*="${projectId}"]`, { timeout: 15000, force: true });
+        await page.waitForURL(`**/default/projects/${projectId}/**`, {
+          timeout: 15000,
+          waitUntil: 'domcontentloaded',
+        });
+        console.log('Navigated to project page');
+
+        console.log('Clicking agent card');
+        // Use href locator to avoid matching project heading text
+        const agentId = 'activities-planner';
+        await page.click(`a[href*="/agents/${agentId}"]`, { timeout: 15000, force: true });
+        await page.waitForURL(`**/agents/${agentId}**`, {
+          timeout: 15000,
+          waitUntil: 'domcontentloaded',
+        });
+        console.log('Navigated to agent page');
+
+        console.log('Clicking Try it button');
+        await page.click('button:has-text("Try it")', { timeout: 15000, force: true });
+
+        console.log('Waiting for playground to open');
+        await page.waitForSelector('#playground-pane', { timeout: 15000 });
+        console.log('Playground panel is visible');
+
+        console.log('Verifying chat widget initialized');
+        await page.locator('#inkeep-widget-root').waitFor({ timeout: 15000 });
+        console.log('Chat widget is initialized');
+
+        console.log('Dashboard lap complete');
+      } catch (dashboardError) {
+        console.error('Dashboard lap failed:', dashboardError);
+        try {
+          const activePage = browser.contexts()[0]?.pages()[0];
+          if (activePage) {
+            const screenshotPath = path.join(testDir, 'dashboard-failure.png');
+            await activePage.screenshot({ path: screenshotPath, fullPage: true });
+            console.log(`Screenshot saved to: ${screenshotPath}`);
+            console.log(`Current URL: ${activePage.url()}`);
+            console.log(`Page content: ${await activePage.content()}`);
+          }
+        } catch (screenshotError) {
+          console.error('Failed to capture screenshot:', screenshotError);
+        }
+        throw dashboardError;
+      } finally {
+        await browser.close();
+        try {
+          dashboardProcess.kill('SIGTERM');
+        } catch {}
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          dashboardProcess.kill('SIGKILL');
+        } catch {}
+      }
     } catch (error) {
       console.error('Test failed with error:', error);
       // Print server output for debugging

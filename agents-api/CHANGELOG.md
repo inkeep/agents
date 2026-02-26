@@ -1,5 +1,233 @@
 # @inkeep/agents-api
 
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- Updated dependencies [16d775c]
+- Updated dependencies [35ca5cb]
+- Updated dependencies [be72c29]
+  - @inkeep/agents-work-apps@0.53.4
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-mcp@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- 60cb0fd: Fix dev-session crash with better-auth >= 1.4.13 by handling renamed authCookies property
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-work-apps@0.53.3
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-mcp@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+- @inkeep/agents-mcp@0.53.2
+- @inkeep/agents-work-apps@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 2583c64: remove flushing on local dev for otel
+- Updated dependencies [8063da9]
+- Updated dependencies [bd3aab5]
+- Updated dependencies [75fbceb]
+- Updated dependencies [c4d8a7b]
+  - @inkeep/agents-work-apps@0.53.1
+  - @inkeep/agents-core@0.53.1
+  - @inkeep/agents-mcp@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- 6a7dc67: Updated artifact parsing
+- Updated dependencies [901ff0a]
+- Updated dependencies [6d435a6]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [41ed409]
+- Updated dependencies [38506a8]
+- Updated dependencies [f868a96]
+- Updated dependencies [4d4fa33]
+  - @inkeep/agents-work-apps@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-mcp@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+- Updated dependencies [f2d822b]
+- Updated dependencies [520e4f0]
+  - @inkeep/agents-core@0.52.0
+  - @inkeep/agents-work-apps@0.52.0
+  - @inkeep/agents-mcp@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-work-apps@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-mcp@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- 51bb2f6: remove noisy instrumentation in agents api
+  - @inkeep/agents-core@0.50.6
+  - @inkeep/agents-mcp@0.50.6
+  - @inkeep/agents-work-apps@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-work-apps@0.50.5
+  - @inkeep/agents-mcp@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-work-apps@0.50.4
+  - @inkeep/agents-mcp@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- 0aea45a: Add OpenTelemetry instrumentation for server-side tracing
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+- Updated dependencies [1be6def]
+- Updated dependencies [0011c4b]
+  - @inkeep/agents-work-apps@0.50.3
+  - @inkeep/agents-core@0.50.3
+  - @inkeep/agents-mcp@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- fa71905: Added Oversized Artifact Handling and Context Window Size Management at Provider Options
+- becf184: standardize permission checks in routes
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+  - @inkeep/agents-work-apps@0.50.2
+  - @inkeep/agents-mcp@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+  - @inkeep/agents-work-apps@0.50.1
+  - @inkeep/agents-mcp@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- Updated dependencies [5bd9461]
+  - @inkeep/agents-work-apps@0.50.0
+  - @inkeep/agents-core@0.50.0
+  - @inkeep/agents-mcp@0.50.0
+
+## 0.49.0
+
+### Patch Changes
+
+- a998bb3: Harden dev auto-login: require bypass secret on /api/auth/dev-session and move auto-login to server-side proxy
+- Updated dependencies [3f556b7]
+  - @inkeep/agents-work-apps@0.49.0
+  - @inkeep/agents-core@0.49.0
+  - @inkeep/agents-mcp@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+  - @inkeep/agents-work-apps@0.48.7
+  - @inkeep/agents-mcp@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 4afaf71: Improve cron schedule display in Triggers table with human-readable descriptions and tooltips showing the raw expression
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-work-apps@0.48.6
+  - @inkeep/agents-mcp@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- ded8362: improve performance time for traces on vercel
+- Updated dependencies [f39f8b0]
+  - @inkeep/agents-work-apps@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-manage-mcp@0.48.5
+  - @inkeep/agents-mcp@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 37e72ed: Now localhost origins are only allowed when ENVIRONMENT is development or test. In production/pentest, CORS will require either INKEEP_AGENTS_MANAGE_UI_URL to be set or the origin to share the same base
+- Updated dependencies [11f4e14]
+- Updated dependencies [2a91f04]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-work-apps@0.48.4
+  - @inkeep/agents-manage-mcp@0.48.4
+  - @inkeep/agents-mcp@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- 9b64a7d: Fix internal fetch routing when deployed with Vercel bundling (cron triggers)
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-work-apps@0.48.3
+  - @inkeep/agents-manage-mcp@0.48.3
+  - @inkeep/agents-mcp@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes

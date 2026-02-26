@@ -9,6 +9,7 @@ export const ANTHROPIC_MODELS = {
   CLAUDE_OPUS_4_5_20251101: 'anthropic/claude-opus-4-5-20251101',
   CLAUDE_OPUS_4_1: 'anthropic/claude-opus-4-1',
   CLAUDE_OPUS_4_1_20250805: 'anthropic/claude-opus-4-1-20250805',
+  CLAUDE_SONNET_4_6: 'anthropic/claude-sonnet-4-6',
   CLAUDE_SONNET_4_5: 'anthropic/claude-sonnet-4-5',
   CLAUDE_SONNET_4_5_20250929: 'anthropic/claude-sonnet-4-5-20250929',
   CLAUDE_SONNET_4: 'anthropic/claude-sonnet-4-0',
@@ -39,6 +40,7 @@ export const OPENAI_MODELS = {
 } as const;
 
 export const GOOGLE_MODELS = {
+  GEMINI_3_1_PRO_PREVIEW: 'google/gemini-3.1-pro-preview',
   GEMINI_3_PRO_PREVIEW: 'google/gemini-3-pro-preview',
   GEMINI_3_FLASH_PREVIEW: 'google/gemini-3-flash-preview',
   GEMINI_2_5_PRO: 'google/gemini-2.5-pro',

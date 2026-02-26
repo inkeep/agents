@@ -40,7 +40,12 @@ function HomeContent() {
       const invitationId = searchParams.get('invitation');
       if (invitationId) {
         setIsRedirecting(true);
-        router.push(`/accept-invitation/${invitationId}`);
+        const returnUrl = searchParams.get('returnUrl');
+        const invitationUrl =
+          returnUrl && isValidReturnUrl(returnUrl)
+            ? `/accept-invitation/${invitationId}?returnUrl=${encodeURIComponent(returnUrl)}`
+            : `/accept-invitation/${invitationId}`;
+        router.push(invitationUrl);
         return;
       }
 

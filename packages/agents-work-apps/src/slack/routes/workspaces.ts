@@ -19,17 +19,20 @@
  * - Workspace uninstall (DELETE): Inkeep org admin/owner only (requireWorkspaceAdmin middleware)
  */
 
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackChannelAgentConfig,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
   findWorkAppSlackChannelAgentConfig,
+  findWorkAppSlackWorkspaceByTeamId,
   listWorkAppSlackChannelAgentConfigsByTeam,
   listWorkAppSlackUserMappingsByTeam,
+  updateWorkAppSlackWorkspace,
   upsertWorkAppSlackChannelAgentConfig,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { requireChannelMemberOrAdmin, requireWorkspaceAdmin } from '../middleware/permissions';
@@ -38,6 +41,7 @@ import {
   computeWorkspaceConnectionId,
   deleteWorkspaceInstallation,
   findWorkspaceConnectionByTeamId,
+  getBotMemberChannels,
   getSlackChannels,
   getSlackClient,
   getWorkspaceDefaultAgentFromNango,
@@ -64,53 +68,31 @@ function verifyTenantOwnership(
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/:teamId/settings', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
-app.use('/:teamId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
-app.use('/:teamId/channels/:channelId/settings', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireChannelMemberOrAdmin()(c, next);
-  }
-  return next();
-});
-
-app.use('/:teamId/test-message', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
 const ChannelAgentConfigSchema = z.object({
   projectId: z.string(),
   agentId: z.string(),
   agentName: z.string().optional(),
   projectName: z.string().optional(),
+  grantAccessToMembers: z.boolean().optional(),
 });
 
 const WorkspaceSettingsSchema = z.object({
   defaultAgent: ChannelAgentConfigSchema.optional(),
 });
 
+const JoinFromWorkspaceSettingsSchema = z.object({
+  shouldAllowJoinFromWorkspace: z.boolean(),
+});
+
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Workspaces',
     description: 'List all installed Slack workspaces for the tenant',
     operationId: 'slack-list-workspaces',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     responses: {
       200: {
         description: 'List of workspaces',
@@ -169,13 +151,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}',
     summary: 'Get Workspace',
     description: 'Get details of a specific Slack workspace',
     operationId: 'slack-get-workspace',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -232,13 +215,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/settings',
     summary: 'Get Workspace Settings',
     description: 'Get settings for a Slack workspace including default agent',
     operationId: 'slack-get-workspace-settings',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -285,13 +269,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/settings',
     summary: 'Update Workspace Settings',
     description: 'Update workspace settings including default agent',
     operationId: 'slack-update-workspace-settings',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -352,13 +337,148 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
+    method: 'get',
+    path: '/{teamId}/join-from-workspace',
+    summary: 'Get Join From Workspace Setting',
+    description: 'Get the join from workspace setting for the workspace',
+    operationId: 'slack-get-join-from-workspace',
+    tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
+    request: {
+      params: z.object({
+        teamId: z.string(),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Join from workspace setting',
+        content: {
+          'application/json': {
+            schema: JoinFromWorkspaceSettingsSchema,
+          },
+        },
+      },
+      404: {
+        description: 'Workspace not found',
+      },
+    },
+  }),
+  async (c) => {
+    const { teamId } = c.req.valid('param');
+
+    const sessionTenantId = c.get('tenantId') as string | undefined;
+    if (!sessionTenantId) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
+    if (!workspace) {
+      return c.json({ shouldAllowJoinFromWorkspace: false });
+    }
+
+    return c.json({
+      shouldAllowJoinFromWorkspace: workspace.shouldAllowJoinFromWorkspace ?? false,
+    });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{teamId}/join-from-workspace',
+    summary: 'Update Join From Workspace Setting',
+    description: 'Enable or disable join from workspace for the workspace',
+    operationId: 'slack-update-join-from-workspace',
+    tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
+    request: {
+      params: z.object({
+        teamId: z.string(),
+      }),
+      body: {
+        content: {
+          'application/json': {
+            schema: JoinFromWorkspaceSettingsSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Join from workspace setting updated',
+        content: {
+          'application/json': {
+            schema: z.object({ success: z.boolean() }),
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+      },
+      404: {
+        description: 'Workspace not found',
+      },
+      500: {
+        description: 'Failed to update setting',
+      },
+    },
+  }),
+  async (c) => {
+    const { teamId } = c.req.valid('param');
+    const { shouldAllowJoinFromWorkspace } = c.req.valid('json');
+
+    // Get the session tenant ID for authorization
+    const sessionTenantId = c.get('tenantId') as string | undefined;
+    if (!sessionTenantId) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    // Find the workspace in the database
+    const workspace = await findWorkAppSlackWorkspaceByTeamId(runDbClient)(sessionTenantId, teamId);
+    if (!workspace) {
+      return c.json({ error: 'Workspace not found' }, 404);
+    }
+
+    try {
+      // Update the join from workspace settings
+      const updated = await updateWorkAppSlackWorkspace(runDbClient)(workspace.id, {
+        shouldAllowJoinFromWorkspace,
+      });
+
+      if (!updated) {
+        logger.error(
+          { teamId, shouldAllowJoinFromWorkspace },
+          'Failed to update join from workspace setting'
+        );
+        return c.json({ error: 'Failed to update setting' }, 500);
+      }
+
+      logger.info(
+        { teamId, shouldAllowJoinFromWorkspace, workspaceId: workspace.id },
+        'Updated workspace join from workspace settings'
+      );
+
+      return c.json({ success: true });
+    } catch (error) {
+      logger.error(
+        { teamId, shouldAllowJoinFromWorkspace, error },
+        'Failed to update join from workspace setting'
+      );
+      return c.json({ error: 'Failed to update setting' }, 500);
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
     method: 'delete',
     path: '/{teamId}',
     summary: 'Uninstall Workspace',
     description: 'Uninstall Slack app from workspace. Accepts either teamId or connectionId.',
     operationId: 'slack-delete-workspace',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -467,13 +587,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/channels',
     summary: 'List Channels',
-    description: 'List Slack channels in the workspace that the bot can see',
+    description: 'List Slack channels where the bot is a member',
     operationId: 'slack-list-channels',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -524,7 +645,7 @@ app.openapi(
     const slackClient = getSlackClient(workspace.botToken);
 
     try {
-      const channels = await getSlackChannels(slackClient, limit);
+      const channels = await getBotMemberChannels(slackClient, limit);
 
       let channelConfigs: Awaited<
         ReturnType<ReturnType<typeof listWorkAppSlackChannelAgentConfigsByTeam>>
@@ -556,6 +677,7 @@ app.openapi(
                 projectId: config.projectId,
                 agentId: config.agentId,
                 agentName: config.agentName || undefined,
+                grantAccessToMembers: config.grantAccessToMembers,
               }
             : undefined,
         };
@@ -573,13 +695,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Get Channel Settings',
     description: 'Get default agent configuration for a specific channel',
     operationId: 'slack-get-channel-settings',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -623,6 +746,7 @@ app.openapi(
             projectId: config.projectId,
             agentId: config.agentId,
             agentName: config.agentName || undefined,
+            grantAccessToMembers: config.grantAccessToMembers,
           }
         : undefined,
     });
@@ -630,13 +754,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Set Channel Default Agent',
     description: 'Set or update the default agent for a specific channel',
     operationId: 'slack-set-channel-settings',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireChannelMemberOrAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -688,6 +813,7 @@ app.openapi(
       projectId: body.agentConfig.projectId,
       agentId: body.agentConfig.agentId,
       agentName: body.agentConfig.agentName,
+      grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
       enabled: true,
     });
 
@@ -700,21 +826,15 @@ app.openapi(
   }
 );
 
-app.use('/:teamId/channels/bulk', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireWorkspaceAdmin()(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'put',
     path: '/{teamId}/channels/bulk',
     summary: 'Bulk Set Channel Agents',
     description: 'Apply the same agent configuration to multiple channels at once',
     operationId: 'slack-bulk-set-channel-agents',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -794,6 +914,7 @@ app.openapi(
             projectId: body.agentConfig.projectId,
             agentId: body.agentConfig.agentId,
             agentName: body.agentConfig.agentName,
+            grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
             enabled: true,
           });
           updated++;
@@ -819,13 +940,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{teamId}/channels/bulk',
     summary: 'Bulk Remove Channel Configs',
     description: 'Remove agent configuration from multiple channels at once',
     operationId: 'slack-bulk-delete-channel-agents',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -884,13 +1006,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{teamId}/channels/{channelId}/settings',
     summary: 'Remove Channel Config',
     description: 'Remove the default agent configuration for a channel',
     operationId: 'slack-delete-channel-settings',
     tags: ['Work Apps', 'Slack', 'Channels'],
+    permission: requireChannelMemberOrAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -931,13 +1054,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/users',
     summary: 'List Linked Users',
     description: 'List all users linked to Inkeep in this workspace',
     operationId: 'slack-list-linked-users',
     tags: ['Work Apps', 'Slack', 'Users'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -997,7 +1121,7 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{teamId}/health',
     summary: 'Check Workspace Health',
@@ -1005,6 +1129,7 @@ app.openapi(
       'Verify the bot token is valid and check permissions. Returns bot info and permission status.',
     operationId: 'slack-workspace-health',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: inheritedWorkAppsAuth(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -1114,13 +1239,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{teamId}/test-message',
     summary: 'Send Test Message',
     description: 'Send a test message to verify the bot is working correctly.',
     operationId: 'slack-test-message',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
+    permission: requireWorkspaceAdmin(),
     request: {
       params: z.object({
         teamId: z.string(),
@@ -1174,7 +1300,7 @@ app.openapi(
       const slackClient = getSlackClient(workspace.botToken);
 
       const testMessage =
-        message || '✅ *Test message from Inkeep*\n\nYour Slack integration is working correctly!';
+        message || '*Test message from Inkeep*\n\nYour Slack integration is working correctly.';
 
       const result = await slackClient.chat.postMessage({
         channel: channelId,

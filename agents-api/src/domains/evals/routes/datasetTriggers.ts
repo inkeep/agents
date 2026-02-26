@@ -1,6 +1,8 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { TenantProjectParamsSchema, TriggerDatasetRunSchema } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../logger';
+import { evalApiKeyAuth } from '../../../middleware/evalsAuth';
 import { queueDatasetRunItems } from '../services/datasetRun';
 
 const app = new OpenAPIHono();
@@ -11,13 +13,14 @@ const logger = getLogger('workflow-triggers');
 // =============================================================================
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/run-dataset-items',
     summary: 'Run dataset items',
     description: 'Runs dataset items for processing through the chat API',
     operationId: 'run-dataset-items',
     tags: ['Workflows'],
+    permission: evalApiKeyAuth(),
     request: {
       params: TenantProjectParamsSchema,
       body: {

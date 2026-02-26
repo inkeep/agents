@@ -1,5 +1,189 @@
 # @inkeep/agents-work-apps
 
+## 0.53.4
+
+### Patch Changes
+
+- 16d775c: Use users.conversations API for channel listing to return only bot-member channels, reducing API calls for large workspaces
+- be72c29: Add move-file tool to GitHub MCP
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 8063da9: Add attachment content to slack messages
+- bd3aab5: Add randomness to generated branch names to prevent collisions
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- c4d8a7b: Add project name and link to /inkeep status command response.
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
+## 0.53.0
+
+### Minor Changes
+
+- 901ff0a: Add PR body reactions to GitHub MCP. BREAKING: Renamed `add-comment-reaction` → `add-reaction`, `remove-comment-reaction` → `remove-reaction` and `list-comment-reactions` → `list-reactions`. Parameters `comment_id`/`comment_type` renamed to `target_id`/`target_type`.
+
+### Patch Changes
+
+- 6d435a6: Refactor lookupAgentName to reuse fetchAgentsForProject instead of duplicating API call logic
+- 41ed409: Fix Slack responses showing agent ID instead of agent name in thinking messages and signatures across all interaction types
+- 38506a8: Show agent name and ID in Slack modal dropdowns for disambiguation
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- 4d4fa33: Update slack user metadata in thread context
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- f2d822b: Fix Slack modal showing 'We had some trouble connecting' error on form submission by returning empty ack body
+- 520e4f0: Add branch file inspection tool to github mcp
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- fe36caa: Fix error response format consistency in join-from-workspace endpoints
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- 1be6def: Update slack streaming timeout to 10 minutes
+- 0011c4b: Mimic nango config in dev mode.
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- becf184: standardize permission checks in routes
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+
+## 0.50.0
+
+### Minor Changes
+
+- 5bd9461: Add reaction tooling to github mcp.
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.0
+
+## 0.49.0
+
+### Minor Changes
+
+- 3f556b7: Remove run and list commands from slack app
+
+### Patch Changes
+
+- @inkeep/agents-core@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- f39f8b0: Update slack message formatting to include channel and user names.
+  - @inkeep/agents-core@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 2a91f04: Remove hostname allowlist validation for INKEEP_AGENTS_MANAGE_UI_URL to support custom domains
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes

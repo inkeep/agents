@@ -1,5 +1,224 @@
 # @inkeep/agents-cli
 
+## 0.53.4
+
+### Patch Changes
+
+- 1bcedce: Fix `imageUrl: null` handling in MCP tool generator in `inkeep pull`
+- Updated dependencies [35ca5cb]
+- Updated dependencies [df4b020]
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-manage-ui@0.53.4
+  - @inkeep/agents-sdk@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-manage-ui@0.53.3
+  - @inkeep/agents-sdk@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- Updated dependencies [090bedc]
+  - @inkeep/agents-manage-ui@0.53.2
+  - @inkeep/agents-core@0.53.2
+  - @inkeep/agents-sdk@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- Updated dependencies [e06a945]
+- Updated dependencies [2222e08]
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-manage-ui@0.53.1
+  - @inkeep/agents-core@0.53.1
+  - @inkeep/agents-sdk@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- ef0f287: Remove deprecated pull-v3 code and consolidate tests into pull-v4
+- ac63aa8: Fix `inkeep pull` for create mode: missing generation for MCP tools, sub-agent dependency imports, and project import alias collisions
+- Updated dependencies [f54846b]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [08ba7c2]
+- Updated dependencies [9c293ff]
+- Updated dependencies [a5f8f24]
+- Updated dependencies [f868a96]
+  - @inkeep/agents-manage-ui@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-sdk@0.53.0
+
+## 0.52.0
+
+### Minor Changes
+
+- 886b2da: Refactor pull command to use ts-morph for improved code generation and smart merging
+
+  - Migrates from string-based code generation to AST-based manipulation using ts-morph
+  - Adds intelligent merge mode that preserves user customizations when pulling updates
+  - Improves handling of imports, comments, and custom code during regeneration
+  - Adds comprehensive test coverage for the new pull command implementation
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+- Updated dependencies [d717f54]
+  - @inkeep/agents-core@0.52.0
+  - @inkeep/agents-manage-ui@0.52.0
+  - @inkeep/agents-sdk@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-manage-ui@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-sdk@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.50.6
+- @inkeep/agents-core@0.50.6
+- @inkeep/agents-sdk@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-manage-ui@0.50.5
+  - @inkeep/agents-sdk@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-manage-ui@0.50.4
+  - @inkeep/agents-sdk@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- d50fa44: Released Gemini 3.1-pro
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+- Updated dependencies [13197d8]
+- Updated dependencies [0aea45a]
+  - @inkeep/agents-core@0.50.3
+  - @inkeep/agents-manage-ui@0.50.3
+  - @inkeep/agents-sdk@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+  - @inkeep/agents-manage-ui@0.50.2
+  - @inkeep/agents-sdk@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+  - @inkeep/agents-manage-ui@0.50.1
+  - @inkeep/agents-sdk@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- Updated dependencies [d32f38f]
+  - @inkeep/agents-manage-ui@0.50.0
+  - @inkeep/agents-core@0.50.0
+  - @inkeep/agents-sdk@0.50.0
+
+## 0.49.0
+
+### Patch Changes
+
+- Updated dependencies [97d5fce]
+- Updated dependencies [a998bb3]
+  - @inkeep/agents-manage-ui@0.49.0
+  - @inkeep/agents-core@0.49.0
+  - @inkeep/agents-sdk@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+  - @inkeep/agents-manage-ui@0.48.7
+  - @inkeep/agents-sdk@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+- Updated dependencies [2e8d956]
+- Updated dependencies [4afaf71]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-manage-ui@0.48.6
+  - @inkeep/agents-sdk@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- Updated dependencies [1c85bf0]
+- Updated dependencies [ded8362]
+  - @inkeep/agents-manage-ui@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-sdk@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-manage-ui@0.48.4
+  - @inkeep/agents-sdk@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- baa7e46: Fix CLI port mismatch by centralizing local dev URLs via --local flag
+- Updated dependencies [6b561f6]
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-manage-ui@0.48.3
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-sdk@0.48.3
+
 ## 0.48.2
 
 ### Patch Changes

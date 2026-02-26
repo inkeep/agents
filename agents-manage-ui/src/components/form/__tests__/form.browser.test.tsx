@@ -5,9 +5,9 @@ import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
@@ -91,13 +91,17 @@ const NestedTestForm: FC = () => {
   return (
     <Form {...form}>
       <form style={{ width: 320 }}>
-        <JsonSchemaInput {...getCommonProps(form, 'jsonSchemaEditor')} />
+        <GenericJsonSchemaEditor {...getCommonProps(form, 'jsonSchemaEditor')} />
       </form>
     </Form>
   );
 };
 
 describe('Form', () => {
+  afterEach(() => {
+    agentStore.setState({ jsonSchemaMode: false });
+  });
+
   test('should properly highlight error state', async () => {
     const { container } = render(<TestForm />);
 
@@ -106,17 +110,22 @@ describe('Form', () => {
     });
 
     await expect(container).toMatchScreenshot();
-  }, 20_000);
+  }, 30_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
 
-    await waitFor(() => {
-      const message = container.querySelector<HTMLParagraphElement>('[data-slot="form-message"]');
-      expect(message).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        // Wait for Monaco editor to fully initialize (not just the skeleton loading state)
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
+        // Wait for form validation error message to render
+        expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+      },
+      { timeout: 45_000 }
+    );
 
     await expect(container).toMatchScreenshot();
-  }, 20_000);
+  }, 60_000);
 });

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
@@ -9,6 +9,7 @@ import {
   signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
@@ -28,7 +29,7 @@ const PlaygroundTokenResponseSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Generate temporary API key for playground',
@@ -37,6 +38,7 @@ app.openapi(
     description:
       'Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground',
     security: [{ cookieAuth: [] }],
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema,
       body: {
@@ -89,6 +91,7 @@ app.openapi(
     // This allows project_admin and project_member roles, but not project_viewer
     const canUse = await canUseProject({
       userId,
+      tenantId,
       projectId,
       orgRole: tenantRole,
     });

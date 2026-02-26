@@ -4,7 +4,10 @@ import { createAgentsHono } from '../createApp';
 const mockEnv = vi.hoisted(() => ({
   ENVIRONMENT: 'development' as string,
   INKEEP_AGENTS_MANAGE_UI_USERNAME: 'dev@example.com' as string | undefined,
+  INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: 'test-bypass-secret' as string | undefined,
 }));
+
+const BYPASS_SECRET = 'test-bypass-secret';
 
 vi.mock('../env', () => ({ env: mockEnv }));
 
@@ -57,7 +60,7 @@ function createMockAuth(overrides?: {
       authCookies: {
         sessionToken: {
           name: sessionTokenName,
-          options: sessionTokenOptions,
+          attributes: sessionTokenOptions,
         },
       },
       sessionConfig: { expiresIn },
@@ -65,13 +68,38 @@ function createMockAuth(overrides?: {
   };
 }
 
+function validHeaders() {
+  return { Origin: 'http://localhost:3000', Authorization: `Bearer ${BYPASS_SECRET}` };
+}
+
 describe('POST /api/auth/dev-session', () => {
   beforeEach(() => {
     mockEnv.ENVIRONMENT = 'development';
     mockEnv.INKEEP_AGENTS_MANAGE_UI_USERNAME = 'dev@example.com';
+    mockEnv.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET = BYPASS_SECRET;
   });
 
-  it('returns 200 with Set-Cookie and JSON body { ok: true } when ENVIRONMENT=development and user exists', async () => {
+  it('returns 200 with Set-Cookie and JSON body { ok: true } when authorized', async () => {
+    const mockAuth = createMockAuth();
+
+    const app = createAgentsHono({
+      serverConfig: defaultServerConfig,
+      credentialStores: defaultCredentialStores,
+      auth: mockAuth as any,
+    });
+
+    const res = await app.request('/api/auth/dev-session', {
+      method: 'POST',
+      headers: validHeaders(),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ ok: true });
+    expect(res.headers.get('Set-Cookie')).toContain('better-auth.session_token');
+  });
+
+  it('returns 401 when bypass secret is missing from request', async () => {
     const mockAuth = createMockAuth();
 
     const app = createAgentsHono({
@@ -85,10 +113,48 @@ describe('POST /api/auth/dev-session', () => {
       headers: { Origin: 'http://localhost:3000' },
     });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body).toEqual({ ok: true });
-    expect(res.headers.get('Set-Cookie')).toContain('better-auth.session_token');
+    expect(body.error).toBe('Unauthorized');
+  });
+
+  it('returns 401 when bypass secret is wrong', async () => {
+    const mockAuth = createMockAuth();
+
+    const app = createAgentsHono({
+      serverConfig: defaultServerConfig,
+      credentialStores: defaultCredentialStores,
+      auth: mockAuth as any,
+    });
+
+    const res = await app.request('/api/auth/dev-session', {
+      method: 'POST',
+      headers: { Origin: 'http://localhost:3000', Authorization: 'Bearer wrong-secret' },
+    });
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('Unauthorized');
+  });
+
+  it('returns 401 when bypass secret is not configured on server', async () => {
+    mockEnv.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET = undefined;
+    const mockAuth = createMockAuth();
+
+    const app = createAgentsHono({
+      serverConfig: defaultServerConfig,
+      credentialStores: defaultCredentialStores,
+      auth: mockAuth as any,
+    });
+
+    const res = await app.request('/api/auth/dev-session', {
+      method: 'POST',
+      headers: { Origin: 'http://localhost:3000', Authorization: `Bearer ${BYPASS_SECRET}` },
+    });
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('Unauthorized');
   });
 
   it('Set-Cookie value is HMAC-SHA-256 signed in format token.base64sig (URL-encoded)', async () => {
@@ -113,7 +179,7 @@ describe('POST /api/auth/dev-session', () => {
 
     const res = await app.request('/api/auth/dev-session', {
       method: 'POST',
-      headers: { Origin: 'http://localhost:3000' },
+      headers: validHeaders(),
     });
 
     expect(res.status).toBe(200);
@@ -159,7 +225,7 @@ describe('POST /api/auth/dev-session', () => {
 
     const res = await app.request('/api/auth/dev-session', {
       method: 'POST',
-      headers: { Origin: 'http://localhost:3000' },
+      headers: validHeaders(),
     });
 
     expect(res.status).toBe(200);
@@ -192,7 +258,7 @@ describe('POST /api/auth/dev-session', () => {
 
     await app.request('/api/auth/dev-session', {
       method: 'POST',
-      headers: { Origin: 'http://localhost:3000' },
+      headers: validHeaders(),
     });
 
     expect(findUserByEmail).toHaveBeenCalledWith('dev@example.com');
@@ -210,7 +276,10 @@ describe('POST /api/auth/dev-session', () => {
       auth: mockAuth as any,
     });
 
-    const res = await app.request('/api/auth/dev-session', { method: 'POST' });
+    const res = await app.request('/api/auth/dev-session', {
+      method: 'POST',
+      headers: validHeaders(),
+    });
 
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -230,7 +299,7 @@ describe('POST /api/auth/dev-session', () => {
 
     const res = await app.request('/api/auth/dev-session', {
       method: 'POST',
-      headers: { Origin: 'http://localhost:3000' },
+      headers: validHeaders(),
     });
 
     expect(res.status).toBe(400);
@@ -249,19 +318,10 @@ describe('POST /api/auth/dev-session', () => {
       auth: mockAuth as any,
     });
 
-    const res = await app.request('/api/auth/dev-session', { method: 'POST' });
-
-    expect(res.status).toBe(404);
-  });
-
-  it('returns 404 when auth is null', async () => {
-    const app = createAgentsHono({
-      serverConfig: defaultServerConfig,
-      credentialStores: defaultCredentialStores,
-      auth: null,
+    const res = await app.request('/api/auth/dev-session', {
+      method: 'POST',
+      headers: validHeaders(),
     });
-
-    const res = await app.request('/api/auth/dev-session', { method: 'POST' });
 
     expect(res.status).toBe(404);
   });

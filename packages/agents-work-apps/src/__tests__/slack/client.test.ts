@@ -14,6 +14,8 @@ import type { WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkUserIsChannelMember,
+  getBotMemberChannels,
+  getSlackChannelInfo,
   getSlackChannels,
   getSlackClient,
   getSlackTeamInfo,
@@ -26,6 +28,7 @@ const { mockWebClient } = vi.hoisted(() => {
   const mockWebClient = vi.fn().mockImplementation(() => ({
     users: {
       info: vi.fn(),
+      conversations: vi.fn(),
     },
     team: {
       info: vi.fn(),
@@ -193,6 +196,96 @@ describe('Slack Client', () => {
       } as unknown as WebClient;
 
       const result = await getSlackTeamInfo(mockClient);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getSlackChannelInfo', () => {
+    it('should return channel info when successful', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockResolvedValue({
+            ok: true,
+            channel: {
+              id: 'C123',
+              name: 'general',
+              topic: { value: 'General discussion' },
+              purpose: { value: 'Company-wide announcements' },
+              is_private: false,
+              is_shared: false,
+              is_ext_shared: false,
+              is_member: true,
+            },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C123');
+
+      expect(result).toEqual({
+        id: 'C123',
+        name: 'general',
+        topic: 'General discussion',
+        purpose: 'Company-wide announcements',
+        isPrivate: false,
+        isShared: false,
+        isMember: true,
+      });
+      expect(mockClient.conversations.info).toHaveBeenCalledWith({ channel: 'C123' });
+    });
+
+    it('should handle private shared channels', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockResolvedValue({
+            ok: true,
+            channel: {
+              id: 'C456',
+              name: 'secret-collab',
+              topic: { value: '' },
+              purpose: { value: '' },
+              is_private: true,
+              is_shared: true,
+              is_member: false,
+            },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C456');
+
+      expect(result).toEqual({
+        id: 'C456',
+        name: 'secret-collab',
+        topic: '',
+        purpose: '',
+        isPrivate: true,
+        isShared: true,
+        isMember: false,
+      });
+    });
+
+    it('should return null when request fails', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockResolvedValue({ ok: false }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C123');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null on error', async () => {
+      const mockClient = {
+        conversations: {
+          info: vi.fn().mockRejectedValue(new Error('channel_not_found')),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannelInfo(mockClient, 'C999');
 
       expect(result).toBeNull();
     });
@@ -454,6 +547,161 @@ describe('Slack Client', () => {
       } as unknown as WebClient;
 
       await expect(getSlackChannels(mockClient)).rejects.toThrow('API error');
+    });
+  });
+
+  describe('getBotMemberChannels', () => {
+    it('should return only bot-member channels using users.conversations', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockResolvedValue({
+            ok: true,
+            channels: [
+              { id: 'C123', name: 'general', num_members: 50, is_private: false },
+              { id: 'C456', name: 'secret', num_members: 5, is_private: true },
+              { id: 'C789', name: 'shared', num_members: 10, is_private: false, is_shared: true },
+            ],
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getBotMemberChannels(mockClient);
+
+      expect(result).toEqual([
+        { id: 'C123', name: 'general', memberCount: 50, isPrivate: false, isShared: false },
+        { id: 'C456', name: 'secret', memberCount: 5, isPrivate: true, isShared: false },
+        { id: 'C789', name: 'shared', memberCount: 10, isPrivate: false, isShared: true },
+      ]);
+    });
+
+    it('should call users.conversations with correct default parameters', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockResolvedValue({ ok: true, channels: [] }),
+        },
+      } as unknown as WebClient;
+
+      await getBotMemberChannels(mockClient);
+
+      expect(mockClient.users.conversations).toHaveBeenCalledWith({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: 999,
+        cursor: undefined,
+      });
+    });
+
+    it('should use custom limit when provided', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockResolvedValue({ ok: true, channels: [] }),
+        },
+      } as unknown as WebClient;
+
+      await getBotMemberChannels(mockClient, 50);
+
+      expect(mockClient.users.conversations).toHaveBeenCalledWith({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: 50,
+        cursor: undefined,
+      });
+    });
+
+    it('should cap page size at 999 even with higher limit', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockResolvedValue({ ok: true, channels: [] }),
+        },
+      } as unknown as WebClient;
+
+      await getBotMemberChannels(mockClient, 2000);
+
+      expect(mockClient.users.conversations).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 999 })
+      );
+    });
+
+    it('should paginate through multiple pages using cursor', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C1', name: 'ch1', num_members: 1, is_private: false },
+                { id: 'C2', name: 'ch2', num_members: 2, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [{ id: 'C3', name: 'ch3', num_members: 3, is_private: true }],
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getBotMemberChannels(mockClient);
+
+      expect(mockClient.users.conversations).toHaveBeenCalledTimes(2);
+      expect(mockClient.users.conversations).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ cursor: undefined })
+      );
+      expect(mockClient.users.conversations).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ cursor: 'cursor_page2' })
+      );
+      expect(result).toHaveLength(3);
+      expect(result.map((c) => c.id)).toEqual(['C1', 'C2', 'C3']);
+    });
+
+    it('should return empty array when ok: false on first page', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockResolvedValue({ ok: false }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getBotMemberChannels(mockClient);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw on API error', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockRejectedValue(new Error('API error')),
+        },
+      } as unknown as WebClient;
+
+      await expect(getBotMemberChannels(mockClient)).rejects.toThrow('API error');
+    });
+
+    it('should not include isBotMember in returned objects', async () => {
+      const mockClient = {
+        users: {
+          conversations: vi.fn().mockResolvedValue({
+            ok: true,
+            channels: [
+              { id: 'C123', name: 'general', num_members: 50, is_private: false, is_member: true },
+            ],
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getBotMemberChannels(mockClient);
+
+      expect(result[0]).not.toHaveProperty('isBotMember');
+      expect(result[0]).toEqual({
+        id: 'C123',
+        name: 'general',
+        memberCount: 50,
+        isPrivate: false,
+        isShared: false,
+      });
     });
   });
 

@@ -337,26 +337,3 @@ export const runRefMiddleware = createRefMiddleware(manageDbClient, {
   extractProjectId: extractProjectIdFromExecutionContext,
   allowProjectIdFromBody: false,
 });
-
-/**
- * Extract tenantId from query parameters (for OAuth routes)
- */
-const extractTenantIdFromQuery = (c: Context): string | undefined => {
-  return c.req.query('tenantId');
-};
-
-/**
- * Extract projectId from query parameters (for OAuth routes)
- */
-const extractProjectIdFromQuery = (c: Context): string | undefined => {
-  return c.req.query('projectId');
-};
-
-/**
- * Ref middleware for OAuth routes - extracts tenant/project from query params
- */
-export const oauthRefMiddleware = createRefMiddleware(manageDbClient, {
-  extractTenantId: extractTenantIdFromQuery,
-  extractProjectId: extractProjectIdFromQuery,
-  allowProjectIdFromBody: false,
-});

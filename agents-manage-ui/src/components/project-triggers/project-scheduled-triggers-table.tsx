@@ -1,9 +1,9 @@
 'use client';
 
-import { Clock, History, MoreHorizontal, Pencil, Play, Trash2 } from 'lucide-react';
+import { Clock, History, MoreHorizontal, Pencil, Play, RotateCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,30 +22,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   deleteScheduledTriggerAction,
   runScheduledTriggerNowAction,
   updateScheduledTriggerEnabledAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
-
-const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
+import { getCronDescription } from '@/lib/utils/cron';
 
 interface ProjectScheduledTriggersTableProps {
   triggers: ScheduledTriggerWithAgent[];
   tenantId: string;
   projectId: string;
-}
-
-function formatSchedule(trigger: ScheduledTriggerWithAgent): string {
-  if (trigger.cronExpression) {
-    return trigger.cronExpression;
-  }
-  if (trigger.runAt) {
-    return new Date(trigger.runAt).toLocaleString();
-  }
-  return '—';
 }
 
 function getScheduleType(trigger: ScheduledTriggerWithAgent): 'cron' | 'one-time' {
@@ -70,34 +59,12 @@ function formatNextRun(trigger: ScheduledTriggerWithAgent): string {
 }
 
 export function ProjectScheduledTriggersTable({
-  triggers: initialTriggers,
+  triggers,
   tenantId,
   projectId,
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
-  const [triggers, setTriggers] = useState<ScheduledTriggerWithAgent[]>(initialTriggers);
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
-
-  // Poll for updates
-  useEffect(() => {
-    const fetchTriggers = async () => {
-      try {
-        const updatedTriggers = await getProjectScheduledTriggersAction(tenantId, projectId);
-        setTriggers(updatedTriggers);
-      } catch (error) {
-        console.error('Failed to fetch scheduled triggers:', error);
-      }
-    };
-
-    fetchTriggers();
-    const intervalId = setInterval(fetchTriggers, POLLING_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [tenantId, projectId]);
-
-  // Update triggers when initial data changes
-  useEffect(() => {
-    setTriggers(initialTriggers);
-  }, [initialTriggers]);
 
   const toggleEnabled = async (triggerId: string, agentId: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
@@ -231,15 +198,34 @@ export function ProjectScheduledTriggersTable({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="gap-1">
-                      <Clock className="w-3 h-3" />
+                    <Badge variant="code" className="gap-1 uppercase">
+                      {scheduleType === 'cron' ? (
+                        <RotateCw className="w-3 h-3" />
+                      ) : (
+                        <Clock className="w-3 h-3" />
+                      )}
                       {scheduleType === 'cron' ? 'Recurring' : 'One-time'}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono">
-                      {formatSchedule(trigger)}
-                    </code>
+                    {trigger.cronExpression ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
+                              {getCronDescription(trigger.cronExpression)}
+                            </code>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono">{trigger.cronExpression}</code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
+                        {trigger.runAt ? new Date(trigger.runAt).toLocaleString() : '—'}
+                      </code>
+                    )}
                   </TableCell>
                   <TableCell>
                     {trigger.lastRunConversationIds.length > 0 ? (
@@ -247,7 +233,7 @@ export function ProjectScheduledTriggersTable({
                         href={`/${tenantId}/projects/${projectId}/traces/conversations/${trigger.lastRunConversationIds[trigger.lastRunConversationIds.length - 1]}`}
                         className={`text-sm hover:underline ${
                           trigger.lastRunStatus === 'completed'
-                            ? 'text-blue-500'
+                            ? 'text-primary'
                             : trigger.lastRunStatus === 'failed'
                               ? 'text-red-500'
                               : 'text-muted-foreground'
@@ -259,7 +245,7 @@ export function ProjectScheduledTriggersTable({
                       <span
                         className={`text-sm ${
                           trigger.lastRunStatus === 'completed'
-                            ? 'text-blue-500'
+                            ? 'text-primary'
                             : trigger.lastRunStatus === 'failed'
                               ? 'text-red-500'
                               : 'text-muted-foreground'
@@ -284,7 +270,7 @@ export function ProjectScheduledTriggersTable({
                           }
                           disabled={isLoading}
                         />
-                        <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
+                        <Badge className="uppercase" variant={trigger.enabled ? 'primary' : 'code'}>
                           {trigger.enabled ? 'Enabled' : 'Disabled'}
                         </Badge>
                       </div>
@@ -301,14 +287,14 @@ export function ProjectScheduledTriggersTable({
                         <DropdownMenuItem
                           onClick={() => runTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
-                          <Play className="w-4 h-4 mr-2" />
+                          <Play className="w-4 h-4" />
                           Run Now
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/invocations`}
                           >
-                            <History className="w-4 h-4 mr-2" />
+                            <History className="w-4 h-4" />
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
@@ -316,15 +302,15 @@ export function ProjectScheduledTriggersTable({
                           <Link
                             href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/edit`}
                           >
-                            <Pencil className="w-4 h-4 mr-2" />
+                            <Pencil className="w-4 h-4" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                          variant="destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-4 h-4" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

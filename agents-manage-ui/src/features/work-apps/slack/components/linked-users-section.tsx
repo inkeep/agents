@@ -2,7 +2,6 @@
 
 import {
   Download,
-  Link2,
   Loader2,
   MoreHorizontal,
   RefreshCw,
@@ -120,7 +119,18 @@ export function LinkedUsersSection() {
       </Avatar>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">
-          {user.slackUsername || user.slackEmail || 'Unknown User'}
+          {user.slackUserId ? (
+            <a
+              href={`https://app.slack.com/team/${user.slackUserId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {user.slackUsername || user.slackEmail || 'Unknown User'}
+            </a>
+          ) : (
+            user.slackUsername || user.slackEmail || 'Unknown User'
+          )}
         </p>
         <p className="text-xs text-muted-foreground">Linked {formatDateAgo(user.linkedAt)}</p>
       </div>
@@ -201,10 +211,7 @@ export function LinkedUsersSection() {
             </div>
           ) : linkedUsers.length === 0 ? (
             <div className="text-center py-6 space-y-2">
-              <div className="rounded-full bg-muted p-3 w-fit mx-auto">
-                <Link2 className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">No users linked yet</p>
+              <p className="text-sm text-muted-foreground">No users linked yet.</p>
               <p className="text-xs text-muted-foreground">
                 Users can run{' '}
                 <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/inkeep link</code> in

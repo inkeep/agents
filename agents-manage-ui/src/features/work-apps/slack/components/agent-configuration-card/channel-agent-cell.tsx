@@ -41,13 +41,15 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
     );
   }
 
+  const { agentId, agentName, projectId } = channel.agentConfig ?? {};
+
   return (
-    <div className="flex min-w-0 items-center justify-end gap-2">
+    <div className="flex min-w-0 items-center justify-end gap-1">
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className={cn('h-8 min-w-0 max-w-full text-xs')}>
             {channel.agentConfig ? (
-              <span className="min-w-0 truncate">{channel.agentConfig.agentName}</span>
+              <span className="min-w-0 truncate">{agentName}</span>
             ) : (
               <span className="min-w-0 truncate text-muted-foreground font-light">
                 Workspace default
@@ -81,7 +83,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
               <CommandGroup>
                 {agents.map((agent) => (
                   <CommandItem
-                    key={agent.id}
+                    key={`${agent.id}-${agent.projectId}`}
                     value={`${agent.name} ${agent.projectName}`}
                     onSelect={() => {
                       onSetAgent(channel.id, channel.name, agent);
@@ -91,11 +93,13 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                     <Check
                       className={cn(
                         'h-4 w-4',
-                        channel.agentConfig?.agentId === agent.id ? 'opacity-100' : 'opacity-0'
+                        agentId === agent.id && projectId === agent.projectId
+                          ? 'opacity-100'
+                          : 'opacity-0'
                       )}
                     />
                     <div className="flex flex-col">
-                      <span>{agent.name || agent.id}</span>
+                      <span className="font-medium">{agent.name || agent.id}</span>
                       <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                     </div>
                   </CommandItem>

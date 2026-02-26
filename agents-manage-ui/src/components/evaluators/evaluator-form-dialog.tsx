@@ -8,8 +8,8 @@ import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector'
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -226,7 +226,7 @@ export function EvaluatorFormDialog({
               )}
             </FormFieldWrapper>
 
-            <JsonSchemaInput
+            <GenericJsonSchemaEditor
               control={form.control}
               name="schema"
               label="Output Schema"

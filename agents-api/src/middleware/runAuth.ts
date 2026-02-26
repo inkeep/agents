@@ -145,7 +145,7 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
 
     let canUse: boolean;
     try {
-      canUse = await canUseProjectStrict({ userId, projectId });
+      canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
     } catch (error) {
       logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
       throw new HTTPException(503, {
@@ -240,34 +240,54 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
     };
   }
 
-  // Verify the requested projectId belongs to the authenticated tenant
-  try {
-    const canUse = await canUseProjectStrict({
-      userId: payload.sub,
-      projectId: reqData.projectId,
-    });
-    if (!canUse) {
-      logger.warn(
-        {
-          userId: payload.sub,
-          tenantId: payload.tenantId,
-          projectId: reqData.projectId,
-        },
-        'Slack user JWT: user does not have access to requested project'
-      );
-      return {
-        authResult: null,
-        failureMessage: 'Access denied: insufficient permissions for the requested project',
-      };
-    }
-  } catch (error) {
-    logger.error(
-      { error, userId: payload.sub, projectId: reqData.projectId },
-      'SpiceDB permission check failed for Slack JWT'
+  // Channel/workspace authorization bypass (D2, D8)
+  // If the Slack work app determined the user is authorized via channel or workspace config,
+  // AND the requested project matches the project the bypass was granted for,
+  // skip the SpiceDB project membership check.
+  const slackAuthorized =
+    payload.slack.authorized === true && payload.slack.authorizedProjectId === reqData.projectId;
+
+  if (!slackAuthorized) {
+    logger.debug(
+      {
+        slackAuthorizedClaim: payload.slack.authorized,
+        slackAuthorizedProjectId: payload.slack.authorizedProjectId,
+        requestedProjectId: reqData.projectId,
+        projectMatch: payload.slack.authorizedProjectId === reqData.projectId,
+      },
+      'Slack channel auth bypass not applied, falling through to SpiceDB'
     );
-    throw new HTTPException(503, {
-      message: 'Authorization service temporarily unavailable',
-    });
+
+    // Verify the requested projectId belongs to the authenticated tenant
+    try {
+      const canUse = await canUseProjectStrict({
+        userId: payload.sub,
+        tenantId: payload.tenantId,
+        projectId: reqData.projectId,
+      });
+      if (!canUse) {
+        logger.warn(
+          {
+            userId: payload.sub,
+            tenantId: payload.tenantId,
+            projectId: reqData.projectId,
+          },
+          'Slack user JWT: user does not have access to requested project'
+        );
+        return {
+          authResult: null,
+          failureMessage: 'Access denied: insufficient permissions for the requested project',
+        };
+      }
+    } catch (error) {
+      logger.error(
+        { error, userId: payload.sub, projectId: reqData.projectId },
+        'SpiceDB permission check failed for Slack JWT'
+      );
+      throw new HTTPException(503, {
+        message: 'Authorization service temporarily unavailable',
+      });
+    }
   }
 
   logger.info(
@@ -278,6 +298,10 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
       slackUserId: payload.slack.userId,
       projectId: reqData.projectId,
       agentId: reqData.agentId,
+      slackAuthorized,
+      slackAuthSource: payload.slack.authSource,
+      slackChannelId: payload.slack.channelId,
+      slackAuthorizedProjectId: payload.slack.authorizedProjectId,
     },
     'Slack user JWT token authenticated successfully'
   );
@@ -294,6 +318,14 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
           type: 'user',
           id: payload.sub,
         },
+        ...(slackAuthorized && {
+          slack: {
+            authorized: true,
+            authSource: payload.slack.authSource ?? 'channel',
+            channelId: payload.slack.channelId,
+            teamId: payload.slack.teamId,
+          },
+        }),
       },
     },
   };

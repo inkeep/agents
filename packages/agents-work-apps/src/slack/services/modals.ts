@@ -32,16 +32,6 @@ export interface ModalMetadata {
   messageContext?: string;
 }
 
-export interface FollowUpModalMetadata {
-  conversationId: string;
-  agentId: string;
-  projectId: string;
-  tenantId: string;
-  teamId: string;
-  slackUserId: string;
-  channel: string;
-}
-
 export interface BuildAgentSelectorModalParams {
   projects: Array<{ id: string; name: string }>;
   agents: AgentOption[];
@@ -79,10 +69,14 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: agent.name ? `${agent.name} (${agent.id})` : agent.id,
             emoji: true,
           },
-          value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
+          value: JSON.stringify({
+            agentId: agent.id,
+            projectId: agent.projectId,
+            agentName: agent.name,
+          }),
         }))
       : [
           {
@@ -122,7 +116,9 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     },
     {
       type: 'input',
-      block_id: 'agent_select_block',
+      block_id: selectedProjectId
+        ? `agent_select_block_${selectedProjectId}`
+        : 'agent_select_block',
       element: {
         type: 'static_select',
         action_id: 'agent_select',
@@ -207,7 +203,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     elements: [
       {
         type: 'mrkdwn',
-        text: `⚙️ <${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
+        text: `<${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
       },
     ],
   } as unknown as (typeof blocks)[number]);
@@ -224,57 +220,6 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     submit: {
       type: 'plain_text',
       text: SlackStrings.buttons.triggerAgent,
-      emoji: true,
-    },
-    close: {
-      type: 'plain_text',
-      text: SlackStrings.buttons.cancel,
-      emoji: true,
-    },
-    blocks,
-  };
-}
-
-/**
- * Build a follow-up modal for continuing a conversation.
- *
- * Shows only a prompt input. Agent and project are carried from the previous turn
- * via metadata. The conversationId ensures the agent has full history.
- */
-export function buildFollowUpModal(metadata: FollowUpModalMetadata): ModalView {
-  const blocks: ModalView['blocks'] = [
-    {
-      type: 'input',
-      block_id: 'question_block',
-      element: {
-        type: 'plain_text_input',
-        action_id: 'question_input',
-        multiline: true,
-        placeholder: {
-          type: 'plain_text',
-          text: SlackStrings.placeholders.enterPrompt,
-        },
-      },
-      label: {
-        type: 'plain_text',
-        text: SlackStrings.labels.prompt,
-        emoji: true,
-      },
-    },
-  ];
-
-  return {
-    type: 'modal',
-    callback_id: 'follow_up_modal',
-    private_metadata: JSON.stringify(metadata),
-    title: {
-      type: 'plain_text',
-      text: SlackStrings.modals.followUp,
-      emoji: true,
-    },
-    submit: {
-      type: 'plain_text',
-      text: SlackStrings.buttons.send,
       emoji: true,
     },
     close: {
@@ -323,10 +268,14 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: agent.name ? `${agent.name} (${agent.id})` : agent.id,
             emoji: true,
           },
-          value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
+          value: JSON.stringify({
+            agentId: agent.id,
+            projectId: agent.projectId,
+            agentName: agent.name,
+          }),
         }))
       : [
           {
@@ -380,7 +329,9 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     },
     {
       type: 'input',
-      block_id: 'agent_select_block',
+      block_id: selectedProjectId
+        ? `agent_select_block_${selectedProjectId}`
+        : 'agent_select_block',
       element: {
         type: 'static_select',
         action_id: 'agent_select',
@@ -425,7 +376,7 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     elements: [
       {
         type: 'mrkdwn',
-        text: `⚙️ <${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
+        text: `<${manageUiBaseUrl}${dashboardUrl}|Open Dashboard>`,
       },
     ],
   } as unknown as (typeof blocks)[number]);

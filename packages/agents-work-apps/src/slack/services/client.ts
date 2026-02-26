@@ -103,6 +103,34 @@ export async function getSlackTeamInfo(client: WebClient) {
 }
 
 /**
+ * Fetch channel information from Slack.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelId - Slack channel ID (e.g., C0ABC123)
+ * @returns Channel info object, or null if not found
+ */
+export async function getSlackChannelInfo(client: WebClient, channelId: string) {
+  try {
+    const result = await client.conversations.info({ channel: channelId });
+    if (result.ok && result.channel) {
+      return {
+        id: result.channel.id,
+        name: result.channel.name,
+        topic: result.channel.topic?.value,
+        purpose: result.channel.purpose?.value,
+        isPrivate: result.channel.is_private ?? false,
+        isShared: result.channel.is_shared ?? result.channel.is_ext_shared ?? false,
+        isMember: result.channel.is_member ?? false,
+      };
+    }
+    return null;
+  } catch (error) {
+    logger.error({ error, channelId }, 'Failed to fetch Slack channel info');
+    return null;
+  }
+}
+
+/**
  * List channels in the workspace (public, private, and shared).
  *
  * Note: The bot must be a member of private channels to see them.
@@ -135,6 +163,58 @@ export async function getSlackChannels(client: WebClient, limit = 200) {
             name: ch.name,
             memberCount: ch.num_members,
             isBotMember: ch.is_member,
+            isPrivate: ch.is_private ?? false,
+            isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
+          }))
+        : [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+    limit,
+  });
+}
+
+// num_members is returned by the Slack API but missing from the SDK's UsersConversationsResponse type.
+// This helper safely extracts it with a runtime type check.
+function safeNumMembers(ch: unknown): number | undefined {
+  const record = ch as Record<string, unknown>;
+  return typeof record.num_members === 'number' ? record.num_members : undefined;
+}
+
+/**
+ * Fetch only channels where the bot is a member using the `users.conversations` API.
+ *
+ * Compared to `getSlackChannels()` (which uses `conversations.list` and returns ALL visible channels),
+ * this function returns only channels the bot has been added to. It uses Tier 3 rate limits (50+ req/min)
+ * and supports up to 999 items per page, making it significantly more efficient for large workspaces.
+ *
+ * Use this for the Channel Defaults UI. Keep `getSlackChannels()` for other purposes (e.g., health checks).
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param limit - Maximum number of channels to return. Fetches in pages of up to 999 until the limit is reached or all channels are returned.
+ * @returns Array of channel objects with id, name, member count, and privacy status
+ */
+export async function getBotMemberChannels(client: WebClient, limit = 999) {
+  return paginateSlack({
+    fetchPage: (cursor) =>
+      client.users.conversations({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: Math.min(limit, 999),
+        cursor,
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        logger.warn(
+          { error: result.error },
+          'Slack API returned ok: false during bot member channel pagination'
+        );
+        return [];
+      }
+      return result.channels
+        ? result.channels.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            memberCount: safeNumMembers(ch),
             isPrivate: ch.is_private ?? false,
             isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
           }))

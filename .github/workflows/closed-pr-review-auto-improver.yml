@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
@@ -52,10 +52,10 @@ jobs:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
           owner: inkeep
-          repositories: internal-cc-plugins
+          repositories: team-skills
 
-      - name: Clone internal plugins
-        run: gh repo clone inkeep/internal-cc-plugins /tmp/internal-cc-plugins
+      - name: Clone team-skills (CI-only PR review agents)
+        run: gh repo clone inkeep/team-skills /tmp/team-skills -- --depth 1
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
@@ -229,7 +229,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
-            --plugin-dir /tmp/internal-cc-plugins/closed-pr-review-auto-improver
+            --plugin-dir /tmp/team-skills/ci/closed-pr-review-auto-improver
             --agent closed-pr-review-auto-improver
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout -b:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git rev-list:*),Bash(git show:*)"
           prompt: |
@@ -271,8 +271,8 @@ jobs:
             3. Apply the generalizability test (all 4 criteria must pass)
             4. If HIGH-generalizability patterns found:
                - Create branch: `closed-pr-review-auto-improver/pr-${{ steps.pr-meta.outputs.pr_number }}-learnings`
-               - Edit relevant `.claude/agents/pr-review-*.md` files
-               - Create draft PR with changes
+               - Edit relevant `pr-review-*.md` agent files in `/tmp/team-skills/ci/pr-review/agents/`
+               - Create draft PR targeting `inkeep/team-skills` with changes
                - Add label: `pr-review-improvement`
             5. If no generalizable patterns: Output your analysis JSON and exit
 

@@ -114,9 +114,10 @@ export async function GET(request: NextRequest) {
     response.cookies.set(cookieName, '', {
       expires: new Date(0),
       path: '/',
-      secure: isSecure,
-      sameSite: 'none',
       httpOnly: true,
+      ...(isSecure
+        ? { sameSite: 'none' as const, secure: true }
+        : { sameSite: 'lax' as const, secure: false }),
       ...(cookieDomain && { domain: cookieDomain }),
     });
   }

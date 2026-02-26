@@ -30,8 +30,14 @@
     },
     "build": {
       "dependsOn": ["^build", "sync:licenses"],
-      "inputs": ["$TURBO_DEFAULT$", ".env.example"],
-      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/__tests__/**",
+        ".env.example"
+      ],
+      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
     },
     "dev": {
       "dependsOn": ["^build"],
@@ -52,14 +58,15 @@
       "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
       "outputs": ["coverage/**"]
     },
-    "@inkeep/agents-manage-mcp#build": {
-      "dependsOn": ["^build", "sync:licenses"],
-      "inputs": ["$TURBO_DEFAULT$", ".env.example"],
-      "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
-    },
     "@inkeep/agents-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
-      "inputs": ["$TURBO_DEFAULT$", ".env.example"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/__tests__/**",
+        ".env.example"
+      ],
       "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
     },
     "test:watch": {
@@ -72,7 +79,6 @@
       "outputs": ["coverage/**"]
     },
     "lint": {
-      "dependsOn": ["transit"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
     },

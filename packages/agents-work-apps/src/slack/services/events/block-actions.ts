@@ -3,27 +3,162 @@
  * and message shortcuts
  */
 
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
+import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
 import { getSlackClient } from '../client';
-import {
-  buildAgentSelectorModal,
-  buildFollowUpModal,
-  buildMessageShortcutModal,
-  type FollowUpModalMetadata,
-  type ModalMetadata,
-} from '../modals';
+import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
 import {
   fetchAgentsForProject,
   fetchProjectsForTenant,
+  findCachedUserMapping,
   getChannelAgentConfig,
   sendResponseUrlMessage,
 } from './utils';
 
 const logger = getLogger('slack-block-actions');
+
+/**
+ * Handle tool approval/denial button clicks.
+ * Called when a user clicks "Approve" or "Deny" on a tool approval message.
+ */
+export async function handleToolApproval(params: {
+  actionValue: string;
+  approved: boolean;
+  teamId: string;
+  slackUserId: string;
+  responseUrl?: string;
+}): Promise<void> {
+  return tracer.startActiveSpan(SLACK_SPAN_NAMES.TOOL_APPROVAL, async (span) => {
+    const { actionValue, approved, teamId, slackUserId, responseUrl } = params;
+    span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
+    span.setAttribute(SLACK_SPAN_KEYS.USER_ID, slackUserId);
+
+    try {
+      const buttonValue = ToolApprovalButtonValueSchema.parse(JSON.parse(actionValue));
+      const { toolCallId, conversationId, projectId, agentId, toolName } = buttonValue;
+      span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
+
+      const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+      if (!workspaceConnection?.botToken) {
+        logger.error({ teamId }, 'No bot token for tool approval');
+        span.end();
+        return;
+      }
+
+      const tenantId = workspaceConnection.tenantId;
+      const slackClient = getSlackClient(workspaceConnection.botToken);
+
+      const approvalThreadParam = buttonValue.threadTs ? { thread_ts: buttonValue.threadTs } : {};
+
+      if (slackUserId !== buttonValue.slackUserId) {
+        await slackClient.chat
+          .postEphemeral({
+            channel: buttonValue.channel,
+            user: slackUserId,
+            ...approvalThreadParam,
+            text: 'Only the user who started this conversation can approve or deny this action.',
+          })
+          .catch((e) => logger.warn({ error: e }, 'Failed to send ownership error notification'));
+        span.end();
+        return;
+      }
+
+      const existingLink = await findCachedUserMapping(tenantId, slackUserId, teamId);
+      if (!existingLink) {
+        await slackClient.chat
+          .postEphemeral({
+            channel: buttonValue.channel,
+            user: slackUserId,
+            ...approvalThreadParam,
+            text: 'You need to link your Inkeep account first. Use `/inkeep link`.',
+          })
+          .catch((e) => logger.warn({ error: e }, 'Failed to send not-linked notification'));
+        span.end();
+        return;
+      }
+
+      const slackUserToken = await signSlackUserToken({
+        inkeepUserId: existingLink.inkeepUserId,
+        tenantId,
+        slackTeamId: teamId,
+        slackUserId,
+      });
+
+      const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+      const approvalResponse = await getInProcessFetch()(`${apiUrl}/run/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${slackUserToken}`,
+          'x-inkeep-project-id': projectId,
+          'x-inkeep-agent-id': agentId,
+        },
+        body: JSON.stringify({
+          conversationId,
+          messages: [
+            {
+              role: 'tool',
+              parts: [
+                {
+                  type: 'tool-call',
+                  toolCallId,
+                  state: 'approval-responded',
+                  approval: { id: toolCallId, approved },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      if (!approvalResponse.ok) {
+        const errorBody = await approvalResponse.text().catch(() => '');
+        logger.error(
+          { status: approvalResponse.status, errorBody, toolCallId, conversationId },
+          'Tool approval API call failed'
+        );
+        await slackClient.chat
+          .postEphemeral({
+            channel: buttonValue.channel,
+            user: slackUserId,
+            ...approvalThreadParam,
+            text: `Failed to ${approved ? 'approve' : 'deny'} \`${toolName}\`. Please try again.`,
+          })
+          .catch((e) => logger.warn({ error: e }, 'Failed to send approval error notification'));
+        span.end();
+        return;
+      }
+
+      if (responseUrl) {
+        await sendResponseUrlMessage(responseUrl, {
+          text: approved ? `✅ Approved \`${toolName}\`` : `❌ Denied \`${toolName}\``,
+          replace_original: true,
+          blocks: buildToolApprovalDoneBlocks({ toolName, approved, actorUserId: slackUserId }),
+        }).catch((e) => logger.warn({ error: e }, 'Failed to update approval message'));
+      }
+
+      logger.info({ toolCallId, conversationId, approved, slackUserId }, 'Tool approval processed');
+      span.end();
+    } catch (error) {
+      if (error instanceof Error) setSpanWithError(span, error);
+      logger.error({ error, teamId, slackUserId }, 'Failed to handle tool approval');
+      if (responseUrl) {
+        await sendResponseUrlMessage(responseUrl, {
+          text: 'Something went wrong processing your request. Please try again.',
+          response_type: 'ephemeral',
+        }).catch((e) => logger.warn({ error: e }, 'Failed to send error notification'));
+      }
+      span.end();
+    }
+  });
+}
 
 /**
  * Handle opening the agent selector modal when user clicks "Select Agent" button
@@ -148,59 +283,6 @@ export async function handleOpenAgentSelectorModal(params: {
           text: SlackStrings.errors.failedToOpenSelector,
           response_type: 'ephemeral',
         }).catch((e) => logger.warn({ error: e }, 'Failed to send selector error notification'));
-      }
-      span.end();
-    }
-  });
-}
-
-/**
- * Handle "Follow Up" button click.
- * Opens a prompt-only modal that carries the conversationId for multi-turn context.
- */
-export async function handleOpenFollowUpModal(params: {
-  triggerId: string;
-  actionValue: string;
-  teamId: string;
-  responseUrl?: string;
-}): Promise<void> {
-  return tracer.startActiveSpan(SLACK_SPAN_NAMES.OPEN_FOLLOW_UP_MODAL, async (span) => {
-    const { triggerId, actionValue, teamId, responseUrl } = params;
-    span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
-
-    try {
-      const metadata = JSON.parse(actionValue) as FollowUpModalMetadata;
-      span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, metadata.conversationId || '');
-      span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, metadata.agentId || '');
-
-      const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
-      if (!workspaceConnection?.botToken) {
-        logger.error({ teamId }, 'No bot token for follow-up modal');
-        span.end();
-        return;
-      }
-
-      const slackClient = getSlackClient(workspaceConnection.botToken);
-      const modal = buildFollowUpModal(metadata);
-
-      await slackClient.views.open({
-        trigger_id: triggerId,
-        view: modal,
-      });
-
-      logger.info(
-        { teamId, conversationId: metadata.conversationId, agentId: metadata.agentId },
-        'Opened follow-up modal'
-      );
-      span.end();
-    } catch (error) {
-      if (error instanceof Error) setSpanWithError(span, error);
-      logger.error({ error, teamId }, 'Failed to open follow-up modal');
-      if (responseUrl) {
-        await sendResponseUrlMessage(responseUrl, {
-          text: 'Failed to open follow-up dialog. Please try again.',
-          response_type: 'ephemeral',
-        }).catch((e) => logger.warn({ error: e }, 'Failed to send follow-up error notification'));
       }
       span.end();
     }

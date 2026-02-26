@@ -1,12 +1,12 @@
 import { defineProject } from 'vitest/config';
+import pkgJson from './package.json' with { type: 'json' };
 
 export default defineProject({
   test: {
-    name: 'agents-cli',
+    name: pkgJson.name,
     globals: true,
     environment: 'node',
-    exclude: ['src/commands/pull-v3/__tests__/project-validator.test.ts', 'node_modules', 'dist'],
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: './vitest.setup.ts',
     env: {
       ENVIRONMENT: 'test',
       INKEEP_AGENTS_API_URL: 'http://localhost:3002',

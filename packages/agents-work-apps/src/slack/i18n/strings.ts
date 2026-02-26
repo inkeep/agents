@@ -10,9 +10,8 @@ export const SlackStrings = {
   buttons: {
     triggerAgent: 'Trigger Agent',
     send: 'Send',
-    followUp: 'Follow Up',
     cancel: 'Cancel',
-    openDashboard: '⚙️ Open Dashboard',
+    openDashboard: 'Open Dashboard',
   },
 
   // Modal titles
@@ -20,7 +19,6 @@ export const SlackStrings = {
     triggerAgent: 'Trigger Agent',
     triggerAgentThread: 'Trigger Agent (Thread)',
     askAboutMessage: 'Ask About Message',
-    followUp: 'Follow Up',
   },
 
   // Modal labels
@@ -49,59 +47,57 @@ export const SlackStrings = {
   // Context block text
   context: {
     poweredBy: (agentName: string) => `Powered by *${agentName}* via Inkeep`,
-    privateResponse: '_Private response_',
   },
 
   // Usage hints
   usage: {
     mentionEmpty:
-      '*To use your Inkeep agent, include a message:*\n\n' +
-      '• `@Inkeep <message>` — Send a message to your agent (reply appears in a thread)\n' +
-      '• `@Inkeep <message>` in a thread — Includes the thread as context for your agent\n' +
-      '• `@Inkeep` in a thread — Triggers your agent using the full thread as context\n\n' +
-      '💡 Use `/inkeep help` for all available commands.',
+      '*Include a message to use your Inkeep agent:*\n\n' +
+      '• `@Inkeep <message>` — Message the default agent (reply appears in a thread)\n' +
+      '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
+      '• `@Inkeep` in a thread — Uses the full thread as context\n\n' +
+      'Use `/inkeep help` for all available commands.',
   },
 
   // Status messages
   status: {
     thinking: (agentName: string) => `_${agentName} is thinking..._`,
+    readingThread: (agentName: string) => `_${agentName} is reading this thread..._`,
     noAgentsAvailable: 'No agents available',
-    noProjectsConfigured: '⚙️ No projects configured. Please set up projects in the dashboard.',
+    noProjectsConfigured: 'No projects configured. Set up projects in the dashboard.',
   },
 
   // Error messages
   errors: {
-    generic: 'Sorry, something went wrong. Please try again.',
-    failedToOpenSelector: '❌ Failed to open agent selector. Please try again.',
+    generic: 'Something went wrong processing your request. Please try again.',
+    failedToOpenSelector: 'Failed to open agent selector. Please try again.',
+    noAgentConfigured:
+      'No agent is configured for this workspace. Ask your admin to set up a default agent in the Inkeep dashboard.',
+  },
+
+  // Link prompt
+  linkPrompt: {
+    intro: "To get started, let's connect your Inkeep account with Slack.",
   },
 
   // Help message
   help: {
     title: 'Inkeep — How to Use',
     publicSection:
-      '🔊 *Public* — everyone in the channel can see the response\n\n' +
-      '• `@Inkeep <message>` — Send a message to your agent\n' +
+      '*Public* — visible to everyone in the channel\n\n' +
+      '• `@Inkeep <message>` — Message the default agent in this channel\n' +
       '• `@Inkeep <message>` in a thread — Includes thread as context\n' +
       '• `@Inkeep` in a thread — Uses the full thread as context',
-    privateSection:
-      '🔒 *Private* — only you can see the response\n\n' +
-      '• `/inkeep <message>` — Send a message to your agent\n' +
-      '• `/inkeep` — Open the agent picker to choose an agent and prompt',
+    slashSection:
+      '*Slash Commands* — visible to everyone in the channel\n\n' +
+      '• `/inkeep <message>` — Message the default agent in this channel\n' +
+      '• `/inkeep` — Open the agent picker to choose an agent and write a prompt',
     otherCommands:
-      '⚙️ *Other Commands*\n\n' +
-      '• `/inkeep run "agent name" <message>` — Use a specific agent\n' +
-      '• `/inkeep list` — List available agents\n' +
+      '*Other Commands*\n\n' +
       '• `/inkeep status` — Check your connection and agent config\n' +
       '• `/inkeep link` / `/inkeep unlink` — Manage account connection\n' +
       '• `/inkeep help` — Show this message',
-  },
-
-  // Agent list
-  agentList: {
-    title: '🤖 Available Agents',
-    usage: 'Usage:',
-    runUsage: '`/inkeep run "agent name" question` - Run a specific agent',
-    andMore: (count: number) => `...and ${count} more`,
+    docsLink: '<https://docs.inkeep.com/talk-to-your-agents/slack/overview|Learn more>',
   },
 
   // Message context (for message shortcut modal)

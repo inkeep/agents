@@ -3,7 +3,7 @@
 import { AlertCircleIcon, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,6 +22,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const invitationId = searchParams.get('invitation');
   const returnUrl = searchParams.get('returnUrl');
+  const emailHint = searchParams.get('email');
+  const authMethod = searchParams.get('authMethod');
   const authClient = useAuthClient();
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
     useRuntimeConfig();
@@ -52,7 +54,7 @@ function LoginForm() {
   // For OAuth, we need the full URL to redirect back to the UI
   // OAuth must callback to `/` (home page) which handles the auth completion
   // We pass returnUrl/invitation as query params for post-auth redirect
-  const getFullCallbackURL = () => {
+  const getFullCallbackURL = useCallback(() => {
     if (typeof window === 'undefined') return '/';
     const baseURL = window.location.origin;
 
@@ -60,15 +62,17 @@ function LoginForm() {
     const params = new URLSearchParams();
     if (invitationId) {
       params.set('invitation', invitationId);
-    } else if (returnUrl && isValidReturnUrl(returnUrl)) {
+    }
+    if (returnUrl && isValidReturnUrl(returnUrl)) {
       params.set('returnUrl', returnUrl);
     }
 
     const queryString = params.toString();
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
-  };
+  }, [invitationId, returnUrl]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [autoSignInTriggered, setAutoSignInTriggered] = useState(false);
 
   // Check for OAuth/SSO errors in URL params (e.g., from provider redirects)
   const urlError = searchParams.get('error');
@@ -130,10 +134,12 @@ function LoginForm() {
           ? await authClient.signIn.social({
               provider: identifier as 'google',
               callbackURL: getFullCallbackURL(),
+              ...(emailHint && { loginHint: emailHint }),
             })
           : await authClient.signIn.sso({
               providerId: identifier,
               callbackURL: getFullCallbackURL(),
+              ...(emailHint && { loginHint: emailHint }),
             });
 
       // If we got here without redirecting, something went wrong
@@ -153,6 +159,70 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      !emailHint ||
+      !invitationId ||
+      isSessionLoading ||
+      isAuthenticated ||
+      autoSignInTriggered ||
+      isLoading
+    ) {
+      return;
+    }
+
+    const shouldAutoGoogle = authMethod === 'google' && PUBLIC_GOOGLE_CLIENT_ID;
+    const shouldAutoSSO = authMethod === 'sso' && PUBLIC_AUTH0_DOMAIN;
+
+    // Fallback: if no explicit authMethod, use Google when available (backwards compat)
+    const shouldFallbackGoogle = !authMethod && PUBLIC_GOOGLE_CLIENT_ID;
+
+    if (!shouldAutoGoogle && !shouldAutoSSO && !shouldFallbackGoogle) {
+      return;
+    }
+
+    setAutoSignInTriggered(true);
+    setIsLoading(true);
+
+    const signInPromise = shouldAutoSSO
+      ? authClient.signIn.sso({
+          providerId: 'auth0',
+          callbackURL: getFullCallbackURL(),
+          loginHint: emailHint,
+        })
+      : authClient.signIn.social({
+          provider: 'google',
+          callbackURL: getFullCallbackURL(),
+          loginHint: emailHint,
+        });
+
+    const providerLabel = shouldAutoSSO ? 'SSO' : 'Google';
+
+    signInPromise
+      .then((result) => {
+        if (result?.error) {
+          setError(result.error.message || `${providerLabel} sign in failed`);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        setError(`${providerLabel} sign in failed`);
+        setIsLoading(false);
+      });
+  }, [
+    emailHint,
+    invitationId,
+    authMethod,
+    PUBLIC_GOOGLE_CLIENT_ID,
+    PUBLIC_AUTH0_DOMAIN,
+    isSessionLoading,
+    isAuthenticated,
+    autoSignInTriggered,
+    isLoading,
+    authClient,
+    getFullCallbackURL,
+  ]);
 
   // Show loading state while checking authentication
   if (isSessionLoading || isAuthenticated) {
@@ -272,6 +342,11 @@ function LoginForm() {
               </div>
             </>
           )}
+
+          <div className="text-center pt-2">
+            <p className="font-medium">Don&apos;t have an account?</p>
+            <p className="text-sm text-muted-foreground">Ask your administrator for an invite.</p>
+          </div>
         </CardContent>
       </Card>
     </div>

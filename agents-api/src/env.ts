@@ -162,6 +162,9 @@ const envSchema = z.object({
   GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 
+  // Slack Socket Mode (local development)
+  SLACK_APP_TOKEN: z.string().optional().describe('Slack App-Level Token for Socket Mode (xapp-*)'),
+
   // Workflow Configuration
   WORKFLOW_TARGET_WORLD: z.string().optional().describe('Target world for workflow execution'),
   WORKFLOW_POSTGRES_URL: z

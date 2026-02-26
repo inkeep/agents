@@ -11,6 +11,8 @@ description: |
 ## Overview
 This is a consolidated inventory of internal “surface areas”: subsystems, infrastructure, tooling, and shared code that developers/operators interact with, but which are not directly customer-facing contracts. Use it during planning or PR review to understand internal dependency chains (what breaks when X changes) and to avoid accidental workflow/build/test/deploy regressions.
 
+**Companion skills:** For *who* is affected and how changes propagate per audience, load `audience-impact`. For customer-facing surfaces, load `product-surface-areas`.
+
 ## Summary
 
 | Category | Count |
@@ -66,7 +68,6 @@ Developer/operator goal: automate checks, publishing, and deployment reliably.
 | **Cypress E2E workflow** | CI workflow for end-to-end UI tests that boots services and runs Cypress with artifacts on failure. | Local dev bootstrap (`pnpm setup-dev`), Local database stack (Docker Compose), Cypress E2E test harness | `.github/workflows/cypress.yml`, `.github/composite-actions/cypress-e2e/action.yml` |
 | **Release & npm publish workflow** | Automates versioning and publishing via Changesets and creates GitHub releases. | Changesets configuration, Turborepo task graph, Root monorepo scripts | `.github/workflows/release.yml`, `.changeset/config.json` |
 | **Vercel production deploy workflow** | Deploys `agents-api` and `agents-manage-ui` to Vercel on release or manual dispatch. | Release & npm publish workflow, Turborepo task graph | `.github/workflows/vercel-production.yml` |
-| **Claude PR review workflow** | Automated PR review pipeline that assembles diff/context into skills and runs the `pr-review` agent suite. | PR review orchestrator agent (`pr-review`), Skills library (`.agents/skills`), AI artifact validation script | `.github/workflows/claude-code-review.yml`, `.claude/agents/pr-review.md` |
 | **Publish skills workflow** | Builds and publishes generated skill collections to the external `inkeep/skills` repo. | Skills library (`.agents/skills`), Root monorepo scripts | `.github/workflows/publish-skills.yml`, `agents-docs/skills-collections/`, `agents-docs/scripts/` |
 | **Coverage workflow (disabled)** | Disabled workflow showing coverage generation/merge/report mechanics for future re-enablement. | Coverage tooling & reporting | `.github/workflows/coverage.yml.disabled`, `coverage.config.ts`, `scripts/merge-coverage.mjs` |
 | **CI maintenance workflow** | Scheduled workflow that analyzes CI failures and can create fix PRs using Claude Code Action. | pnpm workspace & dependency catalog, GitHub Actions CI workflow, Cypress E2E workflow | `.github/workflows/ci-maintenance.yml` |
@@ -96,7 +97,7 @@ Developer/operator goal: configure the system safely for dev/test/prod and keep 
 | **Environment templates (`.env.example`, `.env.docker.example`)** | Canonical environment variable templates used for local dev and containerized runs. | — | `.env.example`, `.env.docker.example` |
 | **Runtime env schemas (API/CLI/Core)** | Zod schemas that validate and type environment variables per package at startup. | Environment file loader (`loadEnvironmentFiles`), Environment templates (`.env.example`, `.env.docker.example`) | `agents-api/src/env.ts`, `agents-cli/src/env.ts`, `packages/agents-core/src/env.ts` |
 | **Env schema documentation enforcement** | Checks ensuring each env var is documented via `.describe()` in the Zod schema (kept in sync with templates). | Runtime env schemas (API/CLI/Core), Environment templates (`.env.example`, `.env.docker.example`) | `scripts/check-env-descriptions.mjs` |
-| **Local dev bootstrap (`pnpm setup-dev`)** | One-command developer setup that provisions env files, starts Docker services, runs migrations, and applies the SpiceDB schema. | Environment templates (`.env.example`, `.env.docker.example`), Local database stack (Docker Compose), Drizzle kit configs (manage + runtime), Migration directories (Drizzle SQL), SpiceDB schema (Zed) | `scripts/setup.sh`, `docker-compose.dbs.yml`, `packages/agents-core/spicedb/schema.zed` |
+| **Local dev bootstrap (`pnpm setup-dev`)** | One-command developer setup that provisions env files, starts Docker services, runs migrations, and applies the SpiceDB schema. Shared setup module (`@inkeep/agents-core/setup`) used by both monorepo and quickstart template. | Environment templates (`.env.example`, `.env.docker.example`), Local database stack (Docker Compose), Drizzle kit configs (manage + runtime), Migration directories (Drizzle SQL), SpiceDB schema (Zed) | `packages/agents-core/src/setup/setup.ts`, `scripts/setup-dev.js`, `docker-compose.dbs.yml`, `packages/agents-core/spicedb/schema.zed` |
 
 ### Docker & Deployment Artifacts
 Developer/operator goal: run the system in containers for local development and integration testing.
@@ -106,7 +107,7 @@ Developer/operator goal: run the system in containers for local development and 
 | **Local database stack (Docker Compose)** | Compose definition for Doltgres (manage), Postgres (run), and SpiceDB services used in dev and CI. | Environment templates (`.env.example`, `.env.docker.example`) | `docker-compose.dbs.yml` |
 | **Full local stack (Docker Compose)** | Compose definition running UI + APIs + migration job alongside the database stack for local integration testing. | Local database stack (Docker Compose), Runtime env schemas (API/CLI/Core) | `docker-compose.yml` |
 | **Doltgres container init** | Doltgres container config and entrypoint that initializes the `inkeep_agents` database on first boot. | Local database stack (Docker Compose) | `doltgres-config.yml`, `docker-doltgres-entrypoint.sh`, `init-dolt.sql` |
-| **Test Dockerfiles (Playwright/Manage API)** | Docker images used to run manage API tests and UI snapshot tests in a consistent environment. | pnpm workspace & dependency catalog, Turborepo task graph | `Dockerfile.manage-api-test`, `Dockerfile.manage-ui-test` |
+| **Test Dockerfiles (Playwright)** | Docker images used to run UI snapshot tests in a consistent environment. | pnpm workspace & dependency catalog, Turborepo task graph | `Dockerfile.manage-ui-test` |
 | **AI dev containers (`.ai-dev`)** | Internal Docker-based harness for AI automation (proxy, Claude sandbox container) used by maintainers. | Environment templates (`.env.example`, `.env.docker.example`) | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/entrypoint.sh` |
 
 ### Database Schemas & Migrations
@@ -204,7 +205,6 @@ Developer/operator goal: guide AI coding agents and automate AI-assisted workflo
 | **Repo agent instructions (`AGENTS.md`)** | Repository-wide conventions and required workflows for AI agents and contributors (mirrored for harness compatibility). | — | `AGENTS.md`, `CLAUDE.md` |
 | **Skills library (`.agents/skills`)** | Skill catalog used by multiple agent runners (Cursor, Claude Code, Codex) to provide reusable guidance and checklists. | — | `.agents/skills/` |
 | **Claude Code agents (`.claude/agents`)** | Claude Code agent definitions (reviewers, coordinators) used in local runs and GitHub workflows. | Skills library (`.agents/skills`) | `.claude/agents/` |
-| **PR review orchestrator agent (`pr-review`)** | Multi-phase PR review coordinator that dispatches domain reviewers and aggregates findings. | Skills library (`.agents/skills`), Claude Code agents (`.claude/agents`) | `.claude/agents/pr-review.md`, `.claude/agents/` |
 | **AI artifact validation script** | Validates agent/skill YAML frontmatter for discovery and blocks invalid artifacts via pre-commit checks. | — | `scripts/validate-ai-artifacts.ts` |
 | **Cursor automation commands (`.cursor/commands`)** | Lightweight operational playbooks for common git/CI workflows (PR creation, rebase, flaky test fixes). | — | `.cursor/commands/`, `.cursor/worktrees.json` |
 | **Internal AI-dev Docker sandbox** | Maintainer-only Docker sandbox for network-isolated AI development (proxy, container). PRD authoring and autonomous implementation use the `/spec`, `/ralph`, and `/feature-dev` skills in `inkeep/team-skills`. | — | `.ai-dev/docker-compose.yml`, `.ai-dev/Dockerfile`, `.ai-dev/Dockerfile.proxy`, `.ai-dev/squid.conf`, `.ai-dev/entrypoint.sh` |

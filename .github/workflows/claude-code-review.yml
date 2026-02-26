@@ -93,7 +93,7 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for merge-base
           ref: refs/pull/${{ steps.pr.outputs.number }}/head
@@ -394,7 +394,7 @@ jobs:
           # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
           # the last automated review was made against, then computes the delta.
           PR_HEAD="${{ steps.pr.outputs.head_sha }}"
-          # COUPLED: The regex below must match the heading in .claude/agents/pr-review.md Phase 6.2.
+          # COUPLED: The regex below must match the heading in team-skills ci/pr-review/agents/pr-review.md Phase 6.2.
           # The pr-review agent is constrained to always start its review body with "## PR Review Summary".
           LAST_REVIEW_SHA=$(echo "$REVIEWS" | jq -r '
             [.[] | select(
@@ -687,6 +687,20 @@ jobs:
             -o .agents/skills/web-design-guidelines/references/guidelines.md
           echo "Web design guidelines fetched ($(wc -l < .agents/skills/web-design-guidelines/references/guidelines.md) lines)"
 
+      - name: Generate GitHub App token for team-skills
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+          owner: inkeep
+          repositories: team-skills
+
+      - name: Clone team-skills (CI-only PR review agents)
+        run: gh repo clone inkeep/team-skills /tmp/team-skills -- --depth 1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
       - name: Run PR Review
         id: claude
         # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
@@ -700,7 +714,8 @@ jobs:
           allowed_bots: "claude[bot]"
           track_progress: true
           claude_args: |
-            --agent pr-review
+            --plugin-dir /tmp/team-skills/ci/pr-review
+            --agent pr-review:pr-review
             --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'
             --allowedTools "Task,Read,Write,Grep,Glob,mcp__exa__web_search_exa,mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(mkdir:*)"
           prompt: |

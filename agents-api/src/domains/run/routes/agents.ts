@@ -1,10 +1,11 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
   HeadersScopeSchema,
   type ResolvedRef,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import type { Context } from 'hono';
 import { getLogger } from '../../../logger';
 import { a2aHandler } from '../a2a/handlers';
@@ -20,7 +21,7 @@ const logger = getLogger('agents');
 
 // A2A Agent Card Discovery (REST with OpenAPI)
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/.well-known/agent.json',
     request: {
@@ -28,6 +29,7 @@ app.openapi(
     },
     tags: ['A2A'],
     security: [{ bearerAuth: [] }],
+    permission: inheritedRunApiKeyAuth(),
     responses: {
       200: {
         description: 'Agent Card for A2A discovery',
