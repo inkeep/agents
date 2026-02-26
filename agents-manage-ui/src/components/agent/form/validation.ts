@@ -126,6 +126,37 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         baseUrl: z.url(),
         name: z.string().trim(),
         description: z.string().trim(),
+        // TODO or tempHeaders
+        headers: z
+          .string()
+          .trim()
+          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+          .pipe(StringRecordSchema.optional()),
+      })
+    ),
+    teamAgents: z.array(
+      z.looseObject({
+        name: z.string().trim().nonempty(),
+        id: z.string().trim().nonempty(),
+        description: z.string().trim(),
+        // TODO or tempHeaders
+        headers: z
+          .string()
+          .trim()
+          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+          .pipe(StringRecordSchema.optional()),
+      })
+    ),
+    tools: z.array(
+      z.looseObject({
+        id: z.string().trim().nonempty(),
+        name: z.string().trim().nonempty(),
+        // TODO or tempHeaders
+        headers: z
+          .string()
+          .trim()
+          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+          .pipe(StringRecordSchema.optional()),
       })
     ),
     stopWhen: StopWhenSchema.extend({
