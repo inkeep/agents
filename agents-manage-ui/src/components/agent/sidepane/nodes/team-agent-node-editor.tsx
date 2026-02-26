@@ -21,13 +21,11 @@ import type { TeamAgentNodeData } from '../../configuration/node-types';
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
-  errorHelpers?: ErrorHelpers;
 }
 
 export function TeamAgentNodeEditor({
   selectedNode,
   subAgentTeamAgentConfigLookup,
-  errorHelpers,
 }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id, errorHelpers });

@@ -1,8 +1,8 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { type FC, useEffect } from 'react';
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { type FC } from 'react';
+import { useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
@@ -17,7 +17,6 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
@@ -54,14 +53,12 @@ interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
-  errorHelpers?: ErrorHelpers;
 }
 
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   selectedNode,
   dataComponentLookup,
   artifactComponentLookup,
-  errorHelpers,
 }) => {
   'use memo';
   const form = useFullAgentFormContext();
@@ -82,7 +79,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 
   const { updateNestedPath, getFieldError, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
-    errorHelpers,
   });
 
   const updateModelPath = (path: string, value: any) => {

@@ -1,7 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -68,7 +67,6 @@ export function SidePane({
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
-  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
 
   const selectedEdge = (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null)
 
@@ -105,14 +103,6 @@ export function SidePane({
 
     if (selectedNode) {
       const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
-      // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-      const subAgentId = (selectedNode.data as any)?.id || selectedNode.id;
-      const errorHelpers = {
-        hasFieldError: (fieldName: string) => hasFieldError(subAgentId, fieldName),
-        getFieldErrorMessage: (fieldName: string) => getFieldErrorMessage(subAgentId, fieldName),
-        getFirstErrorField: () => getFirstErrorField(subAgentId),
-      };
-
       switch (nodeType) {
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
@@ -122,7 +112,6 @@ export function SidePane({
               selectedNode={selectedNode as Node<AgentNodeData>}
               dataComponentLookup={dataComponentLookup}
               artifactComponentLookup={artifactComponentLookup}
-              errorHelpers={errorHelpers}
             />
           );
         case NodeType.ExternalAgent: {
@@ -131,7 +120,6 @@ export function SidePane({
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
               credentialLookup={credentialLookup}
               subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-              errorHelpers={errorHelpers}
             />
           );
         }
@@ -143,7 +131,6 @@ export function SidePane({
             <TeamAgentNodeEditor
               selectedNode={selectedNode as Node<TeamAgentNodeData>}
               subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-              errorHelpers={errorHelpers}
             />
           );
         }

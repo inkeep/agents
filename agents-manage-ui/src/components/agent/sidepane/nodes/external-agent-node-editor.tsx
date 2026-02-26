@@ -2,7 +2,7 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -12,7 +12,6 @@ import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
@@ -24,13 +23,11 @@ interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
   credentialLookup: Record<string, Credential>;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
-  errorHelpers?: ErrorHelpers;
 }
 
 export function ExternalAgentNodeEditor({
   selectedNode,
   subAgentExternalAgentConfigLookup,
-  errorHelpers,
 }: ExternalAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id, errorHelpers });
