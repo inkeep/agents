@@ -318,7 +318,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should handle empty array tempSelectedTools (no tools selected)', () => {
+    it('should handle empty selectedTools array (no tools selected)', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -337,7 +337,6 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             name: 'Test MCP Server',
-            tempSelectedTools: [], // empty array means no tools selected
           },
         },
       ];
@@ -351,7 +350,20 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          mcp1: {
+            selectedTools: [],
+          },
+        }
+      );
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
