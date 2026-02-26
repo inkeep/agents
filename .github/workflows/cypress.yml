@@ -127,9 +127,5 @@ jobs:
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-          ENVIRONMENT: test
-          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
-          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
-          SPICEDB_PRESHARED_KEY: dev-secret-key
           OTEL_SDK_DISABLED: true
           CYPRESS_NO_COMMAND_LOG: 1
