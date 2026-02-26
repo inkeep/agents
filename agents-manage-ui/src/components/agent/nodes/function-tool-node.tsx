@@ -12,7 +12,8 @@ import { Handle } from './handle';
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
   const { name = 'Function Tool', description } = data;
 
-  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
+  const processedErrors = useProcessedErrors('functionTools', data.toolId);
+  const hasErrors = processedErrors.length > 0;
 
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
