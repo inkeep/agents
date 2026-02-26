@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
 import { FullAgentUpdateSchema as schema } from '@/components/agent/form/validation';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -12,14 +13,6 @@ import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
@@ -307,25 +300,12 @@ export const MetadataEditor: FC = () => {
           description="Configure structured status updates for conversation progress tracking."
         />
         <div className="space-y-8">
-          <FormField
+          <GenericCheckbox
             control={form.control}
             name="statusUpdates.enabled"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <FormLabel isRequired={isRequired(schema, 'statusUpdates.enabled')}>
-                    Enable status updates
-                  </FormLabel>
-                </div>
-                <FormDescription>
-                  Send structured status updates during conversation execution
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Enable status updates"
+            isRequired={isRequired(schema, 'statusUpdates.enabled')}
+            description="Send structured status updates during conversation execution"
           />
 
           {isStatusUpdateEnabled && (

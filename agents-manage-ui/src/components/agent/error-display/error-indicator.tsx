@@ -15,8 +15,11 @@ export function ErrorIndicator({ errors }: ErrorIndicatorProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="error" className="rounded-full px-[.2em] absolute -top-2 -right-2 dark:bg-background">
-            <AlertCircle className="h-[1em]! w-auto!" />
+          <Badge
+            variant="error"
+            className="rounded-full px-[.2em] absolute -top-2 -right-2 dark:bg-background"
+          >
+            <AlertCircle className="h-[1.1em]! w-auto!" />
           </Badge>
         </TooltipTrigger>
         <TooltipContent
