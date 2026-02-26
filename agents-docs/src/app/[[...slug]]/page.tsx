@@ -62,6 +62,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
         description={page.data.description}
         url={page.url}
         breadcrumbItems={breadcrumbItems}
+        tocItems={page.data.toc}
         datePublished={page.data.datePublished}
         dateModified={page.data.dateModified}
       />

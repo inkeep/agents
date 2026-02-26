@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next';
+import { parseFreshnessMetadata } from '@/lib/freshness';
 import { source } from '@/lib/source';
 
 const BASE_URL = 'https://docs.inkeep.com';
-const buildDate = new Date();
 
 export const revalidate = false;
 
@@ -11,9 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     const segments = page.url.split('/').filter(Boolean);
     const depth = segments.length;
     const isOverviewPage = page.url === '/overview';
-    const parsedModified = page.data.dateModified ? new Date(page.data.dateModified) : null;
-    const lastModified =
-      parsedModified && !Number.isNaN(parsedModified.valueOf()) ? parsedModified : buildDate;
+    const freshness = parseFreshnessMetadata(page.data.datePublished, page.data.dateModified);
+    const lastModified = freshness.lastModified ? new Date(freshness.lastModified) : new Date();
 
     return {
       url: `${BASE_URL}${page.url}`,

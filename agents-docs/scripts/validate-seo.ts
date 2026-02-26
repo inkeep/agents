@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import matter from 'gray-matter';
+import { parseFreshnessMetadata } from '../src/lib/freshness';
 
 const CONTENT_DIR = path.resolve(import.meta.dirname, '../content');
 const TITLE_TEMPLATE_SUFFIX = ' - Inkeep Open Source Docs';
@@ -53,10 +54,6 @@ function analyzeImageAlt(contentWithoutCodeFences: string) {
   return { missingAlt, genericAlt };
 }
 
-function isValidDate(value: string) {
-  return !Number.isNaN(new Date(value).valueOf());
-}
-
 async function validateSeo() {
   const mdxFiles = await glob('**/*.mdx', { cwd: CONTENT_DIR, absolute: true });
 
@@ -76,6 +73,7 @@ async function validateSeo() {
     const description = frontmatter.description as string | undefined;
     const datePublished = frontmatter.datePublished as string | undefined;
     const dateModified = frontmatter.dateModified as string | undefined;
+    const freshness = parseFreshnessMetadata(datePublished, dateModified);
 
     if (!description) {
       issues.push({
@@ -156,7 +154,7 @@ async function validateSeo() {
       });
     }
 
-    if (datePublished && !isValidDate(datePublished)) {
+    if (datePublished && !freshness.datePublished) {
       issues.push({
         file: relativePath,
         rule: 'invalid-date-published',
@@ -165,12 +163,21 @@ async function validateSeo() {
       });
     }
 
-    if (dateModified && !isValidDate(dateModified)) {
+    if (dateModified && !freshness.dateModified) {
       issues.push({
         file: relativePath,
         rule: 'invalid-date-modified',
         severity: 'warning',
         message: `dateModified is not a valid date string: "${dateModified}".`,
+      });
+    }
+
+    if (freshness.datePublished && freshness.dateModified && !freshness.isChronologicallyValid) {
+      issues.push({
+        file: relativePath,
+        rule: 'freshness-order',
+        severity: 'warning',
+        message: 'dateModified should be greater than or equal to datePublished.',
       });
     }
 
