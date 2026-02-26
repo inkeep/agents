@@ -3,7 +3,7 @@ import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'l
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
@@ -44,20 +44,13 @@ export function MCPServerNodeEditor({
 }: MCPServerNodeEditorProps) {
   'use memo';
   const form = useFullAgentFormContext();
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'tools',
-    keyName: '_rhfKey5',
-  });
-  const toolIndex = fields.findIndex((s) => s.id === selectedNode.data.toolId);
-  const tool = useWatch({ control: form.control, name: `tools.${toolIndex}` });
+  const id = selectedNode.data.toolId;
+  const tool = useWatch({ control: form.control, name: `tools.${id}` });
 
-  const path = <K extends string>(k: K) => `tools.${toolIndex}.${k}` as const;
+  const path = <K extends string>(k: K) => `tools.${id}.${k}` as const;
 
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-  });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { updateNodeData } = useReactFlow();
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();

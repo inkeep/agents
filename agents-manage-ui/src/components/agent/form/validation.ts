@@ -146,7 +146,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         headers: StringToStringRecordSchema,
       })
     ),
-    tools: z.array(
+    tools: z.record(
+      z.string(),
       z.looseObject({
         id: z.string().trim().nonempty(),
         name: z.string().trim().nonempty(),
@@ -252,6 +253,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
     ),
     externalAgents,
     teamAgents,
-    tools: Object.values(tools),
+    tools,
   };
 }
