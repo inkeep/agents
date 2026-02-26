@@ -373,7 +373,7 @@ export const feedback = pgTable(
     conversationId: varchar('conversation_id', { length: 256 }).notNull(),
     messageId: varchar('message_id', { length: 256 }),
     type: varchar('type', { length: 20 }).$type<'positive' | 'negative'>().notNull(),
-    reasons: jsonb('reasons').$type<string[] | null>(),
+    details: jsonb('details').$type<string[] | null>(),
     properties: jsonb('properties').$type<Record<string, unknown> | null>(),
     userId: varchar('user_id', { length: 256 }),
     userType: varchar('user_type', { length: 20 }).$type<'user' | 'api_key'>(),
