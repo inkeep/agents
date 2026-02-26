@@ -927,6 +927,7 @@ export const CronExpressionSchema = z
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  createdBy: z.string().nullable().describe('User ID of the user who created this trigger'),
 });
 
 const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
@@ -953,6 +954,8 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   maxRetries: () => z.number().int().min(0).max(10).default(1),
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
+  createdBy: () =>
+    z.string().nullable().optional().describe('User ID of the user who created this trigger'),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
