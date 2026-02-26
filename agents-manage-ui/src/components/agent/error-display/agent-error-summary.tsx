@@ -110,7 +110,7 @@ function getErrors() {
   };
 }
 
-export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentErrorSummaryProps) {
+export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) {
   'use memo';
   const { setQueryState } = useSidePane();
 

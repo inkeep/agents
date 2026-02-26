@@ -70,7 +70,7 @@ export function SidePane({
 
   const selectedEdge = selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null;
 
-  const { heading, HeadingIcon } = (function () {
+  const { heading, HeadingIcon } = (() => {
     let heading = '';
     let HeadingIcon: LucideIcon | undefined;
 
@@ -92,7 +92,7 @@ export function SidePane({
     return { heading, HeadingIcon };
   })();
 
-  const editorContent = (function () {
+  const editorContent = (() => {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }

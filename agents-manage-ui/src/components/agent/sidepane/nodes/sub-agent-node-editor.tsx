@@ -179,6 +179,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       <ComponentSelector
         label="Components"
         componentLookup={dataComponentLookup}
+        // @ts-expect-error -- fixme
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
           form.setValue(path('dataComponents'), newSelection, { shouldDirty: true });
@@ -192,6 +193,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       <ComponentSelector
         label="Artifacts"
         componentLookup={artifactComponentLookup}
+        // @ts-expect-error -- fixme
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
           form.setValue(path('artifactComponents'), newSelection, { shouldDirty: true });

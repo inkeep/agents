@@ -62,15 +62,16 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   };
 
   const canWriteWithAI = isCopilotConfigured && canEdit;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: just debug
   useEffect(() => {
     form.setError(path('name'), {
       type: 'manual',
       message: 'This field is invalid',
     });
   }, []);
-  if (!functionTool) {
-    return;
-  }
+  // if (!functionTool) {
+  //   return;
+  // }
   return (
     <div className="space-y-8">
       <GenericInput

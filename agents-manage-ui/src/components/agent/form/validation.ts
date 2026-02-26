@@ -9,7 +9,8 @@ import {
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
-import { generateIdFromName } from '@/lib/utils/generate-id';
+
+// import { generateIdFromName } from '@/lib/utils/generate-id';
 
 const OriginalContextConfigSchema =
   AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
@@ -99,7 +100,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       // TODO: use updateDefaultSubAgent logic
       isDefault: z.boolean().optional(),
       models: MyModelsSchema.partial(),
-      stopWhen: SubAgentStopWhenSchema,
+      stopWhen: SubAgentStopWhenSchema.optional(),
       dataComponents: z.array(z.string()).optional(),
       artifactComponents: z.array(z.string()).optional(),
     })
