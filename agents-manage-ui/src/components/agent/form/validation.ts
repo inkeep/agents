@@ -1,10 +1,10 @@
 import {
-  AgentWithinContextOfProjectSchema,
-  transformToJson,
   type AgentWithinContextOfProjectResponse,
-  SubAgentStopWhenSchema,
-  StringRecordSchema,
+  AgentWithinContextOfProjectSchema,
   FunctionApiInsertSchema,
+  StringRecordSchema,
+  SubAgentStopWhenSchema,
+  transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
@@ -176,13 +176,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
     tools = {},
   } = data;
 
-  const functionTool = {
-    ...functions['rn5612qh26zghl18rwjbn'],
-    name: functionTools['rn5612qh26zghl18rwjbn'].name,
-  };
-  functionTool.inputSchema = serializeJson(functionTool.inputSchema);
-  functionTool.dependencies = serializeJson(functionTool.dependencies);
-
   return {
     id,
     name,
@@ -219,7 +212,14 @@ export function serializeAgentForm(data: FullAgentResponse) {
       },
     },
     subAgents: Object.values(subAgents),
-    functionTools: [functionTool],
+    functionTools: Object.values(functions).map((tool) => {
+      return {
+        ...tool,
+        name: functionTools[tool.id].name,
+        inputSchema: serializeJson(tool.inputSchema),
+        dependencies: serializeJson(tool.dependencies),
+      };
+    }),
     externalAgents: Object.values(externalAgents),
     teamAgents: Object.values(teamAgents),
     tools: Object.values(tools),

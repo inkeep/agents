@@ -1,6 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
@@ -30,6 +30,7 @@ interface FunctionToolNodeEditorProps {
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
+  'use memo';
   const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
 
   const { canEdit } = useProjectPermissions();
@@ -40,22 +41,21 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     name: 'functionTools',
     keyName: '_rhfKey2',
   });
-  const functionToolIndex = 0; //fields.findIndex(
-  // (s) => s.id === (selectedNode.data.id ?? selectedNode.id)
-  // );
+  const functionToolIndex = fields.findIndex((s) => s.id === selectedNode.data.toolId);
 
   const functionTool = useWatch({
     control: form.control,
     name: `functionTools.${functionToolIndex}`,
   });
-  // if (functionToolIndex < 0) return null;
 
   const path = <K extends string>(k: K) => `functionTools.${functionToolIndex}.${k}` as const;
 
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
-
-  const handleWriteWithAISubmit = useCallback(() => {
+  if (!functionTool) {
+    return;
+  }
+  const handleWriteWithAISubmit = () => {
     if (!chatFunctionsRef?.current) return;
     const baseMessage = `I want to update the code for the function tool "${functionTool.name || 'this function tool'}".`;
     const message = writeWithAIInstructions.trim()
@@ -67,10 +67,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     }, 100);
     setIsWriteWithAIDialogOpen(false);
     setWriteWithAIInstructions('');
-  }, [chatFunctionsRef, functionTool.name, writeWithAIInstructions, openCopilot]);
+  };
 
   const canWriteWithAI = isCopilotConfigured && canEdit;
-  console.log({ functionTool });
+
   return (
     <div className="space-y-8">
       <GenericInput
