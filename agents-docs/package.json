@@ -18,8 +18,9 @@
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
     "generate-skill-collections": "node --experimental-strip-types scripts/generate-skill-collections.ts",
-    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link && pnpm generate-skill-collections",
-    "validate-link": "node --experimental-strip-types scripts/validate-link.ts"
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link && pnpm validate-seo && pnpm generate-skill-collections",
+    "validate-link": "node --experimental-strip-types scripts/validate-link.ts",
+    "validate-seo": "node --experimental-strip-types scripts/validate-seo.ts"
   },
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
