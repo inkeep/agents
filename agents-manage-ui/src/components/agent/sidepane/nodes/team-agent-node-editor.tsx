@@ -28,7 +28,7 @@ export function TeamAgentNodeEditor({
 }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string; }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);

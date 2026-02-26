@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -77,13 +77,8 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const { project } = useProjectData();
   const models = useWatch({ control: form.control, name: 'models' });
 
-  const { updateNestedPath, getFieldError, deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-  });
+  const { deleteNode } = useDeleteNode(selectedNode.id);
 
-  const updateModelPath = (path: string, value: any) => {
-    updateNestedPath(path, value, selectedNode.data);
-  };
   // useEffect(() => {
   //   form.setError(path('stopWhen.stepCountIs'), {
   //     type: 'manual',
@@ -121,7 +116,8 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         // @ts-expect-error -- fixme
         selectedSkills={subAgent.skills}
         onChange={(value) => form.setValue(path('skills'), value)}
-        error={getFieldError('skills')}
+        // TODO
+        // error={getFieldError('skills')}
       />
       <GenericPromptEditor
         control={form.control}
@@ -137,8 +133,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       />
       <Separator />
       <ModelSection
-        models={selectedNode.data.models}
-        updatePath={updateModelPath}
+        models={subAgent.models}
+        updatePath={(path, value) => {
+          form.setValue(path as any, value, { shouldDirty: true });
+        }}
         projectModels={project?.models}
         agentModels={models}
       />
