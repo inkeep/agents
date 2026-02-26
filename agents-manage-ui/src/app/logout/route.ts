@@ -117,6 +117,7 @@ export async function GET(request: NextRequest) {
       httpOnly: false,
       sameSite: 'lax',
       secure: false,
+      maxAge: 24 * 60 * 60, // 24 hours — self-heals if developer forgets
     });
   }
 
