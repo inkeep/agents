@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -24,15 +23,14 @@ import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericCodeEditor } from '@/components/form/generic-code-editor';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
-  const { getFieldError, updatePath, deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-  });
+  const { updatePath, deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
 
   const { canEdit } = useProjectPermissions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
@@ -60,25 +58,14 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
 
   // Local state for form fields - initialize from node data
-  const [code, setCode] = useState(String(nodeData.code || ''));
   const [needsApproval, setNeedsApproval] = useState(
     !!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false)
   );
 
   // Sync local state with node data when node changes
   useEffect(() => {
-    setCode(String(nodeData.code || ''));
     setNeedsApproval(!!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false));
   }, [nodeData]);
-
-  // Handle code changes
-  const handleCodeChange = useCallback(
-    (value: string) => {
-      setCode(value);
-      updatePath('code', value);
-    },
-    [updatePath]
-  );
 
   const handleWriteWithAISubmit = useCallback(() => {
     if (!chatFunctionsRef?.current) return;
@@ -111,13 +98,11 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         label="Description"
         placeholder="Enter function tool description..."
       />
-      <div className="space-y-2">
-        <ExpandableCodeEditor
-          name="code"
-          label="Code"
-          value={code}
-          onChange={handleCodeChange}
-          placeholder={`async function execute({ param1, param2 }) {
+      <GenericCodeEditor
+        control={form.control}
+        name={path('executeCode')}
+        label="Code"
+        placeholder={`async function execute({ param1, param2 }) {
   // Your function logic here
   const result = await doSomething(param1, param2);
   return {
@@ -125,28 +110,23 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     data: result
   };
 }`}
-          error={getFieldError('code')}
-          isRequired
-          actions={
-            canWriteWithAI ? (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="text-xs h-6 gap-1"
-                onClick={() => setIsWriteWithAIDialogOpen(true)}
-              >
-                <Sparkles className="size-3.5" />
-                Write with AI
-              </Button>
-            ) : null
-          }
-        />
-        <p className="text-xs text-muted-foreground">
-          JavaScript function code to be executed by the tool. The function will receive arguments
-          based on the input schema and should return a result.
-        </p>
-      </div>
+        isRequired
+        actions={
+          canWriteWithAI ? (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="text-xs h-6 gap-1"
+              onClick={() => setIsWriteWithAIDialogOpen(true)}
+            >
+              <Sparkles className="size-3.5" />
+              Write with AI
+            </Button>
+          ) : null
+        }
+        description="JavaScript function code to be executed by the tool. The function will receive arguments based on the input schema and should return a result."
+      />
       <Dialog open={isWriteWithAIDialogOpen} onOpenChange={setIsWriteWithAIDialogOpen}>
         <DialogContent className="max-w-2xl!">
           <DialogHeader>
