@@ -1,24 +1,22 @@
-import { type Node, useReactFlow } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
-import { FieldLabel } from '../form-components/label';
-import { TextareaField } from '../form-components/text-area';
+import { GenericTextarea } from '@/components/form/generic-textarea';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
@@ -32,53 +30,21 @@ export function TeamAgentNodeEditor({
   errorHelpers,
 }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { updateNodeData } = useReactFlow();
-  const { markUnsaved } = useAgentActions();
-  const { handleInputChange, getFieldError, setFieldRef, deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
-  });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id, errorHelpers });
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-  const handleHeadersChange = (value: string) => {
-    // Always update the input state (allows user to type invalid JSON)
-    setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
-    } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
-    }
-  };
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
   }, [selectedNode, subAgentTeamAgentConfigLookup]);
 
-  // Local state for headers input (allows invalid JSON while typing)
-  const [headersInputValue, setHeadersInputValue] = useState('{}');
-
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
-    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
   const form = useFullAgentFormContext();
@@ -120,29 +86,20 @@ export function TeamAgentNodeEditor({
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
         isRequired
       />
-
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={selectedNode.data.description || ''}
-        onChange={handleInputChange}
         placeholder="This agent is responsible for..."
-        error={getFieldError('description')}
         disabled
       />
-
-      <div className="space-y-2">
-        <FieldLabel id="headers" label="Headers" />
-        <StandaloneJsonEditor
-          name="headers"
-          value={headersInputValue}
-          onChange={handleHeadersChange}
-          placeholder="{}"
-          customTemplate={teamAgentHeadersTemplate}
-        />
-      </div>
+      <GenericJsonEditor
+        control={form.control}
+        name={path('headers')}
+        label="Headers"
+        placeholder="{}"
+        customTemplate={teamAgentHeadersTemplate}
+      />
       <ExternalLink href={`/${tenantId}/projects/${projectId}/agents/${selectedNode.data.id}`}>
         View Agent
       </ExternalLink>

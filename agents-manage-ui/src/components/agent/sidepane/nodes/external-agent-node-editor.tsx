@@ -33,7 +33,7 @@ export function ExternalAgentNodeEditor({
   errorHelpers,
 }: ExternalAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({selectedNodeId: selectedNode.id, errorHelpers,});
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id, errorHelpers });
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -70,7 +70,7 @@ export function ExternalAgentNodeEditor({
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
-    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2))
+    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
   return (
