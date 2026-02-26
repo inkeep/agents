@@ -27,6 +27,7 @@ export interface PublicExecutionParams {
   agentId: string;
   agentName: string;
   question: string;
+  rawMessageText?: string;
   conversationId: string;
   entryPoint?: SlackEntryPoint;
 }
@@ -73,6 +74,7 @@ export async function executeAgentPublicly(params: PublicExecutionParams): Promi
     projectId: params.projectId,
     agentId: params.agentId,
     question: params.question,
+    rawMessageText: params.rawMessageText,
     agentName,
     conversationId: params.conversationId,
     entryPoint: params.entryPoint,
