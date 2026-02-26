@@ -3,6 +3,10 @@ import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { type FC, useEffect } from 'react';
 import { useFieldArray, useWatch } from 'react-hook-form';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,10 +26,6 @@ import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ModelSection } from './model-section';
-import { GenericInput } from '@/components/form/generic-input';
-import { GenericTextarea } from '@/components/form/generic-textarea';
-import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
-import { GenericCheckbox } from '@/components/form/generic-checkbox';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (

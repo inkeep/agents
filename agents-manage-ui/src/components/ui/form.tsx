@@ -12,8 +12,8 @@ import {
   useFormContext,
   useFormState,
 } from 'react-hook-form';
-import { cn } from '@/lib/utils';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
+import { cn } from '@/lib/utils';
 
 const Form = FormProvider;
 

@@ -1,6 +1,13 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useFieldArray, useWatch } from 'react-hook-form';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
+import { GenericCodeEditor } from '@/components/form/generic-code-editor';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
+import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,17 +20,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
-import { useFieldArray, useWatch } from 'react-hook-form';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { GenericInput } from '@/components/form/generic-input';
-import { GenericTextarea } from '@/components/form/generic-textarea';
-import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
-import { GenericJsonEditor } from '@/components/form/generic-json-editor';
-import { GenericCodeEditor } from '@/components/form/generic-code-editor';
-import { GenericCheckbox } from '@/components/form/generic-checkbox';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;

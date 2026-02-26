@@ -7,17 +7,16 @@
 
 // Import core types and schemas
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
-import type { SingleResponse } from './response';
 import type { FullAgentResponse } from '@/components/agent/form/validation';
+import type { SingleResponse } from './response';
 
+// Re-export types and schemas
+export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
 export type {
   FullAgentDefinition,
   FullAgentResponse,
   PartialFullAgentDefinition,
 } from '@/components/agent/form/validation';
-
-// Re-export types and schemas
-export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
 
 export interface Agent {
   id: string;

@@ -2,8 +2,8 @@
 
 import { type ComponentProps, type ReactNode, useId, useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
-import { Editor } from '@/components/editors/editor';
 import { CodeEditor } from '@/components/editors/code-editor';
+import { Editor } from '@/components/editors/editor';
 import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
 import {
   FormControl,

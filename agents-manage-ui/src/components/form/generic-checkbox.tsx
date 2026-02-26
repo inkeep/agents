@@ -1,7 +1,8 @@
 'use client';
 
-import type { ReactNode, JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   FormControl,
   FormDescription,
@@ -10,7 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Checkbox } from '@/components/ui/checkbox';
 
 export interface FormFieldWrapperProps<
   FV extends FieldValues,
