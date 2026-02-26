@@ -163,6 +163,7 @@ export async function handleDirectMessage(params: {
         agentId: defaultAgent.agentId,
         agentName: agentDisplayName,
         question: queryText,
+        rawMessageText: text,
         conversationId,
         entryPoint: 'direct_message',
       });

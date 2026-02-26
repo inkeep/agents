@@ -197,6 +197,7 @@ async function resumeMention(
     projectId: intent.projectId,
     agentId: intent.agentId,
     question: formattedQuestion,
+    rawMessageText: intent.question,
     agentName: intent.agentId,
     conversationId,
     entryPoint: 'smart_link_resume',
@@ -256,6 +257,7 @@ async function resumeDirectMessage(
     agentId: intent.agentId,
     agentName: intent.agentId,
     question: formattedQuestion,
+    rawMessageText: intent.question,
     conversationId,
     entryPoint: 'smart_link_resume',
   });

@@ -178,6 +178,7 @@ export async function handleModalSubmission(view: {
         agentId,
         agentName: agentDisplayName,
         question: fullQuestion,
+        rawMessageText: question,
         conversationId,
         entryPoint: metadata.messageContext ? 'message_shortcut' : 'modal_submission',
       });

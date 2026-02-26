@@ -315,6 +315,7 @@ export async function handleAppMention(params: {
           agentId: agentConfig.agentId,
           agentName: agentDisplayName,
           question: threadQuery,
+          rawMessageText: '',
           conversationId,
           entryPoint: 'app_mention',
         });
@@ -412,6 +413,7 @@ export async function handleAppMention(params: {
         agentId: agentConfig.agentId,
         agentName: agentDisplayName,
         question: queryText,
+        rawMessageText: text,
         conversationId,
         entryPoint: 'app_mention',
       });

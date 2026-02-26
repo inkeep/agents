@@ -384,6 +384,7 @@ export async function handleQuestionCommand(
     agentId: resolvedAgent.agentId,
     agentName: resolvedAgent.agentName || resolvedAgent.agentId,
     question: formattedQuestion,
+    rawMessageText: question,
     conversationId,
     entryPoint: 'slash_command',
   })
