@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, ChevronDown, ChevronRight, Code, X, Zap } from 'lucide-react';
-import {type ComponentProps, type ReactNode, useEffect, useRef, useState} from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,10 +137,20 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
   // };
 
   const { errorCount, errors } = getErrors();
-  const { subAgents = {}, functionTools = {}, ...rest } = errors;
+  const {
+    subAgents = {},
+    functionTools = {},
+    externalAgents = {},
+    teamAgents = {},
+    tools = {},
+    ...rest
+  } = errors;
 
   const subAgentErrors = processMessagesWithNodeId(subAgents);
   const functionToolErrors = processMessagesWithNodeId(functionTools);
+  const externalAgentsErrors = processMessagesWithNodeId(externalAgents);
+  const teamAgentsErrors = processMessagesWithNodeId(teamAgents);
+  const toolsErrors = processMessagesWithNodeId(tools);
   // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
   const agentErrors = Object.entries(rest).map(([key, value]) => ({
     field: key,
@@ -149,9 +159,12 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
   const [showErrors, setShowErrors] = useState(true);
   const previousErrorSignatureRef = useRef('');
   const errorSignature = [
-    ...subAgentErrors.map((error) => `sub-agent:${error.field}:${error.message}`),
-    ...functionToolErrors.map((error) => `function-tool:${error.field}:${error.message}`),
-    ...agentErrors.map((error) => `agent:${error.field}:${error.message}`),
+    ...subAgentErrors.map((error) => `1:${error.field}:${error.message}`),
+    ...functionToolErrors.map((error) => `2:${error.field}:${error.message}`),
+    ...externalAgentsErrors.map((error) => `3:${error.field}:${error.message}`),
+    ...teamAgentsErrors.map((error) => `4:${error.field}:${error.message}`),
+    ...toolsErrors.map((error) => `5:${error.field}:${error.message}`),
+    ...agentErrors.map((error) => `6:${error.field}:${error.message}`),
   ]
     .sort()
     .join('|');
@@ -178,20 +191,38 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
       errors: subAgentErrors,
       icon: <Zap className="w-3 h-3" />,
       onNavigate: handleNavigateToNode,
-      getItemLabel: (error) =>  `Agent (${error.nodeId})`,
+      getItemLabel: (error) => `Agent (${error.nodeId})`,
     },
     {
-      title: "Function Tool Errors",
+      title: 'Function Tool Errors',
       errors: functionToolErrors,
       icon: <Code className="w-3 h-3" />,
-      onNavigate:handleNavigateToNode,
-      getItemLabel:  (error) => `Function Tool (${error.nodeId})`;
+      onNavigate: handleNavigateToNode,
+      getItemLabel: (error) => `Function Tool (${error.nodeId})`,
     },
     {
-      title: "Agent Configuration Errors",
+      title: 'External Agent Errors',
+      errors: externalAgentsErrors,
+      onNavigate: handleNavigateToNode,
+      getItemLabel: (error) => `External Agent (${error.nodeId})`,
+    },
+    {
+      title: 'Team Agent Errors',
+      errors: teamAgentsErrors,
+      onNavigate: handleNavigateToNode,
+      getItemLabel: (error) => `Team Agent (${error.nodeId})`,
+    },
+    {
+      title: 'MCP Tool Errors',
+      errors: toolsErrors,
+      onNavigate: handleNavigateToNode,
+      getItemLabel: (error) => `MCP Tool (${error.nodeId})`,
+    },
+    {
+      title: 'Agent Configuration Errors',
       errors: agentErrors,
-    }
-  ]
+    },
+  ];
   return (
     <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl gap-2 py-4 max-h-[80vh] animate-in slide-in-from-bottom-2 duration-300">
       <CardHeader className="px-3">
