@@ -1,23 +1,17 @@
-/**
- * URL and DNS guardrails for user-provided URLs.
- *
- * This prevents our server from being tricked into calling private/internal services
- * (for example localhost, metadata endpoints, or internal admin hosts).
- * Run these checks before any network request to an untrusted URL.
- */
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import * as ipaddr from 'ipaddr.js';
 import { getLogger } from '../../../../logger';
 import { ALLOWED_HTTP_PORTS } from './image-security-constants';
 import {
-  blockedDisallowedPort,
-  blockedEmbeddedCredentials,
-  blockedUnsupportedScheme,
-  blockedUrlResolvingToPrivateIp,
-  invalidExternalImageUrl,
-  noIpResolved,
-  unableToResolveHost,
+  BlockedDisallowedPortError,
+  BlockedEmbeddedCredentialsError,
+  BlockedUnsupportedSchemeError,
+  BlockedUrlResolvingToPrivateIpError,
+  ImageSecurityError,
+  InvalidExternalImageUrlError,
+  NoIpResolvedError,
+  UnableToResolveHostError,
 } from './image-security-errors';
 
 const logger = getLogger('image-security');
@@ -27,18 +21,18 @@ export function validateExternalImageUrl(rawUrl: string): URL {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error(invalidExternalImageUrl(rawUrl));
+    throw new InvalidExternalImageUrlError(rawUrl);
   }
 
   const protocol = parsed.protocol.toLowerCase();
   if (protocol !== 'http:' && protocol !== 'https:') {
-    throw new Error(blockedUnsupportedScheme(protocol));
+    throw new BlockedUnsupportedSchemeError(protocol);
   }
   if (!ALLOWED_HTTP_PORTS.has(parsed.port)) {
-    throw new Error(blockedDisallowedPort(parsed.port));
+    throw new BlockedDisallowedPortError(parsed.port);
   }
   if (parsed.username || parsed.password) {
-    throw new Error(blockedEmbeddedCredentials);
+    throw new BlockedEmbeddedCredentialsError();
   }
 
   return parsed;
@@ -46,16 +40,24 @@ export function validateExternalImageUrl(rawUrl: string): URL {
 
 export async function validateUrlResolvesToPublicIp(url: URL): Promise<void> {
   const hostname = url.hostname;
-  const candidateIps = await resolveCandidateIps(hostname);
+  let candidateIps: string[];
+  try {
+    candidateIps = await resolveCandidateIps(hostname);
+  } catch (error) {
+    if (error instanceof ImageSecurityError) {
+      throw error;
+    }
+    throw new UnableToResolveHostError(hostname, { cause: error });
+  }
 
   if (candidateIps.length === 0) {
-    throw new Error(noIpResolved(hostname));
+    throw new NoIpResolvedError(hostname);
   }
 
   for (const ip of candidateIps) {
     if (isBlockedIpAddress(ip)) {
       logger.warn({ host: hostname, ip }, 'Blocked external image URL resolving to private IP');
-      throw new Error(blockedUrlResolvingToPrivateIp(ip));
+      throw new BlockedUrlResolvingToPrivateIpError(ip);
     }
   }
 }
@@ -69,7 +71,7 @@ async function resolveCandidateIps(hostname: string): Promise<string[]> {
     return (await lookup(hostname, { all: true, verbatim: true })).map((result) => result.address);
   } catch (error) {
     logger.warn({ host: hostname, error }, 'DNS resolution failed for external image URL');
-    throw new Error(unableToResolveHost(hostname));
+    throw new UnableToResolveHostError(hostname, { cause: error });
   }
 }
 

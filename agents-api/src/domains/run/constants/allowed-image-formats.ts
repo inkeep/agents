@@ -1,7 +1,3 @@
-/**
- * Single source of truth for allowed image formats (chat API and blob-storage security).
- * Used by run/types/chat.ts (ImageUrlSchema) and run/services/blob-storage image checks.
- */
 export const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 const dataUriSubtypes = Array.from(ALLOWED_IMAGE_MIME_TYPES).flatMap((mime) => {

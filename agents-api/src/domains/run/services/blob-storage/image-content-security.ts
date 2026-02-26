@@ -10,10 +10,10 @@ import {
   MAX_EXTERNAL_IMAGE_BYTES,
 } from './image-security-constants';
 import {
-  blockedExternalUnsupportedBytes,
-  blockedInlineImageExceeding,
-  blockedInlineUnsupportedBytes,
-  invalidInlineImageMalformedBase64,
+  BlockedExternalUnsupportedBytesError,
+  BlockedInlineImageExceedingError,
+  BlockedInlineUnsupportedBytesError,
+  InvalidInlineImageMalformedBase64Error,
 } from './image-security-errors';
 
 export async function normalizeInlineImageBytes(file: {
@@ -31,7 +31,7 @@ export async function normalizeInlineImageBytes(file: {
     return { data, mimeType: sniffedMime };
   }
 
-  throw new Error(blockedInlineUnsupportedBytes(file.mimeType || 'unknown'));
+  throw new BlockedInlineUnsupportedBytesError(file.mimeType || 'unknown');
 }
 
 export async function resolveDownloadedImageMimeType(
@@ -43,12 +43,12 @@ export async function resolveDownloadedImageMimeType(
     return sniffedMime;
   }
 
-  throw new Error(blockedExternalUnsupportedBytes(headerContentType || 'unknown'));
+  throw new BlockedExternalUnsupportedBytesError(headerContentType || 'unknown');
 }
 
 function validateInlineImageSize(data: Uint8Array): void {
   if (data.length > MAX_EXTERNAL_IMAGE_BYTES) {
-    throw new Error(blockedInlineImageExceeding(MAX_EXTERNAL_IMAGE_BYTES));
+    throw new BlockedInlineImageExceedingError(MAX_EXTERNAL_IMAGE_BYTES);
   }
 }
 
@@ -69,12 +69,12 @@ function decodeBase64ImageBytes(base64Bytes: string): Uint8Array {
     normalized.length % 4 !== 0 ||
     !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)
   ) {
-    throw new Error(invalidInlineImageMalformedBase64);
+    throw new InvalidInlineImageMalformedBase64Error();
   }
 
   const decoded = Buffer.from(normalized, 'base64');
   if (decoded.length === 0 || decoded.toString('base64') !== normalized) {
-    throw new Error(invalidInlineImageMalformedBase64);
+    throw new InvalidInlineImageMalformedBase64Error();
   }
 
   return Uint8Array.from(decoded);
