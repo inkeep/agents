@@ -1,5 +1,24 @@
 # @inkeep/agents-work-apps
 
+## 0.53.10
+
+### Patch Changes
+
+- 7299f4a: UI tweaks for slack app
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 8a0c90c: Increasing slack streaming timeout to 30 minutes
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
 ## 0.53.8
 
 ### Patch Changes

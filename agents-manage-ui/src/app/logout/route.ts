@@ -20,7 +20,7 @@ const DEFAULT_REDIRECT = '/login';
  * Validates that a redirect URL is safe (relative path only).
  * Prevents open redirect vulnerabilities.
  */
-function isValidRedirect(redirect: string): boolean {
+export function isValidRedirect(redirect: string): boolean {
   // Must start with a single forward slash (relative path)
   if (!redirect.startsWith('/')) return false;
 
@@ -31,6 +31,63 @@ function isValidRedirect(redirect: string): boolean {
   if (redirect.includes('\\')) return false;
 
   return true;
+}
+
+// NOTE: Base domain extraction logic must stay in sync with extractCookieDomain
+// in @inkeep/agents-core/auth/auth.ts. This function extends it to return multiple
+// candidate domains for cookie clearing (no-domain, auto-computed, root).
+export function computeCandidateDomains(hostname: string): (string | undefined)[] {
+  const domains: (string | undefined)[] = [undefined];
+
+  if (hostname === 'localhost' || hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    return domains;
+  }
+
+  const parts = hostname.split('.');
+  if (parts.length < 2) {
+    return domains;
+  }
+
+  let domainParts: string[];
+  if (parts.length === 3) {
+    domainParts = parts;
+  } else if (parts.length > 3) {
+    domainParts = parts.slice(1);
+  } else {
+    domainParts = parts;
+  }
+  const autoComputed = `.${domainParts.join('.')}`;
+  domains.push(autoComputed);
+
+  if (parts.length > 2) {
+    // Extract eTLD+1 (root domain) to clear cookies set at the parent domain
+    // (e.g., AUTH_COOKIE_DOMAIN=.inkeep.com vs auto-computed .app.inkeep.com)
+    const rootDomain = `.${parts.slice(-2).join('.')}`;
+    if (rootDomain !== autoComputed) {
+      domains.push(rootDomain);
+    }
+  }
+
+  return domains;
+}
+
+export function buildClearCookieHeader(name: string, isSecure: boolean, domain?: string): string {
+  const parts = [
+    `${name}=`,
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'Max-Age=0',
+    'Path=/',
+    'HttpOnly',
+  ];
+  if (isSecure) {
+    parts.push('SameSite=None', 'Secure');
+  } else {
+    parts.push('SameSite=Lax');
+  }
+  if (domain) {
+    parts.push(`Domain=${domain}`);
+  }
+  return parts.join('; ');
 }
 
 /**
@@ -86,30 +143,10 @@ export async function GET(request: NextRequest) {
   const isSecure =
     request.url.startsWith('https://') || request.headers.get('x-forwarded-proto') === 'https';
 
-  // Extract domain from request URL if needed (for cross-subdomain cookies)
-  // This matches the logic in packages/agents-core/src/auth/auth.ts
   const requestUrl = new URL(request.url);
-  let cookieDomain: string | undefined;
   const hostname = requestUrl.hostname;
-  if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
-    const parts = hostname.split('.');
-    if (parts.length >= 2) {
-      // Extract parent domain for cross-subdomain cookie clearing
-      // Matches auth.ts logic: 3 parts = all, 4+ parts = slice(1), 2 parts = all
-      let domainParts: string[];
-      if (parts.length === 3) {
-        domainParts = parts;
-      } else if (parts.length > 3) {
-        domainParts = parts.slice(1);
-      } else {
-        domainParts = parts;
-      }
-      cookieDomain = `.${domainParts.join('.')}`;
-    }
-  }
+  const candidateDomains = computeCandidateDomains(hostname);
 
-  // Set dev-logged-out signal so the proxy skips auto-login after explicit logout.
-  // Only set in dev mode — the proxy ignores this cookie in production.
   const isDev = process.env.ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
   if (isDev) {
     response.cookies.set('dev-logged-out', '1', {
@@ -117,22 +154,14 @@ export async function GET(request: NextRequest) {
       httpOnly: false,
       sameSite: 'lax',
       secure: false,
-      maxAge: 24 * 60 * 60, // 24 hours — self-heals if developer forgets
+      maxAge: 24 * 60 * 60,
     });
   }
 
   for (const cookieName of cookiesToClear) {
-    // Clear cookie with matching attributes to ensure browser removes it
-    // Must include Secure if cookie was set with Secure, and SameSite to match
-    response.cookies.set(cookieName, '', {
-      expires: new Date(0),
-      path: '/',
-      httpOnly: true,
-      ...(isSecure
-        ? { sameSite: 'none' as const, secure: true }
-        : { sameSite: 'lax' as const, secure: false }),
-      ...(cookieDomain && { domain: cookieDomain }),
-    });
+    for (const domain of candidateDomains) {
+      response.headers.append('Set-Cookie', buildClearCookieHeader(cookieName, isSecure, domain));
+    }
   }
 
   return response;
