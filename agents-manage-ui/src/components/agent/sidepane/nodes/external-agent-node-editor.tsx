@@ -67,7 +67,12 @@ export function ExternalAgentNodeEditor({
   if (!externalAgent) {
     return;
   }
-
+  // useEffect(() => {
+  //   form.setError(path('name'), {
+  //     type: 'manual',
+  //     message: 'This field is invalid',
+  //   });
+  // }, []);
   return (
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">

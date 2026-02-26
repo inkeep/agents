@@ -1761,6 +1761,8 @@ export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).exte
 });
 export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
