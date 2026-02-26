@@ -54,8 +54,8 @@ import {
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { updateFullAgentAction } from '@/lib/actions/agent-full';
@@ -346,7 +346,16 @@ export const Agent: FC<AgentProps> = ({
 
   // Always use enriched nodes for ReactFlow
   const nodes = enrichNodes(storeNodes);
-  const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
+
+  const processedErrors = useProcessedErrors();
+  const [showErrors, setShowErrors] = useState(true);
+
+  function setErrors() {
+    console.log(1, 'setErrors');
+  }
+  function clearErrors() {
+    console.log(1, 'clearErrors');
+  }
 
   const onAddInitialNode = () => {
     const newNode = {
@@ -774,6 +783,10 @@ export const Agent: FC<AgentProps> = ({
     const res = await updateFullAgentAction(tenantId, projectId, agentId, {
       ...serializedData,
       ...data,
+      externalAgents: undefined,
+      tools: undefined,
+      teamAgents: undefined,
+      functionTools: undefined,
     });
 
     if (res.success) {
@@ -1004,10 +1017,10 @@ export const Agent: FC<AgentProps> = ({
               </form>
             </Panel>
           )}
-          {errors && showErrors && (
+          {processedErrors && showErrors && (
             <Panel position="bottom-left" className="max-w-sm left-8! mb-4">
               <AgentErrorSummary
-                errorSummary={errors}
+                errorSummary={processedErrors}
                 onClose={() => setShowErrors(false)}
                 onNavigateToNode={handleNavigateToNode}
                 onNavigateToEdge={handleNavigateToEdge}
