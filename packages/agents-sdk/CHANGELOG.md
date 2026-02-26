@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.53.10
+
+### Patch Changes
+
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
 ## 0.53.9
 
 ### Patch Changes

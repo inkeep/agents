@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [7299f4a]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-work-apps@0.53.10
+  - @inkeep/agents-mcp@0.53.10
+
 ## 0.53.9
 
 ### Patch Changes

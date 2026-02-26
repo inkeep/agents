@@ -1,7 +1,6 @@
 'use client';
 
 import { LogOut, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { ThemeToggleTabs } from '@/components/theme-toggle-tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,14 +15,13 @@ import { useAuthSession } from '@/hooks/use-auth';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
-  const router = useRouter();
 
   if (isLoading || !user) {
     return null;
   }
 
   const handleSignOut = () => {
-    router.push('/logout');
+    window.location.href = '/logout';
   };
 
   return (

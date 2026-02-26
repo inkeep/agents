@@ -1,6 +1,11 @@
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
+import {
+  addValueToObject,
+  convertNullToUndefined,
+  createFactoryDefinition,
+  toCamelCase,
+} from './utils';
 
 type ScheduledTriggerDefinitionData = {
   scheduledTriggerId: string;
@@ -18,26 +23,24 @@ type ScheduledTriggerDefinitionData = {
   runAsUserId?: string | null;
 };
 
-const nullToUndefined = (v: string | null | undefined) => v ?? undefined;
-
 const ScheduledTriggerSchema = z.looseObject({
   scheduledTriggerId: z.string().nonempty(),
   name: z.string().nonempty(),
-  description: z.string().nullable().optional().transform(nullToUndefined),
+  description: z.string().nullable().optional().transform(convertNullToUndefined),
   enabled: z.boolean().optional(),
-  cronExpression: z.string().nullable().optional().transform(nullToUndefined),
-  cronTimezone: z.string().nullable().optional().transform(nullToUndefined),
-  runAt: z.string().nullable().optional().transform(nullToUndefined),
+  cronExpression: z.string().nullable().optional().transform(convertNullToUndefined),
+  cronTimezone: z.string().nullable().optional().transform(convertNullToUndefined),
+  runAt: z.string().nullable().optional().transform(convertNullToUndefined),
   payload: z
     .record(z.string(), z.unknown())
     .nullable()
     .optional()
     .transform((v) => v ?? undefined),
-  messageTemplate: z.string().nullable().optional().transform(nullToUndefined),
+  messageTemplate: z.string().nullable().optional().transform(convertNullToUndefined),
   maxRetries: z.number().optional(),
   retryDelaySeconds: z.number().optional(),
   timeoutSeconds: z.number().optional(),
-  runAsUserId: z.string().nullable().optional().transform(nullToUndefined),
+  runAsUserId: z.string().nullable().optional().transform(convertNullToUndefined),
 });
 
 export function generateScheduledTriggerDefinition(

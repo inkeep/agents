@@ -1,18 +1,16 @@
 'use client';
 
 import { XCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
 import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 
 export default function NoOrganizationPage() {
-  const router = useRouter();
   const { user } = useAuthSession();
 
   const handleSignOut = () => {
-    router.push('/logout');
+    window.location.href = '/logout';
   };
 
   return (
