@@ -30,6 +30,14 @@ pnpm upgrade-agents
 
 This will update all the packages to the latest version and migrate your database schema to the latest version.
 
+To upgrade packages without running database migrations, use the `--skip-migrate` flag:
+
+```bash
+pnpm upgrade-agents --skip-migrate
+```
+
+This is useful when you want to handle migrations separately or defer them to a later time.
+
 <Note>
 Your Docker databases must be running before upgrading. If they aren't running, run `pnpm setup-dev` first, then run `pnpm upgrade-agents`.
 </Note>
