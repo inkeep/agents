@@ -176,16 +176,6 @@ export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectRespon
 
 export type FullAgentDefinition = z.input<typeof AgentWithinContextOfProjectSchema>;
 
-/**
- * Partial fields excluding keys from zod schema which is handled by react-hook-form
- * which isn't yet migrated to react hook form.
- * @deprecated
- */
-export type PartialFullAgentDefinition = Omit<
-  FullAgentDefinition,
-  keyof z.input<typeof FullAgentUpdateSchema>
->;
-
 export function serializeAgentForm(data: FullAgentResponse) {
   const {
     id,
