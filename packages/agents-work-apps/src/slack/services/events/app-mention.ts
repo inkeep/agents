@@ -320,6 +320,7 @@ Respond naturally as if you're joining the conversation to help.`;
           agentName: agentDisplayName,
           question: threadQuery,
           conversationId,
+          entryPoint: 'app_mention',
         });
         span.end();
         return;
@@ -413,6 +414,7 @@ Respond naturally as if you're joining the conversation to help.`;
         agentName: agentDisplayName,
         question: queryText,
         conversationId,
+        entryPoint: 'app_mention',
       });
       span.end();
     } catch (error) {

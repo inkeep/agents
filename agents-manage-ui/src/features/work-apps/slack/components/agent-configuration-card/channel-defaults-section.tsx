@@ -112,7 +112,7 @@ export function ChannelDefaultsSection({
   onBulkResetToDefault,
   onClearFilters,
 }: ChannelDefaultsSectionProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'memberCount', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
 
   const columns = useMemo<ColumnDef<Channel>[]>(
     () => [
@@ -138,27 +138,6 @@ export function ChannelDefaultsSection({
                 <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               )}
               <span className="min-w-0 truncate">{channel.name}</span>
-            </span>
-          );
-        },
-      },
-      {
-        accessorFn: (row) => row.memberCount ?? -1,
-        id: 'memberCount',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Members" align="right" />
-        ),
-        cell: ({ row }) => {
-          const channel = row.original;
-          return (
-            <span className="text-right">
-              {channel.memberCount !== undefined ? (
-                <span className="text-muted-foreground text-sm font-mono tabular-nums">
-                  {channel.memberCount}
-                </span>
-              ) : (
-                <span className="text-muted-foreground/50">—</span>
-              )}
             </span>
           );
         },
@@ -304,7 +283,6 @@ export function ChannelDefaultsSection({
               <colgroup>
                 <col className="w-10" />
                 <col style={{ width: '40%' }} />
-                <col className="w-24" />
                 <col className="w-32" />
                 <col className="w-40" />
               </colgroup>
@@ -325,7 +303,7 @@ export function ChannelDefaultsSection({
                     />
                   </TableHead>
                   {selectedChannels.size > 0 ? (
-                    <TableHead colSpan={4} className="font-sans normal-case py-1.5">
+                    <TableHead colSpan={3} className="font-sans normal-case py-1.5">
                       <BulkSelectAgentBar
                         selectedCount={selectedChannels.size}
                         agents={agents}
@@ -344,9 +322,7 @@ export function ChannelDefaultsSection({
                           key={header.id}
                           className={cn(
                             header.column.id === 'name' && 'w-fit',
-                            (header.column.id === 'memberCount' ||
-                              header.column.id === 'memberAccess' ||
-                              header.column.id === 'agent') &&
+                            (header.column.id === 'memberAccess' || header.column.id === 'agent') &&
                               'text-right'
                           )}
                         >

@@ -1,5 +1,35 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.8
+
+### Patch Changes
+
+- 7e60710: Update @inkeep/agents-ui package to version 0.15.13
+- a879934: Fix Collapse All / Expand All on traces page to collapse and expand all tree hierarchy nodes in addition to AI message content
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
 ## 0.53.4
 
 ### Patch Changes

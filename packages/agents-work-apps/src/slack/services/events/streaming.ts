@@ -110,6 +110,7 @@ export async function streamAgentResponse(params: {
   question: string;
   agentName: string;
   conversationId: string;
+  entryPoint?: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -125,6 +126,7 @@ export async function streamAgentResponse(params: {
       question,
       agentName,
       conversationId,
+      entryPoint,
     } = params;
 
     const threadParam = threadTs ? { thread_ts: threadTs } : {};
@@ -177,6 +179,8 @@ export async function streamAgentResponse(params: {
           Authorization: `Bearer ${jwtToken}`,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
+          'x-inkeep-invocation-type': 'slack',
+          ...(entryPoint && { 'x-inkeep-invocation-entry-point': entryPoint }),
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],
@@ -287,6 +291,7 @@ export async function streamAgentResponse(params: {
     const toolCallIdToName = new Map<string, string>();
     const toolCallIdToInput = new Map<string, Record<string, unknown>>();
     const toolErrors: Array<{ toolName: string; errorText: string }> = [];
+    const successfulToolNames = new Set<string>();
     const citations: Array<{ title?: string; url?: string }> = [];
     const summaryLabels: string[] = [];
     let richMessageCount = 0;
@@ -386,6 +391,12 @@ export async function streamAgentResponse(params: {
               continue;
             }
 
+            if (data.type === 'tool-output-available' && data.toolCallId) {
+              const toolName = toolCallIdToName.get(String(data.toolCallId));
+              if (toolName) successfulToolNames.add(toolName);
+              continue;
+            }
+
             if (data.type === 'data-component' && data.data && typeof data.data === 'object') {
               if (richMessageCount < MAX_RICH_MESSAGES) {
                 const { blocks, overflowJson, componentType } = buildDataComponentBlocks({
@@ -442,6 +453,14 @@ export async function streamAgentResponse(params: {
                   | undefined;
                 if (summary?.url && !citations.some((c) => c.url === summary.url)) {
                   citations.push({ title: summary.title, url: summary.url });
+                  const citationIndex = citations.length;
+                  if (fullText.length > 0) {
+                    await withTimeout(
+                      streamer.append({ markdown_text: `<${summary.url}|[${citationIndex}]>` }),
+                      CHATSTREAM_OP_TIMEOUT_MS,
+                      'streamer.append'
+                    ).catch((e) => logger.warn({ error: e }, 'Failed to append inline citation'));
+                  }
                 }
               } else if (richMessageCount < MAX_RICH_MESSAGES) {
                 const { blocks, overflowContent, artifactName } = buildDataArtifactBlocks({
@@ -531,6 +550,7 @@ export async function streamAgentResponse(params: {
 
       const stopBlocks: any[] = [];
       for (const { toolName, errorText } of toolErrors) {
+        if (successfulToolNames.has(toolName)) continue;
         stopBlocks.push(buildToolOutputErrorBlock(toolName, errorText));
       }
       if (summaryLabels.length > 0) {

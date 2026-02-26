@@ -372,6 +372,7 @@ export async function handleQuestionCommand(
     agentName: resolvedAgent.agentName || resolvedAgent.agentId,
     question,
     conversationId,
+    entryPoint: 'slash_command',
   })
     .catch(async (error) => {
       logger.error({ error }, 'Background execution promise rejected');
