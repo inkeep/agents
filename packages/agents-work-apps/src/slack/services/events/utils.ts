@@ -383,7 +383,7 @@ export async function resolveChannelAgentConfig(
     return {
       projectId: channelConfig.projectId,
       agentId: channelConfig.agentId,
-      agentName: channelConfig.agentName || channelConfig.agentId,
+      agentName: channelConfig.agentId,
       projectName: channelConfig.projectId,
     };
   }

@@ -47,6 +47,7 @@ import {
   getWorkspaceDefaultAgentFromNango,
   listWorkspaceInstallations,
   lookupAgentName,
+  lookupProjectName,
   revokeSlackToken,
   setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
 } from '../services';
@@ -145,16 +146,36 @@ app.openapi(
         'Listed workspace installations'
       );
 
+      const workspacesWithNames = await Promise.all(
+        workspaces.map(async (w) => {
+          let defaultAgentName: string | undefined;
+          if (w.defaultAgent?.agentId && w.defaultAgent.projectId) {
+            try {
+              defaultAgentName = await lookupAgentName(
+                w.tenantId,
+                w.defaultAgent.projectId,
+                w.defaultAgent.agentId
+              );
+            } catch {
+              logger.warn(
+                { agentId: w.defaultAgent.agentId },
+                'Failed to resolve default agent name for workspace listing'
+              );
+            }
+          }
+          return {
+            connectionId: w.connectionId,
+            teamId: w.teamId,
+            teamName: w.teamName,
+            tenantId: w.tenantId,
+            hasDefaultAgent: !!w.defaultAgent,
+            defaultAgentName: defaultAgentName || w.defaultAgent?.agentId,
+          };
+        })
+      );
+
       return c.json({
-        workspaces: workspaces.map((w) => ({
-          connectionId: w.connectionId,
-          teamId: w.teamId,
-          teamName: w.teamName,
-          teamDomain: w.teamDomain,
-          tenantId: w.tenantId,
-          hasDefaultAgent: !!w.defaultAgent,
-          defaultAgentName: w.defaultAgent?.agentName,
-        })),
+        workspaces: workspacesWithNames,
       });
     } catch (error) {
       logger.error({ error }, 'Failed to list workspaces');
@@ -206,19 +227,21 @@ app.openapi(
       return c.json({ error: 'Workspace not found' }, 404);
     }
 
-    let defaultAgent: { projectId: string; agentId: string; agentName?: string } | undefined;
+    let defaultAgent:
+      | { projectId: string; agentId: string; agentName?: string; projectName?: string }
+      | undefined;
 
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
-      const agentName = await lookupAgentName(
-        workspace.tenantId,
-        nangoDefault.projectId,
-        nangoDefault.agentId
-      );
+      const [agentName, projectName] = await Promise.all([
+        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId),
+        lookupProjectName(workspace.tenantId, nangoDefault.projectId),
+      ]);
       defaultAgent = {
         projectId: nangoDefault.projectId,
         agentId: nangoDefault.agentId,
         agentName: agentName || nangoDefault.agentId,
+        projectName: projectName || nangoDefault.projectId,
       };
     }
 
@@ -272,16 +295,15 @@ app.openapi(
 
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
-      const agentName = await lookupAgentName(
-        workspace.tenantId,
-        nangoDefault.projectId,
-        nangoDefault.agentId
-      );
+      const [agentName, projectName] = await Promise.all([
+        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId),
+        lookupProjectName(workspace.tenantId, nangoDefault.projectId),
+      ]);
       defaultAgent = {
         projectId: nangoDefault.projectId,
         agentId: nangoDefault.agentId,
         agentName: agentName || nangoDefault.agentId,
-        projectName: nangoDefault.projectName,
+        projectName: projectName || nangoDefault.projectId,
       };
     }
 

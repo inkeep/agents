@@ -381,9 +381,16 @@ export async function setWorkspaceDefaultAgent(
   if (isSlackDevMode()) {
     const devConfig = loadSlackDevConfig();
     if (!devConfig) return false;
+    const persistedDevAgent = defaultAgent
+      ? {
+          agentId: defaultAgent.agentId,
+          projectId: defaultAgent.projectId,
+          grantAccessToMembers: defaultAgent.grantAccessToMembers,
+        }
+      : null;
     devConfig.metadata = {
       ...devConfig.metadata,
-      default_agent: defaultAgent ? JSON.stringify(defaultAgent) : '',
+      default_agent: persistedDevAgent ? JSON.stringify(persistedDevAgent) : '',
     };
     const saved = saveSlackDevConfig(devConfig);
     if (saved) clearWorkspaceConnectionCache(teamId);
@@ -397,8 +404,16 @@ export async function setWorkspaceDefaultAgent(
       return false;
     }
 
+    const persistedAgent = defaultAgent
+      ? {
+          agentId: defaultAgent.agentId,
+          projectId: defaultAgent.projectId,
+          grantAccessToMembers: defaultAgent.grantAccessToMembers,
+        }
+      : null;
+
     const success = await updateConnectionMetadata(workspace.connectionId, {
-      default_agent: defaultAgent ? JSON.stringify(defaultAgent) : '',
+      default_agent: persistedAgent ? JSON.stringify(persistedAgent) : '',
     });
 
     if (success) {

@@ -38828,16 +38828,10 @@
                       "agentId": {
                         "type": "string"
                       },
-                      "agentName": {
-                        "type": "string"
-                      },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
                         "type": "string"
                       }
                     },
@@ -39087,16 +39081,10 @@
                       "agentId": {
                         "type": "string"
                       },
-                      "agentName": {
-                        "type": "string"
-                      },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
                         "type": "string"
                       }
                     },
@@ -39443,16 +39431,10 @@
                       "agentId": {
                         "type": "string"
                       },
-                      "agentName": {
-                        "type": "string"
-                      },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
                         "type": "string"
                       }
                     },

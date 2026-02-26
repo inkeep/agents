@@ -63,7 +63,10 @@ const PROJECT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
 const PROJECT_NAME_CACHE_MAX_SIZE = 200;
 const projectNameCache = new Map<string, { name: string | null; expiresAt: number }>();
 
-async function lookupProjectName(tenantId: string, projectId: string): Promise<string | undefined> {
+export async function lookupProjectName(
+  tenantId: string,
+  projectId: string
+): Promise<string | undefined> {
   const cacheKey = `${tenantId}:${projectId}`;
   const cached = projectNameCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
@@ -184,8 +187,7 @@ export async function resolveEffectiveAgent(
     }
   }
 
-  // Enrich: look up project name if missing
-  if (result && !result.projectName) {
+  if (result) {
     const projectName = await lookupProjectName(tenantId, result.projectId);
     if (projectName) {
       result.projectName = projectName;
@@ -235,33 +237,29 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
   if (wsConfig?.agentId && wsConfig.projectId) {
     workspaceConfig = {
       projectId: wsConfig.projectId,
-      projectName: wsConfig.projectName,
       agentId: wsConfig.agentId,
-      agentName: wsConfig.agentName,
       source: 'workspace',
       grantAccessToMembers: wsConfig.grantAccessToMembers ?? true,
     };
   }
 
-  const effective = channelConfig || workspaceConfig;
-
-  if (effective) {
-    const name = await lookupAgentName(tenantId, effective.projectId, effective.agentId);
-    if (name) {
-      effective.agentName = name;
-    }
-  }
-
-  if (effective && !effective.projectName) {
-    const projectName = await lookupProjectName(tenantId, effective.projectId);
-    if (projectName) {
-      effective.projectName = projectName;
-    }
-  }
+  const configsToEnrich = [channelConfig, workspaceConfig].filter(
+    (c): c is ResolvedAgentConfig => c !== null
+  );
+  await Promise.all(
+    configsToEnrich.map(async (config) => {
+      const [agentName, projectName] = await Promise.all([
+        lookupAgentName(tenantId, config.projectId, config.agentId),
+        lookupProjectName(tenantId, config.projectId),
+      ]);
+      if (agentName) config.agentName = agentName;
+      if (projectName) config.projectName = projectName;
+    })
+  );
 
   return {
     channelConfig,
     workspaceConfig,
-    effective,
+    effective: channelConfig || workspaceConfig,
   };
 }
