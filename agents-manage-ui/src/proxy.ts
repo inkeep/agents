@@ -1,14 +1,7 @@
-import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const SESSION_COOKIE = 'better-auth.session_token';
-
-export async function proxy(request: NextRequest) {
+export async function proxy() {
   if (process.env.ENVIRONMENT !== 'development' && process.env.NODE_ENV !== 'development') {
-    return NextResponse.next();
-  }
-
-  if (request.cookies.has(SESSION_COOKIE)) {
     return NextResponse.next();
   }
 
