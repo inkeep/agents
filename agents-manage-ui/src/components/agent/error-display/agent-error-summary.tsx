@@ -16,12 +16,19 @@ interface AgentErrorSummaryProps {
   onNavigateToEdge?: (edgeId: string) => void;
 }
 
+interface PartialProcessedAgentError {
+  nodeId?: string;
+  edgeId?: string;
+  field: string;
+  message?: string;
+}
+
 interface ErrorGroupProps {
   title: string;
-  errors: ProcessedAgentError[];
+  errors: PartialProcessedAgentError[];
   icon: ReactNode;
   onNavigate?: (id: string) => void;
-  getItemLabel?: (error: ProcessedAgentError) => string;
+  getItemLabel?: (error: PartialProcessedAgentError) => string;
 }
 
 function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGroupProps) {
@@ -29,7 +36,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
 
   if (errors.length === 0) return null;
 
-  const groupedErrors: Record<string, ProcessedAgentError[]> = {};
+  const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
     const key = error.nodeId || error.edgeId || 'general';
     if (!groupedErrors[key]) groupedErrors[key] = [];
