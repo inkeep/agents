@@ -173,7 +173,6 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
-export type FullAgentInput = z.input<typeof AgentWithinContextOfProjectSchema>;
 export type FullAgentOutput = z.output<typeof AgentWithinContextOfProjectSchema>;
 
 export function serializeAgentForm(data: FullAgentResponse) {

@@ -14,7 +14,7 @@ import type { SingleResponse } from './response';
 export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
 // TODO remove this export
 export type {
-  FullAgentInput,
+  
   FullAgentOutput,
   FullAgentResponse,
 } from '@/components/agent/form/validation';
