@@ -1,8 +1,7 @@
+import { BASE_URL } from '@/lib/constants';
 import { parseFreshnessMetadata } from '@/lib/freshness';
 import { buildLLMMetadataHeader, extractSectionMap } from '@/lib/llm-metadata';
 import { source } from '@/lib/source';
-
-const BASE_URL = 'https://docs.inkeep.com';
 
 export const revalidate = false;
 
@@ -21,7 +20,7 @@ export async function GET() {
     const freshnessLabel = freshness.lastModified ?? 'missing';
     return `- ${metadata.replace('<!-- ', '').replace(' -->', '')}\n  - [${page.data.title}](${BASE_URL}${page.url})\n  - fresh=${freshnessLabel}\n  - sections=${sectionCount}`;
   });
-  const scanned = await Promise.all(scan);
+  const scanned = scan;
   const heading = `# Inkeep \n\n## Docs`;
   return new Response(`${heading}\n\n${scanned.join('\n\n')}`, {
     headers: {

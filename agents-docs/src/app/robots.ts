@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
+import { BASE_URL } from '@/lib/constants';
 
-const BASE_URL = 'https://docs.inkeep.com';
 const machineRoutes = ['/llms.txt', '/llms-full.txt', '/llms.mdx/'];
 
 export default function robots(): MetadataRoute.Robots {
@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/*.md$', '/*.mdx$'],
+        disallow: ['/api/', '/*.md', '/*.mdx'],
       },
       {
         userAgent: 'GPTBot',

@@ -11,7 +11,7 @@ export interface FreshnessPairResult {
   dateModified?: ParsedFreshnessDate;
   hasDatePublished: boolean;
   hasDateModified: boolean;
-  hasDatePair: boolean;
+  hasSymmetricDates: boolean;
   hasDateValues: boolean;
   hasInvalidDate: boolean;
   isChronologicallyValid: boolean;
@@ -45,12 +45,13 @@ export function parseFreshnessMetadata(
 ): FreshnessPairResult {
   const parsedPublished = parseDate(datePublished);
   const parsedModified = parseDate(dateModified);
-  const hasDatePublished = Boolean(datePublished && datePublished.trim());
-  const hasDateModified = Boolean(dateModified && dateModified.trim());
+  const hasDatePublished = Boolean(datePublished?.trim());
+  const hasDateModified = Boolean(dateModified?.trim());
 
-  const hasDatePair = hasDatePublished === hasDateModified;
+  const hasSymmetricDates = hasDatePublished === hasDateModified;
   const hasDateValues = hasDatePublished || hasDateModified;
-  const hasInvalidDate = hasDateValues && (!parsedPublished || !parsedModified);
+  const hasInvalidDate =
+    (hasDatePublished && !parsedPublished) || (hasDateModified && !parsedModified);
   const isChronologicallyValid =
     !hasDateValues ||
     !parsedPublished ||
@@ -62,7 +63,7 @@ export function parseFreshnessMetadata(
     dateModified: parsedModified,
     hasDatePublished,
     hasDateModified,
-    hasDatePair,
+    hasSymmetricDates,
     hasDateValues,
     hasInvalidDate,
     isChronologicallyValid,

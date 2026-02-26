@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import matter from 'gray-matter';
-import { parseFreshnessMetadata } from '../src/lib/freshness';
+// @ts-expect-error -- must specify ts extension for node --experimental-strip-types
+import { parseFreshnessMetadata } from '../src/lib/freshness.ts';
 
 const CONTENT_DIR = path.resolve(import.meta.dirname, '../content');
 const TITLE_TEMPLATE_SUFFIX = ' - Inkeep Open Source Docs';

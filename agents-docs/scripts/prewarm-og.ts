@@ -57,11 +57,15 @@ async function main() {
       const target = ogUrls[currentIndex];
 
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30_000);
         const response = await fetch(target, {
           headers: {
             Accept: 'image/png',
           },
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
 
         if (response.ok) {
           successCount += 1;

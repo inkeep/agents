@@ -1,8 +1,4 @@
-export type JsonLdPrimarySchema =
-  | 'techArticle'
-  | 'collectionPage'
-  | 'softwareApplication'
-  | 'product';
+export type JsonLdPrimarySchema = 'techArticle' | 'collectionPage' | 'softwareApplication';
 
 export interface SchemaPolicyMatrixEntry {
   id: string;
@@ -10,7 +6,6 @@ export interface SchemaPolicyMatrixEntry {
   primarySchema: JsonLdPrimarySchema;
   requiredFields: readonly string[];
   enablesHowTo: boolean;
-  enablesFaqPage: boolean;
   minHowToSteps?: number;
 }
 
@@ -25,7 +20,6 @@ export interface ResolvedSchemaPolicy {
   primarySchema: JsonLdPrimarySchema;
   requiredFields: readonly string[];
   includeHowTo: boolean;
-  includeFaqPage: boolean;
 }
 
 export const SEO_SCHEMA_POLICY_MATRIX: readonly SchemaPolicyMatrixEntry[] = [
@@ -35,15 +29,6 @@ export const SEO_SCHEMA_POLICY_MATRIX: readonly SchemaPolicyMatrixEntry[] = [
     primarySchema: 'softwareApplication',
     requiredFields: ['name', 'description', 'url', 'publisher'],
     enablesHowTo: false,
-    enablesFaqPage: false,
-  },
-  {
-    id: 'pricing-product',
-    routePatterns: ['/pricing'],
-    primarySchema: 'product',
-    requiredFields: ['name', 'description', 'brand', 'url'],
-    enablesHowTo: false,
-    enablesFaqPage: false,
   },
   {
     id: 'hub-collection-page',
@@ -51,7 +36,6 @@ export const SEO_SCHEMA_POLICY_MATRIX: readonly SchemaPolicyMatrixEntry[] = [
     primarySchema: 'collectionPage',
     requiredFields: ['name', 'description', 'url', 'itemListElement'],
     enablesHowTo: false,
-    enablesFaqPage: false,
   },
   {
     id: 'default-tech-article',
@@ -59,13 +43,11 @@ export const SEO_SCHEMA_POLICY_MATRIX: readonly SchemaPolicyMatrixEntry[] = [
     primarySchema: 'techArticle',
     requiredFields: ['headline', 'description', 'url'],
     enablesHowTo: true,
-    enablesFaqPage: true,
     minHowToSteps: 3,
   },
 ];
 
 const stepHeadingPattern = /^step\s+\d+/i;
-const faqHeadingPattern = /(faq|frequently asked questions|common issues|troubleshooting)/i;
 
 function normalizeUrl(url: string) {
   const withoutQuery = url.split('?')[0] ?? url;
@@ -91,7 +73,7 @@ function matchesRoutePattern(url: string, pattern: string) {
   if (pattern.endsWith('/**')) {
     const prefix = pattern.slice(0, -3);
     const exact = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix;
-    return url === exact || url.startsWith(prefix);
+    return url === exact || url.startsWith(`${exact}/`);
   }
 
   return url === pattern;
@@ -99,12 +81,6 @@ function matchesRoutePattern(url: string, pattern: string) {
 
 function countStepHeadings(tocTitles: readonly string[]) {
   return tocTitles.filter((title) => stepHeadingPattern.test(title)).length;
-}
-
-function hasFaqSignals(url: string, tocTitles: readonly string[]) {
-  const hasPathSignal = url.includes('/faq') || url.includes('/troubleshooting');
-  const hasHeadingSignal = tocTitles.some((title) => faqHeadingPattern.test(title));
-  return hasPathSignal || hasHeadingSignal;
 }
 
 export function resolveSchemaPolicy({
@@ -119,7 +95,6 @@ export function resolveSchemaPolicy({
 
   const stepCount = countStepHeadings(tocTitles);
   const includeHowTo = matched.enablesHowTo && stepCount >= (matched.minHowToSteps ?? 3);
-  const includeFaqPage = matched.enablesFaqPage && hasFaqSignals(normalizedUrl, tocTitles);
 
   return {
     ruleId: matched.id,
@@ -127,6 +102,5 @@ export function resolveSchemaPolicy({
     primarySchema: matched.primarySchema,
     requiredFields: matched.requiredFields,
     includeHowTo,
-    includeFaqPage,
   };
 }

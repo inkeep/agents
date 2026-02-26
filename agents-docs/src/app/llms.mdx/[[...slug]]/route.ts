@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
 import { type NextRequest, NextResponse } from 'next/server';
+import { BASE_URL } from '@/lib/constants';
 import { parseFreshnessMetadata } from '@/lib/freshness';
 import { getLLMText } from '@/lib/get-llm-text';
 import { buildLLMMetadataHeader, buildLLMSectionMap, extractSectionMap } from '@/lib/llm-metadata';
 import { source } from '@/lib/source';
 
 export const revalidate = false;
-const BASE_URL = 'https://docs.inkeep.com';
 
 export async function GET(_req: NextRequest, { params }: RouteContext<'/llms.mdx/[[...slug]]'>) {
   const { slug } = await params;

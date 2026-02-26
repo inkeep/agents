@@ -1,3 +1,4 @@
+import { BASE_URL } from '@/lib/constants';
 import { parseFreshnessMetadata } from '@/lib/freshness';
 import { getLLMText } from '@/lib/get-llm-text';
 import {
@@ -6,8 +7,6 @@ import {
   extractSectionMap,
 } from '@/lib/llm-metadata';
 import { source } from '@/lib/source';
-
-const BASE_URL = 'https://docs.inkeep.com';
 
 export const revalidate = false;
 

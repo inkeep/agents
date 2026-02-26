@@ -14,7 +14,7 @@ interface LLMMetadataInput {
   type?: string;
 }
 
-interface TocEntry {
+export interface TocEntry {
   title?: unknown;
   url?: string;
   depth?: number;
@@ -35,10 +35,10 @@ function normalizeAnchor(url: string) {
     return url.slice(url.indexOf('#'));
   }
 
-  return url.startsWith('#') ? url : `#${url}`;
+  return `#${url}`;
 }
 
-function normalizeTitle(value: unknown) {
+export function normalizeTitle(value: unknown) {
   if (typeof value === 'string') {
     return value.trim();
   }

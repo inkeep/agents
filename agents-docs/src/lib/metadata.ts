@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-
-const BASE_URL = 'https://docs.inkeep.com';
+import { BASE_URL } from '@/lib/constants';
 
 const defaultIcons: Metadata['icons'] = {
   icon: [

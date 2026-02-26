@@ -75,7 +75,7 @@ async function main() {
     /<url>\s*<loc>[^<]*\/overview<\/loc>\s*<lastmod>(.*?)<\/lastmod>/s
   );
   assert(
-    overviewSitemapMatch && overviewSitemapMatch[1],
+    overviewSitemapMatch?.[1],
     'Missing freshness-aware lastmod entry for /overview in sitemap.'
   );
   assert(

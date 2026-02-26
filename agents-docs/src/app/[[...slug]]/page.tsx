@@ -124,7 +124,7 @@ export async function generateMetadata(props: PageProps<'/[[...slug]]'>) {
       url: page.url,
       images: [
         {
-          url: `/api/docs-og/${params.slug?.join('/')}/image.png`,
+          url: `/api/docs-og/${params.slug?.join('/') || 'overview'}/image.png`,
           width: 1200,
           height: 630,
         },

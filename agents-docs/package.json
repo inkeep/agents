@@ -22,6 +22,7 @@
     "prewarm-og": "node --experimental-strip-types scripts/prewarm-og.ts",
     "smoke-seo": "node --experimental-strip-types scripts/smoke-seo.ts",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts",
+    "test": "vitest",
     "validate-seo": "node --experimental-strip-types scripts/validate-seo.ts"
   },
   "dependencies": {

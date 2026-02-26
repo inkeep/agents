@@ -3,8 +3,6 @@ import type {
   CollectionPage,
   HowTo,
   ItemList,
-  OfferCatalog,
-  Product,
   SoftwareApplication,
   TechArticle,
   Thing,
@@ -12,21 +10,15 @@ import type {
   WithContext,
 } from 'schema-dts';
 import { JsonLd } from '@/components/seo/json-ld';
+import { BASE_URL } from '@/lib/constants';
 import { formatFreshnessDate } from '@/lib/freshness';
+import type { TocEntry } from '@/lib/llm-metadata';
+import { normalizeTitle } from '@/lib/llm-metadata';
 import { resolveSchemaPolicy } from '@/lib/schema-policy';
-
-const BASE_URL = 'https://docs.inkeep.com';
 
 interface BreadcrumbItem {
   name: string;
   url: string;
-}
-
-interface TocItem {
-  title?: unknown;
-  url?: string;
-  depth?: number;
-  children?: TocItem[];
 }
 
 interface PageJsonLdProps {
@@ -34,7 +26,7 @@ interface PageJsonLdProps {
   description?: string;
   url: string;
   breadcrumbItems: BreadcrumbItem[];
-  tocItems?: readonly TocItem[];
+  tocItems?: readonly TocEntry[];
   datePublished?: string;
   dateModified?: string;
 }
@@ -62,24 +54,12 @@ function toAnchorUrl(pageUrl: string, tocUrl: string | undefined) {
   return `${pageUrl}#${tocUrl}`;
 }
 
-function normalizeTocTitle(value: unknown) {
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-
-  if (typeof value === 'number') {
-    return `${value}`;
-  }
-
-  return '';
-}
-
-function flattenTocItems(tocItems: readonly TocItem[] = []) {
+function flattenTocItems(tocItems: readonly TocEntry[] = []) {
   const entries: Array<{ title: string; url: string }> = [];
 
-  const walk = (items: readonly TocItem[] = []) => {
+  const walk = (items: readonly TocEntry[] = []) => {
     for (const item of items) {
-      const title = normalizeTocTitle(item.title);
+      const title = normalizeTitle(item.title);
       if (title && item.url) {
         entries.push({
           title,
@@ -207,40 +187,6 @@ export function PageJsonLd({
     },
   } satisfies WithContext<SoftwareApplication>;
 
-  const productLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: 'Inkeep',
-    description,
-    url: pageUrl,
-    category: 'AI agent platform',
-    brand: {
-      '@type': 'Brand',
-      name: 'Inkeep',
-    },
-  } satisfies WithContext<Product>;
-
-  const offerCatalogLd = {
-    '@context': 'https://schema.org',
-    '@type': 'OfferCatalog',
-    name: 'Inkeep plans',
-    url: `${BASE_URL}/pricing`,
-    itemListElement: [
-      {
-        '@type': 'Offer',
-        name: 'Open Source',
-        price: '0',
-        priceCurrency: 'USD',
-        url: `${BASE_URL}/get-started/quick-start`,
-      },
-      {
-        '@type': 'Offer',
-        name: 'Enterprise',
-        url: 'https://inkeep.com/demo',
-      },
-    ],
-  } satisfies WithContext<OfferCatalog>;
-
   const jsonLdPayload: WithContext<Thing>[] = [breadcrumbLd, webPageLd];
 
   switch (schemaPolicy.primarySchema) {
@@ -253,10 +199,6 @@ export function PageJsonLd({
     case 'softwareApplication':
       jsonLdPayload.push(softwareApplicationLd);
       break;
-    case 'product':
-      jsonLdPayload.push(productLd, offerCatalogLd);
-      break;
-    case 'techArticle':
     default:
       jsonLdPayload.push(techArticleLd);
       break;
