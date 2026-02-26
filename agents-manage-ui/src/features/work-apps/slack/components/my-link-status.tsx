@@ -23,6 +23,14 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
     return null;
   }
 
+  const getSlackProfileUrl = (slackUserId: string) => {
+    const VALID_SLACK_DOMAIN = /^[a-z0-9-]+$/;
+    if (selectedWorkspace?.teamDomain && VALID_SLACK_DOMAIN.test(selectedWorkspace.teamDomain)) {
+      return `https://${selectedWorkspace.teamDomain}.slack.com/team/${slackUserId}`;
+    }
+    return `https://app.slack.com/team/${slackUserId}`;
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(undefined, {
       month: 'short',
@@ -63,7 +71,7 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
                   <>
                     {' \u00b7 '}
                     <a
-                      href={`https://app.slack.com/team/${myLink.slackUserId}`}
+                      href={getSlackProfileUrl(myLink.slackUserId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-0.5 text-primary hover:underline"

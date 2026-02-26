@@ -111,7 +111,8 @@ export function LinkedUsersSection() {
   }
 
   const getSlackProfileUrl = (slackUserId: string) => {
-    if (selectedWorkspace?.teamDomain) {
+    const VALID_SLACK_DOMAIN = /^[a-z0-9-]+$/;
+    if (selectedWorkspace?.teamDomain && VALID_SLACK_DOMAIN.test(selectedWorkspace.teamDomain)) {
       return `https://${selectedWorkspace.teamDomain}.slack.com/team/${slackUserId}`;
     }
     return `https://app.slack.com/team/${slackUserId}`;
