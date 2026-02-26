@@ -301,13 +301,6 @@ export const Agent: FC<AgentProps> = ({
   // Always use enriched nodes for ReactFlow
   const nodes = enrichNodes(storeNodes);
 
-  function setErrors() {
-    console.log(1, 'setErrors');
-  }
-  function clearErrors() {
-    console.log(1, 'clearErrors');
-  }
-
   const onAddInitialNode = () => {
     const newNode = {
       ...initialNode,
@@ -717,16 +710,6 @@ export const Agent: FC<AgentProps> = ({
 
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
-      const errorObjects = validationErrors.map((error) => ({
-        message: error.message,
-        field: error.field,
-        code: error.code,
-        path: error.path,
-        functionToolId: error.functionToolId,
-      }));
-
-      const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
-      setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
       return;
     }
@@ -741,8 +724,6 @@ export const Agent: FC<AgentProps> = ({
     });
 
     if (res.success) {
-      // Clear any existing errors on successful save
-      clearErrors();
       toast.success('Agent saved', { closeButton: true });
       markSaved();
       // This makes current values the new default values
@@ -806,8 +787,6 @@ export const Agent: FC<AgentProps> = ({
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     function parseErrors(error: string) {
       const errorSummary = parseAgentValidationErrors(error);
-      setErrors(errorSummary);
-
       const summaryMessage = getErrorSummaryMessage(errorSummary);
       toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
     }

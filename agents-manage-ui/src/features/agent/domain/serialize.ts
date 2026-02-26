@@ -635,7 +635,7 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: FullAgentOutput,
+  data: Pick<FullAgentOutput, 'defaultSubAgentId' | 'subAgents'>,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
