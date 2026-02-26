@@ -35,6 +35,10 @@ Add your Composio API key to your root `.env` file:
 COMPOSIO_API_KEY=your-composio-api-key
 ```
 
+<Note>
+Your `COMPOSIO_API_KEY` is automatically injected as an `x-api-key` header for all Composio MCP server requests, enabling Composio's authentication without manual credential configuration.
+</Note>
+
 ### Step 5: Restart and Verify
 
 Restart your development servers by pressing Control + C and running `pnpm dev` again (pressing `r` will not work).
