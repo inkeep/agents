@@ -67,6 +67,8 @@ INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=<any-shared-secret>
 
 Then run `pnpm db:auth:init` to create the admin user, and restart `pnpm dev`. Check the server console for `[proxy]` messages if the issue persists.
 
+If you recently clicked "Log out", a `dev-logged-out` cookie prevents auto-login so you can test login flows. Clear your cookies or restart your browser to restore auto-login.
+
 <Note>
 If you used `pnpm setup-dev`, these variables are automatically generated with secure values and the admin user is created automatically.
 </Note>
