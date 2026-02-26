@@ -19,20 +19,13 @@ interface ToolbarProps {
   setShowPlayground: (show: boolean) => void;
 }
 
-function useFormStateWithoutReactCompiler() {
-  const { control } = useFullAgentFormContext();
-  const { errors, ...formState } = useFormState({ control });
-  const { subAgents, functionTools, externalAgents, teamAgents, tools, ...rest } = errors;
-  return {
-    ...formState,
-    errors: rest,
-  };
-}
-
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting, errors } = useFormStateWithoutReactCompiler();
+  const { control } = useFullAgentFormContext();
+  const { errors: $errors, isDirty, isSubmitting } = useFormState({ control });
+  const { subAgents, functionTools, externalAgents, teamAgents, tools, ...errors } = $errors;
+
   const dirty = agentDirtyState || isDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
