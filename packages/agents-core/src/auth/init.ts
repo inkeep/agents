@@ -97,6 +97,10 @@ async function init() {
 
   if (user) {
     console.log(`   ℹ️  User already exists: ${username}`);
+    const ctx = await auth.$context;
+    const hashedPassword = await ctx.password.hash(password);
+    await ctx.internalAdapter.updatePassword(user.id, hashedPassword);
+    console.log('   ✅ Password synced from .env');
   } else {
     // Create user via Better Auth
     console.log('   Creating user with Better Auth...');
