@@ -1,6 +1,11 @@
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import {
+  addValueToObject,
+  convertNullToUndefined,
+  createFactoryDefinition,
+  toCamelCase,
+} from '../utils';
 
 type TriggerDefinitionData = {
   triggerId: string;
@@ -51,15 +56,12 @@ type TriggerDefinitionData = {
   signingSecretCredentialReference?: string | { id?: string } | null;
 };
 
-const nullToUndefined = <T>(v: T | null | undefined): T | undefined =>
-  (v ?? undefined) as T | undefined;
-
 const TriggerSchema = z.looseObject({
   triggerId: z.string().nonempty(),
   name: z.string().nonempty(),
-  description: z.string().nullable().optional().transform(nullToUndefined),
+  description: z.string().nullable().optional().transform(convertNullToUndefined),
   enabled: z.boolean().optional(),
-  messageTemplate: z.string().nullable().optional().transform(nullToUndefined),
+  messageTemplate: z.string().nullable().optional().transform(convertNullToUndefined),
   inputSchema: z.unknown().optional(),
   outputTransform: z
     .looseObject({
@@ -68,14 +70,14 @@ const TriggerSchema = z.looseObject({
     })
     .nullable()
     .optional()
-    .transform(nullToUndefined),
+    .transform(convertNullToUndefined),
   authentication: z
     .looseObject({
       headers: z.array(z.looseObject({})).optional(),
     })
     .nullable()
     .optional()
-    .transform(nullToUndefined),
+    .transform(convertNullToUndefined),
   signatureVerification: z
     .looseObject({
       algorithm: z.string().optional(),
@@ -87,13 +89,17 @@ const TriggerSchema = z.looseObject({
     })
     .nullable()
     .optional()
-    .transform(nullToUndefined),
-  signingSecretCredentialReferenceId: z.string().nullable().optional().transform(nullToUndefined),
+    .transform(convertNullToUndefined),
+  signingSecretCredentialReferenceId: z
+    .string()
+    .nullable()
+    .optional()
+    .transform(convertNullToUndefined),
   signingSecretCredentialReference: z
     .union([z.string(), z.looseObject({ id: z.string().optional() })])
     .nullable()
     .optional()
-    .transform(nullToUndefined),
+    .transform(convertNullToUndefined),
 });
 
 export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFile {
