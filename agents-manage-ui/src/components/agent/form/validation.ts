@@ -105,7 +105,11 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
           .trim()
           .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
           .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
-        dependencies: StringRecordSchema,
+        dependencies: z
+          .string()
+          .trim()
+          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+          .pipe(StringRecordSchema.optional()),
       })
     ),
     stopWhen: StopWhenSchema.extend({
@@ -158,6 +162,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     name: functionTools['rn5612qh26zghl18rwjbn'].name,
   };
   functionTool.inputSchema = serializeJson(functionTool.inputSchema);
+  functionTool.dependencies = serializeJson(functionTool.dependencies);
 
   return {
     id,

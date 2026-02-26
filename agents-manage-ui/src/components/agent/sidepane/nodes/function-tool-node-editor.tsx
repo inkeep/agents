@@ -1,10 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
-import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -26,6 +23,7 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
@@ -63,12 +61,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   // Local state for form fields - initialize from node data
   const [code, setCode] = useState(String(nodeData.code || ''));
-  const [inputSchema, setInputSchema] = useState(() =>
-    nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : ''
-  );
-  const [dependencies, setDependencies] = useState(() =>
-    nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : ''
-  );
   const [needsApproval, setNeedsApproval] = useState(
     !!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false)
   );
@@ -76,50 +68,8 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   // Sync local state with node data when node changes
   useEffect(() => {
     setCode(String(nodeData.code || ''));
-    setInputSchema(nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : '');
-    setDependencies(nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : '');
     setNeedsApproval(!!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false));
   }, [nodeData]);
-
-  // Handle input schema changes with JSON validation
-  const handleInputSchemaChange = useCallback(
-    (value: string) => {
-      setInputSchema(value);
-
-      if (!value?.trim()) {
-        updatePath('inputSchema', undefined);
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(value);
-        updatePath('inputSchema', parsed);
-      } catch {
-        // Invalid JSON - don't update
-      }
-    },
-    [updatePath]
-  );
-
-  // Handle dependencies changes with JSON validation
-  const handleDependenciesChange = useCallback(
-    (value: string) => {
-      setDependencies(value);
-
-      if (!value?.trim()) {
-        updatePath('dependencies', undefined);
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(value);
-        updatePath('dependencies', parsed);
-      } catch {
-        // Invalid JSON - don't update
-      }
-    },
-    [updatePath]
-  );
 
   // Handle code changes
   const handleCodeChange = useCallback(
@@ -253,29 +203,16 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         description="JSON schema defining the parameters that the function will receive. This defines the structure and validation rules for the function's input arguments."
         isRequired
       />
-      <div className="space-y-2">
-        <div className="text-sm font-medium">Dependencies</div>
-
-        <StandaloneJsonEditor
-          value={dependencies}
-          onChange={handleDependenciesChange}
-          customTemplate={`{
+      <GenericJsonEditor
+        control={form.control}
+        name={path('dependencies')}
+        label="Dependencies"
+        placeholder={`{
   "axios": "^1.6.0",
   "lodash": "^4.17.21"
 }`}
-          placeholder={`{
-  "axios": "^1.6.0",
-  "lodash": "^4.17.21"
-}`}
-        />
-        <p className="text-xs text-muted-foreground">
-          External npm packages that the function code requires. These packages will be installed
-          before executing the function.
-        </p>
-        {getFieldError('dependencies') && (
-          <p className="text-sm text-red-600">{getFieldError('dependencies')}</p>
-        )}
-      </div>
+        description="External npm packages that the function code requires. These packages will be installed before executing the function."
+      />
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Checkbox
