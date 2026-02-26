@@ -43,11 +43,8 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import {
-  assertCanMutateTrigger,
-  isScheduledTriggerChanged,
-  validateRunAsUserId,
-} from './scheduledTriggers';
+import { isScheduledTriggerChanged } from './scheduledTriggers';
+import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
 
