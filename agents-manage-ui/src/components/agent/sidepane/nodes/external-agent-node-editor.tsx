@@ -136,29 +136,13 @@ export function ExternalAgentNodeEditor({
         name={path('name')}
         label="Name"
         placeholder="Support agent"
-      />
-
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
-        label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={handleInputChange}
-        placeholder="Support agent"
         disabled
-        error={getFieldError('name')}
       />
-
-      <InputField
-        ref={(el) => setFieldRef('id', el)}
-        id="id"
-        name="id"
+      <GenericInput
+        control={form.control}
+        name={path('id')}
         label="Id"
-        value={selectedNode.data.id || ''}
-        onChange={handleInputChange}
         placeholder="my-external-agent"
-        error={getFieldError('id')}
         disabled
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
         isRequired

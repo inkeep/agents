@@ -99,7 +99,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     functionTools: z.array(
       z.looseObject({
         name: z.string().trim().nonempty(),
-        description: z.string().trim().nonempty(),
+        description: z.string().trim().optional(),
         executeCode: FunctionApiInsertSchema.shape.executeCode,
         inputSchema: z
           .string()
@@ -111,17 +111,19 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
           .trim()
           .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
           .pipe(StringRecordSchema.optional()),
-        tempToolPolicies: z.strictObject({
-          '*': z.strictObject({
-            needsApproval: z.boolean(),
-          }),
-        }),
+        tempToolPolicies: z
+          .strictObject({
+            '*': z.strictObject({
+              needsApproval: z.boolean(),
+            }),
+          })
+          .optional(),
       })
     ),
     externalAgents: z.array(
-      z.strictObject({
-        id: z.string().trim().nonempty(),
-        name: z.string().trim().nonempty(),
+      z.looseObject({
+        id: z.string().trim(),
+        name: z.string().trim(),
       })
     ),
     stopWhen: StopWhenSchema.extend({
