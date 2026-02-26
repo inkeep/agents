@@ -35,22 +35,18 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
     if (!groupedErrors[key]) groupedErrors[key] = [];
     groupedErrors[key].push(error);
   }
+  const IconToUse = isOpen ? ChevronDown : ChevronRight;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start p-1.5 h-auto">
-          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 text-xs">
-            {icon}
-            <span className="font-medium">
-              {title} ({errors.length})
-            </span>
-            {isOpen ? (
-              <ChevronDown className="w-3 h-3 ml-auto" />
-            ) : (
-              <ChevronRight className="w-3 h-3 ml-auto" />
-            )}
-          </div>
+        <Button
+          variant="ghost"
+          className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs"
+        >
+          {icon}
+          {`${title} (${errors.length})`}
+          <IconToUse />
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 pl-4 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
@@ -229,7 +225,7 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
         <CardTitle className="flex items-center justify-between text-red-700 dark:text-red-400 text-sm">
           <div className="flex items-center gap-1.5">
             <AlertCircle className="w-4 h-4" />
-            <span>{`Validation Errors (${errorCount})`}</span>
+            {`Validation Errors (${errorCount})`}
           </div>
           <Button
             variant="ghost"
