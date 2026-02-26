@@ -27,7 +27,7 @@ export function TeamAgentNodeEditor({
   subAgentTeamAgentConfigLookup,
 }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id, errorHelpers });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;

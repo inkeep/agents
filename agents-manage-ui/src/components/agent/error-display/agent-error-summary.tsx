@@ -25,7 +25,7 @@ interface ErrorGroupProps {
 }
 
 function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGroupProps) {
-  const [isOpen, setIsOpen] = useState(false); // Start collapsed by default
+  const [isOpen, setIsOpen] = useState(true);
 
   if (errors.length === 0) return null;
 
@@ -91,20 +91,24 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
+function processMessagesWithNodeId(obj: any) {
+  return Object.entries(obj).flatMap(([key, value]) => {
+    return Object.entries(value).map(([k, v]) => ({
+      nodeId: key,
+      field: k,
+      message: firstNestedMessage(v),
+    }));
+  });
+}
+
 function getErrors() {
   const { control } = useFullAgentFormContext();
-  const {errors} = useFormState({ control });
+  const { errors } = useFormState({ control });
 
   const { subAgents = {}, functionTools = {}, ...rest } = errors;
 
-  const subAgentErrors = Object.entries(subAgents).map(([key, value]) => ({
-    field: key,
-    message: firstNestedMessage(value),
-  }));
-  const functionToolErrors = Object.entries(functionTools).map(([key, value]) => ({
-    field: key,
-    message: firstNestedMessage(value),
-  }));
+  const subAgentErrors = processMessagesWithNodeId(subAgents);
+  const functionToolErrors = processMessagesWithNodeId(functionTools);
   // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
   const agentErrors = Object.entries(rest).map(([key, value]) => ({
     field: key,
@@ -112,11 +116,11 @@ function getErrors() {
   }));
 
   return {
-    errorCount:  Object.keys(errors).length,
+    errorCount: Object.keys(errors).length,
     subAgentErrors,
     functionToolErrors,
     agentErrors,
-  }
+  };
 }
 
 export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentErrorSummaryProps) {
@@ -141,8 +145,6 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
   //   onNavigateToEdge?.(edgeId);
   // };
 
-
-
   const getAgentLabel = (error: ProcessedAgentError) => {
     // You might want to get the actual agent name from the agent data
     return `Agent (${error.nodeId})`;
@@ -157,12 +159,7 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
   //   return `Connection (${error.edgeId})`;
   // };
 
-  const {
-    errorCount,
-    subAgentErrors,
-    functionToolErrors,
-    agentErrors
-  } = getErrors()
+  const { errorCount, subAgentErrors, functionToolErrors, agentErrors } = getErrors();
   const [showErrors, setShowErrors] = useState(true);
   const previousErrorSignatureRef = useRef('');
   const errorSignature = [

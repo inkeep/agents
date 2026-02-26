@@ -1,11 +1,9 @@
 import { useReactFlow } from '@xyflow/react';
 import { useCallback, useRef } from 'react';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
-import type { ErrorHelpers } from './use-agent-errors';
 
 interface UseNodeEditorOptions {
   selectedNodeId: string;
-  errorHelpers?: ErrorHelpers;
 }
 
 export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOptions) {

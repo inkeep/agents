@@ -30,7 +30,7 @@ export function ExternalAgentNodeEditor({
   subAgentExternalAgentConfigLookup,
 }: ExternalAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id, errorHelpers });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
