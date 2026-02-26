@@ -1247,6 +1247,8 @@ export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
   id: ResourceIdSchema,
   conversationId: ResourceIdSchema,
   messageId: ResourceIdSchema.optional(),
+  type: z.enum(['positive', 'negative']),
+  userType: z.enum(['user', 'api_key']).optional(),
 });
 export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
 

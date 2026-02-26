@@ -4245,7 +4245,10 @@
             ]
           },
           "type": {
-            "maxLength": 20,
+            "enum": [
+              "positive",
+              "negative"
+            ],
             "type": "string"
           },
           "updatedAt": {
@@ -4257,8 +4260,10 @@
             "type": "string"
           },
           "userType": {
-            "maxLength": 20,
-            "nullable": true,
+            "enum": [
+              "user",
+              "api_key"
+            ],
             "type": "string"
           }
         },
@@ -4375,7 +4380,10 @@
             ]
           },
           "type": {
-            "maxLength": 20,
+            "enum": [
+              "positive",
+              "negative"
+            ],
             "type": "string"
           },
           "updatedAt": {
@@ -4387,8 +4395,10 @@
             "type": "string"
           },
           "userType": {
-            "maxLength": 20,
-            "nullable": true,
+            "enum": [
+              "user",
+              "api_key"
+            ],
             "type": "string"
           }
         },
@@ -40695,6 +40705,10 @@
     {
       "description": "Operations for managing external agents",
       "name": "External Agents"
+    },
+    {
+      "description": "Operations for managing conversation and message feedback",
+      "name": "Feedback"
     },
     {
       "description": "Operations for managing function tools",
