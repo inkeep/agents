@@ -55,6 +55,13 @@ runs:
         ENVIRONMENT: development
       run: pnpm setup-dev --skip-push
 
+    - name: Export generated secrets to GITHUB_ENV
+      shell: bash
+      run: |
+        # setup-dev generated fresh secrets in .env — export them so subsequent steps
+        # (API server, Cypress) can read them via ${{ env.* }} or process.env.
+        grep -E '^(BETTER_AUTH_SECRET|INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET|INKEEP_AGENTS_MANAGE_UI_USERNAME|INKEEP_AGENTS_MANAGE_UI_PASSWORD)=' .env >> "$GITHUB_ENV"
+
     # --- Phase 4: Dashboard build + API startup (reordered) ---
     - name: Build dashboard and monorepo dependencies
       shell: bash

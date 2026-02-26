@@ -295,7 +295,7 @@ async function generateSecrets() {
           lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=')
         ) {
           lines[i] = `INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`;
-          if (!process.env.CI) process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
+          process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
           privateKeyFound = true;
         }
         if (
@@ -303,18 +303,18 @@ async function generateSecrets() {
           lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=')
         ) {
           lines[i] = `INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`;
-          if (!process.env.CI) process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
+          process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
           publicKeyFound = true;
         }
       }
 
       if (!privateKeyFound) {
         lines.push(`INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`);
-        if (!process.env.CI) process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
+        process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
       }
       if (!publicKeyFound) {
         lines.push(`INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`);
-        if (!process.env.CI) process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
+        process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
       }
 
       modified = true;
@@ -358,7 +358,7 @@ async function generateSecrets() {
         if (isCommented) {
           const value = generate();
           lines[i] = `${varName}=${value}`;
-          if (!process.env.CI) process.env[varName] = value;
+          process.env[varName] = value;
           modified = true;
           break;
         }
@@ -367,7 +367,7 @@ async function generateSecrets() {
         if (currentValue === '' || placeholders.includes(currentValue)) {
           const value = generate();
           lines[i] = `${varName}=${value}`;
-          if (!process.env.CI) process.env[varName] = value;
+          process.env[varName] = value;
           modified = true;
         }
         break;
@@ -376,7 +376,7 @@ async function generateSecrets() {
     if (!found) {
       const value = generate();
       lines.push(`${varName}=${value}`);
-      if (!process.env.CI) process.env[varName] = value;
+      process.env[varName] = value;
       modified = true;
     }
   }
