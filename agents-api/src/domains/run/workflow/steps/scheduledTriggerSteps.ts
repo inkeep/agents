@@ -6,6 +6,7 @@
  */
 import {
   addConversationIdToInvocation,
+  canUseProjectStrict,
   createScheduledTriggerInvocation,
   deletePendingInvocationsForTrigger,
   generateId,
@@ -456,6 +457,7 @@ export async function executeScheduledTriggerStep(params: {
   messageTemplate?: string | null;
   payload?: Record<string, unknown> | null;
   timeoutSeconds: number;
+  runAsUserId?: string | null;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -468,10 +470,41 @@ export async function executeScheduledTriggerStep(params: {
     messageTemplate,
     payload,
     timeoutSeconds,
+    runAsUserId,
   } = params;
 
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({
+        userId: runAsUserId,
+        tenantId,
+        projectId,
+      });
+
+      if (!canUse) {
+        logger.warn(
+          { scheduledTriggerId, invocationId, runAsUserId, projectId },
+          'User no longer has access to project, failing invocation'
+        );
+        return {
+          success: false,
+          error: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}. An org admin should update or remove the runAsUserId on this trigger.`,
+        };
+      }
+    } catch (err) {
+      logger.error(
+        { scheduledTriggerId, invocationId, runAsUserId, projectId, error: err },
+        'Failed to check user project access'
+      );
+      return {
+        success: false,
+        error: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
   logger.info(
-    { scheduledTriggerId, invocationId },
+    { scheduledTriggerId, invocationId, runAsUserId },
     'Executing scheduled trigger via executeAgentAsync'
   );
 
@@ -531,6 +564,7 @@ export async function executeScheduledTriggerStep(params: {
         userMessage,
         messageParts,
         resolvedRef,
+        runAsUserId: runAsUserId ?? undefined,
       }),
       timeoutPromise,
     ]);

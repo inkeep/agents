@@ -541,6 +541,7 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             // Trigger-related attributes
             { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.INVOCATION_ENTRY_POINT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ],
@@ -1213,6 +1214,50 @@ function buildConversationListPayload(
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
+        streamLifetimeExceeded: listQuery(
+          QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.STREAM_FORCE_CLEANUP,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.STREAM_CLEANUP_REASON,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.STREAM_MAX_LIFETIME_MS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -1274,10 +1319,12 @@ export async function GET(
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
+    const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
     let invocationType: string | null = null;
+    let invocationEntryPoint: string | null = null;
     let triggerId: string | null = null;
     let triggerInvocationId: string | null = null;
     for (const s of userMessageSpans) {
@@ -1286,6 +1333,7 @@ export async function GET(
       const spanInvocationType = getString(s, SPAN_KEYS.INVOCATION_TYPE, '');
       if (spanInvocationType && !invocationType) {
         invocationType = spanInvocationType;
+        invocationEntryPoint = getString(s, SPAN_KEYS.INVOCATION_ENTRY_POINT, '') || null;
         triggerId = getString(s, SPAN_KEYS.TRIGGER_ID, '') || null;
         triggerInvocationId = getString(s, SPAN_KEYS.TRIGGER_INVOCATION_ID, '') || null;
       }
@@ -1341,7 +1389,8 @@ export async function GET(
         | 'tool_approval_approved'
         | 'tool_approval_denied'
         | 'compression'
-        | 'max_steps_reached';
+        | 'max_steps_reached'
+        | 'stream_lifetime_exceeded';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1365,6 +1414,7 @@ export async function GET(
       messageParts?: string;
       // trigger/invocation attributes
       invocationType?: string;
+      invocationEntryPoint?: string;
       triggerId?: string;
       triggerInvocationId?: string;
       // context resolution
@@ -1432,6 +1482,9 @@ export async function GET(
       maxStepsReached?: boolean;
       stepsCompleted?: number;
       maxSteps?: number;
+      streamCleanupReason?: string;
+      streamMaxLifetimeMs?: number;
+      streamBufferSizeBytes?: number;
     };
 
     const activities: Activity[] = [];
@@ -1563,14 +1616,19 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       const invocationType = getString(span, SPAN_KEYS.INVOCATION_TYPE, '');
+      const spanEntryPoint = getString(span, SPAN_KEYS.INVOCATION_ENTRY_POINT, '');
       const triggerId = getString(span, SPAN_KEYS.TRIGGER_ID, '');
       const triggerInvocationId = getString(span, SPAN_KEYS.TRIGGER_INVOCATION_ID, '');
 
       // Determine description based on invocation type
       const isTriggerInvocation = invocationType === 'trigger';
+      const isSlackMessage = invocationType === 'slack';
+      const entryPointLabel = spanEntryPoint ? ` (${spanEntryPoint.replace(/_/g, ' ')})` : '';
       const description = isTriggerInvocation
         ? 'Trigger invocation received'
-        : 'User sent a message';
+        : isSlackMessage
+          ? `Slack message received${entryPointLabel}`
+          : 'User sent a message';
 
       activities.push({
         id: userMessageSpanId,
@@ -1580,7 +1638,11 @@ export async function GET(
         parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
-        subAgentName: isTriggerInvocation ? 'Trigger' : ACTIVITY_NAMES.USER,
+        subAgentName: isTriggerInvocation
+          ? 'Trigger'
+          : isSlackMessage
+            ? 'Slack'
+            : ACTIVITY_NAMES.USER,
         result: hasError
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
@@ -1588,6 +1650,7 @@ export async function GET(
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
         // Trigger-specific attributes
         invocationType: invocationType || undefined,
+        invocationEntryPoint: spanEntryPoint || undefined,
         triggerId: triggerId || undefined,
         triggerInvocationId: triggerInvocationId || undefined,
       });
@@ -1927,6 +1990,26 @@ export async function GET(
       });
     }
 
+    for (const span of streamLifetimeExceededSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const cleanupReason = getString(span, SPAN_KEYS.STREAM_CLEANUP_REASON, '');
+      const maxLifetimeMs = getNumber(span, SPAN_KEYS.STREAM_MAX_LIFETIME_MS, 0);
+      const bufferSizeBytes = getNumber(span, SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, 0);
+
+      activities.push({
+        id: spanId,
+        type: ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED,
+        description: `Stream lifetime exceeded (${Math.round(maxLifetimeMs / 1000)}s limit)`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
+        status: ACTIVITY_STATUS.ERROR,
+        result: cleanupReason,
+        streamCleanupReason: cleanupReason,
+        streamMaxLifetimeMs: maxLifetimeMs,
+        streamBufferSizeBytes: bufferSizeBytes,
+      });
+    }
+
     // Pre-parse all timestamps once for better performance
     const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
@@ -2077,6 +2160,7 @@ export async function GET(
       warningCount: finalWarningCount,
       // Trigger-specific info (null if not a trigger invocation)
       invocationType,
+      invocationEntryPoint,
       triggerId,
       triggerInvocationId,
     });

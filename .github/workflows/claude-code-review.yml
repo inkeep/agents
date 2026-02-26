@@ -9,7 +9,7 @@ on:
 jobs:
   pr-review:
     if: |
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.event.sender.type != 'Bot') ||
+      (github.event_name == 'pull_request' && github.event.sender.type != 'Bot') ||
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
@@ -23,9 +23,13 @@ jobs:
           github.event.comment.author_association == 'COLLABORATOR'
         )
       )
-    # Job-level concurrency so the group is only entered AFTER the if: check.
-    # Workflow-level concurrency would let bot comments (which skip via if:)
-    # cancel in-progress human-triggered runs before they're filtered out.
+    # Job-level concurrency so bot comments (which skip via if:) don't cancel
+    # in-progress human-triggered runs. Draft check is intentionally NOT in the
+    # if: condition — it's done via live API in the "Get PR Details" step.
+    # Reason: when synchronize + ready_for_review events race into the same
+    # concurrency group, the ready_for_review run can be lost, and the surviving
+    # synchronize run's webhook payload has stale draft=true. The live API check
+    # sees the current state regardless of which run survives.
     concurrency:
       group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
@@ -93,16 +97,19 @@ jobs:
           fi
 
       - name: Checkout
+        if: steps.pr.outputs.draft != 'true'
         uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for merge-base
           ref: refs/pull/${{ steps.pr.outputs.number }}/head
 
       - name: Fetch base branch
+        if: steps.pr.outputs.draft != 'true'
         run: |
           git fetch origin "${{ steps.pr.outputs.base_ref }}" --force --prune --no-tags
 
       - name: Get PR Diff
+        if: steps.pr.outputs.draft != 'true'
         id: diff
         run: |
           # Exclude noisy auto-generated files from diff
@@ -215,6 +222,7 @@ jobs:
           fi
 
       - name: Get Review Context
+        if: steps.pr.outputs.draft != 'true'
         id: review_context
         env:
           GH_TOKEN: ${{ github.token }}
@@ -498,6 +506,7 @@ jobs:
           fi
 
       - name: Get PR Comments
+        if: steps.pr.outputs.draft != 'true'
         id: pr_comments
         env:
           GH_TOKEN: ${{ github.token }}
@@ -545,6 +554,7 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Clean up stale Claude comments
+        if: steps.pr.outputs.draft != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -556,6 +566,7 @@ jobs:
           | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
       - name: Generate PR Context Skill
+        if: steps.pr.outputs.draft != 'true'
         run: |
           mkdir -p .claude/skills/pr-context
           
@@ -679,6 +690,7 @@ jobs:
           echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
 
       - name: Fetch Web Design Guidelines
+        if: steps.pr.outputs.draft != 'true'
         run: |
           # Fetch latest guidelines and inject into the skill's references/ folder
           # so pr-review-frontend can read them locally (no WebFetch needed at review time)
@@ -688,6 +700,7 @@ jobs:
           echo "Web design guidelines fetched ($(wc -l < .agents/skills/web-design-guidelines/references/guidelines.md) lines)"
 
       - name: Generate GitHub App token for team-skills
+        if: steps.pr.outputs.draft != 'true'
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
@@ -697,11 +710,13 @@ jobs:
           repositories: team-skills
 
       - name: Clone team-skills (CI-only PR review agents)
+        if: steps.pr.outputs.draft != 'true'
         run: gh repo clone inkeep/team-skills /tmp/team-skills -- --depth 1
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Run PR Review
+        if: steps.pr.outputs.draft != 'true'
         id: claude
         # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
         # Tracking: https://github.com/anthropics/claude-code-action/issues/892
@@ -722,7 +737,7 @@ jobs:
             Review PR #${{ steps.pr.outputs.number }}. Begin Phase 1.
 
       - name: Clean up progress comment
-        if: success()
+        if: success() && steps.pr.outputs.draft != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -733,7 +748,7 @@ jobs:
           | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
       - name: Upload Debug Artifacts
-        if: always()
+        if: always() && steps.pr.outputs.draft != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: claude-debug-pr-${{ steps.pr.outputs.number }}-${{ github.run_id }}
