@@ -1,4 +1,5 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
+import { SPAN_KEYS } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { parsePartialJson } from 'ai';
 import {
@@ -768,11 +769,11 @@ export class VercelDataStreamHelper implements StreamHelper {
   private forceCleanup(reason: string): void {
     tracer.startActiveSpan('stream.force_cleanup', (span: Span) => {
       span.setAttributes({
-        'stream.cleanup.reason': reason,
-        'stream.max_lifetime_ms': STREAM_MAX_LIFETIME_MS,
-        'stream.buffer_size_bytes': this.jsonBuffer.length,
-        'stream.sent_items_count': this.sentItems.size,
-        'stream.completed_items_count': this.completedItems.size,
+        [SPAN_KEYS.STREAM_CLEANUP_REASON]: reason,
+        [SPAN_KEYS.STREAM_MAX_LIFETIME_MS]: STREAM_MAX_LIFETIME_MS,
+        [SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES]: this.jsonBuffer.length,
+        [SPAN_KEYS.STREAM_SENT_ITEMS_COUNT]: this.sentItems.size,
+        [SPAN_KEYS.STREAM_COMPLETED_ITEMS_COUNT]: this.completedItems.size,
       });
       setSpanWithError(span, new Error(`Stream force cleanup: ${reason}`));
       span.end();

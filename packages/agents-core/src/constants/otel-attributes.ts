@@ -147,6 +147,8 @@ export const SPAN_KEYS = {
   STREAM_CLEANUP_REASON: 'stream.cleanup.reason',
   STREAM_MAX_LIFETIME_MS: 'stream.max_lifetime_ms',
   STREAM_BUFFER_SIZE_BYTES: 'stream.buffer_size_bytes',
+  STREAM_SENT_ITEMS_COUNT: 'stream.sent_items_count',
+  STREAM_COMPLETED_ITEMS_COUNT: 'stream.completed_items_count',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;

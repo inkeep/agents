@@ -547,7 +547,8 @@ export function TimelineItem({
 
           {/* Stream lifetime exceeded display */}
           {activity.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED &&
-            activity.streamMaxLifetimeMs !== undefined && (
+            activity.streamMaxLifetimeMs != null &&
+            activity.streamMaxLifetimeMs > 0 && (
               <div className="mt-2 p-3 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 rounded-lg max-w-4xl">
                 <div className="text-sm text-red-900 dark:text-red-300">
                   <span className="font-medium">Lifetime limit:</span>{' '}

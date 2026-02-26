@@ -1249,11 +1249,11 @@ function buildConversationListPayload(
             },
             {
               key: SPAN_KEYS.STREAM_MAX_LIFETIME_MS,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
               key: SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
@@ -1389,7 +1389,8 @@ export async function GET(
         | 'tool_approval_approved'
         | 'tool_approval_denied'
         | 'compression'
-        | 'max_steps_reached';
+        | 'max_steps_reached'
+        | 'stream_lifetime_exceeded';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;

@@ -828,9 +828,7 @@ export function renderPanelContent({
             {a.streamCleanupReason && <Info label="Reason" value={a.streamCleanupReason} />}
             <LabeledBlock label="Description">
               <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                The stream exceeded the maximum allowed lifetime and was forcibly closed. Increase{' '}
-                <code className="text-xs">AGENTS_STREAM_MAX_LIFETIME_MS</code> if this is expected
-                for long-running agent workflows.
+                The stream exceeded the maximum allowed lifetime and was forcibly closed.
               </Bubble>
             </LabeledBlock>
             <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
