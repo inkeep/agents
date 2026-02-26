@@ -31,6 +31,14 @@ describe('computeCandidateDomains', () => {
     ]);
   });
 
+  it('returns auto-computed and root domains for 5-part hostname', () => {
+    expect(computeCandidateDomains('a.b.c.inkeep.com')).toEqual([
+      undefined,
+      '.b.c.inkeep.com',
+      '.inkeep.com',
+    ]);
+  });
+
   it('returns only undefined for single-part hostname', () => {
     expect(computeCandidateDomains('myhost')).toEqual([undefined]);
   });
@@ -40,28 +48,28 @@ describe('buildClearCookieHeader', () => {
   it('builds secure cookie header without domain', () => {
     const header = buildClearCookieHeader('better-auth.session_token', true);
     expect(header).toBe(
-      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=None; Secure'
+      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure'
     );
   });
 
   it('builds non-secure cookie header without domain', () => {
     const header = buildClearCookieHeader('better-auth.session_token', false);
     expect(header).toBe(
-      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=Lax'
+      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/; HttpOnly; SameSite=Lax'
     );
   });
 
   it('includes domain when provided', () => {
     const header = buildClearCookieHeader('better-auth.session_token', true, '.inkeep.com');
     expect(header).toBe(
-      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=None; Secure; Domain=.inkeep.com'
+      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure; Domain=.inkeep.com'
     );
   });
 
   it('builds non-secure header with domain', () => {
     const header = buildClearCookieHeader('better-auth.session_token', false, '.app.inkeep.com');
     expect(header).toBe(
-      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=Lax; Domain=.app.inkeep.com'
+      'better-auth.session_token=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Domain=.app.inkeep.com'
     );
   });
 });

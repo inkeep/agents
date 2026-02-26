@@ -67,7 +67,13 @@ export function computeCandidateDomains(hostname: string): (string | undefined)[
 }
 
 export function buildClearCookieHeader(name: string, isSecure: boolean, domain?: string): string {
-  const parts = [`${name}=`, 'Expires=Thu, 01 Jan 1970 00:00:00 GMT', 'Path=/', 'HttpOnly'];
+  const parts = [
+    `${name}=`,
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'Max-Age=0',
+    'Path=/',
+    'HttpOnly',
+  ];
   if (isSecure) {
     parts.push('SameSite=None', 'Secure');
   } else {
