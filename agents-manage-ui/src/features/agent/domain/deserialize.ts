@@ -98,7 +98,18 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeAgentData(data: FullAgentResponse): TransformResult {
+export function deserializeAgentData(
+  data: Pick<
+    FullAgentResponse,
+    | 'subAgents'
+    | 'defaultSubAgentId'
+    | 'tools'
+    | 'functionTools'
+    | 'functions'
+    | 'externalAgents'
+    | 'teamAgents'
+  >
+): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const createdExternalAgentNodes = new Set<string>();
