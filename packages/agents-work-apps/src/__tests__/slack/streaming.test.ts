@@ -172,6 +172,32 @@ describe('streamAgentResponse', () => {
     expect(body.stream).toBe(true);
   });
 
+  it('should pass timezone headers when userTimezone is provided', async () => {
+    mockFetch.mockResolvedValue(new Response('Error', { status: 500 }));
+
+    await streamAgentResponse({ ...baseParams, userTimezone: 'America/Los_Angeles' });
+
+    const fetchCall = mockFetch.mock.calls[0];
+    const headers = fetchCall[1]?.headers;
+    expect(headers['x-inkeep-client-timezone']).toBe('America/Los_Angeles');
+    expect(headers['x-inkeep-client-timestamp']).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+    );
+  });
+
+  it('should default timezone to UTC when userTimezone is not provided', async () => {
+    mockFetch.mockResolvedValue(new Response('Error', { status: 500 }));
+
+    await streamAgentResponse(baseParams);
+
+    const fetchCall = mockFetch.mock.calls[0];
+    const headers = fetchCall[1]?.headers;
+    expect(headers['x-inkeep-client-timezone']).toBe('UTC');
+    expect(headers['x-inkeep-client-timestamp']).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+    );
+  });
+
   describe('tool-approval-request event handling', () => {
     it('should post an approval message when tool-approval-request event is received', async () => {
       const sseData =

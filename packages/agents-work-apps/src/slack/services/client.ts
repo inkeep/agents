@@ -68,6 +68,7 @@ export async function getSlackUserInfo(client: WebClient, userId: string) {
         isAdmin: result.user.is_admin,
         isOwner: result.user.is_owner,
         avatar: result.user.profile?.image_72,
+        tz: result.user.tz,
       };
     }
     return null;

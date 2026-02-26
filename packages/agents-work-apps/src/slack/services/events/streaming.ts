@@ -111,6 +111,7 @@ export async function streamAgentResponse(params: {
   agentName: string;
   conversationId: string;
   entryPoint?: string;
+  userTimezone?: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -181,6 +182,8 @@ export async function streamAgentResponse(params: {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-invocation-type': 'slack',
           ...(entryPoint && { 'x-inkeep-invocation-entry-point': entryPoint }),
+          'x-inkeep-client-timezone': params.userTimezone || 'UTC',
+          'x-inkeep-client-timestamp': new Date().toISOString(),
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],

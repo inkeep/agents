@@ -3,7 +3,7 @@ import { signSlackUserToken } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { getSlackClient } from '../client';
+import { getSlackClient, getSlackUserInfo } from '../client';
 import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { executeAgentPublicly } from './execution';
@@ -116,13 +116,16 @@ export async function handleDirectMessage(params: {
         }
       }
 
-      const slackUserToken = await signSlackUserToken({
-        inkeepUserId: existingLink.inkeepUserId,
-        tenantId,
-        slackTeamId: teamId,
-        slackUserId,
-        slackAuthorized: false,
-      });
+      const [slackUserToken, userInfo] = await Promise.all([
+        signSlackUserToken({
+          inkeepUserId: existingLink.inkeepUserId,
+          tenantId,
+          slackTeamId: teamId,
+          slackUserId,
+          slackAuthorized: false,
+        }),
+        getSlackUserInfo(slackClient, slackUserId),
+      ]);
 
       const conversationId = generateSlackConversationId({
         teamId,
@@ -150,6 +153,7 @@ export async function handleDirectMessage(params: {
         question: queryText,
         conversationId,
         entryPoint: 'direct_message',
+        userTimezone: userInfo?.tz,
       });
       span.end();
     } catch (error) {

@@ -67,6 +67,7 @@ vi.mock('../../slack/services/client', () => ({
       postEphemeral: mockPostEphemeral,
     },
   })),
+  getSlackUserInfo: vi.fn().mockResolvedValue({ tz: 'America/New_York' }),
 }));
 
 import { handleToolApproval } from '../../slack/services/events/block-actions';

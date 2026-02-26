@@ -20,7 +20,7 @@ import {
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
-import { getSlackClient } from '../client';
+import { getSlackClient, getSlackUserInfo } from '../client';
 import { executeAgentPublicly } from '../events/execution';
 import {
   fetchAgentsForProject,
@@ -340,17 +340,20 @@ export async function handleQuestionCommand(
 
   const slackClient = getSlackClient(botToken);
 
-  const slackUserToken = await signSlackUserToken({
-    inkeepUserId: existingLink.inkeepUserId,
-    tenantId: userTenantId,
-    slackTeamId: payload.teamId,
-    slackUserId: payload.userId,
-    slackEnterpriseId: payload.enterpriseId,
-    slackAuthorized: resolvedAgent.grantAccessToMembers,
-    slackAuthSource: resolvedAgent.source === 'none' ? undefined : resolvedAgent.source,
-    slackChannelId: payload.channelId,
-    slackAuthorizedProjectId: resolvedAgent.projectId,
-  });
+  const [slackUserToken, userInfo] = await Promise.all([
+    signSlackUserToken({
+      inkeepUserId: existingLink.inkeepUserId,
+      tenantId: userTenantId,
+      slackTeamId: payload.teamId,
+      slackUserId: payload.userId,
+      slackEnterpriseId: payload.enterpriseId,
+      slackAuthorized: resolvedAgent.grantAccessToMembers,
+      slackAuthSource: resolvedAgent.source === 'none' ? undefined : resolvedAgent.source,
+      slackChannelId: payload.channelId,
+      slackAuthorizedProjectId: resolvedAgent.projectId,
+    }),
+    getSlackUserInfo(slackClient, payload.userId),
+  ]);
 
   const now = Date.now();
   const messageTs = `${Math.floor(now / 1000)}.${String(now % 1000).padStart(3, '0')}000`;
@@ -373,6 +376,7 @@ export async function handleQuestionCommand(
     question,
     conversationId,
     entryPoint: 'slash_command',
+    userTimezone: userInfo?.tz,
   })
     .catch(async (error) => {
       logger.error({ error }, 'Background execution promise rejected');

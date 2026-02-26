@@ -4,7 +4,7 @@ import { env } from '../../env';
 import { getLogger } from '../../logger';
 import { type ResolvedAgentConfig, resolveEffectiveAgent } from './agent-resolution';
 import { createContextBlock } from './blocks';
-import { getSlackClient } from './client';
+import { getSlackClient, getSlackUserInfo } from './client';
 import { executeAgentPublicly } from './events/execution';
 import { streamAgentResponse } from './events/streaming';
 import { generateSlackConversationId, sendResponseUrlMessage } from './events/utils';
@@ -150,11 +150,14 @@ async function resumeMention(
     return;
   }
 
-  const agentConfig = await resolveEffectiveAgent({
-    tenantId,
-    teamId,
-    channelId: intent.channelId,
-  });
+  const [agentConfig, userInfo] = await Promise.all([
+    resolveEffectiveAgent({
+      tenantId,
+      teamId,
+      channelId: intent.channelId,
+    }),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
 
   const slackUserToken = await signSlackUserToken({
     ...tokenCtx,
@@ -187,6 +190,7 @@ async function resumeMention(
     agentName: intent.agentId,
     conversationId,
     entryPoint: 'smart_link_resume',
+    userTimezone: userInfo?.tz,
   });
 }
 
@@ -212,10 +216,13 @@ async function resumeDirectMessage(
     return;
   }
 
-  const slackUserToken = await signSlackUserToken({
-    ...tokenCtx,
-    slackAuthorized: false,
-  });
+  const [slackUserToken, userInfo] = await Promise.all([
+    signSlackUserToken({
+      ...tokenCtx,
+      slackAuthorized: false,
+    }),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
 
   const conversationId = generateSlackConversationId({
     teamId,
@@ -237,6 +244,7 @@ async function resumeDirectMessage(
     question: intent.question,
     conversationId,
     entryPoint: 'smart_link_resume',
+    userTimezone: userInfo?.tz,
   });
 }
 
@@ -249,12 +257,15 @@ async function resumeCommand(
 ): Promise<void> {
   const { slackUserId } = tokenCtx;
 
-  const resolvedAgent = await resolveEffectiveAgent({
-    tenantId,
-    teamId,
-    channelId: intent.channelId,
-    userId: slackUserId,
-  });
+  const [resolvedAgent, userInfo] = await Promise.all([
+    resolveEffectiveAgent({
+      tenantId,
+      teamId,
+      channelId: intent.channelId,
+      userId: slackUserId,
+    }),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
 
   if (!resolvedAgent) {
     await postErrorToChannel(
@@ -281,6 +292,7 @@ async function resumeCommand(
     agentId: resolvedAgent.agentId,
     agentName: resolvedAgent.agentName || resolvedAgent.agentId,
     projectId: resolvedAgent.projectId,
+    userTimezone: userInfo?.tz,
   });
 }
 
@@ -302,11 +314,14 @@ async function resumeRunCommand(
     return;
   }
 
-  const agentConfig = await resolveEffectiveAgent({
-    tenantId,
-    teamId,
-    channelId: intent.channelId,
-  });
+  const [agentConfig, userInfo] = await Promise.all([
+    resolveEffectiveAgent({
+      tenantId,
+      teamId,
+      channelId: intent.channelId,
+    }),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
 
   const slackUserToken = await signSlackUserToken({
     ...tokenCtx,
@@ -339,6 +354,7 @@ async function resumeRunCommand(
     agentId: agentInfo.id,
     agentName: agentInfo.name || agentInfo.id,
     projectId: agentInfo.projectId,
+    userTimezone: userInfo?.tz,
   });
 }
 
@@ -436,6 +452,7 @@ interface ExecuteAndDeliverParams {
   agentId: string;
   agentName: string;
   projectId: string;
+  userTimezone?: string;
 }
 
 async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void> {
@@ -465,6 +482,8 @@ async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void>
         'x-inkeep-agent-id': agentId,
         'x-inkeep-invocation-type': 'slack',
         'x-inkeep-invocation-entry-point': 'smart_link_resume',
+        'x-inkeep-client-timezone': params.userTimezone || 'UTC',
+        'x-inkeep-client-timestamp': new Date().toISOString(),
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: intent.question }],

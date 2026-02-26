@@ -53,6 +53,7 @@ vi.mock('../../slack/services/blocks', () => ({
 
 vi.mock('../../slack/services/client', () => ({
   getSlackClient: mockGetSlackClient,
+  getSlackUserInfo: vi.fn().mockResolvedValue({ tz: 'America/New_York' }),
 }));
 
 vi.mock('../../slack/services/events/execution', () => ({

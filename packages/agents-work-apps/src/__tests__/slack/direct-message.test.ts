@@ -58,6 +58,7 @@ vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     chat: { postMessage: mockPostMessage },
   })),
+  getSlackUserInfo: vi.fn().mockResolvedValue({ tz: 'America/New_York' }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({

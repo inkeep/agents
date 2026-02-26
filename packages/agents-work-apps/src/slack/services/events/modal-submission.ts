@@ -1,7 +1,7 @@
 import { signSlackUserToken } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { getSlackClient } from '../client';
+import { getSlackClient, getSlackUserInfo } from '../client';
 import type { ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { executeAgentPublicly } from './execution';
@@ -122,13 +122,16 @@ export async function handleModalSubmission(view: {
         return;
       }
 
-      const slackUserToken = await signSlackUserToken({
-        inkeepUserId: existingLink.inkeepUserId,
-        tenantId,
-        slackTeamId: metadata.teamId,
-        slackUserId: metadata.slackUserId,
-        slackAuthorized: false,
-      });
+      const [slackUserToken, userInfo] = await Promise.all([
+        signSlackUserToken({
+          inkeepUserId: existingLink.inkeepUserId,
+          tenantId,
+          slackTeamId: metadata.teamId,
+          slackUserId: metadata.slackUserId,
+          slackAuthorized: false,
+        }),
+        getSlackUserInfo(slackClient, metadata.slackUserId),
+      ]);
 
       const conversationId = generateSlackConversationId({
         teamId: metadata.teamId,
@@ -159,6 +162,7 @@ export async function handleModalSubmission(view: {
         question: fullQuestion,
         conversationId,
         entryPoint: metadata.messageContext ? 'message_shortcut' : 'modal_submission',
+        userTimezone: userInfo?.tz,
       });
 
       logger.info(

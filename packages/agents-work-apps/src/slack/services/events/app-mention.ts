@@ -229,11 +229,12 @@ export async function handleAppMention(params: {
       }
 
       if (isInThread && !hasQuery) {
-        // Thread + no query → Parallel: check if bot thread + fetch thread context
-        const [isBotThread, contextMessages, channelInfo] = await Promise.all([
+        // Thread + no query → Parallel: check if bot thread + fetch thread context + user info
+        const [isBotThread, contextMessages, channelInfo, userInfo] = await Promise.all([
           checkIfBotThread(slackClient, channel, threadTs),
           getThreadContext(slackClient, channel, threadTs),
           getSlackChannelInfo(slackClient, channel),
+          getSlackUserInfo(slackClient, slackUserId),
         ]);
 
         if (isBotThread) {
@@ -321,6 +322,7 @@ Respond naturally as if you're joining the conversation to help.`;
           question: threadQuery,
           conversationId,
           entryPoint: 'app_mention',
+          userTimezone: userInfo?.tz,
         });
         span.end();
         return;
@@ -330,20 +332,24 @@ Respond naturally as if you're joining the conversation to help.`;
       let queryText = text;
       const attachmentContext = formatAttachments(attachments);
 
+      let userTimezone: string | undefined;
+
       // Include thread context if in a thread
       if (isInThread && threadTs) {
         const {
-          result: [contextMessages, channelInfo],
+          result: [contextMessages, channelInfo, threadUserInfo],
         } = await timedOp(
           Promise.all([
             getThreadContext(slackClient, channel, threadTs),
             getSlackChannelInfo(slackClient, channel),
+            getSlackUserInfo(slackClient, slackUserId),
           ]),
           {
             label: 'thread context fetch',
             context: { teamId, channel, threadTs },
           }
         );
+        userTimezone = threadUserInfo?.tz;
         if (contextMessages) {
           const channelContext = formatChannelContext(channelInfo);
           let messageContent = text;
@@ -364,6 +370,7 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         const channelContext = formatChannelContext(channelInfo);
         const userName = userInfo?.displayName || 'User';
+        userTimezone = userInfo?.tz;
         if (attachmentContext) {
           queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
         } else {
@@ -415,6 +422,7 @@ Respond naturally as if you're joining the conversation to help.`;
         question: queryText,
         conversationId,
         entryPoint: 'app_mention',
+        userTimezone,
       });
       span.end();
     } catch (error) {

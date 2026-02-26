@@ -9,7 +9,7 @@ import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
-import { getSlackClient } from '../client';
+import { getSlackClient, getSlackUserInfo } from '../client';
 import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
@@ -83,12 +83,15 @@ export async function handleToolApproval(params: {
         return;
       }
 
-      const slackUserToken = await signSlackUserToken({
-        inkeepUserId: existingLink.inkeepUserId,
-        tenantId,
-        slackTeamId: teamId,
-        slackUserId,
-      });
+      const [slackUserToken, userInfo] = await Promise.all([
+        signSlackUserToken({
+          inkeepUserId: existingLink.inkeepUserId,
+          tenantId,
+          slackTeamId: teamId,
+          slackUserId,
+        }),
+        getSlackUserInfo(slackClient, slackUserId),
+      ]);
 
       const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
@@ -101,6 +104,8 @@ export async function handleToolApproval(params: {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-invocation-type': 'slack',
           'x-inkeep-invocation-entry-point': 'tool_approval',
+          'x-inkeep-client-timezone': userInfo?.tz || 'UTC',
+          'x-inkeep-client-timestamp': new Date().toISOString(),
         },
         body: JSON.stringify({
           conversationId,

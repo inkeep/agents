@@ -28,6 +28,7 @@ export interface PublicExecutionParams {
   question: string;
   conversationId: string;
   entryPoint?: SlackEntryPoint;
+  userTimezone?: string;
 }
 
 export async function executeAgentPublicly(params: PublicExecutionParams): Promise<StreamResult> {
@@ -73,5 +74,6 @@ export async function executeAgentPublicly(params: PublicExecutionParams): Promi
     agentName,
     conversationId: params.conversationId,
     entryPoint: params.entryPoint,
+    userTimezone: params.userTimezone,
   });
 }
