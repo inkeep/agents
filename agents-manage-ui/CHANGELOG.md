@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.8
+
+### Patch Changes
+
+- 7e60710: Update @inkeep/agents-ui package to version 0.15.13
+- a879934: Fix Collapse All / Expand All on traces page to collapse and expand all tree hierarchy nodes in addition to AI message content
+  - @inkeep/agents-core@0.53.8
+
 ## 0.53.7
 
 ### Patch Changes

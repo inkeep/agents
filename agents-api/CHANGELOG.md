@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.53.8
+
+### Patch Changes
+
+- 50b63a3: Add Slack source indicator with entry point tracking to conversation traces and stats. Distinguishes between app mention, DM, slash command, message shortcut, modal submission, and smart link resume entry points. Fix resume-intent to use getInProcessFetch for multi-instance safety.
+- Updated dependencies [50b63a3]
+- Updated dependencies [4761e1f]
+  - @inkeep/agents-work-apps@0.53.8
+  - @inkeep/agents-core@0.53.8
+  - @inkeep/agents-mcp@0.53.8
+
 ## 0.53.7
 
 ### Patch Changes
