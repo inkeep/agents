@@ -159,7 +159,7 @@ export function serializeAgentData(
             const relationshipId = (mcpNode.data as any).relationshipId;
             const relationKey = relationshipId ?? mcpNode.id;
             const relationFormData = mcpRelations?.[relationKey];
-            const tempSelectedTools = relationFormData?.selectedTools
+            const tempSelectedTools = relationFormData?.selectedTools;
             let toolSelection: string[] | null = null;
             if (tempSelectedTools !== undefined) {
               // User has made changes to tool selection in the UI
@@ -181,7 +181,7 @@ export function serializeAgentData(
               }
             }
 
-            const tempHeaders = relationFormData?.headers
+            const tempHeaders = relationFormData?.headers;
             let toolHeaders: PartialMCPRelation['headers'] | null = null;
 
             if (tempHeaders !== undefined) {
@@ -201,7 +201,7 @@ export function serializeAgentData(
                 toolHeaders = existingConfig.headers;
               }
             }
-            const tempToolPolicies = relationFormData?.toolPolicies
+            const tempToolPolicies = relationFormData?.toolPolicies;
             let toolPolicies: PartialMCPRelation['toolPolicies'] | null = null;
 
             if (tempToolPolicies !== undefined) {
@@ -358,18 +358,14 @@ export function serializeAgentData(
         if (typeof delegate === 'object') {
           if ('externalAgentId' in delegate) {
             // External agent delegation
-            if (!subAgentExternalDelegateMap[subAgentId]) {
-              subAgentExternalDelegateMap[subAgentId] = {};
-            }
+            subAgentExternalDelegateMap[subAgentId] ??= {};
             if (delegate.subAgentExternalAgentRelationId) {
               subAgentExternalDelegateMap[subAgentId][delegate.subAgentExternalAgentRelationId] =
                 delegate;
             }
           } else if ('agentId' in delegate) {
             // Team agent delegation
-            if (!subAgentTeamDelegateMap[subAgentId]) {
-              subAgentTeamDelegateMap[subAgentId] = {};
-            }
+            subAgentTeamDelegateMap[subAgentId] ??= {};
             if (delegate.subAgentTeamAgentRelationId) {
               subAgentTeamDelegateMap[subAgentId][delegate.subAgentTeamAgentRelationId] = delegate;
             }
@@ -416,9 +412,7 @@ export function serializeAgentData(
         relationshipId?: string
       ) => {
         if (relationshipType === 'canDelegateTo') {
-          if (!agent.canDelegateTo) {
-            agent.canDelegateTo = [];
-          }
+          agent.canDelegateTo ??= [];
 
           // External agents always use object format
           if (isExternal) {
@@ -434,14 +428,10 @@ export function serializeAgentData(
 
             // Store relationship in map - we'll rebuild canDelegateTo arrays at the end
             if (relationshipId) {
-              if (!subAgentExternalDelegateMap[agent.id]) {
-                subAgentExternalDelegateMap[agent.id] = {};
-              }
+              subAgentExternalDelegateMap[agent.id] ??= {};
               subAgentExternalDelegateMap[agent.id][relationshipId] = relationshipData;
             } else {
-              if (!newSubAgentExternalDelegateMap[agent.id]) {
-                newSubAgentExternalDelegateMap[agent.id] = {};
-              }
+              newSubAgentExternalDelegateMap[agent.id] ??= {};
               newSubAgentExternalDelegateMap[agent.id] = relationshipData;
             }
           } else if (isTeamAgent) {
@@ -458,14 +448,10 @@ export function serializeAgentData(
 
             // Store relationship in map - we'll rebuild canDelegateTo arrays at the end
             if (relationshipId) {
-              if (!subAgentTeamDelegateMap[agent.id]) {
-                subAgentTeamDelegateMap[agent.id] = {};
-              }
+              subAgentTeamDelegateMap[agent.id] ??= {};
               subAgentTeamDelegateMap[agent.id][relationshipId] = relationshipData;
             } else {
-              if (!newSubAgentTeamDelegateMap[agent.id]) {
-                newSubAgentTeamDelegateMap[agent.id] = {};
-              }
+              newSubAgentTeamDelegateMap[agent.id] ??= {};
               newSubAgentTeamDelegateMap[agent.id] = relationshipData;
             }
           } else {
@@ -475,7 +461,7 @@ export function serializeAgentData(
             }
           }
         } else {
-          if (!agent.canTransferTo) agent.canTransferTo = [];
+          agent.canTransferTo ??= [];
           if (!agent.canTransferTo.includes(targetId)) {
             agent.canTransferTo.push(targetId);
           }

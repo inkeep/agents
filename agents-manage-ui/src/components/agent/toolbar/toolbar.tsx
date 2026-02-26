@@ -45,7 +45,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   const previewButton = (
     <Button
       {...commonProps}
-      disabled={dirty || hasOpenModelConfig}
+      disabled={isDirty || hasOpenModelConfig}
       onClick={() => setShowPlayground(true)}
     >
       <Play className="size-4 text-muted-foreground" />
@@ -85,7 +85,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       {canUse && (
         <>
           <ShipModal buttonClassName={commonProps.className} />
-          {dirty || hasOpenModelConfig ? (
+          {isDirty || hasOpenModelConfig ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 {/**
@@ -97,7 +97,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
               <TooltipContent>
                 {hasOpenModelConfig
                   ? 'Please complete model configuration before trying the agent.'
-                  : dirty
+                  : isDirty
                     ? 'Please save your changes before trying the agent.'
                     : 'Please save the agent to try it.'}
               </TooltipContent>
@@ -111,8 +111,8 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         <Button
           {...commonProps}
           type="submit"
-          variant={dirty ? 'default' : 'outline'}
-          disabled={isSubmitting || !dirty || hasOpenModelConfig}
+          variant={isDirty ? 'default' : 'outline'}
+          disabled={isSubmitting || !isDirty || hasOpenModelConfig}
           ref={saveButtonRef}
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />
