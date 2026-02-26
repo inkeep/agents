@@ -1171,6 +1171,7 @@ export const ToolSelectSchema = createSelectSchema(tools);
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: ResourceIdSchema,
   imageUrl: imageUrlSchema,
+  headers: StringRecordSchema.optional(),
   config: z.object({
     type: z.literal('mcp'),
     mcp: z.object({

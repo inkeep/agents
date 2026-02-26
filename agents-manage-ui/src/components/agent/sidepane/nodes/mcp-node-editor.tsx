@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink } from '@/components/ui/external-link';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -229,14 +228,6 @@ export function MCPServerNodeEditor({
     markUnsaved();
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (selectedNode) {
-      updateNodeData(selectedNode.id, { [name]: value });
-      markUnsaved();
-    }
-  };
-
   return (
     <div className="space-y-8">
       {toolData?.imageUrl && (
@@ -281,20 +272,13 @@ export function MCPServerNodeEditor({
         isRequired
       />
 
-      <div className="space-y-2">
-        <Label htmlFor="url">URL</Label>
-        <Input
-          id="url"
-          name="url"
-          value={
-            toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.server.url : ''
-          }
-          onChange={handleInputChange}
-          placeholder="https://mcp.inkeep.com"
-          disabled
-          className="w-full"
-        />
-      </div>
+      <GenericInput
+        control={form.control}
+        name={path('config.mcp.server.url')}
+        label="URL"
+        placeholder="https://mcp.inkeep.com"
+        disabled
+      />
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

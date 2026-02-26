@@ -4,6 +4,7 @@ import {
   FunctionApiInsertSchema,
   StringRecordSchema,
   SubAgentStopWhenSchema,
+  ToolInsertSchema,
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
@@ -145,6 +146,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       z.looseObject({
         id: z.string().trim().nonempty(),
         name: z.string().trim().nonempty(),
+        config: ToolInsertSchema.shape.config,
         // TODO or tempHeaders
         headers: StringToStringRecordSchema,
       })
