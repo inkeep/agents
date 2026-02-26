@@ -23,6 +23,7 @@ export interface FormFieldWrapperProps<
   children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
   description?: React.ReactNode;
   isRequired?: boolean;
+  tooltip?: string;
 }
 
 export function FormFieldWrapper<
@@ -36,6 +37,7 @@ export function FormFieldWrapper<
   children,
   description,
   isRequired,
+  tooltip,
 }: FormFieldWrapperProps<FV, TV, TName>) {
   return (
     <FormField
@@ -43,7 +45,9 @@ export function FormFieldWrapper<
       name={name}
       render={({ field }) => (
         <FormItem className="relative">
-          <FormLabel isRequired={isRequired}>{label}</FormLabel>
+          <FormLabel isRequired={isRequired} tooltip={tooltip}>
+            {label}
+          </FormLabel>
           <FormControl>{children(field)}</FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />

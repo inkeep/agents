@@ -22,6 +22,7 @@ import { TextareaField } from '../form-components/text-area';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;

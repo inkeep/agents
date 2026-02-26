@@ -9,7 +9,7 @@ interface FieldLabelProps {
   label: ReactNode;
   isRequired?: boolean;
   tooltip?: string;
-  error?: string;
+  error?: boolean;
   className?: string;
 }
 

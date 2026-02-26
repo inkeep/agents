@@ -123,6 +123,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     externalAgents: z.array(
       z.looseObject({
         id: z.string().trim(),
+        baseUrl: z.url(),
         name: z.string().trim(),
       })
     ),
