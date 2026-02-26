@@ -74,11 +74,21 @@ const ToolPoliciesSchema = z
   )
   .optional();
 
+export const MCPRelationSchema = z.strictObject({
+  toolId: z.string().trim().nonempty(),
+  relationshipId: z.string().trim().optional(),
+  subAgentId: z.string().trim().optional(),
+  selectedTools: z.array(z.string()).nullable().optional(),
+  headers: StringToStringRecordSchema,
+  toolPolicies: ToolPoliciesSchema,
+});
+
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
   description: true,
   prompt: true,
+  defaultSubAgentId: true,
 }).extend({
   // nodes: z.array(z.any()).optional(),
   // subAgents: SubAgentsSchema,
@@ -161,19 +171,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       headers: StringToStringRecordSchema,
     })
   ),
-  mcpRelations: z
-    .record(
-      z.string(),
-      z.strictObject({
-        toolId: z.string().trim().nonempty(),
-        relationshipId: z.string().trim().optional(),
-        subAgentId: z.string().trim().optional(),
-        selectedTools: z.array(z.string()).nullable().optional(),
-        headers: StringToStringRecordSchema,
-        toolPolicies: ToolPoliciesSchema,
-      })
-    )
-    .optional(),
+  mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
   stopWhen: StopWhenSchema.extend({
     transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
   }).optional(),
@@ -189,7 +187,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
-export type FullAgentOutput = z.output<typeof AgentWithinContextOfProjectSchema>;
+export type FullAgentOutput = z.output<typeof FullAgentUpdateSchema>;
 
 export function serializeAgentForm(data: FullAgentResponse) {
   const {

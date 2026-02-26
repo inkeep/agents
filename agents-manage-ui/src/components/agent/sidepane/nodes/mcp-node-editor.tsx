@@ -104,7 +104,7 @@ export function MCPServerNodeEditor({
         headers: JSON.stringify(newHeaders, null, 2),
         toolPolicies: currentToolPoliciesFromLookup,
       },
-      {shouldDirty: false,}
+      { shouldDirty: false }
     );
   }, [selectedNode.id]);
 

@@ -1,8 +1,10 @@
 import type { Edge, Node } from '@xyflow/react';
+import { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
+import { MCPRelationSchema } from '@/components/agent/form/validation';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
@@ -28,7 +30,7 @@ type ExtendedAgent = InternalAgentDefinition & {
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
  */
 function safeJsonParse(value: string | object | undefined | null): any {
-  if (!value) return undefined;
+  if (!value) return;
 
   // If it's already an object, return it as-is
   if (typeof value === 'object') return value;
@@ -39,11 +41,11 @@ function safeJsonParse(value: string | object | undefined | null): any {
       return JSON.parse(value);
     } catch (error) {
       console.warn('Error parsing JSON:', error);
-      return undefined;
+      return;
     }
   }
 
-  return undefined;
+  return;
 }
 function processModels(modelsData?: AgentModels): AgentModels | undefined {
   if (modelsData && typeof modelsData === 'object') {
@@ -82,6 +84,13 @@ type SerializeAgentDataType = Pick<
   'defaultSubAgentId' | 'subAgents' | 'functions' | 'functionTools'
 >;
 
+type PartialMCPRelation = Pick<z.output<typeof MCPRelationSchema>, 'selectedTools' | 'headers' | 'toolPolicies'>
+
+type MCPRelationFormData = Record<
+  string,
+    PartialMCPRelation
+>;
+
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
@@ -92,7 +101,8 @@ export function serializeAgentData(
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
+  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
+  mcpRelations?: MCPRelationFormData
 ): SerializeAgentDataType {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
@@ -127,7 +137,8 @@ export function serializeAgentData(
       const canUse: Array<{
         toolId: string;
         toolSelection?: string[] | null;
-        headers?: Record<string, string> | null;
+        headers?: PartialMCPRelation['headers'];
+        toolPolicies?: PartialMCPRelation['toolPolicies'];
         agentToolRelationId?: string;
       }> = [];
 
