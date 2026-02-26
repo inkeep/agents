@@ -12,6 +12,7 @@ import {
 import runDbClient from '../../../db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { lookupAgentName, lookupProjectName } from '../agent-resolution';
 import type { AgentOption } from '../modals';
 import {
   type DefaultAgentConfig,
@@ -380,11 +381,15 @@ export async function resolveChannelAgentConfig(
   );
 
   if (channelConfig?.enabled) {
+    const [agentName, projectName] = await Promise.all([
+      lookupAgentName(tenantId, channelConfig.projectId, channelConfig.agentId),
+      lookupProjectName(tenantId, channelConfig.projectId),
+    ]);
     return {
       projectId: channelConfig.projectId,
       agentId: channelConfig.agentId,
-      agentName: channelConfig.agentId,
-      projectName: channelConfig.projectId,
+      agentName: agentName || channelConfig.agentId,
+      projectName: projectName || channelConfig.projectId,
     };
   }
 
