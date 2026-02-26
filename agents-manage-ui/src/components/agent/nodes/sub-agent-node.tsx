@@ -110,9 +110,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
           )}
         </BaseNodeHeader>
         <BaseNodeContent>
-          <div
-            className="text-sm text-muted-foreground"
-          >
+          <div className="text-sm text-muted-foreground">
             {description || <i className="text-muted-foreground/50">No description</i>}
           </div>
           {models && modelName ? (

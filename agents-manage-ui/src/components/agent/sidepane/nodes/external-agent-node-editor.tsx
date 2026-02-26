@@ -39,22 +39,13 @@ export function ExternalAgentNodeEditor({
     projectId: string;
   }>();
   const form = useFullAgentFormContext();
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'externalAgents',
-    keyName: '_rhfKey3',
-  });
-  const externalAgentIndex = fields.findIndex(
-    (s) => s.id === (selectedNode.data.id ?? selectedNode.id)
-  );
-
+  const id = selectedNode.data.id
   const externalAgent = useWatch({
     control: form.control,
-    name: `externalAgents.${externalAgentIndex}`,
+    name: `externalAgents.${id}`,
   });
-  // if (externalAgentIndex < 0) return null;
 
-  const path = <K extends string>(k: K) => `externalAgents.${externalAgentIndex}.${k}` as const;
+  const path = <K extends string>(k: K) => `externalAgents.${id}.${k}` as const;
 
   const edges = useAgentStore((state) => state.edges);
 
@@ -72,6 +63,10 @@ export function ExternalAgentNodeEditor({
     const newHeaders = getCurrentHeaders();
     form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
+
+  if (!externalAgent) {
+    return;
+  }
 
   return (
     <div className="space-y-8 flex flex-col">
