@@ -17,7 +17,7 @@ export function formatJson(jsonString: string) {
   try {
     const parsed = JSON.parse(jsonString);
     return JSON.stringify(parsed, null, 2);
-  } catch (_error) {
+  } catch {
     return jsonString;
   }
 }
@@ -78,8 +78,6 @@ export function createLookup<T extends { id: string }>(
  * Determines whether a form field should be marked as required based on the Zod schema (i.e. absence of `z.optional()`).
  *
  * Supports nested fields via dot-notation paths and provides autocomplete for schema keys.
- *
- * @lintignore
  */
 export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.infer<T>>) {
   const [firstKey, ...rest] = key.split('.');
@@ -89,15 +87,14 @@ export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.in
   if (rest.length) {
     return isRequired(nestedSchema, rest.join('.'));
   }
-  return !nestedSchema.isOptional();
+  const result = nestedSchema.safeParse();
+  return !result.success;
 }
 
 /**
  * Serializes object or array values for form editors that operate on string input.
  *
  * Used in server components to safely stringify JSON values for text-based editors.
- *
- * @lintignore
  */
 export function serializeJson(value?: null | Record<string, unknown> | unknown[]): string {
   return value ? JSON.stringify(value, null, 2) : '';

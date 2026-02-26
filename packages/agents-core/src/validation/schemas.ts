@@ -151,13 +151,14 @@ export type PartSchemaType = z.infer<typeof PartSchema>;
 export const StopWhenSchema = z
   .object({
     transferCountIs: z
-      .number()
+      .int()
       .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+      // cc @sarah in front end max was set as 100
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
     stepCountIs: z
-      .number()
+      .int()
       .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
       .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
       .optional()
@@ -183,7 +184,8 @@ export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
 
 export const ResourceIdSchema = z
   .string()
-  .min(MIN_ID_LENGTH)
+  .trim()
+  .nonempty('Id is required')
   .max(MAX_ID_LENGTH)
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
@@ -204,11 +206,12 @@ const limitNumber = z.coerce
 
 export const ModelSettingsSchema = z
   .object({
-    model: z.string().optional().describe('The model to use for the project.'),
-    providerOptions: z
-      .record(z.string(), z.any())
-      .optional()
-      .describe('The provider options to use for the project.'),
+    model: z.string().trim().optional().openapi({
+      description: 'The model to use for the project.',
+    }),
+    providerOptions: z.record(z.string(), z.unknown()).optional().openapi({
+      description: 'The provider options to use for the project.',
+    }),
   })
   .openapi('ModelSettings');
 
@@ -1695,7 +1698,6 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 ).openapi('ArtifactComponentUpdate');
-
 export const SubAgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
 export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
@@ -2133,6 +2135,7 @@ export const FetchDefinitionSchema = z
   .openapi('FetchDefinition');
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
+  // TODO use HeadersSchema
   headersSchema: z.any().optional().openapi({
     type: 'object',
     description: 'JSON Schema for validating request headers',
@@ -2141,14 +2144,21 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: ResourceIdSchema.optional(),
-    headersSchema: z.any().nullable().optional().openapi({
-      type: 'object',
-      description: 'JSON Schema for validating request headers',
-    }),
-    contextVariables: z.any().nullable().optional().openapi({
-      type: 'object',
-      description: 'Context variables configuration with fetch definitions',
-    }),
+    // TODO use HeadersSchema
+    headersSchema: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .nullish()
+      .openapi({
+        type: 'object',
+        description: 'JSON Schema for validating request headers',
+      }),
+    contextVariables: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .nullish()
+      .openapi({
+        type: 'object',
+        description: 'Context variables configuration with fetch definitions',
+      }),
   })
   .omit({
     createdAt: true,
@@ -2271,12 +2281,17 @@ export const StatusComponentSchema = z
   .openapi('StatusComponent');
 
 export const StatusUpdateSchema = z
-  .object({
+  .strictObject({
     enabled: z.boolean().optional(),
-    numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
-    timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+    numEvents: z.int().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional().openapi({
+      description: 'Trigger after N events',
+    }),
+    timeInSeconds: z.int().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional().openapi({
+      description: 'Trigger after N seconds',
+    }),
     prompt: z
       .string()
+      .trim()
       .max(
         VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
         `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
@@ -2376,26 +2391,30 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
 }).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
-  contextConfig: z.optional(ContextConfigApiInsertSchema),
-  statusUpdates: z.optional(StatusUpdateSchema),
+  contextConfig: ContextConfigApiInsertSchema.optional(),
+  statusUpdates: StatusUpdateSchema.optional(),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
   prompt: z
     .string()
+    .trim()
     .max(
       VALIDATION_AGENT_PROMPT_MAX_CHARS,
       `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
     )
     .optional(),
-}).openapi('AgentWithinContextOfProject');
+})
+  .extend({
+    subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
+    tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+    externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+    teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
+    functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
+    functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+    triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+    scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
+  })
+  .openapi('AgentWithinContextOfProject');
 
 export const PaginationSchema = z
   .object({

@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
+import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
@@ -7,46 +7,20 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
-  FullAgentDefinition,
   InternalAgentDefinition,
+  PartialFullAgentDefinition,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
-import { generateId } from '@/lib/utils/id-utils';
 
 type ExtendedAgent = InternalAgentDefinition & {
   dataComponents: string[];
   artifactComponents: string[];
-  models?: AgentMetadata['models'];
+  models?: AgentModels;
   type: 'internal';
 };
-
-type ContextConfigParseError = Error & {
-  field: 'contextVariables' | 'headersSchema';
-};
-
-const createContextConfigParseError = (
-  field: ContextConfigParseError['field']
-): ContextConfigParseError => {
-  const message =
-    field === 'contextVariables'
-      ? 'Context variables must be valid JSON'
-      : 'Headers schema must be valid JSON';
-  const error = new Error(message) as ContextConfigParseError;
-  error.name = 'ContextConfigParseError';
-  error.field = field;
-  return error;
-};
-
-export function isContextConfigParseError(error: unknown): error is ContextConfigParseError {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const candidate = error as Record<string, unknown>;
-  return candidate.name === 'ContextConfigParseError' && typeof candidate.field === 'string';
-}
 
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
 
@@ -71,7 +45,7 @@ function safeJsonParse(value: string | object | undefined | null): any {
 
   return undefined;
 }
-function processModels(modelsData: AgentMetadata['models']): AgentMetadata['models'] | undefined {
+function processModels(modelsData?: AgentModels): AgentModels | undefined {
   if (modelsData && typeof modelsData === 'object') {
     const hasNonEmptyValue = Object.values(modelsData).some(
       (value) => value !== null && value !== undefined && String(value).trim() !== ''
@@ -108,13 +82,12 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
 export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
-  metadata?: AgentMetadata,
   dataComponentLookup?: Record<string, DataComponent>,
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
-): FullAgentDefinition {
+): PartialFullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
   const teamAgents: Record<string, TeamAgent> = {};
@@ -138,7 +111,7 @@ export function serializeAgentData(
         usedArtifactComponents.add(componentId);
       });
       // Process models - only include if it has non-empty, non-whitespace values
-      const modelsData = node.data.models as AgentMetadata['models'] | undefined;
+      const modelsData = node.data.models as AgentModels | undefined;
       const processedModels = processModels(modelsData);
 
       const stopWhen = (node.data as any).stopWhen;
@@ -587,29 +560,6 @@ export function serializeAgentData(
       }
     }
   }
-  const contextVariablesInput = metadata?.contextConfig?.contextVariables?.trim();
-  const parsedContextVariables = safeJsonParse(contextVariablesInput);
-  if (contextVariablesInput && !parsedContextVariables) {
-    throw createContextConfigParseError('contextVariables');
-  }
-
-  const headersSchemaInput = metadata?.contextConfig?.headersSchema?.trim();
-  const parsedHeadersSchema = safeJsonParse(headersSchemaInput);
-  if (headersSchemaInput && !parsedHeadersSchema) {
-    throw createContextConfigParseError('headersSchema');
-  }
-
-  const hasContextConfig =
-    Boolean(
-      parsedContextVariables &&
-        typeof parsedContextVariables === 'object' &&
-        Object.keys(parsedContextVariables).length
-    ) ||
-    Boolean(
-      parsedHeadersSchema &&
-        typeof parsedHeadersSchema === 'object' &&
-        Object.keys(parsedHeadersSchema).length
-    );
 
   const dataComponents: Record<string, DataComponent> = {};
   if (dataComponentLookup) {
@@ -631,10 +581,7 @@ export function serializeAgentData(
     });
   }
 
-  const result: FullAgentDefinition = {
-    id: metadata?.id || generateId(),
-    name: metadata?.name ?? '',
-    description: metadata?.description || undefined,
+  const result: PartialFullAgentDefinition = {
     defaultSubAgentId,
     subAgents: subAgents,
     ...(Object.keys(functionTools).length > 0 && { functionTools }),
@@ -643,58 +590,6 @@ export function serializeAgentData(
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
   };
-
-  // Add new agent-level fields
-  if (metadata?.models) {
-    (result as any).models = {
-      base: metadata.models.base
-        ? {
-            model: metadata.models.base.model,
-            providerOptions: safeJsonParse(metadata.models.base.providerOptions),
-          }
-        : undefined,
-      structuredOutput: metadata.models.structuredOutput
-        ? {
-            model: metadata.models.structuredOutput.model,
-            providerOptions: safeJsonParse(metadata.models.structuredOutput.providerOptions),
-          }
-        : undefined,
-      summarizer: metadata.models.summarizer
-        ? {
-            model: metadata.models.summarizer.model,
-            providerOptions: safeJsonParse(metadata.models.summarizer.providerOptions),
-          }
-        : undefined,
-    };
-  }
-
-  if (metadata?.stopWhen) {
-    (result as any).stopWhen = metadata.stopWhen;
-  }
-
-  if (metadata) {
-    (result as any).prompt = metadata.prompt;
-  }
-
-  if (metadata?.statusUpdates) {
-    const parsedStatusComponents = safeJsonParse(metadata.statusUpdates.statusComponents);
-    (result as any).statusUpdates = {
-      ...metadata.statusUpdates,
-      statusComponents: parsedStatusComponents,
-    };
-  }
-
-  // Add contextConfig if there's meaningful data OR if there's an existing contextConfig that needs to be cleared
-  const existingContextConfigId = metadata?.contextConfig?.id;
-  if (hasContextConfig || existingContextConfigId) {
-    const contextConfigId = existingContextConfigId || generateId();
-    (result as any).contextConfigId = contextConfigId;
-    (result as any).contextConfig = {
-      id: contextConfigId,
-      headersSchema: parsedHeadersSchema ?? null,
-      contextVariables: parsedContextVariables ?? null,
-    };
-  }
 
   // Rebuild canDelegateTo arrays from delegate maps to ensure consistency
   Object.entries(subAgents).forEach(([subAgentId, agent]) => {
@@ -734,7 +629,7 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: FullAgentDefinition,
+  data: PartialFullAgentDefinition,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];

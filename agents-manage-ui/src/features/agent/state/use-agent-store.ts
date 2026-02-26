@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import {
   type AnimatedNode,
@@ -32,7 +31,6 @@ type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
-  metadata: AgentMetadata;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
@@ -71,7 +69,6 @@ interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
-    metadata: AgentMetadata,
     availableSkills: Skill[],
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
@@ -94,7 +91,6 @@ interface AgentActions {
   onNodesChange(changes: NodeChange[]): void;
   onEdgesChange(changes: EdgeChange[]): void;
   onConnect(connection: Connection): void;
-  setMetadata<K extends keyof AgentMetadata>(field: K, value: AgentMetadata[K]): void;
   push(nodes: Node[], edges: Edge[]): void;
   undo(): void;
   redo(): void;
@@ -140,19 +136,6 @@ interface AgentState extends AllAgentStateData {
 const initialAgentState: AgentStateData = {
   nodes: [],
   edges: [],
-  metadata: {
-    id: undefined,
-    name: '',
-    description: '',
-    contextConfig: {
-      contextVariables: '',
-      headersSchema: '',
-    },
-    models: undefined,
-    stopWhen: undefined,
-    prompt: undefined,
-    statusUpdates: undefined,
-  },
   dataComponentLookup: {},
   artifactComponentLookup: {},
   toolLookup: {},
@@ -184,7 +167,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setInitial(
       nodes,
       edges,
-      metadata,
       availableSkills,
       dataComponentLookup = {},
       artifactComponentLookup = {},
@@ -196,7 +178,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set({
         nodes,
         edges,
-        metadata,
         dataComponentLookup,
         artifactComponentLookup,
         toolLookup,
@@ -293,9 +274,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     onConnect(connection) {
       set((state) => ({ edges: addEdge(connection, state.edges) }));
-    },
-    setMetadata(field, value) {
-      set((state) => ({ metadata: { ...state.metadata, [field]: value } }));
     },
     undo() {
       const { history } = get();
@@ -431,7 +409,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             return {
               nodes: updateNodeStatus((node) => {
                 // this prevents the node from highlighting if the copilot triggers this event
-                if (data?.details?.agentId !== state.metadata.id) {
+                if (data?.details?.agentId !== /* agentId */ location.pathname.split('/')[5]) {
                   return;
                 }
                 if (node.data.isDefault) {

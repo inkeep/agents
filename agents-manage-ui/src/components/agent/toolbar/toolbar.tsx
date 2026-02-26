@@ -1,27 +1,35 @@
 import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { type ComponentProps, useEffect, useRef } from 'react';
+import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
-type MaybePromise<T> = T | Promise<T>;
-
 interface ToolbarProps {
-  onSubmit: () => MaybePromise<boolean>;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
-  tracesHref?: string;
 }
 
-export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHref }: ToolbarProps) {
-  const dirty = useAgentStore((state) => state.dirty);
+export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
+  'use memo';
+  const form = useFullAgentFormContext();
+  const agentDirtyState = useAgentStore((state) => state.dirty);
+  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const dirty = agentDirtyState || isDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
@@ -30,7 +38,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHre
     variant: 'outline',
   } satisfies ComponentProps<typeof Button>;
 
-  const PreviewButton = (
+  const previewButton = (
     <Button
       {...commonProps}
       disabled={dirty || hasOpenModelConfig}
@@ -56,48 +64,43 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground, tracesHre
     };
   }, []);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const saveAgent = useCallback(async () => {
-    setIsSubmitting(true);
-    await onSubmit();
-    setIsSubmitting(false);
-  }, [onSubmit]);
-
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
-      {tracesHref && (
-        <Button {...commonProps} asChild>
-          <Link href={tracesHref}>
-            <Activity className="size-4 text-muted-foreground" />
-            Traces
-          </Link>
-        </Button>
+      <Button {...commonProps} asChild>
+        <Link href={`/${tenantId}/projects/${projectId}/traces?agentId=${agentId}`}>
+          <Activity className="size-4 text-muted-foreground" />
+          Traces
+        </Link>
+      </Button>
+      {canUse && (
+        <>
+          <ShipModal buttonClassName={commonProps.className} />
+          {dirty || hasOpenModelConfig ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/**
+                 * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+                 * don't trigger pointer events in the browser
+                 **/}
+                <div>{previewButton}</div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {hasOpenModelConfig
+                  ? 'Please complete model configuration before trying the agent.'
+                  : dirty
+                    ? 'Please save your changes before trying the agent.'
+                    : 'Please save the agent to try it.'}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            previewButton
+          )}
+        </>
       )}
-      {canUse && <ShipModal buttonClassName={commonProps.className} />}
-      {(dirty || hasOpenModelConfig) && canUse ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/**
-             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-             * don't trigger pointer events in the browser
-             **/}
-            <div>{PreviewButton}</div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {hasOpenModelConfig
-              ? 'Please complete model configuration before trying the agent.'
-              : dirty
-                ? 'Please save your changes before trying the agent.'
-                : 'Please save the agent to try it.'}
-          </TooltipContent>
-        </Tooltip>
-      ) : canUse ? (
-        PreviewButton
-      ) : null}
       {canEdit && (
         <Button
           {...commonProps}
-          onClick={saveAgent}
+          type="submit"
           variant={dirty ? 'default' : 'outline'}
           disabled={isSubmitting || !dirty || hasOpenModelConfig}
           ref={saveButtonRef}

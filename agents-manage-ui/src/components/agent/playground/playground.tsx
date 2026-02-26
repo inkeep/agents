@@ -1,15 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
 import { type Dispatch, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import {
@@ -45,7 +45,11 @@ export const Playground = ({
   const { resetPlaygroundConversationId } = useAgentActions();
   const conversationId = useAgentStore(({ playgroundConversationId }) => playgroundConversationId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
-  const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
+  const fullAgentForm = useFullAgentFormContext();
+  const headersSchemaString = useWatch({
+    control: fullAgentForm.control,
+    name: 'contextConfig.headersSchema',
+  });
   const [isCustomHeadersModalOpen, setIsCustomHeadersModalOpen] = useState(false);
   const resolver = useMemo(
     () =>

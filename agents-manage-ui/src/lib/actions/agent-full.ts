@@ -12,14 +12,13 @@ import { revalidatePath } from 'next/cache';
 import {
   ApiError,
   createAgent as apiCreateAgent,
-  createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
   fetchAgents as apiFetchAgents,
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import type { Agent, FullAgentDefinition } from '../types/agent-full';
+import type { Agent, FullAgentDefinition, FullAgentResponse } from '../types/agent-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
@@ -120,49 +119,13 @@ export async function updateAgentAction(
 }
 
 /**
- * Create a new full agent
- */
-export async function createFullAgentAction(
-  tenantId: string,
-  projectId: string,
-  agentData: FullAgentDefinition
-): Promise<ActionResult<FullAgentDefinition>> {
-  try {
-    const response = await apiCreateFullAgent(tenantId, projectId, agentData);
-
-    // Revalidate relevant pages
-    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
-
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create agent',
-      code: 'validation_error',
-    };
-  }
-}
-
-/**
  * Get a full agent by ID
  */
 export async function getFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
-): Promise<ActionResult<FullAgentDefinition>> {
+): Promise<ActionResult<FullAgentResponse>> {
   try {
     const response = await apiGetFullAgent(tenantId, projectId, agentId);
 
@@ -195,7 +158,7 @@ export async function updateFullAgentAction(
   projectId: string,
   agentId: string,
   agentData: FullAgentDefinition
-): Promise<ActionResult<FullAgentDefinition>> {
+): Promise<ActionResult<FullAgentResponse>> {
   try {
     // Ensure the agent ID matches
     if (agentId !== agentData.id) {
@@ -240,7 +203,7 @@ export async function deleteFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
-): Promise<ActionResult<void>> {
+): Promise<ActionResult> {
   try {
     await apiDeleteFullAgent(tenantId, projectId, agentId);
 

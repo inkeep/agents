@@ -4,8 +4,7 @@ import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
-import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -73,15 +72,13 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-8">
-            <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
-              {(field) => (
-                <StandaloneJsonEditor
-                  placeholder={customHeadersTemplate}
-                  customTemplate={customHeadersTemplate}
-                  {...field}
-                />
-              )}
-            </FormFieldWrapper>
+            <GenericJsonEditor
+              control={form.control}
+              name="headers"
+              label="Custom headers"
+              placeholder={customHeadersTemplate}
+              customTemplate={customHeadersTemplate}
+            />
             <div className="flex justify-end gap-2">
               {numHeaders > 0 && (
                 <Button type="button" variant="outline" onClick={onRemoveHeaders}>

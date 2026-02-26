@@ -10,13 +10,11 @@ import { cache } from 'react';
 import type {
   Agent,
   CreateAgentResponse,
-  CreateFullAgentResponse,
   FullAgentDefinition,
   GetAgentResponse,
   UpdateAgentResponse,
   UpdateFullAgentResponse,
 } from '../types/agent-full';
-import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -65,26 +63,6 @@ export async function updateAgent(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
     {
       method: 'PUT',
-      body: JSON.stringify(agentData),
-    }
-  );
-}
-
-/**
- * Create a new full agent
- */
-export async function createFullAgent(
-  tenantId: string,
-  projectId: string,
-  agentData: FullAgentDefinition
-): Promise<CreateFullAgentResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  return makeManagementApiRequest<CreateFullAgentResponse>(
-    `tenants/${tenantId}/projects/${projectId}/agent`,
-    {
-      method: 'POST',
       body: JSON.stringify(agentData),
     }
   );
@@ -149,4 +127,4 @@ export async function deleteFullAgent(
 }
 
 // Export the error class for use in server actions
-export { ApiError };
+export { ApiError } from '../types/errors';
