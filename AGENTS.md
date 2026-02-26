@@ -5,7 +5,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ## Essential Commands - Quick Reference
 
 ### Development
-- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user. **Can run safely any time to bootstrap services**.
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user. Requires `pnpm build` first (imports from `agents-core/dist/`). Safe to re-run any time, but **will not add new env vars** to an existing `.env` — if features fail after pulling, compare `.env` against `.env.example`.
 - **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
 
@@ -497,6 +497,9 @@ app.openapi(
 ## Debugging Commands
 
 ### Jaeger / OTLP Tracing Debugging
+
+> These commands require `pnpm setup-dev:optional` to be running.
+
 Replace `service` with the current service name (e.g., `inkeep-agents-api` in prod, `inkeep-agents-api-test` in tests). If using SigNoz/OTLP, point to that host/port instead of localhost.
 
 ```bash
