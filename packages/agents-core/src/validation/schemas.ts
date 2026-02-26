@@ -769,6 +769,12 @@ export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
     signingSecretCredentialReferenceId: z.string().nullable().optional(),
     signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
+    runAsUserId: z.string().nullable().optional().describe('User ID to run the webhook as'),
+    createdBy: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('User ID of the user who created this trigger'),
   })
 );
 
@@ -790,6 +796,9 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
   authentication: () => TriggerAuthenticationInputSchema.optional(),
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
+  runAsUserId: () => z.string().nullable().optional().describe('User ID to run the webhook as'),
+  createdBy: () =>
+    z.string().nullable().optional().describe('User ID of the user who created this trigger'),
   signatureVerification: () =>
     SignatureVerificationConfigSchema.nullish()
       .superRefine((config, ctx) => {
