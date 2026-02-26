@@ -65,6 +65,15 @@ const StringToStringRecordSchema = z
   .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
   .pipe(StringRecordSchema.optional());
 
+const ToolPoliciesSchema = z
+  .record(
+    z.string(),
+    z.strictObject({
+      needsApproval: z.boolean().optional(),
+    })
+  )
+  .optional();
+
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
@@ -118,13 +127,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
         .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
       dependencies: StringToStringRecordSchema,
-      tempToolPolicies: z
-        .strictObject({
-          '*': z.strictObject({
-            needsApproval: z.boolean(),
-          }),
-        })
-        .optional(),
+      tempToolPolicies: ToolPoliciesSchema,
     })
   ),
   externalAgents: z.record(
@@ -158,6 +161,19 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       headers: StringToStringRecordSchema,
     })
   ),
+  mcpRelations: z
+    .record(
+      z.string(),
+      z.strictObject({
+        toolId: z.string().trim().nonempty(),
+        relationshipId: z.string().trim().optional(),
+        subAgentId: z.string().trim().optional(),
+        selectedTools: z.array(z.string()).nullable().optional(),
+        headers: StringToStringRecordSchema,
+        toolPolicies: ToolPoliciesSchema,
+      })
+    )
+    .optional(),
   stopWhen: StopWhenSchema.extend({
     transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
   }).optional(),
@@ -280,6 +296,29 @@ export function serializeAgentForm(data: FullAgentResponse) {
           headers: serializeJson(o.headers),
         },
       ])
+    ),
+    mcpRelations: Object.fromEntries(
+      Object.entries(subAgents).flatMap(([subAgentId, subAgent]) =>
+        (subAgent.canUse ?? []).flatMap((canUseItem) => {
+          if (!canUseItem.agentToolRelationId || !tools[canUseItem.toolId]) {
+            return [];
+          }
+
+          return [
+            [
+              canUseItem.agentToolRelationId,
+              {
+                toolId: canUseItem.toolId,
+                relationshipId: canUseItem.agentToolRelationId,
+                subAgentId,
+                selectedTools: canUseItem.toolSelection ?? null,
+                headers: serializeJson(canUseItem.headers),
+                toolPolicies: canUseItem.toolPolicies ?? {},
+              },
+            ],
+          ];
+        })
+      )
     ),
   };
 }
