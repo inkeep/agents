@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { useFieldArray, useWatch } from 'react-hook-form';
+import {useEffect, useState} from 'react';
+import { useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
 import { GenericInput } from '@/components/form/generic-input';
@@ -36,25 +36,17 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { canEdit } = useProjectPermissions();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'functionTools',
-    keyName: '_rhfKey2',
-  });
-  const functionToolIndex = fields.findIndex((s) => s.id === selectedNode.data.toolId);
-
+  const id = selectedNode.data.toolId
   const functionTool = useWatch({
     control: form.control,
-    name: `functionTools.${functionToolIndex}`,
+    name: `functionTools.${id}`,
   });
 
-  const path = <K extends string>(k: K) => `functionTools.${functionToolIndex}.${k}` as const;
+  const path = <K extends string>(k: K) => `functionTools.${id}.${k}` as const;
 
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
-  if (!functionTool) {
-    return;
-  }
+
   const handleWriteWithAISubmit = () => {
     if (!chatFunctionsRef?.current) return;
     const baseMessage = `I want to update the code for the function tool "${functionTool.name || 'this function tool'}".`;
@@ -70,7 +62,15 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   };
 
   const canWriteWithAI = isCopilotConfigured && canEdit;
-
+  useEffect(() => {
+    form.setError(path('name'), {
+      type: 'manual',
+      message: 'This field is invalid',
+    });
+  }, []);
+  if (!functionTool) {
+    return;
+  }
   return (
     <div className="space-y-8">
       <GenericInput

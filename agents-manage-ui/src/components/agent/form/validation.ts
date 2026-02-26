@@ -104,7 +104,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       })
       // )
     ),
-    functionTools: z.array(
+    functionTools: z.record(
+      z.string(),
       z.looseObject({
         name: z.string().trim().nonempty(),
         description: z.string().trim().optional(),
@@ -238,14 +239,17 @@ export function serializeAgentForm(data: FullAgentResponse) {
       },
     },
     subAgents,
-    functionTools: Object.values(functions).map((tool) => {
-      return {
-        ...tool,
-        name: functionTools[tool.id].name,
-        inputSchema: serializeJson(tool.inputSchema),
-        dependencies: serializeJson(tool.dependencies),
-      };
-    }),
+    functionTools: Object.fromEntries(
+      Object.values(functions).map((tool) => [
+          tool.id,
+          {
+            ...tool,
+            name: functionTools[tool.id].name,
+            inputSchema: serializeJson(tool.inputSchema),
+            dependencies: serializeJson(tool.dependencies),
+          },
+        ])
+    ),
     externalAgents,
     teamAgents,
     tools: Object.values(tools),
