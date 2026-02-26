@@ -8,11 +8,7 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import {
-  buildToolApprovalDoneBlocks,
-  createContextBlockFromText,
-  ToolApprovalButtonValueSchema,
-} from '../blocks';
+import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
 import { getSlackClient } from '../client';
 import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
@@ -214,13 +210,11 @@ export async function handleOpenAgentSelectorModal(params: {
 
       if (projectList.length === 0) {
         logger.info({ teamId, channel, tenantId }, 'No projects configured — cannot open selector');
-        const noProjectsText = SlackStrings.status.noProjectsConfigured;
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
           thread_ts: isInThread ? threadTs : undefined,
-          blocks: [createContextBlockFromText(noProjectsText)],
-          text: noProjectsText,
+          text: SlackStrings.status.noProjectsConfigured,
         });
         span.end();
         return;
@@ -352,12 +346,10 @@ export async function handleMessageShortcut(params: {
           { teamId, channelId, tenantId },
           'No projects configured — cannot open message shortcut modal'
         );
-        const noProjectsText = SlackStrings.status.noProjectsConfigured;
         await slackClient.chat.postEphemeral({
           channel: channelId,
           user: userId,
-          blocks: [createContextBlockFromText(noProjectsText)],
-          text: noProjectsText,
+          text: SlackStrings.status.noProjectsConfigured,
         });
         span.end();
         return;
