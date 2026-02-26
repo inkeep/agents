@@ -167,6 +167,8 @@ async function resumeMention(
     text: intent.question,
     channelContext,
     userName,
+    messageTs: intent.messageTs || replyThreadTs,
+    senderTimezone: userInfo?.tz ?? undefined,
   });
 
   const slackUserToken = await signSlackUserToken({
@@ -232,6 +234,8 @@ async function resumeDirectMessage(
     text: intent.question,
     channelContext: 'a Slack direct message',
     userName,
+    messageTs: intent.messageTs || undefined,
+    senderTimezone: userInfo?.tz ?? undefined,
   });
 
   const slackUserToken = await signSlackUserToken({
@@ -300,6 +304,8 @@ async function resumeCommand(
     text: intent.question,
     channelContext,
     userName,
+    messageTs: intent.messageTs || undefined,
+    senderTimezone: userInfo?.tz ?? undefined,
   });
 
   const slackUserToken = await signSlackUserToken({
@@ -372,6 +378,8 @@ async function resumeRunCommand(
     text: intent.question,
     channelContext,
     userName,
+    messageTs: intent.messageTs || undefined,
+    senderTimezone: userInfo?.tz ?? undefined,
   });
 
   await executeAndDeliver({

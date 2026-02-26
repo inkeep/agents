@@ -70,7 +70,9 @@ vi.mock('../../slack/services/client', () => ({
     chat: { postEphemeral: mockPostEphemeral, postMessage: mockPostMessage },
   })),
   getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
-  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -193,6 +195,23 @@ describe('handleModalSubmission', () => {
         question: 'Test question',
         conversationId: 'conv-123',
         threadTs: undefined,
+      })
+    );
+  });
+
+  it('should pass messageTs and senderTimezone to formatSlackQuery', async () => {
+    setupDefaults();
+
+    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+
+    const { handleModalSubmission } = await import('../../slack/services/events/modal-submission');
+    await handleModalSubmission(buildView(baseMetadata));
+
+    expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'Test question',
+        messageTs: '1234.5678',
+        senderTimezone: 'America/New_York',
       })
     );
   });

@@ -23,7 +23,9 @@ vi.mock('../../slack/services/client', () => ({
     },
   })),
   getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
-  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -143,6 +145,15 @@ describe('resumeSmartLinkIntent', () => {
         agentId: 'agent_123',
         projectId: 'project_456',
         question: 'What is the API rate limit?',
+      })
+    );
+
+    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+    expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'What is the API rate limit?',
+        messageTs: '1234567890.123457',
+        senderTimezone: 'America/New_York',
       })
     );
   });

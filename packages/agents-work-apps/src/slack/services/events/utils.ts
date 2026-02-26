@@ -726,6 +726,19 @@ export function formatChannelContext(channelInfo: { name?: string } | null): str
   return label ? `the Slack channel ${label}` : 'Slack';
 }
 
+export function formatMessageTimestamp(messageTs: string, timezone: string): string {
+  const date = new Date(Number.parseFloat(messageTs) * 1000);
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(date);
+}
+
 export interface FormatSlackQueryOptions {
   text: string;
   channelContext: string;
@@ -733,14 +746,29 @@ export interface FormatSlackQueryOptions {
   attachmentContext?: string;
   threadContext?: string;
   isAutoExecute?: boolean;
+  messageTs?: string;
+  senderTimezone?: string;
 }
 
 export function formatSlackQuery(options: FormatSlackQueryOptions): string {
-  const { text, channelContext, userName, attachmentContext, threadContext, isAutoExecute } =
-    options;
+  const {
+    text,
+    channelContext,
+    userName,
+    attachmentContext,
+    threadContext,
+    isAutoExecute,
+    messageTs,
+    senderTimezone,
+  } = options;
+
+  const timestampSuffix =
+    messageTs && senderTimezone
+      ? ` (sent ${formatMessageTimestamp(messageTs, senderTimezone)})`
+      : '';
 
   if (isAutoExecute && threadContext) {
-    return `A user mentioned you in a thread in ${channelContext}.
+    return `A user mentioned you in a thread in ${channelContext}${timestampSuffix}.
 
 <slack_thread_context>
 ${threadContext}
@@ -759,12 +787,12 @@ Respond naturally as if you're joining the conversation to help.`;
     if (attachmentContext) {
       messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
     }
-    return `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${threadContext}\n</slack_thread_context>\n\nMessage from ${userName}: ${messageContent}`;
+    return `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${threadContext}\n</slack_thread_context>\n\nMessage from ${userName}${timestampSuffix}: ${messageContent}`;
   }
 
   if (attachmentContext) {
-    return `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+    return `The following is a message from ${channelContext} from ${userName}${timestampSuffix}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
   }
 
-  return `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
+  return `The following is a message from ${channelContext} from ${userName}${timestampSuffix}: """${text}"""`;
 }

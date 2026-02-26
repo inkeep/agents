@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatSlackQuery } from '../../slack/services/events/utils';
+import { formatMessageTimestamp, formatSlackQuery } from '../../slack/services/events/utils';
 
 const CHANNEL = 'the Slack channel #general';
 const USER = 'Alice';
+const MESSAGE_TS = '1614556800.000100';
+const TIMEZONE = 'America/New_York';
 
 describe('formatSlackQuery', () => {
   describe('standard message (no thread, no attachments)', () => {
@@ -158,6 +160,106 @@ describe('formatSlackQuery', () => {
 
       expect(result).not.toContain('attached_content');
       expect(result).not.toContain('should not appear');
+    });
+  });
+
+  describe('timestamp and timezone', () => {
+    it('includes inline timestamp in standard message', () => {
+      const result = formatSlackQuery({
+        text: 'hello',
+        channelContext: CHANNEL,
+        userName: USER,
+        messageTs: MESSAGE_TS,
+        senderTimezone: TIMEZONE,
+      });
+
+      const formatted = formatMessageTimestamp(MESSAGE_TS, TIMEZONE);
+      expect(result).toContain(`(sent ${formatted})`);
+      expect(result).toBe(
+        `The following is a message from ${CHANNEL} from ${USER} (sent ${formatted}): """hello"""`
+      );
+    });
+
+    it('includes inline timestamp in attachment message', () => {
+      const result = formatSlackQuery({
+        text: 'check this',
+        channelContext: CHANNEL,
+        userName: USER,
+        attachmentContext: 'forwarded body',
+        messageTs: MESSAGE_TS,
+        senderTimezone: TIMEZONE,
+      });
+
+      const formatted = formatMessageTimestamp(MESSAGE_TS, TIMEZONE);
+      expect(result).toContain(`from ${USER} (sent ${formatted}): """check this"""`);
+      expect(result).toContain('<attached_content>');
+    });
+
+    it('includes inline timestamp in thread with query', () => {
+      const result = formatSlackQuery({
+        text: 'my follow-up',
+        channelContext: CHANNEL,
+        userName: USER,
+        threadContext: 'User1: hi\nUser2: hello',
+        messageTs: MESSAGE_TS,
+        senderTimezone: TIMEZONE,
+      });
+
+      const formatted = formatMessageTimestamp(MESSAGE_TS, TIMEZONE);
+      expect(result).toContain(`Message from ${USER} (sent ${formatted}): my follow-up`);
+    });
+
+    it('includes inline timestamp in auto-execute', () => {
+      const result = formatSlackQuery({
+        text: '',
+        channelContext: CHANNEL,
+        userName: USER,
+        threadContext: 'the full thread',
+        isAutoExecute: true,
+        messageTs: MESSAGE_TS,
+        senderTimezone: TIMEZONE,
+      });
+
+      const formatted = formatMessageTimestamp(MESSAGE_TS, TIMEZONE);
+      expect(result).toContain(
+        `A user mentioned you in a thread in ${CHANNEL} (sent ${formatted}).`
+      );
+    });
+
+    it('omits timestamp when messageTs is missing', () => {
+      const result = formatSlackQuery({
+        text: 'hello',
+        channelContext: CHANNEL,
+        userName: USER,
+        senderTimezone: TIMEZONE,
+      });
+      expect(result).not.toContain('(sent');
+      expect(result).toBe(`The following is a message from ${CHANNEL} from ${USER}: """hello"""`);
+    });
+
+    it('omits timestamp when senderTimezone is missing', () => {
+      const result = formatSlackQuery({
+        text: 'hello',
+        channelContext: CHANNEL,
+        userName: USER,
+        messageTs: MESSAGE_TS,
+      });
+      expect(result).not.toContain('(sent');
+      expect(result).toBe(`The following is a message from ${CHANNEL} from ${USER}: """hello"""`);
+    });
+  });
+
+  describe('formatMessageTimestamp', () => {
+    it('formats a known timestamp in a known timezone', () => {
+      const result = formatMessageTimestamp('1614556800.000100', 'America/New_York');
+      expect(result).toContain('2021');
+      expect(result).toMatch(/EST|ET/);
+    });
+
+    it('formats in a different timezone', () => {
+      const result = formatMessageTimestamp('1614556800.000100', 'Europe/London');
+      expect(result).toContain('2021');
+      expect(result).toMatch(/GMT/);
     });
   });
 

@@ -54,7 +54,9 @@ vi.mock('../../slack/services/blocks', () => ({
 vi.mock('../../slack/services/client', () => ({
   getSlackClient: mockGetSlackClient,
   getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
-  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/events/execution', () => ({
@@ -222,6 +224,37 @@ describe('handleQuestionCommand', () => {
     );
     expect(mockExecuteAgentPublicly).toHaveBeenCalledWith(
       expect.not.objectContaining({ threadTs: expect.anything() })
+    );
+  });
+
+  it('should pass messageTs and senderTimezone to formatSlackQuery', async () => {
+    setupLinkedUser();
+    const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
+    vi.mocked(resolveEffectiveAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      agentName: 'Test Agent',
+      projectId: 'proj-1',
+      source: 'workspace',
+      grantAccessToMembers: true,
+    });
+
+    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+
+    const { handleQuestionCommand } = await import('../../slack/services/commands/index');
+    await handleQuestionCommand(
+      basePayload,
+      'What is Inkeep?',
+      'http://localhost:3000',
+      'default',
+      'xoxb-mock-bot-token'
+    );
+
+    expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'What is Inkeep?',
+        messageTs: expect.stringMatching(/^\d+\.\d+$/),
+        senderTimezone: 'America/New_York',
+      })
     );
   });
 

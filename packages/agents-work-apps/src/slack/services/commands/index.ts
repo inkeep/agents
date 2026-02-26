@@ -347,10 +347,16 @@ export async function handleQuestionCommand(
 
   const channelContext = formatChannelContext(channelInfo);
   const userName = userInfo?.displayName || 'User';
+
+  const now = Date.now();
+  const messageTs = `${Math.floor(now / 1000)}.${String(now % 1000).padStart(3, '0')}000`;
+
   const formattedQuestion = formatSlackQuery({
     text: question,
     channelContext,
     userName,
+    messageTs,
+    senderTimezone: userInfo?.tz ?? undefined,
   });
 
   const slackUserToken = await signSlackUserToken({
@@ -364,9 +370,6 @@ export async function handleQuestionCommand(
     slackChannelId: payload.channelId,
     slackAuthorizedProjectId: resolvedAgent.projectId,
   });
-
-  const now = Date.now();
-  const messageTs = `${Math.floor(now / 1000)}.${String(now % 1000).padStart(3, '0')}000`;
 
   const conversationId = generateSlackConversationId({
     teamId: payload.teamId,

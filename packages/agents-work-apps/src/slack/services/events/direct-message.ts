@@ -113,6 +113,8 @@ export async function handleDirectMessage(params: {
       const userName = userInfo?.displayName || 'User';
       const dmChannelContext = 'a Slack direct message';
 
+      const senderTimezone = userInfo?.tz ?? undefined;
+
       let queryText: string;
       if (isInThread && threadTs) {
         const contextMessages = await getThreadContext(slackClient, channel, threadTs);
@@ -123,12 +125,26 @@ export async function handleDirectMessage(params: {
             userName,
             threadContext: contextMessages,
             isAutoExecute: !text,
+            messageTs,
+            senderTimezone,
           });
         } else {
-          queryText = formatSlackQuery({ text, channelContext: dmChannelContext, userName });
+          queryText = formatSlackQuery({
+            text,
+            channelContext: dmChannelContext,
+            userName,
+            messageTs,
+            senderTimezone,
+          });
         }
       } else {
-        queryText = formatSlackQuery({ text, channelContext: dmChannelContext, userName });
+        queryText = formatSlackQuery({
+          text,
+          channelContext: dmChannelContext,
+          userName,
+          messageTs,
+          senderTimezone,
+        });
       }
 
       const slackUserToken = await signSlackUserToken({

@@ -58,7 +58,9 @@ vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     chat: { postMessage: mockPostMessage },
   })),
-  getSlackUserInfo: vi.fn().mockResolvedValue({ displayName: 'Test User' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -207,6 +209,9 @@ describe('handleDirectMessage', () => {
         question: expect.stringContaining('hello bot'),
       })
     );
+    const calledQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(calledQuestion).toContain('(sent ');
+    expect(calledQuestion).toMatch(/EST|ET/);
   });
 
   it('should sign JWT with slackAuthorized: false for DMs', async () => {
@@ -296,6 +301,8 @@ describe('handleDirectMessage', () => {
         question: expect.stringContaining('slack_thread_context'),
       })
     );
+    const threadQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(threadQuestion).toContain('(sent ');
   });
 
   it('should post error message on failure', async () => {

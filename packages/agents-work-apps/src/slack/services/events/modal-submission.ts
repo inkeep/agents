@@ -97,6 +97,7 @@ export async function handleModalSubmission(view: {
       ]);
       const channelContext = formatChannelContext(channelInfo);
       const userName = userInfo?.displayName || 'User';
+      const senderTimezone = userInfo?.tz ?? undefined;
 
       let fullQuestion: string;
 
@@ -107,6 +108,8 @@ export async function handleModalSubmission(view: {
           userName,
           threadContext: metadata.messageContext,
           isAutoExecute: !question,
+          messageTs: metadata.messageTs,
+          senderTimezone,
         });
       } else if (metadata.isInThread && metadata.threadTs && includeContext) {
         const contextMessages = await getThreadContext(
@@ -121,12 +124,26 @@ export async function handleModalSubmission(view: {
             userName,
             threadContext: contextMessages,
             isAutoExecute: !question,
+            messageTs: metadata.messageTs,
+            senderTimezone,
           });
         } else {
-          fullQuestion = formatSlackQuery({ text: question, channelContext, userName });
+          fullQuestion = formatSlackQuery({
+            text: question,
+            channelContext,
+            userName,
+            messageTs: metadata.messageTs,
+            senderTimezone,
+          });
         }
       } else {
-        fullQuestion = formatSlackQuery({ text: question, channelContext, userName });
+        fullQuestion = formatSlackQuery({
+          text: question,
+          channelContext,
+          userName,
+          messageTs: metadata.messageTs,
+          senderTimezone,
+        });
       }
 
       if (!existingLink) {

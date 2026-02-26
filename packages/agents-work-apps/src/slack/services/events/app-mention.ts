@@ -231,10 +231,11 @@ export async function handleAppMention(params: {
 
       if (isInThread && !hasQuery) {
         // Thread + no query → Parallel: check if bot thread + fetch thread context
-        const [isBotThread, contextMessages, channelInfo] = await Promise.all([
+        const [isBotThread, contextMessages, channelInfo, autoExecUserInfo] = await Promise.all([
           checkIfBotThread(slackClient, channel, threadTs),
           getThreadContext(slackClient, channel, threadTs),
           getSlackChannelInfo(slackClient, channel),
+          getSlackUserInfo(slackClient, slackUserId),
         ]);
 
         if (isBotThread) {
@@ -297,6 +298,8 @@ export async function handleAppMention(params: {
           userName: slackUserId,
           threadContext: contextMessages,
           isAutoExecute: true,
+          messageTs,
+          senderTimezone: autoExecUserInfo?.tz ?? undefined,
         });
 
         logger.info(
@@ -330,11 +333,12 @@ export async function handleAppMention(params: {
       // Include thread context if in a thread
       if (isInThread && threadTs) {
         const {
-          result: [contextMessages, channelInfo],
+          result: [contextMessages, channelInfo, threadUserInfo],
         } = await timedOp(
           Promise.all([
             getThreadContext(slackClient, channel, threadTs),
             getSlackChannelInfo(slackClient, channel),
+            getSlackUserInfo(slackClient, slackUserId),
           ]),
           {
             label: 'thread context fetch',
@@ -349,6 +353,8 @@ export async function handleAppMention(params: {
             userName: slackUserId,
             attachmentContext: attachmentContext || undefined,
             threadContext: contextMessages,
+            messageTs,
+            senderTimezone: threadUserInfo?.tz ?? undefined,
           });
         }
       } else {
@@ -368,6 +374,8 @@ export async function handleAppMention(params: {
           channelContext,
           userName,
           attachmentContext: attachmentContext || undefined,
+          messageTs,
+          senderTimezone: userInfo?.tz ?? undefined,
         });
       }
 
