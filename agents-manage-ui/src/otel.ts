@@ -31,7 +31,7 @@ function createSafeBatchProcessor(): SpanProcessor {
   try {
     return new BatchSpanProcessor(otlpExporter, {
       scheduledDelayMillis: Number(process.env.OTEL_BSP_SCHEDULE_DELAY) || 500,
-      maxExportBatchSize: Number(process.env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE) || 64,
+      maxExportBatchSize: Number(process.env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE) || 256,
     });
   } catch (error) {
     logger.warn({ error }, 'Failed to create batch processor, falling back to NoopSpanProcessor');

@@ -115,7 +115,7 @@ const envSchema = z.object({
   OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce
     .number()
     .optional()
-    .default(64)
+    .default(256)
     .describe('OpenTelemetry batch span processor max export batch size'),
 
   // Tenant Configuration

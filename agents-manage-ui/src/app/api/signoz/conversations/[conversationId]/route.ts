@@ -539,6 +539,14 @@ function buildConversationListPayload(
             },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.OTEL_STATUS_CODE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
             // Trigger-related attributes
             { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.INVOCATION_ENTRY_POINT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
@@ -1570,6 +1578,8 @@ export async function GET(
       const spanEntryPoint = getString(span, SPAN_KEYS.INVOCATION_ENTRY_POINT, '');
       const triggerId = getString(span, SPAN_KEYS.TRIGGER_ID, '');
       const triggerInvocationId = getString(span, SPAN_KEYS.TRIGGER_INVOCATION_ID, '');
+      const statusMessage = getString(span, SPAN_KEYS.STATUS_MESSAGE, '');
+      const otelStatusCode = getString(span, SPAN_KEYS.OTEL_STATUS_CODE, '');
 
       // Determine description based on invocation type
       const isTriggerInvocation = invocationType === 'trigger';
@@ -1595,10 +1605,13 @@ export async function GET(
             ? 'Slack'
             : ACTIVITY_NAMES.USER,
         result: hasError
-          ? 'Message processing failed'
+          ? statusMessage || 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
+        hasError,
+        otelStatusCode: hasError ? otelStatusCode : undefined,
+        otelStatusDescription: hasError ? statusMessage : undefined,
         // Trigger-specific attributes
         invocationType: invocationType || undefined,
         invocationEntryPoint: spanEntryPoint || undefined,
