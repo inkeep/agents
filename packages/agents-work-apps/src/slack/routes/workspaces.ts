@@ -343,13 +343,11 @@ app.openapi(
           },
         },
       },
+      400: {
+        description: 'Agent not found',
+      },
       500: {
         description: 'Failed to update settings',
-        content: {
-          'application/json': {
-            schema: z.object({ success: z.boolean() }),
-          },
-        },
       },
     },
   }),
@@ -358,6 +356,25 @@ app.openapi(
     const body = c.req.valid('json');
 
     if (body.defaultAgent) {
+      const workspace = await findWorkspaceConnectionByTeamId(teamId);
+      if (!workspace) {
+        return c.json({ success: false }, 500);
+      }
+
+      const agentName = await lookupAgentName(
+        workspace.tenantId,
+        body.defaultAgent.projectId,
+        body.defaultAgent.agentId
+      );
+      if (!agentName) {
+        return c.json(
+          {
+            error: `Agent '${body.defaultAgent.agentId}' not found in project '${body.defaultAgent.projectId}'`,
+          },
+          400
+        );
+      }
+
       const nangoSuccess = await setWorkspaceDefaultAgentInNango(teamId, body.defaultAgent);
       if (!nangoSuccess) {
         logger.warn({ teamId }, 'Failed to persist workspace settings to Nango');
@@ -864,6 +881,9 @@ app.openapi(
           },
         },
       },
+      400: {
+        description: 'Agent not found',
+      },
     },
   }),
   async (c) => {
@@ -876,6 +896,20 @@ app.openapi(
       return c.json({ success: false, configId: '' });
     }
     const tenantId = workspace.tenantId;
+
+    const agentName = await lookupAgentName(
+      tenantId,
+      body.agentConfig.projectId,
+      body.agentConfig.agentId
+    );
+    if (!agentName) {
+      return c.json(
+        {
+          error: `Agent '${body.agentConfig.agentId}' not found in project '${body.agentConfig.projectId}'`,
+        },
+        400
+      );
+    }
 
     const config = await upsertWorkAppSlackChannelAgentConfig(runDbClient)({
       tenantId,
@@ -954,6 +988,21 @@ app.openapi(
     }
 
     const tenantId = workspace.tenantId;
+
+    const agentName = await lookupAgentName(
+      tenantId,
+      body.agentConfig.projectId,
+      body.agentConfig.agentId
+    );
+    if (!agentName) {
+      return c.json(
+        {
+          error: `Agent '${body.agentConfig.agentId}' not found in project '${body.agentConfig.projectId}'`,
+        },
+        400
+      );
+    }
+
     const slackClient = getSlackClient(workspace.botToken);
 
     let channels: Awaited<ReturnType<typeof getSlackChannels>> = [];

@@ -43,15 +43,23 @@ describe('Agent Resolution', () => {
   describe('resolveEffectiveAgent', () => {
     it('should return channel config when channel default exists', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
+      const { fetchAgentsForProject } = await import('../../slack/services/events/utils');
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
           projectId: 'channel-project',
-          agentName: 'Channel Agent',
           enabled: true,
           grantAccessToMembers: true,
         })
       );
+      vi.mocked(fetchAgentsForProject).mockResolvedValue([
+        {
+          id: 'channel-agent',
+          name: 'Channel Agent',
+          projectId: 'channel-project',
+          projectName: '',
+        },
+      ]);
 
       const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
@@ -180,15 +188,23 @@ describe('Agent Resolution', () => {
 
     it('should pass grantAccessToMembers: false from channel config', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
+      const { fetchAgentsForProject } = await import('../../slack/services/events/utils');
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
           projectId: 'channel-project',
-          agentName: 'Channel Agent',
           enabled: true,
           grantAccessToMembers: false,
         })
       );
+      vi.mocked(fetchAgentsForProject).mockResolvedValue([
+        {
+          id: 'channel-agent',
+          name: 'Channel Agent',
+          projectId: 'channel-project',
+          projectName: '',
+        },
+      ]);
 
       const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
@@ -344,20 +360,23 @@ describe('Agent Resolution', () => {
     it('should set effective to workspaceConfig when no channel config', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
+      const { fetchProjectsForTenant } = await import('../../slack/services/events/utils');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
         agentId: 'workspace-agent',
-        projectId: 'workspace-project',
-        projectName: 'Workspace Project',
+        projectId: 'ws-only-project',
       });
+      vi.mocked(fetchProjectsForTenant).mockResolvedValue([
+        { id: 'ws-only-project', name: 'Workspace Project' },
+      ]);
 
       const { getAgentConfigSources } = await import('../../slack/services/agent-resolution');
 
       const result = await getAgentConfigSources({
-        tenantId: 'tenant-1',
+        tenantId: 'tenant-ws-only',
         teamId: 'T123',
         channelId: 'C123',
         userId: 'U123',
