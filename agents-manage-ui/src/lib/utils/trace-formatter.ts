@@ -184,6 +184,11 @@ const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
   [ACTIVITY_TYPES.TOOL_APPROVAL_DENIED]: ['approvalToolName'],
   [ACTIVITY_TYPES.COMPRESSION]: ['compressionType', 'compressionRatio'],
   [ACTIVITY_TYPES.MAX_STEPS_REACHED]: ['stepsCompleted', 'maxSteps'],
+  [ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED]: [
+    'streamCleanupReason',
+    'streamMaxLifetimeMs',
+    'streamBufferSizeBytes',
+  ],
 };
 
 /**
