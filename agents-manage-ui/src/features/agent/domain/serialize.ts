@@ -156,11 +156,11 @@ export function serializeAgentData(
           const toolId = (mcpNode.data as any).toolId;
 
           if (toolId) {
-            const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
-            let toolSelection: string[] | null = null;
-
             const relationshipId = (mcpNode.data as any).relationshipId;
-
+            const relationKey = relationshipId ?? mcpNode.id;
+            const relationFormData = mcpRelations?.[relationKey];
+            const tempSelectedTools = relationFormData?.selectedTools
+            let toolSelection: string[] | null = null;
             if (tempSelectedTools !== undefined) {
               // User has made changes to tool selection in the UI
               if (Array.isArray(tempSelectedTools)) {
@@ -181,8 +181,8 @@ export function serializeAgentData(
               }
             }
 
-            const tempHeaders = (mcpNode.data as any).tempHeaders;
-            let toolHeaders: Record<string, string> | null = null;
+            const tempHeaders = relationFormData?.headers
+            let toolHeaders: PartialMCPRelation['headers'] | null = null;
 
             if (tempHeaders !== undefined) {
               if (
@@ -201,9 +201,8 @@ export function serializeAgentData(
                 toolHeaders = existingConfig.headers;
               }
             }
-
-            const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
-            let toolPolicies: Record<string, { needsApproval?: boolean }> | null = null;
+            const tempToolPolicies = relationFormData?.toolPolicies
+            let toolPolicies: PartialMCPRelation['toolPolicies'] | null = null;
 
             if (tempToolPolicies !== undefined) {
               if (
