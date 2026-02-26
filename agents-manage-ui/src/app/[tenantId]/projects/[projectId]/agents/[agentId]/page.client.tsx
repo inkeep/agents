@@ -688,7 +688,7 @@ export const Agent: FC<AgentProps> = ({
 
   const form = useFullAgentFormContext();
 
-  const onSubmit = form.handleSubmit(async (data): Promise<void> => {
+  const onSubmit = form.handleSubmit(async ({ mcpRelations, ...data }): Promise<void> => {
     const serializedData = serializeAgentData(
       nodes,
       edges,
@@ -696,7 +696,8 @@ export const Agent: FC<AgentProps> = ({
       artifactComponentLookup,
       agentToolConfigLookup,
       subAgentExternalAgentConfigLookup,
-      subAgentTeamAgentConfigLookup
+      subAgentTeamAgentConfigLookup,
+      mcpRelations
     );
 
     const functionToolNodeMap = new Map<string, string>();

@@ -67,6 +67,12 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   'use memo';
 
   const { data, selected } = props;
+  const { control } = useFullAgentFormContext();
+  const relationKey = data.relationshipId ?? props.id;
+  const mcpRelation = useWatch({
+    control,
+    name: `mcpRelations.${relationKey}`,
+  });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { toolLookup, agentToolConfigLookup } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
@@ -95,8 +101,10 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
-  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
+  const selectedToolsFromLookup = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
+  const toolPoliciesFromLookup = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
+  const selectedTools = mcpRelation?.selectedTools ?? selectedToolsFromLookup;
+  const toolPolicies = mcpRelation?.toolPolicies ?? toolPoliciesFromLookup;
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;

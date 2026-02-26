@@ -45,16 +45,20 @@ export function MCPServerNodeEditor({
   'use memo';
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;
+  const relationKey = selectedNode.data.relationshipId ?? selectedNode.id;
   const tool = useWatch({ control: form.control, name: `tools.${id}` });
+  const mcpRelation = useWatch({
+    control: form.control,
+    name: `mcpRelations.${relationKey}`,
+  });
 
   const path = <K extends string>(key: K) => `tools.${id}.${key}` as const;
+  const relationPath = <K extends string>(key: K) => `mcpRelations.${relationKey}.${key}` as const;
 
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);
-  const { updateNodeData } = useReactFlow();
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { markUnsaved } = useAgentActions();
 
   // Get skeleton data from store
   const toolLookup = useAgentStore((state) => state.toolLookup);
@@ -71,15 +75,37 @@ export function MCPServerNodeEditor({
   const skeletonToolData = toolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
-  const getCurrentHeaders = (): Record<string, string> => {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
-  };
+  const selectedToolsFromLookup = getCurrentSelectedToolsForNode(
+    selectedNode,
+    agentToolConfigLookup
+  );
+  const currentToolPoliciesFromLookup = getCurrentToolPoliciesForNode(
+    selectedNode,
+    agentToolConfigLookup
+  );
+  const selectedTools = mcpRelation?.selectedTools ?? selectedToolsFromLookup;
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? currentToolPoliciesFromLookup;
 
-  // Sync input value when node changes (but not on every data change)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
   useEffect(() => {
-    const newHeaders = getCurrentHeaders();
-    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
+    const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
+    if (existingRelation) {
+      return;
+    }
+
+    const newHeaders = getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
+    form.setValue(
+      `mcpRelations.${relationKey}`,
+      {
+        toolId: selectedNode.data.toolId,
+        relationshipId: selectedNode.data.relationshipId ?? undefined,
+        subAgentId: selectedNode.data.subAgentId ?? undefined,
+        selectedTools: selectedToolsFromLookup,
+        headers: JSON.stringify(newHeaders, null, 2),
+        toolPolicies: currentToolPoliciesFromLookup,
+      },
+      {shouldDirty: false,}
+    );
   }, [selectedNode.id]);
 
   const availableTools = toolData?.availableTools;
@@ -95,9 +121,6 @@ export function MCPServerNodeEditor({
         ? toolData.config.mcp.activeTools
         : undefined,
   });
-
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode, agentToolConfigLookup);
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
   // Track if we've already shown the warning for this node to avoid repeated toasts
@@ -160,13 +183,8 @@ export function MCPServerNodeEditor({
       delete updatedPolicies[toolName];
     }
 
-    // For now, store in node data - we'll need to properly save to agent relations later
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempSelectedTools: finalSelection,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
+    form.setValue(relationPath('selectedTools'), finalSelection, { shouldDirty: true });
+    form.setValue(relationPath('toolPolicies'), updatedPolicies, { shouldDirty: true });
   };
 
   const toggleToolApproval = (toolName: string) => {
@@ -180,11 +198,7 @@ export function MCPServerNodeEditor({
       updatedPolicies[toolName] = { needsApproval: true };
     }
 
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
+    form.setValue(relationPath('toolPolicies'), updatedPolicies, { shouldDirty: true });
   };
 
   const toggleAllApprovalsForEnabledTools = () => {
@@ -215,11 +229,7 @@ export function MCPServerNodeEditor({
       }
     }
 
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
+    form.setValue(relationPath('toolPolicies'), updatedPolicies, { shouldDirty: true });
   };
 
   return (
@@ -299,12 +309,8 @@ export function MCPServerNodeEditor({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        updateNodeData(selectedNode.id, {
-                          ...selectedNode.data,
-                          tempSelectedTools: [],
-                          tempToolPolicies: {}, // Clear all approval policies
-                        });
-                        markUnsaved();
+                        form.setValue(relationPath('selectedTools'), [], { shouldDirty: true });
+                        form.setValue(relationPath('toolPolicies'), {}, { shouldDirty: true });
                       }}
                     >
                       <X className="w-4 h-4 text-muted-foreground" />
@@ -316,11 +322,7 @@ export function MCPServerNodeEditor({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        updateNodeData(selectedNode.id, {
-                          ...selectedNode.data,
-                          tempSelectedTools: null, // null means all tools selected
-                        });
-                        markUnsaved();
+                        form.setValue(relationPath('selectedTools'), null, { shouldDirty: true });
                       }}
                     >
                       <Check className="w-4 h-4 text-muted-foreground" />
