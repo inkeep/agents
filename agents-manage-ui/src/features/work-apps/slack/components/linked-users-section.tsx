@@ -36,6 +36,7 @@ import { formatDateAgo } from '@/lib/utils/format-date';
 import { useSlackLinkedUsersQuery, useSlackUnlinkUserMutation } from '../api/queries';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
+import { getSlackProfileUrl } from '../utils/slack-urls';
 
 interface LinkedUser {
   id: string;
@@ -110,14 +111,6 @@ export function LinkedUsersSection() {
     return null;
   }
 
-  const getSlackProfileUrl = (slackUserId: string) => {
-    const VALID_SLACK_DOMAIN = /^[a-z0-9-]+$/;
-    if (selectedWorkspace?.teamDomain && VALID_SLACK_DOMAIN.test(selectedWorkspace.teamDomain)) {
-      return `https://${selectedWorkspace.teamDomain}.slack.com/team/${slackUserId}`;
-    }
-    return `https://app.slack.com/team/${slackUserId}`;
-  };
-
   const UserRow = ({ user }: { user: LinkedUser }) => (
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
       <Avatar className="h-8 w-8">
@@ -129,7 +122,7 @@ export function LinkedUsersSection() {
         <p className="text-sm font-medium truncate">
           {user.slackUserId ? (
             <a
-              href={getSlackProfileUrl(user.slackUserId)}
+              href={getSlackProfileUrl(user.slackUserId, selectedWorkspace?.teamDomain)}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"

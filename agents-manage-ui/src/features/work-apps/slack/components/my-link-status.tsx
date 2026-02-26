@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSlackLinkedUsersQuery } from '../api/queries';
 import { useSlack } from '../context/slack-provider';
+import { getSlackProfileUrl } from '../utils/slack-urls';
 
 interface MyLinkStatusProps {
   currentUserId?: string;
@@ -22,14 +23,6 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
   if (!selectedWorkspace) {
     return null;
   }
-
-  const getSlackProfileUrl = (slackUserId: string) => {
-    const VALID_SLACK_DOMAIN = /^[a-z0-9-]+$/;
-    if (selectedWorkspace?.teamDomain && VALID_SLACK_DOMAIN.test(selectedWorkspace.teamDomain)) {
-      return `https://${selectedWorkspace.teamDomain}.slack.com/team/${slackUserId}`;
-    }
-    return `https://app.slack.com/team/${slackUserId}`;
-  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(undefined, {
@@ -71,7 +64,7 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
                   <>
                     {' \u00b7 '}
                     <a
-                      href={getSlackProfileUrl(myLink.slackUserId)}
+                      href={getSlackProfileUrl(myLink.slackUserId, selectedWorkspace?.teamDomain)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-0.5 text-primary hover:underline"
