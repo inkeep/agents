@@ -45,11 +45,11 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
-  const { name, isDefault, description, models, status } = data;
+  const { models, status } = data;
 
   const form = useFullAgentFormContext();
   const subAgent = useWatch({ control: form.control, name: `subAgents.${data.id}` });
-
+  const { name, description, isDefault } = subAgent;
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
@@ -96,7 +96,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{subAgent.name}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
             Sub Agent
@@ -109,7 +109,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
           <div
             className={`text-sm ${description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
           >
-            {subAgent.description || <i>No description</i>}
+            {description || <i>No description</i>}
           </div>
           {models && modelName ? (
             <Badge className="text-xs max-w-full flex-1" variant="code">
