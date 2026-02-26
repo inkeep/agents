@@ -2,7 +2,7 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import type { TeamAgentNodeData } from '../configuration/node-types';
 import { teamAgentNodeTargetHandleId } from '../configuration/node-types';
@@ -11,14 +11,12 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function TeamAgentNode({ data, selected, id }: NodeProps & { data: TeamAgentNodeData }) {
+export function TeamAgentNode({ data, selected }: NodeProps & { data: TeamAgentNodeData }) {
   const { name, description } = data;
-  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-  const subAgentId = data.id || id;
-  const nodeErrors = getNodeErrors(subAgentId);
-  const hasErrors = hasNodeErrors(subAgentId);
+  const processedErrors = useProcessedErrors('teamAgents', data.id);
+  const hasErrors = processedErrors.length > 0;
 
   return (
     <div className="relative">
@@ -37,14 +35,12 @@ export function TeamAgentNode({ data, selected, id }: NodeProps & { data: TeamAg
             Team Agent
           </Badge>
           {hasErrors && (
-            <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
+            <ErrorIndicator errors={processedErrors} className="absolute -top-2 -right-2 w-6 h-6" />
           )}
         </BaseNodeHeader>
         <BaseNodeContent>
-          <div
-            className={`text-sm ${description ? ' text-muted-foreground' : 'text-muted-foreground/50'}`}
-          >
-            {description || 'No description'}
+          <div className="text-sm text-muted-foreground">
+            {description || <i className="text-muted-foreground/50">No description</i>}
           </div>
         </BaseNodeContent>
         <Handle

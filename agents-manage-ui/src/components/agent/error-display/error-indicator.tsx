@@ -2,10 +2,9 @@
 
 import { AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { ProcessedAgentError } from '@/lib/utils/agent-error-parser';
 
 interface ErrorIndicatorProps {
-  errors: ProcessedAgentError[];
+  errors: { field: string; message?: string }[];
   className?: string;
 }
 

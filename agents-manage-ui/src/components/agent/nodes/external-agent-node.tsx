@@ -32,11 +32,7 @@ export function ExternalAgentNode({ data, selected }: NodeProps & { data: Extern
             Agent
           </Badge>
           {hasErrors && (
-            <ErrorIndicator
-              // @ts-expect-error  fixme
-              errors={processedErrors}
-              className="absolute -top-2 -right-2 w-6 h-6"
-            />
+            <ErrorIndicator errors={processedErrors} className="absolute -top-2 -right-2 w-6 h-6" />
           )}
         </BaseNodeHeader>
         <BaseNodeContent>

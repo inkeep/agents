@@ -3,7 +3,7 @@ import { firstNestedMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 
 export function useProcessedErrors(
-  entity: 'subAgents' | 'externalAgents',
+  entity: 'subAgents' | 'externalAgents' | 'teamAgents',
   key: string
 ): Array<{
   field: string;

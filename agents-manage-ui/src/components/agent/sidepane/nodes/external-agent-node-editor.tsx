@@ -39,7 +39,7 @@ export function ExternalAgentNodeEditor({
     projectId: string;
   }>();
   const form = useFullAgentFormContext();
-  const id = selectedNode.data.id
+  const id = selectedNode.data.id;
   const externalAgent = useWatch({
     control: form.control,
     name: `externalAgents.${id}`,

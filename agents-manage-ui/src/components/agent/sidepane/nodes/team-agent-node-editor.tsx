@@ -2,7 +2,7 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -48,19 +48,20 @@ export function TeamAgentNodeEditor({
   }, [selectedNode.id]);
 
   const form = useFullAgentFormContext();
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'teamAgents',
-    keyName: '_rhfKey4',
-  });
-  const teamAgentIndex = fields.findIndex(
-    (s) => s.id === (selectedNode.data.id ?? selectedNode.id)
-  );
-  const teamAgent = useWatch({ control: form.control, name: `teamAgents.${teamAgentIndex}` });
-  // if (teamAgentIndex < 0) return null;
+  const id = selectedNode.data.id;
+  const teamAgent = useWatch({ control: form.control, name: `teamAgents.${id}` });
 
-  const path = <K extends string>(k: K) => `teamAgents.${teamAgentIndex}.${k}` as const;
+  const path = <K extends string>(k: K) => `teamAgents.${id}.${k}` as const;
   console.log(teamAgent);
+  if (!teamAgent) {
+    return;
+  }
+  // useEffect(() => {
+  //   form.setError(path('name'), {
+  //     type: 'manual',
+  //     message: 'This field is invalid',
+  //   });
+  // }, []);
 
   return (
     <div className="space-y-8 flex flex-col">
