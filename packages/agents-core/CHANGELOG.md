@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+
 ## 0.53.9
 
 ### Patch Changes
