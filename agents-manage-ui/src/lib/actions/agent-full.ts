@@ -18,7 +18,7 @@ import {
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import type { Agent, FullAgentDefinition, FullAgentResponse } from '../types/agent-full';
+import type { Agent, FullAgentOutput, FullAgentResponse } from '../types/agent-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
@@ -157,7 +157,7 @@ export async function updateFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: FullAgentDefinition
+  agentData: FullAgentOutput
 ): Promise<ActionResult<FullAgentResponse>> {
   try {
     // Ensure the agent ID matches

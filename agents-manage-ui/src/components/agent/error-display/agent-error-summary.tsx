@@ -40,10 +40,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs"
-        >
+        <Button variant="ghost" className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs">
           {icon}
           {`${title} (${errors.length})`}
           <IconToUse />
