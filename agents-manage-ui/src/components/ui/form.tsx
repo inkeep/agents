@@ -12,8 +12,8 @@ import {
   useFormContext,
   useFormState,
 } from 'react-hook-form';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 
 const Form = FormProvider;
 
@@ -80,25 +80,22 @@ function FormItem({ className, ...props }: ComponentProps<'div'>) {
 }
 
 function FormLabel({
-  className,
-  isRequired,
   children,
   ...props
 }: ComponentProps<typeof LabelPrimitive.Root> & {
   isRequired?: boolean;
+  tooltip?: string;
 }) {
   const { error, formItemId } = useFormField();
+
   return (
-    <Label
+    <FieldLabel
       data-slot="form-label"
-      data-error={!!error}
-      className={cn('data-[error=true]:text-destructive gap-1', className)}
-      htmlFor={formItemId}
+      error={!!error}
+      id={formItemId}
+      label={children}
       {...props}
-    >
-      {children}
-      {isRequired && <span className="text-red-500">*</span>}
-    </Label>
+    />
   );
 }
 

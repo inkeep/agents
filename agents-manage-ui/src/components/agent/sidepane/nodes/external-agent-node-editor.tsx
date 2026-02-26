@@ -16,9 +16,7 @@ import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
-import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
-import { TextareaField } from '../form-components/text-area';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
@@ -39,10 +37,7 @@ export function ExternalAgentNodeEditor({
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
   const { canEdit } = useProjectPermissions();
-  const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
-  });
+  const { updateField, deleteNode } = useNodeEditor({selectedNodeId: selectedNode.id, errorHelpers,});
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -138,6 +133,7 @@ export function ExternalAgentNodeEditor({
         label="Name"
         placeholder="Support agent"
         disabled
+        isRequired
       />
       <GenericInput
         control={form.control}
@@ -148,30 +144,21 @@ export function ExternalAgentNodeEditor({
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
         isRequired
       />
-
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={selectedNode.data.description || ''}
-        onChange={handleInputChange}
         placeholder="This agent is responsible for..."
-        error={getFieldError('description')}
         disabled
       />
-
-      <InputField
-        ref={(el) => setFieldRef('baseUrl', el)}
-        id="baseUrl"
-        name="baseUrl"
+      <GenericInput
+        control={form.control}
+        name={path('baseUrl')}
         label="Host URL"
-        value={selectedNode.data.baseUrl || ''}
-        onChange={handleInputChange}
         placeholder="https://api.example.com/agent"
-        error={getFieldError('baseUrl')}
         tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/manage/tenants/:tenantId/projects/:projectId/agents/:agentId"
         disabled
+        isRequired
       />
       <div className="space-y-2">
         <FieldLabel id="headers" label="Headers" />

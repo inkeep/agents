@@ -22,7 +22,7 @@ export const FieldLabel: FC<FieldLabelProps> = ({
   className,
 }) => {
   return (
-    <Label htmlFor={id} className={cn('gap-1', error && 'text-red-600', className)}>
+    <Label htmlFor={id} className={cn('gap-1', error && 'text-destructive', className)}>
       {label}
       {isRequired && <span className="text-red-500">*</span>}
       {tooltip && (

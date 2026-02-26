@@ -125,6 +125,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         id: z.string().trim(),
         baseUrl: z.url(),
         name: z.string().trim(),
+        description: z.string().trim(),
       })
     ),
     stopWhen: StopWhenSchema.extend({
