@@ -69,105 +69,104 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
-})
-  .extend({
-    // nodes: z.array(z.any()).optional(),
-    // subAgents: SubAgentsSchema,
-    subAgents: z.record(
-      // z.preprocess(
-      //   (value: any) => {
-      //     return {
-      //       id: generateIdFromName(value.name),
-      //       ...value,
-      //     };
-      //   },
-      z.string(),
-      z.looseObject({
-        id: z.string().trim().nonempty(),
-        name: z.string().trim().nonempty(),
-        description: z.string().trim(),
-        skills: z.array(
-          z.strictObject({
-            id: z.string().trim(),
-            index: z.int().positive(),
-            alwaysLoaded: z.boolean().optional(),
-            // description: z.string().trim(),
-          })
-        ),
-        prompt: z.string().trim(),
-        // TODO: use updateDefaultSubAgent logic
-        isDefault: z.boolean().optional(),
-        models: MyModelsSchema.nullable(),
-        stopWhen: SubAgentStopWhenSchema.nullable(),
-        dataComponents: z.array(z.string()),
-        artifactComponents: z.array(z.string()),
-      })
-      // )
-    ),
-    functionTools: z.record(
-      z.string(),
-      z.looseObject({
-        name: z.string().trim().nonempty(),
-        description: z.string().trim().optional(),
-        executeCode: FunctionApiInsertSchema.shape.executeCode,
-        inputSchema: z
-          .string()
-          .trim()
-          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-          .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
-        dependencies: StringToStringRecordSchema,
-        tempToolPolicies: z
-          .strictObject({
-            '*': z.strictObject({
-              needsApproval: z.boolean(),
-            }),
-          })
-          .optional(),
-      })
-    ),
-    externalAgents: z.record(
-      z.string(),
-      z.looseObject({
-        id: z.string().trim(),
-        baseUrl: z.url(),
-        name: z.string().trim(),
-        description: z.string().trim(),
-        // TODO or tempHeaders
-        headers: StringToStringRecordSchema,
-      })
-    ),
-    teamAgents: z.record(
-      z.string(),
-      z.looseObject({
-        name: z.string().trim().nonempty(),
-        id: z.string().trim().nonempty(),
-        description: z.string().trim(),
-        // TODO or tempHeaders
-        headers: StringToStringRecordSchema,
-      })
-    ),
-    tools: z.record(
-      z.string(),
-      z.looseObject({
-        id: z.string().trim().nonempty(),
-        name: z.string().trim().nonempty(),
-        config: ToolInsertSchema.shape.config,
-        // TODO or tempHeaders
-        headers: StringToStringRecordSchema,
-      })
-    ),
-    stopWhen: StopWhenSchema.extend({
-      transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
-    }).optional(),
-    contextConfig: ContextConfigSchema,
-    statusUpdates: z.strictObject({
-      ...StatusUpdatesSchema,
-      numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
-      timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
-      statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
-    }),
-    models: MyModelsSchema,
-  })
+}).extend({
+  // nodes: z.array(z.any()).optional(),
+  // subAgents: SubAgentsSchema,
+  subAgents: z.record(
+    // z.preprocess(
+    //   (value: any) => {
+    //     return {
+    //       id: generateIdFromName(value.name),
+    //       ...value,
+    //     };
+    //   },
+    z.string(),
+    z.looseObject({
+      id: z.string().trim().nonempty(),
+      name: z.string().trim().nonempty(),
+      description: z.string().trim(),
+      skills: z.array(
+        z.strictObject({
+          id: z.string().trim(),
+          index: z.int().positive(),
+          alwaysLoaded: z.boolean().optional(),
+          // description: z.string().trim(),
+        })
+      ),
+      prompt: z.string().trim(),
+      // TODO: use updateDefaultSubAgent logic
+      isDefault: z.boolean().optional(),
+      models: MyModelsSchema.nullable(),
+      stopWhen: SubAgentStopWhenSchema.nullable(),
+      dataComponents: z.array(z.string()),
+      artifactComponents: z.array(z.string()),
+    })
+    // )
+  ),
+  functionTools: z.record(
+    z.string(),
+    z.looseObject({
+      name: z.string().trim().nonempty(),
+      description: z.string().trim().optional(),
+      executeCode: FunctionApiInsertSchema.shape.executeCode,
+      inputSchema: z
+        .string()
+        .trim()
+        .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+        .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
+      dependencies: StringToStringRecordSchema,
+      tempToolPolicies: z
+        .strictObject({
+          '*': z.strictObject({
+            needsApproval: z.boolean(),
+          }),
+        })
+        .optional(),
+    })
+  ),
+  externalAgents: z.record(
+    z.string(),
+    z.looseObject({
+      id: z.string().trim(),
+      baseUrl: z.url(),
+      name: z.string().trim(),
+      description: z.string().trim(),
+      // TODO or tempHeaders
+      headers: StringToStringRecordSchema,
+    })
+  ),
+  teamAgents: z.record(
+    z.string(),
+    z.looseObject({
+      name: z.string().trim().nonempty(),
+      id: z.string().trim().nonempty(),
+      description: z.string().trim(),
+      // TODO or tempHeaders
+      headers: StringToStringRecordSchema,
+    })
+  ),
+  tools: z.record(
+    z.string(),
+    z.looseObject({
+      id: z.string().trim().nonempty(),
+      name: z.string().trim().nonempty(),
+      config: ToolInsertSchema.shape.config,
+      // TODO or tempHeaders
+      headers: StringToStringRecordSchema,
+    })
+  ),
+  stopWhen: StopWhenSchema.extend({
+    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
+  }).optional(),
+  contextConfig: ContextConfigSchema,
+  statusUpdates: z.strictObject({
+    ...StatusUpdatesSchema,
+    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
+    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
+  }),
+  models: MyModelsSchema,
+});
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 

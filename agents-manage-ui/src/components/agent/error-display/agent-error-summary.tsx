@@ -39,7 +39,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
     const key = error.nodeId || error.edgeId || 'general';
-    if (!groupedErrors[key]) groupedErrors[key] = [];
+    groupedErrors[key] ??= [];
     groupedErrors[key].push(error);
   }
   const IconToUse = isOpen ? ChevronDown : ChevronRight;
@@ -185,7 +185,11 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
     return;
   }
 
-  const data: ComponentProps<typeof ErrorGroup>[] = [
+  type ErrorGroupProps = ComponentProps<typeof ErrorGroup>;
+
+  const data: (Omit<ErrorGroupProps, 'icon'> & {
+    icon?: ErrorGroupProps['icon'];
+  })[] = [
     {
       title: 'Sub Agent Errors',
       errors: subAgentErrors,
