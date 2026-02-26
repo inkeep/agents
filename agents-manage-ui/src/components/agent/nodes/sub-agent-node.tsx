@@ -19,6 +19,7 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
+import { useProcessedErrors } from "@/hooks/use-processed-errors";
 
 const ListSection = ({
   title,
@@ -50,17 +51,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const form = useFullAgentFormContext();
   const formKey = `subAgents.${data.id}` as const;
   const subAgent = useWatch({ control: form.control, name: formKey });
-  const { errors } = useFormState({
-    control: form.control,
-    name: formKey,
-  });
-  const fieldErrors = errors?.subAgents?.[data.id];
-  const processedErrors = fieldErrors
-    ? Object.entries(fieldErrors).map(([key, value]) => ({
-        field: key,
-        message: firstNestedMessage(value),
-      }))
-    : [];
+  const processedErrors = useProcessedErrors('subAgents', data.id)
   const hasErrors = processedErrors.length > 0;
 
   const { name, description, isDefault } = subAgent;

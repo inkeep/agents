@@ -48,7 +48,7 @@ export function ExternalAgentNode({
           <div
             className={cn(
               'text-sm',
-              description ? ' text-muted-foreground' : 'text-muted-foreground/50'
+              description ? 'text-muted-foreground' : 'text-muted-foreground/50'
             )}
           >
             {description || 'No description'}
