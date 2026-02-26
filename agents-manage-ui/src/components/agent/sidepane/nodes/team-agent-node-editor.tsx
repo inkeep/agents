@@ -29,6 +29,11 @@ export function TeamAgentNodeEditor({
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const form = useFullAgentFormContext();
+  const id = selectedNode.data.id;
+  const teamAgent = useWatch({ control: form.control, name: `teamAgents.${id}` });
+
+  const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
@@ -37,15 +42,15 @@ export function TeamAgentNodeEditor({
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
+    const fieldPath = path('headers');
+    const existingHeaders = form.getValues(fieldPath);
+    if (existingHeaders !== undefined) {
+      return;
+    }
     const newHeaders = getCurrentHeaders();
-    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
+    form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
-  const form = useFullAgentFormContext();
-  const id = selectedNode.data.id;
-  const teamAgent = useWatch({ control: form.control, name: `teamAgents.${id}` });
-
-  const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
   console.log(teamAgent);
   if (!teamAgent) {
     return;

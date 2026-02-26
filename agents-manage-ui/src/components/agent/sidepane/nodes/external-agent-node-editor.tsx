@@ -54,8 +54,13 @@ export function ExternalAgentNodeEditor({
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
+    const fieldPath = path('headers');
+    const existingHeaders = form.getValues(fieldPath);
+    if (existingHeaders !== undefined) {
+      return;
+    }
     const newHeaders = getCurrentHeaders();
-    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
+    form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
   if (!externalAgent) {
