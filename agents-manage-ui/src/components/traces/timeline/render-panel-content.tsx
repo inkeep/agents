@@ -803,6 +803,44 @@ export function renderPanelContent({
         </>
       );
 
+    case 'stream_lifetime_exceeded':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Lifetime limit"
+              value={
+                <Badge variant="code" className="font-mono">
+                  {a.streamMaxLifetimeMs ? `${Math.round(a.streamMaxLifetimeMs / 1000)}s` : 'N/A'}
+                </Badge>
+              }
+            />
+            {a.streamBufferSizeBytes !== undefined && (
+              <Info
+                label="Buffer size at cleanup"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.streamBufferSizeBytes / 1024).toFixed(1)} KB
+                  </Badge>
+                }
+              />
+            )}
+            {a.streamCleanupReason && <Info label="Reason" value={a.streamCleanupReason} />}
+            <LabeledBlock label="Description">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                The stream exceeded the maximum allowed lifetime and was forcibly closed. Increase{' '}
+                <code className="text-xs">AGENTS_STREAM_MAX_LIFETIME_MS</code> if this is expected
+                for long-running agent workflows.
+              </Bubble>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
     default:
       return null;
   }

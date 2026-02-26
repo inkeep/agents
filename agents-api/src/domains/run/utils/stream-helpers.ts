@@ -1,4 +1,5 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
+import type { Span } from '@opentelemetry/api';
 import { parsePartialJson } from 'ai';
 import {
   STREAM_BUFFER_MAX_SIZE_BYTES,
@@ -6,6 +7,7 @@ import {
   STREAM_TEXT_GAP_THRESHOLD_MS,
 } from '../constants/execution-limits';
 import type { ErrorEvent, OperationEvent } from './agent-operations';
+import { setSpanWithError, tracer } from './tracer';
 
 export interface StreamHelper {
   writeRole(role?: string): Promise<void>;
@@ -764,6 +766,18 @@ export class VercelDataStreamHelper implements StreamHelper {
    * Force cleanup on connection drop or timeout
    */
   private forceCleanup(reason: string): void {
+    tracer.startActiveSpan('stream.force_cleanup', (span: Span) => {
+      span.setAttributes({
+        'stream.cleanup.reason': reason,
+        'stream.max_lifetime_ms': STREAM_MAX_LIFETIME_MS,
+        'stream.buffer_size_bytes': this.jsonBuffer.length,
+        'stream.sent_items_count': this.sentItems.size,
+        'stream.completed_items_count': this.completedItems.size,
+      });
+      setSpanWithError(span, new Error(`Stream force cleanup: ${reason}`));
+      span.end();
+    });
+
     console.warn(`VercelDataStreamHelper: Forcing cleanup - ${reason}`);
 
     // Mark as completed to prevent further writes
