@@ -57,6 +57,8 @@ export function computeCandidateDomains(hostname: string): (string | undefined)[
   domains.push(autoComputed);
 
   if (parts.length > 2) {
+    // Extract eTLD+1 (root domain) to clear cookies set at the parent domain
+    // (e.g., AUTH_COOKIE_DOMAIN=.inkeep.com vs auto-computed .app.inkeep.com)
     const rootDomain = `.${parts.slice(-2).join('.')}`;
     if (rootDomain !== autoComputed) {
       domains.push(rootDomain);
