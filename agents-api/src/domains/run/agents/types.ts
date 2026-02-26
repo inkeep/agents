@@ -33,7 +33,8 @@ export interface SystemPromptV1 {
   prompt?: string; // Agent-level context and instructions
   skills?: SkillData[];
   artifacts: Artifact[];
-  tools: ToolData[]; // Support both formats
+  tools: ToolData[];
+  mcpServerGroups?: McpServerGroupData[];
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
   allProjectArtifactComponents?: ArtifactComponentApiInsert[]; // All artifact components across all agents in the project
@@ -50,4 +51,10 @@ export interface ToolData {
   description?: string | null;
   inputSchema?: Record<string, unknown>; // JSON Schema format (MCP compatible)
   usageGuidelines?: string;
+}
+
+export interface McpServerGroupData {
+  serverName: string;
+  serverInstructions?: string;
+  tools: ToolData[];
 }

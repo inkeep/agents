@@ -96,7 +96,9 @@ export class ArtifactService {
 
   /**
    * Get raw tool result by toolCallId from the current session.
-   * Unwraps MCP-style content arrays; returns the value as-is for non-MCP results.
+   * Returns { result: <data> } so paths like result.structuredContent.content[?...]
+   * work consistently with _structureHints exampleSelectors shown to the agent.
+   * Strips system-added fields (_toolCallId, _structureHints, isError).
    */
   getToolResultRaw(toolCallId: string): unknown {
     if (!this.context.sessionId) return undefined;
@@ -106,17 +108,12 @@ export class ArtifactService {
 
     const result = record.result;
 
-    // Unwrap MCP-style content array
-    const first = result?.content?.[0];
-    if (first?.type === 'text') return first.text;
-    if (first?.type === 'image') {
-      return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+    if (result && typeof result === 'object' && !Array.isArray(result)) {
+      const { _toolCallId, _structureHints, isError, ...rest } = result as Record<string, unknown>;
+      return { result: rest };
     }
 
-    // Unwrap AI SDK function tool output: { type: "text", value: "..." }
-    if (result?.type === 'text' && typeof result?.value === 'string') return result.value;
-
-    return result;
+    return { result };
   }
 
   /**
@@ -738,7 +735,7 @@ export class ArtifactService {
       : summaryData;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
-      await agentSessionManager.recordEvent(
+      agentSessionManager.recordEvent(
         this.context.streamRequestId,
         'artifact_saved',
         effectiveAgentId,

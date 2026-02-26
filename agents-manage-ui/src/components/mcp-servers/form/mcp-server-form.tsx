@@ -296,8 +296,12 @@ export function MCPServerForm({
           <GenericTextarea
             control={form.control}
             name="config.mcp.prompt"
-            label="Custom Prompt (optional)"
-            placeholder="Instructions for how agents should use these tools..."
+            label="Prompt (optional)"
+            placeholder={
+              tool?.capabilities?.serverInstructions
+                ? `Server default: "${tool.capabilities.serverInstructions}"`
+                : 'Override the instructions sent by the MCP server...'
+            }
           />
 
           {/* Hide credential options for workapp tools (they manage auth differently) */}

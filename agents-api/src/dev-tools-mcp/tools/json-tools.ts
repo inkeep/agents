@@ -2,6 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import jmespath from 'jmespath';
 import { z } from 'zod';
+import { getLogger } from '../../logger';
+
+const logger = getLogger('dev-tools-mcp:json');
 
 function parseJsonArg(value: unknown): unknown {
   if (typeof value === 'string') {
@@ -75,8 +78,32 @@ export function registerJsonTools(server: McpServer): void {
   server.registerTool(
     'json_query',
     {
-      description:
-        'Extract a value from a JSON object using a JMESPath expression. Pass {"$tool":"id"} to reference a previous tool result, or {"$artifact":"id","$tool":"id"} to reference an artifact.',
+      description: `Extract a value from a JSON object using a JMESPath expression. Pass {"$tool":"id"} to reference a previous tool result, or {"$artifact":"id","$tool":"id"} to reference an artifact.
+
+JMESPATH QUICK REFERENCE:
+  field                          → top-level field
+  a.b.c                          → nested field access
+  items[?x=='val']               → filter array where x equals val (returns array)
+  items[?x=='val'] | [0]         → filter then take first match
+  items[?x=='val'] | [0].field   → filter, take first match, access field
+  items[?contains(x, 'val')]     → filter using contains()
+  items[*].name                  → pluck field from all array elements
+
+PREFER FILTERS OVER POSITIONAL INDEXES:
+  Use [?field=='value'] to target items by their content — not [0], [1], [2].
+  Positional indexes are unreliable because you cannot know the exact position in advance.
+  ✅ items[?type=='doc'] | [0].text   ← targets by property, takes first match
+  ❌ items[2].text                    ← assumes position, will silently return wrong item or null
+
+DEBUGGING — if the result is null:
+  The path is wrong. Do NOT copy the value inline as a workaround.
+  Debug step by step: run json_query with progressively deeper paths (e.g. start with "result",
+  then "result.data", then "result.data.items") until you find where the path breaks.
+  Use json_format on the full object first if the structure is unknown.
+
+  After a filter like items[?x=='val'], you get an array — always pipe to | [0] to get one item:
+    ✅ items[?type=='doc'] | [0].text
+    ❌ items[?type=='doc'].text  ← does not extract .text from the first match`,
       inputSchema: z.object({
         data: z
           .unknown()
@@ -85,15 +112,22 @@ export function registerJsonTools(server: McpServer): void {
           ),
         query: z
           .string()
-          .describe('JMESPath expression (e.g. "items[0].name", "*.id", "length(items)")'),
+          .describe(
+            'JMESPath expression (e.g. "items[0].name", "items[?type==\'doc\'] | [0].text")'
+          ),
       }),
     },
     async ({ data, query }): Promise<CallToolResult> => {
       try {
         const parsed = parseJsonArg(data);
         const result = jmespath.search(parsed, query);
+        logger.info(
+          { query, dataType: typeof parsed, dataKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed as object) : null, resultType: typeof result, resultIsNull: result === null, resultIsArray: Array.isArray(result) },
+          'json_query executed'
+        );
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
+        logger.error({ query, error: err instanceof Error ? err.message : String(err) }, 'json_query failed');
         return {
           content: [
             {

@@ -1,5 +1,51 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- df4b020: fix breadcrumb `Error` on trigger invocations page
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- 090bedc: Fix dev auto-login proxy to check ENVIRONMENT instead of NODE_ENV, enabling auto-login when running via inkeep dev standalone build
+  - @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- e06a945: fix generic combobox text color and chevron color, fix select hover color on light mode
+- 2222e08: Show MCP tool overrides in agent editor sidepane — display name, description, and schema overrides are now reflected in the tool configuration table
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
 ## 0.53.0
 
 ### Patch Changes

@@ -9,12 +9,20 @@ const AUDIENCE = 'slack-link';
 const TOKEN_USE = 'slackLinkCode';
 const TOKEN_TTL = '10m';
 
-/**
- * Zod schema for validating Slack link token JWT payload.
- * This is a stateless token used for the Slack-to-Inkeep account linking flow.
- * When a user runs `/inkeep link` in Slack, this JWT is generated and embedded
- * in a URL that the user visits to complete the linking.
- */
+export const SlackLinkIntentSchema = z.object({
+  entryPoint: z.enum(['mention', 'question_command', 'run_command', 'dm']),
+  question: z.string().min(1).max(2000),
+  channelId: z.string().min(1),
+  threadTs: z.string().optional(),
+  messageTs: z.string().optional(),
+  agentIdentifier: z.string().optional(),
+  agentId: z.string().optional(),
+  projectId: z.string().optional(),
+  responseUrl: z.string().optional(),
+});
+
+export type SlackLinkIntent = z.infer<typeof SlackLinkIntentSchema>;
+
 export const SlackLinkTokenPayloadSchema = z.object({
   iss: z.literal(ISSUER),
   aud: z.literal(AUDIENCE),
@@ -33,6 +41,8 @@ export const SlackLinkTokenPayloadSchema = z.object({
     enterpriseId: z.string().min(1).optional(),
     username: z.string().optional(),
   }),
+
+  intent: SlackLinkIntentSchema.optional(),
 });
 
 export type SlackLinkTokenPayload = z.infer<typeof SlackLinkTokenPayloadSchema>;
@@ -46,6 +56,7 @@ export interface SignSlackLinkTokenParams {
   slackUserId: string;
   slackEnterpriseId?: string;
   slackUsername?: string;
+  intent?: SlackLinkIntent;
 }
 
 /**
@@ -78,6 +89,7 @@ export async function signSlackLinkToken(params: SignSlackLinkTokenParams): Prom
           ...(params.slackEnterpriseId && { enterpriseId: params.slackEnterpriseId }),
           ...(params.slackUsername && { username: params.slackUsername }),
         },
+        ...(params.intent && { intent: params.intent }),
       },
     });
 

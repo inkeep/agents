@@ -15,6 +15,7 @@ import {
   createContextBlock,
   createErrorMessage,
   createNotLinkedMessage,
+  createStatusMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../../slack/services/blocks';
@@ -27,25 +28,6 @@ describe('Slack Block Builders', () => {
       expect(result.type).toBe('context');
       expect(result.elements[0].type).toBe('mrkdwn');
       expect(result.elements[0].text).toBe('Powered by *Test Agent* via Inkeep');
-    });
-
-    it('should add private response prefix when isPrivate is true', () => {
-      const result = createContextBlock({ agentName: 'Test Agent', isPrivate: true });
-
-      expect(result.elements[0].text).toBe(
-        '_Private response_ • Powered by *Test Agent* via Inkeep'
-      );
-    });
-
-    it('should combine isPrivate correctly', () => {
-      const result = createContextBlock({
-        agentName: 'Test Agent',
-        isPrivate: true,
-      });
-
-      expect(result.elements[0].text).toBe(
-        '_Private response_ • Powered by *Test Agent* via Inkeep'
-      );
     });
   });
 
@@ -74,7 +56,7 @@ describe('Slack Block Builders', () => {
       expect(result.blocks).toBeDefined();
       expect(JSON.stringify(result)).toContain('How to Use');
       expect(JSON.stringify(result)).toContain('Public');
-      expect(JSON.stringify(result)).toContain('Private');
+      expect(JSON.stringify(result)).toContain('Slash Commands');
       expect(JSON.stringify(result)).toContain('/inkeep status');
       expect(JSON.stringify(result)).toContain('Learn more');
     });
@@ -112,6 +94,97 @@ describe('Slack Block Builders', () => {
       expect(result.blocks).toBeDefined();
       expect(JSON.stringify(result)).toContain('Not linked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
+    });
+  });
+
+  describe('createStatusMessage', () => {
+    const dashboardUrl = 'https://app.inkeep.com/tenant-1/work-apps/slack';
+
+    it('should show agent and project with links when both are available', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentName: 'Support Agent',
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          projectName: 'My Project',
+          source: 'workspace',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain('Connected to Inkeep');
+      expect(json).toContain('user@example.com');
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|Support Agent>'
+      );
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|My Project>');
+    });
+
+    it('should use agentId as display name when agentName is missing', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          projectName: 'My Project',
+          source: 'channel',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|support-agent>'
+      );
+    });
+
+    it('should use projectId as display name when projectName is missing', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentName: 'Support Agent',
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          source: 'workspace',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|proj-1>');
+    });
+
+    it('should show no agent message when effective is null', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: null,
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain('None configured');
+      expect(json).not.toContain('Project:');
+    });
+
+    it('should always include project and agent links when effective config is present', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentName: 'Support Agent',
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          source: 'workspace',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|Support Agent>'
+      );
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|proj-1>');
     });
   });
 });

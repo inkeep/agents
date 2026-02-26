@@ -145,17 +145,23 @@ export function ViewMCPServerDetailsProjectScope({
           )}
         </div>
 
-        {/* Custom Prompt */}
-        {tool.config.type === 'mcp' && tool.config.mcp.prompt && (
-          <div className="space-y-2">
-            <ItemLabel>Custom Prompt</ItemLabel>
-            <ItemValue>
-              <div className="text-sm bg-muted/50 p-3 rounded border whitespace-pre-wrap">
-                {tool.config.mcp.prompt}
-              </div>
-            </ItemValue>
-          </div>
-        )}
+        {/* Prompt */}
+        {tool.config.type === 'mcp' &&
+          (tool.config.mcp.prompt || tool.capabilities?.serverInstructions) && (
+            <div className="space-y-2">
+              <ItemLabel>
+                Prompt
+                {!tool.config.mcp.prompt && tool.capabilities?.serverInstructions && (
+                  <span className="text-muted-foreground font-normal ml-1">(server default)</span>
+                )}
+              </ItemLabel>
+              <ItemValue>
+                <div className="text-sm bg-muted/50 p-3 rounded border whitespace-pre-wrap">
+                  {tool.config.mcp.prompt || tool.capabilities?.serverInstructions}
+                </div>
+              </ItemValue>
+            </div>
+          )}
 
         {/* Credential Scope and Created By */}
         {!isGitHubWorkapp(tool) && (

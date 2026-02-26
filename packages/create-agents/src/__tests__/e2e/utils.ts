@@ -164,14 +164,32 @@ export async function verifyDirectoryStructure(
 }
 
 /**
+ * Recursively find all package.json files in a directory, skipping node_modules and dot-dirs.
+ * Mirrors the discovery logic in syncTemplateDependencies so E2E tests cover the same files.
+ */
+async function findPackageJsonFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const rootPkg = path.join(dir, 'package.json');
+  if (await fs.pathExists(rootPkg)) {
+    results.push(rootPkg);
+  }
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      continue;
+    }
+    const nested = await findPackageJsonFiles(path.join(dir, entry.name));
+    results.push(...nested);
+  }
+  return results;
+}
+
+/**
  * Link local monorepo packages to the created project
  * This replaces published @inkeep packages with local versions for testing
  */
 export async function linkLocalPackages(projectDir: string, monorepoRoot: string): Promise<void> {
-  const packageJsonPaths: string[] = [
-    path.join(projectDir, 'package.json'),
-    path.join(projectDir, 'apps/agents-api/package.json'),
-  ];
+  const packageJsonPaths = await findPackageJsonFiles(projectDir);
   const packageJsons: Record<string, any> = {};
   for (const packageJsonPath of packageJsonPaths) {
     packageJsons[packageJsonPath] = await fs.readJson(packageJsonPath);
