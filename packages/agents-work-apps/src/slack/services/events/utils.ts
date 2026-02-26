@@ -767,10 +767,9 @@ export function formatSlackQuery(options: FormatSlackQueryOptions): string {
     senderTimezone,
   } = options;
 
-  const timestampSuffix =
-    messageTs && senderTimezone
-      ? ` (sent ${formatMessageTimestamp(messageTs, senderTimezone)})`
-      : '';
+  const formattedMessageTs =
+    messageTs && senderTimezone ? formatMessageTimestamp(messageTs, senderTimezone) : '';
+  const timestampSuffix = formattedMessageTs ? ` (sent ${formattedMessageTs})` : '';
 
   if (isAutoExecute && threadContext) {
     return `A user mentioned you in a thread in ${channelContext}${timestampSuffix}.
