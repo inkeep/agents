@@ -419,3 +419,36 @@ export const deleteAllWorkAppSlackChannelAgentConfigsByTeam =
 
     return result.length;
   };
+
+export const deleteWorkAppSlackChannelAgentConfigsByAgent =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string, agentId: string): Promise<number> => {
+    const result = await db
+      .delete(workAppSlackChannelAgentConfigs)
+      .where(
+        and(
+          eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
+          eq(workAppSlackChannelAgentConfigs.projectId, projectId),
+          eq(workAppSlackChannelAgentConfigs.agentId, agentId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+export const deleteWorkAppSlackChannelAgentConfigsByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string): Promise<number> => {
+    const result = await db
+      .delete(workAppSlackChannelAgentConfigs)
+      .where(
+        and(
+          eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
+          eq(workAppSlackChannelAgentConfigs.projectId, projectId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };

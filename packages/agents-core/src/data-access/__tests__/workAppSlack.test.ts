@@ -11,6 +11,8 @@ import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackChannelAgentConfig,
+  deleteWorkAppSlackChannelAgentConfigsByAgent,
+  deleteWorkAppSlackChannelAgentConfigsByProject,
   deleteWorkAppSlackUserMapping,
   deleteWorkAppSlackWorkspace,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
@@ -467,6 +469,104 @@ describe('workAppSlack data access', () => {
         TEST_TEAM_ID
       );
       expect(deleted).toBe(2);
+    });
+
+    it('should delete channel configs by agent', async () => {
+      await createWorkAppSlackChannelAgentConfig(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        slackChannelId: TEST_CHANNEL_ID,
+        projectId: 'proj_123',
+        agentId: 'agent_456',
+        enabled: true,
+      });
+      await createWorkAppSlackChannelAgentConfig(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        slackChannelId: TEST_CHANNEL_ID_2,
+        projectId: 'proj_123',
+        agentId: 'agent_456',
+        enabled: true,
+      });
+      await createWorkAppSlackChannelAgentConfig(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID_2,
+        slackChannelId: 'C0CC0XWTZLU',
+        projectId: 'proj_123',
+        agentId: 'agent_789',
+        enabled: true,
+      });
+
+      const deleted = await deleteWorkAppSlackChannelAgentConfigsByAgent(db)(
+        TEST_TENANT_ID,
+        'proj_123',
+        'agent_456'
+      );
+      expect(deleted).toBe(2);
+
+      const remaining = await listWorkAppSlackChannelAgentConfigsByTeam(db)(
+        TEST_TENANT_ID,
+        TEST_TEAM_ID_2
+      );
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].agentId).toBe('agent_789');
+    });
+
+    it('should delete channel configs by project', async () => {
+      await createWorkAppSlackChannelAgentConfig(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        slackChannelId: TEST_CHANNEL_ID,
+        projectId: 'proj_123',
+        agentId: 'agent_456',
+        enabled: true,
+      });
+      await createWorkAppSlackChannelAgentConfig(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        slackChannelId: TEST_CHANNEL_ID_2,
+        projectId: 'proj_123',
+        agentId: 'agent_789',
+        enabled: true,
+      });
+      await createWorkAppSlackChannelAgentConfig(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID_2,
+        slackChannelId: 'C0CC0XWTZLU',
+        projectId: 'proj_456',
+        agentId: 'agent_456',
+        enabled: true,
+      });
+
+      const deleted = await deleteWorkAppSlackChannelAgentConfigsByProject(db)(
+        TEST_TENANT_ID,
+        'proj_123'
+      );
+      expect(deleted).toBe(2);
+
+      const remaining = await listWorkAppSlackChannelAgentConfigsByTeam(db)(
+        TEST_TENANT_ID,
+        TEST_TEAM_ID_2
+      );
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].projectId).toBe('proj_456');
+    });
+
+    it('should return 0 when no configs match agent', async () => {
+      const deleted = await deleteWorkAppSlackChannelAgentConfigsByAgent(db)(
+        TEST_TENANT_ID,
+        'proj_123',
+        'nonexistent_agent'
+      );
+      expect(deleted).toBe(0);
+    });
+
+    it('should return 0 when no configs match project', async () => {
+      const deleted = await deleteWorkAppSlackChannelAgentConfigsByProject(db)(
+        TEST_TENANT_ID,
+        'nonexistent_project'
+      );
+      expect(deleted).toBe(0);
     });
   });
 });
