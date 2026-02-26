@@ -21,15 +21,17 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useProjectPermissions } from '@/contexts/project';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
-import { InputField } from '../form-components/input';
-import { TextareaField } from '../form-components/text-area';
+import { useFieldArray, useWatch } from 'react-hook-form';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
-  const { getFieldError, setFieldRef, updatePath, deleteNode } = useNodeEditor({
+  const { getFieldError, updatePath, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
 
@@ -59,8 +61,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
 
   // Local state for form fields - initialize from node data
-  const [name, setName] = useState(String(nodeData.name || ''));
-  const [description, setDescription] = useState(String(nodeData.description || ''));
   const [code, setCode] = useState(String(nodeData.code || ''));
   const [inputSchema, setInputSchema] = useState(() =>
     nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : ''
@@ -74,8 +74,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   // Sync local state with node data when node changes
   useEffect(() => {
-    setName(String(nodeData.name || ''));
-    setDescription(String(nodeData.description || ''));
     setCode(String(nodeData.code || ''));
     setInputSchema(nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : '');
     setDependencies(nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : '');
@@ -122,16 +120,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     [updatePath]
   );
 
-  // Handle name changes
-  const handleNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newName = e.target.value;
-      setName(newName);
-      updatePath('name', newName);
-    },
-    [updatePath]
-  );
-
   // Handle code changes
   const handleCodeChange = useCallback(
     (value: string) => {
@@ -141,19 +129,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     [updatePath]
   );
 
-  // Handle description changes
-  const handleDescriptionChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newDescription = e.target.value;
-      setDescription(newDescription);
-      updatePath('description', newDescription);
-    },
-    [updatePath]
-  );
-
   const handleWriteWithAISubmit = useCallback(() => {
     if (!chatFunctionsRef?.current) return;
-    const baseMessage = `I want to update the code for the function tool "${name || 'this function tool'}".`;
+    const baseMessage = `I want to update the code for the function tool "${functionTool.name || 'this function tool'}".`;
     const message = writeWithAIInstructions.trim()
       ? `${baseMessage}\n\n${writeWithAIInstructions.trim()}`
       : baseMessage;
@@ -163,33 +141,24 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     }, 100);
     setIsWriteWithAIDialogOpen(false);
     setWriteWithAIInstructions('');
-  }, [chatFunctionsRef, name, writeWithAIInstructions, openCopilot]);
+  }, [chatFunctionsRef, functionTool.name, writeWithAIInstructions, openCopilot]);
 
   const canWriteWithAI = isCopilotConfigured && canEdit;
   console.log({ functionTool });
   return (
     <div className="space-y-8">
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="function-tool-name"
-        name="name"
+      <GenericInput
+        control={form.control}
+        name={path('name')}
         label="Name"
-        value={name}
-        onChange={handleNameChange}
         placeholder="Enter function tool name..."
-        error={getFieldError('name')}
         isRequired
       />
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="function-tool-description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={description}
-        onChange={handleDescriptionChange}
         placeholder="Enter function tool description..."
-        error={getFieldError('description')}
-        maxHeight="max-h-32"
       />
       <div className="space-y-2">
         <ExpandableCodeEditor
