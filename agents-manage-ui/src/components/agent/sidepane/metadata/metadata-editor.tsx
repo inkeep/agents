@@ -41,7 +41,6 @@ import {
 import { isRequired } from '@/lib/utils';
 import { GenericPromptEditor } from '../../../form/generic-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
-import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
@@ -71,11 +70,7 @@ const ExecutionLimitInheritanceInfo: FC = () => {
 
 export const MetadataEditor: FC = () => {
   'use memo';
-  const { agentId, tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { canUse } = useProjectPermissions();
   // Fetch project data for inheritance indicators
@@ -109,7 +104,7 @@ export const MetadataEditor: FC = () => {
         placeholder="My agent"
         isRequired={isRequired(schema, 'name')}
       />
-      <InputField id="id" name="id" label="Id" value={agentId} disabled isRequired />
+      <GenericInput control={form.control} name="id" label="Id" disabled isRequired />
       <GenericTextarea
         control={form.control}
         name="description"
