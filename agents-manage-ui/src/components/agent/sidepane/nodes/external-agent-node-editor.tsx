@@ -1,91 +1,47 @@
-import { type Node, useReactFlow } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { useCallback, useEffect } from 'react';
+import { useWatch } from 'react-hook-form';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import type { ErrorHelpers } from '@/hooks/use-agent-errors';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
-import { InputField } from '../form-components/input';
-import { FieldLabel } from '../form-components/label';
-import { TextareaField } from '../form-components/text-area';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
   credentialLookup: Record<string, Credential>;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
-  errorHelpers?: ErrorHelpers;
 }
 
 export function ExternalAgentNodeEditor({
   selectedNode,
   subAgentExternalAgentConfigLookup,
-  errorHelpers,
 }: ExternalAgentNodeEditorProps) {
-  const { updateNodeData } = useReactFlow();
-  const { markUnsaved } = useAgentActions();
   const { canEdit } = useProjectPermissions();
-  const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
+  const { deleteNode } = useDeleteNode(selectedNode.id);
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const form = useFullAgentFormContext();
+  const id = selectedNode.data.id;
+  const externalAgent = useWatch({
+    control: form.control,
+    name: `externalAgents.${id}`,
   });
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-  const handleHeadersChange = (value: string) => {
-    // Always update the input state (allows user to type invalid JSON)
-    setHeadersInputValue(value);
 
-    // Only save to node data if the JSON is valid
-    try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
-    } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
-    }
-  };
+  const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
 
-  const { edges } = useAgentStore((state) => ({
-    edges: state.edges,
-  }));
-
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
-
-  // Auto-prefill ID based on name field (always enabled for agent nodes)
-  useAutoPrefillIdZustand({
-    nameValue: selectedNode.data.name,
-    idValue: selectedNode.data.id,
-    onIdChange: handleIdChange,
-    isEditing: false,
-  });
+  const edges = useAgentStore((state) => state.edges);
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForExternalAgentNode(
@@ -95,16 +51,22 @@ export function ExternalAgentNodeEditor({
     );
   }, [selectedNode, subAgentExternalAgentConfigLookup, edges]);
 
-  // Local state for headers input (allows invalid JSON while typing)
-  const [headersInputValue, setHeadersInputValue] = useState('{}');
-
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
-    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
+  if (!externalAgent) {
+    return;
+  }
+  // useEffect(() => {
+  //   form.setError(path('name'), {
+  //     type: 'manual',
+  //     message: 'This field is invalid',
+  //   });
+  // }, []);
   return (
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">
@@ -113,67 +75,46 @@ export function ExternalAgentNodeEditor({
         within the agent framework or to third-party services.
       </p>
 
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
+      <GenericInput
+        control={form.control}
+        name={path('name')}
         label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={handleInputChange}
         placeholder="Support agent"
         disabled
-        error={getFieldError('name')}
+        isRequired
       />
-
-      <InputField
-        ref={(el) => setFieldRef('id', el)}
-        id="id"
-        name="id"
+      <GenericInput
+        control={form.control}
+        name={path('id')}
         label="Id"
-        value={selectedNode.data.id || ''}
-        onChange={handleInputChange}
         placeholder="my-external-agent"
-        error={getFieldError('id')}
         disabled
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
         isRequired
       />
-
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={selectedNode.data.description || ''}
-        onChange={handleInputChange}
         placeholder="This agent is responsible for..."
-        error={getFieldError('description')}
         disabled
       />
-
-      <InputField
-        ref={(el) => setFieldRef('baseUrl', el)}
-        id="baseUrl"
-        name="baseUrl"
+      <GenericInput
+        control={form.control}
+        name={path('baseUrl')}
         label="Host URL"
-        value={selectedNode.data.baseUrl || ''}
-        onChange={handleInputChange}
         placeholder="https://api.example.com/agent"
-        error={getFieldError('baseUrl')}
         tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/manage/tenants/:tenantId/projects/:projectId/agents/:agentId"
         disabled
+        isRequired
       />
-      <div className="space-y-2">
-        <FieldLabel id="headers" label="Headers" />
-        <StandaloneJsonEditor
-          name="headers"
-          value={headersInputValue}
-          onChange={handleHeadersChange}
-          placeholder="{}"
-          customTemplate={externalAgentHeadersTemplate}
-        />
-      </div>
-
+      <GenericJsonEditor
+        control={form.control}
+        name={path('headers')}
+        label="Headers"
+        placeholder="{}"
+        customTemplate={externalAgentHeadersTemplate}
+      />
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
       >

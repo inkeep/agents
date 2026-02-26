@@ -3,28 +3,25 @@ import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import type { ErrorHelpers } from '@/hooks/use-agent-errors';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
-import { InputField } from '../form-components/input';
-import { TextareaField } from '../form-components/text-area';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ModelSection } from './model-section';
@@ -56,123 +53,90 @@ interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
-  errorHelpers?: ErrorHelpers;
 }
 
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   selectedNode,
   dataComponentLookup,
   artifactComponentLookup,
-  errorHelpers,
 }) => {
   'use memo';
+  const form = useFullAgentFormContext();
+  const id = selectedNode.data.id ?? selectedNode.id;
+  const subAgent = useWatch({ control: form.control, name: `subAgents.${id}` });
+
+  const path = <K extends string>(key: K) => `subAgents.${id}.${key}` as const;
 
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
   const { canEdit } = useProjectPermissions();
-  const selectedDataComponents = selectedNode.data.dataComponents ?? [];
-  const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
-  const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
+  const selectedDataComponents = subAgent.dataComponents;
+  const selectedArtifactComponents = subAgent.artifactComponents;
   const { project } = useProjectData();
-  const form = useFullAgentFormContext();
   const models = useWatch({ control: form.control, name: 'models' });
 
-  const {
-    updatePath,
-    updateNestedPath,
-    getFieldError,
-    setFieldRef,
-    updateDefaultSubAgent,
-    deleteNode,
-  } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
-  });
+  const { deleteNode } = useDeleteNode(selectedNode.id);
 
-  const updateModelPath = (path: string, value: any) => {
-    updateNestedPath(path, value, selectedNode.data);
-  };
-
-  const handleIdChange = (generatedId: string) => {
-    updatePath('id', generatedId);
-  };
-
-  // Auto-prefill ID based on name field (always enabled for agent nodes)
-  useAutoPrefillIdZustand({
-    nameValue: selectedNode.data.name,
-    idValue: selectedNode.data.id,
-    onIdChange: handleIdChange,
-    isEditing: false,
-  });
-
+  // useEffect(() => {
+  //   form.setError(path('stopWhen.stepCountIs'), {
+  //     type: 'manual',
+  //     message: 'This field is invalid',
+  //   });
+  // }, []);
+  console.log({ subAgent });
+  if (!subAgent) {
+    return;
+  }
   return (
     <div className="space-y-8 flex flex-col">
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
+      <GenericInput
+        control={form.control}
+        name={path('name')}
         label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={(e) => updatePath('name', e.target.value)}
         placeholder="Support agent"
-        error={getFieldError('name')}
+        isRequired
       />
-      <InputField
-        ref={(el) => setFieldRef('id', el)}
-        id="id"
-        name="id"
+      <GenericInput
+        control={form.control}
+        name={path('id')}
         label="Id"
-        value={selectedNode.data.id || ''}
-        onChange={(e) => updatePath('id', e.target.value)}
         placeholder="my-agent"
-        error={getFieldError('id')}
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
+        isRequired
       />
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={selectedNode.data.description || ''}
-        onChange={(e) => updatePath('description', e.target.value)}
         placeholder="This sub agent is responsible for..."
-        error={getFieldError('description')}
       />
       <SkillSelector
-        selectedSkills={selectedNode.data.skills}
-        onChange={(value) => updatePath('skills', value)}
-        error={getFieldError('skills')}
+        // @ts-expect-error -- fixme
+        selectedSkills={subAgent.skills}
+        onChange={(value) => form.setValue(path('skills'), value)}
+        // TODO
+        // error={getFieldError('skills')}
       />
-      <ExpandablePromptEditor
-        key={selectedNode.id}
-        name="prompt"
-        value={selectedNode.data.prompt}
-        onChange={(value) => updatePath('prompt', value)}
-        placeholder="You are a helpful assistant..."
-        error={getFieldError('prompt')}
+      <GenericPromptEditor
+        control={form.control}
+        name={path('prompt')}
         label="Prompt"
+        placeholder="You are a helpful assistant..."
       />
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="is-default-sub-agent"
-            checked={isDefaultSubAgent}
-            onCheckedChange={(checked) => {
-              updateDefaultSubAgent(checked === true);
-            }}
-          />
-          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          The default sub agent is the initial entry point for conversations.
-        </p>
-      </div>
+      <GenericCheckbox
+        control={form.control}
+        name={path('isDefault')}
+        label="Is default sub agent"
+        description="The default sub agent is the initial entry point for conversations."
+      />
       <Separator />
       <ModelSection
-        models={selectedNode.data.models}
-        updatePath={updateModelPath}
+        models={subAgent.models}
+        updatePath={(path, value) => {
+          form.setValue(path as any, value, { shouldDirty: true });
+        }}
         projectModels={project?.models}
         agentModels={models}
       />
@@ -189,46 +153,36 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
             </div>
           }
         />
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="step-count">Max steps</Label>
-            <InheritanceIndicator
-              {...getExecutionLimitInheritanceStatus(
-                'agent',
-                'stepCountIs',
-                selectedNode.data.stopWhen?.stepCountIs,
-                project?.stopWhen?.stepCountIs
-              )}
-              size="sm"
-            />
-          </div>
-          <Input
-            id="step-count"
-            type="number"
-            min="1"
-            max="1000"
-            value={selectedNode.data.stopWhen?.stepCountIs || ''}
-            onChange={(e) => {
-              const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-              updatePath('stopWhen', {
-                ...(selectedNode.data.stopWhen || {}),
-                stepCountIs: value,
-              });
-            }}
-            placeholder="50"
-          />
-          <p className="text-xs text-muted-foreground">
-            Maximum number of execution steps for this sub agent (defaults to 50 if not set)
-          </p>
-        </div>
+        <GenericInput
+          control={form.control}
+          name={path('stopWhen.stepCountIs')}
+          type="number"
+          placeholder="50"
+          label={
+            <div className="flex items-center gap-2">
+              <Label htmlFor="step-count">Max steps</Label>
+              <InheritanceIndicator
+                {...getExecutionLimitInheritanceStatus(
+                  'agent',
+                  'stepCountIs',
+                  subAgent.stopWhen?.stepCountIs,
+                  project?.stopWhen?.stepCountIs
+                )}
+                size="sm"
+              />
+            </div>
+          }
+          description="Maximum number of execution steps for this sub agent (defaults to 50 if not set)"
+        />
       </div>
       <Separator />
       <ComponentSelector
         label="Components"
         componentLookup={dataComponentLookup}
+        // @ts-expect-error -- fixme
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
-          updatePath('dataComponents', newSelection);
+          form.setValue(path('dataComponents'), newSelection, { shouldDirty: true });
         }}
         emptyStateMessage="No components found."
         emptyStateActionText="Create component"
@@ -239,9 +193,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       <ComponentSelector
         label="Artifacts"
         componentLookup={artifactComponentLookup}
+        // @ts-expect-error -- fixme
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
-          updatePath('artifactComponents', newSelection);
+          form.setValue(path('artifactComponents'), newSelection, { shouldDirty: true });
         }}
         emptyStateMessage="No artifacts found."
         emptyStateActionText="Create artifact"
@@ -249,7 +204,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         placeholder="Select artifacts..."
         commandInputPlaceholder="Search artifacts..."
       />
-      {!isDefaultSubAgent && canEdit && (
+      {!subAgent.isDefault && canEdit && (
         <>
           <Separator />
           <div className="flex justify-end">

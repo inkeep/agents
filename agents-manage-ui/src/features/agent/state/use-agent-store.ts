@@ -23,7 +23,6 @@ import type {
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
-import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
@@ -40,8 +39,6 @@ interface AgentStateData {
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
-  errors: AgentErrorSummary | null;
-  showErrors: boolean;
   /**
    * Temporary state used to control whether the sidebar is open on the agents page.
    */
@@ -98,12 +95,6 @@ interface AgentActions {
   markUnsaved(): void;
   clearSelection(): void;
   deleteSelected(): void;
-  setErrors(errors: AgentErrorSummary | null): void;
-  clearErrors(): void;
-  setShowErrors(show: boolean): void;
-  hasErrors(): boolean;
-  getNodeErrors(nodeId: string): AgentErrorSummary['allErrors'];
-  getEdgeErrors(edgeId: string): AgentErrorSummary['allErrors'];
   /**
    * Setter for `jsonSchemaMode` field.
    */
@@ -145,8 +136,6 @@ const initialAgentState: AgentStateData = {
   dirty: false,
   history: [],
   future: [],
-  errors: null,
-  showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
   hasOpenModelConfig: false,
@@ -188,8 +177,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         dirty: false,
         history: [],
         future: [],
-        errors: null,
-        showErrors: false,
       });
     },
     reset() {
@@ -337,29 +324,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           dirty: true,
         };
       });
-    },
-    setErrors(errors) {
-      set({ errors, showErrors: errors !== null });
-    },
-    clearErrors() {
-      set({ errors: null, showErrors: false });
-    },
-    setShowErrors(show) {
-      set({ showErrors: show });
-    },
-    hasErrors() {
-      const { errors } = get();
-      return errors !== null && errors.totalErrors > 0;
-    },
-    getNodeErrors(nodeId) {
-      const { errors } = get();
-      if (!errors || !errors.nodeErrors[nodeId]) return [];
-      return errors.nodeErrors[nodeId];
-    },
-    getEdgeErrors(edgeId) {
-      const { errors } = get();
-      if (!errors || !errors.edgeErrors[edgeId]) return [];
-      return errors.edgeErrors[edgeId];
     },
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });

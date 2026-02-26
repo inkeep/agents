@@ -7,8 +7,8 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
+  FullAgentOutput,
   InternalAgentDefinition,
-  PartialFullAgentDefinition,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
@@ -76,6 +76,12 @@ function processModels(modelsData?: AgentModels): AgentModels | undefined {
   }
   return undefined;
 }
+
+type SerializeAgentDataType = Pick<
+  FullAgentOutput,
+  'defaultSubAgentId' | 'subAgents' | 'functions' | 'functionTools'
+>;
+
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
@@ -87,7 +93,7 @@ export function serializeAgentData(
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
-): PartialFullAgentDefinition {
+): SerializeAgentDataType {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
   const teamAgents: Record<string, TeamAgent> = {};
@@ -581,7 +587,7 @@ export function serializeAgentData(
     });
   }
 
-  const result: PartialFullAgentDefinition = {
+  const result: SerializeAgentDataType = {
     defaultSubAgentId,
     subAgents: subAgents,
     ...(Object.keys(functionTools).length > 0 && { functionTools }),
@@ -629,7 +635,7 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: PartialFullAgentDefinition,
+  data: Pick<FullAgentOutput, 'defaultSubAgentId' | 'subAgents'>,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];

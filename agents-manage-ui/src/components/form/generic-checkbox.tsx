@@ -1,8 +1,8 @@
 'use client';
 
-import type React from 'react';
-
-import type { Control, ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
+import type { JSX, ReactNode } from 'react';
+import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   FormControl,
   FormDescription,
@@ -19,36 +19,28 @@ export interface FormFieldWrapperProps<
 > {
   control: Control<FV, unknown, TV>;
   name: TName;
-  label: string | React.JSX.Element;
-  children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
-  description?: React.ReactNode;
+  label: string | JSX.Element;
+  description?: ReactNode;
   isRequired?: boolean;
-  tooltip?: string;
 }
 
-export function FormFieldWrapper<
+export function GenericCheckbox<
   FV extends FieldValues,
   TV extends FieldValues,
   TName extends FieldPath<FV>,
->({
-  control,
-  name,
-  label,
-  children,
-  description,
-  isRequired,
-  tooltip,
-}: FormFieldWrapperProps<FV, TV, TName>) {
+>({ control, name, label, description, isRequired }: FormFieldWrapperProps<FV, TV, TName>) {
   return (
     <FormField
       control={control}
       name={name}
       render={({ field }) => (
-        <FormItem className="relative">
-          <FormLabel isRequired={isRequired} tooltip={tooltip}>
-            {label}
-          </FormLabel>
-          <FormControl>{children(field)}</FormControl>
+        <FormItem>
+          <div className="flex gap-2">
+            <FormControl>
+              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+            <FormLabel isRequired={isRequired}>{label}</FormLabel>
+          </div>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
         </FormItem>

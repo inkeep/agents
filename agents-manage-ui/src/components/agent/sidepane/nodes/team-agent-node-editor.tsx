@@ -1,99 +1,61 @@
-import { type Node, useReactFlow } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { useCallback, useEffect } from 'react';
+import { useWatch } from 'react-hook-form';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions } from '@/features/agent/state/use-agent-store';
-import type { ErrorHelpers } from '@/hooks/use-agent-errors';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
-import { InputField } from '../form-components/input';
-import { FieldLabel } from '../form-components/label';
-import { TextareaField } from '../form-components/text-area';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
-  errorHelpers?: ErrorHelpers;
 }
 
 export function TeamAgentNodeEditor({
   selectedNode,
   subAgentTeamAgentConfigLookup,
-  errorHelpers,
 }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
-  const { updateNodeData } = useReactFlow();
-  const { markUnsaved } = useAgentActions();
-  const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
-  });
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-  const handleHeadersChange = (value: string) => {
-    // Always update the input state (allows user to type invalid JSON)
-    setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
-    } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
-    }
-  };
-
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
-
-  // Auto-prefill ID based on name field (always enabled for agent nodes)
-  useAutoPrefillIdZustand({
-    nameValue: selectedNode.data.name,
-    idValue: selectedNode.data.id,
-    onIdChange: handleIdChange,
-    isEditing: false,
-  });
+  const { deleteNode } = useDeleteNode(selectedNode.id);
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
   }, [selectedNode, subAgentTeamAgentConfigLookup]);
 
-  // Local state for headers input (allows invalid JSON while typing)
-  const [headersInputValue, setHeadersInputValue] = useState('{}');
-
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
-    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
+
+  const form = useFullAgentFormContext();
+  const id = selectedNode.data.id;
+  const teamAgent = useWatch({ control: form.control, name: `teamAgents.${id}` });
+
+  const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
+  console.log(teamAgent);
+  if (!teamAgent) {
+    return;
+  }
+  // useEffect(() => {
+  //   form.setError(path('name'), {
+  //     type: 'manual',
+  //     message: 'This field is invalid',
+  //   });
+  // }, []);
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -102,55 +64,37 @@ export function TeamAgentNodeEditor({
         using the A2A (Agent-to-Agent) protocol. Team agents enable you to create specialized agents
         that work together to accomplish complex tasks.
       </p>
-
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
+      <GenericInput
+        control={form.control}
+        name={path('name')}
         label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={handleInputChange}
         placeholder="Support agent"
         disabled
-        error={getFieldError('name')}
+        isRequired
       />
-
-      <InputField
-        ref={(el) => setFieldRef('id', el)}
-        id="id"
-        name="id"
+      <GenericInput
+        control={form.control}
+        name={path('id')}
         label="Id"
-        value={selectedNode.data.id || ''}
-        onChange={handleInputChange}
         placeholder="my-external-agent"
-        error={getFieldError('id')}
         disabled
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
         isRequired
       />
-
-      <TextareaField
-        ref={(el) => setFieldRef('description', el)}
-        id="description"
-        name="description"
+      <GenericTextarea
+        control={form.control}
+        name={path('description')}
         label="Description"
-        value={selectedNode.data.description || ''}
-        onChange={handleInputChange}
         placeholder="This agent is responsible for..."
-        error={getFieldError('description')}
         disabled
       />
-
-      <div className="space-y-2">
-        <FieldLabel id="headers" label="Headers" />
-        <StandaloneJsonEditor
-          name="headers"
-          value={headersInputValue}
-          onChange={handleHeadersChange}
-          placeholder="{}"
-          customTemplate={teamAgentHeadersTemplate}
-        />
-      </div>
+      <GenericJsonEditor
+        control={form.control}
+        name={path('headers')}
+        label="Headers"
+        placeholder="{}"
+        customTemplate={teamAgentHeadersTemplate}
+      />
       <ExternalLink href={`/${tenantId}/projects/${projectId}/agents/${selectedNode.data.id}`}>
         View Agent
       </ExternalLink>

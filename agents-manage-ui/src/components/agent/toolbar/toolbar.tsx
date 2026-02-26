@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, useEffect, useRef } from 'react';
 import { useFormState } from 'react-hook-form';
+import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { Button } from '@/components/ui/button';
+import { firstNestedMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -17,11 +19,20 @@ interface ToolbarProps {
   setShowPlayground: (show: boolean) => void;
 }
 
+function useFormStateWithoutReactCompiler() {
+  const { control } = useFullAgentFormContext();
+  const { errors, ...formState } = useFormState({ control });
+  const { subAgents, functionTools, externalAgents, teamAgents, tools, ...rest } = errors;
+  return {
+    ...formState,
+    errors: rest,
+  };
+}
+
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
-  const form = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const { isDirty, isSubmitting, errors } = useFormStateWithoutReactCompiler();
   const dirty = agentDirtyState || isDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -63,6 +74,12 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       window.removeEventListener('keydown', handleSaveShortcut);
     };
   }, []);
+
+  const agentErrors = Object.entries(errors).map(([key, value]) => ({
+    field: key,
+    message: firstNestedMessage(value),
+  }));
+  const hasErrors = agentErrors.length > 0;
 
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
@@ -110,9 +127,16 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         </Button>
       )}
       {canView && (
-        <Button {...commonProps} onClick={toggleSidePane}>
+        <Button
+          {...commonProps}
+          onClick={toggleSidePane}
+          className={cn(commonProps.className, hasErrors && 'ring-2 ring-red-300 border-red-300')}
+        >
           <Settings className="size-4" />
           Agent Settings
+          {hasErrors && (
+            <ErrorIndicator errors={agentErrors} className="absolute -top-1 -right-1 size-3" />
+          )}
         </Button>
       )}
     </div>

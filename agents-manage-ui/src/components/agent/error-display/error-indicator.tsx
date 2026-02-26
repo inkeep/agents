@@ -2,10 +2,9 @@
 
 import { AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { ProcessedAgentError } from '@/lib/utils/agent-error-parser';
 
 interface ErrorIndicatorProps {
-  errors: ProcessedAgentError[];
+  errors: { field: string; message?: string }[];
   className?: string;
 }
 
@@ -34,7 +33,7 @@ export function ErrorIndicator({ errors, className = '' }: ErrorIndicatorProps) 
             <div className="font-medium">Validation Error{errors.length > 1 ? 's' : ''}</div>
             {errors.slice(0, 3).map((error, index) => (
               <div key={index} className="text-xs">
-                <span className="font-medium">{error.field}:</span> {error.message}
+                <b>{error.field}:</b> {error.message}
               </div>
             ))}
             {errors.length > 3 && (

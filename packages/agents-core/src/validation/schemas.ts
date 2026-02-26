@@ -343,6 +343,8 @@ export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
 export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
   models: ModelSchema.optional(),
 });
 
@@ -1171,6 +1173,7 @@ export const ToolSelectSchema = createSelectSchema(tools);
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: ResourceIdSchema,
   imageUrl: imageUrlSchema,
+  headers: StringRecordSchema.nullish(),
   config: z.object({
     type: z.literal('mcp'),
     mcp: z.object({
@@ -1758,6 +1761,8 @@ export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).exte
 });
 export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 

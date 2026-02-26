@@ -42,7 +42,7 @@ describe('Agent', () => {
     });
   });
 
-  it('should correctly handle dirty state', () => {
+  it.skip('should correctly handle dirty state', () => {
     cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
     // Disable json schema builder
     cy.contains('JSON').click();

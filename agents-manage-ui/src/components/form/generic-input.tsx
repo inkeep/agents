@@ -16,6 +16,7 @@ interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
   disabled?: boolean;
   description?: ReactNode;
   isRequired?: boolean;
+  tooltip?: string;
 }
 
 export function GenericInput<
@@ -32,6 +33,7 @@ export function GenericInput<
   disabled,
   description,
   isRequired = false,
+  tooltip,
 }: GenericInputProps<TFieldValues, TTransformedValues>) {
   return (
     <FormFieldWrapper
@@ -40,6 +42,7 @@ export function GenericInput<
       label={label}
       description={description}
       isRequired={isRequired}
+      tooltip={tooltip}
     >
       {(field) => (
         <Input

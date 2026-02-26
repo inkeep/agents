@@ -1,15 +1,17 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import { useWatch } from 'react-hook-form';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
@@ -43,19 +45,21 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
-  const { name, isDefault, description, models, status } = data;
+  const { models, status } = data;
+
+  const { control } = useFullAgentFormContext();
+  const formKey = `subAgents.${id}` as const;
+  const subAgent = useWatch({ control, name: formKey });
+  const processedErrors = useProcessedErrors('subAgents', id);
+  const hasErrors = processedErrors.length > 0;
+
+  const { name, description, isDefault } = subAgent;
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
     dataComponentLookup: state.dataComponentLookup,
     artifactComponentLookup: state.artifactComponentLookup,
   }));
-  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
-
-  // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-  const subAgentId = data.id || id;
-  const nodeErrors = getNodeErrors(subAgentId);
-  const hasErrors = hasNodeErrors(subAgentId);
 
   const dataComponentNames = useMemo(
     () =>
@@ -89,20 +93,20 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{name || 'Sub Agent'}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>
+              {name || <i className="text-muted-foreground/50">No name</i>}
+            </BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
             Sub Agent
           </Badge>
           {hasErrors && (
-            <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
+            <ErrorIndicator errors={processedErrors} className="absolute -top-2 -right-2 w-6 h-6" />
           )}
         </BaseNodeHeader>
         <BaseNodeContent>
-          <div
-            className={`text-sm ${description ? ' text-muted-foreground' : 'text-muted-foreground/50'}`}
-          >
-            {description || 'No description'}
+          <div className="text-sm text-muted-foreground">
+            {description || <i className="text-muted-foreground/50">No description</i>}
           </div>
           {models && modelName ? (
             <Badge className="text-xs max-w-full flex-1" variant="code">

@@ -14,8 +14,7 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { type FC, type JSX, useEffect, useState } from 'react';
-import type { FieldError, FieldErrors, FieldValues } from 'react-hook-form';
+import { type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
@@ -39,7 +38,6 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
-import { Badge } from '@/components/ui/badge';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -54,7 +52,6 @@ import {
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
@@ -120,49 +117,6 @@ const nonValidationErrors = new Set([
   'internal_server_error',
   'bad_request',
 ]);
-
-type HandleSubmitParams = Parameters<ReturnType<typeof useFullAgentFormContext>['handleSubmit']>;
-
-// @sarah, we can reuse AgentErrorSummary component maybe
-function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
-  const lines: (string | JSX.Element)[] = [];
-
-  function walk(value: FieldErrors<FV> | FieldError | undefined, path: string[]) {
-    if (!value) return;
-    if (value.message) {
-      const label = path.join('.');
-      lines.push(
-        <>
-          <b>{String(value.message)}</b> at{' '}
-          <Badge variant="code" className="text-xs">
-            {label}
-          </Badge>
-        </>
-      );
-    }
-    if (value.types) {
-      const label = path.length ? `${path.join('.')}: ` : '';
-      for (const message of Object.values(value.types)) {
-        if (message) {
-          lines.push(`${label}${message}`);
-        }
-      }
-    }
-    if (typeof value !== 'object') return;
-    for (const [key, nested] of Object.entries(value)) {
-      if (key === 'message' || key === 'type' || key === 'types' || key === 'ref') {
-        continue;
-      }
-      walk(nested as FieldErrors<FV> | FieldError | undefined, [...path, key]);
-    }
-  }
-
-  walk(errors, []);
-  if (!lines.length) {
-    lines.push('Validation failed');
-  }
-  return lines;
-}
 
 export const Agent: FC<AgentProps> = ({
   agent,
@@ -346,7 +300,6 @@ export const Agent: FC<AgentProps> = ({
 
   // Always use enriched nodes for ReactFlow
   const nodes = enrichNodes(storeNodes);
-  const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   const onAddInitialNode = () => {
     const newNode = {
@@ -735,7 +688,7 @@ export const Agent: FC<AgentProps> = ({
 
   const form = useFullAgentFormContext();
 
-  const onFormSubmit: HandleSubmitParams[0] = async (data): Promise<void> => {
+  const onSubmit = form.handleSubmit(async (data): Promise<void> => {
     const serializedData = serializeAgentData(
       nodes,
       edges,
@@ -757,28 +710,26 @@ export const Agent: FC<AgentProps> = ({
 
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
-      const errorObjects = validationErrors.map((error) => ({
-        message: error.message,
-        field: error.field,
-        code: error.code,
-        path: error.path,
-        functionToolId: error.functionToolId,
-      }));
-
-      const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
-      setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
       return;
     }
 
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-      ...serializedData,
-      ...data,
-    });
+    const res = await updateFullAgentAction(
+      tenantId,
+      projectId,
+      agentId,
+      // @ts-expect-error -- TODO: remove undefined fields
+      {
+        ...serializedData,
+        ...data,
+        externalAgents: undefined,
+        tools: undefined,
+        teamAgents: undefined,
+        functionTools: undefined,
+      }
+    );
 
     if (res.success) {
-      // Clear any existing errors on successful save
-      clearErrors();
       toast.success('Agent saved', { closeButton: true });
       markSaved();
       // This makes current values the new default values
@@ -842,8 +793,6 @@ export const Agent: FC<AgentProps> = ({
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     function parseErrors(error: string) {
       const errorSummary = parseAgentValidationErrors(error);
-      setErrors(errorSummary);
-
       const summaryMessage = getErrorSummaryMessage(errorSummary);
       toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
     }
@@ -857,20 +806,7 @@ export const Agent: FC<AgentProps> = ({
       toast.error('Failed to save agent', { closeButton: true });
     }
     return;
-  };
-
-  const onFormError: HandleSubmitParams[1] = (errors) => {
-    toast.error(
-      <div className="space-y-2 whitespace-pre-wrap">
-        {formatFormErrors(errors).map((error, index) => (
-          <p key={index}>{error}</p>
-        ))}
-      </div>,
-      { duration: Infinity, id: 'form-error' }
-    );
-  };
-
-  const onSubmit = form.handleSubmit(onFormSubmit, onFormError);
+  });
 
   useEffect(() => {
     const onCompletion = () => {
@@ -1004,16 +940,12 @@ export const Agent: FC<AgentProps> = ({
               </form>
             </Panel>
           )}
-          {errors && showErrors && (
-            <Panel position="bottom-left" className="max-w-sm left-8! mb-4">
-              <AgentErrorSummary
-                errorSummary={errors}
-                onClose={() => setShowErrors(false)}
-                onNavigateToNode={handleNavigateToNode}
-                onNavigateToEdge={handleNavigateToEdge}
-              />
-            </Panel>
-          )}
+          <Panel position="bottom-left" className="max-w-sm left-8! mb-4">
+            <AgentErrorSummary
+              onNavigateToNode={handleNavigateToNode}
+              onNavigateToEdge={handleNavigateToEdge}
+            />
+          </Panel>
         </ReactFlow>
       </ResizablePanel>
 

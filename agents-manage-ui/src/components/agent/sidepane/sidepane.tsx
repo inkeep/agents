@@ -1,9 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import { useMemo } from 'react';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -66,18 +63,14 @@ export function SidePane({
   credentialLookup,
   disabled = false,
 }: SidePaneProps) {
+  'use memo';
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
-  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
-  const errors = useAgentStore((state) => state.errors);
 
-  const selectedEdge = useMemo(
-    () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
-    [selectedEdgeId, edges]
-  );
+  const selectedEdge = selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null;
 
-  const { heading, HeadingIcon } = useMemo(() => {
+  const { heading, HeadingIcon } = (() => {
     let heading = '';
     let HeadingIcon: LucideIcon | undefined;
 
@@ -97,10 +90,9 @@ export function SidePane({
     }
 
     return { heading, HeadingIcon };
-  }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
+  })();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
-  const editorContent = useMemo(() => {
+  const editorContent = (() => {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }
@@ -110,14 +102,6 @@ export function SidePane({
 
     if (selectedNode) {
       const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
-      // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-      const subAgentId = (selectedNode.data as any)?.id || selectedNode.id;
-      const errorHelpers = {
-        hasFieldError: (fieldName: string) => hasFieldError(subAgentId, fieldName),
-        getFieldErrorMessage: (fieldName: string) => getFieldErrorMessage(subAgentId, fieldName),
-        getFirstErrorField: () => getFirstErrorField(subAgentId),
-      };
-
       switch (nodeType) {
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
@@ -127,7 +111,6 @@ export function SidePane({
               selectedNode={selectedNode as Node<AgentNodeData>}
               dataComponentLookup={dataComponentLookup}
               artifactComponentLookup={artifactComponentLookup}
-              errorHelpers={errorHelpers}
             />
           );
         case NodeType.ExternalAgent: {
@@ -136,7 +119,6 @@ export function SidePane({
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
               credentialLookup={credentialLookup}
               subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-              errorHelpers={errorHelpers}
             />
           );
         }
@@ -148,7 +130,6 @@ export function SidePane({
             <TeamAgentNodeEditor
               selectedNode={selectedNode as Node<TeamAgentNodeData>}
               subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-              errorHelpers={errorHelpers}
             />
           );
         }
@@ -179,22 +160,7 @@ export function SidePane({
       return <EdgeEditor selectedEdge={selectedEdge as Edge} />;
     }
     return <MetadataEditor />;
-  }, [
-    selectedNodeId,
-    selectedEdgeId,
-    selectedNode,
-    selectedEdge,
-    dataComponentLookup,
-    artifactComponentLookup,
-    hasFieldError,
-    getFieldErrorMessage,
-    getFirstErrorField,
-    agentToolConfigLookup,
-    credentialLookup,
-    subAgentExternalAgentConfigLookup,
-    subAgentTeamAgentConfigLookup,
-    errors,
-  ]);
+  })();
 
   const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
   const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
