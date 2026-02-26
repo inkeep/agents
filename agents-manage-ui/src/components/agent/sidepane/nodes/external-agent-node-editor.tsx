@@ -1,26 +1,24 @@
-import { type Node, useReactFlow } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { useCallback, useEffect } from 'react';
+import { useFieldArray, useWatch } from 'react-hook-form';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
-import { FieldLabel } from '../form-components/label';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useFieldArray, useWatch } from 'react-hook-form';
-import { GenericInput } from '@/components/form/generic-input';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
@@ -34,10 +32,8 @@ export function ExternalAgentNodeEditor({
   subAgentExternalAgentConfigLookup,
   errorHelpers,
 }: ExternalAgentNodeEditorProps) {
-  const { updateNodeData } = useReactFlow();
-  const { markUnsaved } = useAgentActions();
   const { canEdit } = useProjectPermissions();
-  const { updateField, deleteNode } = useNodeEditor({selectedNodeId: selectedNode.id, errorHelpers,});
+  const { deleteNode } = useNodeEditor({selectedNodeId: selectedNode.id, errorHelpers,});
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -59,47 +55,8 @@ export function ExternalAgentNodeEditor({
   // if (externalAgentIndex < 0) return null;
 
   const path = <K extends string>(k: K) => `externalAgents.${externalAgentIndex}.${k}` as const;
-  const handleHeadersChange = (value: string) => {
-    // Always update the input state (allows user to type invalid JSON)
-    setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
-    } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
-    }
-  };
 
   const edges = useAgentStore((state) => state.edges);
-
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
-
-  // Auto-prefill ID based on name field (always enabled for agent nodes)
-  useAutoPrefillIdZustand({
-    nameValue: selectedNode.data.name,
-    idValue: selectedNode.data.id,
-    onIdChange: handleIdChange,
-    isEditing: false,
-  });
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForExternalAgentNode(
@@ -109,14 +66,11 @@ export function ExternalAgentNodeEditor({
     );
   }, [selectedNode, subAgentExternalAgentConfigLookup, edges]);
 
-  // Local state for headers input (allows invalid JSON while typing)
-  const [headersInputValue, setHeadersInputValue] = useState('{}');
-
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
-    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+    form.setValue(path('headers'), JSON.stringify(newHeaders, null, 2))
   }, [selectedNode.id]);
 
   return (
@@ -160,17 +114,13 @@ export function ExternalAgentNodeEditor({
         disabled
         isRequired
       />
-      <div className="space-y-2">
-        <FieldLabel id="headers" label="Headers" />
-        <StandaloneJsonEditor
-          name="headers"
-          value={headersInputValue}
-          onChange={handleHeadersChange}
-          placeholder="{}"
-          customTemplate={externalAgentHeadersTemplate}
-        />
-      </div>
-
+      <GenericJsonEditor
+        control={form.control}
+        name={path('headers')}
+        label="Headers"
+        placeholder="{}"
+        customTemplate={externalAgentHeadersTemplate}
+      />
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
       >
