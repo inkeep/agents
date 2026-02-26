@@ -1,7 +1,7 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code, Shield } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
@@ -9,18 +9,11 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
-export function FunctionToolNode({
-  data,
-  selected,
-  id,
-}: NodeProps & { data: FunctionToolNodeData }) {
+export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
   const { name = 'Function Tool', description } = data;
 
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
-  const functionToolId = data.toolId || data.functionToolId || id;
-  const nodeErrors = getNodeErrors(functionToolId);
-  const hasErrors = hasNodeErrors(functionToolId);
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
@@ -63,7 +56,7 @@ export function FunctionToolNode({
             )}
           </div>
           {hasErrors && (
-            <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
+            <ErrorIndicator errors={processedErrors} className="absolute -top-2 -right-2 w-6 h-6" />
           )}
         </BaseNodeHeader>
         <Handle id={functionToolNodeHandleId} type="target" position={Position.Top} isConnectable />
