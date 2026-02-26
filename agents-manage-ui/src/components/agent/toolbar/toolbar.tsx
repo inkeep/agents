@@ -19,6 +19,12 @@ interface ToolbarProps {
   setShowPlayground: (show: boolean) => void;
 }
 
+const commonProps = {
+  className: 'backdrop-blur-3xl',
+  type: 'button',
+  variant: 'outline',
+} satisfies ComponentProps<typeof Button>;
+
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const agentDirtyState = useAgentStore((state) => state.dirty);
@@ -35,12 +41,6 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
     agentId: string;
   }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
-
-  const commonProps = {
-    className: 'backdrop-blur-3xl',
-    type: 'button',
-    variant: 'outline',
-  } satisfies ComponentProps<typeof Button>;
 
   const previewButton = (
     <Button
@@ -125,7 +125,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
           onClick={toggleSidePane}
           className={cn(commonProps.className, hasErrors && 'ring-2 ring-red-300 border-red-300')}
         >
-          <Settings className="size-4" />
+          <Settings className="size-4 text-muted-foreground" />
           Agent Settings
           {hasErrors && <ErrorIndicator errors={agentErrors} />}
         </Button>
