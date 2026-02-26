@@ -46,6 +46,7 @@ import {
   getSlackClient,
   getWorkspaceDefaultAgentFromNango,
   listWorkspaceInstallations,
+  lookupAgentName,
   revokeSlackToken,
   setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
 } from '../services';
@@ -68,7 +69,7 @@ function verifyTenantOwnership(
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const ChannelAgentConfigSchema = z.object({
+const ChannelAgentConfigResponseSchema = z.object({
   projectId: z.string(),
   agentId: z.string(),
   agentName: z.string().optional(),
@@ -76,8 +77,18 @@ const ChannelAgentConfigSchema = z.object({
   grantAccessToMembers: z.boolean().optional(),
 });
 
-const WorkspaceSettingsSchema = z.object({
-  defaultAgent: ChannelAgentConfigSchema.optional(),
+const ChannelAgentConfigRequestSchema = z.object({
+  projectId: z.string(),
+  agentId: z.string(),
+  grantAccessToMembers: z.boolean().optional(),
+});
+
+const WorkspaceSettingsResponseSchema = z.object({
+  defaultAgent: ChannelAgentConfigResponseSchema.optional(),
+});
+
+const WorkspaceSettingsRequestSchema = z.object({
+  defaultAgent: ChannelAgentConfigRequestSchema.optional(),
 });
 
 const JoinFromWorkspaceSettingsSchema = z.object({
@@ -176,7 +187,7 @@ app.openapi(
               teamName: z.string().optional(),
               tenantId: z.string(),
               connectionId: z.string(),
-              defaultAgent: ChannelAgentConfigSchema.optional(),
+              defaultAgent: ChannelAgentConfigResponseSchema.optional(),
             }),
           },
         },
@@ -199,10 +210,15 @@ app.openapi(
 
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
+      const agentName = await lookupAgentName(
+        workspace.tenantId,
+        nangoDefault.projectId,
+        nangoDefault.agentId
+      );
       defaultAgent = {
         projectId: nangoDefault.projectId,
         agentId: nangoDefault.agentId,
-        agentName: nangoDefault.agentName,
+        agentName: agentName || nangoDefault.agentId,
       };
     }
 
@@ -235,7 +251,7 @@ app.openapi(
         description: 'Workspace settings',
         content: {
           'application/json': {
-            schema: WorkspaceSettingsSchema,
+            schema: WorkspaceSettingsResponseSchema,
           },
         },
       },
@@ -256,10 +272,15 @@ app.openapi(
 
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
+      const agentName = await lookupAgentName(
+        workspace.tenantId,
+        nangoDefault.projectId,
+        nangoDefault.agentId
+      );
       defaultAgent = {
         projectId: nangoDefault.projectId,
         agentId: nangoDefault.agentId,
-        agentName: nangoDefault.agentName,
+        agentName: agentName || nangoDefault.agentId,
         projectName: nangoDefault.projectName,
       };
     }
@@ -286,7 +307,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: WorkspaceSettingsSchema,
+            schema: WorkspaceSettingsRequestSchema,
           },
         },
       },
@@ -325,7 +346,6 @@ app.openapi(
         {
           teamId,
           agentId: body.defaultAgent.agentId,
-          agentName: body.defaultAgent.agentName,
         },
         'Saved workspace default agent to Nango'
       );
@@ -621,7 +641,7 @@ app.openapi(
                   isShared: z.boolean(),
                   memberCount: z.number().optional(),
                   hasAgentConfig: z.boolean(),
-                  agentConfig: ChannelAgentConfigSchema.optional(),
+                  agentConfig: ChannelAgentConfigResponseSchema.optional(),
                 })
               ),
               nextCursor: z.string().optional(),
@@ -665,8 +685,28 @@ app.openapi(
       }
       const configMap = new Map(channelConfigs.map((c) => [c.slackChannelId, c]));
 
+      const agentNameMap = new Map<string, string>();
+      const uniquePairs = new Map<string, { projectId: string; agentId: string }>();
+      for (const config of channelConfigs) {
+        const key = `${config.projectId}:${config.agentId}`;
+        if (!uniquePairs.has(key)) {
+          uniquePairs.set(key, { projectId: config.projectId, agentId: config.agentId });
+        }
+      }
+      await Promise.all(
+        Array.from(uniquePairs.entries()).map(async ([key, { projectId, agentId }]) => {
+          try {
+            const name = await lookupAgentName(tenantId, projectId, agentId);
+            if (name) agentNameMap.set(key, name);
+          } catch {
+            logger.warn({ projectId, agentId }, 'Failed to resolve agent name');
+          }
+        })
+      );
+
       const channelsWithConfig = channels.map((channel) => {
         const config = channel.id ? configMap.get(channel.id) : undefined;
+        const agentNameKey = config ? `${config.projectId}:${config.agentId}` : undefined;
         return {
           id: channel.id || '',
           name: channel.name || '',
@@ -678,7 +718,7 @@ app.openapi(
             ? {
                 projectId: config.projectId,
                 agentId: config.agentId,
-                agentName: config.agentName || undefined,
+                agentName: (agentNameKey && agentNameMap.get(agentNameKey)) || config.agentId,
                 grantAccessToMembers: config.grantAccessToMembers,
               }
             : undefined,
@@ -718,7 +758,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelId: z.string(),
-              agentConfig: ChannelAgentConfigSchema.optional(),
+              agentConfig: ChannelAgentConfigResponseSchema.optional(),
             }),
           },
         },
@@ -741,13 +781,22 @@ app.openapi(
       channelId
     );
 
+    let agentName: string | undefined;
+    if (config) {
+      try {
+        agentName = await lookupAgentName(tenantId, config.projectId, config.agentId);
+      } catch {
+        logger.warn({ agentId: config.agentId }, 'Failed to resolve agent name');
+      }
+    }
+
     return c.json({
       channelId,
       agentConfig: config
         ? {
             projectId: config.projectId,
             agentId: config.agentId,
-            agentName: config.agentName || undefined,
+            agentName: agentName || config.agentId,
             grantAccessToMembers: config.grantAccessToMembers,
           }
         : undefined,
@@ -773,7 +822,7 @@ app.openapi(
         content: {
           'application/json': {
             schema: z.object({
-              agentConfig: ChannelAgentConfigSchema,
+              agentConfig: ChannelAgentConfigRequestSchema,
               channelName: z.string().optional(),
               channelType: z.string().optional(),
             }),
@@ -814,7 +863,6 @@ app.openapi(
       slackChannelType: body.channelType,
       projectId: body.agentConfig.projectId,
       agentId: body.agentConfig.agentId,
-      agentName: body.agentConfig.agentName,
       grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
       enabled: true,
     });
@@ -846,7 +894,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelIds: z.array(z.string()).min(1),
-              agentConfig: ChannelAgentConfigSchema,
+              agentConfig: ChannelAgentConfigRequestSchema,
             }),
           },
         },
@@ -915,7 +963,6 @@ app.openapi(
             slackChannelType: 'public',
             projectId: body.agentConfig.projectId,
             agentId: body.agentConfig.agentId,
-            agentName: body.agentConfig.agentName,
             grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
             enabled: true,
           });

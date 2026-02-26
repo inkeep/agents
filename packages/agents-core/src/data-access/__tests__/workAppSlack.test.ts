@@ -339,7 +339,6 @@ describe('workAppSlack data access', () => {
         slackChannelName: '#general',
         projectId: 'proj_123',
         agentId: 'agent_456',
-        agentName: 'Test Agent',
         enabled: true,
       });
 

@@ -373,7 +373,6 @@ export const upsertWorkAppSlackChannelAgentConfig =
         set: {
           projectId: data.projectId,
           agentId: data.agentId,
-          agentName: data.agentName,
           slackChannelName: data.slackChannelName,
           slackChannelType: data.slackChannelType,
           enabled: data.enabled,

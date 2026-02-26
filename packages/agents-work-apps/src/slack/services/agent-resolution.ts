@@ -17,7 +17,7 @@ const AGENT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
 const AGENT_NAME_CACHE_MAX_SIZE = 500;
 const agentNameCache = new Map<string, { name: string | null; expiresAt: number }>();
 
-async function lookupAgentName(
+export async function lookupAgentName(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -150,7 +150,6 @@ export async function resolveEffectiveAgent(
       result = {
         projectId: channelConfig.projectId,
         agentId: channelConfig.agentId,
-        agentName: channelConfig.agentName || undefined,
         source: 'channel',
         grantAccessToMembers: channelConfig.grantAccessToMembers,
       };
@@ -177,15 +176,11 @@ export async function resolveEffectiveAgent(
     }
   }
 
-  // Enrich: look up agent name from manage API if missing or same as agent ID
-  if (result && (!result.agentName || result.agentName === result.agentId)) {
+  // Always enrich agent name from manage API
+  if (result) {
     const name = await lookupAgentName(tenantId, result.projectId, result.agentId);
     if (name) {
       result.agentName = name;
-      logger.debug(
-        { agentId: result.agentId, agentName: name },
-        'Enriched agent config with name from manage API'
-      );
     }
   }
 
@@ -230,7 +225,6 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
       channelConfig = {
         projectId: config.projectId,
         agentId: config.agentId,
-        agentName: config.agentName || undefined,
         source: 'channel',
         grantAccessToMembers: config.grantAccessToMembers,
       };
@@ -251,7 +245,7 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
 
   const effective = channelConfig || workspaceConfig;
 
-  if (effective && (!effective.agentName || effective.agentName === effective.agentId)) {
+  if (effective) {
     const name = await lookupAgentName(tenantId, effective.projectId, effective.agentId);
     if (name) {
       effective.agentName = name;

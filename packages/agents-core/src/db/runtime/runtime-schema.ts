@@ -278,7 +278,6 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     slackChannelType: varchar('slack_channel_type', { length: 50 }),
     projectId: varchar('project_id', { length: 256 }).notNull(),
     agentId: varchar('agent_id', { length: 256 }).notNull(),
-    agentName: varchar('agent_name', { length: 256 }),
     configuredByUserId: text('configured_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
