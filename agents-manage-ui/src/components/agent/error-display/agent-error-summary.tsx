@@ -1,7 +1,7 @@
 'use client';
 
-import { AlertCircle, ChevronDown, ChevronRight, Code, X, Zap } from 'lucide-react';
-import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from 'react';
+import { AlertCircle, ChevronDown, ChevronRight, Lightbulb, X } from 'lucide-react';
+import { type ComponentProps, useEffect, useRef, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,12 +25,11 @@ interface PartialProcessedAgentError {
 interface ErrorGroupProps {
   title: string;
   errors: PartialProcessedAgentError[];
-  icon: ReactNode;
   onNavigate?: (id: string) => void;
   getItemLabel?: (error: PartialProcessedAgentError) => string;
 }
 
-function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGroupProps) {
+function ErrorGroup({ title, errors, onNavigate, getItemLabel }: ErrorGroupProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   if (errors.length === 0) return null;
@@ -46,13 +45,9 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs normal-case font-normal"
-        >
-          {icon}
-          {`${title} (${errors.length})`}
+        <Button variant="ghost" className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs">
           <IconToUse />
+          {`${title} (${errors.length})`}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 pl-4 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
@@ -93,10 +88,10 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
 }
 
 function processMessagesWithNodeId(obj: Record<string, undefined | Record<string, unknown>>) {
-  return Object.entries(obj).flatMap(([groupKey, groupValue = {}]) =>
-    Object.entries(groupValue).map(([key, value]) => ({
-      nodeId: groupKey,
-      field: key,
+  return Object.entries(obj).flatMap(([nodeId, groupValue = {}]) =>
+    Object.entries(groupValue).map(([field, value]) => ({
+      nodeId,
+      field,
       message: firstNestedMessage(value),
     }))
   );
@@ -186,22 +181,17 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     return;
   }
 
-  type ErrorGroupProps = ComponentProps<typeof ErrorGroup>;
 
-  const data: (Omit<ErrorGroupProps, 'icon'> & {
-    icon?: ErrorGroupProps['icon'];
-  })[] = [
+  const data: ComponentProps<typeof ErrorGroup>[] = [
     {
       title: 'Sub Agent Errors',
       errors: subAgentErrors,
-      icon: <Zap className="w-3 h-3" />,
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `Agent (${error.nodeId})`,
     },
     {
       title: 'Function Tool Errors',
       errors: functionToolErrors,
-      icon: <Code className="w-3 h-3" />,
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `Function Tool (${error.nodeId})`,
     },
@@ -234,28 +224,27 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
       <CardHeader className="px-3">
         <CardTitle className="flex items-center justify-between text-red-700 dark:text-red-400 text-sm">
           <div className="flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="size-3" />
             {`Validation Errors (${errorCount})`}
           </div>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon-sm"
             onClick={() => {
               setShowErrors((prev) => !prev);
             }}
-            className="h-6 w-6 p-0"
           >
-            <X className="w-3 h-3" />
+            <X className="size-3" />
           </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-3 overflow-y-auto max-h-[calc(80vh-80px)] scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
-        <div className="text-xs text-red-600 dark:text-red-400 mb-2">
+        <div className="text-xs text-red-600 dark:text-red-400 ml-4 mb-2">
           Fix these issues to save your agent:
         </div>
 
         {data.map((o) => (
-          <ErrorGroup key={o.title} {...o} icon={o.icon ?? <AlertCircle className="w-3 h-3" />} />
+          <ErrorGroup key={o.title} {...o} />
         ))}
 
         {/*<ErrorGroup*/}
@@ -266,10 +255,9 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
         {/*  getItemLabel={getConnectionLabel}*/}
         {/*/>*/}
 
-        <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
-          <div className="text-xs text-red-500 dark:text-red-400">
-            💡 Click "Go to" buttons to navigate to issues
-          </div>
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-red-200 dark:border-red-800 text-xs text-red-500 dark:text-red-400">
+          <Lightbulb className="inline size-3" />
+          Click "Go to" buttons to navigate to issues
         </div>
       </CardContent>
     </Card>
