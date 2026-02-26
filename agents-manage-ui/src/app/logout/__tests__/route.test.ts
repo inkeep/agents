@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { buildClearCookieHeader, computeCandidateDomains } from '../route';
+import { buildClearCookieHeader, computeCandidateDomains, isValidRedirect } from '../route';
+
+describe('isValidRedirect', () => {
+  it('accepts valid relative paths', () => {
+    expect(isValidRedirect('/login')).toBe(true);
+    expect(isValidRedirect('/dashboard/settings')).toBe(true);
+    expect(isValidRedirect('/')).toBe(true);
+  });
+
+  it('rejects protocol-relative URLs', () => {
+    expect(isValidRedirect('//evil.com')).toBe(false);
+  });
+
+  it('rejects backslash tricks', () => {
+    expect(isValidRedirect('/path\\evil.com')).toBe(false);
+  });
+
+  it('rejects paths not starting with /', () => {
+    expect(isValidRedirect('login')).toBe(false);
+    expect(isValidRedirect('https://evil.com')).toBe(false);
+    expect(isValidRedirect('')).toBe(false);
+  });
+});
 
 describe('computeCandidateDomains', () => {
   it('returns only undefined for localhost', () => {

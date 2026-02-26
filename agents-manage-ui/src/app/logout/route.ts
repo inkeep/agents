@@ -20,7 +20,7 @@ const DEFAULT_REDIRECT = '/login';
  * Validates that a redirect URL is safe (relative path only).
  * Prevents open redirect vulnerabilities.
  */
-function isValidRedirect(redirect: string): boolean {
+export function isValidRedirect(redirect: string): boolean {
   // Must start with a single forward slash (relative path)
   if (!redirect.startsWith('/')) return false;
 
@@ -33,6 +33,9 @@ function isValidRedirect(redirect: string): boolean {
   return true;
 }
 
+// NOTE: Base domain extraction logic must stay in sync with extractCookieDomain
+// in @inkeep/agents-core/auth/auth.ts. This function extends it to return multiple
+// candidate domains for cookie clearing (no-domain, auto-computed, root).
 export function computeCandidateDomains(hostname: string): (string | undefined)[] {
   const domains: (string | undefined)[] = [undefined];
 
