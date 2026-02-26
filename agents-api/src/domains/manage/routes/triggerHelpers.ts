@@ -60,7 +60,7 @@ export async function validateRunAsUserId(params: {
  * Admins can mutate any trigger. Non-admins can only mutate triggers they created or that run as them.
  */
 export function assertCanMutateTrigger(params: {
-  trigger: { createdBy: string | null; runAsUserId: string | null };
+  trigger: { createdBy?: string | null; runAsUserId?: string | null };
   callerId: string;
   tenantRole: OrgRole;
 }): void {
