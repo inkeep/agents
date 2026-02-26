@@ -2,18 +2,16 @@
 
 import { AlertCircle, ChevronDown, ChevronRight, Code, X, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { firstNestedMessage } from '@/components/ui/form';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useSidePane } from '@/hooks/use-side-pane';
-import type {
-  AgentErrorSummary as AgentErrorSummaryType,
-  ProcessedAgentError,
-} from '@/lib/utils/agent-error-parser';
+import type { ProcessedAgentError } from '@/lib/utils/agent-error-parser';
 
 interface AgentErrorSummaryProps {
-  errorSummary: AgentErrorSummaryType;
-  onClose: () => void;
   onNavigateToNode?: (nodeId: string) => void;
   onNavigateToEdge?: (edgeId: string) => void;
 }
@@ -93,12 +91,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
-export function AgentErrorSummary({
-  errorSummary,
-  onClose,
-  onNavigateToNode,
-  onNavigateToEdge,
-}: AgentErrorSummaryProps) {
+export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentErrorSummaryProps) {
   const { setQueryState } = useSidePane();
 
   const handleNavigateToNode = (nodeId: string) => {
@@ -119,10 +112,24 @@ export function AgentErrorSummary({
     onNavigateToEdge?.(edgeId);
   };
 
-  const subAgentErrors = Object.values(errorSummary.subAgentErrors).flat();
-  const functionToolErrors = Object.values(errorSummary.functionToolErrors).flat();
-  const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
-  const agentErrors = errorSummary.agentErrors;
+  const { control } = useFullAgentFormContext();
+  const { errors } = useFormState({ control });
+
+  const { subAgents = {}, functionTools = {}, ...rest } = errors;
+
+  const subAgentErrors = Object.entries(subAgents).map(([key, value]) => ({
+    field: key,
+    message: firstNestedMessage(value),
+  }));
+  const functionToolErrors = Object.entries(functionTools).map(([key, value]) => ({
+    field: key,
+    message: firstNestedMessage(value),
+  }));
+  // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
+  const agentErrors = Object.entries(rest).map(([key, value]) => ({
+    field: key,
+    message: firstNestedMessage(value),
+  }));
 
   const getAgentLabel = (error: ProcessedAgentError) => {
     // You might want to get the actual agent name from the agent data
@@ -134,9 +141,16 @@ export function AgentErrorSummary({
     return `Function Tool (${error.nodeId})`;
   };
 
-  const getConnectionLabel = (error: ProcessedAgentError) => {
-    return `Connection (${error.edgeId})`;
-  };
+  // const getConnectionLabel = (error: ProcessedAgentError) => {
+  //   return `Connection (${error.edgeId})`;
+  // };
+
+  const errorCount = Object.keys(errors).length;
+  const [showErrors, setShowErrors] = useState(true);
+
+  if (!errorCount || !showErrors) {
+    return;
+  }
 
   return (
     <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl gap-2 py-4 max-h-[80vh] animate-in slide-in-from-bottom-2 duration-300">
@@ -144,9 +158,16 @@ export function AgentErrorSummary({
         <CardTitle className="flex items-center justify-between text-red-700 dark:text-red-400 text-sm">
           <div className="flex items-center gap-1.5">
             <AlertCircle className="w-4 h-4" />
-            <span>Validation Errors ({errorSummary.totalErrors})</span>
+            <span>{`Validation Errors (${errorCount})`}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setShowErrors((prev) => !prev);
+            }}
+            className="h-6 w-6 p-0"
+          >
             <X className="w-3 h-3" />
           </Button>
         </CardTitle>
@@ -172,13 +193,13 @@ export function AgentErrorSummary({
           getItemLabel={getFunctionToolLabel}
         />
 
-        <ErrorGroup
-          title="Connection Errors"
-          errors={edgeErrors}
-          icon={<div className="w-3 h-3 border rounded-full" />}
-          onNavigate={handleNavigateToEdge}
-          getItemLabel={getConnectionLabel}
-        />
+        {/*<ErrorGroup*/}
+        {/*  title="Connection Errors"*/}
+        {/*  errors={edgeErrors}*/}
+        {/*  icon={<div className="w-3 h-3 border rounded-full" />}*/}
+        {/*  onNavigate={handleNavigateToEdge}*/}
+        {/*  getItemLabel={getConnectionLabel}*/}
+        {/*/>*/}
 
         <ErrorGroup
           title="Agent Configuration Errors"
