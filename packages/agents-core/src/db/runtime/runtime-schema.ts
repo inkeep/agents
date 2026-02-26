@@ -366,6 +366,31 @@ export const messages = pgTable(
   ]
 );
 
+export const feedback = pgTable(
+  'feedback',
+  {
+    ...projectScoped,
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    messageId: varchar('message_id', { length: 256 }),
+    type: varchar('type', { length: 20 }).$type<'positive' | 'negative'>().notNull(),
+    reasons: jsonb('reasons').$type<string[] | null>(),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
+    userId: varchar('user_id', { length: 256 }),
+    userType: varchar('user_type', { length: 20 }).$type<'user' | 'api_key'>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('feedback_conversation_id_idx').on(table.tenantId, table.projectId, table.conversationId),
+    index('feedback_message_id_idx').on(table.tenantId, table.projectId, table.messageId),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'feedback_conversation_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const taskRelations = pgTable(
   'task_relations',
   {
@@ -606,6 +631,18 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
   }),
   childMessages: many(messages, {
     relationName: 'parentChild',
+  }),
+  feedback: many(feedback),
+}));
+
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [feedback.conversationId],
+    references: [conversations.id],
+  }),
+  message: one(messages, {
+    fields: [feedback.messageId],
+    references: [messages.id],
   }),
 }));
 
