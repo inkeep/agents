@@ -10,7 +10,7 @@ async function checkLinks() {
     populate: {
       '[[...slug]]': docsFiles.map((file) => {
         return {
-          value: getSlugs(file.path),
+          value: getSlugs(file.path.replace(/^content\//, '')),
           hashes: getTableOfContents(file.content).map((item) => item.url.slice(1)),
         };
       }),
