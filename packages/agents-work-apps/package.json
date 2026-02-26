@@ -40,9 +40,9 @@
     "@slack/web-api": "^7.9.1",
     "drizzle-orm": "^0.44.7",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.11.7",
+    "hono": "^4.12.2",
     "jose": "^6.1.0",
-    "minimatch": "^10.1.1",
+    "minimatch": "^10.2.1",
     "slack-block-builder": "^2.8.0"
   },
   "peerDependencies": {
