@@ -84,7 +84,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
-function processMessagesWithNodeId(obj: any) {
+function processMessagesWithNodeId(obj: Record<string, Record<string, unknown>>) {
   return Object.entries(obj).flatMap(([key, value]) => {
     return Object.entries(value).map(([k, v]) => ({
       nodeId: key,

@@ -168,9 +168,6 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     }),
     models: MyModelsSchema,
   })
-  .transform(({ subAgents, ...rest }) => {
-    return rest;
-  });
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
