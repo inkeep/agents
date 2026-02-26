@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.53.9
+
+### Patch Changes
+
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [8a0c90c]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+  - @inkeep/agents-work-apps@0.53.9
+  - @inkeep/agents-mcp@0.53.9
+
 ## 0.53.8
 
 ### Patch Changes

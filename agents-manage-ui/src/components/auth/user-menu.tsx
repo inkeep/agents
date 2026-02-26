@@ -1,7 +1,6 @@
 'use client';
 
 import { LogOut, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { ThemeToggleTabs } from '@/components/theme-toggle-tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,21 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
-  const authClient = useAuthClient();
-  const router = useRouter();
 
   if (isLoading || !user) {
     return null;
   }
 
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
+  const handleSignOut = () => {
+    window.location.href = '/logout';
   };
 
   return (

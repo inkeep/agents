@@ -3,14 +3,7 @@
 import type React from 'react';
 
 import type { Control, ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 export interface FormFieldWrapperProps<
   FV extends FieldValues,
@@ -44,7 +37,7 @@ export function FormFieldWrapper<
       render={({ field }) => (
         <FormItem className="relative">
           <FormLabel isRequired={isRequired}>{label}</FormLabel>
-          <FormControl>{children(field)}</FormControl>
+          {children(field)}
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
         </FormItem>

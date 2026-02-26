@@ -15,6 +15,7 @@ import { generateStatusComponentDefinition } from './generators/status-component
 import { generateSubAgentDefinition } from './generators/sub-agent-generator';
 import { generateTriggerDefinition } from './generators/trigger-generator';
 import { mergeGeneratedModule } from './module-merge';
+import { generateScheduledTriggerDefinition } from './scheduled-trigger-generator';
 import {
   collectTemplateVariableNames,
   createInMemoryProject,
@@ -198,6 +199,11 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       type: 'trigger',
       collect: collectTriggerRecords,
       generate: generateTriggerDefinition,
+    },
+    {
+      type: 'scheduled-trigger',
+      collect: collectScheduledTriggerRecords,
+      generate: generateScheduledTriggerDefinition,
     },
     {
       type: 'sub-agent',
@@ -517,6 +523,43 @@ function collectTriggerRecords(
           triggerId,
           ...triggerData,
         } as Parameters<typeof generateTriggerDefinition>[0],
+      });
+    }
+  }
+
+  return records;
+}
+
+function collectScheduledTriggerRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateScheduledTriggerDefinition>[0]>> {
+  if (!context.project.agents) {
+    return [];
+  }
+
+  const records: Array<GenerationRecord<Parameters<typeof generateScheduledTriggerDefinition>[0]>> =
+    [];
+  for (const agentId of context.completeAgentIds) {
+    const agentData = context.project.agents[agentId];
+    if (!agentData?.scheduledTriggers) {
+      continue;
+    }
+
+    for (const [scheduledTriggerId, scheduledTriggerData] of Object.entries(
+      agentData.scheduledTriggers
+    )) {
+      records.push({
+        id: scheduledTriggerId,
+        filePath: resolveRecordFilePath(
+          context,
+          'scheduledTriggers',
+          scheduledTriggerId,
+          join(context.paths.agentsDir, 'scheduled-triggers', `${scheduledTriggerId}.ts`)
+        ),
+        payload: {
+          scheduledTriggerId,
+          ...scheduledTriggerData,
+        } as Parameters<typeof generateScheduledTriggerDefinition>[0],
       });
     }
   }
