@@ -12,6 +12,7 @@ import { STATIC_LABELS } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
@@ -19,7 +20,6 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
-import { useProcessedErrors } from "@/hooks/use-processed-errors";
 
 const ListSection = ({
   title,
@@ -51,7 +51,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const form = useFullAgentFormContext();
   const formKey = `subAgents.${data.id}` as const;
   const subAgent = useWatch({ control: form.control, name: formKey });
-  const processedErrors = useProcessedErrors('subAgents', data.id)
+  const processedErrors = useProcessedErrors('subAgents', data.id);
   const hasErrors = processedErrors.length > 0;
 
   const { name, description, isDefault } = subAgent;
@@ -111,9 +111,9 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         </BaseNodeHeader>
         <BaseNodeContent>
           <div
-            className={`text-sm ${description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
+            className="text-sm text-muted-foreground"
           >
-            {description || <i>No description</i>}
+            {description || <i className="text-muted-foreground/50">No description</i>}
           </div>
           {models && modelName ? (
             <Badge className="text-xs max-w-full flex-1" variant="code">
