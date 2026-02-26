@@ -728,15 +728,20 @@ export function formatChannelContext(channelInfo: { name?: string } | null): str
 
 export function formatMessageTimestamp(messageTs: string, timezone: string): string {
   const date = new Date(Number.parseFloat(messageTs) * 1000);
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  }).format(date);
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    }).format(date);
+  } catch (error) {
+    logger.error({ error, messageTs, timezone }, 'Failed to format message timestamp');
+    return '';
+  }
 }
 
 export interface FormatSlackQueryOptions {
