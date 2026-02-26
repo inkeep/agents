@@ -115,7 +115,6 @@ export async function streamAgentResponse(params: {
   projectId: string;
   agentId: string;
   question: string;
-  /** Original unformatted user text shown publicly in Slack thread anchors. Falls back to `question`. */
   rawMessageText?: string;
   agentName: string;
   conversationId: string;
