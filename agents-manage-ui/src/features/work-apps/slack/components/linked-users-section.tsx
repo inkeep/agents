@@ -110,6 +110,13 @@ export function LinkedUsersSection() {
     return null;
   }
 
+  const getSlackProfileUrl = (slackUserId: string) => {
+    if (selectedWorkspace?.teamDomain) {
+      return `https://${selectedWorkspace.teamDomain}.slack.com/team/${slackUserId}`;
+    }
+    return `https://app.slack.com/team/${slackUserId}`;
+  };
+
   const UserRow = ({ user }: { user: LinkedUser }) => (
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
       <Avatar className="h-8 w-8">
@@ -121,7 +128,7 @@ export function LinkedUsersSection() {
         <p className="text-sm font-medium truncate">
           {user.slackUserId ? (
             <a
-              href={`https://app.slack.com/team/${user.slackUserId}`}
+              href={getSlackProfileUrl(user.slackUserId)}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"
