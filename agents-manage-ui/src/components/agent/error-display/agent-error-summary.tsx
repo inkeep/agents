@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, ChevronDown, ChevronRight, Code, X, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ interface AgentErrorSummaryProps {
 interface ErrorGroupProps {
   title: string;
   errors: ProcessedAgentError[];
-  icon: React.ReactNode;
+  icon: ReactNode;
   onNavigate?: (id: string) => void;
   getItemLabel?: (error: ProcessedAgentError) => string;
 }
@@ -91,29 +91,9 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
-export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentErrorSummaryProps) {
-  const { setQueryState } = useSidePane();
-
-  const handleNavigateToNode = (nodeId: string) => {
-    setQueryState({
-      pane: 'node',
-      nodeId,
-      edgeId: null,
-    });
-    onNavigateToNode?.(nodeId);
-  };
-
-  const handleNavigateToEdge = (edgeId: string) => {
-    setQueryState({
-      pane: 'edge',
-      nodeId: null,
-      edgeId,
-    });
-    onNavigateToEdge?.(edgeId);
-  };
-
+function getErrors() {
   const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control });
+  const {errors} = useFormState({ control });
 
   const { subAgents = {}, functionTools = {}, ...rest } = errors;
 
@@ -131,6 +111,38 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
     message: firstNestedMessage(value),
   }));
 
+  return {
+    errorCount:  Object.keys(errors).length,
+    subAgentErrors,
+    functionToolErrors,
+    agentErrors,
+  }
+}
+
+export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentErrorSummaryProps) {
+  'use memo';
+  const { setQueryState } = useSidePane();
+
+  const handleNavigateToNode = (nodeId: string) => {
+    setQueryState({
+      pane: 'node',
+      nodeId,
+      edgeId: null,
+    });
+    onNavigateToNode?.(nodeId);
+  };
+
+  // const handleNavigateToEdge = (edgeId: string) => {
+  //   setQueryState({
+  //     pane: 'edge',
+  //     nodeId: null,
+  //     edgeId,
+  //   });
+  //   onNavigateToEdge?.(edgeId);
+  // };
+
+
+
   const getAgentLabel = (error: ProcessedAgentError) => {
     // You might want to get the actual agent name from the agent data
     return `Agent (${error.nodeId})`;
@@ -145,8 +157,33 @@ export function AgentErrorSummary({ onNavigateToNode, onNavigateToEdge }: AgentE
   //   return `Connection (${error.edgeId})`;
   // };
 
-  const errorCount = Object.keys(errors).length;
+  const {
+    errorCount,
+    subAgentErrors,
+    functionToolErrors,
+    agentErrors
+  } = getErrors()
   const [showErrors, setShowErrors] = useState(true);
+  const previousErrorSignatureRef = useRef('');
+  const errorSignature = [
+    ...subAgentErrors.map((error) => `sub-agent:${error.field}:${error.message}`),
+    ...functionToolErrors.map((error) => `function-tool:${error.field}:${error.message}`),
+    ...agentErrors.map((error) => `agent:${error.field}:${error.message}`),
+  ]
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    if (!errorCount) {
+      previousErrorSignatureRef.current = '';
+      return;
+    }
+    if (previousErrorSignatureRef.current !== errorSignature) {
+      setShowErrors(true);
+    }
+
+    previousErrorSignatureRef.current = errorSignature;
+  }, [errorCount, errorSignature]);
 
   if (!errorCount || !showErrors) {
     return;
