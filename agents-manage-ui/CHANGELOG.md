@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale session cookie blocking dev auto-login after setup re-run
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
 ## 0.53.8
 
 ### Patch Changes
