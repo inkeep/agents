@@ -2,10 +2,14 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { Shield } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
+import { useWatch } from 'react-hook-form';
+import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { cn } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
@@ -18,8 +22,6 @@ import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
-import {useProcessedErrors} from "@/hooks/use-processed-errors";
-import {ErrorIndicator} from "@/components/agent/error-display/error-indicator";
 
 const TOOLS_SHOWN_LIMIT = 4;
 
@@ -154,7 +156,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
   const processedErrors = useProcessedErrors('tools', data.toolId);
-  const hasErrors = processedErrors.length > 0
+  const hasErrors = processedErrors.length > 0;
   const hasStatusErrors = data.status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
   const isTimeout = toolData?.status === 'unavailable';
@@ -170,7 +172,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
         isExecuting && 'node-executing',
         isInvertedDelegating && 'node-delegating-inverted',
         // TODO doesn't work
-        hasErrors || hasStatusErrors && 'ring-2 ring-red-300 border-red-300',
+        (hasErrors || hasStatusErrors) && 'ring-2 ring-red-300 border-red-300'
       )}
     >
       {hasErrors && <ErrorIndicator errors={processedErrors} />}
