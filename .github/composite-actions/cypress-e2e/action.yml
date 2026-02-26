@@ -64,6 +64,13 @@ runs:
     # --- Phase 4: Dashboard build + API startup (reordered) ---
     - name: Build dashboard and monorepo dependencies
       shell: bash
+      env:
+        # Next.js prerender executes server components at build time. With
+        # ENVIRONMENT=development, agents-core's ref-scope.ts attempts real DB
+        # queries during prerender (doltStatus().length), which fails.
+        # ENVIRONMENT=test makes ref-scope take an early-return path that skips
+        # DB operations — correct for a build step that should never hit the DB.
+        ENVIRONMENT: test
       run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-sdk'
 
     - name: Start backend API server
