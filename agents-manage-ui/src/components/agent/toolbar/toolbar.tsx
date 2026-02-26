@@ -19,9 +19,9 @@ interface ToolbarProps {
 
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
-  const form = useFullAgentFormContext();
+  const { control } = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const { isDirty, isSubmitting } = useFormState({ control });
   const dirty = agentDirtyState || isDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
