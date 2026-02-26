@@ -10,6 +10,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (request.cookies.has(SESSION_COOKIE)) {
+    // Clean up stale dev-logged-out cookie when user has a valid session
+    // (e.g. after manual re-login). This prevents the cookie from blocking
+    // auto-login if the session later expires.
+    if (request.cookies.has(LOGGED_OUT_COOKIE)) {
+      const response = NextResponse.next();
+      response.cookies.delete(LOGGED_OUT_COOKIE);
+      return response;
+    }
     return NextResponse.next();
   }
 

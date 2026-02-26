@@ -108,13 +108,17 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Set dev-logged-out signal so the proxy skips auto-login after explicit logout
-  response.cookies.set('dev-logged-out', '1', {
-    path: '/',
-    httpOnly: false,
-    sameSite: 'lax',
-    secure: false,
-  });
+  // Set dev-logged-out signal so the proxy skips auto-login after explicit logout.
+  // Only set in dev mode — the proxy ignores this cookie in production.
+  const isDev = process.env.ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
+  if (isDev) {
+    response.cookies.set('dev-logged-out', '1', {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: false,
+    });
+  }
 
   for (const cookieName of cookiesToClear) {
     // Clear cookie with matching attributes to ensure browser removes it
