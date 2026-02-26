@@ -61,7 +61,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
                   {getItemLabel(itemErrors[0])}
                 </span>
               )}
-              {onNavigate && itemId !== 'general' && (
+              {onNavigate && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -91,9 +91,9 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
 }
 
 function processMessagesWithNodeId(obj: Record<string, undefined | Record<string, unknown>>) {
-  return Object.entries(obj).flatMap(([_groupKey, groupValue = {}]) =>
+  return Object.entries(obj).flatMap(([groupKey, groupValue = {}]) =>
     Object.entries(groupValue).map(([key, value]) => ({
-      nodeId: key,
+      nodeId: groupKey,
       field: key,
       message: firstNestedMessage(value),
     }))
@@ -114,14 +114,21 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   'use memo';
   const { setQueryState } = useSidePane();
 
-  const handleNavigateToNode = (nodeId: string) => {
+  function handleNavigateToNode(nodeId: string) {
     setQueryState({
       pane: 'node',
       nodeId,
       edgeId: null,
     });
     onNavigateToNode?.(nodeId);
-  };
+  }
+  function handleNavigateToAgent() {
+    setQueryState({
+      pane: 'agent',
+      nodeId: null,
+      edgeId: null,
+    });
+  }
 
   // const handleNavigateToEdge = (edgeId: string) => {
   //   setQueryState({
@@ -222,8 +229,9 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
       getItemLabel: (error) => `MCP Tool (${error.nodeId})`,
     },
     {
-      title: 'Agent Configuration Errors',
+      title: 'Agent Settings Errors',
       errors: agentErrors,
+      onNavigate: handleNavigateToAgent,
     },
   ];
   return (
