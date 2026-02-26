@@ -709,25 +709,17 @@ export const Agent: FC<AgentProps> = ({
     });
 
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
-    if (validationErrors.length > 0) {
-      toast.error(`Validation failed: ${validationErrors[0].message}`);
+    if (validationErrors.length) {
+      toast.error(
+        `Validation failed: ${validationErrors.map((error) => error.message).join('\n')}`
+      );
       return;
     }
 
-    const res = await updateFullAgentAction(
-      tenantId,
-      projectId,
-      agentId,
-      // @ts-expect-error -- TODO: remove undefined fields
-      {
-        ...serializedData,
-        ...data,
-        externalAgents: undefined,
-        tools: undefined,
-        teamAgents: undefined,
-        functionTools: undefined,
-      }
-    );
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+      ...serializedData,
+      ...data,
+    });
 
     if (res.success) {
       toast.success('Agent saved', { closeButton: true });
