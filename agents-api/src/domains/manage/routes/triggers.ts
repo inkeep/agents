@@ -13,6 +13,8 @@ import {
   hashAuthenticationHeaders,
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
+  type OrgRole,
+  OrgRoles,
   PaginationQueryParamsSchema,
   PartSchema,
   TenantProjectAgentIdParamsSchema,
@@ -24,6 +26,7 @@ import {
   TriggerInvocationStatusEnum,
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
+  TriggerWithWebhookUrlWithWarningResponse,
   updateTrigger,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -34,6 +37,7 @@ import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 import { dispatchExecution } from '../../run/services/TriggerService';
+import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('triggers');
 
@@ -214,8 +218,23 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     const id = body.id || generateId();
+
+    // Normalize empty runAsUserId to null
+    const runAsUserId = body.runAsUserId || null;
+
+    if (runAsUserId) {
+      if (!callerId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'callerId is required when setting runAsUserId',
+        });
+      }
+      await validateRunAsUserId({ runAsUserId, callerId, tenantId, projectId, tenantRole });
+    }
 
     logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
 
@@ -268,10 +287,20 @@ app.openapi(
       authentication: hashedAuthentication as any,
       signingSecretCredentialReferenceId: body.signingSecretCredentialReferenceId,
       signatureVerification: body.signatureVerification as any,
+      runAsUserId,
+      createdBy: callerId || null,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+
+    const hasNoAuth =
+      !body.authentication || !(body.authentication as { headers?: unknown[] }).headers?.length;
+    const hasNoSignatureVerification = !body.signatureVerification;
+    const warning =
+      runAsUserId && hasNoAuth && hasNoSignatureVerification
+        ? 'This trigger will run as a specific user but has no authentication configured. Anyone with this webhook URL can invoke the agent as that user. Consider adding header authentication or signature verification.'
+        : undefined;
 
     return c.json(
       {
@@ -285,6 +314,7 @@ app.openapi(
             triggerId: trigger.id,
           }),
         },
+        ...(warning && { warning }),
       },
       201
     );
@@ -329,6 +359,43 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+
+    // Fetch existing trigger first for authorization check
+    const existingForAuth = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existingForAuth) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger not found',
+      });
+    }
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existingForAuth.createdBy ?? null,
+        runAsUserId: existingForAuth.runAsUserId ?? null,
+      },
+      callerId,
+      tenantRole,
+    });
+
+    // Normalize empty runAsUserId to null
+    const runAsUserId = body.runAsUserId !== undefined ? body.runAsUserId || null : undefined;
+
+    if (runAsUserId && runAsUserId !== existingForAuth.runAsUserId) {
+      if (!callerId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'callerId is required when setting runAsUserId',
+        });
+      }
+      await validateRunAsUserId({ runAsUserId, callerId, tenantId, projectId, tenantRole });
+    }
 
     // Check if any update fields were actually provided
     // We check each field explicitly to avoid issues with Zod defaults
@@ -341,7 +408,8 @@ app.openapi(
       body.messageTemplate !== undefined ||
       body.authentication !== undefined ||
       body.signingSecretCredentialReferenceId !== undefined ||
-      body.signatureVerification !== undefined;
+      body.signatureVerification !== undefined ||
+      body.runAsUserId !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -385,13 +453,7 @@ app.openapi(
       | undefined;
 
     if (authInput?.headers && authInput.headers.length > 0) {
-      // Get existing trigger to preserve keepExisting headers
-      const existingTrigger = await getTriggerById(db)({
-        scopes: { tenantId, projectId, agentId },
-        triggerId: id,
-      });
-
-      const existingAuth = existingTrigger?.authentication as {
+      const existingAuth = existingForAuth.authentication as {
         headers?: Array<{ name: string; valueHash: string; valuePrefix: string }>;
       } | null;
 
@@ -438,6 +500,7 @@ app.openapi(
         authentication: hashedAuthentication as any,
         signingSecretCredentialReferenceId: body.signingSecretCredentialReferenceId,
         signatureVerification: body.signatureVerification as any,
+        ...(runAsUserId !== undefined && { runAsUserId }),
       },
     });
 
@@ -456,6 +519,16 @@ app.openapi(
       ...triggerWithoutScopes
     } = updatedTrigger;
 
+    const effectiveRunAsUserId = updatedTrigger.runAsUserId;
+    const effectiveAuth = updatedTrigger.authentication as { headers?: unknown[] } | null;
+    const effectiveSigVerification = updatedTrigger.signatureVerification;
+    const hasNoAuthAfterUpdate = !effectiveAuth || !effectiveAuth.headers?.length;
+    const hasNoSigVerAfterUpdate = !effectiveSigVerification;
+    const updateWarning =
+      effectiveRunAsUserId && hasNoAuthAfterUpdate && hasNoSigVerAfterUpdate
+        ? 'This trigger will run as a specific user but has no authentication configured. Anyone with this webhook URL can invoke the agent as that user. Consider adding header authentication or signature verification.'
+        : undefined;
+
     return c.json({
       data: {
         ...triggerWithoutScopes,
@@ -467,6 +540,7 @@ app.openapi(
           triggerId: updatedTrigger.id,
         }),
       },
+      ...(updateWarning && { warning: updateWarning }),
     });
   }
 );
@@ -495,6 +569,8 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
 
@@ -510,6 +586,15 @@ app.openapi(
         message: 'Trigger not found',
       });
     }
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existing.createdBy ?? null,
+        runAsUserId: existing.runAsUserId ?? null,
+      },
+      callerId,
+      tenantRole,
+    });
 
     await deleteTrigger(db)({
       scopes: { tenantId, projectId, agentId },
