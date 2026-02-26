@@ -159,15 +159,16 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const [showErrors, setShowErrors] = useState(true);
   const previousErrorSignatureRef = useRef('');
   const errorSignature = [
-    ...subAgentErrors.map((error) => `1:${error.field}:${error.message}`),
-    ...functionToolErrors.map((error) => `2:${error.field}:${error.message}`),
-    ...externalAgentsErrors.map((error) => `3:${error.field}:${error.message}`),
-    ...teamAgentsErrors.map((error) => `4:${error.field}:${error.message}`),
-    ...toolsErrors.map((error) => `5:${error.field}:${error.message}`),
-    ...agentErrors.map((error) => `6:${error.field}:${error.message}`),
+    subAgentErrors,
+    functionToolErrors,
+    externalAgentsErrors,
+    teamAgentsErrors,
+    toolsErrors,
+    agentErrors,
   ]
+    .flatMap((errors, index) => errors.map((error) => `${index}:${error.field}:${error.message}`))
     .sort()
-    .join('|');
+    .join('#');
 
   useEffect(() => {
     if (!errorCount) {
