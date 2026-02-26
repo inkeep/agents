@@ -118,6 +118,12 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         }),
       })
     ),
+    externalAgents: z.array(
+      z.strictObject({
+        id: z.string().trim().nonempty(),
+        name: z.string().trim().nonempty(),
+      })
+    ),
     stopWhen: StopWhenSchema.extend({
       transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
     }).optional(),
@@ -161,6 +167,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     subAgents,
     functions = {},
     functionTools = {},
+    externalAgents = {},
   } = data;
 
   const functionTool = {
@@ -207,5 +214,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
     },
     subAgents: [subAgents['websearch-agent']],
     functionTools: [functionTool],
+    externalAgents: [externalAgents['4W7KdQdOHkfeMRHEOgGyK']],
   };
 }

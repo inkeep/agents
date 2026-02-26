@@ -19,6 +19,9 @@ import type { ExternalAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
 import { TextareaField } from '../form-components/text-area';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
+import { GenericInput } from '@/components/form/generic-input';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
@@ -43,6 +46,23 @@ export function ExternalAgentNodeEditor({
     tenantId: string;
     projectId: string;
   }>();
+  const form = useFullAgentFormContext();
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: 'externalAgents',
+    keyName: '_rhfKey3',
+  });
+  const externalAgentIndex = fields.findIndex(
+    (s) => s.id === (selectedNode.data.id ?? selectedNode.id)
+  );
+
+  const externalAgent = useWatch({
+    control: form.control,
+    name: `externalAgents.${externalAgentIndex}`,
+  });
+  // if (externalAgentIndex < 0) return null;
+
+  const path = <K extends string>(k: K) => `externalAgents.${externalAgentIndex}.${k}` as const;
   const handleHeadersChange = (value: string) => {
     // Always update the input state (allows user to type invalid JSON)
     setHeadersInputValue(value);
@@ -110,6 +130,13 @@ export function ExternalAgentNodeEditor({
         A2A (Agent-to-Agent) protocol. External agents enable you to delegate tasks between agents
         within the agent framework or to third-party services.
       </p>
+
+      <GenericInput
+        control={form.control}
+        name={path('name')}
+        label="Name"
+        placeholder="Support agent"
+      />
 
       <InputField
         ref={(el) => setFieldRef('name', el)}
