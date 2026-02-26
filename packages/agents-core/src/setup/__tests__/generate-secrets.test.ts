@@ -249,6 +249,9 @@ describe('generateSecrets (via runSetup)', () => {
   it('should not overwrite process.env for non-placeholder values', async () => {
     process.env.BETTER_AUTH_SECRET = 'my-real-secret';
     process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD = 'my-strong-password';
+    process.env.INKEEP_AGENTS_JWT_SIGNING_SECRET = 'my-custom-signing-secret';
+    process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = 'my-real-private-key';
+    process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = 'my-real-public-key';
 
     mockEnvFileContent = [
       'INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=my-real-private-key',
@@ -263,5 +266,8 @@ describe('generateSecrets (via runSetup)', () => {
 
     expect(process.env.BETTER_AUTH_SECRET).toBe('my-real-secret');
     expect(process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD).toBe('my-strong-password');
+    expect(process.env.INKEEP_AGENTS_JWT_SIGNING_SECRET).toBe('my-custom-signing-secret');
+    expect(process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY).toBe('my-real-private-key');
+    expect(process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY).toBe('my-real-public-key');
   });
 });
