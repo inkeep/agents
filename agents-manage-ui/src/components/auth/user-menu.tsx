@@ -12,21 +12,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
-  const authClient = useAuthClient();
   const router = useRouter();
 
   if (isLoading || !user) {
     return null;
   }
 
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
+  const handleSignOut = () => {
+    router.push('/logout');
   };
 
   return (

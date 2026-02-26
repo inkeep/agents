@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 const SESSION_COOKIE = 'better-auth.session_token';
+const LOGGED_OUT_COOKIE = 'dev-logged-out';
 
 export async function proxy(request: NextRequest) {
   if (process.env.ENVIRONMENT !== 'development' && process.env.NODE_ENV !== 'development') {
@@ -9,6 +10,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (request.cookies.has(SESSION_COOKIE)) {
+    return NextResponse.next();
+  }
+
+  if (request.cookies.has(LOGGED_OUT_COOKIE)) {
     return NextResponse.next();
   }
 
