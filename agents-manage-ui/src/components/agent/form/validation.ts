@@ -73,7 +73,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   .extend({
     // nodes: z.array(z.any()).optional(),
     // subAgents: SubAgentsSchema,
-    subAgents: z.array(
+    subAgents: z.record(
       // z.preprocess(
       //   (value: any) => {
       //     return {
@@ -81,6 +81,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       //       ...value,
       //     };
       //   },
+      z.string(),
       z.looseObject({
         id: z.string().trim(),
         name: z.string().trim(),
@@ -96,8 +97,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         prompt: z.string().trim(),
         // TODO: use updateDefaultSubAgent logic
         isDefault: z.boolean().optional(),
-        // models: MyModelsSchema,
-        // stopWhen: SubAgentStopWhenSchema,
+        models: MyModelsSchema,
+        stopWhen: SubAgentStopWhenSchema,
         dataComponents: z.array(z.string()),
         artifactComponents: z.array(z.string()),
       })
@@ -234,7 +235,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
         providerOptions: serializeJson(models.summarizer?.providerOptions),
       },
     },
-    subAgents: Object.values(subAgents),
+    subAgents,
     functionTools: Object.values(functions).map((tool) => {
       return {
         ...tool,

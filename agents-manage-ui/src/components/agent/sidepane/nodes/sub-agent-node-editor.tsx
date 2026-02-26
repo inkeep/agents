@@ -105,6 +105,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         name={path('name')}
         label="Name"
         placeholder="Support agent"
+        isRequired
       />
       <GenericInput
         control={form.control}
@@ -112,6 +113,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         label="Id"
         placeholder="my-agent"
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
+        isRequired
       />
       <GenericTextarea
         control={form.control}
