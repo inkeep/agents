@@ -51,15 +51,19 @@ runs:
     # --- Phase 3: DB setup ---
     - name: Setup development environment
       shell: bash
+      env:
+        ENVIRONMENT: development
       run: pnpm setup-dev --skip-push
 
-    - name: Export .env to GITHUB_ENV
+    - name: Export generated secrets to GITHUB_ENV
       shell: bash
       run: |
-        # setup-dev created .env from .env.example and generated fresh secrets.
-        # Export all key=value lines so subsequent steps (API server, Cypress,
-        # project push) can read them — each step is a separate shell process.
-        grep -E '^[A-Z_]+=.+' .env >> "$GITHUB_ENV"
+        # setup-dev generated fresh secrets in .env — export only the ones needed
+        # by subsequent steps (project push, Cypress login). The API server reads
+        # .env from disk via findUpSync so it doesn't need $GITHUB_ENV.
+        # IMPORTANT: Do not export all .env vars — extra env vars in $GITHUB_ENV
+        # leak into the Next.js build and cause prerender failures.
+        grep -E '^(BETTER_AUTH_SECRET|INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET|INKEEP_AGENTS_MANAGE_UI_USERNAME|INKEEP_AGENTS_MANAGE_UI_PASSWORD)=' .env >> "$GITHUB_ENV"
 
     # --- Phase 4: Dashboard build + API startup (reordered) ---
     - name: Build dashboard and monorepo dependencies
@@ -75,6 +79,8 @@ runs:
 
     - name: Start backend API server
       shell: bash
+      env:
+        ENVIRONMENT: development
       run: |
         # Start API server and capture logs using nohup to ensure child process output is captured
         nohup pnpm exec turbo dev --filter='@inkeep/agents-api' > /tmp/api-server.log 2>&1 &
