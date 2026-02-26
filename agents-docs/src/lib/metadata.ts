@@ -1,15 +1,37 @@
 import type { Metadata } from 'next';
 
+const BASE_URL = 'https://docs.inkeep.com';
+
+const defaultIcons: Metadata['icons'] = {
+  icon: [
+    {
+      url: '/icon.svg',
+      type: 'image/svg+xml',
+    },
+    {
+      url: '/favicon.ico',
+      sizes: 'any',
+    },
+  ],
+  shortcut: ['/favicon.ico'],
+  apple: [
+    {
+      url: '/apple-touch-icon.png',
+      sizes: '180x180',
+    },
+  ],
+};
+
 export function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
-    icons: '/icon.svg',
-    metadataBase: new URL('https://docs.inkeep.com//'),
+    icons: override.icons ?? defaultIcons,
+    manifest: override.manifest ?? '/manifest.webmanifest',
+    metadataBase: new URL(BASE_URL),
     openGraph: {
       title: override.title ?? undefined,
       description: override.description ?? undefined,
-      url: 'https://docs.inkeep.com//',
-      //   images: "/banner.png",
+      url: BASE_URL,
       siteName: 'Inkeep Agents',
       ...override.openGraph,
     },
@@ -18,7 +40,6 @@ export function createMetadata(override: Metadata): Metadata {
       creator: '@inkeep',
       title: override.title ?? undefined,
       description: override.description ?? undefined,
-      //   images: "/banner.png",
       ...override.twitter,
     },
   };

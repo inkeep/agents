@@ -17,7 +17,9 @@ export const docs = defineDocs({
     },
     schema: frontmatterSchema.extend({
       sidebarTitle: z.string().optional(),
-      keywords: z.string().optional(),
+      keywords: z.union([z.string(), z.array(z.string())]).optional(),
+      datePublished: z.string().optional(),
+      dateModified: z.string().optional(),
       skills: z.array(z.string()).optional(),
     }),
   },

@@ -8,5 +8,10 @@ export async function GET() {
     .map((page) => `- [${page.data.title}](https://docs.inkeep.com${page.url})`);
   const scanned = await Promise.all(scan);
   const heading = `# Inkeep \n\n## Docs`;
-  return new Response(`${heading}\n\n${scanned.join('\n\n')}`);
+  return new Response(`${heading}\n\n${scanned.join('\n\n')}`, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
