@@ -3,7 +3,7 @@
 import { ArrowDown, Check, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {cn} from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface InheritanceIndicatorProps {
   /** Whether this value is explicitly set (not inherited) */
@@ -89,7 +89,7 @@ export function InheritanceIndicator({
               position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex',
               'bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800',
               'text-gray-600 dark:text-gray-400 items-center gap-1'
-              )}
+            )}
           >
             <Info className={size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
             {size === 'md' && 'Default'}
