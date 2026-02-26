@@ -71,6 +71,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Denied tool details';
     case 'max_steps_reached':
       return 'Max steps reached';
+    case 'stream_lifetime_exceeded':
+      return 'Stream lifetime exceeded';
     default:
       return 'Details';
   }
