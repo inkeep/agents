@@ -202,7 +202,7 @@ describe('serializeAgentData', () => {
   });
 
   describe('selectedTools processing', () => {
-    it('should transfer tempSelectedTools from MCP nodes to agent selectedTools', () => {
+    it('should transfer selectedTools from mcpRelations using node id key', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -221,7 +221,6 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             name: 'Test MCP Server',
-            tempSelectedTools: ['tool1', 'tool2'],
           },
         },
       ];
@@ -235,7 +234,20 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          mcp1: {
+            selectedTools: ['tool1', 'tool2'],
+          },
+        }
+      );
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
