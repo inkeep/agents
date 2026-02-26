@@ -199,7 +199,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
-        'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
+        'inkeep-aria-invalid',
         className,
         !monaco && 'px-3 py-4'
       )}
