@@ -15,7 +15,6 @@ export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports
 export type {
   FullAgentDefinition,
   FullAgentResponse,
-  PartialFullAgentDefinition,
 } from '@/components/agent/form/validation';
 
 export interface Agent {

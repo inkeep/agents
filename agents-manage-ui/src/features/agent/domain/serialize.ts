@@ -8,7 +8,6 @@ import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
   InternalAgentDefinition,
-  PartialFullAgentDefinition,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
