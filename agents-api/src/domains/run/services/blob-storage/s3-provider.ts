@@ -13,7 +13,7 @@ import type {
   BlobStorageUploadParams,
 } from './types';
 
-const logger = getLogger('s3-blob-storage');
+const logger = getLogger('S3BlobStorageProvider');
 
 export class S3BlobStorageProvider implements BlobStorageProvider {
   private client: S3Client;

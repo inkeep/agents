@@ -127,4 +127,19 @@ describe('LocalBlobStorageProvider', () => {
       })
     ).rejects.toThrow('Invalid blob key');
   });
+
+  it('deletes existing files', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'blob-delete-'));
+    vi.doMock('../../../../env', () => ({
+      env: { BLOB_STORAGE_LOCAL_PATH: dir },
+    }));
+
+    const { LocalBlobStorageProvider } = await import('../blob-storage/local-provider');
+    const provider = new LocalBlobStorageProvider();
+    const key = 'tenant/project/to-delete.png';
+
+    await provider.upload({ key, data: new Uint8Array([1]), contentType: 'image/png' });
+    await provider.delete(key);
+    await expect(provider.download(key)).rejects.toThrow();
+  });
 });

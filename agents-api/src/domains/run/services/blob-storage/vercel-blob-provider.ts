@@ -7,7 +7,9 @@ import type {
   BlobStorageUploadParams,
 } from './types';
 
-const logger = getLogger('vercel-blob-storage');
+const VERCEL_BLOB_TIMEOUT_MS = 30000;
+
+const logger = getLogger('VercelBlobStorageProvider');
 
 export class VercelBlobStorageProvider implements BlobStorageProvider {
   private token: string | undefined;
@@ -28,6 +30,7 @@ export class VercelBlobStorageProvider implements BlobStorageProvider {
         token: this.token,
         addRandomSuffix: false,
         allowOverwrite: true,
+        abortSignal: AbortSignal.timeout(VERCEL_BLOB_TIMEOUT_MS),
       });
     } catch (error) {
       logger.error({ key: params.key, error }, 'Vercel Blob upload failed');
@@ -43,6 +46,7 @@ export class VercelBlobStorageProvider implements BlobStorageProvider {
       const result = await get(key, {
         access: 'private',
         token: this.token,
+        abortSignal: AbortSignal.timeout(VERCEL_BLOB_TIMEOUT_MS),
       });
       if (result?.statusCode !== 200 || !result.stream) {
         throw new Error(
@@ -65,7 +69,10 @@ export class VercelBlobStorageProvider implements BlobStorageProvider {
   async delete(key: string): Promise<void> {
     logger.debug({ key }, 'Deleting from Vercel Blob');
     try {
-      await del(key, { token: this.token });
+      await del(key, {
+        token: this.token,
+        abortSignal: AbortSignal.timeout(VERCEL_BLOB_TIMEOUT_MS),
+      });
     } catch (error) {
       logger.error({ key, error }, 'Vercel Blob delete failed');
       throw new Error(

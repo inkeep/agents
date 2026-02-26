@@ -8,7 +8,7 @@ import type {
   BlobStorageUploadParams,
 } from './types';
 
-const logger = getLogger('local-blob-storage');
+const logger = getLogger('LocalBlobStorageProvider');
 
 export class LocalBlobStorageProvider implements BlobStorageProvider {
   private basePath: string;
