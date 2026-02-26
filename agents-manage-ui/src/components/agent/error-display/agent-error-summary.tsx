@@ -26,10 +26,9 @@ interface ErrorGroupProps {
   title: string;
   errors: PartialProcessedAgentError[];
   onNavigate?: (id: string) => void;
-  getItemLabel?: (error: PartialProcessedAgentError) => string;
 }
 
-function ErrorGroup({ title, errors, onNavigate, getItemLabel }: ErrorGroupProps) {
+function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   if (errors.length === 0) return null;
@@ -47,16 +46,16 @@ function ErrorGroup({ title, errors, onNavigate, getItemLabel }: ErrorGroupProps
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="p-1.5 h-auto text-red-600 dark:text-red-400 text-xs">
           <IconToUse />
-          {`${title} (${errors.length})`}
+          {`${title} Errors (${errors.length})`}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 pl-4 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
         {Object.entries(groupedErrors).map(([itemId, itemErrors]) => (
           <div key={itemId} className="space-y-1">
             <div className="flex items-center gap-1.5">
-              {getItemLabel && (
+              {itemErrors[0].nodeId && (
                 <span className="text-xs font-medium text-foreground truncate">
-                  {getItemLabel(itemErrors[0])}
+                  {`${title} (${itemErrors[0].nodeId})`}
                 </span>
               )}
               {onNavigate && (
@@ -132,37 +131,32 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const [showErrors, setShowErrors] = useState(true);
   const data: ComponentProps<typeof ErrorGroup>[] = [
     {
-      title: 'Sub Agent Errors',
+      title: 'Sub Agent',
       errors: processMessagesWithNodeId(subAgents),
       onNavigate: handleNavigateToNode,
-      getItemLabel: (error) => `Agent (${error.nodeId})`,
     },
     {
-      title: 'Function Tool Errors',
+      title: 'Function Tool',
       errors: processMessagesWithNodeId(functionTools),
       onNavigate: handleNavigateToNode,
-      getItemLabel: (error) => `Function Tool (${error.nodeId})`,
     },
     {
-      title: 'External Agent Errors',
+      title: 'External Agent',
       errors: processMessagesWithNodeId(externalAgents),
       onNavigate: handleNavigateToNode,
-      getItemLabel: (error) => `External Agent (${error.nodeId})`,
     },
     {
-      title: 'Team Agent Errors',
+      title: 'Team Agent',
       errors: processMessagesWithNodeId(teamAgents),
       onNavigate: handleNavigateToNode,
-      getItemLabel: (error) => `Team Agent (${error.nodeId})`,
     },
     {
-      title: 'MCP Tool Errors',
+      title: 'MCP Tool',
       errors: processMessagesWithNodeId(tools),
       onNavigate: handleNavigateToNode,
-      getItemLabel: (error) => `MCP Tool (${error.nodeId})`,
     },
     {
-      title: 'Agent Settings Errors',
+      title: 'Agent Settings',
       errors: Object.entries(rest).map(([field, value]) => ({
         field,
         message: firstNestedMessage(value),
