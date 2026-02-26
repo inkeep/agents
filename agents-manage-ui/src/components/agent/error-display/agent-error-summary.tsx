@@ -117,19 +117,11 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const { setQueryState } = useSidePane();
 
   function handleNavigateToNode(nodeId: string) {
-    setQueryState({
-      pane: 'node',
-      nodeId,
-      edgeId: null,
-    });
+    setQueryState({ pane: 'node', nodeId, edgeId: null });
     onNavigateToNode?.(nodeId);
   }
   function handleNavigateToAgent() {
-    setQueryState({
-      pane: 'agent',
-      nodeId: null,
-      edgeId: null,
-    });
+    setQueryState({ pane: 'agent', nodeId: null, edgeId: null });
   }
 
   // const handleNavigateToEdge = (edgeId: string) => {
