@@ -125,7 +125,7 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFi
   }
 
   if (signingSecretCredentialReferenceId) {
-    const varName = toCamelCase(signingSecretCredentialReferenceId);
+    const varName = toCamelCase(signingSecretCredentialReferenceId as string);
     sourceFile.addImportDeclaration({
       namedImports: [varName],
       moduleSpecifier: `../../credentials/${signingSecretCredentialReferenceId}`,
