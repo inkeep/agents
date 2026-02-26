@@ -18,6 +18,8 @@ import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
+import {useProcessedErrors} from "@/hooks/use-processed-errors";
+import {ErrorIndicator} from "@/components/agent/error-display/error-indicator";
 
 const TOOLS_SHOWN_LIMIT = 4;
 
@@ -77,7 +79,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     tenantId,
     projectId,
     toolId: data.toolId,
-    enabled: !!data.toolId && !!tenantId && !!projectId,
+    enabled: !!data.toolId,
   });
 
   // Use live data if available, fall back to skeleton
@@ -151,7 +153,9 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
-  const hasErrors = data.status === 'error';
+  const processedErrors = useProcessedErrors('tools', data.toolId);
+  const hasErrors = processedErrors.length > 0
+  const hasStatusErrors = data.status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
   const isTimeout = toolData?.status === 'unavailable';
 
@@ -161,13 +165,15 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         isConnecting && 'animate-pulse opacity-80',
-        hasErrors && 'ring-2 ring-red-300 border-red-300',
         (needsAuth || hasOrphanedTools) &&
           'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
-        isInvertedDelegating && 'node-delegating-inverted'
+        isInvertedDelegating && 'node-delegating-inverted',
+        // TODO doesn't work
+        hasErrors || hasStatusErrors && 'ring-2 ring-red-300 border-red-300',
       )}
     >
+      {hasErrors && <ErrorIndicator errors={processedErrors} />}
       <BaseNodeHeader className="flex items-center justify-between gap-2">
         <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
         <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
