@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { firstNestedMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useSidePane } from '@/hooks/use-side-pane';
-import type { ProcessedAgentError } from '@/lib/utils/agent-error-parser';
 
 interface AgentErrorSummaryProps {
   onNavigateToNode?: (nodeId: string) => void;
@@ -91,14 +90,14 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
-function processMessagesWithNodeId(obj: Record<string, Record<string, unknown>>) {
-  return Object.entries(obj).flatMap(([key, value]) => {
-    return Object.entries(value).map(([k, v]) => ({
+function processMessagesWithNodeId(obj: Record<string, undefined | Record<string, unknown>>) {
+  return Object.entries(obj).flatMap(([_groupKey, groupValue = {}]) =>
+    Object.entries(groupValue).map(([key, value]) => ({
       nodeId: key,
-      field: k,
-      message: firstNestedMessage(v),
-    }));
-  });
+      field: key,
+      message: firstNestedMessage(value),
+    }))
+  );
 }
 
 function getErrors() {
