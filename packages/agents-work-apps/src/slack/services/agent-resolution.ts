@@ -20,12 +20,15 @@ const agentNameCache = new Map<string, { name: string | null; expiresAt: number 
 export async function lookupAgentName(
   tenantId: string,
   projectId: string,
-  agentId: string
+  agentId: string,
+  options?: { skipCache?: boolean }
 ): Promise<string | undefined> {
   const cacheKey = `${tenantId}:${projectId}:${agentId}`;
-  const cached = agentNameCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.name || undefined;
+  if (!options?.skipCache) {
+    const cached = agentNameCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.name || undefined;
+    }
   }
 
   const agents = await fetchAgentsForProject(tenantId, projectId);
@@ -65,12 +68,15 @@ const projectNameCache = new Map<string, { name: string | null; expiresAt: numbe
 
 export async function lookupProjectName(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: { skipCache?: boolean }
 ): Promise<string | undefined> {
   const cacheKey = `${tenantId}:${projectId}`;
-  const cached = projectNameCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.name || undefined;
+  if (!options?.skipCache) {
+    const cached = projectNameCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.name || undefined;
+    }
   }
 
   const projects = await fetchProjectsForTenant(tenantId);

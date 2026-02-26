@@ -154,7 +154,8 @@ app.openapi(
               defaultAgentName = await lookupAgentName(
                 w.tenantId,
                 w.defaultAgent.projectId,
-                w.defaultAgent.agentId
+                w.defaultAgent.agentId,
+                { skipCache: true }
               );
             } catch {
               logger.warn(
@@ -234,8 +235,10 @@ app.openapi(
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
       const [agentName, projectName] = await Promise.all([
-        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId),
-        lookupProjectName(workspace.tenantId, nangoDefault.projectId),
+        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId, {
+          skipCache: true,
+        }),
+        lookupProjectName(workspace.tenantId, nangoDefault.projectId, { skipCache: true }),
       ]);
       defaultAgent = {
         projectId: nangoDefault.projectId,
@@ -296,8 +299,10 @@ app.openapi(
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
       const [agentName, projectName] = await Promise.all([
-        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId),
-        lookupProjectName(workspace.tenantId, nangoDefault.projectId),
+        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId, {
+          skipCache: true,
+        }),
+        lookupProjectName(workspace.tenantId, nangoDefault.projectId, { skipCache: true }),
       ]);
       defaultAgent = {
         projectId: nangoDefault.projectId,
@@ -364,7 +369,8 @@ app.openapi(
       const agentName = await lookupAgentName(
         workspace.tenantId,
         body.defaultAgent.projectId,
-        body.defaultAgent.agentId
+        body.defaultAgent.agentId,
+        { skipCache: true }
       );
       if (!agentName) {
         return c.json(
@@ -735,7 +741,9 @@ app.openapi(
       await Promise.all(
         Array.from(uniquePairs.entries()).map(async ([key, { projectId, agentId }]) => {
           try {
-            const name = await lookupAgentName(tenantId, projectId, agentId);
+            const name = await lookupAgentName(tenantId, projectId, agentId, {
+              skipCache: true,
+            });
             if (name) agentNameMap.set(key, name);
           } catch {
             logger.warn({ projectId, agentId }, 'Failed to resolve agent name');
@@ -823,7 +831,9 @@ app.openapi(
     let agentName: string | undefined;
     if (config) {
       try {
-        agentName = await lookupAgentName(tenantId, config.projectId, config.agentId);
+        agentName = await lookupAgentName(tenantId, config.projectId, config.agentId, {
+          skipCache: true,
+        });
       } catch {
         logger.warn({ agentId: config.agentId }, 'Failed to resolve agent name');
       }
@@ -900,7 +910,8 @@ app.openapi(
     const agentName = await lookupAgentName(
       tenantId,
       body.agentConfig.projectId,
-      body.agentConfig.agentId
+      body.agentConfig.agentId,
+      { skipCache: true }
     );
     if (!agentName) {
       return c.json(
@@ -992,7 +1003,8 @@ app.openapi(
     const agentName = await lookupAgentName(
       tenantId,
       body.agentConfig.projectId,
-      body.agentConfig.agentId
+      body.agentConfig.agentId,
+      { skipCache: true }
     );
     if (!agentName) {
       return c.json(
