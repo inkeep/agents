@@ -129,11 +129,15 @@ export function AgentConfigurationCard() {
     try {
       await slackApi.setWorkspaceDefaultAgent({
         teamId,
-        defaultAgent: config,
+        defaultAgent: {
+          agentId: agent.id,
+          projectId: agent.projectId,
+          grantAccessToMembers: true,
+        },
       });
 
       installedWorkspaces.refetch();
-      toast.success(`Default agent set to "${config.agentName}"`);
+      toast.success(`Default agent set to "${agent.name || agent.id}"`);
     } catch (error) {
       console.error('Failed to save default agent:', error);
       toast.error('Failed to save default agent');
@@ -155,7 +159,11 @@ export function AgentConfigurationCard() {
     try {
       await slackApi.setWorkspaceDefaultAgent({
         teamId,
-        defaultAgent: updatedConfig,
+        defaultAgent: {
+          agentId: updatedConfig.agentId,
+          projectId: updatedConfig.projectId,
+          grantAccessToMembers: updatedConfig.grantAccessToMembers,
+        },
       });
 
       toast.success(
@@ -214,7 +222,11 @@ export function AgentConfigurationCard() {
       await slackApi.setChannelDefaultAgent({
         teamId,
         channelId,
-        agentConfig: config,
+        agentConfig: {
+          projectId: agent.projectId,
+          agentId: agent.id,
+          grantAccessToMembers,
+        },
         channelName,
       });
 
@@ -224,7 +236,7 @@ export function AgentConfigurationCard() {
         )
       );
 
-      toast.success(`#${channelName} now uses "${config.agentName}"`);
+      toast.success(`#${channelName} now uses "${agent.name || agent.id}"`);
     } catch (error) {
       console.error('Failed to set channel agent:', error);
       const errorMessage =
@@ -281,7 +293,11 @@ export function AgentConfigurationCard() {
       await slackApi.setChannelDefaultAgent({
         teamId,
         channelId,
-        agentConfig: updatedConfig,
+        agentConfig: {
+          projectId: updatedConfig.projectId,
+          agentId: updatedConfig.agentId,
+          grantAccessToMembers: updatedConfig.grantAccessToMembers,
+        },
         channelName: channel.name,
       });
 
@@ -331,7 +347,6 @@ export function AgentConfigurationCard() {
       const result = await slackApi.bulkSetChannelAgents(teamId, Array.from(selectedChannels), {
         projectId: agent.projectId,
         agentId: agent.id,
-        agentName: agent.name || agent.id,
         grantAccessToMembers: true,
       });
 

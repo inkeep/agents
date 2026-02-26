@@ -59,7 +59,11 @@ export const slackApi = {
 
   async setWorkspaceDefaultAgent(params: {
     teamId: string;
-    defaultAgent: DefaultAgentConfig;
+    defaultAgent: {
+      agentId: string;
+      projectId: string;
+      grantAccessToMembers?: boolean;
+    };
   }): Promise<{ success: boolean }> {
     const response = await fetch(
       `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(params.teamId)}/settings`,
@@ -200,7 +204,6 @@ export const slackApi = {
     agentConfig: {
       projectId: string;
       agentId: string;
-      agentName?: string;
       grantAccessToMembers?: boolean;
     };
     channelName?: string;
@@ -242,7 +245,6 @@ export const slackApi = {
     agentConfig: {
       projectId: string;
       agentId: string;
-      agentName?: string;
       grantAccessToMembers?: boolean;
     }
   ): Promise<{
