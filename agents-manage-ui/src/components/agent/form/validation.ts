@@ -57,6 +57,12 @@ const MyModelsSchema = z.strictObject({
   }),
 });
 
+const StringToStringRecordSchema = z
+  .string()
+  .trim()
+  .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+  .pipe(StringRecordSchema.optional());
+
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
@@ -106,11 +112,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
           .trim()
           .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
           .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
-        dependencies: z
-          .string()
-          .trim()
-          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-          .pipe(StringRecordSchema.optional()),
+        dependencies: StringToStringRecordSchema,
         tempToolPolicies: z
           .strictObject({
             '*': z.strictObject({
@@ -127,11 +129,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         name: z.string().trim(),
         description: z.string().trim(),
         // TODO or tempHeaders
-        headers: z
-          .string()
-          .trim()
-          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-          .pipe(StringRecordSchema.optional()),
+        headers: StringToStringRecordSchema,
       })
     ),
     teamAgents: z.array(
@@ -140,11 +138,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         id: z.string().trim().nonempty(),
         description: z.string().trim(),
         // TODO or tempHeaders
-        headers: z
-          .string()
-          .trim()
-          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-          .pipe(StringRecordSchema.optional()),
+        headers: StringToStringRecordSchema,
       })
     ),
     tools: z.array(
@@ -152,11 +146,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         id: z.string().trim().nonempty(),
         name: z.string().trim().nonempty(),
         // TODO or tempHeaders
-        headers: z
-          .string()
-          .trim()
-          .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-          .pipe(StringRecordSchema.optional()),
+        headers: StringToStringRecordSchema,
       })
     ),
     stopWhen: StopWhenSchema.extend({
