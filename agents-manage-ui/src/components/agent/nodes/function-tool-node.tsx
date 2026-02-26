@@ -56,9 +56,7 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
               <p className="text-xs text-muted-foreground line-clamp-2 pl-7">{description}</p>
             )}
           </div>
-          {hasErrors && (
-            <ErrorIndicator errors={processedErrors} className="absolute -top-2 -right-2 w-6 h-6" />
-          )}
+          {hasErrors && <ErrorIndicator errors={processedErrors} />}
         </BaseNodeHeader>
         <Handle id={functionToolNodeHandleId} type="target" position={Position.Top} isConnectable />
       </BaseNode>

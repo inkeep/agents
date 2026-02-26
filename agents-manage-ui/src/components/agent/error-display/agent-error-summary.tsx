@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, ChevronDown, ChevronRight, Lightbulb, X } from 'lucide-react';
-import { type ComponentProps, useEffect, useRef, useState } from 'react';
+import { type ComponentProps, useEffect, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,16 +97,6 @@ function processMessagesWithNodeId(obj: Record<string, undefined | Record<string
   );
 }
 
-function getErrors() {
-  const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control });
-
-  return {
-    errorCount: Object.keys(errors).length,
-    errors,
-  };
-}
-
 export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) {
   'use memo';
   const { setQueryState } = useSidePane();
@@ -114,9 +104,6 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   function handleNavigateToNode(nodeId: string) {
     setQueryState({ pane: 'node', nodeId, edgeId: null });
     onNavigateToNode?.(nodeId);
-  }
-  function handleNavigateToAgent() {
-    setQueryState({ pane: 'agent', nodeId: null, edgeId: null });
   }
 
   // const handleNavigateToEdge = (edgeId: string) => {
@@ -130,8 +117,9 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   // const getConnectionLabel = (error: ProcessedAgentError) => {
   //   return `Connection (${error.edgeId})`;
   // };
-
-  const { errorCount, errors } = getErrors();
+  // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
+  const { control } = useFullAgentFormContext();
+  const { errors } = useFormState({ control });
   const {
     subAgents = {},
     functionTools = {},
@@ -141,84 +129,60 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     ...rest
   } = errors;
 
-  const subAgentErrors = processMessagesWithNodeId(subAgents);
-  const functionToolErrors = processMessagesWithNodeId(functionTools);
-  const externalAgentsErrors = processMessagesWithNodeId(externalAgents);
-  const teamAgentsErrors = processMessagesWithNodeId(teamAgents);
-  const toolsErrors = processMessagesWithNodeId(tools);
-  // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
-  const agentErrors = Object.entries(rest).map(([key, value]) => ({
-    field: key,
-    message: firstNestedMessage(value),
-  }));
   const [showErrors, setShowErrors] = useState(true);
-  const previousErrorSignatureRef = useRef('');
-  const errorSignature = [
-    subAgentErrors,
-    functionToolErrors,
-    externalAgentsErrors,
-    teamAgentsErrors,
-    toolsErrors,
-    agentErrors,
-  ]
-    .flatMap((errors, index) => errors.map((error) => `${index}:${error.field}:${error.message}`))
-    .sort()
-    .join('#');
-
-  useEffect(() => {
-    if (!errorCount) {
-      previousErrorSignatureRef.current = '';
-      return;
-    }
-    if (previousErrorSignatureRef.current !== errorSignature) {
-      setShowErrors(true);
-    }
-
-    previousErrorSignatureRef.current = errorSignature;
-  }, [errorCount, errorSignature]);
-
-  if (!errorCount || !showErrors) {
-    return;
-  }
-
-
   const data: ComponentProps<typeof ErrorGroup>[] = [
     {
       title: 'Sub Agent Errors',
-      errors: subAgentErrors,
+      errors: processMessagesWithNodeId(subAgents),
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `Agent (${error.nodeId})`,
     },
     {
       title: 'Function Tool Errors',
-      errors: functionToolErrors,
+      errors: processMessagesWithNodeId(functionTools),
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `Function Tool (${error.nodeId})`,
     },
     {
       title: 'External Agent Errors',
-      errors: externalAgentsErrors,
+      errors: processMessagesWithNodeId(externalAgents),
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `External Agent (${error.nodeId})`,
     },
     {
       title: 'Team Agent Errors',
-      errors: teamAgentsErrors,
+      errors: processMessagesWithNodeId(teamAgents),
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `Team Agent (${error.nodeId})`,
     },
     {
       title: 'MCP Tool Errors',
-      errors: toolsErrors,
+      errors: processMessagesWithNodeId(tools),
       onNavigate: handleNavigateToNode,
       getItemLabel: (error) => `MCP Tool (${error.nodeId})`,
     },
     {
       title: 'Agent Settings Errors',
-      errors: agentErrors,
-      onNavigate: handleNavigateToAgent,
+      errors: Object.entries(rest).map(([field, value]) => ({
+        field,
+        message: firstNestedMessage(value),
+      })),
+      onNavigate() {
+        setQueryState({ pane: 'agent', nodeId: null, edgeId: null });
+      },
     },
   ];
+
+  const errorCount = data.reduce((acc, curr) => acc + curr.errors.length, 0);
+
+  useEffect(() => {
+    setShowErrors(true);
+  }, [errorCount]);
+
+  if (!errorCount || !showErrors) {
+    return;
+  }
+
   return (
     <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl gap-2 py-4 max-h-[80vh] animate-in slide-in-from-bottom-2 duration-300">
       <CardHeader className="px-3">

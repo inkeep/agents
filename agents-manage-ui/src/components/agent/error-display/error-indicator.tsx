@@ -2,22 +2,24 @@
 
 import { AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface ErrorIndicatorProps {
   errors: { field: string; message?: string }[];
-  className?: string;
 }
 
-export function ErrorIndicator({ errors, className = '' }: ErrorIndicatorProps) {
-  if (errors.length === 0) return null;
+export function ErrorIndicator({ errors }: ErrorIndicatorProps) {
+  if (errors.length === 0) return;
 
   // For tooltip display, we'll show individual errors in the tooltip content
-
   const indicator = (
     <div
-      className={`backdrop-blur-sm flex items-center justify-center bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-700 rounded-full ${className}`}
+      className={cn(
+        `backdrop-blur-sm bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-700 rounded-full`,
+        'absolute -top-2 -right-2 p-[.2em]'
+      )}
     >
-      <AlertCircle className="text-red-600 dark:text-red-400 w-3 h-3" />
+      <AlertCircle className="text-red-600 dark:text-red-400 h-[.7em]! w-auto!" />
     </div>
   );
 
@@ -27,13 +29,13 @@ export function ErrorIndicator({ errors, className = '' }: ErrorIndicatorProps) 
         <TooltipTrigger asChild>{indicator}</TooltipTrigger>
         <TooltipContent
           side="top"
-          className="max-w-xs [--bg-color:var(--color-red-50)] dark:[--bg-color:var(--color-red-950)] border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/90"
+          className="text-wrap max-w-xs [--bg-color:var(--color-red-50)] dark:[--bg-color:var(--color-red-950)] border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/90"
         >
           <div className="space-y-1">
             <div className="font-medium">Validation Error{errors.length > 1 ? 's' : ''}</div>
             {errors.slice(0, 3).map((error, index) => (
               <div key={index} className="text-xs">
-                <b>{error.field}:</b> {error.message}
+                <b>{error.field}</b>: {error.message}
               </div>
             ))}
             {errors.length > 3 && (

@@ -134,9 +134,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         >
           <Settings className="size-4" />
           Agent Settings
-          {hasErrors && (
-            <ErrorIndicator errors={agentErrors} className="absolute -top-1 -right-1 size-3" />
-          )}
+          {hasErrors && <ErrorIndicator errors={agentErrors} />}
         </Button>
       )}
     </div>

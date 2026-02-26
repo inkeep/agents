@@ -34,9 +34,7 @@ export function TeamAgentNode({ data, selected }: NodeProps & { data: TeamAgentN
           <Badge variant="primary" className="text-xs uppercase">
             Team Agent
           </Badge>
-          {hasErrors && (
-            <ErrorIndicator errors={processedErrors} className="absolute -top-2 -right-2 w-6 h-6" />
-          )}
+          {hasErrors && <ErrorIndicator errors={processedErrors} />}
         </BaseNodeHeader>
         <BaseNodeContent>
           <div className="text-sm text-muted-foreground">
