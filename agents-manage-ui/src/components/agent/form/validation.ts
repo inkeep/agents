@@ -84,22 +84,24 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     z.looseObject({
       id: z.string().trim().nonempty(),
       name: z.string().trim().nonempty(),
-      description: z.string().trim(),
-      skills: z.array(
-        z.strictObject({
-          id: z.string().trim(),
-          index: z.int().positive(),
-          alwaysLoaded: z.boolean().optional(),
-          // description: z.string().trim(),
-        })
-      ),
-      prompt: z.string().trim(),
+      description: z.string().trim().nullish(),
+      skills: z
+        .array(
+          z.strictObject({
+            id: z.string().trim(),
+            index: z.int().positive(),
+            alwaysLoaded: z.boolean().optional(),
+            // description: z.string().trim(),
+          })
+        )
+        .optional(),
+      prompt: z.string().trim().optional(),
       // TODO: use updateDefaultSubAgent logic
       isDefault: z.boolean().optional(),
-      models: MyModelsSchema,
-      stopWhen: SubAgentStopWhenSchema.nullable(),
-      dataComponents: z.array(z.string()),
-      artifactComponents: z.array(z.string()),
+      models: MyModelsSchema.partial(),
+      stopWhen: SubAgentStopWhenSchema,
+      dataComponents: z.array(z.string()).optional(),
+      artifactComponents: z.array(z.string()).optional(),
     })
     // )
   ),
@@ -130,7 +132,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       id: z.string().trim(),
       baseUrl: z.url(),
       name: z.string().trim(),
-      description: z.string().trim(),
+      description: z.string().trim().nullish(),
       // TODO or tempHeaders
       headers: StringToStringRecordSchema,
     })
@@ -191,6 +193,23 @@ export function serializeAgentForm(data: FullAgentResponse) {
     tools = {},
   } = data;
 
+  function serializeModels(models: NonNullable<typeof data.models>) {
+    return {
+      base: {
+        ...models.base,
+        providerOptions: serializeJson(models.base?.providerOptions),
+      },
+      structuredOutput: {
+        ...models.structuredOutput,
+        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
+      },
+      summarizer: {
+        ...models.summarizer,
+        providerOptions: serializeJson(models.summarizer?.providerOptions),
+      },
+    };
+  }
+
   return {
     id,
     name,
@@ -212,21 +231,16 @@ export function serializeAgentForm(data: FullAgentResponse) {
     stopWhen: {
       transferCountIs: stopWhen?.transferCountIs ?? 10,
     },
-    models: {
-      base: {
-        ...models.base,
-        providerOptions: serializeJson(models.base?.providerOptions),
-      },
-      structuredOutput: {
-        ...models.structuredOutput,
-        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
-      },
-      summarizer: {
-        ...models.summarizer,
-        providerOptions: serializeJson(models.summarizer?.providerOptions),
-      },
-    },
-    subAgents,
+    models: serializeModels(models),
+    subAgents: Object.fromEntries(
+      Object.entries(subAgents).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          models: serializeModels(value.models ?? {}),
+        },
+      ])
+    ),
     functionTools: Object.fromEntries(
       Object.values(functions).map((tool) => [
         tool.id,
@@ -238,8 +252,34 @@ export function serializeAgentForm(data: FullAgentResponse) {
         },
       ])
     ),
-    externalAgents,
-    teamAgents,
-    tools,
+    externalAgents: Object.fromEntries(
+      Object.values(externalAgents).map((o) => [
+        o.id,
+        {
+          ...o,
+          // @ts-expect-error
+          headers: serializeJson(o.headers),
+        },
+      ])
+    ),
+    teamAgents: Object.fromEntries(
+      Object.values(teamAgents).map((o) => [
+        o.id,
+        {
+          ...o,
+          // @ts-expect-error
+          headers: serializeJson(o.headers),
+        },
+      ])
+    ),
+    tools: Object.fromEntries(
+      Object.values(tools).map((o) => [
+        o.id,
+        {
+          ...o,
+          headers: serializeJson(o.headers),
+        },
+      ])
+    ),
   };
 }
