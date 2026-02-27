@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import {
-  configureComposioMCPServer,
   type CredentialStuffer,
+  configureComposioMCPServer,
   type FullExecutionContext,
   isGithubWorkAppTool,
   JsonTransformer,
