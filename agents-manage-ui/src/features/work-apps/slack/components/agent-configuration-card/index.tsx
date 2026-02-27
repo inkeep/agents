@@ -96,9 +96,7 @@ export function AgentConfigurationCard() {
     if (!teamId) return;
     try {
       const settings = await slackApi.getWorkspaceSettings(teamId);
-      if (settings.defaultAgent) {
-        setDefaultAgent(settings.defaultAgent);
-      }
+      setDefaultAgent(settings.defaultAgent ?? null);
     } catch {
       console.log('No saved workspace settings found');
     }
