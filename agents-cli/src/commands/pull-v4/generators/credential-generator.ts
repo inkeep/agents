@@ -5,8 +5,6 @@ import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils
 
 const MySchema = FullProjectDefinitionSchema.shape.credentialReferences.unwrap().valueType.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
   createdBy: true,
 });
 

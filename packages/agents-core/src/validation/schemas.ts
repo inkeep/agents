@@ -1833,6 +1833,9 @@ export const CredentialReferenceInsertSchema = createInsertSchema(credentialRefe
   type: z.string(),
   credentialStoreId: ResourceIdSchema,
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
+}).omit({
+    createdAt: true,
+    updatedAt: true
 });
 
 export const CredentialReferenceUpdateSchema = CredentialReferenceInsertSchema.partial();
