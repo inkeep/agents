@@ -157,10 +157,7 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     },
     {
       title: 'Agent Settings',
-      errors: Object.entries(rest).map(([field, value]) => ({
-        field,
-        message: firstNestedMessage(value),
-      })),
+      errors: processMessagesWithNodeId({ '': rest }),
       onNavigate() {
         setQueryState({ pane: 'agent', nodeId: null, edgeId: null });
       },

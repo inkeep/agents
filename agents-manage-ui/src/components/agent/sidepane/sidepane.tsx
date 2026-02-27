@@ -92,7 +92,7 @@ export function SidePane({
     return { heading, HeadingIcon };
   })();
 
-  const editorContent = (() => {
+  function renderContent() {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }
@@ -160,7 +160,7 @@ export function SidePane({
       return <EdgeEditor selectedEdge={selectedEdge as Edge} />;
     }
     return <MetadataEditor />;
-  })();
+  }
 
   const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
   const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
@@ -178,6 +178,11 @@ export function SidePane({
       : backToAgent;
 
   const showBackButton = selectedNode || selectedEdge;
+  const editorContentKey = selectedNodeId
+    ? `node:${selectedNodeId}`
+    : selectedEdgeId
+      ? `edge:${selectedEdgeId}`
+      : 'agent';
 
   return (
     <SidePaneLayout.Root>
@@ -195,8 +200,13 @@ export function SidePane({
         <SidePaneLayout.CloseButton onClick={onClose} />
       </SidePaneLayout.Header>
       <SidePaneLayout.Content>
-        <fieldset disabled={disabled} className="contents">
-          {editorContent}
+        <fieldset
+          // Remount editor when selection changes to avoid a one-frame stale render from previous node/edge data.
+          key={editorContentKey}
+          disabled={disabled}
+          className="contents"
+        >
+          {renderContent()}
         </fieldset>
       </SidePaneLayout.Content>
     </SidePaneLayout.Root>
