@@ -134,28 +134,28 @@ const envSchema = z
       .optional()
       .describe('Public SigNoz URL accessible from the browser'),
 
-  // AI Providers
-  ANTHROPIC_API_KEY: z
-    .string()
-    .describe(
-      'Anthropic API key for Claude models (required for agent execution). Get from https://console.anthropic.com/'
-    ),
-  OPENAI_API_KEY: z
-    .string()
-    .optional()
-    .describe('OpenAI API key for GPT models. Get from https://platform.openai.com/'),
-  GOOGLE_GENERATIVE_AI_API_KEY: z
-    .string()
-    .optional()
-    .describe('Google Generative AI API key for Gemini models'),
+    // AI Providers
+    ANTHROPIC_API_KEY: z
+      .string()
+      .describe(
+        'Anthropic API key for Claude models (required for agent execution). Get from https://console.anthropic.com/'
+      ),
+    OPENAI_API_KEY: z
+      .string()
+      .optional()
+      .describe('OpenAI API key for GPT models. Get from https://platform.openai.com/'),
+    GOOGLE_GENERATIVE_AI_API_KEY: z
+      .string()
+      .optional()
+      .describe('Google Generative AI API key for Gemini models'),
 
-  // Dev Tools MCP Server
-  EXA_API_KEY: z
-    .string()
-    .optional()
-    .describe(
-      'Exa API key for web search and find-similar tools in the dev-tools MCP server. Get from https://dashboard.exa.ai/'
-    ),
+    // Dev Tools MCP Server
+    EXA_API_KEY: z
+      .string()
+      .optional()
+      .describe(
+        'Exa API key for web search and find-similar tools in the dev-tools MCP server. Get from https://dashboard.exa.ai/'
+      ),
 
     // GitHub App Configuration
     GITHUB_APP_ID: z.string().optional().describe('GitHub App ID for GitHub integration'),
