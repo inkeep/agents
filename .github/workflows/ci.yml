@@ -76,7 +76,7 @@ jobs:
           docker run --rm --init -d --name playwright-server \
             --network host \
             mcr.microsoft.com/playwright:v1.58.0-noble \
-            /bin/sh -c "npx -y playwright@1.58.2 run-server --port 3100 --host 0.0.0.0"
+            /bin/sh -c "npx -y playwright@1.58.0 run-server --port 3100 --host 0.0.0.0"
           echo "Waiting for Playwright server..."
           for i in $(seq 1 30); do
             if nc -z 127.0.0.1 3100 2>/dev/null; then
@@ -85,6 +85,11 @@ jobs:
             fi
             sleep 1
           done
+          if ! nc -z 127.0.0.1 3100 2>/dev/null; then
+            echo "::error::Playwright server failed to start within 30s"
+            docker logs playwright-server || true
+            exit 1
+          fi
 
       # Clean database files before running tests
       - name: Clean database files
