@@ -7,7 +7,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     McpClient: vi.fn(),
-    buildComposioMCPUrl: vi.fn((url: string) => url),
+    configureComposioMCPServer: vi.fn(),
     isGithubWorkAppTool: vi.fn(() => false),
   };
 });
