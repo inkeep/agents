@@ -28,10 +28,12 @@ export function GenericPromptEditor<
   label,
   className,
   placeholder,
+  readOnly,
   ...props
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   className?: string;
   placeholder: string;
+  readOnly?: boolean;
   uri?: ComponentProps<typeof PromptEditor>['uri'];
 }) {
   'use memo';
@@ -60,7 +62,7 @@ export function GenericPromptEditor<
                 className={cn(!open && 'max-h-96', 'min-h-16', className)}
                 hasDynamicHeight={!open}
                 placeholder={placeholder}
-                // aria-labelledby={id}
+                readOnly={readOnly}
                 {...field}
               />
             </FormControl>
