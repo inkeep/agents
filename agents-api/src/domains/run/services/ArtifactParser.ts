@@ -1,6 +1,6 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
-import { SENTINEL_KEY } from '../constants/artifact-syntax';
 import { getLogger } from '../../../logger';
+import { SENTINEL_KEY } from '../constants/artifact-syntax';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
