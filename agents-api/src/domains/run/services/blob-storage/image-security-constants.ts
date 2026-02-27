@@ -1,8 +1,4 @@
-/**
- * Shared limits and allowlists for image safety checks.
- * Allowed image MIME types come from run/constants/allowed-image-formats (single source of truth).
- */
-import { ALLOWED_IMAGE_MIME_TYPES } from '../../constants/allowed-image-formats';
+import { ALLOWED_IMAGE_MIME_TYPES } from '@inkeep/agents-core/constants/allowed-image-formats';
 
 export const MAX_EXTERNAL_IMAGE_BYTES = 10 * 1024 * 1024;
 

@@ -76,12 +76,6 @@ export class FailedToDownloadError extends ImageSecurityError {
   }
 }
 
-export class BlockedNonImageContentTypeError extends ImageSecurityError {
-  constructor(contentType: string) {
-    super(`Blocked external image with non-image content-type: ${contentType}`);
-  }
-}
-
 export class BlockedExternalImageLargerThanError extends ImageSecurityError {
   constructor(maxBytes: number, contentLength: string) {
     super(`Blocked external image larger than ${maxBytes} bytes: ${contentLength}`);

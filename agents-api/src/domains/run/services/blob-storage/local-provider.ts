@@ -1,5 +1,6 @@
 import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getMimeTypeFromExtension } from '@inkeep/agents-core/constants/allowed-image-formats';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import type {
@@ -70,19 +71,7 @@ export class LocalBlobStorageProvider implements BlobStorageProvider {
     const filePath = this.keyToPath(key);
     try {
       const buf = await readFile(filePath);
-      const ext = path.extname(key).toLowerCase();
-      const contentType =
-        ext === '.png'
-          ? 'image/png'
-          : ext === '.jpg' || ext === '.jpeg'
-            ? 'image/jpeg'
-            : ext === '.gif'
-              ? 'image/gif'
-              : ext === '.webp'
-                ? 'image/webp'
-                : ext === '.svg'
-                  ? 'image/svg+xml'
-                  : 'application/octet-stream';
+      const contentType = getMimeTypeFromExtension(path.extname(key));
       return {
         data: new Uint8Array(buf),
         contentType,
