@@ -31,6 +31,11 @@ if (isolatedIdx !== -1 && (!isolatedName || isolatedName.startsWith('-'))) {
   process.exit(1);
 }
 
+if (isolatedName && !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$/.test(isolatedName)) {
+  console.error('Error: environment name must be 1-63 chars starting with alphanumeric, containing only [a-zA-Z0-9._-]');
+  process.exit(1);
+}
+
 if (isolatedName) {
   // Isolated mode: delegate Docker + migrations + auth to isolated-env.sh,
   // then run the remaining setup steps (secrets, project push) via runSetup.
@@ -56,18 +61,32 @@ if (isolatedName) {
   // Read the isolated env's ports and set env vars so runSetup's
   // remaining steps (secrets, project push) use the right databases.
   const stateFile = `.isolated-envs/${isolatedName}.json`;
-  if (existsSync(stateFile)) {
-    const state = JSON.parse(readFileSync(stateFile, 'utf-8'));
-    const p = state.ports;
-    process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL = `postgresql://appuser:password@localhost:${p.doltgres}/inkeep_agents`;
-    process.env.INKEEP_AGENTS_RUN_DATABASE_URL = `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
-    process.env.SPICEDB_ENDPOINT = `localhost:${p.spicedb_grpc}`;
+  if (!existsSync(stateFile)) {
+    console.error(`Error: state file ${stateFile} not found — isolated-env.sh may have failed`);
+    process.exit(1);
   }
+
+  let state;
+  try {
+    state = JSON.parse(readFileSync(stateFile, 'utf-8'));
+  } catch (e) {
+    console.error(`Error: failed to parse ${stateFile}: ${e.message}`);
+    process.exit(1);
+  }
+
+  const p = state.ports;
+  process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL =
+    `postgresql://appuser:password@localhost:${p.doltgres}/inkeep_agents`;
+  process.env.INKEEP_AGENTS_RUN_DATABASE_URL =
+    `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
+  process.env.SPICEDB_ENDPOINT = `localhost:${p.spicedb_grpc}`;
 
   // Run remaining setup steps (secrets generation, project push) but skip
   // Docker startup + migrations + auth (already done by isolated-env.sh).
+  // Using isCloud: false so database URL validation still runs against the
+  // isolated env vars we just set above.
   await runSetup({
-    dockerComposeFile: 'docker-compose.dbs.yml',
+    dockerComposeFile: 'docker-compose.isolated.yml',
     manageMigrateCommand: 'true',
     runMigrateCommand: 'true',
     authInitCommand: 'true',
@@ -80,7 +99,7 @@ if (isolatedName) {
         },
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: 'http://localhost:3002/health',
-    isCloud: true,
+    isCloud: false,
     skipPush,
   });
 

@@ -18,6 +18,14 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/docker-compose.isolated.yml"
 STATE_DIR="$REPO_ROOT/.isolated-envs"
 
+validate_name() {
+  local name="$1"
+  if [[ ! "$name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$ ]]; then
+    echo "Error: name must be 1-63 chars starting with alphanumeric, containing only [a-zA-Z0-9._-]." >&2
+    exit 1
+  fi
+}
+
 usage() {
   cat <<EOF
 Usage: $0 <command> [name]
@@ -71,10 +79,15 @@ discover_port() {
 
   local result
   result=$($compose -p "$project" -f "$COMPOSE_FILE" port "$service" "$container_port" 2>/dev/null) || {
-    echo "0"
-    return
+    echo ""
+    return 1
   }
-  echo "${result##*:}"
+  local port="${result##*:}"
+  if [ -z "$port" ] || [ "$port" = "0" ]; then
+    echo ""
+    return 1
+  fi
+  echo "$port"
 }
 
 # Wait for a service to become healthy (up to 60s)
@@ -89,12 +102,13 @@ wait_healthy() {
     local status
     status=$($compose -p "$project" -f "$COMPOSE_FILE" ps --format json "$service" 2>/dev/null | python3 -c "
 import sys, json
-for line in sys.stdin:
-    line = line.strip()
-    if not line: continue
-    obj = json.loads(line)
+raw = sys.stdin.read().strip()
+if not raw:
+    print('unknown')
+else:
+    data = json.loads(raw) if raw.startswith('[') else [json.loads(l) for l in raw.splitlines() if l.strip()]
+    obj = data[0] if data else {}
     print(obj.get('Health', obj.get('health', 'unknown')))
-    break
 " 2>/dev/null) || status="unknown"
 
     if [ "$status" = "healthy" ]; then
@@ -111,26 +125,39 @@ save_state() {
   local name="$1" project="$2"
 
   local doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port
-  doltgres_port=$(discover_port "$project" "doltgres-db" "5432")
-  postgres_port=$(discover_port "$project" "postgres-db" "5432")
-  spicedb_grpc_port=$(discover_port "$project" "spicedb" "50051")
-  spicedb_http_port=$(discover_port "$project" "spicedb" "8443")
-  spicedb_pg_port=$(discover_port "$project" "spicedb-postgres" "5432")
+  doltgres_port=$(discover_port "$project" "doltgres-db" "5432") || true
+  postgres_port=$(discover_port "$project" "postgres-db" "5432") || true
+  spicedb_grpc_port=$(discover_port "$project" "spicedb" "50051") || true
+  spicedb_http_port=$(discover_port "$project" "spicedb" "8443") || true
+  spicedb_pg_port=$(discover_port "$project" "spicedb-postgres" "5432") || true
+
+  # Validate all ports were discovered
+  local failed=false
+  for var_name in doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port; do
+    if [ -z "${!var_name}" ]; then
+      echo "Error: failed to discover port for $var_name. Are containers running?" >&2
+      failed=true
+    fi
+  done
+  if [ "$failed" = true ]; then
+    return 1
+  fi
 
   mkdir -p "$STATE_DIR"
-  cat > "$STATE_DIR/${name}.json" <<EOF
-{
-  "name": "$name",
-  "project": "$project",
-  "ports": {
-    "doltgres": $doltgres_port,
-    "postgres": $postgres_port,
-    "spicedb_grpc": $spicedb_grpc_port,
-    "spicedb_http": $spicedb_http_port,
-    "spicedb_pg": $spicedb_pg_port
-  }
-}
-EOF
+  python3 -c "
+import json, sys
+print(json.dumps({
+    'name': sys.argv[1],
+    'project': sys.argv[2],
+    'ports': {
+        'doltgres': int(sys.argv[3]),
+        'postgres': int(sys.argv[4]),
+        'spicedb_grpc': int(sys.argv[5]),
+        'spicedb_http': int(sys.argv[6]),
+        'spicedb_pg': int(sys.argv[7]),
+    }
+}, indent=2))" "$name" "$project" "$doltgres_port" "$postgres_port" \
+    "$spicedb_grpc_port" "$spicedb_http_port" "$spicedb_pg_port" > "$STATE_DIR/${name}.json"
 
   echo "Ports assigned:"
   echo "  Doltgres (manage DB):  localhost:$doltgres_port"
@@ -176,7 +203,11 @@ cmd_up() {
   done
 
   echo ""
-  save_state "$name" "$project"
+  if ! save_state "$name" "$project"; then
+    echo "Error: failed to save state. Tearing down containers..." >&2
+    COMPOSE_PROJECT_NAME="$project" $compose -f "$COMPOSE_FILE" down -v 2>/dev/null
+    return 1
+  fi
 
   echo ""
   echo "To connect your app, run:"
@@ -300,14 +331,17 @@ shift
 case "$CMD" in
   up)
     [ $# -lt 1 ] && { echo "Error: 'up' requires a name"; usage; }
+    validate_name "$1"
     cmd_up "$1"
     ;;
   setup)
     [ $# -lt 1 ] && { echo "Error: 'setup' requires a name"; usage; }
+    validate_name "$1"
     cmd_setup "$1"
     ;;
   down)
     [ $# -lt 1 ] && { echo "Error: 'down' requires a name"; usage; }
+    validate_name "$1"
     cmd_down "$1"
     ;;
   status)
@@ -315,6 +349,7 @@ case "$CMD" in
     ;;
   env)
     [ $# -lt 1 ] && { echo "Error: 'env' requires a name"; usage; }
+    validate_name "$1"
     cmd_env "$1"
     ;;
   *)
