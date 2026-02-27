@@ -1,8 +1,9 @@
 'use client';
 
-import { CheckCircle2, ExternalLink, Link2, Loader2, XCircle } from 'lucide-react';
+import { Link2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { useSlackLinkedUsersQuery } from '../api/queries';
 import { useSlack } from '../context/slack-provider';
 import { getSlackProfileUrl } from '../utils/slack-urls';
@@ -34,14 +35,20 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Link2 className="h-4 w-4" />
-          Your Account Link
-        </CardTitle>
-        <CardDescription className="text-xs">
-          Connect your Slack and Inkeep accounts
-        </CardDescription>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-base font-medium"> Your Account Link</span>
+          </CardTitle>
+          {!isLoading && myLink && <Badge variant="success">Active</Badge>}
+          {!isLoading && !myLink && (
+            <Badge className="uppercase" variant="code">
+              Inactive
+            </Badge>
+          )}
+        </div>
+        <CardDescription>Connect your Slack and Inkeep accounts</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -49,50 +56,44 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         ) : myLink ? (
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
-            <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-medium">Account Linked</p>
-                <Badge variant="success">Active</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Linked as{' '}
-                <span className="font-medium">{myLink.slackUsername || myLink.slackEmail}</span>
-                {myLink.linkedAt && <> on {formatDate(myLink.linkedAt)}</>}
-                {myLink.slackUserId && (
-                  <>
-                    {' \u00b7 '}
-                    <a
-                      href={getSlackProfileUrl(myLink.slackUserId, selectedWorkspace?.teamDomain)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-0.5 text-primary hover:underline"
-                    >
-                      View in Slack
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </>
-                )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
+                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="sr-only">Connected</span>
+              </span>
+              <p className="text-sm text-muted-foreground">
+                {'Connected as '}
+                <span className="text-foreground font-medium">
+                  {myLink.slackUsername || myLink.slackEmail}
+                </span>{' '}
+                on {formatDate(myLink.linkedAt)}
               </p>
             </div>
+
+            <ExternalLink
+              href={getSlackProfileUrl(myLink.slackUserId, selectedWorkspace?.teamDomain)}
+              className="text-xs"
+            >
+              View in Slack
+            </ExternalLink>
           </div>
         ) : (
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border">
-            <XCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Not Linked</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Run{' '}
-                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
-                  /inkeep link
-                </code>{' '}
-                in Slack to connect your accounts.
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Linking enables personalized responses and lets you configure channel settings.
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-2 w-2 rounded-full bg-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">Not connected</p>
             </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {'Run '}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground">
+                /inkeep link
+              </code>
+              {
+                ' in Slack to connect your accounts. Linking enables personalized responses and lets you configure channel settings.'
+              }
+            </p>
           </div>
         )}
       </CardContent>
