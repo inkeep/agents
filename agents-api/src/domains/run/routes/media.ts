@@ -21,9 +21,19 @@ app.get('/*', async (c) => {
 
   const url = new URL(c.req.url);
   const pathAfterMedia = url.pathname.split('/media/')[1];
-  const mediaKey = decodeURIComponent(pathAfterMedia ?? '');
+  let mediaKey: string;
+  try {
+    mediaKey = decodeURIComponent(pathAfterMedia ?? '');
+  } catch {
+    return c.json({ error: 'Invalid media key' }, 400);
+  }
 
-  if (!mediaKey) {
+  if (
+    !mediaKey ||
+    mediaKey.includes('\0') ||
+    mediaKey.includes('\\') ||
+    mediaKey.split('/').some((segment) => segment === '..')
+  ) {
     return c.json({ error: 'Invalid media key' }, 400);
   }
 
