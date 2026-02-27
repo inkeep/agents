@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.53.8",
+  "version": "0.53.11",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -50,6 +50,8 @@
   },
   "dependencies": {
     "@ai-sdk/google": "3.0.4",
+    "@aws-sdk/client-s3": "^3.985.0",
+    "@smithy/node-http-handler": "^4.4.0",
     "@hono/mcp": "^0.1.5",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.1.5",
@@ -68,6 +70,7 @@
     "@opentelemetry/sdk-node": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
+    "@vercel/blob": "^2.3.0",
     "@vercel/functions": "^1.4.0",
     "@vercel/sandbox": "^0.0.24",
     "@workflow/builders": "^4.0.1-beta.45",

@@ -1,25 +1,15 @@
 'use client';
 
 import { XCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
 import { STATIC_LABELS } from '@/constants/theme';
-import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useSignOut } from '@/hooks/use-sign-out';
 
 export default function NoOrganizationPage() {
-  const router = useRouter();
   const { user } = useAuthSession();
-  const authClient = useAuthClient();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    await authClient.signOut();
-    router.push('/login');
-  };
+  const handleSignOut = useSignOut();
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -29,23 +19,13 @@ export default function NoOrganizationPage() {
         showRetry={false}
         description={
           <div className="flex flex-col space-y-5">
-            {isSigningOut ? (
-              <p>Signing out...</p>
-            ) : (
-              <p>
-                Your account{' '}
-                {user?.email ? <span className="font-semibold">{user?.email}</span> : ''} is not
-                associated with any organization. Please contact your organization administrator to
-                request access.
-              </p>
-            )}
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              className="w-full"
-              disabled={isSigningOut}
-            >
-              {isSigningOut ? 'Signing out...' : 'Sign Out'}
+            <p>
+              Your account {user?.email ? <span className="font-semibold">{user?.email}</span> : ''}{' '}
+              is not associated with any organization. Please contact your organization
+              administrator to request access.
+            </p>
+            <Button onClick={handleSignOut} variant="outline" className="w-full">
+              Sign Out
             </Button>
           </div>
         }

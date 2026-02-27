@@ -3,9 +3,9 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  buildComposioMCPUrl,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  configureComposioMCPServer,
   createMessage,
   type DataComponentApiInsert,
   type DataPart,
@@ -1283,16 +1283,14 @@ export class Agent {
       };
     }
 
-    // Inject user_id for Composio servers at runtime
-    if (serverConfig.url) {
-      serverConfig.url = buildComposioMCPUrl(
-        serverConfig.url.toString(),
-        this.config.tenantId,
-        this.config.projectId,
-        isUserScoped ? 'user' : 'project',
-        userId
-      );
-    }
+    // Inject user_id and x-api-key for Composio servers at runtime
+    configureComposioMCPServer(
+      serverConfig,
+      this.config.tenantId,
+      this.config.projectId,
+      isUserScoped ? 'user' : 'project',
+      userId
+    );
 
     // Merge forwarded headers (user session auth) into server config
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {

@@ -30,7 +30,7 @@ import {
 
 const logger = getLogger('slack-streaming');
 
-const STREAM_TIMEOUT_MS = 600_000;
+const STREAM_TIMEOUT_MS = 1800_000; // 30 minutes
 const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;
@@ -63,17 +63,24 @@ async function cleanupThinkingMessage(params: {
   threadTs?: string;
   slackUserId: string;
   agentName: string;
-  question: string;
+  rawMessageText: string;
 }): Promise<void> {
-  const { slackClient, channel, thinkingMessageTs, threadTs, slackUserId, agentName, question } =
-    params;
+  const {
+    slackClient,
+    channel,
+    thinkingMessageTs,
+    threadTs,
+    slackUserId,
+    agentName,
+    rawMessageText,
+  } = params;
 
   if (!thinkingMessageTs) return;
 
   try {
     if (thinkingMessageTs === threadTs) {
-      const text = question
-        ? `<@${slackUserId}> to ${agentName}: "${question}"`
+      const text = rawMessageText
+        ? `<@${slackUserId}> to ${agentName}: "${rawMessageText}"`
         : `<@${slackUserId}> invoked _${agentName}_`;
       await slackClient.chat.update({
         channel,
@@ -108,6 +115,7 @@ export async function streamAgentResponse(params: {
   projectId: string;
   agentId: string;
   question: string;
+  rawMessageText?: string;
   agentName: string;
   conversationId: string;
   entryPoint?: string;
@@ -124,11 +132,13 @@ export async function streamAgentResponse(params: {
       projectId,
       agentId,
       question,
+      rawMessageText: rawMessageTextParam,
       agentName,
       conversationId,
       entryPoint,
     } = params;
 
+    const rawMessageText = rawMessageTextParam ?? question;
     const threadParam = threadTs ? { thread_ts: threadTs } : {};
     const cleanupParams = {
       slackClient,
@@ -137,7 +147,7 @@ export async function streamAgentResponse(params: {
       threadTs,
       slackUserId,
       agentName,
-      question,
+      rawMessageText,
     };
 
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);

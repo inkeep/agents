@@ -1,5 +1,41 @@
 # @inkeep/agents-api
 
+## 0.53.11
+
+### Patch Changes
+
+- e094c16: Improve Agent Card fetch error diagnostics by logging response body on failure
+- 5061d64: Add blob storage abstraction (S3 and Vercel Blob providers)
+  - @inkeep/agents-core@0.53.11
+  - @inkeep/agents-mcp@0.53.11
+  - @inkeep/agents-work-apps@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [7299f4a]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-work-apps@0.53.10
+  - @inkeep/agents-mcp@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [8a0c90c]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+  - @inkeep/agents-work-apps@0.53.9
+  - @inkeep/agents-mcp@0.53.9
+
 ## 0.53.8
 
 ### Patch Changes

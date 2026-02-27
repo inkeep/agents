@@ -103,6 +103,7 @@ export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
   dbClient: AgentsRunDatabaseClient;
+  manageDbPool?: import('pg').Pool;
   cookieDomain?: string;
   ssoProviders?: SSOProviderConfig[];
   socialProviders?: {
@@ -434,23 +435,29 @@ export function createAuth(config: BetterAuthConfig) {
           },
           beforeRemoveMember: async ({ member, organization: org }) => {
             try {
-              const { revokeAllUserRelationships } = await import('./authz/sync');
+              if (config.manageDbPool) {
+                const { cleanupUserScheduledTriggers } = await import('./cleanup');
+                await cleanupUserScheduledTriggers({
+                  tenantId: org.id,
+                  userId: member.userId,
+                  runDb: config.dbClient,
+                  manageDbPool: config.manageDbPool,
+                });
+              }
 
-              // Remove all SpiceDB relationships for this user within the organization
-              // This includes both organization-level and project-level relationships
+              const { revokeAllUserRelationships } = await import('./authz/sync');
               await revokeAllUserRelationships({
                 tenantId: org.id,
                 userId: member.userId,
               });
 
               console.log(
-                `🔐 SpiceDB: Preparing to remove member ${member.userId} - revoked all relationships in org ${org.name}`
+                `🔐 Preparing to remove member ${member.userId} - cleaned up triggers and revoked all relationships in org ${org.name}`
               );
             } catch (error) {
-              console.error('❌ SpiceDB cleanup failed before member removal:', error);
-              // Re-throw to prevent member removal if SpiceDB cleanup fails
+              console.error('❌ Cleanup failed before member removal:', error);
               throw new Error(
-                `Failed to clean up user permissions: ${error instanceof Error ? error.message : 'Unknown error'}`
+                `Failed to clean up user data: ${error instanceof Error ? error.message : 'Unknown error'}`
               );
             }
           },

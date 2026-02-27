@@ -7,6 +7,10 @@ export function createErrorMessage(message: string) {
   return Message().blocks(Blocks.Section().text(message)).buildToObject();
 }
 
+export function createContextBlockFromText(text: string) {
+  return { type: 'context' as const, elements: [{ type: 'mrkdwn' as const, text }] };
+}
+
 export interface ContextBlockParams {
   agentName: string;
 }
@@ -198,7 +202,7 @@ export function buildToolApprovalBlocks(params: {
   const blocks: any[] = [
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Approval required - \`${escapeSlackMrkdwn(toolName)}\`*` },
+      text: { type: 'mrkdwn', text: `Approval required for *${escapeSlackMrkdwn(toolName)}*` },
     },
   ];
 
@@ -246,8 +250,8 @@ export function buildToolApprovalDoneBlocks(params: {
 }) {
   const { toolName, approved, actorUserId } = params;
   const statusText = approved
-    ? `✅ Approved \`${escapeSlackMrkdwn(toolName)}\` · <@${actorUserId}>`
-    : `❌ Denied \`${escapeSlackMrkdwn(toolName)}\` · <@${actorUserId}>`;
+    ? `✅ <@${actorUserId}> approved *${escapeSlackMrkdwn(toolName)}*`
+    : `❌ <@${actorUserId}> denied *${escapeSlackMrkdwn(toolName)}*`;
 
   return [{ type: 'context', elements: [{ type: 'mrkdwn', text: statusText }] }];
 }
@@ -387,7 +391,7 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
         blocks: [
           {
             type: 'section',
-            text: { type: 'mrkdwn', text: `📚 *Sources*\n${lines.join('\n')}${suffix}` },
+            text: { type: 'mrkdwn', text: `*Sources*\n${lines.join('\n')}${suffix}` },
           },
         ],
       };
@@ -439,7 +443,7 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   return [
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `📚 *Sources*\n${lines.join('\n')}${suffix}` },
+      text: { type: 'mrkdwn', text: `*Sources*\n${lines.join('\n')}${suffix}` },
     },
   ];
 }

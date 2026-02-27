@@ -53,6 +53,7 @@ const AgentSchema = z.looseObject({
     .optional(),
   credentials: z.array(z.union([z.string(), z.strictObject({ id: z.string() })])).optional(),
   triggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
+  scheduledTriggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),
@@ -68,6 +69,7 @@ interface AgentReferenceNames {
   contextConfig?: string;
   contextHeaders?: string;
   triggers: ReferenceNameMap;
+  scheduledTriggers: ReferenceNameMap;
   statusComponents: ReferenceNameMap;
 }
 
@@ -160,6 +162,14 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
   );
   addTriggerImports(sourceFile, triggerReferenceNames);
 
+  const scheduledTriggerIds = parsed.scheduledTriggers ? extractIds(parsed.scheduledTriggers) : [];
+  const scheduledTriggerReferenceNames = createReferenceNameMap(
+    scheduledTriggerIds,
+    reservedReferenceNames,
+    'ScheduledTrigger'
+  );
+  addScheduledTriggerImports(sourceFile, scheduledTriggerReferenceNames);
+
   const statusComponentReferenceNames = createReferenceNameMap(
     extractStatusComponentIds(parsed.statusUpdates),
     reservedReferenceNames,
@@ -172,6 +182,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
     contextConfig: contextConfigReferenceName,
     contextHeaders: contextHeadersReferenceName,
     triggers: triggerReferenceNames,
+    scheduledTriggers: scheduledTriggerReferenceNames,
     statusComponents: statusComponentReferenceNames,
   });
   return sourceFile;
@@ -257,6 +268,15 @@ function writeAgentConfig(
       configObject,
       'triggers',
       triggerIds.map((id) => referenceNames.triggers.get(id) ?? toCamelCase(id))
+    );
+  }
+
+  const scheduledTriggerIds = data.scheduledTriggers ? extractIds(data.scheduledTriggers) : [];
+  if (scheduledTriggerIds.length > 0) {
+    addReferenceGetterProperty(
+      configObject,
+      'scheduledTriggers',
+      scheduledTriggerIds.map((id) => referenceNames.scheduledTriggers.get(id) ?? toCamelCase(id))
     );
   }
 
@@ -396,6 +416,21 @@ function addTriggerImports(sourceFile: SourceFile, referenceNames: ReferenceName
         importName === referenceName ? importName : { name: importName, alias: referenceName },
       ],
       moduleSpecifier: `./triggers/${triggerId}`,
+    });
+  }
+}
+
+function addScheduledTriggerImports(
+  sourceFile: SourceFile,
+  referenceNames: ReferenceNameMap
+): void {
+  for (const [scheduledTriggerId, referenceName] of referenceNames) {
+    const importName = toCamelCase(scheduledTriggerId);
+    sourceFile.addImportDeclaration({
+      namedImports: [
+        importName === referenceName ? importName : { name: importName, alias: referenceName },
+      ],
+      moduleSpecifier: `./scheduled-triggers/${scheduledTriggerId}`,
     });
   }
 }
