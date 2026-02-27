@@ -36,7 +36,7 @@ export interface SystemPromptV1 {
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
-  allProjectArtifactComponents?: ArtifactComponentApiInsert[]; // All artifact components across all agents in the project
+  allProjectArtifactComponents?: ArtifactComponentApiInsert[];
   hasAgentArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities

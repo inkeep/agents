@@ -1853,7 +1853,7 @@ export class Agent {
     }
   }
 
-  private collectProjectArtifactComponents(): any[] {
+  private collectProjectArtifactComponents(): ArtifactComponentApiInsert[] {
     const project = this.executionContext.project;
     try {
       const agentDefinition = project.agents[this.config.agentId];
@@ -1862,7 +1862,7 @@ export class Agent {
       }
 
       const seen = new Set<string>();
-      const all: any[] = [];
+      const all: ArtifactComponentApiInsert[] = [];
       for (const ac of this.artifactComponents) {
         if (ac.name && !seen.has(ac.name)) {
           seen.add(ac.name);
@@ -1871,7 +1871,7 @@ export class Agent {
       }
       for (const subAgent of Object.values(agentDefinition.subAgents)) {
         if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
-          for (const ac of subAgent.artifactComponents as any[]) {
+          for (const ac of subAgent.artifactComponents as ArtifactComponentApiInsert[]) {
             if (ac.name && !seen.has(ac.name)) {
               seen.add(ac.name);
               all.push(ac);
