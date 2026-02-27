@@ -13,6 +13,7 @@ import { getLogger } from './logger';
 const logger = getLogger('agents-api-init');
 
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
+import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
 import { createAgentsAuth } from './factory';
@@ -89,12 +90,17 @@ const socialProviders =
       }
     : undefined;
 
-export const auth = createAgentsAuth({
-  ssoProviders: ssoProviders.filter(
-    (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
-  ),
-  socialProviders,
-});
+const emailService = createEmailService();
+
+export const auth = createAgentsAuth(
+  {
+    ssoProviders: ssoProviders.filter(
+      (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
+    ),
+    socialProviders,
+  },
+  emailService
+);
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();

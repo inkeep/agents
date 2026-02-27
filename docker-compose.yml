@@ -13,6 +13,10 @@ services:
       - PUBLIC_SIGNOZ_URL=${PUBLIC_SIGNOZ_URL:-http://localhost:3080}
       - SIGNOZ_URL=${SIGNOZ_URL:-http://host.docker.internal:3080}
       - SIGNOZ_API_KEY
+      - PUBLIC_IS_SMTP_CONFIGURED
+      - RESEND_API_KEY
+      - SMTP_HOST
+      - SMTP_FROM_ADDRESS
     ports:
       - "3000:3000"
     depends_on:
@@ -46,6 +50,15 @@ services:
       - INKEEP_AGENTS_JWT_SIGNING_SECRET
       - INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY
       - INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
+      - RESEND_API_KEY
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USER
+      - SMTP_PASSWORD
+      - SMTP_SECURE
+      - SMTP_FROM_ADDRESS
+      - SMTP_FROM_NAME
+      - SMTP_REPLY_TO
     ports:
       - "3002:3002"
     depends_on:
@@ -153,6 +166,13 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+  # Mailpit for local email testing
+  mailpit:
+    image: axllent/mailpit:v1.24.1
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    restart: unless-stopped
 volumes:
   inkeep-agents-doltgres-data:
   inkeep-agents-postgres-data:

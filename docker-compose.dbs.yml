@@ -79,6 +79,13 @@ services:
       timeout: 3s
       retries: 30
 
+  mailpit:
+    image: axllent/mailpit:v1.24.1
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    restart: unless-stopped
+
 volumes:
   doltgres-data:
   postgres-data:
