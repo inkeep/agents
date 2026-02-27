@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import { deleteScheduledTriggersByRunAsUserId } from '../data-access/manage/scheduledTriggers';
+import { deleteTriggersByRunAsUserId } from '../data-access/manage/triggers';
 import { listProjectsMetadata } from '../data-access/runtime/projects';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import * as schema from '../db/manage/manage-schema';
@@ -40,11 +41,17 @@ export async function cleanupUserScheduledTriggers(params: {
       withRef(
         manageDbPool,
         ref,
-        (db) =>
-          deleteScheduledTriggersByRunAsUserId(db)({ tenantId, projectId, runAsUserId: userId }),
+        async (db) => {
+          await deleteScheduledTriggersByRunAsUserId(db)({
+            tenantId,
+            projectId,
+            runAsUserId: userId,
+          });
+          await deleteTriggersByRunAsUserId(db)({ tenantId, projectId, runAsUserId: userId });
+        },
         {
           commit: true,
-          commitMessage: `Remove scheduled triggers for departing user ${userId}`,
+          commitMessage: `Remove triggers for departing user ${userId}`,
         }
       )
     )
