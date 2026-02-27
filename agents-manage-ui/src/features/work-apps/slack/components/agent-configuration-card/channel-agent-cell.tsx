@@ -21,6 +21,7 @@ interface ChannelAgentCellProps {
   channel: Channel;
   agents: SlackAgentOption[];
   savingChannel: string | null;
+  hasWorkspaceDefault: boolean;
   onSetAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
   onResetToDefault: (channelId: string, channelName: string) => void;
 }
@@ -29,6 +30,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
   channel,
   agents,
   savingChannel,
+  hasWorkspaceDefault,
   onSetAgent,
   onResetToDefault,
 }: ChannelAgentCellProps) {
@@ -53,9 +55,13 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
               <span className="min-w-0 truncate">
                 {getAgentDisplayName(agents, agentId, projectId)}
               </span>
-            ) : (
+            ) : hasWorkspaceDefault ? (
               <span className="min-w-0 truncate text-muted-foreground font-light">
                 Workspace default
+              </span>
+            ) : (
+              <span className="min-w-0 truncate text-amber-600 dark:text-amber-400 font-light">
+                No agent
               </span>
             )}
             <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
@@ -77,7 +83,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                       }}
                     >
                       <RotateCcw className="h-4 w-4" />
-                      Reset to workspace default
+                      Reset to workspace default{!hasWorkspaceDefault && ' (not set)'}
                     </CommandItem>
                   </CommandGroup>
                   <CommandSeparator />

@@ -1,9 +1,10 @@
 'use client';
 
-import { Layers2, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Layers2, Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -476,11 +477,24 @@ export function AgentConfigurationCard() {
             The default agent for all <Badge variant="code">@Inkeep</Badge> mentions and{' '}
             <Badge variant="code">/inkeep</Badge> commands in{' '}
             <span className="font-medium">{workspaceName}</span>.{' '}
-            {defaultAgent &&
-              `Used by ${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''}.`}
+            {defaultAgent
+              ? `Used by ${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''}.`
+              : channelsUsingDefault.length > 0
+                ? `${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''} without a dedicated agent.`
+                : null}
           </p>
         </CardHeader>
         <CardContent className="min-w-0 space-y-6">
+          {!defaultAgent && channels.length > 0 && (
+            <Alert variant="warning">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>No default agent set</AlertTitle>
+              <AlertDescription>
+                Channels using the workspace default won&apos;t respond to @Inkeep mentions or
+                /inkeep commands.
+              </AlertDescription>
+            </Alert>
+          )}
           <WorkspaceDefaultSection
             defaultAgent={defaultAgent}
             agents={agents}
@@ -509,6 +523,7 @@ export function AgentConfigurationCard() {
         savingChannel={savingChannel}
         bulkSaving={bulkSaving}
         isAdmin={isAdmin}
+        hasWorkspaceDefault={!!defaultAgent}
         onChannelFilterChange={setChannelFilter}
         onSearchQueryChange={setChannelSearchQuery}
         onToggleChannel={handleToggleChannel}
