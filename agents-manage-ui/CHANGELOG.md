@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.54.0
+
+### Patch Changes
+
+- 781f15f: Add delete button to edit external agent page
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
 ## 0.53.13
 
 ### Patch Changes
