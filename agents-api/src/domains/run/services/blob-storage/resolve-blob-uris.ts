@@ -21,7 +21,7 @@ export function resolveMessageBlobUris(content: MessageContent, baseUrl?: string
         const proxyUrl = `${apiBaseUrl}/manage/tenants/${parsed.tenantId}/projects/${parsed.projectId}/conversations/${parsed.conversationId}/media/${encodeURIComponent(parsed.tail)}`;
         return [{ ...part, data: proxyUrl }];
       }
-      logger.error({ key }, 'Malformed blob storage key, filtering part out');
+      logger.warn({ key }, 'Malformed blob storage key, filtering part out');
       return [];
     }
 
@@ -31,10 +31,10 @@ export function resolveMessageBlobUris(content: MessageContent, baseUrl?: string
   return { ...content, parts: resolvedParts };
 }
 
-export function resolveMessagesListBlobUris(
-  messages: Array<{ content: MessageContent; [key: string]: any }>,
+export function resolveMessagesListBlobUris<T extends { content: MessageContent }>(
+  messages: T[],
   baseUrl?: string
-): Array<{ content: MessageContent; [key: string]: any }> {
+): T[] {
   return messages.map((msg) => ({
     ...msg,
     content: resolveMessageBlobUris(msg.content, baseUrl),

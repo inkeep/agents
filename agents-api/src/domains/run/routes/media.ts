@@ -1,12 +1,15 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { TenantProjectIdParamsSchema } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { getBlobStorageProvider } from '../services/blob-storage';
 import { buildMediaStorageKeyPrefix } from '../services/blob-storage/storage-keys';
 
 const logger = getLogger('media-proxy');
 
 const app = new OpenAPIHono();
+
+app.use('/*', requireProjectPermission('view'));
 
 app.get('/*', async (c) => {
   const paramResult = TenantProjectIdParamsSchema.safeParse({
@@ -21,23 +24,30 @@ app.get('/*', async (c) => {
 
   const url = new URL(c.req.url);
   const pathAfterMedia = url.pathname.split('/media/')[1];
-  let mediaKey: string;
+
+  if (!pathAfterMedia) {
+    return c.json({ error: 'Invalid media key' }, 400);
+  }
+
+  // Decode once for validation; the storage layer will perform its own single decode
+  let decodedForValidation: string;
   try {
-    mediaKey = decodeURIComponent(pathAfterMedia ?? '');
+    decodedForValidation = decodeURIComponent(pathAfterMedia);
   } catch {
     return c.json({ error: 'Invalid media key' }, 400);
   }
 
   if (
-    !mediaKey ||
-    mediaKey.includes('\0') ||
-    mediaKey.includes('\\') ||
-    mediaKey.split('/').some((segment) => segment === '..')
+    !decodedForValidation ||
+    decodedForValidation.includes('\0') ||
+    decodedForValidation.includes('\\') ||
+    decodedForValidation.split('/').some((segment) => segment === '..')
   ) {
     return c.json({ error: 'Invalid media key' }, 400);
   }
 
-  const key = `${buildMediaStorageKeyPrefix({ tenantId, projectId, conversationId })}/${mediaKey}`;
+  // Pass the still-encoded path so the storage layer decodes exactly once
+  const key = `${buildMediaStorageKeyPrefix({ tenantId, projectId, conversationId })}/${pathAfterMedia}`;
 
   try {
     const storage = getBlobStorageProvider();
@@ -47,7 +57,7 @@ app.get('/*', async (c) => {
       status: 200,
       headers: {
         'Content-Type': result.contentType,
-        'Cache-Control': 'private, max-age=31536000, immutable', // route behind requireProjectPermission('view'); URL is immutable per key
+        'Cache-Control': 'private, max-age=31536000, immutable',
         'Content-Length': result.data.length.toString(),
       },
     });
