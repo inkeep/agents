@@ -1,6 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
@@ -45,6 +44,7 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
+  'use memo';
   const { status } = data;
 
   const { control } = useFullAgentFormContext();
@@ -58,8 +58,8 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     description,
     isDefault,
     models,
-    dataComponents: dataComponentIds,
-    artifactComponents: artifactComponentIds,
+    dataComponents: dataComponentIds = [],
+    artifactComponents: artifactComponentIds = [],
   } = subAgent;
   const modelName = models?.base?.model;
 
@@ -68,18 +68,12 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     artifactComponentLookup: state.artifactComponentLookup,
   }));
 
-  const dataComponentNames = useMemo(
-    () =>
-      dataComponentIds
-        ?.map((componentId) => dataComponentLookup[componentId]?.name)
-        .filter(Boolean) || [],
-    [dataComponentIds, dataComponentLookup]
-  );
-  const artifactComponentNames = useMemo(
-    () =>
-      artifactComponentIds?.map((id) => artifactComponentLookup[id]?.name).filter(Boolean) || [],
-    [artifactComponentIds, artifactComponentLookup]
-  );
+  const dataComponentNames =
+    dataComponentIds
+      .map((componentId) => dataComponentLookup[componentId]?.name)
+      .filter(Boolean);
+  const artifactComponentNames =
+    artifactComponentIds.map((id) => artifactComponentLookup[id]?.name).filter(Boolean);
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
