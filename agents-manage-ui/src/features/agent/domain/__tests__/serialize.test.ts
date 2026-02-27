@@ -417,7 +417,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should preserve existing selectedTools when tempSelectedTools is undefined', () => {
+    it('should preserve existing selectedTools when mcpRelations is missing and relationship exists', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -438,7 +438,7 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             name: 'Test MCP Server',
-            // tempSelectedTools is undefined (user didn't interact with UI)
+            relationshipId: 'rel-1',
           },
         },
       ];
@@ -452,17 +452,23 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(nodes, edges, undefined, undefined, {
+        agent1: {
+          'rel-1': {
+            toolId: 'mcp1',
+            toolSelection: ['existing-tool1'],
+          },
+        },
+      });
 
-      // When tempSelectedTools is undefined and there's an edge to MCP tool,
-      // the toolSelection will be null (all tools selected by default)
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
       expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
-        toolSelection: null, // null means all tools are selected
+        toolSelection: ['existing-tool1'],
         headers: null,
         toolPolicies: null,
+        agentToolRelationId: 'rel-1',
       });
     });
 
