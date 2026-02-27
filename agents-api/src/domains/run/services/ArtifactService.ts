@@ -104,6 +104,14 @@ export class ArtifactService {
     const record = toolSessionManager.getToolResult(this.context.sessionId, toolCallId);
     if (!record) return undefined;
 
+    if (record.result?.failed === true) {
+      logger.warn(
+        { toolCallId, toolName: record.toolName, error: record.result.error },
+        'Referenced tool call result is a failed/error result'
+      );
+      return undefined;
+    }
+
     const result = record.result;
 
     // Unwrap MCP-style content array

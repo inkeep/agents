@@ -572,6 +572,30 @@ describe('ArtifactService', () => {
       });
       expect(artifactService.getToolResultRaw('call-db')).toEqual(rawResult);
     });
+
+    it('returns undefined for failed MCP tool results', () => {
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-failed',
+        toolName: 'mcp_tool',
+        result: { error: 'Connection refused', failed: true },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-failed')).toBeUndefined();
+    });
+
+    it('returns the result when failed is false', () => {
+      const successResult = { data: 'ok' };
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-ok',
+        toolName: 'mcp_tool',
+        result: { ...successResult, failed: false },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-ok')).toEqual({
+        ...successResult,
+        failed: false,
+      });
+    });
   });
 
   describe('JMESPath sanitization', () => {

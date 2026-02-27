@@ -1,6 +1,6 @@
 import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArtifactParser } from '../ArtifactParser';
+import { ArtifactParser, ToolChainResolutionError } from '../ArtifactParser';
 
 // Hoisted mocks
 const { agentSessionManagerMock, toolSessionManagerMock } = vi.hoisted(() => ({
@@ -317,18 +317,16 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       expect(result).toEqual([{ title: 'Array item' }, 'plain-string']);
     });
 
-    it('returns original ref when resolution returns null', async () => {
+    it('throws ToolChainResolutionError when resolution returns null', async () => {
       mockArtifactService.getArtifactFull.mockResolvedValue(null);
       const ref = { $artifact: 'missing', $tool: 'tool-x' };
-      const result = await parser.resolveArgs(ref);
-      expect(result).toEqual(ref);
+      await expect(parser.resolveArgs(ref)).rejects.toThrow(ToolChainResolutionError);
     });
 
-    it('returns original ref when resolution returns empty data', async () => {
+    it('throws ToolChainResolutionError when resolution returns empty data', async () => {
       mockArtifactService.getArtifactFull.mockResolvedValue({ data: null });
       const ref = { $artifact: 'bad', $tool: 'tool-y' };
-      const result = await parser.resolveArgs(ref);
-      expect(result).toEqual(ref);
+      await expect(parser.resolveArgs(ref)).rejects.toThrow(ToolChainResolutionError);
     });
 
     it('passes through primitive values unchanged', async () => {
@@ -360,11 +358,11 @@ describe('ArtifactParser — typeSchema in data parts', () => {
         expect(result).toEqual(rawResult);
       });
 
-      it('falls through gracefully when toolCallId not found', async () => {
+      it('throws ToolChainResolutionError when toolCallId not found', async () => {
         mockArtifactService.getToolResultRaw.mockReturnValue(undefined);
-        const ref = { $tool: 'call-missing' };
-        const result = await parser.resolveArgs(ref);
-        expect(result).toEqual(ref);
+        await expect(parser.resolveArgs({ $tool: 'call-missing' })).rejects.toThrow(
+          ToolChainResolutionError
+        );
       });
 
       it('resolves nested {$tool} reference inside a larger args object', async () => {

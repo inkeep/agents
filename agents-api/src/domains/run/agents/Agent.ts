@@ -665,6 +665,20 @@ export class Agent {
           const resolvedArgs = artifactParser
             ? await artifactParser.resolveArgs(parsedArgsForResolution)
             : args;
+
+          if (artifactParser && toolDefinition.parameters?.safeParse) {
+            const resolvedChanged =
+              JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+            if (resolvedChanged) {
+              const validation = toolDefinition.parameters.safeParse(resolvedArgs);
+              if (!validation.success) {
+                throw new Error(
+                  `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+                );
+              }
+            }
+          }
+
           const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 

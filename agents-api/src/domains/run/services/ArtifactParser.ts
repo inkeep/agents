@@ -16,6 +16,16 @@ import {
 
 const logger = getLogger('ArtifactParser');
 
+export class ToolChainResolutionError extends Error {
+  constructor(
+    public readonly toolCallId: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'ToolChainResolutionError';
+  }
+}
+
 export interface StreamPart {
   kind: 'text' | 'data';
   text?: string;
@@ -234,11 +244,10 @@ export class ArtifactParser {
           );
           return fullData.data;
         }
-        logger.warn(
-          { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
-          'Artifact ref in tool arg could not be resolved'
+        throw new ToolChainResolutionError(
+          args[SENTINEL_KEY.TOOL],
+          `Artifact '${args[SENTINEL_KEY.ARTIFACT]}' from tool call '${args[SENTINEL_KEY.TOOL]}' could not be resolved`
         );
-        return args;
       }
 
       if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
@@ -250,11 +259,10 @@ export class ArtifactParser {
           );
           return raw;
         }
-        logger.warn(
-          { toolCallId: args[SENTINEL_KEY.TOOL] },
-          'Ephemeral tool result ref could not be resolved'
+        throw new ToolChainResolutionError(
+          args[SENTINEL_KEY.TOOL],
+          `Tool result for call '${args[SENTINEL_KEY.TOOL]}' not found or failed`
         );
-        return args;
       }
 
       const result: Record<string, any> = {};
