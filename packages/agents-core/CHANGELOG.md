@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+
 ## 0.53.12
 
 ## 0.53.11

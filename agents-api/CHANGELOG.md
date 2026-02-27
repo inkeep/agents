@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+- 03629e8: Fix premature conversation compression when tool results are persisted as artifacts
+- d62c5b0: Add support for passing artifacts as tool arguments
+- Updated dependencies [e915ef8]
+- Updated dependencies [23b6b48]
+  - @inkeep/agents-core@0.53.13
+  - @inkeep/agents-work-apps@0.53.13
+  - @inkeep/agents-mcp@0.53.13
+
 ## 0.53.12
 
 ### Patch Changes
