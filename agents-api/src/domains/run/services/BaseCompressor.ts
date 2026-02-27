@@ -416,6 +416,8 @@ export abstract class BaseCompressor {
               );
             } else if (block.type === 'tool-result') {
               const artifactInfo = toolCallToArtifactMap?.[block.toolCallId];
+              // Intentionally skip tool results without artifact mappings (skipped/internal tools).
+              // Only artifact-backed results are included so the distillation prompt stays compact.
               if (artifactInfo) {
                 const summary = artifactInfo.summaryData
                   ? JSON.stringify(artifactInfo.summaryData)

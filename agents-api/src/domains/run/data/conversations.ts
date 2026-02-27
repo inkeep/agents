@@ -267,7 +267,7 @@ export async function getScopedHistory({
 
     return relevantMessages;
   } catch (error) {
-    console.error('Failed to fetch scoped messages:', error);
+    logger.error({ error }, 'Failed to fetch scoped messages');
     return [];
   }
 }
@@ -483,11 +483,19 @@ export async function getConversationHistoryWithCompression({
           const artifact = tcId ? artifactsByToolCallId.get(tcId) : undefined;
           if (!artifact) return msg;
           const toolArgs = msg.metadata?.a2a_metadata?.toolArgs;
-          const argsStr = toolArgs ? JSON.stringify(toolArgs).slice(0, 300) : undefined;
-          const summaryData = (artifact.parts[0] as any)?.data?.summary;
-          const summaryDataStr = summaryData
-            ? JSON.stringify(summaryData).slice(0, 1000)
-            : undefined;
+          const rawArgs = toolArgs ? JSON.stringify(toolArgs) : undefined;
+          const argsStr =
+            rawArgs && rawArgs.length > 300 ? `${rawArgs.slice(0, 300)}...[truncated]` : rawArgs;
+          const dataPart = artifact.parts?.find(
+            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
+              p.kind === 'data'
+          );
+          const summaryValue = dataPart?.data?.summary;
+          const rawSummary = summaryValue ? JSON.stringify(summaryValue) : undefined;
+          const summaryDataStr =
+            rawSummary && rawSummary.length > 1000
+              ? `${rawSummary.slice(0, 1000)}...[truncated]`
+              : rawSummary;
           const refParts = [
             `Artifact: "${artifact.name ?? artifact.artifactId}" (id: ${artifact.artifactId})`,
           ];
@@ -501,7 +509,10 @@ export async function getConversationHistoryWithCompression({
         });
       }
     } catch (err) {
-      logger.warn({ err, conversationId }, 'Failed to fetch artifacts for conversation history');
+      logger.warn(
+        { err, conversationId, unsubstitutedCount: toolCallIds.length },
+        'Failed to fetch artifacts for conversation history — tool results will not be substituted, compression may trigger unnecessarily'
+      );
     }
   }
 

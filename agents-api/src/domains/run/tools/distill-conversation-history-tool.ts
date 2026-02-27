@@ -11,6 +11,7 @@ const logger = getLogger('distill-conversation-history-tool');
 export const ConversationHistorySummarySchema = z.object({
   type: z.literal('conversation_history_summary_v1'),
   session_id: z.string().nullable().optional(),
+  _fallback: z.boolean().optional(),
   conversation_overview: z
     .string()
     .describe('2-4 sentences capturing the full conversation context and what was accomplished'),
@@ -249,6 +250,7 @@ Return **only** valid JSON.`;
     return {
       type: 'conversation_history_summary_v1',
       session_id: conversationId,
+      _fallback: true,
       conversation_overview: 'Conversation session with technical discussion and problem-solving',
       user_goals: {
         primary: 'Technical assistance and problem-solving',

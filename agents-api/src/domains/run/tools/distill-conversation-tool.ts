@@ -11,6 +11,7 @@ const logger = getLogger('distill-conversation-tool');
 export const ConversationSummarySchema = z.object({
   type: z.literal('conversation_summary_v1'),
   session_id: z.string().nullable().optional(),
+  _fallback: z.boolean().optional(),
   high_level: z.string().describe('1-3 sentences capturing what was discovered and learned'),
   user_intent: z.string().describe('Current main goal or what the user wants to accomplish'),
   decisions: z
@@ -196,6 +197,7 @@ Return **only** valid JSON.`;
     return {
       type: 'conversation_summary_v1',
       session_id: conversationId,
+      _fallback: true,
       high_level: 'Ongoing conversation session',
       user_intent: 'Continue working on current task',
       related_artifacts: [],
