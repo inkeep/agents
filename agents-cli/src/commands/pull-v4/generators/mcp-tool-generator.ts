@@ -3,6 +3,7 @@ import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
   addValueToObject,
+  convertNullToUndefined,
   createFactoryDefinition,
   formatInlineLiteral,
   formatStringLiteral,
@@ -16,6 +17,7 @@ const MySchema = FullProjectDefinitionSchema.shape.tools.valueType.omit({
 const McpToolSchema = z.strictObject({
   mcpToolId: z.string().nonempty(),
   ...MySchema.shape,
+  imageUrl: z.preprocess(convertNullToUndefined, MySchema.shape.imageUrl),
 });
 
 type McpTooInput = z.input<typeof McpToolSchema>;
