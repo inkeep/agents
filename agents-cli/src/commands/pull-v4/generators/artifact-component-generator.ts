@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -25,23 +26,12 @@ interface ArtifactComponentDefinitionData {
   };
 }
 
-const ArtifactComponentSchema = z.object({
+const MySchema = FullProjectDefinitionSchema.shape.artifactComponents.unwrap().valueType.omit({
+  id: true,
+});
+
+const ArtifactComponentSchema = MySchema.extend({
   artifactComponentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().optional(),
-  props: z.looseObject({}),
-  schema: z.looseObject({}).optional(),
-  template: z.string().optional(),
-  contentType: z.string().optional(),
-  render: z.preprocess(
-    convertNullToUndefined,
-    z
-      .looseObject({
-        component: z.string().optional(),
-        mockData: z.looseObject({}).optional(),
-      })
-      .optional()
-  ),
 });
 
 export function generateArtifactComponentDefinition(

@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -20,19 +21,14 @@ interface DataComponentDefinitionData {
   } | null;
 }
 
-const DataComponentSchema = z.object({
+const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().valueType.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+const DataComponentSchema = MySchema.extend({
   dataComponentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional(),
-  props: z.unknown().optional(),
-  schema: z.unknown().optional(),
-  render: z
-    .looseObject({
-      component: z.string().optional(),
-      mockData: z.looseObject({}).optional(),
-    })
-    .nullable()
-    .optional(),
 });
 
 type ParsedDataComponentDefinitionData = z.infer<typeof DataComponentSchema>;

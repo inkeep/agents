@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -18,42 +19,14 @@ const SubAgentReferenceSchema = z.object({
   local: z.boolean().optional(),
 });
 
-const AgentSchema = z.looseObject({
+const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.omit({
+  id: true,
+  updatedAt: true,
+  createdAt: true,
+});
+
+const AgentSchema = MySchema.extend({
   agentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullish(),
-  prompt: z.string().optional(),
-  models: z.looseObject({}).optional(),
-  defaultSubAgentId: z.string().nonempty(),
-  subAgents: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]),
-  contextConfig: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
-  stopWhen: z
-    .object({
-      transferCountIs: z.int().optional(),
-    })
-    .optional(),
-  statusUpdates: z
-    .strictObject({
-      numEvents: z.int().optional(),
-      timeInSeconds: z.int().optional(),
-      statusComponents: z
-        .array(
-          z.union([
-            z.string(),
-            z.looseObject({
-              id: z.string().optional(),
-              type: z.string(),
-              name: z.string().optional(),
-            }),
-          ])
-        )
-        .optional(),
-      prompt: z.string().optional(),
-    })
-    .optional(),
-  credentials: z.array(z.union([z.string(), z.strictObject({ id: z.string() })])).optional(),
-  triggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
-  scheduledTriggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),
