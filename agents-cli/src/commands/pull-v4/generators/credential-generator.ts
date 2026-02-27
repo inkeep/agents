@@ -15,7 +15,15 @@ const CredentialSchema = z.strictObject({
 
 type CredentialInput = z.input<typeof CredentialSchema>;
 
-export function generateCredentialDefinition(data: CredentialInput): SourceFile {
+export function generateCredentialDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdBy,
+  createdAt,
+  updatedAt,
+  ...data
+}: CredentialInput): SourceFile {
   const result = CredentialSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for credential:\n${z.prettifyError(result.error)}`);

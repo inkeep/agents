@@ -23,7 +23,14 @@ const DataComponentSchema = z.strictObject({
 type DataComponentInput = z.input<typeof DataComponentSchema>;
 type DataComponentOutput = z.output<typeof DataComponentSchema>;
 
-export function generateDataComponentDefinition(data: DataComponentInput): SourceFile {
+export function generateDataComponentDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdAt,
+  updatedAt,
+  ...data
+}: DataComponentInput): SourceFile {
   const result = DataComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);

@@ -23,7 +23,14 @@ const McpToolSchema = z.strictObject({
 type McpTooInput = z.input<typeof McpToolSchema>;
 type McpTooOutput = z.output<typeof McpToolSchema>;
 
-export function generateMcpToolDefinition(data: McpTooInput): SourceFile {
+export function generateMcpToolDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdAt,
+  updatedAt,
+  ...data
+}: McpTooInput): SourceFile {
   const result = McpToolSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for MCP tool:\n${z.prettifyError(result.error)}`);

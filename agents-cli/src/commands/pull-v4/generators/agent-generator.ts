@@ -76,7 +76,12 @@ interface AgentReferenceNames {
   statusComponents: ReferenceNameMap;
 }
 
-export function generateAgentDefinition(data: AgentInput): SourceFile {
+export function generateAgentDefinition({
+  id,
+  createdAt,
+  updatedAt,
+  ...data
+}: AgentInput): SourceFile {
   const result = AgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for agent:\n${z.prettifyError(result.error)}`);
