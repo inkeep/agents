@@ -458,6 +458,10 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .extend({
     id: ResourceIdSchema,
   })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
   .openapi('AgentCreate');
 export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
 
