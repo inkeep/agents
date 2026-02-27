@@ -284,7 +284,8 @@ export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectO
 
 export async function fetchAgentsForProject(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: { throwOnError?: boolean }
 ): Promise<AgentOption[]> {
   const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
   const token = await generateInternalServiceToken({
@@ -316,6 +317,9 @@ export async function fetchAgentsForProject(
         { status: response.status, tenantId, projectId, errorBody },
         'Failed to fetch agents from API'
       );
+      if (options?.throwOnError) {
+        throw new Error(`Failed to fetch agents: ${response.status}`);
+      }
       return [];
     }
 
@@ -335,6 +339,9 @@ export async function fetchAgentsForProject(
     }));
   } catch (error) {
     logger.error({ error, tenantId, projectId }, 'Error fetching agents from API');
+    if (options?.throwOnError) {
+      throw error;
+    }
     return [];
   } finally {
     clearTimeout(timeout);

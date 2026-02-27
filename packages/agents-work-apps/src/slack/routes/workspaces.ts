@@ -141,7 +141,12 @@ app.openapi(
               );
             } catch {
               logger.warn(
-                { agentId: w.defaultAgent.agentId },
+                {
+                  tenantId: w.tenantId,
+                  teamId: w.teamId,
+                  projectId: w.defaultAgent.projectId,
+                  agentId: w.defaultAgent.agentId,
+                },
                 'Failed to resolve default agent name for workspace listing'
               );
             }
@@ -320,12 +325,26 @@ app.openapi(
         return c.json({ success: false }, 500);
       }
 
-      const agentName = await lookupAgentName(
-        workspace.tenantId,
-        body.defaultAgent.projectId,
-        body.defaultAgent.agentId,
-        { skipCache: true }
-      );
+      let agentName: string | undefined;
+      try {
+        agentName = await lookupAgentName(
+          workspace.tenantId,
+          body.defaultAgent.projectId,
+          body.defaultAgent.agentId,
+          { skipCache: true, throwOnError: true }
+        );
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            teamId,
+            projectId: body.defaultAgent.projectId,
+            agentId: body.defaultAgent.agentId,
+          },
+          'Agent lookup failed during workspace default validation'
+        );
+        return c.json({ error: 'Unable to validate agent — please try again' }, 503);
+      }
       if (!agentName) {
         return c.json(
           {
@@ -826,12 +845,27 @@ app.openapi(
     }
     const tenantId = workspace.tenantId;
 
-    const agentName = await lookupAgentName(
-      tenantId,
-      body.agentConfig.projectId,
-      body.agentConfig.agentId,
-      { skipCache: true }
-    );
+    let agentName: string | undefined;
+    try {
+      agentName = await lookupAgentName(
+        tenantId,
+        body.agentConfig.projectId,
+        body.agentConfig.agentId,
+        { skipCache: true, throwOnError: true }
+      );
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          teamId,
+          tenantId,
+          projectId: body.agentConfig.projectId,
+          agentId: body.agentConfig.agentId,
+        },
+        'Agent lookup failed during channel config validation'
+      );
+      return c.json({ error: 'Unable to validate agent — please try again' }, 503);
+    }
     if (!agentName) {
       return c.json(
         {
@@ -919,12 +953,27 @@ app.openapi(
 
     const tenantId = workspace.tenantId;
 
-    const agentName = await lookupAgentName(
-      tenantId,
-      body.agentConfig.projectId,
-      body.agentConfig.agentId,
-      { skipCache: true }
-    );
+    let agentName: string | undefined;
+    try {
+      agentName = await lookupAgentName(
+        tenantId,
+        body.agentConfig.projectId,
+        body.agentConfig.agentId,
+        { skipCache: true, throwOnError: true }
+      );
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          teamId,
+          tenantId,
+          projectId: body.agentConfig.projectId,
+          agentId: body.agentConfig.agentId,
+        },
+        'Agent lookup failed during bulk channel config validation'
+      );
+      return c.json({ error: 'Unable to validate agent — please try again' }, 503);
+    }
     if (!agentName) {
       return c.json(
         {

@@ -24,7 +24,7 @@ export async function lookupAgentName(
   tenantId: string,
   projectId: string,
   agentId: string,
-  options?: { skipCache?: boolean }
+  options?: { skipCache?: boolean; throwOnError?: boolean }
 ): Promise<string | undefined> {
   const cacheKey = `${tenantId}:${projectId}:${agentId}`;
   if (!options?.skipCache) {
@@ -34,7 +34,9 @@ export async function lookupAgentName(
     }
   }
 
-  const agents = await fetchAgentsForProject(tenantId, projectId);
+  const agents = await fetchAgentsForProject(tenantId, projectId, {
+    throwOnError: options?.throwOnError,
+  });
 
   for (const agent of agents) {
     const key = `${tenantId}:${projectId}:${agent.id}`;
