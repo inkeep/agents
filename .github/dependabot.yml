@@ -18,7 +18,7 @@ updates:
         patterns:
           - '*'
 
-  - package-ecosystem: 'pnpm'
+  - package-ecosystem: 'npm'
     directory: '/create-agents-template'
     schedule:
       interval: 'weekly'
