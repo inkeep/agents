@@ -29,13 +29,11 @@ updates:
   - package-ecosystem: 'npm'
     directory: '/create-agents-template'
     schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-name: '@inkeep/*'
+      interval: 'daily'
     groups:
       inkeep-agents:
         patterns:
-          - '@inkeep/*'
+          - '@inkeep/agents-*'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
