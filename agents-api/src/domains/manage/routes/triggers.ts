@@ -299,7 +299,7 @@ app.openapi(
     const hasNoSignatureVerification = !body.signatureVerification;
     const warning =
       runAsUserId && hasNoAuth && hasNoSignatureVerification
-        ? 'This trigger will run as a specific user but has no authentication configured. Anyone with this webhook URL can invoke the agent as that user. Consider adding header authentication or signature verification.'
+        ? 'This trigger will authenticate on behalf of the specified users. Please configure authentication or signature verification to ensure the trigger is secure.'
         : undefined;
 
     return c.json(
@@ -526,7 +526,7 @@ app.openapi(
     const hasNoSigVerAfterUpdate = !effectiveSigVerification;
     const updateWarning =
       effectiveRunAsUserId && hasNoAuthAfterUpdate && hasNoSigVerAfterUpdate
-        ? 'This trigger will run as a specific user but has no authentication configured. Anyone with this webhook URL can invoke the agent as that user. Consider adding header authentication or signature verification.'
+        ? 'This trigger will authenticate on behalf of the specified users. Please configure authentication or signature verification to ensure the trigger is secure.'
         : undefined;
 
     return c.json({
@@ -831,6 +831,7 @@ app.openapi(
         transformedPayload: undefined,
         messageParts,
         userMessageText: userMessage,
+        runAsUserId: trigger.runAsUserId ?? undefined,
       }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

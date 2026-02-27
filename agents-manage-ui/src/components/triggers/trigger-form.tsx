@@ -1006,9 +1006,9 @@ export function TriggerForm({
                 <Alert variant="warning">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Security warning:</strong> This trigger will run as a specific user but
-                    has no authentication or signature verification configured. Anyone who knows the
-                    webhook URL can trigger it on behalf of this user.
+                    <strong>Security warning:</strong> This trigger will authenticate on behalf of
+                    the specified users. Please configure authentication or signature verification
+                    to ensure the trigger is secure.
                   </AlertDescription>
                 </Alert>
               ) : null
