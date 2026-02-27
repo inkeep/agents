@@ -25,7 +25,6 @@ import {
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { clearWorkspaceDefaultsForDeletedAgent } from '@inkeep/agents-work-apps/slack';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
@@ -354,8 +353,6 @@ app.openapi(
         message: 'Agent not found',
       });
     }
-
-    clearWorkspaceDefaultsForDeletedAgent(projectId, id);
 
     return c.body(null, 204);
   }

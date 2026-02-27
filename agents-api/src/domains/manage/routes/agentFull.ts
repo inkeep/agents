@@ -16,7 +16,6 @@ import {
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { clearWorkspaceDefaultsForDeletedAgent } from '@inkeep/agents-work-apps/slack';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -356,8 +355,6 @@ app.openapi(
           message: 'Agent not found',
         });
       }
-
-      clearWorkspaceDefaultsForDeletedAgent(projectId, agentId);
 
       return c.body(null, 204);
     } catch (error) {

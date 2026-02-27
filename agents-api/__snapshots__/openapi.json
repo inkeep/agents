@@ -38546,18 +38546,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -38655,18 +38651,14 @@
                           "agentConfig": {
                             "properties": {
                               "agentId": {
-                                "type": "string"
-                              },
-                              "agentName": {
+                                "maxLength": 256,
                                 "type": "string"
                               },
                               "grantAccessToMembers": {
                                 "type": "boolean"
                               },
                               "projectId": {
-                                "type": "string"
-                              },
-                              "projectName": {
+                                "maxLength": 256,
                                 "type": "string"
                               }
                             },
@@ -38826,12 +38818,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39005,18 +38999,14 @@
                     "agentConfig": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39079,12 +39069,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39372,18 +39364,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39432,12 +39420,14 @@
                   "defaultAgent": {
                     "properties": {
                       "agentId": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
