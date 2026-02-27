@@ -61,7 +61,7 @@ describe('Agent.cleanup', () => {
 
   it('should disconnect all cached MCP clients', async () => {
     const agent = createMinimalAgent();
-    const cache = (agent as any).mcpClientCache as Map<string, any>;
+    const cache = (agent as any).mcpManager.mcpClientCache as Map<string, any>;
     cache.set('client1', createMockMcpClient('client1'));
     cache.set('client2', createMockMcpClient('client2'));
     cache.set('client3', createMockMcpClient('client3'));
@@ -73,8 +73,8 @@ describe('Agent.cleanup', () => {
 
   it('should clear mcpClientCache and mcpConnectionLocks after cleanup', async () => {
     const agent = createMinimalAgent();
-    const cache = (agent as any).mcpClientCache as Map<string, any>;
-    const locks = (agent as any).mcpConnectionLocks as Map<string, any>;
+    const cache = (agent as any).mcpManager.mcpClientCache as Map<string, any>;
+    const locks = (agent as any).mcpManager.mcpConnectionLocks as Map<string, any>;
     cache.set('client1', createMockMcpClient('client1'));
     locks.set('client1', Promise.resolve(createMockMcpClient('client1')));
 
@@ -86,7 +86,7 @@ describe('Agent.cleanup', () => {
 
   it('should not throw when a client disconnect fails', async () => {
     const agent = createMinimalAgent();
-    const cache = (agent as any).mcpClientCache as Map<string, any>;
+    const cache = (agent as any).mcpManager.mcpClientCache as Map<string, any>;
 
     const failingClient = createMockMcpClient('failing');
     failingClient.disconnect = vi.fn().mockRejectedValue(new Error('disconnect failed'));

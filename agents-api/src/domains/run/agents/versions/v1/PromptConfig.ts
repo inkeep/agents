@@ -1,4 +1,4 @@
-import type { Artifact, McpTool } from '@inkeep/agents-core';
+import type { Artifact } from '@inkeep/agents-core';
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
@@ -23,7 +23,13 @@ import {
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { SkillData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
+import type {
+  McpServerGroupData,
+  SkillData,
+  SystemPromptV1,
+  ToolData,
+  VersionConfig,
+} from '../../types';
 
 // Re-export for Agent.ts
 export { V1_BREAKDOWN_SCHEMA };
@@ -41,39 +47,6 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
   getBreakdownSchema(): BreakdownComponentDef[] {
     return V1_BREAKDOWN_SCHEMA;
-  }
-
-  static convertMcpToolsToToolData(mcpTools: McpTool[] | undefined): ToolData[] {
-    if (!mcpTools || mcpTools.length === 0) {
-      return [];
-    }
-    const toolData: ToolData[] = [];
-    for (const mcpTool of mcpTools) {
-      if (mcpTool.availableTools) {
-        for (const toolDef of mcpTool.availableTools) {
-          // Build usage guidelines with custom prompt as additional context
-          let usageGuidelines = '';
-          if (mcpTool.config.mcp.prompt) {
-            usageGuidelines = `${mcpTool.config.mcp.prompt}\n\n`;
-          }
-          usageGuidelines += `Use this tool from ${mcpTool.name} server when appropriate.`;
-
-          toolData.push({
-            name: toolDef.name,
-            description: toolDef.description || 'No description available',
-            inputSchema: toolDef.inputSchema || {},
-            usageGuidelines,
-          });
-        }
-      }
-    }
-    return toolData;
-  }
-
-  private isToolDataArray(tools: ToolData[] | McpTool[]): tools is ToolData[] {
-    if (!tools || tools.length === 0) return true; // Default to ToolData[] for empty arrays
-    const firstItem = tools[0];
-    return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
 
   private normalizeSchema(inputSchema: any): Record<string, unknown> {
@@ -149,12 +122,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       .replace('{{SKILLS_SECTION}}', skillsSection)
       .replace('{{SKILLS_GUIDELINES}}', skillsGuidelines);
 
-    const rawToolData = this.isToolDataArray(config.tools)
-      ? config.tools
-      : PromptConfig.convertMcpToolsToToolData(config.tools as McpTool[]);
-
-    // Normalize any Zod schemas to JSON schemas
-    const toolData = rawToolData.map((tool) => ({
+    const toolData = config.tools.map((tool) => ({
       ...tool,
       inputSchema: this.normalizeSchema(tool.inputSchema),
     }));
@@ -198,7 +166,14 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
-    const toolsSection = this.generateToolsSection(templates, toolData);
+    const normalizedMcpServerGroups = config.mcpServerGroups?.map((group) => ({
+      ...group,
+      tools: group.tools.map((t) => ({
+        ...t,
+        inputSchema: this.normalizeSchema(t.inputSchema),
+      })),
+    }));
+    const toolsSection = this.generateToolsSection(templates, toolData, normalizedMcpServerGroups);
     breakdown.components.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
@@ -781,26 +756,120 @@ Pipeline example:
   Step 1: tool_a({ "arg": "value" }) → (tool_call_id: "call_a")
   Step 2: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a" }, "other": "value" })
 
+WHEN THE PREVIOUS TOOL RETURNS A COMPLEX OBJECT:
+{ "${SENTINEL_KEY.TOOL}": "call_id" } passes the entire raw output. If the next tool needs only a specific field,
+use an intermediate extraction step — never read the value and copy it inline.
+
+  Step 1: tool_a(...)  → returns { "results": [...], "text": "..." }  (call_id: "call_a")
+  Step 2: extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  → returns "..."  (call_id: "call_b")
+  Step 3: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })  ← receives the extracted value
+
+❌ WRONG — reading a field and copying it inline:
+  tool_a returns { "text": "some content" }
+  tool_b({ "input": "some content" })  ← you copied the value manually
+
+✅ CORRECT — extract first, then reference:
+  tool_a(...)  (call_id: "call_a")
+  extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  (call_id: "call_b")
+  tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })
+
 This is different from artifact passing:
 - { "${SENTINEL_KEY.TOOL}": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
 - { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } — passes a structured object you explicitly extracted and saved from a tool result
 
 When to use each:
-✅ Use { "${SENTINEL_KEY.TOOL}": "call_id" } when chaining processing steps and the intermediate result is not shown to the user
+✅ Use { "${SENTINEL_KEY.TOOL}": "call_id" } when the next tool can accept the full output of the previous tool
+✅ Use an intermediate extraction step when you need only a specific field from a complex output
 ✅ Use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } when you have already created an artifact and want to pass its full structured data to a tool
-⚠️ Only references tool calls from the current response turn`;
+⚠️ Only references tool calls from the current response turn
+
+AFTER AN EXTRACTION STEP — reference the extraction's call_id, not the original source:
+  source_tool(...)  (call_id: "call_source")
+  extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_source" }, ... })  (call_id: "call_extract")
+  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← use call_extract, NOT call_source
+
+❌ WRONG — referencing the original source after extraction:
+  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_source" } })  ← skips the extraction, passes the full object again
+
+IF AN EXTRACTION RETURNED A PRIMITIVE — pipe it directly to the next tool. Do NOT run another
+extraction step on it. An extraction applied to a plain string or number returns null.
+  extract(...)  → returns "some string"  (call_id: "call_extract")
+  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← correct, receives the string directly
+  ❌ extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_extract" }, ... })  ← wrong, cannot extract from a primitive`;
   }
 
-  private generateToolsSection(templates: Map<string, string>, tools: ToolData[]): string {
-    if (tools.length === 0) {
+  private escapeXml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  private renderPropertyXml(name: string, prop: any, required: string[], indent: string): string {
+    const type = prop?.type || 'string';
+    const isRequired = required.includes(name);
+    const desc = prop?.description?.trim();
+    const descAttr = desc ? ` description="${this.escapeXml(desc)}"` : '';
+    const requiredAttr = isRequired ? ' required="true"' : '';
+    return `${indent}<property name="${name}" type="${type}"${requiredAttr}${descAttr} />`;
+  }
+
+  private generateMcpToolXml(tool: ToolData): string {
+    const schema = tool.inputSchema as any;
+    const properties: Record<string, any> = schema?.properties || {};
+    const required: string[] = Array.isArray(schema?.required) ? schema.required : [];
+    const propertyEntries = Object.entries(properties);
+
+    const descriptionXml = tool.description?.trim()
+      ? `\n    <description>${tool.description.trim()}</description>`
+      : '';
+
+    let parametersXml = '';
+    if (propertyEntries.length > 0) {
+      const propsXml = propertyEntries
+        .map(([name, prop]: [string, any]) =>
+          this.renderPropertyXml(name, prop, required, '      ')
+        )
+        .join('\n');
+      parametersXml = `\n    <parameters>\n${propsXml}\n    </parameters>`;
+    }
+
+    return `<tool name="${tool.name}">${descriptionXml}${parametersXml}\n  </tool>`;
+  }
+
+  private generateMcpServerGroupXml(group: McpServerGroupData): string {
+    const toolsXml = group.tools.map((tool) => this.generateMcpToolXml(tool)).join('\n  ');
+    const instructionsSection = group.serverInstructions
+      ? `\n  <instructions>${this.escapeXml(group.serverInstructions)}</instructions>`
+      : '';
+    return `<mcp_server name="${group.serverName}">${instructionsSection}
+  ${toolsXml}
+</mcp_server>`;
+  }
+
+  private generateToolsSection(
+    templates: Map<string, string>,
+    tools: ToolData[],
+    mcpServerGroups?: McpServerGroupData[]
+  ): string {
+    const hasRegularTools = tools.length > 0;
+    const hasMcpGroups = mcpServerGroups && mcpServerGroups.length > 0;
+
+    if (!hasRegularTools && !hasMcpGroups) {
       return '<available_tools description="No tools are currently available"></available_tools>';
     }
 
-    const toolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
+    const regularToolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
+    const mcpGroupsXml = hasMcpGroups
+      ? mcpServerGroups.map((group) => this.generateMcpServerGroupXml(group)).join('\n  ')
+      : '';
+
+    const parts = [regularToolsXml, mcpGroupsXml].filter(Boolean).join('\n  ');
     return `<available_tools description="These are the tools available for you to use to accomplish tasks.
 
 ${this.getToolChainingGuidance()}">
-  ${toolsXml}
+  ${parts}
 </available_tools>`;
   }
 
@@ -822,13 +891,33 @@ ${this.getToolChainingGuidance()}">
       tool.usageGuidelines || 'Use this tool when appropriate.'
     );
 
-    const parametersXml = this.generateParametersXml(tool.inputSchema);
+    const parametersXml = this.generatePropertiesXml(tool.inputSchema);
     toolXml = toolXml.replace('{{TOOL_PARAMETERS_SCHEMA}}', parametersXml);
 
     return toolXml;
   }
 
-  private generateParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
+  private generatePropertiesXml(inputSchema: Record<string, unknown> | null | undefined): string {
+    if (!inputSchema) return '';
+
+    const properties = (inputSchema.properties as Record<string, any>) || {};
+    const required: string[] = Array.isArray(inputSchema.required)
+      ? (inputSchema.required as string[])
+      : [];
+    const propertyEntries = Object.entries(properties);
+
+    if (propertyEntries.length === 0) return '';
+
+    const propsXml = propertyEntries
+      .map(([name, prop]: [string, any]) => this.renderPropertyXml(name, prop, required, '    '))
+      .join('\n');
+
+    return `<parameters>\n${propsXml}\n  </parameters>`;
+  }
+
+  private generateDataComponentParametersXml(
+    inputSchema: Record<string, unknown> | null | undefined
+  ): string {
     if (!inputSchema) {
       return '<type>object</type>\n      <properties>\n      </properties>\n      <required>[]</required>';
     }
@@ -902,7 +991,7 @@ ${this.getToolChainingGuidance()}">
     );
     dataComponentXml = dataComponentXml.replace(
       '{{COMPONENT_PROPS_SCHEMA}}',
-      this.generateParametersXml(dataComponent.props)
+      this.generateDataComponentParametersXml(dataComponent.props)
     );
 
     return dataComponentXml;
