@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -124,6 +124,48 @@ describe('LocalBlobStorageProvider', () => {
         key: 'bad\0name.png',
         data: new Uint8Array([1]),
         contentType: 'image/png',
+      })
+    ).rejects.toThrow('Invalid blob key');
+  });
+
+  it('rejects malformed percent encoding keys', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'blob-invalid-encoding-'));
+    vi.doMock('../../../../env', () => ({
+      env: { BLOB_STORAGE_LOCAL_PATH: dir },
+    }));
+
+    const { LocalBlobStorageProvider } = await import('../blob-storage/local-provider');
+    const provider = new LocalBlobStorageProvider();
+
+    await expect(
+      provider.upload({
+        key: 'bad%2',
+        data: new Uint8Array([1]),
+        contentType: 'image/png',
+      })
+    ).rejects.toThrow('Invalid blob key');
+  });
+
+  it('rejects symlink traversal to files outside base path', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'blob-symlink-'));
+    const outsideDir = mkdtempSync(path.join(tmpdir(), 'blob-symlink-outside-'));
+    const outsideFilePath = path.join(outsideDir, 'outside.txt');
+    writeFileSync(outsideFilePath, Buffer.from('secret'));
+    symlinkSync(outsideDir, path.join(dir, 'link'));
+
+    vi.doMock('../../../../env', () => ({
+      env: { BLOB_STORAGE_LOCAL_PATH: dir },
+    }));
+
+    const { LocalBlobStorageProvider } = await import('../blob-storage/local-provider');
+    const provider = new LocalBlobStorageProvider();
+
+    await expect(provider.download('link/outside.txt')).rejects.toThrow('Invalid blob key');
+    await expect(
+      provider.upload({
+        key: 'link/new.txt',
+        data: new Uint8Array([1]),
+        contentType: 'text/plain',
       })
     ).rejects.toThrow('Invalid blob key');
   });

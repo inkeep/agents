@@ -9,6 +9,8 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import mediaRoutes from '../../run/routes/media';
+import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
 
 const app = new OpenAPIHono();
 
@@ -74,9 +76,11 @@ app.openapi(
 
     const llmContext = formatMessagesForLLMContext(messages);
 
+    const resolvedMessages = resolveMessagesListBlobUris(messages);
+
     return c.json({
       data: {
-        messages,
+        messages: resolvedMessages,
         formatted: {
           llmContext,
         },
@@ -84,5 +88,8 @@ app.openapi(
     });
   }
 );
+
+// Mount media routes for conversation media access
+app.route('/:id/media', mediaRoutes);
 
 export default app;
