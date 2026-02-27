@@ -180,7 +180,7 @@ export abstract class BaseCompressor {
             isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
             toolArgs: artifact.metadata?.toolArgs,
             toolName: artifact.metadata?.toolName as string | undefined,
-            summaryData: dataPart?.data?.summary ?? undefined,
+            summaryData: dataPart?.data?.summary ?? dataPart?.data,
           });
         }
       }
