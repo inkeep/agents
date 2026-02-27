@@ -98,7 +98,7 @@ const NestedTestForm: FC = () => {
 
   return (
     <Form {...form}>
-      <form style={{ width: 320 }}>
+      <form data-testid="nested-form" style={{ width: 320 }}>
         <GenericJsonSchemaEditor {...getCommonProps(form, 'jsonSchemaEditor')} />
       </form>
     </Form>
@@ -122,16 +122,18 @@ describe('Form', () => {
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
-    const { container } = render(<NestedTestForm />);
+    render(<NestedTestForm />);
+
+    const form = screen.getByTestId('nested-form');
 
     await waitFor(
       () => {
         // Wait for form validation error message to render
-        expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+        expect(form.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
       },
       { timeout: 45_000 }
     );
 
-    await expect(container).toMatchScreenshot();
+    await expect(form).toMatchScreenshot();
   }, 60_000);
 });

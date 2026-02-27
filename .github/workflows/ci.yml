@@ -253,7 +253,7 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright
         run: pnpx playwright install chromium --with-deps
