@@ -74,7 +74,6 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
 
             <ExternalLink
               href={getSlackProfileUrl(myLink.slackUserId, selectedWorkspace?.teamDomain)}
-              rel="noopener noreferrer"
               className="text-xs"
             >
               View in Slack
