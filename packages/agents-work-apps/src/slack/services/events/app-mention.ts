@@ -36,6 +36,7 @@ import {
   findCachedUserMapping,
   formatAttachments,
   formatChannelContext,
+  formatSlackQuery,
   generateSlackConversationId,
   getThreadContext,
   getUserFriendlyErrorMessage,
@@ -230,10 +231,11 @@ export async function handleAppMention(params: {
 
       if (isInThread && !hasQuery) {
         // Thread + no query → Parallel: check if bot thread + fetch thread context
-        const [isBotThread, contextMessages, channelInfo] = await Promise.all([
+        const [isBotThread, contextMessages, channelInfo, autoExecUserInfo] = await Promise.all([
           checkIfBotThread(slackClient, channel, threadTs),
           getThreadContext(slackClient, channel, threadTs),
           getSlackChannelInfo(slackClient, channel),
+          getSlackUserInfo(slackClient, slackUserId),
         ]);
 
         if (isBotThread) {
@@ -290,24 +292,22 @@ export async function handleAppMention(params: {
         span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
 
         const channelContext = formatChannelContext(channelInfo);
-        const threadQuery = `A user mentioned you in a thread in ${channelContext}.
-
-<slack_thread_context>
-${contextMessages}
-</slack_thread_context>
-
-Based on the thread above, provide a helpful response. Consider:
-- What is the main topic or question being discussed?
-- Is there anything that needs clarification or a direct answer?
-- If appropriate, summarize key points or provide relevant information.
-
-Respond naturally as if you're joining the conversation to help.`;
+        const threadQuery = formatSlackQuery({
+          text: '',
+          channelContext,
+          userName: slackUserId,
+          threadContext: contextMessages,
+          isAutoExecute: true,
+          messageTs,
+          senderTimezone: autoExecUserInfo?.tz ?? undefined,
+        });
 
         logger.info(
           { projectId: agentConfig.projectId, agentId: agentConfig.agentId, conversationId },
           'Auto-executing agent with thread context'
         );
 
+        span.end();
         await executeAgentPublicly({
           slackClient,
           channel,
@@ -319,10 +319,10 @@ Respond naturally as if you're joining the conversation to help.`;
           agentId: agentConfig.agentId,
           agentName: agentDisplayName,
           question: threadQuery,
+          rawMessageText: '',
           conversationId,
           entryPoint: 'app_mention',
         });
-        span.end();
         return;
       }
 
@@ -333,11 +333,12 @@ Respond naturally as if you're joining the conversation to help.`;
       // Include thread context if in a thread
       if (isInThread && threadTs) {
         const {
-          result: [contextMessages, channelInfo],
+          result: [contextMessages, channelInfo, threadUserInfo],
         } = await timedOp(
           Promise.all([
             getThreadContext(slackClient, channel, threadTs),
             getSlackChannelInfo(slackClient, channel),
+            getSlackUserInfo(slackClient, slackUserId),
           ]),
           {
             label: 'thread context fetch',
@@ -346,11 +347,15 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         if (contextMessages) {
           const channelContext = formatChannelContext(channelInfo);
-          let messageContent = text;
-          if (attachmentContext) {
-            messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
-          }
-          queryText = `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nMessage from ${slackUserId}: ${messageContent}`;
+          queryText = formatSlackQuery({
+            text,
+            channelContext,
+            userName: slackUserId,
+            attachmentContext: attachmentContext || undefined,
+            threadContext: contextMessages,
+            messageTs,
+            senderTimezone: threadUserInfo?.tz ?? undefined,
+          });
         }
       } else {
         const {
@@ -364,11 +369,14 @@ Respond naturally as if you're joining the conversation to help.`;
         );
         const channelContext = formatChannelContext(channelInfo);
         const userName = userInfo?.displayName || 'User';
-        if (attachmentContext) {
-          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
-        } else {
-          queryText = `The following is a message from ${channelContext} from ${userName}: """${text}"""`;
-        }
+        queryText = formatSlackQuery({
+          text,
+          channelContext,
+          userName,
+          attachmentContext: attachmentContext || undefined,
+          messageTs,
+          senderTimezone: userInfo?.tz ?? undefined,
+        });
       }
 
       // Sign JWT token for authentication with channel auth context
@@ -402,6 +410,7 @@ Respond naturally as if you're joining the conversation to help.`;
         'Executing agent'
       );
 
+      span.end();
       await executeAgentPublicly({
         slackClient,
         channel,
@@ -413,10 +422,10 @@ Respond naturally as if you're joining the conversation to help.`;
         agentId: agentConfig.agentId,
         agentName: agentDisplayName,
         question: queryText,
+        rawMessageText: text,
         conversationId,
         entryPoint: 'app_mention',
       });
-      span.end();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error({ errorMessage: errorMsg, channel, teamId }, 'Failed in app mention handler');
@@ -446,7 +455,6 @@ Respond naturally as if you're joining the conversation to help.`;
           );
         }
       }
-      span.end();
     }
   });
 }

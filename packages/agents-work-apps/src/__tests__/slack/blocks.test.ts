@@ -18,6 +18,7 @@ import {
   buildToolOutputErrorBlock,
   createAlreadyLinkedMessage,
   createContextBlock,
+  createContextBlockFromText,
   createErrorMessage,
   createNotLinkedMessage,
   createStatusMessage,
@@ -33,6 +34,18 @@ describe('Slack Block Builders', () => {
       expect(result.type).toBe('context');
       expect(result.elements[0].type).toBe('mrkdwn');
       expect(result.elements[0].text).toBe('Powered by *Test Agent* via Inkeep');
+    });
+  });
+
+  describe('createContextBlockFromText', () => {
+    it('should create context block for subtle styling', () => {
+      const text = '_Test Agent is thinking..._';
+      const result = createContextBlockFromText(text);
+
+      expect(result).toEqual({
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text }],
+      });
     });
   });
 

@@ -1,9 +1,12 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { getLogger } from '../utils/logger';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { doltListBranches } from './branch';
 import { checkoutBranch } from './branches-api';
 import { doltHashOf, doltListTags } from './commit';
+
+const logger = getLogger('ref-helpers');
 
 export type RefType = 'commit' | 'tag' | 'branch';
 
@@ -101,4 +104,24 @@ export const getProjectMainResolvedRef =
       throw new Error(`Project main branch not found: ${projectMain}`);
     }
     return resolvedRef;
+  };
+
+export const resolveProjectMainRefs =
+  (db: AgentsManageDatabaseClient) =>
+  async (
+    tenantId: string,
+    projectIds: string[]
+  ): Promise<Array<{ projectId: string; ref: ResolvedRef }>> => {
+    const results = await Promise.all(
+      projectIds.map(async (projectId) => {
+        const branchName = `${tenantId}_${projectId}_main`;
+        const ref = await resolveRef(db)(branchName);
+        if (!ref) {
+          logger.warn({ tenantId, projectId }, 'Project main branch not found, skipping');
+          return null;
+        }
+        return { projectId, ref };
+      })
+    );
+    return results.filter((r): r is NonNullable<typeof r> => r !== null);
   };

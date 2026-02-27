@@ -6,7 +6,7 @@ const logger = getLogger('artifact-utils');
 /**
  * Artifact metadata returned from saveToolResultsAsArtifacts
  */
-export interface ArtifactInfo {
+export interface CompressedArtifactInfo {
   artifactId: string;
   isOversized: boolean;
   originalTokenSize?: number;
@@ -14,6 +14,7 @@ export interface ArtifactInfo {
   toolArgs?: Record<string, unknown>;
   structureInfo?: string;
   oversizedWarning?: string;
+  summaryData?: Record<string, any>;
 }
 
 /**

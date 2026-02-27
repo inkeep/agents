@@ -3,13 +3,14 @@ import { signSlackUserToken } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { getSlackClient } from '../client';
+import { getSlackClient, getSlackUserInfo } from '../client';
 import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { executeAgentPublicly } from './execution';
 import {
   classifyError,
   findCachedUserMapping,
+  formatSlackQuery,
   generateSlackConversationId,
   getThreadContext,
   getUserFriendlyErrorMessage,
@@ -73,7 +74,10 @@ export async function handleDirectMessage(params: {
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, defaultAgent.projectId);
       const agentDisplayName = defaultAgent.agentName || defaultAgent.agentId;
 
-      const existingLink = await findCachedUserMapping(tenantId, slackUserId, teamId);
+      const [existingLink, userInfo] = await Promise.all([
+        findCachedUserMapping(tenantId, slackUserId, teamId),
+        getSlackUserInfo(slackClient, slackUserId),
+      ]);
 
       if (!existingLink) {
         logger.info({ slackUserId, teamId }, 'User not linked — sending link prompt in DM');
@@ -106,14 +110,41 @@ export async function handleDirectMessage(params: {
         return;
       }
 
-      let queryText = text;
+      const userName = userInfo?.displayName || 'User';
+      const dmChannelContext = 'a Slack direct message';
+
+      const senderTimezone = userInfo?.tz ?? undefined;
+
+      let queryText: string;
       if (isInThread && threadTs) {
         const contextMessages = await getThreadContext(slackClient, channel, threadTs);
         if (contextMessages) {
-          queryText = text
-            ? `The following is thread context from a DM conversation:\n\n<slack_thread_context>\n${contextMessages}\n</slack_thread_context>\n\nUser message: ${text}`
-            : contextMessages;
+          queryText = formatSlackQuery({
+            text: text || '',
+            channelContext: dmChannelContext,
+            userName,
+            threadContext: contextMessages,
+            isAutoExecute: !text,
+            messageTs,
+            senderTimezone,
+          });
+        } else {
+          queryText = formatSlackQuery({
+            text,
+            channelContext: dmChannelContext,
+            userName,
+            messageTs,
+            senderTimezone,
+          });
         }
+      } else {
+        queryText = formatSlackQuery({
+          text,
+          channelContext: dmChannelContext,
+          userName,
+          messageTs,
+          senderTimezone,
+        });
       }
 
       const slackUserToken = await signSlackUserToken({
@@ -137,6 +168,7 @@ export async function handleDirectMessage(params: {
         'Executing agent for DM'
       );
 
+      span.end();
       await executeAgentPublicly({
         slackClient,
         channel,
@@ -148,10 +180,10 @@ export async function handleDirectMessage(params: {
         agentId: defaultAgent.agentId,
         agentName: agentDisplayName,
         question: queryText,
+        rawMessageText: text,
         conversationId,
         entryPoint: 'direct_message',
       });
-      span.end();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error({ errorMessage: errorMsg, channel, teamId }, 'Failed in DM handler');
@@ -169,7 +201,6 @@ export async function handleDirectMessage(params: {
       } catch (postError) {
         logger.error({ error: postError }, 'Failed to post DM error message');
       }
-      span.end();
     }
   });
 }

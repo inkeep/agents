@@ -63,10 +63,13 @@ Use OpenTelemetry traces to debug schema validation issues.
 
 Set `inPreview: true` on properties for immediate availability. These fields are:
 
-- Shown to other agents for reasoning
+- Included in the agent's context when an artifact is referenced, so the agent can reason about them directly
+- Shown to other agents in the project for cross-agent reasoning
 - Streamed in real-time to clients (Vercel AI SDK)
 - Auto-rendered by Inkeep's widget (citations as interactive cards)
 - Available immediately in UI (full artifact loads on-demand)
+
+Fields **without** `inPreview: true` are persisted in storage but kept out of the agent's working context by default, keeping the context window lean. Agents can retrieve the complete artifact — including all non-preview fields — on demand when they need it.
 
 For more details on how artifact data is streamed via the API, see [Data Artifact Events](/typescript-sdk/data-operations#artifact-events).
 
@@ -114,6 +117,55 @@ For more details on how artifact data is streamed via the API, see [Data Artifac
   "required": ["title", "url", "content", "record_type"],
   "additionalProperties": false
 }
+```
+
+## Accessing Artifact Data
+
+Agents can access artifact data in a few ways:
+
+- **In context** — after creating or referencing an artifact, the agent can see its preview fields directly in its working context
+- **Passing to a tool** — the agent can supply an artifact as an argument to a tool; the tool receives the complete artifact data, including all non-preview fields
+- **On-demand retrieval** — the agent can explicitly fetch the full artifact when it needs to read non-preview fields itself
+
+## Passing Artifacts to Tools
+
+When a tool receives an artifact as an argument, it has access to all fields — not just the preview ones. For example, a document processing tool can read the full `content` array even though `content` is a non-preview field:
+
+```typescript
+import { functionTool } from "@inkeep/agents-sdk";
+
+const summarizeTool = functionTool({
+  id: "summarize-document",
+  description: "Summarize the content of a document artifact",
+  inputSchema: {
+    type: "object",
+    properties: {
+      // The agent passes an artifact here; the tool receives all fields
+      document: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          url: { type: "string" },
+          content: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: { type: "string" },
+                text: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  execute: async ({ document }) => {
+    // document.content is fully available here, even though it's non-preview
+    const fullText = document.content.map((c) => c.text).join("\n");
+    return { summary: fullText.slice(0, 500) };
+  },
+});
 ```
 
 Citation artifacts that are named `citation` and have `title` and `url` preview fields are auto-rendered by Inkeep's widget in two ways:

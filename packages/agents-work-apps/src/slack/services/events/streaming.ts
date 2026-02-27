@@ -30,7 +30,7 @@ import {
 
 const logger = getLogger('slack-streaming');
 
-const STREAM_TIMEOUT_MS = 600_000;
+const STREAM_TIMEOUT_MS = 1800_000; // 30 minutes
 const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;
@@ -63,17 +63,24 @@ async function cleanupThinkingMessage(params: {
   threadTs?: string;
   slackUserId: string;
   agentName: string;
-  question: string;
+  rawMessageText: string;
 }): Promise<void> {
-  const { slackClient, channel, thinkingMessageTs, threadTs, slackUserId, agentName, question } =
-    params;
+  const {
+    slackClient,
+    channel,
+    thinkingMessageTs,
+    threadTs,
+    slackUserId,
+    agentName,
+    rawMessageText,
+  } = params;
 
   if (!thinkingMessageTs) return;
 
   try {
     if (thinkingMessageTs === threadTs) {
-      const text = question
-        ? `<@${slackUserId}> to ${agentName}: "${question}"`
+      const text = rawMessageText
+        ? `<@${slackUserId}> to ${agentName}: "${rawMessageText}"`
         : `<@${slackUserId}> invoked _${agentName}_`;
       await slackClient.chat.update({
         channel,
@@ -108,6 +115,7 @@ export async function streamAgentResponse(params: {
   projectId: string;
   agentId: string;
   question: string;
+  rawMessageText?: string;
   agentName: string;
   conversationId: string;
   entryPoint?: string;
@@ -124,11 +132,13 @@ export async function streamAgentResponse(params: {
       projectId,
       agentId,
       question,
+      rawMessageText: rawMessageTextParam,
       agentName,
       conversationId,
       entryPoint,
     } = params;
 
+    const rawMessageText = rawMessageTextParam ?? question;
     const threadParam = threadTs ? { thread_ts: threadTs } : {};
     const cleanupParams = {
       slackClient,
@@ -137,7 +147,7 @@ export async function streamAgentResponse(params: {
       threadTs,
       slackUserId,
       agentName,
-      question,
+      rawMessageText,
     };
 
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
@@ -297,6 +307,8 @@ export async function streamAgentResponse(params: {
     let richMessageCount = 0;
     let richMessageCapWarned = false;
     const MAX_RICH_MESSAGES = 20;
+
+    span.end();
 
     try {
       let agentCompleted = false;
@@ -569,9 +581,6 @@ export async function streamAgentResponse(params: {
           'streamer.stop'
         );
       } catch (stopError) {
-        // If content was already delivered to the user, a streamer.stop() timeout
-        // is a non-critical finalization error — log it but don't surface to user
-        span.setAttribute(SLACK_SPAN_KEYS.STREAM_FINALIZATION_FAILED, true);
         logger.warn(
           { stopError, channel, threadTs, responseLength: fullText.length },
           'Failed to finalize chatStream — content was already delivered'
@@ -594,12 +603,23 @@ export async function streamAgentResponse(params: {
         'Streaming completed'
       );
 
-      span.end();
       return { success: true };
     } catch (streamError) {
       clearTimeout(timeoutId);
       reader?.cancel().catch(() => {});
-      if (streamError instanceof Error) setSpanWithError(span, streamError);
+
+      const contentAlreadyDelivered = fullText.length > 0;
+
+      tracer.startActiveSpan('slack.stream_error', (errorSpan) => {
+        if (streamError instanceof Error) setSpanWithError(errorSpan, streamError);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
+        if (conversationId) errorSpan.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.CONTENT_ALREADY_DELIVERED, contentAlreadyDelivered);
+        errorSpan.setAttribute('pending_approval_count', pendingApprovalMessages.length);
+        errorSpan.end();
+      });
 
       for (const { messageTs, toolName } of pendingApprovalMessages) {
         await slackClient.chat
@@ -612,19 +632,11 @@ export async function streamAgentResponse(params: {
           .catch((e) => logger.warn({ error: e, messageTs }, 'Failed to expire approval message'));
       }
 
-      const contentAlreadyDelivered = fullText.length > 0;
-
       if (contentAlreadyDelivered) {
-        // Content was already streamed to the user — a late error (e.g. streamer.append
-        // timeout on the final chunk) should not surface as a user-facing error message.
-        span.setAttribute(SLACK_SPAN_KEYS.CONTENT_ALREADY_DELIVERED, true);
         logger.warn(
           { streamError, channel, threadTs, responseLength: fullText.length },
           'Error during Slack streaming after content was already delivered — suppressing user-facing error'
         );
-        // Only finalize if the streamer was started (a Slack message exists).
-        // Calling stop() on an unstarted streamer would call chat.startStream(),
-        // creating a phantom duplicate message.
         if (streamerStarted) {
           await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
             (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
@@ -633,13 +645,9 @@ export async function streamAgentResponse(params: {
 
         await cleanupThinkingMessage(cleanupParams);
 
-        span.end();
         return { success: true };
       }
 
-      // Approval(s) expired — the stream ended while waiting for tool approval.
-      // The approval block is already updated to "Expired"; post a concise follow-up
-      // instead of the generic timeout error.
       if (pendingApprovalMessages.length > 0) {
         for (const { toolName } of pendingApprovalMessages) {
           await slackClient.chat
@@ -658,13 +666,9 @@ export async function streamAgentResponse(params: {
           );
         }
         await cleanupThinkingMessage(cleanupParams);
-        span.end();
         return { success: true };
       }
 
-      // No content was delivered — surface the error to the user.
-      // Do NOT call streamer.stop() here: the streamer was never started, so stop()
-      // would call chat.startStream() creating a phantom message with buffered content.
       logger.error({ streamError }, 'Error during Slack streaming');
 
       await cleanupThinkingMessage(cleanupParams);
@@ -682,7 +686,6 @@ export async function streamAgentResponse(params: {
         logger.warn({ notifyError, channel, threadTs }, 'Failed to notify user of stream error');
       }
 
-      span.end();
       return { success: false, errorType, errorMessage };
     }
   });

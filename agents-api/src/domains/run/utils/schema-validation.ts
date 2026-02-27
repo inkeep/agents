@@ -40,6 +40,31 @@ export function extractPreviewFields(schema: ExtendedJsonSchema): Record<string,
 }
 
 /**
+ * Convert a JSON Schema properties map into a compact readable shape.
+ * Arrays become [{...}], objects recurse, primitives become their type string.
+ * Useful for displaying artifact schemas in prompts.
+ */
+export function buildSchemaShape(properties: Record<string, any>): Record<string, unknown> {
+  const shape: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    if (value.type === 'array') {
+      if (value.items?.properties) {
+        shape[key] = [buildSchemaShape(value.items.properties)];
+      } else if (value.items?.type) {
+        shape[key] = [value.items.type];
+      } else {
+        shape[key] = [];
+      }
+    } else if (value.type === 'object' && value.properties) {
+      shape[key] = buildSchemaShape(value.properties);
+    } else {
+      shape[key] = value.type || 'unknown';
+    }
+  }
+  return shape;
+}
+
+/**
  * Extract full fields from a schema (all fields, with inPreview flags removed)
  */
 export function extractFullFields(schema: ExtendedJsonSchema): Record<string, any> {
