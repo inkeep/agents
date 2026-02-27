@@ -196,7 +196,7 @@ const envSchema = z
       .describe(
         'Directory path for local blob storage fallback. Resolved relative to process cwd. Default .blob-storage.'
       ),
-    BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: z
+    BLOB_READ_WRITE_TOKEN: z
       .string()
       .optional()
       .describe(

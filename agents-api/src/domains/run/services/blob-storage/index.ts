@@ -15,7 +15,7 @@ let instance: BlobStorageProvider | null = null;
 /**
  * Returns the configured blob storage provider with precedence:
  * 1) S3 when BLOB_STORAGE_S3_BUCKET is set
- * 2) Vercel when BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN is set
+ * 2) Vercel when BLOB_READ_WRITE_TOKEN is set
  * 3) Local fallback otherwise
  *
  * Stored keys do not encode backend; changing provider strategy after uploads
@@ -25,7 +25,7 @@ export function getBlobStorageProvider(): BlobStorageProvider {
   if (!instance) {
     if (env.BLOB_STORAGE_S3_BUCKET?.trim()) {
       instance = new S3BlobStorageProvider();
-    } else if (env.BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN?.trim()) {
+    } else if (env.BLOB_READ_WRITE_TOKEN?.trim()) {
       instance = new VercelBlobStorageProvider();
     } else {
       instance = new LocalBlobStorageProvider();

@@ -19,7 +19,7 @@ describe('VercelBlobStorageProvider', () => {
   it('trims token before passing it to SDK methods', async () => {
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: '  my-token  ',
+        BLOB_READ_WRITE_TOKEN: '  my-token  ',
       },
     }));
     putMock.mockResolvedValueOnce({});
@@ -42,7 +42,7 @@ describe('VercelBlobStorageProvider', () => {
   it('wraps upload errors with key context', async () => {
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: 'token',
+        BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
     putMock.mockRejectedValueOnce(new Error('Upload failed'));
@@ -61,7 +61,7 @@ describe('VercelBlobStorageProvider', () => {
   it('downloads data and preserves content type', async () => {
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: 'token',
+        BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
     getMock.mockResolvedValueOnce({
@@ -80,7 +80,7 @@ describe('VercelBlobStorageProvider', () => {
   it('wraps download errors with key context', async () => {
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: 'token',
+        BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
     getMock.mockResolvedValueOnce({ statusCode: 404, stream: null });
@@ -95,7 +95,7 @@ describe('VercelBlobStorageProvider', () => {
   it('wraps delete errors with key context', async () => {
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: 'token',
+        BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
     delMock.mockRejectedValueOnce(new Error('Delete failed'));

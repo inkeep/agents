@@ -39,7 +39,7 @@ describe('blob storage factory', () => {
         BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
         BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
         BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: 'token',
+        BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
 
@@ -55,7 +55,7 @@ describe('blob storage factory', () => {
     vi.doMock('../../../../env', () => ({
       env: {
         BLOB_STORAGE_LOCAL_PATH: dir,
-        BLOB_STORAGE_VERCEL_READ_WRITE_TOKEN: 'token',
+        BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
 
