@@ -5,8 +5,6 @@ import { addStringProperty, createFactoryDefinition, toCamelCase } from '../util
 
 const MySchema = FullProjectDefinitionSchema.shape.externalAgents.unwrap().valueType.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 const ExternalAgentSchema = z.strictObject({

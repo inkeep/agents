@@ -880,6 +880,10 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
   .extend({
     id: ResourceIdSchema.optional(),
   })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
   .openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
 

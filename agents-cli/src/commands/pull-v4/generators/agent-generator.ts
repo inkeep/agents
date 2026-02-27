@@ -21,8 +21,6 @@ const SubAgentReferenceSchema = z.object({
 
 const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.omit({
   id: true,
-  // updatedAt: true,
-  // createdAt: true,
 });
 
 const AgentSchema = z.strictObject({
