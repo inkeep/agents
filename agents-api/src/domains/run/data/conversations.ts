@@ -158,7 +158,8 @@ export async function getScopedHistory({
     const compressionSummaries = allMessages.filter(
       (msg) =>
         msg.messageType === 'compression_summary' &&
-        msg.metadata?.a2a_metadata?.compressionType === 'conversation_history'
+        (msg.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
+          msg.metadata?.compressionType === 'conversation_history')
     );
 
     const latestCompressionSummary =
@@ -504,7 +505,7 @@ export async function getConversationHistoryWithCompression({
           if (summaryDataStr) refParts.push(`summary: ${summaryDataStr}`);
           return {
             ...msg,
-            content: { ...msg.content, text: `[${refParts.join(' | ')}]` },
+            content: { text: `[${refParts.join(' | ')}]` },
           };
         });
       }
@@ -520,7 +521,8 @@ export async function getConversationHistoryWithCompression({
     const firstMsg = messagesToFormat[0];
     const compressionSummary =
       firstMsg?.messageType === 'compression_summary' &&
-      firstMsg?.metadata?.a2a_metadata?.compressionType === 'conversation_history'
+      (firstMsg?.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
+        firstMsg?.metadata?.compressionType === 'conversation_history')
         ? firstMsg
         : null;
 
@@ -539,8 +541,7 @@ export async function getConversationHistoryWithCompression({
         priorSummary,
       });
 
-      const wasRecompressed =
-        recompressResult.length === 1 && recompressResult[0].messageType === 'compression_summary';
+      const wasRecompressed = recompressResult[0]?.messageType === 'compression_summary';
       messagesToFormat = wasRecompressed
         ? recompressResult
         : [compressionSummary, ...messagesAfterCompression];

@@ -1092,7 +1092,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               const convHistoryTokens = estimateTokens(rawConversationHistory);
               const totalContentTokens = activitiesTokens + convHistoryTokens;
               const overhead = totalTokens - totalContentTokens;
-              const available = Math.max(0, safeLimit - overhead);
+              const available = Math.max(200, safeLimit - overhead);
               if (totalContentTokens > available && totalContentTokens > 0) {
                 const scale = available / totalContentTokens;
                 const maxActivitiesChars = Math.floor(activitiesTokens * scale) * 4;

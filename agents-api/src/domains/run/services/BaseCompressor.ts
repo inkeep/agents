@@ -171,25 +171,26 @@ export abstract class BaseCompressor {
 
       for (const artifact of artifacts) {
         if (artifact.toolCallId) {
+          const dataPart = artifact.parts?.find(
+            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
+              p.kind === 'data'
+          );
           result.set(artifact.toolCallId, {
             artifactId: artifact.artifactId,
             isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
             toolArgs: artifact.metadata?.toolArgs,
             toolName: artifact.metadata?.toolName as string | undefined,
-            summaryData:
-              (artifact.parts?.[0] as any)?.data?.summary ??
-              (artifact.parts?.[0] as any)?.data ??
-              undefined,
+            summaryData: dataPart?.data?.summary ?? dataPart?.data,
           });
         }
       }
     } catch (error) {
-      logger.debug(
+      logger.warn(
         {
           sessionId: this.sessionId,
           error: error instanceof Error ? error.message : String(error),
         },
-        'Artifact batch lookup failed'
+        'Artifact batch lookup failed — existing artifacts may not be reused'
       );
     }
 
@@ -428,6 +429,11 @@ export abstract class BaseCompressor {
                     : summary;
                 parts.push(
                   `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]\n${truncated}`
+                );
+              } else {
+                logger.debug(
+                  { toolCallId: block.toolCallId, toolName: block.toolName },
+                  'Skipping tool result without artifact mapping in distillation'
                 );
               }
             }
