@@ -32,13 +32,20 @@ export const useChatActivitiesPolling = ({
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isComponentMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Track the current conversationId via ref for accurate stale request detection
+  const currentConversationIdRef = useRef(conversationId);
+
+  // Keep the ref in sync with the latest conversationId
+  useEffect(() => {
+    currentConversationIdRef.current = conversationId;
+  }, [conversationId]);
 
   const fetchChatActivities = useCallback(async (): Promise<ConversationDetail | null> => {
     try {
       setError(null);
 
       abortControllerRef.current = new AbortController();
-      const currentConversationId = conversationId; // Capture current ID
+      const currentConversationId = conversationId; // Capture ID at request start
 
       const response = await fetch(
         `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
@@ -69,7 +76,10 @@ export const useChatActivitiesPolling = ({
 
       const data: ConversationDetail = await response.json();
 
-      if (isComponentMountedRef.current && currentConversationId === conversationId) {
+      if (
+        isComponentMountedRef.current &&
+        currentConversationId === currentConversationIdRef.current
+      ) {
         // Only update state if data actually changed (by checking activity count)
         const newCount = data.activities?.length || 0;
         if (newCount !== lastActivityCount.current) {
