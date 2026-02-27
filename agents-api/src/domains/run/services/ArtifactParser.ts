@@ -1,4 +1,5 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
+import { SENTINEL_KEY } from '../constants/artifact-syntax';
 import { getLogger } from '../../../logger';
 import {
   buildSchemaShape,
@@ -220,32 +221,41 @@ export class ArtifactParser {
    */
   async resolveArgs(args: any): Promise<any> {
     if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
-      if (typeof args.$artifact === 'string' && typeof args.$tool === 'string') {
-        const fullData = await this.artifactService.getArtifactFull(args.$artifact, args.$tool);
+      if (
+        typeof args[SENTINEL_KEY.ARTIFACT] === 'string' &&
+        typeof args[SENTINEL_KEY.TOOL] === 'string'
+      ) {
+        const fullData = await this.artifactService.getArtifactFull(
+          args[SENTINEL_KEY.ARTIFACT],
+          args[SENTINEL_KEY.TOOL]
+        );
         if (fullData?.data) {
           logger.debug(
-            { artifactId: args.$artifact, toolCallId: args.$tool },
+            { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved artifact ref in tool arg'
           );
           return fullData.data;
         }
         logger.warn(
-          { artifactId: args.$artifact, toolCallId: args.$tool },
+          { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
           'Artifact ref in tool arg could not be resolved'
         );
         return args;
       }
 
-      if (typeof args.$tool === 'string' && args.$artifact === undefined) {
-        const raw = this.artifactService.getToolResultRaw(args.$tool);
+      if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
+        const raw = this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
         if (raw !== undefined) {
           logger.debug(
-            { toolCallId: args.$tool },
+            { toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved ephemeral tool result ref in tool arg'
           );
           return raw;
         }
-        logger.warn({ toolCallId: args.$tool }, 'Ephemeral tool result ref could not be resolved');
+        logger.warn(
+          { toolCallId: args[SENTINEL_KEY.TOOL] },
+          'Ephemeral tool result ref could not be resolved'
+        );
         return args;
       }
 
