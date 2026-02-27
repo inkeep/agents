@@ -1,3 +1,11 @@
+import {
+  type V5Response,
+  V5_REQUEST_TYPES,
+  v5ChQuery,
+  v5Payload,
+  getV5LabelMap,
+  extractV5Series,
+} from '@inkeep/agents-core/client-exports';
 import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
@@ -19,7 +27,7 @@ function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
 
 function getSigNozEndpoint(): string {
   const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
-  return `${signozUrl}/api/v4/query_range`;
+  return `${signozUrl}/api/v5/query_range`;
 }
 
 type RouteContext<_T> = {
@@ -46,39 +54,36 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
     const now = Date.now();
     const tableName = 'distributed_signoz_index_v3';
 
-    const payload = {
+    const payload = v5Payload({
       start: now - DEFAULT_LOOKBACK_MS,
       end: now,
-      step: 60,
+      requestType: V5_REQUEST_TYPES.SCALAR,
       variables: {
         conversation_id: conversationId,
         span_id: spanId,
       },
-      compositeQuery: {
-        queryType: 'clickhouse_sql',
-        panelType: 'table',
-        chQueries: {
-          A: {
-            query: `
-              SELECT
-                trace_id, span_id, parent_span_id,
-                timestamp,
-                name,
-                toJSONString(attributes_string) AS attributes_string_json,
-                toJSONString(attributes_number) AS attributes_number_json,
-                toJSONString(attributes_bool)   AS attributes_bool_json,
-                toJSONString(resources_string)  AS resources_string_json
-              FROM signoz_traces.${tableName}
-              WHERE attributes_string['conversation.id'] = {{.conversation_id}}
-                AND span_id = {{.span_id}}
-                AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-                AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
-              LIMIT 1
-            `,
-          },
-        },
-      },
-    };
+      queries: [
+        v5ChQuery({
+          name: 'A',
+          query: `
+            SELECT
+              trace_id, span_id, parent_span_id,
+              timestamp,
+              name,
+              toJSONString(attributes_string) AS attributes_string_json,
+              toJSONString(attributes_number) AS attributes_number_json,
+              toJSONString(attributes_bool)   AS attributes_bool_json,
+              toJSONString(resources_string)  AS resources_string_json
+            FROM signoz_traces.${tableName}
+            WHERE attributes_string['conversation.id'] = {{.conversation_id}}
+              AND span_id = {{.span_id}}
+              AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
+              AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+            LIMIT 1
+          `,
+        }),
+      ],
+    });
 
     let response: AxiosResponse;
 
@@ -105,16 +110,15 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
       });
     }
 
-    const json = response.data;
-    const result = json?.data?.result?.[0];
-    const series = result?.series;
+    const json = response.data as V5Response;
+    const series = extractV5Series(json, 'A');
 
     if (!series || series.length === 0) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }
 
-    const row = series[0]?.labels;
-    if (!row?.trace_id || !row?.span_id) {
+    const row = getV5LabelMap(series[0]?.labels);
+    if (!row.trace_id || !row.span_id) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }
 

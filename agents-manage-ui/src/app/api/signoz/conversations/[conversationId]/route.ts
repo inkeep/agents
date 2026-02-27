@@ -2,6 +2,15 @@ import {
   CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE,
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
+  type V5RawRow,
+  type V5Response,
+  V5_REQUEST_TYPES,
+  extractV5Rows,
+  filterExpr,
+  orderBy,
+  selectField,
+  v5BuilderQuery,
+  v5Payload,
 } from '@inkeep/agents-core/client-exports';
 import type { AxiosResponse } from 'axios';
 import axios from 'axios';
@@ -12,16 +21,9 @@ import {
   ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   AGENT_IDS,
-  AGGREGATE_OPERATORS,
   AI_OPERATIONS,
-  DATA_SOURCES,
-  OPERATORS,
-  ORDER_DIRECTIONS,
-  PANEL_TYPES,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
-  QUERY_FIELD_CONFIGS,
-  QUERY_TYPES,
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
@@ -40,10 +42,7 @@ export const dynamic = 'force-dynamic';
 
 // ---------- Types
 
-type SigNozListItem = { data?: Record<string, any>; [k: string]: any };
-type SigNozResp = {
-  data?: { result?: Array<{ queryName?: string; list?: SigNozListItem[] }> };
-};
+type SigNozListItem = V5RawRow;
 
 const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
@@ -75,15 +74,14 @@ function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
  */
 function getSigNozEndpoint(): string {
   const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
-  return `${signozUrl}/api/v4/query_range`;
+  return `${signozUrl}/api/v5/query_range`;
 }
 
-// Call SigNoz directly for server-to-server calls, otherwise go through agents-api
 async function signozQuery(
   payload: any,
   tenantId: string,
   cookieHeader: string | null
-): Promise<SigNozResp> {
+): Promise<V5Response> {
   const logger = getLogger('signoz-query');
 
   try {
@@ -123,11 +121,11 @@ async function signozQuery(
       });
     }
 
-    const json = response.data as SigNozResp;
-    const responseData = json?.data?.result
-      ? json.data.result.map((r) => ({
+    const json = response.data as V5Response;
+    const responseData = json?.data?.results
+      ? json.data.results.map((r) => ({
           queryName: r.queryName,
-          count: r.list?.length,
+          count: r.rows?.length ?? r.aggregations?.[0]?.series?.length,
         }))
       : [];
     logger.debug({ responseData }, 'SigNoz response (truncated)');
@@ -158,1110 +156,248 @@ async function signozQuery(
   }
 }
 
-function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
-  const list = resp?.data?.result?.find((r) => r?.queryName === name)?.list ?? [];
-  return Array.isArray(list) ? list : [];
+function parseList(resp: V5Response, name: string): SigNozListItem[] {
+  const rows = extractV5Rows(resp, name);
+  return Array.isArray(rows) ? rows : [];
 }
 
-// ---------- Payload builder (single combined "list" payload)
+// ---------- Payload builder (single combined "raw" payload using v5 API)
 
 function buildConversationListPayload(
   conversationId: string,
   start = Date.now() - DEFAULT_LOOKBACK_MS,
   end = Date.now()
 ) {
-  const baseFilters = [
-    {
-      key: {
-        key: SPAN_KEYS.CONVERSATION_ID,
-        ...QUERY_FIELD_CONFIGS.STRING_TAG,
-      },
-      op: OPERATORS.EQUALS,
-      value: conversationId,
-    },
-  ];
+  const baseFilter = `${SPAN_KEYS.CONVERSATION_ID} = '${conversationId}'`;
 
-  const listQuery = (queryName: string, items: any[], selectColumns: any[], limit?: number) => ({
-    dataSource: DATA_SOURCES.TRACES,
-    queryName,
-    aggregateOperator: AGGREGATE_OPERATORS.NOOP,
-    aggregateAttribute: {},
-    filters: { op: OPERATORS.AND, items: [...baseFilters, ...items] },
-    selectColumns,
-    expression: queryName,
-    disabled: QUERY_DEFAULTS.DISABLED,
-    having: QUERY_DEFAULTS.HAVING,
-    stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-    limit,
-    orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-    groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-    offset: QUERY_DEFAULTS.OFFSET,
-  });
+  const rawQuery = (
+    name: string,
+    extraFilter: string,
+    fields: string[],
+    limit?: number
+  ) =>
+    v5BuilderQuery({
+      name,
+      filter: filterExpr(extraFilter ? `${baseFilter} AND ${extraFilter}` : baseFilter),
+      selectFields: fields.map((f) => selectField(f)),
+      order: [orderBy(SPAN_KEYS.TIMESTAMP, 'desc')],
+      limit: limit ?? undefined,
+      offset: QUERY_DEFAULTS.OFFSET,
+    });
 
-  return {
+  const S = SPAN_KEYS;
+  const N = SPAN_NAMES;
+
+  return v5Payload({
     start,
     end,
-    step: QUERY_DEFAULTS.STEP,
-    variables: {},
-    compositeQuery: {
-      queryType: QUERY_TYPES.BUILDER,
-      panelType: PANEL_TYPES.LIST,
-      builderQueries: {
-        toolCalls: listQuery(
-          QUERY_EXPRESSIONS.TOOL_CALLS,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.AI_TOOL_CALL,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.AI_TOOL_CALL_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TOOL_CALL_RESULT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TOOL_CALL_ARGS,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.DELEGATION_TYPE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            { key: SPAN_KEYS.TOOL_PURPOSE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+    requestType: V5_REQUEST_TYPES.RAW,
+    queries: [
+      rawQuery(
+        QUERY_EXPRESSIONS.TOOL_CALLS,
+        `name = '${N.AI_TOOL_CALL}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR, S.DURATION_NANO,
+          S.AI_TOOL_CALL_NAME, S.AI_TOOL_CALL_RESULT, S.AI_TOOL_CALL_ARGS,
+          S.AI_TOOL_TYPE, S.AI_TOOL_CALL_MCP_SERVER_ID, S.AI_TOOL_CALL_MCP_SERVER_NAME,
+          S.AI_TELEMETRY_FUNCTION_ID,
+          S.DELEGATION_FROM_SUB_AGENT_ID, S.DELEGATION_TO_SUB_AGENT_ID, S.DELEGATION_TYPE,
+          S.TRANSFER_FROM_SUB_AGENT_ID, S.TRANSFER_TO_SUB_AGENT_ID,
+          S.TOOL_PURPOSE, S.STATUS_MESSAGE, S.OTEL_STATUS_DESCRIPTION,
+          S.SUB_AGENT_NAME, S.SUB_AGENT_ID, S.AGENT_ID, S.AGENT_NAME,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // context resolution spans
-        contextResolution: listQuery(
-          QUERY_EXPRESSIONS.CONTEXT_RESOLUTION,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.CONTEXT_RESOLUTION,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.CONTEXT_URL, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.CONTEXT_CONFIG_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.CONTEXT_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.CONTEXT_RESOLUTION,
+        `name = '${N.CONTEXT_RESOLUTION}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.DURATION_NANO, S.HAS_ERROR,
+          S.CONTEXT_URL, S.STATUS_MESSAGE, S.OTEL_STATUS_DESCRIPTION,
+          S.CONTEXT_CONFIG_ID, S.CONTEXT_AGENT_ID, S.CONTEXT_HEADERS_KEYS,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // context handle spans
-        contextHandle: listQuery(
-          QUERY_EXPRESSIONS.CONTEXT_HANDLE,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.CONTEXT_HANDLE,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.CONTEXT_URL, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.CONTEXT_CONFIG_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.CONTEXT_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.CONTEXT_HANDLE,
+        `name = '${N.CONTEXT_HANDLE}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.DURATION_NANO, S.HAS_ERROR,
+          S.CONTEXT_URL, S.STATUS_MESSAGE, S.OTEL_STATUS_DESCRIPTION,
+          S.CONTEXT_CONFIG_ID, S.CONTEXT_AGENT_ID, S.CONTEXT_HEADERS_KEYS,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        agentGenerations: listQuery(
-          QUERY_EXPRESSIONS.AGENT_GENERATIONS,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.AGENT_GENERATION,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            // Context breakdown attributes (avoids needing the heavy allSpanAttributes SQL query)
-            { key: CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, ...QUERY_FIELD_CONFIGS.INT64_TAG },
-            ...V1_BREAKDOWN_SCHEMA.map((def) => ({
-              key: def.spanAttribute,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            })),
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.AGENT_GENERATIONS,
+        `name = '${N.AGENT_GENERATION}'`,
+        [
+          S.SPAN_ID, S.TIMESTAMP, S.HAS_ERROR, S.STATUS_MESSAGE, S.OTEL_STATUS_DESCRIPTION,
+          S.SUB_AGENT_ID, S.SUB_AGENT_NAME,
+          CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE,
+          ...V1_BREAKDOWN_SCHEMA.map((def) => def.spanAttribute),
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // Count spans with errors
-        spansWithErrors: listQuery(
-          QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.HAS_ERROR,
-                ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: true,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
+        `hasError = true`,
+        [S.SPAN_ID, S.NAME],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // user messages
-        userMessages: listQuery(
-          QUERY_EXPRESSIONS.USER_MESSAGES,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.MESSAGE_CONTENT,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.NOT_EQUALS,
-              value: '',
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.MESSAGE_CONTENT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.MESSAGE_PARTS,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.MESSAGE_TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            // Trigger-related attributes
-            { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.INVOCATION_ENTRY_POINT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.TRIGGER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.USER_MESSAGES,
+        `${S.MESSAGE_CONTENT} != ''`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR, S.DURATION_NANO,
+          S.MESSAGE_CONTENT, S.MESSAGE_PARTS, S.MESSAGE_TIMESTAMP,
+          S.AGENT_ID, S.AGENT_NAME,
+          S.INVOCATION_TYPE, S.INVOCATION_ENTRY_POINT, S.TRIGGER_ID, S.TRIGGER_INVOCATION_ID,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // assistant messages
-        aiAssistantMessages: listQuery(
-          QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.AI_RESPONSE_CONTENT,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.NOT_EQUALS,
-              value: '',
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_CONTENT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES,
+        `${S.AI_RESPONSE_CONTENT} != ''`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR, S.DURATION_NANO,
+          S.AI_RESPONSE_CONTENT, S.AI_RESPONSE_TIMESTAMP,
+          S.SUB_AGENT_NAME, S.SUB_AGENT_ID,
+          S.OTEL_STATUS_DESCRIPTION, S.STATUS_MESSAGE,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // AI generations
-        aiGenerations: listQuery(
-          QUERY_EXPRESSIONS.AI_GENERATIONS,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: AI_OPERATIONS.GENERATE_TEXT,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_TEXT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_TOOL_CALLS,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_PROMPT_MESSAGES,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.AI_GENERATIONS,
+        `${S.AI_OPERATION_ID} = '${AI_OPERATIONS.GENERATE_TEXT}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR, S.DURATION_NANO,
+          S.AGENT_ID, S.AI_TELEMETRY_FUNCTION_ID,
+          S.AI_TELEMETRY_SUB_AGENT_ID, S.AI_TELEMETRY_SUB_AGENT_NAME,
+          S.AI_MODEL_ID, S.GEN_AI_USAGE_INPUT_TOKENS, S.GEN_AI_USAGE_OUTPUT_TOKENS,
+          S.AI_RESPONSE_TEXT, S.AI_RESPONSE_TOOL_CALLS, S.AI_PROMPT_MESSAGES,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // AI streaming text
-        aiStreamingText: listQuery(
-          QUERY_EXPRESSIONS.AI_STREAMING_TEXT,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: AI_OPERATIONS.STREAM_TEXT,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_TEXT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_PROVIDER,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_OPERATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.AI_STREAMING_TEXT,
+        `${S.AI_OPERATION_ID} = '${AI_OPERATIONS.STREAM_TEXT}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR, S.DURATION_NANO,
+          S.AI_TELEMETRY_SUB_AGENT_ID, S.AI_TELEMETRY_SUB_AGENT_NAME,
+          S.AI_RESPONSE_TEXT, S.AI_MODEL_ID, S.AI_MODEL_PROVIDER, S.AI_OPERATION_ID,
+          S.GEN_AI_USAGE_INPUT_TOKENS, S.GEN_AI_USAGE_OUTPUT_TOKENS,
+          S.AI_TELEMETRY_FUNCTION_ID, S.STATUS_MESSAGE, S.AI_TELEMETRY_METADATA_PHASE,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        // context fetchers
-        contextFetchers: listQuery(
-          QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.CONTEXT_FETCHER,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.HTTP_URL, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.HTTP_STATUS_CODE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
+        `name = '${N.CONTEXT_FETCHER}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.DURATION_NANO, S.HAS_ERROR,
+          S.HTTP_URL, S.HTTP_STATUS_CODE, S.HTTP_RESPONSE_BODY_SIZE, S.STATUS_MESSAGE,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        durationSpans: listQuery(
-          QUERY_EXPRESSIONS.DURATION_SPANS,
-          [],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.PARENT_SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.DURATION_SPANS,
+        '',
+        [S.SPAN_ID, S.TRACE_ID, S.PARENT_SPAN_ID, S.DURATION_NANO, S.TIMESTAMP],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        artifactProcessing: listQuery(
-          QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.ARTIFACT_PROCESSING,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_TYPE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_TOOL_CALL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_DATA,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_IS_OVERSIZED,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
+        `name = '${N.ARTIFACT_PROCESSING}'`,
+        [
+          S.SPAN_ID, S.HAS_ERROR,
+          S.ARTIFACT_ID, S.ARTIFACT_TYPE, S.SUB_AGENT_ID, S.SUB_AGENT_NAME,
+          S.ARTIFACT_TOOL_CALL_ID, S.ARTIFACT_NAME, S.ARTIFACT_DESCRIPTION,
+          S.ARTIFACT_DATA, S.STATUS_MESSAGE,
+          S.ARTIFACT_IS_OVERSIZED, S.ARTIFACT_RETRIEVAL_BLOCKED,
+          S.ARTIFACT_ORIGINAL_TOKEN_SIZE, S.ARTIFACT_CONTEXT_WINDOW_SIZE,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        toolApprovalRequested: listQuery(
-          QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.TOOL_APPROVAL_REQUESTED,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TOOL_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.TOOL_CALL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED,
+        `name = '${N.TOOL_APPROVAL_REQUESTED}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR,
+          S.TOOL_NAME, S.TOOL_CALL_ID, S.SUB_AGENT_ID, S.SUB_AGENT_NAME,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        toolApprovalApproved: listQuery(
-          QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.TOOL_APPROVAL_APPROVED,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TOOL_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.TOOL_CALL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED,
+        `name = '${N.TOOL_APPROVAL_APPROVED}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR,
+          S.TOOL_NAME, S.TOOL_CALL_ID, S.SUB_AGENT_ID, S.SUB_AGENT_NAME,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        toolApprovalDenied: listQuery(
-          QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.TOOL_APPROVAL_DENIED,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TOOL_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.TOOL_CALL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED,
+        `name = '${N.TOOL_APPROVAL_DENIED}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR,
+          S.TOOL_NAME, S.TOOL_CALL_ID, S.SUB_AGENT_ID, S.SUB_AGENT_NAME,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        compression: listQuery(
-          QUERY_EXPRESSIONS.COMPRESSION,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            // Compression-specific attributes
-            {
-              key: 'compression.type',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: 'compression.session_id',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: 'compression.input_tokens',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.result.output_tokens',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.result.compression_ratio',
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
-            },
-            {
-              key: 'compression.result.artifact_count',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.message_count',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.hard_limit',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.safety_buffer',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.success',
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
-            },
-            {
-              key: 'compression.error',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: 'compression.result.summary',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
+      rawQuery(
+        QUERY_EXPRESSIONS.COMPRESSION,
+        `name = '${N.COMPRESSOR_SAFE_COMPRESS}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR,
+          S.SUB_AGENT_ID, S.SUB_AGENT_NAME,
+          'compression.type', 'compression.session_id',
+          'compression.input_tokens', 'compression.result.output_tokens',
+          'compression.result.compression_ratio', 'compression.result.artifact_count',
+          'compression.message_count', 'compression.hard_limit', 'compression.safety_buffer',
+          'compression.success', 'compression.error', 'compression.result.summary',
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
 
-        maxStepsReached: listQuery(
-          QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.AGENT_MAX_STEPS_REACHED,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.SUB_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AGENT_MAX_STEPS_REACHED,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
-            },
-            {
-              key: SPAN_KEYS.AGENT_STEPS_COMPLETED,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.AGENT_MAX_STEPS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
-        streamLifetimeExceeded: listQuery(
-          QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
-          [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.STREAM_FORCE_CLEANUP,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.STREAM_CLEANUP_REASON,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STREAM_MAX_LIFETIME_MS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-          ],
-          QUERY_DEFAULTS.LIMIT_UNLIMITED
-        ),
-      },
-    },
-    dataSource: DATA_SOURCES.TRACES,
-  };
+      rawQuery(
+        QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
+        `name = '${N.AGENT_MAX_STEPS_REACHED}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR,
+          S.SUB_AGENT_ID, S.SUB_AGENT_NAME, S.AGENT_ID, S.AGENT_NAME,
+          S.AGENT_MAX_STEPS_REACHED, S.AGENT_STEPS_COMPLETED, S.AGENT_MAX_STEPS,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
+
+      rawQuery(
+        QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
+        `name = '${N.STREAM_FORCE_CLEANUP}'`,
+        [
+          S.SPAN_ID, S.TRACE_ID, S.TIMESTAMP, S.HAS_ERROR,
+          S.STREAM_CLEANUP_REASON, S.STREAM_MAX_LIFETIME_MS, S.STREAM_BUFFER_SIZE_BYTES,
+        ],
+        QUERY_DEFAULTS.LIMIT_UNLIMITED
+      ),
+    ],
+  });
 }
 
 // ---------- Main handler
@@ -1526,7 +662,7 @@ export async function GET(
         type: ACTIVITY_TYPES.TOOL_CALL,
         toolName: name,
         description: hasError && statusMessage ? `Tool ${name} failed` : `Called ${name}`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(toolCall) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1568,7 +704,7 @@ export async function GET(
         id: contextResolution,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
         description: `Context fetch ${hasError ? 'failed' : 'completed'}`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(contextResolution) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
@@ -1599,7 +735,7 @@ export async function GET(
         id: contextHandle,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
         description: `Context handle ${hasError ? 'failed' : 'completed'}`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(contextHandle) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
@@ -1698,7 +834,7 @@ export async function GET(
         id: aiGeneration,
         type: ACTIVITY_TYPES.AI_GENERATION,
         description: 'AI model generating text response',
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(aiGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(
@@ -1736,7 +872,7 @@ export async function GET(
         id: agentGeneration,
         type: ACTIVITY_TYPES.AGENT_GENERATION,
         description: hasError ? 'Agent generation failed' : 'Agent generation',
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(agentGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         result: hasError
@@ -1761,7 +897,7 @@ export async function GET(
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
         description: 'AI model streaming text response',
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(
@@ -1797,7 +933,7 @@ export async function GET(
         id: contextFetcher,
         type: ACTIVITY_TYPES.CONTEXT_FETCH,
         description: '',
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(contextFetcher) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: UNKNOWN_VALUE,
@@ -1826,7 +962,7 @@ export async function GET(
         id: artifactProcessing,
         type: 'artifact_processing',
         description: 'Artifact processed',
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(artifactProcessing) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1857,7 +993,7 @@ export async function GET(
         id: approvalRequested,
         type: ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED,
         description: `Approval requested for ${toolName}`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(approvalRequested) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.PENDING,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1879,7 +1015,7 @@ export async function GET(
         id: approvalApproved,
         type: ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED,
         description: `${toolName} approved by user`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(approvalApproved) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1901,7 +1037,7 @@ export async function GET(
         id: approvalDenied,
         type: ACTIVITY_TYPES.TOOL_APPROVAL_DENIED,
         description: `${toolName} denied by user`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(approvalDenied) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1940,7 +1076,7 @@ export async function GET(
         id: compressionSpanId,
         type: ACTIVITY_TYPES.COMPRESSION,
         description,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(compressionSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(
@@ -1978,7 +1114,7 @@ export async function GET(
         id: maxStepsSpanId,
         type: ACTIVITY_TYPES.MAX_STEPS_REACHED,
         description: `Max generation steps reached (${stepsCompleted}/${maxSteps})`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(maxStepsSpanId) || undefined,
         status: ACTIVITY_STATUS.WARNING,
         subAgentId: subAgentId || ACTIVITY_NAMES.UNKNOWN_AGENT,
@@ -2000,7 +1136,7 @@ export async function GET(
         id: spanId,
         type: ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED,
         description: `Stream lifetime exceeded (${Math.round(maxLifetimeMs / 1000)}s limit)`,
-        timestamp: span.timestamp,
+        timestamp: span.timestamp ?? '',
         parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
         status: ACTIVITY_STATUS.ERROR,
         result: cleanupReason,
@@ -2011,7 +1147,7 @@ export async function GET(
     }
 
     // Pre-parse all timestamps once for better performance
-    const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
+    const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp ?? 0).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
     const operationEndTime = allSpanTimes.length > 0 ? Math.max(...allSpanTimes) : null;
 

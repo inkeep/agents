@@ -80,7 +80,7 @@ app.post('/query', async (c) => {
   }
 
   try {
-    const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+    const signozEndpoint = `${signozUrl}/api/v5/query_range`;
     logger.debug({ endpoint: signozEndpoint }, 'Proxying to SigNoz');
 
     const response = await axios.post(signozEndpoint, payload, {
@@ -195,7 +195,7 @@ app.post('/query-batch', async (c) => {
     return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
   }
 
-  const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+  const signozEndpoint = `${signozUrl}/api/v5/query_range`;
   const signozHeaders = {
     'Content-Type': 'application/json',
     'SIGNOZ-API-KEY': signozApiKey,
@@ -261,37 +261,30 @@ app.post('/query-batch', async (c) => {
 });
 
 /**
- * Inject a `conversation.id IN [...]` filter into every builder query
- * of a SigNoz composite query payload.
+ * Inject a `conversation.id IN [...]` filter into every builder_query
+ * of a SigNoz v5 composite query payload.
  */
 function injectConversationIdFilter(payload: any, conversationIds: string[]): any {
   const modified = JSON.parse(JSON.stringify(payload));
-  const builderQueries = modified.compositeQuery?.builderQueries;
-  if (!builderQueries) return modified;
+  const queries: any[] | undefined = modified.compositeQuery?.queries;
+  if (!Array.isArray(queries)) return modified;
 
-  const inFilter = {
-    key: {
-      key: 'conversation.id',
-      dataType: 'string',
-      type: 'tag',
-      isColumn: false,
-      isJSON: false,
-      id: 'false',
-    },
-    op: 'in',
-    value: conversationIds,
-  };
+  const idList = conversationIds.map((id) => `'${id}'`).join(', ');
+  const inClause = `conversation.id IN [${idList}]`;
 
-  for (const queryKey in builderQueries) {
-    const query = builderQueries[queryKey];
-    if (!query.filters) {
-      query.filters = { op: 'AND', items: [] };
-    }
-    // Remove any existing conversation.id IN filter to avoid duplication
-    query.filters.items = query.filters.items.filter(
-      (item: any) => !(item.key?.key === 'conversation.id' && item.op === 'in')
-    );
-    query.filters.items.push(inFilter);
+  for (const envelope of queries) {
+    if (envelope.type !== 'builder_query') continue;
+    const spec = envelope.spec;
+    if (!spec) continue;
+
+    let expr: string = spec.filter?.expression ?? '';
+    // Remove any existing conversation.id IN clause to avoid duplication
+    expr = expr.replace(/\s*AND\s+conversation\.id\s+IN\s+\[[^\]]*\]/gi, '').trim();
+    expr = expr.replace(/^conversation\.id\s+IN\s+\[[^\]]*\]\s*AND\s*/i, '').trim();
+
+    spec.filter = {
+      expression: expr ? `${expr} AND ${inClause}` : inClause,
+    };
   }
 
   return modified;
@@ -334,7 +327,7 @@ app.get('/health', async (c) => {
       },
     };
 
-    const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+    const signozEndpoint = `${signozUrl}/api/v5/query_range`;
     logger.debug({ endpoint: signozEndpoint }, 'Testing SigNoz connection');
 
     await axios.post(signozEndpoint, testPayload, {

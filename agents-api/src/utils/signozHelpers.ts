@@ -1,54 +1,38 @@
 /**
- * Helper function to enforce projectId filter on SigNoz queries.
- * This modifies the query payload to ensure all builder queries include
- * a server-side project.id filter, preventing client-side filter bypass.
+ * Helper function to enforce tenant/project filters on SigNoz v5 queries.
+ * Appends server-side tenant.id (and optionally project.id) clauses to every
+ * builder_query's filter expression, preventing client-side filter bypass.
  */
 export function enforceSecurityFilters(payload: any, tenantId: string, projectId?: string): any {
   const modifiedPayload = JSON.parse(JSON.stringify(payload));
+  const queries: any[] | undefined = modifiedPayload.compositeQuery?.queries;
+  if (!Array.isArray(queries)) return modifiedPayload;
 
-  if (modifiedPayload.compositeQuery?.builderQueries) {
-    for (const queryKey in modifiedPayload.compositeQuery.builderQueries) {
-      const query = modifiedPayload.compositeQuery.builderQueries[queryKey];
+  for (const envelope of queries) {
+    if (envelope.type !== 'builder_query') continue;
+    const spec = envelope.spec;
+    if (!spec) continue;
 
-      if (!query.filters) {
-        query.filters = { op: 'AND', items: [] };
-      }
+    const securityClauses: string[] = [];
 
-      // Remove any existing tenant.id and project.id filters to prevent bypass
-      query.filters.items = query.filters.items.filter(
-        (item: any) => item.key?.key !== 'tenant.id' && item.key?.key !== 'project.id'
-      );
+    // Strip any existing tenant.id / project.id from the expression to prevent bypass
+    let expr: string = spec.filter?.expression ?? '';
+    expr = expr
+      .replace(/\s*AND\s+tenant\.id\s*=\s*'[^']*'/gi, '')
+      .replace(/\s*AND\s+project\.id\s*=\s*'[^']*'/gi, '')
+      .replace(/^tenant\.id\s*=\s*'[^']*'\s*AND\s*/i, '')
+      .replace(/^project\.id\s*=\s*'[^']*'\s*AND\s*/i, '')
+      .trim();
 
-      // Always add server-side tenant filter
-      query.filters.items.push({
-        key: {
-          key: 'tenant.id',
-          dataType: 'string',
-          type: 'tag',
-          isColumn: false,
-          isJSON: false,
-          id: 'false',
-        },
-        op: '=',
-        value: tenantId,
-      });
-
-      // Add server-side project filter if provided
-      if (projectId) {
-        query.filters.items.push({
-          key: {
-            key: 'project.id',
-            dataType: 'string',
-            type: 'tag',
-            isColumn: false,
-            isJSON: false,
-            id: 'false',
-          },
-          op: '=',
-          value: projectId,
-        });
-      }
+    securityClauses.push(`tenant.id = '${tenantId}'`);
+    if (projectId) {
+      securityClauses.push(`project.id = '${projectId}'`);
     }
+
+    const securityExpr = securityClauses.join(' AND ');
+    spec.filter = {
+      expression: expr ? `${securityExpr} AND ${expr}` : securityExpr,
+    };
   }
 
   return modifiedPayload;

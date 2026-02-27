@@ -148,6 +148,7 @@ export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/a
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
+export * from './constants/signoz-v5';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
 export { transformToJson } from './validation/extend-schemas';
