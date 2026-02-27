@@ -1860,24 +1860,26 @@ export class Agent {
       }
 
       const seen = new Set<string>();
-      const all: ArtifactComponentApiInsert[] = [];
-      for (const ac of this.artifactComponents) {
-        if (ac.name && !seen.has(ac.name)) {
-          seen.add(ac.name);
-          all.push(ac);
-        }
-      }
-      for (const subAgent of Object.values(agentDefinition.subAgents)) {
-        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
-          for (const ac of subAgent.artifactComponents as ArtifactComponentApiInsert[]) {
-            if (ac.name && !seen.has(ac.name)) {
-              seen.add(ac.name);
-              all.push(ac);
-            }
+      const collected: ArtifactComponentApiInsert[] = [];
+
+      const addUnique = (components: ArtifactComponentApiInsert[]) => {
+        for (const ac of components) {
+          if (ac.name && !seen.has(ac.name)) {
+            seen.add(ac.name);
+            collected.push(ac);
           }
         }
+      };
+
+      addUnique(this.artifactComponents);
+
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          addUnique(subAgent.artifactComponents as ArtifactComponentApiInsert[]);
+        }
       }
-      return all;
+
+      return collected;
     } catch {
       return this.artifactComponents;
     }
