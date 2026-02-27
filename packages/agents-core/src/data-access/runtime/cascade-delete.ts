@@ -10,6 +10,7 @@ import {
   workAppGitHubProjectAccessMode,
   workAppGitHubProjectRepositoryAccess,
   workAppSlackChannelAgentConfigs,
+  workAppSlackWorkspaces,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
 
@@ -22,6 +23,7 @@ export type CascadeDeleteResult = {
   contextCacheDeleted: number;
   apiKeysDeleted: number;
   slackChannelConfigsDeleted: number;
+  slackWorkspaceDefaultsCleared: number;
 };
 
 /**
@@ -82,6 +84,7 @@ export const cascadeDeleteByBranch =
       contextCacheDeleted: contextCacheResult.length,
       apiKeysDeleted: 0, // API keys are branch-agnostic
       slackChannelConfigsDeleted: 0, // Slack configs are branch-agnostic
+      slackWorkspaceDefaultsCleared: 0,
     };
   };
 
@@ -159,12 +162,29 @@ export const cascadeDeleteByProject =
       )
       .returning();
 
+    const slackWorkspaceDefaultsResult = await db
+      .update(workAppSlackWorkspaces)
+      .set({
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(workAppSlackWorkspaces.tenantId, scopes.tenantId),
+          eq(workAppSlackWorkspaces.defaultProjectId, scopes.projectId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
       apiKeysDeleted: apiKeysResult.length,
       slackChannelConfigsDeleted: slackConfigsResult.length,
+      slackWorkspaceDefaultsCleared: slackWorkspaceDefaultsResult.length,
     };
   };
 
@@ -273,12 +293,30 @@ export const cascadeDeleteByAgent =
       )
       .returning();
 
+    const slackWorkspaceDefaultsResult = await db
+      .update(workAppSlackWorkspaces)
+      .set({
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(workAppSlackWorkspaces.tenantId, scopes.tenantId),
+          eq(workAppSlackWorkspaces.defaultProjectId, scopes.projectId),
+          eq(workAppSlackWorkspaces.defaultAgentId, scopes.agentId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted,
       tasksDeleted,
       contextCacheDeleted,
       apiKeysDeleted,
       slackChannelConfigsDeleted: slackConfigsResult.length,
+      slackWorkspaceDefaultsCleared: slackWorkspaceDefaultsResult.length,
     };
   };
 
@@ -362,6 +400,7 @@ export const cascadeDeleteBySubAgent =
       contextCacheDeleted,
       apiKeysDeleted: 0, // API keys are agent-level, not subAgent-level
       slackChannelConfigsDeleted: 0, // Slack configs are agent-level, not subAgent-level
+      slackWorkspaceDefaultsCleared: 0,
     };
   };
 

@@ -93,6 +93,7 @@ vi.mock('../../slack/services/nango', () => ({
   listWorkspaceInstallations: vi.fn(async () => []),
   storeWorkspaceInstallation: vi.fn(async () => ({ connectionId: 'test', success: true })),
   deleteWorkspaceInstallation: vi.fn(async () => true),
+  getWorkspaceDefaultAgent: vi.fn(async () => null),
   getWorkspaceDefaultAgentFromNango: vi.fn(async () => null),
   setWorkspaceDefaultAgent: vi.fn(async () => true),
   clearWorkspaceConnectionCache: vi.fn(),

@@ -2,7 +2,6 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
-  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createApiError,
   createFullAgentServerSide,
@@ -11,14 +10,12 @@ import {
   type FullAgentDefinition,
   getFullAgent,
   listScheduledTriggers,
-  listSubAgents,
   type ScheduledTrigger,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -342,24 +339,9 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
-    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      // Get all subAgentIds for this agent before deleting
-      const subAgents = await listSubAgents(db)({
-        scopes: { tenantId, projectId, agentId },
-      });
-      const subAgentIds = subAgents.map((sa) => sa.id);
-
-      // Delete runtime entities for this agent on this branch
-      await cascadeDeleteByAgent(runDbClient)({
-        scopes: { tenantId, projectId, agentId },
-        fullBranchName: resolvedRef.name,
-        subAgentIds,
-      });
-
-      // Delete the full agent from the config DB
       const deleted = await deleteFullAgent(
         db,
         logger

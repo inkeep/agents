@@ -345,15 +345,6 @@ export async function fetchAgentsForProject(
   }
 }
 
-export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultAgentConfig | null> {
-  const workspace = await findWorkspaceConnectionByTeamId(teamId);
-  if (workspace?.defaultAgent) {
-    logger.debug({ teamId }, 'Found workspace default agent');
-    return workspace.defaultAgent;
-  }
-  return null;
-}
-
 export async function getChannelAgentConfig(
   teamId: string,
   channelId: string

@@ -44,12 +44,11 @@ import {
   getBotMemberChannels,
   getSlackChannels,
   getSlackClient,
-  getWorkspaceDefaultAgentFromNango,
   listWorkspaceInstallations,
   lookupAgentName,
   lookupProjectName,
   revokeSlackToken,
-  setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
+  setWorkspaceDefaultAgent,
 } from '../services';
 import type { ManageAppVariables } from '../types';
 
@@ -130,19 +129,16 @@ app.openapi(
   }),
   async (c) => {
     try {
-      const allWorkspaces = await listWorkspaceInstallations();
-
-      // Filter by authenticated user's tenant to enforce tenant isolation
       const sessionTenantId = c.get('tenantId') as string | undefined;
       if (!sessionTenantId) {
         logger.warn({}, 'No tenantId in session context — cannot list workspaces');
         return c.json({ workspaces: [] });
       }
 
-      const workspaces = allWorkspaces.filter((w) => w.tenantId === sessionTenantId);
+      const workspaces = await listWorkspaceInstallations(sessionTenantId);
 
       logger.info(
-        { count: workspaces.length, totalCount: allWorkspaces.length, tenantId: sessionTenantId },
+        { count: workspaces.length, tenantId: sessionTenantId },
         'Listed workspace installations'
       );
 
@@ -232,19 +228,23 @@ app.openapi(
       | { projectId: string; agentId: string; agentName?: string; projectName?: string }
       | undefined;
 
-    const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
-    if (nangoDefault) {
+    if (workspace.defaultAgent) {
       const [agentName, projectName] = await Promise.all([
-        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId, {
+        lookupAgentName(
+          workspace.tenantId,
+          workspace.defaultAgent.projectId,
+          workspace.defaultAgent.agentId,
+          { skipCache: true }
+        ),
+        lookupProjectName(workspace.tenantId, workspace.defaultAgent.projectId, {
           skipCache: true,
         }),
-        lookupProjectName(workspace.tenantId, nangoDefault.projectId, { skipCache: true }),
       ]);
       defaultAgent = {
-        projectId: nangoDefault.projectId,
-        agentId: nangoDefault.agentId,
-        agentName: agentName || nangoDefault.agentId,
-        projectName: projectName || nangoDefault.projectId,
+        projectId: workspace.defaultAgent.projectId,
+        agentId: workspace.defaultAgent.agentId,
+        agentName: agentName || workspace.defaultAgent.agentId,
+        projectName: projectName || workspace.defaultAgent.projectId,
       };
     }
 
@@ -296,19 +296,23 @@ app.openapi(
       | { projectId: string; agentId: string; agentName?: string; projectName?: string }
       | undefined;
 
-    const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
-    if (nangoDefault) {
+    if (workspace.defaultAgent) {
       const [agentName, projectName] = await Promise.all([
-        lookupAgentName(workspace.tenantId, nangoDefault.projectId, nangoDefault.agentId, {
+        lookupAgentName(
+          workspace.tenantId,
+          workspace.defaultAgent.projectId,
+          workspace.defaultAgent.agentId,
+          { skipCache: true }
+        ),
+        lookupProjectName(workspace.tenantId, workspace.defaultAgent.projectId, {
           skipCache: true,
         }),
-        lookupProjectName(workspace.tenantId, nangoDefault.projectId, { skipCache: true }),
       ]);
       defaultAgent = {
-        projectId: nangoDefault.projectId,
-        agentId: nangoDefault.agentId,
-        agentName: agentName || nangoDefault.agentId,
-        projectName: projectName || nangoDefault.projectId,
+        projectId: workspace.defaultAgent.projectId,
+        agentId: workspace.defaultAgent.agentId,
+        agentName: agentName || workspace.defaultAgent.agentId,
+        projectName: projectName || workspace.defaultAgent.projectId,
       };
     }
 
@@ -381,9 +385,9 @@ app.openapi(
         );
       }
 
-      const nangoSuccess = await setWorkspaceDefaultAgentInNango(teamId, body.defaultAgent);
-      if (!nangoSuccess) {
-        logger.warn({ teamId }, 'Failed to persist workspace settings to Nango');
+      const success = await setWorkspaceDefaultAgent(teamId, body.defaultAgent);
+      if (!success) {
+        logger.warn({ teamId }, 'Failed to persist workspace settings');
         return c.json({ success: false }, 500);
       }
 
@@ -392,10 +396,10 @@ app.openapi(
           teamId,
           agentId: body.defaultAgent.agentId,
         },
-        'Saved workspace default agent to Nango'
+        'Saved workspace default agent'
       );
     } else {
-      await setWorkspaceDefaultAgentInNango(teamId, null);
+      await setWorkspaceDefaultAgent(teamId, null);
       logger.info({ teamId }, 'Cleared workspace default agent');
     }
 

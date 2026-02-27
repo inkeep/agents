@@ -24,6 +24,7 @@ import {
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
   workAppSlackChannelAgentConfigs,
+  workAppSlackWorkspaces,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
@@ -58,6 +59,7 @@ describe('Cascade Delete Utilities', () => {
     await db.delete(tasks);
     await db.delete(apiKeys);
     await db.delete(workAppSlackChannelAgentConfigs);
+    await db.delete(workAppSlackWorkspaces);
 
     // Create test organization
     await db.insert(organization).values({
@@ -434,6 +436,53 @@ describe('Cascade Delete Utilities', () => {
         .where(eq(conversations.projectId, projectId));
       expect(remainingConvs).toHaveLength(1);
       expect(remainingConvs[0].id).toBe(agent2ConvId);
+    });
+
+    it('should clear workspace default agent when agent is deleted', async () => {
+      const now = new Date().toISOString();
+      await db.insert(workAppSlackWorkspaces).values({
+        id: 'wsw_test1',
+        tenantId,
+        slackTeamId: 'T_TEAM1',
+        nangoConnectionId: 'T:T_TEAM1',
+        defaultAgentId: agentId,
+        defaultProjectId: projectId,
+        defaultGrantAccessToMembers: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await db.insert(workAppSlackWorkspaces).values({
+        id: 'wsw_test2',
+        tenantId,
+        slackTeamId: 'T_TEAM2',
+        nangoConnectionId: 'T:T_TEAM2',
+        defaultAgentId: 'other-agent',
+        defaultProjectId: projectId,
+        defaultGrantAccessToMembers: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await cascadeDeleteByAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: branch1Ref.name,
+        subAgentIds: [],
+      });
+
+      expect(result.slackWorkspaceDefaultsCleared).toBe(1);
+
+      const ws1 = await db
+        .select()
+        .from(workAppSlackWorkspaces)
+        .where(eq(workAppSlackWorkspaces.id, 'wsw_test1'));
+      expect(ws1[0].defaultAgentId).toBeNull();
+      expect(ws1[0].defaultProjectId).toBeNull();
+
+      const ws2 = await db
+        .select()
+        .from(workAppSlackWorkspaces)
+        .where(eq(workAppSlackWorkspaces.id, 'wsw_test2'));
+      expect(ws2[0].defaultAgentId).toBe('other-agent');
     });
   });
 

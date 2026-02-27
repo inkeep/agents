@@ -105,7 +105,15 @@ export const updateWorkAppSlackWorkspace =
   async (
     id: string,
     data: Partial<
-      Pick<WorkAppSlackWorkspaceInsert, 'status' | 'slackTeamName' | 'shouldAllowJoinFromWorkspace'>
+      Pick<
+        WorkAppSlackWorkspaceInsert,
+        | 'status'
+        | 'slackTeamName'
+        | 'shouldAllowJoinFromWorkspace'
+        | 'defaultAgentId'
+        | 'defaultProjectId'
+        | 'defaultGrantAccessToMembers'
+      >
     >
   ): Promise<WorkAppSlackWorkspaceSelect | null> => {
     const [result] = await db
@@ -445,6 +453,51 @@ export const deleteWorkAppSlackChannelAgentConfigsByProject =
         and(
           eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
           eq(workAppSlackChannelAgentConfigs.projectId, projectId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+export const clearWorkspaceDefaultsByAgent =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string, agentId: string): Promise<number> => {
+    const result = await db
+      .update(workAppSlackWorkspaces)
+      .set({
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(workAppSlackWorkspaces.tenantId, tenantId),
+          eq(workAppSlackWorkspaces.defaultProjectId, projectId),
+          eq(workAppSlackWorkspaces.defaultAgentId, agentId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+export const clearWorkspaceDefaultsByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string): Promise<number> => {
+    const result = await db
+      .update(workAppSlackWorkspaces)
+      .set({
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(workAppSlackWorkspaces.tenantId, tenantId),
+          eq(workAppSlackWorkspaces.defaultProjectId, projectId)
         )
       )
       .returning();

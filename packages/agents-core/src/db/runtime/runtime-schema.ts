@@ -211,6 +211,9 @@ export const workAppSlackWorkspaces = pgTable(
     shouldAllowJoinFromWorkspace: boolean('should_allow_join_from_workspace')
       .notNull()
       .default(false),
+    defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    defaultProjectId: varchar('default_project_id', { length: 256 }),
+    defaultGrantAccessToMembers: boolean('default_grant_access_to_members').default(true),
     ...timestamps,
   },
   (table) => [

@@ -9,7 +9,7 @@ import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { fetchAgentsForProject, fetchProjectsForTenant } from './events/utils';
-import { getWorkspaceDefaultAgentFromNango } from './nango';
+import { getWorkspaceDefaultAgent } from './nango';
 
 const logger = getLogger('slack-agent-resolution');
 
@@ -167,7 +167,7 @@ export async function resolveEffectiveAgent(
 
   // Priority 2: Workspace default (admin-configured)
   if (!result) {
-    const workspaceConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+    const workspaceConfig = await getWorkspaceDefaultAgent(teamId);
 
     if (workspaceConfig?.agentId && workspaceConfig.projectId) {
       logger.info(
@@ -239,7 +239,7 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
     }
   }
 
-  const wsConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+  const wsConfig = await getWorkspaceDefaultAgent(teamId);
   if (wsConfig?.agentId && wsConfig.projectId) {
     workspaceConfig = {
       projectId: wsConfig.projectId,

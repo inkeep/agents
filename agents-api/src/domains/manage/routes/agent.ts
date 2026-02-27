@@ -5,7 +5,6 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -16,8 +15,6 @@ import {
   getAgentSubAgentInfos,
   getFullAgentDefinition,
   listAgentsPaginated,
-  listSubAgents,
-  listWorkAppSlackWorkspacesByTenant,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -28,11 +25,6 @@ import {
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import {
-  getWorkspaceDefaultAgentFromNango,
-  setWorkspaceDefaultAgent,
-} from '@inkeep/agents-work-apps/slack';
-import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
@@ -349,38 +341,8 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
-    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    // Get all subAgentIds for this agent before deleting
-    const subAgents = await listSubAgents(db)({
-      scopes: { tenantId, projectId, agentId: id },
-    });
-    const subAgentIds = subAgents.map((sa) => sa.id);
-
-    // Delete runtime entities for this agent on this branch
-    await cascadeDeleteByAgent(runDbClient)({
-      scopes: { tenantId, projectId, agentId: id },
-      fullBranchName: resolvedRef.name,
-      subAgentIds,
-    });
-
-    // Clean up Nango workspace defaults referencing this agent
-    try {
-      const workspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
-      await Promise.all(
-        workspaces.map(async (ws) => {
-          const defaultAgent = await getWorkspaceDefaultAgentFromNango(ws.slackTeamId);
-          if (defaultAgent && defaultAgent.agentId === id && defaultAgent.projectId === projectId) {
-            await setWorkspaceDefaultAgent(ws.slackTeamId, null);
-          }
-        })
-      );
-    } catch {
-      // Nango cleanup is best-effort; don't block agent deletion
-    }
-
-    // Delete the agent from the config DB
     const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });

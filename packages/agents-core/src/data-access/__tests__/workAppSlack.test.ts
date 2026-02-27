@@ -5,6 +5,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import * as runtimeSchema from '../../db/runtime/runtime-schema';
 import {
+  clearWorkspaceDefaultsByAgent,
+  clearWorkspaceDefaultsByProject,
   createWorkAppSlackChannelAgentConfig,
   createWorkAppSlackUserMapping,
   createWorkAppSlackWorkspace,
@@ -566,6 +568,136 @@ describe('workAppSlack data access', () => {
         'nonexistent_project'
       );
       expect(deleted).toBe(0);
+    });
+  });
+
+  describe('Workspace Default Agent', () => {
+    it('should update workspace with default agent columns', async () => {
+      const workspace = await createWorkAppSlackWorkspace(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        nangoConnectionId: `T:${TEST_TEAM_ID}`,
+        status: 'active',
+      });
+
+      const updated = await updateWorkAppSlackWorkspace(db)(workspace.id, {
+        defaultAgentId: 'agent_123',
+        defaultProjectId: 'proj_456',
+        defaultGrantAccessToMembers: false,
+      });
+
+      expect(updated?.defaultAgentId).toBe('agent_123');
+      expect(updated?.defaultProjectId).toBe('proj_456');
+      expect(updated?.defaultGrantAccessToMembers).toBe(false);
+    });
+
+    it('should clear default agent columns by setting to null', async () => {
+      const workspace = await createWorkAppSlackWorkspace(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        nangoConnectionId: `T:${TEST_TEAM_ID}`,
+        status: 'active',
+      });
+
+      await updateWorkAppSlackWorkspace(db)(workspace.id, {
+        defaultAgentId: 'agent_123',
+        defaultProjectId: 'proj_456',
+      });
+
+      const updated = await updateWorkAppSlackWorkspace(db)(workspace.id, {
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+      });
+
+      expect(updated?.defaultAgentId).toBeNull();
+      expect(updated?.defaultProjectId).toBeNull();
+      expect(updated?.defaultGrantAccessToMembers).toBeNull();
+    });
+
+    it('should clear workspace defaults by agent', async () => {
+      const ws1 = await createWorkAppSlackWorkspace(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        nangoConnectionId: `T:${TEST_TEAM_ID}`,
+      });
+      const ws2 = await createWorkAppSlackWorkspace(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID_2,
+        nangoConnectionId: `T:${TEST_TEAM_ID_2}`,
+      });
+
+      await updateWorkAppSlackWorkspace(db)(ws1.id, {
+        defaultAgentId: 'agent_123',
+        defaultProjectId: 'proj_456',
+      });
+      await updateWorkAppSlackWorkspace(db)(ws2.id, {
+        defaultAgentId: 'agent_789',
+        defaultProjectId: 'proj_456',
+      });
+
+      const cleared = await clearWorkspaceDefaultsByAgent(db)(
+        TEST_TENANT_ID,
+        'proj_456',
+        'agent_123'
+      );
+      expect(cleared).toBe(1);
+
+      const found1 = await findWorkAppSlackWorkspaceByTeamId(db)(TEST_TENANT_ID, TEST_TEAM_ID);
+      expect(found1?.defaultAgentId).toBeNull();
+      expect(found1?.defaultProjectId).toBeNull();
+
+      const found2 = await findWorkAppSlackWorkspaceByTeamId(db)(TEST_TENANT_ID, TEST_TEAM_ID_2);
+      expect(found2?.defaultAgentId).toBe('agent_789');
+      expect(found2?.defaultProjectId).toBe('proj_456');
+    });
+
+    it('should clear workspace defaults by project', async () => {
+      const ws1 = await createWorkAppSlackWorkspace(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID,
+        nangoConnectionId: `T:${TEST_TEAM_ID}`,
+      });
+      const ws2 = await createWorkAppSlackWorkspace(db)({
+        tenantId: TEST_TENANT_ID,
+        slackTeamId: TEST_TEAM_ID_2,
+        nangoConnectionId: `T:${TEST_TEAM_ID_2}`,
+      });
+
+      await updateWorkAppSlackWorkspace(db)(ws1.id, {
+        defaultAgentId: 'agent_123',
+        defaultProjectId: 'proj_456',
+      });
+      await updateWorkAppSlackWorkspace(db)(ws2.id, {
+        defaultAgentId: 'agent_789',
+        defaultProjectId: 'proj_456',
+      });
+
+      const cleared = await clearWorkspaceDefaultsByProject(db)(TEST_TENANT_ID, 'proj_456');
+      expect(cleared).toBe(2);
+
+      const found1 = await findWorkAppSlackWorkspaceByTeamId(db)(TEST_TENANT_ID, TEST_TEAM_ID);
+      expect(found1?.defaultAgentId).toBeNull();
+
+      const found2 = await findWorkAppSlackWorkspaceByTeamId(db)(TEST_TENANT_ID, TEST_TEAM_ID_2);
+      expect(found2?.defaultAgentId).toBeNull();
+    });
+
+    it('should return 0 when no workspaces match agent', async () => {
+      const cleared = await clearWorkspaceDefaultsByAgent(db)(
+        TEST_TENANT_ID,
+        'proj_456',
+        'nonexistent_agent'
+      );
+      expect(cleared).toBe(0);
+    });
+
+    it('should return 0 when no workspaces match project', async () => {
+      const cleared = await clearWorkspaceDefaultsByProject(db)(
+        TEST_TENANT_ID,
+        'nonexistent_project'
+      );
+      expect(cleared).toBe(0);
     });
   });
 });
