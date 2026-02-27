@@ -375,7 +375,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should not modify selectedTools when tempSelectedTools is undefined', () => {
+    it('should default to all tools selected when selectedTools is missing', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -394,7 +394,6 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             name: 'Test MCP Server',
-            // no tempSelectedTools property
           },
         },
       ];
@@ -410,8 +409,12 @@ describe('serializeAgentData', () => {
 
       const result = serializeAgentData(nodes, edges);
 
-      // selectedTools should not be created if tempSelectedTools is undefined
-      expect((result.subAgents.agent1 as any).selectedTools).toBeUndefined();
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: null,
+        headers: null,
+        toolPolicies: null,
+      });
     });
 
     it('should preserve existing selectedTools when tempSelectedTools is undefined', () => {
@@ -463,7 +466,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should transfer tempToolPolicies from MCP nodes to agent toolPolicies', () => {
+    it('should transfer toolPolicies from mcpRelations', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -482,11 +485,6 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             name: 'Test MCP Server',
-            tempSelectedTools: ['tool1', 'tool2'],
-            tempToolPolicies: {
-              tool1: { needsApproval: true },
-              tool2: { needsApproval: false },
-            },
           },
         },
       ];
@@ -500,7 +498,24 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          mcp1: {
+            selectedTools: ['tool1', 'tool2'],
+            toolPolicies: {
+              tool1: { needsApproval: true },
+              tool2: { needsApproval: false },
+            },
+          },
+        }
+      );
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
