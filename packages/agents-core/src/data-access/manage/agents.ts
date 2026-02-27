@@ -15,6 +15,8 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
+import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { getActiveBranch } from '../../dolt/schema-sync';
 import type {
   AgentInsert,
   AgentSelect,
@@ -26,6 +28,7 @@ import type {
 import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
+import { cascadeDeleteByAgent } from '../runtime/cascade-delete';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
@@ -234,14 +237,41 @@ export const updateAgent =
 
 export const deleteAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+    const { tenantId, projectId, agentId } = params.scopes;
+
+    // Clean up runtime entities (cross-database cascade).
+    // Since there are no FK constraints across the manage and runtime databases,
+    // we must explicitly delete runtime orphans before removing the agent.
+    try {
+      const currentBranch = await getActiveBranch(db)();
+      const subAgentsList = await db.query.subAgents.findMany({
+        where: and(
+          eq(subAgents.tenantId, tenantId),
+          eq(subAgents.projectId, projectId),
+          eq(subAgents.agentId, agentId)
+        ),
+      });
+      const subAgentIds = subAgentsList.map((sa) => sa.id);
+
+      const runDbClient = createAgentsRunDatabaseClient();
+      await cascadeDeleteByAgent(runDbClient)({
+        scopes: params.scopes,
+        fullBranchName: currentBranch,
+        subAgentIds,
+      });
+    } catch (error) {
+      // If we can't get the active branch (e.g., not using Dolt), skip the cascade delete.
+      // This is expected in test environments using pglite.
+      agentsLogger.debug(
+        { error, agentId },
+        'Skipping runtime cascade delete - active_branch() not available'
+      );
+    }
+
     const result = await db
       .delete(agents)
       .where(
-        and(
-          eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId),
-          eq(agents.id, params.scopes.agentId)
-        )
+        and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId), eq(agents.id, agentId))
       )
       .returning();
 

@@ -23,6 +23,8 @@ import {
   workAppGitHubProjectAccessMode,
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
+  workAppSlackChannelAgentConfigs,
+  workAppSlackWorkspaces,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
@@ -56,6 +58,8 @@ describe('Cascade Delete Utilities', () => {
     await db.delete(conversations);
     await db.delete(tasks);
     await db.delete(apiKeys);
+    await db.delete(workAppSlackChannelAgentConfigs);
+    await db.delete(workAppSlackWorkspaces);
 
     // Create test organization
     await db.insert(organization).values({
@@ -216,6 +220,46 @@ describe('Cascade Delete Utilities', () => {
       expect(project2Convs).toHaveLength(1);
     });
 
+    it('should delete Slack channel configs for the project', async () => {
+      const project1 = 'project-1';
+      const project2 = 'project-2';
+
+      await db.insert(workAppSlackChannelAgentConfigs).values({
+        id: 'wscac_test1',
+        tenantId,
+        slackTeamId: 'T_TEAM1',
+        slackChannelId: 'C_CHAN1',
+        projectId: project1,
+        agentId: 'agent-1',
+        enabled: true,
+        grantAccessToMembers: true,
+      });
+      await db.insert(workAppSlackChannelAgentConfigs).values({
+        id: 'wscac_test2',
+        tenantId,
+        slackTeamId: 'T_TEAM1',
+        slackChannelId: 'C_CHAN2',
+        projectId: project2,
+        agentId: 'agent-2',
+        enabled: true,
+        grantAccessToMembers: true,
+      });
+
+      const result = await cascadeDeleteByProject(db)({
+        scopes: { tenantId, projectId: project1 },
+        fullBranchName: branch1Ref.name,
+      });
+
+      expect(result.slackChannelConfigsDeleted).toBe(1);
+
+      const remaining = await db
+        .select()
+        .from(workAppSlackChannelAgentConfigs)
+        .where(eq(workAppSlackChannelAgentConfigs.tenantId, tenantId));
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].projectId).toBe(project2);
+    });
+
     it('should delete API keys for the entire project (branch-agnostic)', async () => {
       // Create API keys for project
       await db.insert(apiKeys).values({
@@ -317,6 +361,44 @@ describe('Cascade Delete Utilities', () => {
       expect(remainingConvs).toHaveLength(0);
     });
 
+    it('should delete Slack channel configs for the agent', async () => {
+      await db.insert(workAppSlackChannelAgentConfigs).values({
+        id: 'wscac_test1',
+        tenantId,
+        slackTeamId: 'T_TEAM1',
+        slackChannelId: 'C_CHAN1',
+        projectId,
+        agentId,
+        enabled: true,
+        grantAccessToMembers: true,
+      });
+      await db.insert(workAppSlackChannelAgentConfigs).values({
+        id: 'wscac_test2',
+        tenantId,
+        slackTeamId: 'T_TEAM1',
+        slackChannelId: 'C_CHAN2',
+        projectId,
+        agentId: 'other-agent',
+        enabled: true,
+        grantAccessToMembers: true,
+      });
+
+      const result = await cascadeDeleteByAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: branch1Ref.name,
+        subAgentIds: [],
+      });
+
+      expect(result.slackChannelConfigsDeleted).toBe(1);
+
+      const remaining = await db
+        .select()
+        .from(workAppSlackChannelAgentConfigs)
+        .where(eq(workAppSlackChannelAgentConfigs.tenantId, tenantId));
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].agentId).toBe('other-agent');
+    });
+
     it('should not delete conversations for other agents subAgents', async () => {
       const agent1SubAgent = 'agent1-sub';
       const agent2SubAgent = 'agent2-sub';
@@ -354,6 +436,53 @@ describe('Cascade Delete Utilities', () => {
         .where(eq(conversations.projectId, projectId));
       expect(remainingConvs).toHaveLength(1);
       expect(remainingConvs[0].id).toBe(agent2ConvId);
+    });
+
+    it('should clear workspace default agent when agent is deleted', async () => {
+      const now = new Date().toISOString();
+      await db.insert(workAppSlackWorkspaces).values({
+        id: 'wsw_test1',
+        tenantId,
+        slackTeamId: 'T_TEAM1',
+        nangoConnectionId: 'T:T_TEAM1',
+        defaultAgentId: agentId,
+        defaultProjectId: projectId,
+        defaultGrantAccessToMembers: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await db.insert(workAppSlackWorkspaces).values({
+        id: 'wsw_test2',
+        tenantId,
+        slackTeamId: 'T_TEAM2',
+        nangoConnectionId: 'T:T_TEAM2',
+        defaultAgentId: 'other-agent',
+        defaultProjectId: projectId,
+        defaultGrantAccessToMembers: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await cascadeDeleteByAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: branch1Ref.name,
+        subAgentIds: [],
+      });
+
+      expect(result.slackWorkspaceDefaultsCleared).toBe(1);
+
+      const ws1 = await db
+        .select()
+        .from(workAppSlackWorkspaces)
+        .where(eq(workAppSlackWorkspaces.id, 'wsw_test1'));
+      expect(ws1[0].defaultAgentId).toBeNull();
+      expect(ws1[0].defaultProjectId).toBeNull();
+
+      const ws2 = await db
+        .select()
+        .from(workAppSlackWorkspaces)
+        .where(eq(workAppSlackWorkspaces.id, 'wsw_test2'));
+      expect(ws2[0].defaultAgentId).toBe('other-agent');
     });
   });
 

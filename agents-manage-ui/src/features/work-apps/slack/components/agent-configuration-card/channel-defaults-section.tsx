@@ -29,6 +29,7 @@ import { BulkSelectAgentBar } from './bulk-select-agent-bar';
 import { ChannelAccessCell } from './channel-access-cell';
 import { ChannelAgentCell } from './channel-agent-cell';
 import type { Channel, SlackAgentOption } from './types';
+import { getAgentDisplayName } from './types';
 
 interface ChannelFilterProps {
   isSelected: boolean;
@@ -75,6 +76,7 @@ interface ChannelDefaultsSectionProps {
   savingChannel: string | null;
   bulkSaving: boolean;
   isAdmin: boolean;
+  hasWorkspaceDefault: boolean;
   onChannelFilterChange: (filter: 'all' | 'private' | 'connect') => void;
   onSearchQueryChange: (query: string) => void;
   onToggleChannel: (channelId: string) => void;
@@ -100,6 +102,7 @@ export function ChannelDefaultsSection({
   savingChannel,
   bulkSaving,
   isAdmin,
+  hasWorkspaceDefault,
   onChannelFilterChange,
   onSearchQueryChange,
   onToggleChannel,
@@ -159,7 +162,10 @@ export function ChannelDefaultsSection({
         ),
       },
       {
-        accessorFn: (row) => row.agentConfig?.agentName ?? undefined,
+        accessorFn: (row) =>
+          row.agentConfig
+            ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
+            : undefined,
         id: 'agent',
         sortUndefined: 'last',
         header: ({ column }) => (
@@ -171,6 +177,7 @@ export function ChannelDefaultsSection({
               channel={row.original}
               agents={agents}
               savingChannel={savingChannel}
+              hasWorkspaceDefault={hasWorkspaceDefault}
               onSetAgent={onSetChannelAgent}
               onResetToDefault={onResetChannelToDefault}
             />
@@ -178,7 +185,14 @@ export function ChannelDefaultsSection({
         ),
       },
     ],
-    [agents, savingChannel, onSetChannelAgent, onResetChannelToDefault, onToggleGrantAccess]
+    [
+      agents,
+      savingChannel,
+      hasWorkspaceDefault,
+      onSetChannelAgent,
+      onResetChannelToDefault,
+      onToggleGrantAccess,
+    ]
   );
 
   const table = useReactTable({
@@ -311,6 +325,7 @@ export function ChannelDefaultsSection({
                         selectedCount={selectedChannels.size}
                         agents={agents}
                         bulkSaving={bulkSaving}
+                        hasWorkspaceDefault={hasWorkspaceDefault}
                         onBulkSetAgent={onBulkSetAgent}
                         onBulkResetToDefault={onBulkResetToDefault}
                         onClearSelection={onClearSelection}
