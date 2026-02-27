@@ -4,6 +4,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       docker-compose:
         patterns:
@@ -13,6 +17,10 @@ updates:
     directory: '/create-agents-template'
     schedule:
       interval: 'weekly'
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       docker-compose:
         patterns:
