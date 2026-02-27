@@ -24,18 +24,21 @@ const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.omit({
   id: true,
 });
 
-const SubAgentSchema = MySchema.shape.subAgents.valueType
+const SubAgentSchema = MySchema.shape.subAgents.valueType;
 
 const AgentSchema = z.strictObject({
   agentId: z.string().nonempty(),
   ...MySchema.shape,
   models: z.preprocess(convertNullToUndefined, MySchema.shape.models),
   stopWhen: z.preprocess(convertNullToUndefined, MySchema.shape.stopWhen),
-  subAgents: z.record(z.string(), z.strictObject({
-    ...SubAgentSchema.shape,
-    models: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.models),
-    stopWhen: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.stopWhen),
-  })),
+  subAgents: z.record(
+    z.string(),
+    z.strictObject({
+      ...SubAgentSchema.shape,
+      models: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.models),
+      stopWhen: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.stopWhen),
+    })
+  ),
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),

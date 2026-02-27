@@ -17,6 +17,12 @@ const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.trigge
 const TriggerSchema = z.strictObject({
   triggerId: z.string().nonempty(),
   ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  inputSchema: z.preprocess((v) => v || undefined, MySchema.shape.inputSchema),
+  outputTransform: z.preprocess((v) => v || undefined, MySchema.shape.outputTransform),
+  messageTemplate: z.preprocess((v) => v || undefined, MySchema.shape.messageTemplate),
+  authentication: z.preprocess((v) => v || undefined, MySchema.shape.authentication),
+  signatureVerification: z.preprocess((v) => v || undefined, MySchema.shape.signatureVerification),
 });
 
 type TriggerInput = z.input<typeof TriggerSchema>;
