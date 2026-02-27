@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
-import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
+import type { DataPart, FilePart, MessageContent, Part, TextPart } from '@inkeep/agents-core';
 import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-image-formats';
 import { getLogger } from '../../../../logger';
 import { downloadExternalImage } from './external-image-downloader';
 import { normalizeInlineImageBytes } from './image-content-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
+
+type MessageContentPart = NonNullable<MessageContent['parts']>[number];
 
 const logger = getLogger('image-upload');
 const FILE_UPLOAD_CONCURRENCY = 3;
@@ -101,18 +103,8 @@ export async function uploadPartsImages(parts: Part[], ctx: UploadContext): Prom
   return results.filter((part): part is Part => part !== null);
 }
 
-export function partsToMessageContentParts(parts: Part[]): Array<{
-  kind: string;
-  text?: string;
-  data?: string | Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-}> {
-  const result: Array<{
-    kind: string;
-    text?: string;
-    data?: string | Record<string, unknown>;
-    metadata?: Record<string, unknown>;
-  }> = [];
+export function makeMessageContentParts(parts: Part[]): MessageContentPart[] {
+  const result: MessageContentPart[] = [];
 
   for (const part of parts) {
     if (part.kind === 'text') {
@@ -136,7 +128,7 @@ export function partsToMessageContentParts(parts: Part[]): Array<{
         );
       }
     } else {
-      result.push({ kind: part.kind, data: (part as any).data, metadata: part.metadata });
+      result.push({ kind: part.kind, data: (part as DataPart).data, metadata: part.metadata });
     }
   }
 

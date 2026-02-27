@@ -1,7 +1,8 @@
+import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalImage } from '../blob-storage/external-image-downloader';
 import { normalizeInlineImageBytes } from '../blob-storage/image-content-security';
-import { partsToMessageContentParts, uploadPartsImages } from '../blob-storage/image-upload';
+import { makeMessageContentParts, uploadPartsImages } from '../blob-storage/image-upload';
 
 const mockUpload = vi.fn();
 
@@ -47,7 +48,7 @@ describe('uploadPartsImages', () => {
   });
 
   it('delegates URI file parts to downloader and rewrites to blob URI', async () => {
-    const parts = [{ kind: 'file', file: { uri: 'https://example.com/image.jpg' } }] as any[];
+    const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/image.jpg' } }];
     const uploaded = await uploadPartsImages(parts, uploadContext);
 
     expect(downloadExternalImage).toHaveBeenCalledTimes(1);
@@ -72,9 +73,9 @@ describe('uploadPartsImages', () => {
   });
 
   it('delegates inline byte file parts to normalizer and rewrites to blob URI', async () => {
-    const parts = [
+    const parts: Part[] = [
       { kind: 'file', file: { bytes: PNG_BYTES.toString('base64'), mimeType: 'image/jpeg' } },
-    ] as any[];
+    ];
     const uploaded = await uploadPartsImages(parts, uploadContext);
 
     expect(normalizeInlineImageBytes).toHaveBeenCalledTimes(1);
@@ -97,14 +98,13 @@ describe('uploadPartsImages', () => {
   });
 
   it('preserves non-file parts and metadata while uploading files', async () => {
-    const parts = [
-      { kind: 'text', text: 'hello' },
-      {
-        kind: 'file',
-        file: { uri: 'https://example.com/image.jpg' },
-        metadata: { source: 'user-upload' },
-      },
-    ] as any[];
+    const textPart: TextPart = { kind: 'text', text: 'hello' };
+    const filePart: FilePart = {
+      kind: 'file',
+      file: { uri: 'https://example.com/image.jpg' },
+      metadata: { source: 'user-upload' },
+    };
+    const parts: Part[] = [textPart, filePart];
 
     const uploaded = await uploadPartsImages(parts, uploadContext);
 
@@ -125,7 +125,7 @@ describe('uploadPartsImages', () => {
   it('drops URI file part when downloadExternalImage throws', async () => {
     vi.mocked(downloadExternalImage).mockRejectedValueOnce(new Error('blocked external image'));
 
-    const parts = [{ kind: 'file', file: { uri: 'https://example.com/blocked.jpg' } }] as any[];
+    const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/blocked.jpg' } }];
     const uploaded = await uploadPartsImages(parts, uploadContext);
 
     expect(mockUpload).not.toHaveBeenCalled();
@@ -135,9 +135,9 @@ describe('uploadPartsImages', () => {
   it('drops inline byte file part when normalizeInlineImageBytes throws', async () => {
     vi.mocked(normalizeInlineImageBytes).mockRejectedValueOnce(new Error('blocked inline image'));
 
-    const parts = [
+    const parts: Part[] = [
       { kind: 'file', file: { bytes: PNG_BYTES.toString('base64'), mimeType: 'image/png' } },
-    ] as any[];
+    ];
     const uploaded = await uploadPartsImages(parts, uploadContext);
 
     expect(downloadExternalImage).not.toHaveBeenCalled();
@@ -147,28 +147,29 @@ describe('uploadPartsImages', () => {
 
   it('drops file part when storage.upload throws', async () => {
     mockUpload.mockRejectedValueOnce(new Error('storage quota exceeded'));
-    const parts = [{ kind: 'file', file: { uri: 'https://example.com/image.jpg' } }] as any[];
+    const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/image.jpg' } }];
     const uploaded = await uploadPartsImages(parts, uploadContext);
     expect(uploaded).toEqual([]);
   });
 
   it('skips upload when file part has neither uri nor bytes', async () => {
-    const parts = [{ kind: 'file', file: {} }] as any[];
+    const part = { kind: 'file' as const, file: {} } as FilePart;
+    const parts: Part[] = [part];
     const uploaded = await uploadPartsImages(parts, uploadContext);
     expect(uploaded).toEqual(parts);
   });
 });
 
-describe('partsToMessageContentParts', () => {
+describe('makeMessageContentParts', () => {
   it('converts text and uri-backed file parts', () => {
-    const result = partsToMessageContentParts([
-      { kind: 'text', text: 'hello' } as any,
-      {
-        kind: 'file',
-        file: { uri: 'blob://foo/bar.png', mimeType: 'image/png' },
-        metadata: { source: 'upload' },
-      } as any,
-    ]);
+    const textPart: TextPart = { kind: 'text', text: 'hello' };
+    const filePart: FilePart = {
+      kind: 'file',
+      file: { uri: 'blob://foo/bar.png', mimeType: 'image/png' },
+      metadata: { source: 'upload' },
+    };
+
+    const result = makeMessageContentParts([textPart, filePart]);
 
     expect(result).toEqual([
       { kind: 'text', text: 'hello' },
@@ -181,7 +182,8 @@ describe('partsToMessageContentParts', () => {
   });
 
   it('drops file parts without uri', () => {
-    const result = partsToMessageContentParts([{ kind: 'file', file: { bytes: 'abc' } } as any]);
+    const part: FilePart = { kind: 'file', file: { bytes: 'abc' } };
+    const result = makeMessageContentParts([part]);
     expect(result).toEqual([]);
   });
 });

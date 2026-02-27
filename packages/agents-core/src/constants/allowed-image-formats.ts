@@ -30,7 +30,9 @@ export function normalizeImageMimeType(mimeType: string): string {
 export function getExtensionFromMimeType(mimeType?: string): string {
   if (!mimeType) return 'bin';
   const normalizedMimeType = normalizeImageMimeType(mimeType);
-  return IMAGE_MIME_TYPE_TO_EXTENSION[normalizedMimeType] || normalizedMimeType.split('/')[1] || 'bin';
+  return (
+    IMAGE_MIME_TYPE_TO_EXTENSION[normalizedMimeType] || normalizedMimeType.split('/')[1] || 'bin'
+  );
 }
 
 export function getMimeTypeFromExtension(extension?: string): string {

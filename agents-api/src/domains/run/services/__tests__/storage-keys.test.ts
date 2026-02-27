@@ -41,11 +41,21 @@ describe('storage-keys', () => {
         'v2/t_tenant-1/media/p_project-1/conv/c_conversation-1/m_message-1/sha256-abc123.png'
       )
     ).toBeNull();
-    expect(parseMediaStorageKey('v1/tenant-1/media/p_project-1/conv/c_conversation-1/x')).toBeNull();
-    expect(parseMediaStorageKey('v1/t_tenant-1/files/p_project-1/conv/c_conversation-1/x')).toBeNull();
-    expect(parseMediaStorageKey('v1/t_tenant-1/media/p_project-1/conversation/c_conversation-1/x')).toBeNull();
-    expect(parseMediaStorageKey('v1/t_tenant-1/media/project-1/conv/c_conversation-1/x')).toBeNull();
-    expect(parseMediaStorageKey('v1/t_tenant-1/media/p_project-1/conv/conversation-1/x')).toBeNull();
+    expect(
+      parseMediaStorageKey('v1/tenant-1/media/p_project-1/conv/c_conversation-1/x')
+    ).toBeNull();
+    expect(
+      parseMediaStorageKey('v1/t_tenant-1/files/p_project-1/conv/c_conversation-1/x')
+    ).toBeNull();
+    expect(
+      parseMediaStorageKey('v1/t_tenant-1/media/p_project-1/conversation/c_conversation-1/x')
+    ).toBeNull();
+    expect(
+      parseMediaStorageKey('v1/t_tenant-1/media/project-1/conv/c_conversation-1/x')
+    ).toBeNull();
+    expect(
+      parseMediaStorageKey('v1/t_tenant-1/media/p_project-1/conv/conversation-1/x')
+    ).toBeNull();
   });
 
   it('builds media storage key prefix', () => {

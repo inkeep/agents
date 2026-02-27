@@ -251,9 +251,15 @@ describe('external-image-downloader', () => {
   it('retries transient 5xx responses before failing', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(new Response('oops', { status: 503, statusText: 'Service Unavailable' }))
-      .mockResolvedValueOnce(new Response('oops', { status: 503, statusText: 'Service Unavailable' }))
-      .mockResolvedValueOnce(new Response('oops', { status: 503, statusText: 'Service Unavailable' }));
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      )
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      )
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      );
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
