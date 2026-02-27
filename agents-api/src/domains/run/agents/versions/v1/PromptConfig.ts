@@ -7,6 +7,7 @@ import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml
 import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import dataComponentTemplate from '../../../../../../templates/v1/shared/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
+import { ARTIFACT_TAG, ARTIFACT_TOOL, SENTINEL_KEY } from '../../../constants/artifact-syntax';
 
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 import {
@@ -328,7 +329,7 @@ ${rules}
   }
 
   private getArtifactCreationGuidance(): string {
-    return `🚨 MANDATORY ARTIFACT CREATION 🚨
+    return `🚨 MANDATORY ARTIFACT CREATION (${ARTIFACT_TAG.CREATE}) 🚨
 You MUST create artifacts from tool results to provide citations. This is REQUIRED, not optional.
 Every piece of information from tools MUST be backed by an artifact creation.
 
@@ -393,25 +394,25 @@ ARTIFACT MANAGEMENT:
 Artifacts have three modes of use. Each surfaces a different amount of data:
 
 1. CREATE — extract and save data from a tool result as a citable artifact:
-   Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
-   ⚠️ Do not create artifacts from get_reference_artifact results — only from original research tools.
+   Format: <${ARTIFACT_TAG.CREATE} id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
+   ⚠️ Do not create artifacts from ${ARTIFACT_TOOL.GET_REFERENCE} results — only from original research tools.
 
 2. REFERENCE IN TEXT — cite a saved artifact inline in your response:
-   Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
+   Format: <${ARTIFACT_TAG.REF} id="artifact-id" tool="tool_call_id" />
    ⚠️ PREVIEW FIELDS ONLY. Only the preview fields appear in your context — you cannot see full fields this way.
 
 3. PASS TO A TOOL — supply a saved artifact as a tool argument:
-   Format: { "$artifact": "artifact-id", "$tool": "tool_call_id" }
+   Format: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" }
    ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
    Use the exact artifactId and toolCallId from when the artifact was created.
-   ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you create during THIS response are equally valid — use the id and tool values from your own artifact:create tag.
+   ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you create during THIS response are equally valid — use the id and tool values from your own ${ARTIFACT_TAG.CREATE} tag.
    See AVAILABLE ARTIFACT TYPES for the exact preview vs full schema breakdown per type.
    ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
       { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
    ✅ ALWAYS pass the reference instead:
-      { "artifactArg": { "$artifact": "artifact-id", "$tool": "toolu_abc123" }, "param2": "value" }
+      { "artifactArg": { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "toolu_abc123" }, "param2": "value" }
 
-CREATING ARTIFACTS — JMESPATH SELECTOR RULES:
+CREATING ARTIFACTS (${ARTIFACT_TAG.CREATE}) — JMESPATH SELECTOR RULES:
 
 🚨 CRITICAL: DETAILS PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
 
@@ -423,7 +424,7 @@ details='{"title":"metadata.title","doc_type":"document_type","description":"con
 
 The selectors extract actual field values from the data structure selected by your base selector.
 
-THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE TOOL RESULT!
+THE details PROPERTY IN ${ARTIFACT_TAG.CREATE} MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE TOOL RESULT!
 - details: Contains JMESPath selectors relative to the base selector that map to artifact schema fields
 - These selectors are evaluated against the tool result to extract the actual values
 - The system automatically determines which fields are preview vs full based on the artifact schema
@@ -450,12 +451,12 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ✅ [?contains(text, 'Founder')] (contains haystack, needle format)
 ✅ source.content[?contains(text, 'Founder')].text (correct filter usage)
 
-🚨 MANDATORY QUOTE PATTERN - FOLLOW EXACTLY:
+🚨 MANDATORY QUOTE PATTERN — FOLLOW EXACTLY:
 - ALWAYS: base="path[?field=='value']" (double quotes outside, single inside)
-- This is the ONLY allowed pattern - any other pattern WILL FAIL
+- This is the ONLY allowed pattern — any other pattern WILL FAIL
 - NEVER escape quotes, NEVER mix quote types, NEVER use complex quoting
 
-🚨 CRITICAL: EXAMINE TOOL RESULTS BEFORE CREATING SELECTORS! 🚨
+🚨 CRITICAL: EXAMINE TOOL RESULTS BEFORE CREATING SELECTORS (${ARTIFACT_TAG.CREATE})! 🚨
 
 STEP 1: INSPECT THE ACTUAL DATA FIRST
 - ALWAYS look at the tool result data before creating any selectors
@@ -489,9 +490,9 @@ EXAMPLE PATTERNS FOR BASE SELECTORS:
 ✅ CORRECT: result.documents[?status=='published'][0] (filter by status)
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
-The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <artifact:ref id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
+The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <${ARTIFACT_TAG.REF} id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
 ${this.getArtifactCreationGuidance()}
 
@@ -504,8 +505,8 @@ ARTIFACT ANNOTATION PLACEMENT:
 IMPORTANT GUIDELINES:
 - Create artifacts inline as you discuss the information
 - Use exact tool_call_id from tool execution results
-- Each artifact:create establishes a citable source
-- Use artifact:ref for subsequent references to the same artifact
+- Each ${ARTIFACT_TAG.CREATE} establishes a citable source
+- Use ${ARTIFACT_TAG.REF} for subsequent references to the same artifact
 - Annotations are automatically converted to interactive elements`;
     }
 
@@ -517,36 +518,36 @@ ARTIFACT USAGE:
 You cannot create artifacts, but you can use existing ones in two ways:
 
 1. REFERENCE IN TEXT — cite a saved artifact inline in your response:
-   Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
+   Format: <${ARTIFACT_TAG.REF} id="artifact-id" tool="tool_call_id" />
    ⚠️ PREVIEW FIELDS ONLY. Only the preview fields appear in your context — you cannot see full fields this way.
 
 2. PASS TO A TOOL — supply a saved artifact as a tool argument:
-   Format: { "$artifact": "artifact-id", "$tool": "tool_call_id" }
+   Format: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" }
    ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
    Use the exact artifactId and toolCallId from when the artifact was created.
    ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you just received in this conversation (e.g. from a delegation) are equally valid — use the id and tool values shown in the artifact reference.
    ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
       { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
    ✅ ALWAYS pass the reference instead:
-      { "artifactArg": { "$artifact": "artifact-id", "$tool": "toolu_abc123" }, "param2": "value" }
+      { "artifactArg": { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "toolu_abc123" }, "param2": "value" }
 
 EXAMPLE TEXT RESPONSE:
-"Based on the authentication guide <artifact:ref id='existing-auth-guide' tool='call_previous456' /> that was previously collected, the API uses OAuth 2.0.
+"Based on the authentication guide <${ARTIFACT_TAG.REF} id='existing-auth-guide' tool='call_previous456' /> that was previously collected, the API uses OAuth 2.0.
 
-The implementation details show that you need to register your application first and obtain client credentials. <artifact:ref id='existing-impl-doc' tool='toolu_previous789' />
+The implementation details show that you need to register your application first and obtain client credentials. <${ARTIFACT_TAG.REF} id='existing-impl-doc' tool='toolu_previous789' />
 
-For error handling, you can refer to the comprehensive error documentation. <artifact:ref id='existing-error-doc' tool='call_previous012' /> This lists all possible authentication errors and their solutions."
+For error handling, you can refer to the comprehensive error documentation. <${ARTIFACT_TAG.REF} id='existing-error-doc' tool='call_previous012' /> This lists all possible authentication errors and their solutions."
 
 EXAMPLE REFERENCING DELEGATION ARTIFACTS:
 After receiving a delegation response with artifacts, reference them naturally:
 
-"I've gathered the requested data for you. The analysis <artifact:ref id='analysis-results' tool='toolu_abc123' /> shows significant improvements across all metrics.
+"I've gathered the requested data for you. The analysis <${ARTIFACT_TAG.REF} id='analysis-results' tool='toolu_abc123' /> shows significant improvements across all metrics.
 
-Looking at the detailed breakdown <artifact:ref id='performance-metrics' tool='toolu_def456' />, the processing time has decreased by 40% while maintaining accuracy."
+Looking at the detailed breakdown <${ARTIFACT_TAG.REF} id='performance-metrics' tool='toolu_def456' />, the processing time has decreased by 40% while maintaining accuracy."
 
 IMPORTANT GUIDELINES:
 - You can only reference artifacts that already exist or were returned from delegations
-- Use artifact:ref annotations in your text with the exact artifactId and toolCallId
+- Use ${ARTIFACT_TAG.REF} annotations in your text with the exact artifactId and toolCallId
 - References are automatically converted to interactive elements`;
     }
 
@@ -574,10 +575,16 @@ IMPORTANT GUIDELINES:
             : {};
           const fullShape = fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {};
 
-          schemaDescription = `PREVIEW FIELDS — artifact:ref in text or artifact:create (summary only):
+          schemaDescription = `CAPTURED by ${ARTIFACT_TAG.CREATE} — include ALL of these in your details (both preview and non-preview):
+    ${JSON.stringify(fullShape, null, 2)}
+
+    DISPLAYED to user — ${ARTIFACT_TAG.REF} in text shows only preview fields:
     ${JSON.stringify(previewShape, null, 2)}
 
-    FULL FIELDS — { "$artifact": "...", "$tool": "..." } tool argument or get_reference_artifact tool:
+    PASSED to tools — { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } as a tool argument resolves to all captured fields:
+    ${JSON.stringify(fullShape, null, 2)}
+
+    RETRIEVED explicitly — ${ARTIFACT_TOOL.GET_REFERENCE} tool returns all captured fields:
     ${JSON.stringify(fullShape, null, 2)}`;
         }
 
@@ -596,13 +603,15 @@ ${typeDescriptions}
 - Do NOT make up arbitrary property names like "founders", "nick_details", "year"  
 - Each artifact type has specific fields defined in its schema
 - Your JMESPath selectors must extract values for these exact schema-defined properties
-- Example: If schema defines "title" and "url", use details='{"title":"title","url":"url"}' not made-up names
-- The system will automatically determine which fields are preview vs full based on schema configuration
+- Example: If the schema defines fields "title" (preview), "summary" (preview), and "body" (non-preview), your details must include all three: details='{"title":"title","summary":"summary","body":"body"}' — never omit non-preview fields
+- Include ALL schema fields in your details — both preview and non-preview. ${ARTIFACT_TAG.CREATE} captures everything.
+- Do NOT only include preview fields. Non-preview fields are what tools and ${ARTIFACT_TOOL.GET_REFERENCE} receive.
+- The preview/full split is automatic based on the schema — your job is to map every field.
 
 🚨 CRITICAL: USE EXACT ARTIFACT TYPE NAMES IN QUOTES! 🚨
 - MUST use the exact type name shown in quotes above
 - Copy the exact string between the quotes, including any capitalization
-- The type= parameter in artifact:create MUST match exactly what is listed above
+- The type= parameter in ${ARTIFACT_TAG.CREATE} MUST match exactly what is listed above
 - Do NOT abbreviate, modify, or guess the type name
 - Copy the exact quoted name from the "AVAILABLE ARTIFACT TYPES" list above`;
   }
@@ -697,8 +706,10 @@ ${creationInstructions}
     const artifactType = artifact.type || 'unknown';
     const schemas = typeSchemaMap?.[artifactType];
     const typeSchema = schemas
-      ? `PREVIEW (artifact:ref in text / artifact:create): ${JSON.stringify(schemas.previewShape)}
-    FULL ({ "$artifact": "...", "$tool": "..." } tool argument or get_reference_artifact): ${JSON.stringify(schemas.fullShape)}`
+      ? `DISPLAYED to user via ${ARTIFACT_TAG.REF} (preview fields only): ${JSON.stringify(schemas.previewShape)}
+    PASSED to tools via { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } (all fields): ${JSON.stringify(schemas.fullShape)}
+    RETRIEVED via ${ARTIFACT_TOOL.GET_REFERENCE} (all fields): ${JSON.stringify(schemas.fullShape)}
+    Note: ${ARTIFACT_TAG.CREATE} captured all fields at creation time.`
       : 'Schema not available';
 
     artifactXml = artifactXml.replace('{{ARTIFACT_NAME}}', artifact.name || '');
@@ -711,6 +722,80 @@ ${creationInstructions}
     artifactXml = artifactXml.replace('{{ARTIFACT_SUMMARY}}', artifactSummary);
 
     return artifactXml;
+  }
+
+  private getToolChainingGuidance(): string {
+    return `TOOL RESULT CHAINING:
+Any tool argument can reference the raw output of a previous tool call using { "${SENTINEL_KEY.TOOL}": "tool_call_id" }.
+The system resolves this to the complete raw output of that tool call before executing the next tool.
+
+🚨 MANDATORY: When a tool's output is the direct input to the next tool, you MUST use { "${SENTINEL_KEY.TOOL}": "call_id" }.
+NEVER read a tool result and copy its value as a literal string or object into the next tool call.
+
+❌ WRONG — copying tool output inline:
+  Call tool_a → returns "some text"
+  Call tool_b with { "input": "some text" }  ← you copied the value manually
+
+✅ CORRECT — referencing the previous call:
+  Call tool_a → returns "some text" (tool_call_id: "call_a_xyz")
+  Call tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }  ← system resolves it automatically
+
+HOW PRIMITIVE RESULTS APPEAR vs. WHAT { "${SENTINEL_KEY.TOOL}" } RESOLVES TO:
+When a tool returns a primitive (string, number, boolean), the result appears in the conversation
+wrapped for display purposes — e.g. { "text": "...", "_toolCallId": "call_a_xyz" } for strings
+or { "value": 42, "_toolCallId": "call_a_xyz" } for numbers. This wrapper is display-only.
+{ "${SENTINEL_KEY.TOOL}": "call_a_xyz" } resolves to the raw primitive itself — not the wrapper object.
+
+  Call tool_a → result shown as { "value": 42, "_toolCallId": "call_a_xyz" }
+  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: 42  ← raw number, not the wrapper
+
+  Call tool_a → result shown as { "text": "hello", "_toolCallId": "call_a_xyz" }
+  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: "hello"  ← raw string, not the wrapper
+
+Pipeline example:
+  Step 1: tool_a({ "arg": "value" }) → (tool_call_id: "call_a")
+  Step 2: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a" }, "other": "value" })
+
+WHEN THE PREVIOUS TOOL RETURNS A COMPLEX OBJECT:
+{ "${SENTINEL_KEY.TOOL}": "call_id" } passes the entire raw output. If the next tool needs only a specific field,
+use an intermediate extraction step — never read the value and copy it inline.
+
+  Step 1: tool_a(...)  → returns { "results": [...], "text": "..." }  (call_id: "call_a")
+  Step 2: extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  → returns "..."  (call_id: "call_b")
+  Step 3: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })  ← receives the extracted value
+
+❌ WRONG — reading a field and copying it inline:
+  tool_a returns { "text": "some content" }
+  tool_b({ "input": "some content" })  ← you copied the value manually
+
+✅ CORRECT — extract first, then reference:
+  tool_a(...)  (call_id: "call_a")
+  extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  (call_id: "call_b")
+  tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })
+
+This is different from artifact passing:
+- { "${SENTINEL_KEY.TOOL}": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
+- { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } — passes a structured object you explicitly extracted and saved from a tool result
+
+When to use each:
+✅ Use { "${SENTINEL_KEY.TOOL}": "call_id" } when the next tool can accept the full output of the previous tool
+✅ Use an intermediate extraction step when you need only a specific field from a complex output
+✅ Use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } when you have already created an artifact and want to pass its full structured data to a tool
+⚠️ Only references tool calls from the current response turn
+
+AFTER AN EXTRACTION STEP — reference the extraction's call_id, not the original source:
+  source_tool(...)  (call_id: "call_source")
+  extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_source" }, ... })  (call_id: "call_extract")
+  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← use call_extract, NOT call_source
+
+❌ WRONG — referencing the original source after extraction:
+  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_source" } })  ← skips the extraction, passes the full object again
+
+IF AN EXTRACTION RETURNED A PRIMITIVE — pipe it directly to the next tool. Do NOT run another
+extraction step on it. An extraction applied to a plain string or number returns null.
+  extract(...)  → returns "some string"  (call_id: "call_extract")
+  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← correct, receives the string directly
+  ❌ extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_extract" }, ... })  ← wrong, cannot extract from a primitive`;
   }
 
   private escapeXml(value: string): string {
@@ -781,7 +866,9 @@ ${creationInstructions}
       : '';
 
     const parts = [regularToolsXml, mcpGroupsXml].filter(Boolean).join('\n  ');
-    return `<available_tools description="These are the tools available for you to use to accomplish tasks">
+    return `<available_tools description="These are the tools available for you to use to accomplish tasks.
+
+${this.getToolChainingGuidance()}">
   ${parts}
 </available_tools>`;
   }
