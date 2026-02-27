@@ -816,7 +816,7 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const tools = await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)));
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const toolSet of tools) {
@@ -3784,6 +3784,25 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    const entries = Array.from(this.mcpClientCache.entries());
+    if (entries.length > 0) {
+      const results = await Promise.allSettled(entries.map(([, client]) => client.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          logger.warn(
+            { error: result.reason, clientKey: entries[i][0] },
+            'Failed to disconnect MCP client during cleanup'
+          );
+        }
+      }
+    }
+    this.mcpClientCache.clear();
+    this.mcpConnectionLocks.clear();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(
