@@ -45,6 +45,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "test": "vitest --run",
+    "test:visual": "PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:3100 vitest --run --project '@inkeep/agents-manage-ui/browser'",
+    "test:visual:update": "PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:3100 vitest --run --update --project '@inkeep/agents-manage-ui/browser'",
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "cypress open --config-file cypress/cypress.config.ts",
     "test:e2e:run": "cypress run --config-file cypress/cypress.config.ts --headless --no-runner-ui",

@@ -82,9 +82,18 @@ export default defineConfig({
             enabled: true,
             headless: true,
             provider: playwright({
-              launchOptions: {
-                args: ['--font-render-hinting=none'],
-              },
+              ...(process.env.PW_TEST_CONNECT_WS_ENDPOINT
+                ? {
+                    connectOptions: {
+                      wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
+                      exposeNetwork: '<loopback>',
+                    },
+                  }
+                : {
+                    launchOptions: {
+                      args: ['--font-render-hinting=none'],
+                    },
+                  }),
             }),
             instances: [{ browser: 'chromium' }],
             expect: {

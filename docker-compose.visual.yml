@@ -1,0 +1,23 @@
+# Playwright server for consistent visual regression testing.
+# Runs the browser in a Linux container so screenshots are identical
+# regardless of host OS (macOS, Linux CI, etc).
+#
+# Usage:
+#   docker compose -f docker-compose.visual.yml up -d
+#   pnpm --filter @inkeep/agents-manage-ui test:visual
+#   docker compose -f docker-compose.visual.yml down
+services:
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.58.0-noble
+    user: pwuser
+    working_dir: /home/pwuser
+    init: true
+    ports:
+      - "3100:3100"
+    command:
+      [
+        "sh",
+        "-c",
+        "npx -y playwright@1.58.2 run-server --port 3100 --host 0.0.0.0",
+      ]
+    restart: "no"
