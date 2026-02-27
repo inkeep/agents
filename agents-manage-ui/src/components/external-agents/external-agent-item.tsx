@@ -1,9 +1,7 @@
 'use client';
 
 import { MoreVertical, Trash2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -21,13 +19,12 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { useProjectPermissions } from '@/contexts/project';
-import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { Badge } from '../ui/badge';
-import { DeleteConfirmation } from '../ui/delete-confirmation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { DeleteExternalAgentConfirmation } from './delete-external-agent-confirmation';
 
 // URL Display Component with ellipsis and tooltip
 function URLDisplay({ url }: { url: string }) {
@@ -54,31 +51,10 @@ function ExternalAgentDialogMenu({
   externalAgentId,
   externalAgentName,
 }: ExternalAgentDialogMenuProps) {
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-
   const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-  };
-
-  const handleDelete = async () => {
-    setIsSubmitting(true);
-    try {
-      const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('External agent deleted.');
-      } else {
-        toast.error('Failed to delete external agent.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -106,10 +82,10 @@ function ExternalAgentDialogMenu({
         </DropdownMenuContent>
       </DropdownMenu>
       {isOpen && (
-        <DeleteConfirmation
-          itemName={externalAgentName || 'this external agent'}
-          isSubmitting={isSubmitting}
-          onDelete={handleDelete}
+        <DeleteExternalAgentConfirmation
+          externalAgentId={externalAgentId}
+          externalAgentName={externalAgentName}
+          setIsOpen={setIsOpen}
         />
       )}
     </Dialog>

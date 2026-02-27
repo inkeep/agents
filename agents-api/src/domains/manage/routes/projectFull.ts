@@ -20,6 +20,8 @@ import {
   getProjectMainBranchName,
   getProjectMetadata,
   listScheduledTriggers,
+  type OrgRole,
+  OrgRoles,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   type ScheduledTrigger,
@@ -41,6 +43,11 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
+import {
+  assertCanMutateTrigger,
+  isScheduledTriggerChanged,
+  validateRunAsUserId,
+} from './scheduledTriggers';
 
 const logger = getLogger('projectFull');
 
@@ -407,6 +414,48 @@ app.openapi(
             scopes: { tenantId, projectId, agentId },
           });
           existingTriggersByAgent.set(agentId, existingTriggers);
+        }
+      }
+
+      const callerId = userId ?? '';
+      const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+
+      for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
+        if (!agentData.scheduledTriggers) continue;
+
+        const existingTriggers = existingTriggersByAgent.get(agentId) || [];
+        const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
+
+        for (const [triggerId, triggerData] of Object.entries(agentData.scheduledTriggers)) {
+          const existing = existingById.get(triggerId);
+
+          if (existing) {
+            const changed = isScheduledTriggerChanged(triggerData, existing);
+            if (!changed) continue;
+
+            assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
+
+            if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {
+              await validateRunAsUserId({
+                runAsUserId: triggerData.runAsUserId,
+                callerId,
+                tenantId,
+                projectId,
+                tenantRole,
+              });
+            }
+          } else {
+            if (triggerData.runAsUserId) {
+              await validateRunAsUserId({
+                runAsUserId: triggerData.runAsUserId,
+                callerId,
+                tenantId,
+                projectId,
+                tenantRole,
+              });
+            }
+            triggerData.createdBy = callerId;
+          }
         }
       }
 

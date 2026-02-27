@@ -17,6 +17,7 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
+  STREAM_FORCE_CLEANUP: 'stream.force_cleanup',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -109,6 +110,7 @@ export const SPAN_KEYS = {
 
   // Trigger/Invocation attributes
   INVOCATION_TYPE: 'invocation.type',
+  INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
 
@@ -140,6 +142,13 @@ export const SPAN_KEYS = {
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   AGENT_STEPS_COMPLETED: 'agent.steps_completed',
   AGENT_MAX_STEPS: 'agent.max_steps',
+
+  // Stream lifetime attributes
+  STREAM_CLEANUP_REASON: 'stream.cleanup.reason',
+  STREAM_MAX_LIFETIME_MS: 'stream.max_lifetime_ms',
+  STREAM_BUFFER_SIZE_BYTES: 'stream.buffer_size_bytes',
+  STREAM_SENT_ITEMS_COUNT: 'stream.sent_items_count',
+  STREAM_COMPLETED_ITEMS_COUNT: 'stream.completed_items_count',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -159,6 +168,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
+  STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
 } as const;
 
 /** Activity Status Values */

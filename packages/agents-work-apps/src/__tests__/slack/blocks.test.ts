@@ -9,10 +9,16 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildCitationsBlock,
+  buildDataComponentBlocks,
+  buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
   buildToolApprovalDoneBlocks,
+  buildToolApprovalExpiredBlocks,
+  buildToolOutputErrorBlock,
   createAlreadyLinkedMessage,
   createContextBlock,
+  createContextBlockFromText,
   createErrorMessage,
   createNotLinkedMessage,
   createStatusMessage,
@@ -28,6 +34,18 @@ describe('Slack Block Builders', () => {
       expect(result.type).toBe('context');
       expect(result.elements[0].type).toBe('mrkdwn');
       expect(result.elements[0].text).toBe('Powered by *Test Agent* via Inkeep');
+    });
+  });
+
+  describe('createContextBlockFromText', () => {
+    it('should create context block for subtle styling', () => {
+      const text = '_Test Agent is thinking..._';
+      const result = createContextBlockFromText(text);
+
+      expect(result).toEqual({
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text }],
+      });
     });
   });
 
@@ -297,5 +315,140 @@ describe('buildToolApprovalDoneBlocks', () => {
     expect(text).toContain('❌');
     expect(text).toContain('search_web');
     expect(text).toContain('<@U456>');
+  });
+});
+
+describe('mrkdwn special character escaping', () => {
+  describe('buildToolApprovalBlocks', () => {
+    it('should escape special characters in toolName', () => {
+      const blocks = buildToolApprovalBlocks({
+        toolName: 'search <web> & more',
+        buttonValue: '{}',
+      });
+      const section = blocks.find((b: any) => b.type === 'section');
+      expect(section.text.text).toContain('search &lt;web&gt; &amp; more');
+      expect(section.text.text).not.toContain('<web>');
+    });
+
+    it('should escape special characters in input field keys and values', () => {
+      const blocks = buildToolApprovalBlocks({
+        toolName: 'tool',
+        input: { '<key>': 'val & "more"', safe: 'normal' },
+        buttonValue: '{}',
+      });
+      const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+      const texts: string[] = inputSection.fields.map((f: any) => f.text);
+      expect(texts.some((t) => t.includes('&lt;key&gt;'))).toBe(true);
+      expect(texts.some((t) => t.includes('&amp;'))).toBe(true);
+      expect(texts.some((t) => t.includes('<key>'))).toBe(false);
+    });
+  });
+
+  describe('buildToolApprovalDoneBlocks', () => {
+    it('should escape special characters in toolName', () => {
+      const blocks = buildToolApprovalDoneBlocks({
+        toolName: 'tool <x>',
+        approved: true,
+        actorUserId: 'U1',
+      });
+      const text: string = blocks[0].elements[0].text;
+      expect(text).toContain('&lt;x&gt;');
+      expect(text).not.toContain('<x>');
+    });
+  });
+
+  describe('buildToolApprovalExpiredBlocks', () => {
+    it('should escape special characters in toolName', () => {
+      const blocks = buildToolApprovalExpiredBlocks({ toolName: 'tool & <x>' });
+      const text: string = blocks[0].elements[0].text;
+      expect(text).toContain('&amp;');
+      expect(text).toContain('&lt;x&gt;');
+    });
+  });
+
+  describe('buildToolOutputErrorBlock', () => {
+    it('should escape special characters in toolName and errorText', () => {
+      const block = buildToolOutputErrorBlock('my <tool>', 'failed: a > b & c');
+      const text: string = block.elements[0].text;
+      expect(text).toContain('&lt;tool&gt;');
+      expect(text).toContain('a &gt; b &amp; c');
+    });
+  });
+
+  describe('buildSummaryBreadcrumbBlock', () => {
+    it('should escape special characters in labels', () => {
+      const block = buildSummaryBreadcrumbBlock(['Step <1>', 'Step & 2']);
+      const text: string = block.elements[0].text;
+      expect(text).toContain('Step &lt;1&gt;');
+      expect(text).toContain('Step &amp; 2');
+    });
+  });
+
+  describe('buildDataComponentBlocks', () => {
+    it('should escape special characters in flat record field keys and values', () => {
+      const { blocks } = buildDataComponentBlocks({
+        id: 'c1',
+        data: { '<field>': 'val & more' },
+      });
+      const section = blocks.find((b: any) => b.type === 'section' && b.fields);
+      const texts: string[] = section.fields.map((f: any) => f.text);
+      expect(texts.some((t) => t.includes('&lt;field&gt;'))).toBe(true);
+      expect(texts.some((t) => t.includes('&amp;'))).toBe(true);
+    });
+  });
+
+  describe('createContextBlock', () => {
+    it('should escape special characters in agentName', () => {
+      const block = createContextBlock({ agentName: 'Agent <X> & Y' });
+      const text: string = block.elements[0].text;
+      expect(text).toContain('&lt;X&gt;');
+      expect(text).toContain('&amp;');
+      expect(text).not.toContain('<X>');
+    });
+  });
+});
+
+describe('buildCitationsBlock', () => {
+  it('should return empty array when citations is empty', () => {
+    expect(buildCitationsBlock([])).toHaveLength(0);
+  });
+
+  it('should return empty array when no citation has a url', () => {
+    expect(buildCitationsBlock([{ title: 'No URL' }])).toHaveLength(0);
+  });
+
+  it('should render each citation as a [N] Title link', () => {
+    const blocks = buildCitationsBlock([
+      { url: 'https://example.com/1', title: 'First Source' },
+      { url: 'https://example.com/2', title: 'Second Source' },
+    ]);
+    expect(blocks).toHaveLength(1);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('<https://example.com/1|[1] First Source>');
+    expect(text).toContain('<https://example.com/2|[2] Second Source>');
+  });
+
+  it('should use the url as title when title is absent', () => {
+    const blocks = buildCitationsBlock([{ url: 'https://example.com/1' }]);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('<https://example.com/1|[1] https://example.com/1>');
+  });
+
+  it('should escape special characters in the title', () => {
+    const blocks = buildCitationsBlock([{ url: 'https://example.com', title: 'A & B <title>' }]);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('A &amp; B &lt;title&gt;');
+  });
+
+  it('should append "and N more" suffix when citations exceed cap', () => {
+    const citations = Array.from({ length: 12 }, (_, i) => ({
+      url: `https://example.com/${i + 1}`,
+      title: `Source ${i + 1}`,
+    }));
+    const blocks = buildCitationsBlock(citations);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('[10]');
+    expect(text).not.toContain('[11]');
+    expect(text).toContain('_and 2 more_');
   });
 });

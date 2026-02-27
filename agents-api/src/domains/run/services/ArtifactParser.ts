@@ -1,5 +1,12 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
+import { SENTINEL_KEY } from '../constants/artifact-syntax';
+import {
+  buildSchemaShape,
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../utils/schema-validation';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
@@ -8,6 +15,16 @@ import {
 } from './ArtifactService';
 
 const logger = getLogger('ArtifactParser');
+
+export class ToolChainResolutionError extends Error {
+  constructor(
+    public readonly toolCallId: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'ToolChainResolutionError';
+  }
+}
 
 export interface StreamPart {
   kind: 'text' | 'data';
@@ -70,6 +87,10 @@ export class ArtifactParser {
 
   private artifactService: ArtifactService;
   private contextWindowSize?: number;
+  private artifactSchemasByType: Record<
+    string,
+    { preview: Record<string, unknown>; full: Record<string, unknown> }
+  > = {};
 
   constructor(
     executionContext: FullExecutionContext,
@@ -95,6 +116,18 @@ export class ArtifactParser {
       };
       this.artifactService = new ArtifactService(context);
     }
+    if (options?.artifactComponents) {
+      for (const ac of options.artifactComponents) {
+        if (ac.name && (ac.props as any)?.properties) {
+          const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
+          const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
+          this.artifactSchemasByType[ac.name] = {
+            preview: previewSchema.properties ? buildSchemaShape(previewSchema.properties) : {},
+            full: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
+          };
+        }
+      }
+    }
   }
 
   /**
@@ -102,6 +135,22 @@ export class ArtifactParser {
    */
   setContextWindowSize(size: number): void {
     this.contextWindowSize = size;
+  }
+
+  private buildArtifactDataPart(artifactData: ArtifactSummaryData): StreamPart {
+    const schemas = this.artifactSchemasByType[artifactData.type ?? ''];
+    return {
+      kind: 'data',
+      data: {
+        artifactId: artifactData.artifactId,
+        toolCallId: artifactData.toolCallId,
+        name: artifactData.name,
+        description: artifactData.description,
+        type: artifactData.type,
+        artifactSummary: artifactData.data,
+        ...(schemas && { typeSchema: schemas }),
+      },
+    };
   }
 
   /**
@@ -170,6 +219,68 @@ export class ArtifactParser {
    */
   async getContextArtifacts(contextId: string): Promise<Map<string, any>> {
     return this.artifactService.getContextArtifacts(contextId);
+  }
+
+  /**
+   * Resolve artifact refs embedded in tool call arguments.
+   * Recursively walks the args object/array; any object of the shape
+   * { $artifact: "artifact-id", $tool: "tool-call-id" } is replaced with
+   * the full artifact data so the tool receives the real content.
+   */
+  async resolveArgs(args: any): Promise<any> {
+    if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
+      if (
+        typeof args[SENTINEL_KEY.ARTIFACT] === 'string' &&
+        typeof args[SENTINEL_KEY.TOOL] === 'string'
+      ) {
+        const fullData = await this.artifactService.getArtifactFull(
+          args[SENTINEL_KEY.ARTIFACT],
+          args[SENTINEL_KEY.TOOL]
+        );
+        if (fullData?.data) {
+          logger.debug(
+            { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
+            'Resolved artifact ref in tool arg'
+          );
+          return fullData.data;
+        }
+        throw new ToolChainResolutionError(
+          args[SENTINEL_KEY.TOOL],
+          `Artifact '${args[SENTINEL_KEY.ARTIFACT]}' from tool call '${args[SENTINEL_KEY.TOOL]}' could not be resolved`
+        );
+      }
+
+      if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
+        const raw = this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
+        if (raw !== undefined) {
+          logger.debug(
+            { toolCallId: args[SENTINEL_KEY.TOOL] },
+            'Resolved ephemeral tool result ref in tool arg'
+          );
+          return raw;
+        }
+        throw new ToolChainResolutionError(
+          args[SENTINEL_KEY.TOOL],
+          `Tool result for call '${args[SENTINEL_KEY.TOOL]}' not found or failed`
+        );
+      }
+
+      const result: Record<string, any> = {};
+      for (const [key, value] of Object.entries(args)) {
+        result[key] = await this.resolveArgs(value);
+      }
+      return result;
+    }
+
+    if (Array.isArray(args)) {
+      const resolved = [];
+      for (const item of args) {
+        resolved.push(await this.resolveArgs(item));
+      }
+      return resolved;
+    }
+
+    return args;
   }
 
   /**
@@ -343,17 +454,7 @@ export class ArtifactParser {
       }
 
       if (artifactData) {
-        parts.push({
-          kind: 'data',
-          data: {
-            artifactId: artifactData.artifactId,
-            toolCallId: artifactData.toolCallId,
-            name: artifactData.name,
-            description: artifactData.description,
-            type: artifactData.type,
-            artifactSummary: artifactData.data,
-          },
-        });
+        parts.push(this.buildArtifactDataPart(artifactData));
       }
 
       lastIndex = matchStart + fullMatch.length;
@@ -388,32 +489,12 @@ export class ArtifactParser {
             artifactMap
           );
           if (artifactData) {
-            parts.push({
-              kind: 'data',
-              data: {
-                artifactId: artifactData.artifactId,
-                toolCallId: artifactData.toolCallId,
-                name: artifactData.name,
-                description: artifactData.description,
-                type: artifactData.type,
-                artifactSummary: artifactData.data,
-              },
-            });
+            parts.push(this.buildArtifactDataPart(artifactData));
           }
         } else if (this.isArtifactCreateComponent(component)) {
           const createData = await this.extractFromArtifactCreateComponent(component, subAgentId);
           if (createData) {
-            parts.push({
-              kind: 'data',
-              data: {
-                artifactId: createData.artifactId,
-                toolCallId: createData.toolCallId,
-                name: createData.name,
-                description: createData.description,
-                type: createData.type,
-                artifactSummary: createData.data,
-              },
-            });
+            parts.push(this.buildArtifactDataPart(createData));
           }
         } else {
           parts.push({ kind: 'data', data: component });
@@ -429,40 +510,12 @@ export class ArtifactParser {
         obj.props.tool_call_id,
         artifactMap
       );
-      return artifactData
-        ? [
-            {
-              kind: 'data',
-              data: {
-                artifactId: artifactData.artifactId,
-                toolCallId: artifactData.toolCallId,
-                name: artifactData.name,
-                description: artifactData.description,
-                type: artifactData.type,
-                artifactSummary: artifactData.data,
-              },
-            },
-          ]
-        : [];
+      return artifactData ? [this.buildArtifactDataPart(artifactData)] : [];
     }
 
     if (this.isArtifactCreateComponent(obj)) {
       const createData = await this.extractFromArtifactCreateComponent(obj, subAgentId);
-      return createData
-        ? [
-            {
-              kind: 'data',
-              data: {
-                artifactId: createData.artifactId,
-                toolCallId: createData.toolCallId,
-                name: createData.name,
-                description: createData.description,
-                type: createData.type,
-                artifactSummary: createData.data,
-              },
-            },
-          ]
-        : [];
+      return createData ? [this.buildArtifactDataPart(createData)] : [];
     }
 
     return [{ kind: 'data', data: obj }];

@@ -1,0 +1,6 @@
+import { Trigger } from '@inkeep/agents-sdk';
+
+export const nullableFields = new Trigger({
+  id: 'nullable-fields',
+  name: 'Nullable Trigger',
+});

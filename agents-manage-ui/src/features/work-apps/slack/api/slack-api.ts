@@ -1,20 +1,19 @@
+import type { DefaultAgentConfig } from '../components/agent-configuration-card/types';
+
+type WorkspaceSettings = {
+  defaultAgent?: DefaultAgentConfig;
+};
+
 const getApiUrl = () => process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
 interface SlackWorkspaceInstallation {
   connectionId: string;
   teamId: string;
   teamName?: string;
+  teamDomain?: string;
   tenantId: string;
   hasDefaultAgent: boolean;
   defaultAgentName?: string;
-}
-
-interface DefaultAgentConfig {
-  agentId: string;
-  agentName?: string;
-  projectId: string;
-  projectName?: string;
-  grantAccessToMembers?: boolean;
 }
 
 export const slackApi = {
@@ -58,7 +57,11 @@ export const slackApi = {
 
   async setWorkspaceDefaultAgent(params: {
     teamId: string;
-    defaultAgent: DefaultAgentConfig;
+    defaultAgent: {
+      agentId: string;
+      projectId: string;
+      grantAccessToMembers?: boolean;
+    };
   }): Promise<{ success: boolean }> {
     const response = await fetch(
       `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(params.teamId)}/settings`,
@@ -93,9 +96,7 @@ export const slackApi = {
     return response.json();
   },
 
-  async getWorkspaceSettings(teamId: string): Promise<{
-    defaultAgent?: DefaultAgentConfig;
-  }> {
+  async getWorkspaceSettings(teamId: string): Promise<WorkspaceSettings> {
     const response = await fetch(
       `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/settings`,
       { credentials: 'include' }
@@ -156,7 +157,6 @@ export const slackApi = {
       agentConfig?: {
         projectId: string;
         agentId: string;
-        agentName?: string;
         grantAccessToMembers?: boolean;
       };
     }>;
@@ -199,7 +199,6 @@ export const slackApi = {
     agentConfig: {
       projectId: string;
       agentId: string;
-      agentName?: string;
       grantAccessToMembers?: boolean;
     };
     channelName?: string;
@@ -241,7 +240,6 @@ export const slackApi = {
     agentConfig: {
       projectId: string;
       agentId: string;
-      agentName?: string;
       grantAccessToMembers?: boolean;
     }
   ): Promise<{

@@ -3,9 +3,9 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  buildComposioMCPUrl,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  configureComposioMCPServer,
   createMessage,
   type DataComponentApiInsert,
   type DataPart,
@@ -658,7 +658,28 @@ export class Agent {
         }
 
         try {
-          const result = await originalExecute(args, context);
+          const artifactParser = streamRequestId
+            ? agentSessionManager.getArtifactParser(streamRequestId)
+            : null;
+          const parsedArgsForResolution = artifactParser ? parseEmbeddedJson(args) : args;
+          const resolvedArgs = artifactParser
+            ? await artifactParser.resolveArgs(parsedArgsForResolution)
+            : args;
+
+          if (artifactParser && toolDefinition.parameters?.safeParse) {
+            const resolvedChanged =
+              JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+            if (resolvedChanged) {
+              const validation = toolDefinition.parameters.safeParse(resolvedArgs);
+              if (!validation.success) {
+                throw new Error(
+                  `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+                );
+              }
+            }
+          }
+
+          const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
           // Store tool result in conversation history
@@ -683,6 +704,8 @@ export class Agent {
                   a2a_metadata: {
                     toolName,
                     toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: this.delegationId,
                     isDelegated: this.isDelegatedAgent,
@@ -816,7 +839,7 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const tools = await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)));
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const toolSet of tools) {
@@ -1092,7 +1115,7 @@ export class Agent {
                 toolCallId,
                 toolName,
                 args: finalArgs,
-                result: enhancedResult,
+                result: parsedResult,
                 timestamp: Date.now(),
               });
 
@@ -1283,16 +1306,14 @@ export class Agent {
       };
     }
 
-    // Inject user_id for Composio servers at runtime
-    if (serverConfig.url) {
-      serverConfig.url = buildComposioMCPUrl(
-        serverConfig.url.toString(),
-        this.config.tenantId,
-        this.config.projectId,
-        isUserScoped ? 'user' : 'project',
-        userId
-      );
-    }
+    // Inject user_id and x-api-key for Composio servers at runtime
+    configureComposioMCPServer(
+      serverConfig,
+      this.config.tenantId,
+      this.config.projectId,
+      isUserScoped ? 'user' : 'project',
+      userId
+    );
 
     // Merge forwarded headers (user session auth) into server config
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
@@ -1691,7 +1712,16 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return result;
+              // If a tool explicitly returns the AI SDK text format { type:"text", value:"..." },
+              // convert it to a neutral object so the full result (including _toolCallId) is
+              // preserved when the AI SDK serializes it for the Anthropic API. The content-array
+              // format { content: [{type:"text", text}] } is recognized by the AI SDK and only
+              // the content array is forwarded, dropping any extra metadata fields.
+              const r = result as any;
+              const resultForEnhancement =
+                r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
+
+              return this.enhanceToolResultWithStructureHints(resultForEnhancement, toolCallId);
             } catch (error) {
               logger.error(
                 {
@@ -1846,6 +1876,45 @@ export class Agent {
         'Failed to check agent artifact components, assuming none exist'
       );
       return this.artifactComponents.length > 0;
+    }
+  }
+
+  private collectProjectArtifactComponents(): ArtifactComponentApiInsert[] {
+    const project = this.executionContext.project;
+    try {
+      const agentDefinition = project.agents[this.config.agentId];
+      if (!agentDefinition) {
+        return this.artifactComponents;
+      }
+
+      const seen = new Set<string>();
+      const collected: ArtifactComponentApiInsert[] = [];
+
+      const addUnique = (components: ArtifactComponentApiInsert[]) => {
+        for (const ac of components) {
+          if (ac.name && !seen.has(ac.name)) {
+            seen.add(ac.name);
+            collected.push(ac);
+          }
+        }
+      };
+
+      addUnique(this.artifactComponents);
+
+      const projectArtifactComponents = project.artifactComponents || {};
+
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          const resolved = (subAgent.artifactComponents as string[])
+            .map((id) => projectArtifactComponents[id])
+            .filter(Boolean) as ArtifactComponentApiInsert[];
+          addUnique(resolved);
+        }
+      }
+
+      return collected;
+    } catch {
+      return this.artifactComponents;
     }
   }
 
@@ -2024,6 +2093,7 @@ export class Agent {
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
       artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
+      allProjectArtifactComponents: this.collectProjectArtifactComponents(),
       hasAgentArtifactComponents,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -2036,7 +2106,7 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Retrieves the complete data of an existing artifact. NOTE: To pass an artifact to a tool you do NOT need to call this — use the { "$artifact": "id", "$tool": "toolCallId" } sentinel and the system resolves the full data automatically. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
@@ -2547,16 +2617,32 @@ ${output}`;
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
-   * Also adds tool call ID to the result for easy reference
-   * Only adds hints when artifact components are available
+   * Also adds _toolCallId to every object result for LLM tool-chaining reference.
+   * Structure hints are only added when artifact components are available.
    */
   private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
-    if (!result) {
+    if (result === undefined) {
       return result;
     }
 
-    // Only add structure hints and tool call ID if artifact components are available
+    // Wrap primitive results (string, number, boolean, null) with _toolCallId so the LLM can
+    // reference them for tool chaining. The AI SDK serializes plain objects as JSON for the
+    // Anthropic API, so the LLM sees the full object including _toolCallId — unlike bare
+    // primitives which have no place to embed it. The raw value is stored separately in
+    // ToolSessionManager, so downstream tools still receive the bare primitive via {$tool}.
+    // Covers all primitives including falsy ones (false, 0, "", null).
+    if (typeof result !== 'object' || result === null) {
+      if (toolCallId) {
+        return { [typeof result === 'string' ? 'text' : 'value']: result, _toolCallId: toolCallId };
+      }
+      return result;
+    }
+
+    // Always inject _toolCallId into object results so the LLM can reference them for chaining
     if (!this.artifactComponents || this.artifactComponents.length === 0) {
+      if (toolCallId && typeof result === 'object') {
+        return { ...result, _toolCallId: toolCallId };
+      }
       return result;
     }
 
@@ -3229,6 +3315,7 @@ ${output}`;
           options: historyConfig,
           filters,
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3246,6 +3333,7 @@ ${output}`;
             isDelegated: this.isDelegatedAgent,
           },
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3786,6 +3874,25 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    const entries = Array.from(this.mcpClientCache.entries());
+    if (entries.length > 0) {
+      const results = await Promise.allSettled(entries.map(([, client]) => client.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          logger.warn(
+            { error: result.reason, clientKey: entries[i][0] },
+            'Failed to disconnect MCP client during cleanup'
+          );
+        }
+      }
+    }
+    this.mcpClientCache.clear();
+    this.mcpConnectionLocks.clear();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(

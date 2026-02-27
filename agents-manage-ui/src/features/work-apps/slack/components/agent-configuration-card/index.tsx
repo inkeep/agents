@@ -1,9 +1,10 @@
 'use client';
 
-import { Layers2, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Layers2, Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,9 +96,7 @@ export function AgentConfigurationCard() {
     if (!teamId) return;
     try {
       const settings = await slackApi.getWorkspaceSettings(teamId);
-      if (settings.defaultAgent) {
-        setDefaultAgent(settings.defaultAgent);
-      }
+      setDefaultAgent(settings.defaultAgent ?? null);
     } catch {
       console.log('No saved workspace settings found');
     }
@@ -116,9 +115,7 @@ export function AgentConfigurationCard() {
 
     const config: DefaultAgentConfig = {
       agentId: agent.id,
-      agentName: agent.name || agent.id,
       projectId: agent.projectId,
-      projectName: agent.projectName || 'Unknown Project',
       grantAccessToMembers: true,
     };
 
@@ -129,11 +126,15 @@ export function AgentConfigurationCard() {
     try {
       await slackApi.setWorkspaceDefaultAgent({
         teamId,
-        defaultAgent: config,
+        defaultAgent: {
+          agentId: agent.id,
+          projectId: agent.projectId,
+          grantAccessToMembers: true,
+        },
       });
 
       installedWorkspaces.refetch();
-      toast.success(`Default agent set to "${config.agentName}"`);
+      toast.success(`Default agent set to "${agent.name}"`);
     } catch (error) {
       console.error('Failed to save default agent:', error);
       toast.error('Failed to save default agent');
@@ -155,7 +156,11 @@ export function AgentConfigurationCard() {
     try {
       await slackApi.setWorkspaceDefaultAgent({
         teamId,
-        defaultAgent: updatedConfig,
+        defaultAgent: {
+          agentId: updatedConfig.agentId,
+          projectId: updatedConfig.projectId,
+          grantAccessToMembers: updatedConfig.grantAccessToMembers,
+        },
       });
 
       toast.success(
@@ -203,10 +208,9 @@ export function AgentConfigurationCard() {
     const channel = channels.find((ch) => ch.id === channelId);
     const grantAccessToMembers = channel?.agentConfig?.grantAccessToMembers ?? true;
 
-    const config = {
+    const config: DefaultAgentConfig = {
       projectId: agent.projectId,
       agentId: agent.id,
-      agentName: agent.name || agent.id,
       grantAccessToMembers,
     };
 
@@ -214,7 +218,11 @@ export function AgentConfigurationCard() {
       await slackApi.setChannelDefaultAgent({
         teamId,
         channelId,
-        agentConfig: config,
+        agentConfig: {
+          projectId: agent.projectId,
+          agentId: agent.id,
+          grantAccessToMembers,
+        },
         channelName,
       });
 
@@ -224,7 +232,7 @@ export function AgentConfigurationCard() {
         )
       );
 
-      toast.success(`#${channelName} now uses "${config.agentName}"`);
+      toast.success(`#${channelName} now uses "${agent.name}"`);
     } catch (error) {
       console.error('Failed to set channel agent:', error);
       const errorMessage =
@@ -281,7 +289,11 @@ export function AgentConfigurationCard() {
       await slackApi.setChannelDefaultAgent({
         teamId,
         channelId,
-        agentConfig: updatedConfig,
+        agentConfig: {
+          projectId: updatedConfig.projectId,
+          agentId: updatedConfig.agentId,
+          grantAccessToMembers: updatedConfig.grantAccessToMembers,
+        },
         channelName: channel.name,
       });
 
@@ -331,7 +343,6 @@ export function AgentConfigurationCard() {
       const result = await slackApi.bulkSetChannelAgents(teamId, Array.from(selectedChannels), {
         projectId: agent.projectId,
         agentId: agent.id,
-        agentName: agent.name || agent.id,
         grantAccessToMembers: true,
       });
 
@@ -344,7 +355,6 @@ export function AgentConfigurationCard() {
                 agentConfig: {
                   projectId: agent.projectId,
                   agentId: agent.id,
-                  agentName: agent.name || agent.id,
                   grantAccessToMembers: true,
                 },
               }
@@ -465,11 +475,24 @@ export function AgentConfigurationCard() {
             The default agent for all <Badge variant="code">@Inkeep</Badge> mentions and{' '}
             <Badge variant="code">/inkeep</Badge> commands in{' '}
             <span className="font-medium">{workspaceName}</span>.{' '}
-            {defaultAgent &&
-              `Used by ${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''}.`}
+            {defaultAgent
+              ? `Used by ${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''}.`
+              : channelsUsingDefault.length > 0
+                ? `${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''} without a dedicated agent.`
+                : null}
           </p>
         </CardHeader>
         <CardContent className="min-w-0 space-y-6">
+          {!defaultAgent && channels.length > 0 && (
+            <Alert variant="warning">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>No default agent set</AlertTitle>
+              <AlertDescription>
+                Channels using the workspace default won&apos;t respond to @Inkeep mentions or
+                /inkeep commands.
+              </AlertDescription>
+            </Alert>
+          )}
           <WorkspaceDefaultSection
             defaultAgent={defaultAgent}
             agents={agents}
@@ -498,6 +521,7 @@ export function AgentConfigurationCard() {
         savingChannel={savingChannel}
         bulkSaving={bulkSaving}
         isAdmin={isAdmin}
+        hasWorkspaceDefault={!!defaultAgent}
         onChannelFilterChange={setChannelFilter}
         onSearchQueryChange={setChannelSearchQuery}
         onToggleChannel={handleToggleChannel}

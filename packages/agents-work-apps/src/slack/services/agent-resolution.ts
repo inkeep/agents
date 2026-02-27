@@ -5,11 +5,14 @@
  * Priority: Channel default > Workspace default (all admin-controlled)
  */
 
-import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
+import {
+  findWorkAppSlackChannelAgentConfig,
+  type WorkAppSlackAgentConfigRequest,
+} from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { fetchAgentsForProject, fetchProjectsForTenant } from './events/utils';
-import { getWorkspaceDefaultAgentFromNango } from './nango';
+import { getWorkspaceDefaultAgent } from './nango';
 
 const logger = getLogger('slack-agent-resolution');
 
@@ -17,18 +20,23 @@ const AGENT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
 const AGENT_NAME_CACHE_MAX_SIZE = 500;
 const agentNameCache = new Map<string, { name: string | null; expiresAt: number }>();
 
-async function lookupAgentName(
+export async function lookupAgentName(
   tenantId: string,
   projectId: string,
-  agentId: string
+  agentId: string,
+  options?: { skipCache?: boolean; throwOnError?: boolean }
 ): Promise<string | undefined> {
   const cacheKey = `${tenantId}:${projectId}:${agentId}`;
-  const cached = agentNameCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.name || undefined;
+  if (!options?.skipCache) {
+    const cached = agentNameCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.name || undefined;
+    }
   }
 
-  const agents = await fetchAgentsForProject(tenantId, projectId);
+  const agents = await fetchAgentsForProject(tenantId, projectId, {
+    throwOnError: options?.throwOnError,
+  });
 
   for (const agent of agents) {
     const key = `${tenantId}:${projectId}:${agent.id}`;
@@ -63,11 +71,17 @@ const PROJECT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
 const PROJECT_NAME_CACHE_MAX_SIZE = 200;
 const projectNameCache = new Map<string, { name: string | null; expiresAt: number }>();
 
-async function lookupProjectName(tenantId: string, projectId: string): Promise<string | undefined> {
+export async function lookupProjectName(
+  tenantId: string,
+  projectId: string,
+  options?: { skipCache?: boolean }
+): Promise<string | undefined> {
   const cacheKey = `${tenantId}:${projectId}`;
-  const cached = projectNameCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.name || undefined;
+  if (!options?.skipCache) {
+    const cached = projectNameCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.name || undefined;
+    }
   }
 
   const projects = await fetchProjectsForTenant(tenantId);
@@ -101,12 +115,10 @@ async function lookupProjectName(tenantId: string, projectId: string): Promise<s
   return found?.name || undefined;
 }
 
-/** Configuration for a resolved agent */
-export interface ResolvedAgentConfig {
-  projectId: string;
-  projectName?: string;
-  agentId: string;
+/** Configuration for a resolved agent — extends the canonical config with resolution metadata */
+export interface ResolvedAgentConfig extends WorkAppSlackAgentConfigRequest {
   agentName?: string;
+  projectName?: string;
   source: 'channel' | 'workspace' | 'none';
   grantAccessToMembers: boolean;
 }
@@ -150,7 +162,6 @@ export async function resolveEffectiveAgent(
       result = {
         projectId: channelConfig.projectId,
         agentId: channelConfig.agentId,
-        agentName: channelConfig.agentName || undefined,
         source: 'channel',
         grantAccessToMembers: channelConfig.grantAccessToMembers,
       };
@@ -159,7 +170,7 @@ export async function resolveEffectiveAgent(
 
   // Priority 2: Workspace default (admin-configured)
   if (!result) {
-    const workspaceConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+    const workspaceConfig = await getWorkspaceDefaultAgent(teamId);
 
     if (workspaceConfig?.agentId && workspaceConfig.projectId) {
       logger.info(
@@ -168,29 +179,22 @@ export async function resolveEffectiveAgent(
       );
       result = {
         projectId: workspaceConfig.projectId,
-        projectName: workspaceConfig.projectName,
         agentId: workspaceConfig.agentId,
-        agentName: workspaceConfig.agentName,
         source: 'workspace',
         grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
       };
     }
   }
 
-  // Enrich: look up agent name from manage API if missing or same as agent ID
-  if (result && (!result.agentName || result.agentName === result.agentId)) {
+  // Always enrich agent name from manage API
+  if (result) {
     const name = await lookupAgentName(tenantId, result.projectId, result.agentId);
     if (name) {
       result.agentName = name;
-      logger.debug(
-        { agentId: result.agentId, agentName: name },
-        'Enriched agent config with name from manage API'
-      );
     }
   }
 
-  // Enrich: look up project name if missing
-  if (result && !result.projectName) {
+  if (result) {
     const projectName = await lookupProjectName(tenantId, result.projectId);
     if (projectName) {
       result.projectName = projectName;
@@ -230,44 +234,39 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
       channelConfig = {
         projectId: config.projectId,
         agentId: config.agentId,
-        agentName: config.agentName || undefined,
         source: 'channel',
         grantAccessToMembers: config.grantAccessToMembers,
       };
     }
   }
 
-  const wsConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+  const wsConfig = await getWorkspaceDefaultAgent(teamId);
   if (wsConfig?.agentId && wsConfig.projectId) {
     workspaceConfig = {
       projectId: wsConfig.projectId,
-      projectName: wsConfig.projectName,
       agentId: wsConfig.agentId,
-      agentName: wsConfig.agentName,
       source: 'workspace',
       grantAccessToMembers: wsConfig.grantAccessToMembers ?? true,
     };
   }
 
-  const effective = channelConfig || workspaceConfig;
-
-  if (effective && (!effective.agentName || effective.agentName === effective.agentId)) {
-    const name = await lookupAgentName(tenantId, effective.projectId, effective.agentId);
-    if (name) {
-      effective.agentName = name;
-    }
-  }
-
-  if (effective && !effective.projectName) {
-    const projectName = await lookupProjectName(tenantId, effective.projectId);
-    if (projectName) {
-      effective.projectName = projectName;
-    }
-  }
+  const configsToEnrich = [channelConfig, workspaceConfig].filter(
+    (c): c is ResolvedAgentConfig => c !== null
+  );
+  await Promise.all(
+    configsToEnrich.map(async (config) => {
+      const [agentName, projectName] = await Promise.all([
+        lookupAgentName(tenantId, config.projectId, config.agentId),
+        lookupProjectName(tenantId, config.projectId),
+      ]);
+      if (agentName) config.agentName = agentName;
+      if (projectName) config.projectName = projectName;
+    })
+  );
 
   return {
     channelConfig,
     workspaceConfig,
-    effective,
+    effective: channelConfig || workspaceConfig,
   };
 }

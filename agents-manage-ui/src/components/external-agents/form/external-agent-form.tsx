@@ -3,22 +3,28 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import {
+  ExternalAgentFormSchema,
+  type ExternalAgentInput,
+} from '@/components/external-agents/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import type { Credential } from '@/lib/api/credentials';
 import { createExternalAgent, updateExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-import { cn } from '@/lib/utils';
-import { type ExternalAgentFormData, externalAgentSchema } from './validation';
+import { cn, isRequired } from '@/lib/utils';
+import { DeleteExternalAgentConfirmation } from '../delete-external-agent-confirmation';
 
 interface ExternalAgentFormProps {
-  initialData?: ExternalAgentFormData;
+  defaultValues?: ExternalAgentInput;
   externalAgent?: ExternalAgent;
   credentials: Credential[];
   tenantId: string;
@@ -26,7 +32,7 @@ interface ExternalAgentFormProps {
   className?: string;
 }
 
-const defaultValues: ExternalAgentFormData = {
+const initialData: ExternalAgentInput = {
   name: '',
   description: '',
   baseUrl: '',
@@ -34,44 +40,34 @@ const defaultValues: ExternalAgentFormData = {
 };
 
 export function ExternalAgentForm({
-  initialData,
+  defaultValues = initialData,
   externalAgent,
   credentials,
   tenantId,
   projectId,
   className,
 }: ExternalAgentFormProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const router = useRouter();
 
   const form = useForm({
-    resolver: zodResolver(externalAgentSchema),
-    defaultValues: {
-      ...defaultValues,
-      ...initialData,
-    },
+    resolver: zodResolver(ExternalAgentFormSchema),
+    defaultValues,
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ExternalAgentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const mode = externalAgent ? 'update' : 'create';
-
     try {
-      // Transform form data to API format
-      const transformedData = {
-        ...data,
-        description: data.description || '',
-        credentialReferenceId:
-          data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
-      };
-
       if (externalAgent) {
-        await updateExternalAgent(tenantId, projectId, externalAgent.id, transformedData);
+        await updateExternalAgent(tenantId, projectId, externalAgent.id, data);
         toast.success('External agent updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`);
       } else {
         const newExternalAgent = await createExternalAgent(tenantId, projectId, {
-          ...transformedData,
+          ...data,
           id: nanoid(),
         });
         toast.success('External agent created successfully');
@@ -81,69 +77,89 @@ export function ExternalAgentForm({
       console.error(`Failed to ${mode} external agent:`, error);
       toast.error(`Failed to ${mode} external agent. Please try again.`);
     }
-  };
+  });
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
-        <GenericInput
-          control={form.control}
-          name="name"
-          label="Name"
-          placeholder="My External Agent"
-          isRequired
-        />
-        <GenericTextarea
-          control={form.control}
-          name="description"
-          label="Description (optional)"
-          placeholder="A brief description of what this external agent does..."
-        />
-        <GenericInput
-          control={form.control}
-          name="baseUrl"
-          label="Base URL"
-          placeholder="https://api.example.com"
-          isRequired
-        />
-
-        <div className="space-y-3">
-          <GenericSelect
+    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <Form {...form}>
+        <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
+          <GenericInput
             control={form.control}
-            selectTriggerClassName="w-full"
-            name="credentialReferenceId"
-            label="Credential"
-            placeholder="Select a credential"
-            options={[
-              { value: 'none', label: 'No Authentication' },
-              ...credentials.map((credential) => ({
-                value: credential.id,
-                label: credential.id,
-              })),
-            ]}
+            name="name"
+            label="Name"
+            placeholder="My External Agent"
+            isRequired={isRequired(ExternalAgentFormSchema, 'name')}
           />
-          <InfoCard title="How this works">
-            <div className="space-y-2">
-              <p>
-                Select{' '}
-                <code className="bg-background px-1.5 py-0.5 rounded border">
-                  No Authentication
-                </code>{' '}
-                if the external agent does not require authentication, or if you want to add a
-                credential later.
-              </p>
-              <p>
-                Otherwise, select from the existing credentials you have already created. The
-                credential will be used when communicating with this external agent.
-              </p>
-            </div>
-          </InfoCard>
-        </div>
+          <GenericTextarea
+            control={form.control}
+            name="description"
+            label="Description"
+            placeholder="A brief description of what this external agent does..."
+            isRequired={isRequired(ExternalAgentFormSchema, 'description')}
+          />
+          <GenericInput
+            control={form.control}
+            name="baseUrl"
+            label="Base URL"
+            placeholder="https://api.example.com"
+            isRequired={isRequired(ExternalAgentFormSchema, 'baseUrl')}
+          />
 
-        <Button type="submit" disabled={isSubmitting}>
-          {externalAgent ? 'Save' : 'Create'}
-        </Button>
-      </form>
-    </Form>
+          <div className="space-y-3">
+            <GenericSelect
+              control={form.control}
+              selectTriggerClassName="w-full"
+              name="credentialReferenceId"
+              label="Credential"
+              placeholder="Select a credential"
+              options={[
+                { value: 'none', label: 'No Authentication' },
+                ...credentials.map((credential) => ({
+                  value: credential.id,
+                  label: credential.id,
+                })),
+              ]}
+              isRequired={isRequired(ExternalAgentFormSchema, 'credentialReferenceId')}
+            />
+            <InfoCard title="How this works">
+              <div className="space-y-2">
+                <p>
+                  Select{' '}
+                  <code className="bg-background px-1.5 py-0.5 rounded border">
+                    No Authentication
+                  </code>{' '}
+                  if the external agent does not require authentication, or if you want to add a
+                  credential later.
+                </p>
+                <p>
+                  Otherwise, select from the existing credentials you have already created. The
+                  credential will be used when communicating with this external agent.
+                </p>
+              </div>
+            </InfoCard>
+          </div>
+          <div className="flex w-full justify-between">
+            <Button type="submit" disabled={isSubmitting}>
+              {externalAgent ? 'Save' : 'Create'}
+            </Button>
+            {externalAgent && (
+              <DialogTrigger asChild>
+                <Button type="button" variant="destructive-outline">
+                  Delete External Agent
+                </Button>
+              </DialogTrigger>
+            )}
+          </div>
+        </form>
+      </Form>
+      {isDeleteOpen && externalAgent && (
+        <DeleteExternalAgentConfirmation
+          externalAgentId={externalAgent.id}
+          externalAgentName={externalAgent.name}
+          setIsOpen={setIsDeleteOpen}
+          redirectOnDelete
+        />
+      )}
+    </Dialog>
   );
 }

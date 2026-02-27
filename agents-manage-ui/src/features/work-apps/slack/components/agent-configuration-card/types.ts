@@ -2,6 +2,12 @@ import type { SlackAgentOption } from '../../actions/agents';
 
 export type { SlackAgentOption };
 
+export interface DefaultAgentConfig {
+  agentId: string;
+  projectId: string;
+  grantAccessToMembers?: boolean;
+}
+
 export interface Channel {
   id: string;
   name: string;
@@ -9,20 +15,19 @@ export interface Channel {
   isShared?: boolean;
   memberCount?: number;
   hasAgentConfig: boolean;
-  agentConfig?: {
-    projectId: string;
-    agentId: string;
-    agentName?: string;
-    grantAccessToMembers?: boolean;
-  };
+  agentConfig?: DefaultAgentConfig;
 }
 
-export interface DefaultAgentConfig {
-  agentId: string;
-  agentName?: string;
-  projectId: string;
-  projectName?: string;
-  grantAccessToMembers?: boolean;
+export function getAgentDisplayName(
+  agents: SlackAgentOption[],
+  agentId: string,
+  projectId: string
+): string {
+  return agents.find((a) => a.id === agentId && a.projectId === projectId)?.name ?? agentId;
+}
+
+export function getProjectDisplayName(agents: SlackAgentOption[], projectId: string): string {
+  return agents.find((a) => a.projectId === projectId)?.projectName ?? projectId;
 }
 
 export const CHANNEL_ACCESS_OPTIONS = [
