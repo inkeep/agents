@@ -320,9 +320,10 @@ export function serializeAgentData(
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const externalAgentId = (node.data.id as string) || node.id;
+      const headers = externalAgentFormData?.[externalAgentId]?.headers;
 
       const externalAgent: ExternalAgent & {
-        tempHeaders: Record<string, string> | null;
+        headers?: Record<string, string>;
         relationshipId: string | null;
       } = {
         id: externalAgentId,
@@ -332,21 +333,22 @@ export function serializeAgentData(
         createdAt: node.data.createdAt as string,
         updatedAt: node.data.updatedAt as string,
         credentialReferenceId: (node.data.credentialReferenceId as string) || null,
-        tempHeaders: (node.data as any).tempHeaders || null,
+        headers,
         relationshipId: (node.data.relationshipId as string) || null,
       };
 
       externalAgents[externalAgentId] = externalAgent;
     } else if (node.type === NodeType.TeamAgent) {
       const teamAgentId = (node.data.id as string) || node.id;
+      const headers = teamAgentFormData?.[teamAgentId]?.headers;
       const teamAgent: TeamAgent & {
         relationshipId: string | null;
-        tempHeaders: Record<string, string> | null;
+        headers?: Record<string, string>;
       } = {
         id: teamAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
-        tempHeaders: (node.data as any).tempHeaders || null,
+        headers,
         relationshipId: (node.data.relationshipId as string) || null,
       };
       teamAgents[teamAgentId] = teamAgent;
@@ -593,12 +595,9 @@ export function serializeAgentData(
 
   const result: SerializeAgentDataType = {
     defaultSubAgentId,
-    subAgents: subAgents,
-    ...(Object.keys(functionTools).length > 0 && { functionTools }),
-    ...(Object.keys(functions).length > 0 && { functions }),
-    // Note: Tools are now project-scoped and not included in FullAgentDefinition
-    // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
-    // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
+    subAgents,
+    functionTools,
+    functions,
   };
 
   // Rebuild canDelegateTo arrays from delegate maps to ensure consistency
