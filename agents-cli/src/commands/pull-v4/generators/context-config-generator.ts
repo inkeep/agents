@@ -38,7 +38,7 @@ const ContextConfigSchema = z.strictObject({
 type ContextConfigInput = z.input<typeof ContextConfigSchema>;
 type ContextConfigOutput = z.output<typeof ContextConfigSchema>;
 
-export function generateContextConfigDefinition(data: ContextConfigInput): SourceFile {
+export function generateContextConfigDefinition({ id, ...data }: ContextConfigInput): SourceFile {
   const result = ContextConfigSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for context config:\n${z.prettifyError(result.error)}`);

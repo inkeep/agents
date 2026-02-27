@@ -26,7 +26,14 @@ const ArtifactComponentSchema = z.strictObject({
 type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
 type ArtifactComponentOutput = z.output<typeof ArtifactComponentSchema>;
 
-export function generateArtifactComponentDefinition(data: ArtifactComponentInput): SourceFile {
+export function generateArtifactComponentDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdAt,
+  updatedAt,
+  ...data
+}: ArtifactComponentInput): SourceFile {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
