@@ -1,5 +1,36 @@
 # @inkeep/agents-api
 
+## 0.53.12
+
+### Patch Changes
+
+- 6762a28: Fix Agent Card 400 error caused by system identifiers in x-inkeep-run-as-user-id header (PRD-6187)
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-mcp@0.53.12
+  - @inkeep/agents-work-apps@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- e094c16: Improve Agent Card fetch error diagnostics by logging response body on failure
+- 5061d64: Add blob storage abstraction (S3 and Vercel Blob providers)
+  - @inkeep/agents-core@0.53.11
+  - @inkeep/agents-mcp@0.53.11
+  - @inkeep/agents-work-apps@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [7299f4a]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-work-apps@0.53.10
+  - @inkeep/agents-mcp@0.53.10
+
 ## 0.53.9
 
 ### Patch Changes

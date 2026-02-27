@@ -1,5 +1,30 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.12
+
+### Patch Changes
+
+- 0038a02: Update signout methods and remove logout route
+  - @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+- ff9e307: Fix broken logout on app.inkeep.com by using full page navigation for route handler and clearing cookies on all candidate domains
+- 901058e: extract aria-invalid classes into reused `inkeep-aria-invalid`, fixes form error state propagation for `Select` and `ComboBox` components
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
 ## 0.53.9
 
 ### Patch Changes
