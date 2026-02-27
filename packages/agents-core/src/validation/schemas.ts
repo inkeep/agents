@@ -1214,6 +1214,9 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
       prompt: z.string().optional(),
     }),
   }),
+}).omit({
+    createdAt: true,
+    updatedAt: true
 });
 
 export const ConversationSelectSchema = createSelectSchema(conversations);
@@ -1767,13 +1770,18 @@ export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
 });
-export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
-  id: ResourceIdSchema,
-  name: NameSchema,
-  description: DescriptionSchema,
-  baseUrl: z.url(),
-  credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
-});
+export const ExternalAgentInsertSchema = createInsertSchema(externalAgents)
+  .extend({
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
+    baseUrl: z.url(),
+    credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
 export const ExternalAgentApiSelectSchema =
@@ -1992,9 +2000,14 @@ export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema).opena
 
 export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 
-export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
-  id: ResourceIdSchema,
-});
+export const FunctionToolInsertSchema = createInsertSchema(functionTools)
+  .extend({
+    id: ResourceIdSchema,
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
@@ -2103,10 +2116,13 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
 };
 
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .openapi('FunctionCreate')
   .extend({
     executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  });
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  }).openapi('FunctionCreate');
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 

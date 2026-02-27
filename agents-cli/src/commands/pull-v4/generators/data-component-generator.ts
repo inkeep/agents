@@ -11,8 +11,6 @@ import {
 
 const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().valueType.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 const DataComponentSchema = z.strictObject({

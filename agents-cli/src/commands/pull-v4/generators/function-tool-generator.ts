@@ -5,13 +5,9 @@ import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils
 
 const MySchema = FullProjectDefinitionSchema.shape.functions.unwrap().valueType.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 const MySchema2 = FullProjectDefinitionSchema.shape.functionTools.unwrap().valueType.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
   functionId: true,
 });
 

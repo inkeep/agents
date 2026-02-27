@@ -11,8 +11,6 @@ import {
 
 const MySchema = FullProjectDefinitionSchema.shape.tools.valueType.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 const McpToolSchema = z.strictObject({

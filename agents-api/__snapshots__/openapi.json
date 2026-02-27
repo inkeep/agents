@@ -474,20 +474,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/FunctionCreate"
-                    },
-                    {
-                      "properties": {
-                        "executeCode": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -3938,9 +3925,6 @@
             "format": "uri",
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "minLength": 1,
@@ -3955,9 +3939,6 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -4002,9 +3983,6 @@
             "format": "uri",
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "minLength": 1,
@@ -4019,9 +3997,6 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -4393,20 +4368,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/FunctionCreate"
-                    },
-                    {
-                      "properties": {
-                        "executeCode": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -4654,9 +4616,6 @@
       },
       "FunctionCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "dependencies": {
             "anyOf": [
               {
@@ -4689,6 +4648,7 @@
             ]
           },
           "executeCode": {
+            "minLength": 1,
             "type": "string"
           },
           "id": {
@@ -4724,9 +4684,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -4809,9 +4766,6 @@
       },
       "FunctionToolCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4825,9 +4779,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -4873,9 +4824,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4889,9 +4837,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -5401,9 +5346,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "type": "string"
           },
@@ -5491,9 +5433,6 @@
           },
           "tenantId": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "version": {
@@ -8714,9 +8653,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
@@ -8776,9 +8712,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -8930,9 +8863,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
@@ -8992,9 +8922,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -32878,20 +32805,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/FunctionCreate"
-                  },
-                  {
-                    "properties": {
-                      "executeCode": {
-                        "minLength": 1,
-                        "type": "string"
-                      }
-                    },
-                    "type": "object"
-                  }
-                ]
+                "$ref": "#/components/schemas/FunctionCreate"
               }
             }
           }
