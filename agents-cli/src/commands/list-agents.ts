@@ -65,7 +65,7 @@ export async function listAgentsCommand(options: ListAgentsOptions): Promise<voi
         : 'Unknown';
 
       table.push([
-        agent.id || '',
+        agent.id,
         agent.name,
         agent.defaultSubAgentId || chalk.gray('None'),
         createdDate,
