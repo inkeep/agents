@@ -22,6 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useOrgMembers } from '@/hooks/use-org-members';
 import { deleteTriggerAction, updateTriggerEnabledAction } from '@/lib/actions/triggers';
 import type { TriggerWithAgent } from '@/lib/api/project-triggers';
 
@@ -34,6 +36,12 @@ interface ProjectTriggersTableProps {
 export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectTriggersTableProps) {
   const router = useRouter();
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
+  const { members: orgMembers } = useOrgMembers(tenantId);
+
+  const getUserDisplayName = (userId: string): string => {
+    const member = orgMembers.find((m) => m.id === userId);
+    return member?.name || member?.email || userId;
+  };
 
   const copyWebhookUrl = async (webhookUrl: string, name: string) => {
     try {
@@ -113,6 +121,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
           <TableRow noHover>
             <TableHead>Name</TableHead>
             <TableHead>Agent</TableHead>
+            <TableHead>Run As</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Webhook URL</TableHead>
@@ -122,7 +131,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
         <TableBody>
           {triggers.length === 0 ? (
             <TableRow noHover>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 No webhook triggers configured yet. Create a trigger to enable webhook-based agent
                 invocation.
               </TableCell>
@@ -142,6 +151,26 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                     >
                       {trigger.agentName}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    {(trigger as any).runAsUserId ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                              {getUserDisplayName((trigger as any).runAsUserId)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono text-xs">
+                              {(trigger as any).runAsUserId}
+                            </code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-muted-foreground max-w-md truncate">
