@@ -189,18 +189,9 @@ export function serializeAgentData(
               }
             }
 
-            const tempHeaders = relationFormData?.headers;
-            let toolHeaders: PartialMCPRelation['headers'] | null = null;
+            let toolHeaders = relationFormData?.headers;
 
-            if (tempHeaders !== undefined) {
-              if (
-                typeof tempHeaders === 'object' &&
-                tempHeaders !== null &&
-                !Array.isArray(tempHeaders)
-              ) {
-                toolHeaders = tempHeaders;
-              }
-            } else {
+            if (toolHeaders === undefined) {
               // No changes made to headers - preserve existing headers
               const existingConfig = relationshipId
                 ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
@@ -209,18 +200,9 @@ export function serializeAgentData(
                 toolHeaders = existingConfig.headers;
               }
             }
-            const tempToolPolicies = relationFormData?.toolPolicies;
-            let toolPolicies: PartialMCPRelation['toolPolicies'] | null = null;
+            let toolPolicies = relationFormData?.toolPolicies;
 
-            if (tempToolPolicies !== undefined) {
-              if (
-                typeof tempToolPolicies === 'object' &&
-                tempToolPolicies !== null &&
-                !Array.isArray(tempToolPolicies)
-              ) {
-                toolPolicies = tempToolPolicies;
-              }
-            } else {
+            if (toolPolicies === undefined) {
               // No changes made to tool policies - preserve existing policies
               const existingConfig = relationshipId
                 ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
