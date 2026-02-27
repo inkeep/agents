@@ -1,34 +1,22 @@
 import { createHash } from 'node:crypto';
-import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
+import type { DataPart, FilePart, MessageContent, Part, TextPart } from '@inkeep/agents-core';
+import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-image-formats';
 import { getLogger } from '../../../../logger';
 import { downloadExternalImage } from './external-image-downloader';
 import { normalizeInlineImageBytes } from './image-content-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
 
+type MessageContentPart = NonNullable<MessageContent['parts']>[number];
+
 const logger = getLogger('image-upload');
+const FILE_UPLOAD_CONCURRENCY = 3;
 
 export interface UploadContext {
   tenantId: string;
   projectId: string;
   conversationId: string;
   messageId: string;
-}
-
-function getExtensionFromMimeType(mimeType?: string): string {
-  if (!mimeType) return 'bin';
-  const map: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/svg+xml': 'svg',
-    'image/bmp': 'bmp',
-    'image/tiff': 'tiff',
-    'image/*': 'bin',
-  };
-  return map[mimeType] || mimeType.split('/')[1] || 'bin';
 }
 
 async function uploadFilePart(
@@ -56,7 +44,7 @@ async function uploadFilePart(
   }
 
   const contentHash = createHash('sha256').update(data).digest('hex');
-  const ext = getExtensionFromMimeType(mimeType.split(';')[0]?.trim().toLowerCase());
+  const ext = getExtensionFromMimeType(mimeType);
   const key = buildStorageKey({
     category: 'media',
     tenantId: ctx.tenantId,
@@ -82,40 +70,41 @@ async function uploadFilePart(
 }
 
 export async function uploadPartsImages(parts: Part[], ctx: UploadContext): Promise<Part[]> {
-  const results: Part[] = [];
+  const results: Array<Part | null> = parts.map((part) => (part.kind === 'file' ? null : part));
+  const fileIndices = parts.flatMap((part, index) => (part.kind === 'file' ? [index] : []));
 
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part.kind === 'file') {
+  let nextFileCursor = 0;
+  const workerCount = Math.min(FILE_UPLOAD_CONCURRENCY, fileIndices.length);
+
+  const worker = async () => {
+    while (nextFileCursor < fileIndices.length) {
+      const fileCursor = nextFileCursor;
+      nextFileCursor += 1;
+      const index = fileIndices[fileCursor];
+      const part = parts[index];
+
+      if (!part || part.kind !== 'file') {
+        continue;
+      }
+
       try {
-        const uploaded = await uploadFilePart(part, ctx, i);
-        results.push(uploaded);
+        const uploaded = await uploadFilePart(part, ctx, index);
+        results[index] = uploaded;
       } catch (error) {
         logger.error(
-          { error: error instanceof Error ? error.message : String(error), index: i },
+          { error: error instanceof Error ? error.message : String(error), index },
           'Failed to upload image part, dropping from persisted message to avoid storing base64 in DB'
         );
       }
-    } else {
-      results.push(part);
     }
-  }
+  };
 
-  return results;
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results.filter((part): part is Part => part !== null);
 }
 
-export function partsToMessageContentParts(parts: Part[]): Array<{
-  kind: string;
-  text?: string;
-  data?: string | Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-}> {
-  const result: Array<{
-    kind: string;
-    text?: string;
-    data?: string | Record<string, unknown>;
-    metadata?: Record<string, unknown>;
-  }> = [];
+export function makeMessageContentParts(parts: Part[]): MessageContentPart[] {
+  const result: MessageContentPart[] = [];
 
   for (const part of parts) {
     if (part.kind === 'text') {
@@ -139,7 +128,7 @@ export function partsToMessageContentParts(parts: Part[]): Array<{
         );
       }
     } else {
-      result.push({ kind: part.kind, data: (part as any).data, metadata: part.metadata });
+      result.push({ kind: part.kind, data: (part as DataPart).data, metadata: part.metadata });
     }
   }
 

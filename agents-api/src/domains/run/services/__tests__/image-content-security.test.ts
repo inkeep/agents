@@ -19,7 +19,7 @@ describe('image-content-security', () => {
       expect(result.data.length).toBe(VALID_PNG_BYTES.length);
     });
 
-    it('rejects SVG (allowed formats from run/constants/allowed-image-formats)', async () => {
+    it('rejects SVG', async () => {
       const svg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
       await expect(
         normalizeInlineImageBytes({

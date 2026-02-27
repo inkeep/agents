@@ -1,20 +1,18 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
-import { hasFileParts, partsToMessageContentParts, uploadPartsImages } from './image-upload';
+import {
+  hasFileParts,
+  makeMessageContentParts,
+  type UploadContext,
+  uploadPartsImages,
+} from './image-upload';
 
 const logger = getLogger('image-upload-helpers');
-
-interface PersistContext {
-  tenantId: string;
-  projectId: string;
-  conversationId: string;
-  messageId: string;
-}
 
 export async function buildPersistedMessageContent(
   text: string,
   parts: Part[],
-  ctx: PersistContext
+  ctx: UploadContext
 ): Promise<MessageContent> {
   if (!hasFileParts(parts)) {
     return { text };
@@ -22,7 +20,7 @@ export async function buildPersistedMessageContent(
 
   try {
     const uploadedParts = await uploadPartsImages(parts, ctx);
-    const contentParts = partsToMessageContentParts(uploadedParts);
+    const contentParts = makeMessageContentParts(uploadedParts);
 
     logger.debug(
       {
