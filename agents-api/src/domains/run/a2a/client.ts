@@ -27,6 +27,37 @@ import { getLogger } from '../../../logger';
 
 const logger = getLogger('a2aClient');
 
+const MAX_ERROR_BODY_LENGTH = 4096;
+
+async function readErrorBody(response: Response): Promise<string | undefined> {
+  try {
+    const text = await response.text();
+    return text.length > MAX_ERROR_BODY_LENGTH
+      ? `${text.slice(0, MAX_ERROR_BODY_LENGTH)}…(truncated)`
+      : text;
+  } catch {
+    return undefined;
+  }
+}
+
+function throwAgentCardError(
+  url: string,
+  response: Response,
+  responseBody: string | undefined
+): never {
+  logger.error(
+    { url, status: response.status, statusText: response.statusText, responseBody },
+    'Agent Card fetch failed'
+  );
+  const parts = [
+    `Failed to fetch Agent Card from ${url}: ${response.status} ${response.statusText}`,
+  ];
+  if (responseBody) {
+    parts.push(responseBody);
+  }
+  throw new Error(parts.join(' - '));
+}
+
 type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
 
 export type BackoffStrategy = {
@@ -188,24 +219,8 @@ export class A2AClient {
       });
 
       if (!response.ok) {
-        let responseBody: string | undefined;
-        try {
-          responseBody = await response.text();
-        } catch {
-          // ignore body read failures
-        }
-        logger.error(
-          {
-            url: url.toString(),
-            status: response.status,
-            statusText: response.statusText,
-            responseBody,
-          },
-          'Agent Card fetch failed'
-        );
-        throw new Error(
-          `Failed to fetch Agent Card from ${url.toString()}: ${response.status}${responseBody ? ` - ${responseBody}` : ''}`
-        );
+        const responseBody = await readErrorBody(response);
+        throwAgentCardError(url.toString(), response, responseBody);
       }
       const agentCard: AgentCard = await response.json();
       if (!agentCard.url) {
@@ -248,24 +263,8 @@ export class A2AClient {
         },
       });
       if (!response.ok) {
-        let responseBody: string | undefined;
-        try {
-          responseBody = await response.text();
-        } catch {
-          // ignore body read failures
-        }
-        logger.error(
-          {
-            url: url.toString(),
-            status: response.status,
-            statusText: response.statusText,
-            responseBody,
-          },
-          'Agent Card fetch failed (getAgentCard)'
-        );
-        throw new Error(
-          `Failed to fetch Agent Card from ${url.toString()}: ${response.status}${responseBody ? ` - ${responseBody}` : ''}`
-        );
+        const responseBody = await readErrorBody(response);
+        throwAgentCardError(url.toString(), response, responseBody);
       }
       return (await response.json()) as AgentCard;
     }

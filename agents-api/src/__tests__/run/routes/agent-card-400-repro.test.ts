@@ -1,28 +1,22 @@
 /**
- * Reproduction test for PRD-6187: Agent Card 400 error
+ * Regression test for PRD-6187: Agent Card 400 error
  *
- * Tests the agent card endpoint through the full middleware stack
- * to identify what produces the 400 response.
+ * Verifies the agent card endpoint never returns a 400 through the full
+ * middleware stack, regardless of header combinations.
  */
 import { describe, expect, it } from 'vitest';
 import { makeRunRequest, makeRunRequestWithContext } from '../../utils/testRequest';
 
-describe('PRD-6187: Agent Card 400 reproduction (full middleware stack)', () => {
-  it('should return a valid response when fetching agent card through full app', async () => {
+describe('PRD-6187: Agent Card must not return 400', () => {
+  it('returns non-400 through the full middleware stack', async () => {
     const response = await makeRunRequest('/run/agents/.well-known/agent.json', {
       method: 'GET',
     });
 
-    const body = await response.text();
-    console.log('Full app test - status:', response.status);
-    console.log('Full app test - body:', body);
-
-    // The agent card endpoint should NOT return 400
-    // It may return 404 if the test agent isn't registered, but NEVER 400
     expect(response.status).not.toBe(400);
   });
 
-  it('should not return 400 with copilot-like headers', async () => {
+  it('returns non-400 with copilot-like headers', async () => {
     const response = await makeRunRequestWithContext(
       '/run/agents/.well-known/agent.json',
       {
@@ -40,14 +34,10 @@ describe('PRD-6187: Agent Card 400 reproduction (full middleware stack)', () => 
       }
     );
 
-    const body = await response.text();
-    console.log('Copilot-like headers test - status:', response.status);
-    console.log('Copilot-like headers test - body:', body);
-
     expect(response.status).not.toBe(400);
   });
 
-  it('should not return 400 with extra forwarded headers', async () => {
+  it('returns non-400 with extra forwarded headers', async () => {
     const response = await makeRunRequestWithContext(
       '/run/agents/.well-known/agent.json',
       {
@@ -67,14 +57,10 @@ describe('PRD-6187: Agent Card 400 reproduction (full middleware stack)', () => 
       }
     );
 
-    const body = await response.text();
-    console.log('Extra headers test - status:', response.status);
-    console.log('Extra headers test - body:', body);
-
     expect(response.status).not.toBe(400);
   });
 
-  it('should not return 400 with minimal headers (no sub-agent)', async () => {
+  it('returns non-400 with minimal headers (no sub-agent)', async () => {
     const response = await makeRunRequestWithContext(
       '/run/agents/.well-known/agent.json',
       {
@@ -89,10 +75,6 @@ describe('PRD-6187: Agent Card 400 reproduction (full middleware stack)', () => 
         },
       }
     );
-
-    const body = await response.text();
-    console.log('Minimal headers test - status:', response.status);
-    console.log('Minimal headers test - body:', body);
 
     expect(response.status).not.toBe(400);
   });
