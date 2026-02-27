@@ -215,12 +215,18 @@ importers:
       fetch-to-node:
         specifier: ^2.1.0
         version: 2.1.0
+      file-type:
+        specifier: ^21.3.0
+        version: 21.3.0
       hono:
         specifier: ^4.12.2
         version: 4.12.3
       hono-pino:
         specifier: ^0.10.1
         version: 0.10.3(hono@4.12.3)(pino@9.14.0)
+      ipaddr.js:
+        specifier: ^2.3.0
+        version: 2.3.0
       jmespath:
         specifier: ^0.16.0
         version: 0.16.0
@@ -236,6 +242,9 @@ importers:
       pg:
         specifier: ^8.16.3
         version: 8.16.3
+      undici:
+        specifier: '>=6.23.0'
+        version: 7.22.0
       workflow:
         specifier: ^4.1.0-beta.54
         version: 4.1.0-beta.54(@aws-sdk/client-sts@3.970.0)(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(babel-plugin-react-compiler@1.0.0)(magicast@0.5.2)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3)
@@ -10751,6 +10760,10 @@ packages:
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
+
+  ipaddr.js@2.3.0:
+    resolution: {integrity: sha512-Zv/pA+ciVFbCSBBjGfaKUya/CcGmUHzTydLMaTwrUUEM2DIEO3iZvueGxmacvmN50fGpGVKeTXpb2LcYQxeVdg==}
+    engines: {node: '>= 10'}
 
   is-alphabetical@2.0.1:
     resolution: {integrity: sha512-FWyyY60MeTNyeSRpkM2Iry0G9hpr7/9kD40mD/cGQEuilcZYS4okz8SN2Q6rLCJ8gbCt6fN+rC+6tMGS99LaxQ==}
@@ -28655,6 +28668,8 @@ snapshots:
   ip-address@10.0.1: {}
 
   ipaddr.js@1.9.1: {}
+
+  ipaddr.js@2.3.0: {}
 
   is-alphabetical@2.0.1: {}
 
