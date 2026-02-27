@@ -9,31 +9,21 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface DataComponentDefinitionData {
-  dataComponentId: string;
-  name: string;
-  description?: string | null;
-  props?: unknown;
-  schema?: unknown;
-  render?: {
-    component?: string;
-    mockData?: Record<string, unknown>;
-  } | null;
-}
-
 const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().valueType.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-const DataComponentSchema = MySchema.extend({
+const DataComponentSchema = z.strictObject({
   dataComponentId: z.string().nonempty(),
+  ...MySchema.shape,
 });
 
-type ParsedDataComponentDefinitionData = z.infer<typeof DataComponentSchema>;
+type DataComponentInput = z.input<typeof DataComponentSchema>;
+type DataComponentOutput = z.output<typeof DataComponentSchema>;
 
-export function generateDataComponentDefinition(data: DataComponentDefinitionData): SourceFile {
+export function generateDataComponentDefinition(data: DataComponentInput): SourceFile {
   const result = DataComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);
@@ -60,7 +50,7 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
 
 function writeDataComponentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedDataComponentDefinitionData,
+  data: DataComponentOutput,
   props: unknown
 ): void {
   addStringProperty(configObject, 'id', data.dataComponentId);
@@ -84,7 +74,7 @@ function writeDataComponentConfig(
 
 function addRenderProperty(
   configObject: ObjectLiteralExpression,
-  render: NonNullable<ParsedDataComponentDefinitionData['render']>
+  render: NonNullable<DataComponentOutput['render']>
 ): void {
   if (render.component) {
     addValueToObject(configObject, 'render', {

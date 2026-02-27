@@ -12,31 +12,19 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface ArtifactComponentDefinitionData {
-  artifactComponentId: string;
-  name: string;
-  description?: string;
-  props: Record<string, unknown>;
-  schema?: Record<string, unknown>;
-  template?: string;
-  contentType?: string;
-  render?: {
-    component?: string;
-    mockData?: Record<string, unknown>;
-  };
-}
-
 const MySchema = FullProjectDefinitionSchema.shape.artifactComponents.unwrap().valueType.omit({
   id: true,
 });
 
-const ArtifactComponentSchema = MySchema.extend({
+const ArtifactComponentSchema = z.strictObject({
   artifactComponentId: z.string().nonempty(),
+  ...MySchema.shape,
 });
 
-export function generateArtifactComponentDefinition(
-  data: ArtifactComponentDefinitionData
-): SourceFile {
+type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
+type ArtifactComponentOutput = z.output<typeof ArtifactComponentSchema>;
+
+export function generateArtifactComponentDefinition(data: ArtifactComponentInput): SourceFile {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);

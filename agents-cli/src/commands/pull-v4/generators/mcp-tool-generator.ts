@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -22,47 +23,16 @@ interface McpToolDefinitionData {
   credentialReferenceId?: string;
 }
 
-const McpToolSchema = z
-  .object({
-    mcpToolId: z.string().nonempty(),
-    name: z.string().nonempty(),
-    description: z.string().nullable().optional(),
-    config: z
-      .looseObject({
-        mcp: z
-          .looseObject({
-            server: z
-              .looseObject({
-                url: z.string().optional(),
-              })
-              .optional(),
-            transport: z.unknown().optional(),
-            activeTools: z.array(z.unknown()).optional(),
-          })
-          .optional(),
-      })
-      .optional(),
-    serverUrl: z.string().optional(),
-    transport: z.object({ type: z.string() }).optional(),
-    activeTools: z.array(z.unknown()).optional(),
-    // Null is not a valid value
-    imageUrl: z
-      .string()
-      .nullish()
-      .transform((value) => value ?? undefined),
-    headers: z.unknown().optional(),
-    credential: z.unknown().optional(),
-    credentialReferenceId: z.string().nullish(),
-  })
-  .superRefine((value, context) => {
-    if (!resolveServerUrl(value)) {
-      context.addIssue({
-        code: 'custom',
-        message: 'serverUrl is required (from config.mcp.server.url or serverUrl)',
-        path: ['serverUrl'],
-      });
-    }
-  });
+const MySchema = FullProjectDefinitionSchema.shape.tools.valueType.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+const McpToolSchema = z.strictObject({
+  mcpToolId: z.string().nonempty(),
+  ...MySchema.shape,
+});
 
 type ParsedMcpToolDefinitionData = z.infer<typeof McpToolSchema>;
 

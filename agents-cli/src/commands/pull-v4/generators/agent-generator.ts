@@ -25,16 +25,17 @@ const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.omit({
   createdAt: true,
 });
 
-const AgentSchema = MySchema.extend({
+const AgentSchema = z.strictObject({
   agentId: z.string().nonempty(),
+  ...MySchema.shape,
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),
   contextConfigHeadersReference: SubAgentReferenceSchema.optional(),
 });
 
-type AgentDefinitionData = z.input<typeof AgentSchema>;
-type ParsedAgentDefinitionData = z.infer<typeof AgentSchema>;
+type AgentInput = z.input<typeof AgentSchema>;
+type AgentOutput = z.output<typeof AgentSchema>;
 type ReferenceNameMap = Map<string, string>;
 
 interface AgentReferenceNames {
@@ -46,7 +47,7 @@ interface AgentReferenceNames {
   statusComponents: ReferenceNameMap;
 }
 
-export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
+export function generateAgentDefinition(data: AgentInput): SourceFile {
   const result = AgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for agent:\n${z.prettifyError(result.error)}`);
@@ -163,7 +164,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
 
 function writeAgentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedAgentDefinitionData,
+  data: AgentOutput,
   referenceNames: AgentReferenceNames
 ) {
   addStringProperty(configObject, 'id', data.agentId);
@@ -408,9 +409,7 @@ function addScheduledTriggerImports(
   }
 }
 
-function extractStatusComponentIds(
-  statusUpdates?: ParsedAgentDefinitionData['statusUpdates']
-): string[] {
+function extractStatusComponentIds(statusUpdates?: AgentOutput['statusUpdates']): string[] {
   if (!statusUpdates?.statusComponents?.length) {
     return [];
   }
@@ -450,7 +449,7 @@ function createSubAgentReferenceMaps(
   ids: Iterable<string>,
   reservedNames: Set<string>,
   conflictSuffix: string,
-  overrides?: ParsedAgentDefinitionData['subAgentReferences']
+  overrides?: AgentOutput['subAgentReferences']
 ): {
   referenceNames: ReferenceNameMap;
   importNames: ReferenceNameMap;
