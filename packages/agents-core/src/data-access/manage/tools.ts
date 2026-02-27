@@ -239,7 +239,9 @@ const discoverToolsFromServer = async (
     await client.connect();
 
     const serverTools = await client.tools();
-    const serverInstructions = client.getInstructions();
+    const rawServerInstructions = client.getInstructions();
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control chars to remove them
+    const serverInstructions = rawServerInstructions?.replace(/\u0000/g, '');
 
     await client.disconnect();
 
