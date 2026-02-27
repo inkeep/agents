@@ -61,6 +61,11 @@ services:
       SPICEDB_DATASTORE_ENGINE: postgres
       SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@spicedb-postgres:5432/spicedb?sslmode=disable"
       SPICEDB_HTTP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       spicedb-migrate:
         condition: service_completed_successfully
