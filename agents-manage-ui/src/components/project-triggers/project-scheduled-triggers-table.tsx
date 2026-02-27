@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, History, MoreHorizontal, Pencil, Play, RotateCw, Trash2 } from 'lucide-react';
+import { Clock, Copy, History, MoreHorizontal, Pencil, Play, RotateCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -23,6 +23,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuthSession } from '@/hooks/use-auth';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
+import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   deleteScheduledTriggerAction,
   runScheduledTriggerNowAction,
@@ -65,6 +68,20 @@ export function ProjectScheduledTriggersTable({
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
+  const { members: orgMembers } = useOrgMembers(tenantId);
+  const { user } = useAuthSession();
+  const { isAdmin } = useIsOrgAdmin();
+
+  const canManageTrigger = (trigger: ScheduledTriggerWithAgent): boolean => {
+    if (isAdmin) return true;
+    if (!user) return false;
+    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+  };
+
+  const getUserDisplayName = (userId: string): string => {
+    const member = orgMembers.find((m) => m.id === userId);
+    return member?.name || member?.email || userId;
+  };
 
   const toggleEnabled = async (triggerId: string, agentId: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
@@ -157,6 +174,7 @@ export function ProjectScheduledTriggersTable({
           <TableRow noHover>
             <TableHead>Name</TableHead>
             <TableHead>Agent</TableHead>
+            <TableHead>Run As</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Schedule</TableHead>
             <TableHead>Last Run</TableHead>
@@ -168,7 +186,7 @@ export function ProjectScheduledTriggersTable({
         <TableBody>
           {triggers.length === 0 ? (
             <TableRow noHover>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                 No scheduled triggers configured yet. Create a scheduled trigger to run your agents
                 on a schedule.
               </TableCell>
@@ -177,6 +195,7 @@ export function ProjectScheduledTriggersTable({
             triggers.map((trigger) => {
               const isLoading = loadingTriggers.has(trigger.id);
               const scheduleType = getScheduleType(trigger);
+              const canManage = canManageTrigger(trigger);
               return (
                 <TableRow key={trigger.id} noHover>
                   <TableCell>
@@ -196,6 +215,24 @@ export function ProjectScheduledTriggersTable({
                     >
                       {trigger.agentName}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    {trigger.runAsUserId ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                              {getUserDisplayName(trigger.runAsUserId)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono text-xs">{trigger.runAsUserId}</code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="code" className="gap-1 uppercase">
@@ -268,7 +305,7 @@ export function ProjectScheduledTriggersTable({
                           onCheckedChange={() =>
                             toggleEnabled(trigger.id, trigger.agentId, trigger.enabled)
                           }
-                          disabled={isLoading}
+                          disabled={isLoading || !canManage}
                         />
                         <Badge className="uppercase" variant={trigger.enabled ? 'primary' : 'code'}>
                           {trigger.enabled ? 'Enabled' : 'Disabled'}
@@ -284,12 +321,14 @@ export function ProjectScheduledTriggersTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => runTrigger(trigger.id, trigger.agentId, trigger.name)}
-                        >
-                          <Play className="w-4 h-4" />
-                          Run Now
-                        </DropdownMenuItem>
+                        {canManage && (
+                          <DropdownMenuItem
+                            onClick={() => runTrigger(trigger.id, trigger.agentId, trigger.name)}
+                          >
+                            <Play className="w-4 h-4" />
+                            Run Now
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/invocations`}
@@ -298,21 +337,55 @@ export function ProjectScheduledTriggersTable({
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
+                        {canManage && (
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/edit`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Edit
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/edit`}
+                            href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/new?${new URLSearchParams(
+                              {
+                                ...(trigger.cronExpression
+                                  ? {
+                                      scheduleType: 'cron',
+                                      cronExpression: trigger.cronExpression,
+                                      cronTimezone: trigger.cronTimezone || 'UTC',
+                                    }
+                                  : {
+                                      scheduleType: 'one-time',
+                                      ...(trigger.runAt ? { runAt: trigger.runAt } : {}),
+                                    }),
+                                ...(trigger.payload
+                                  ? { payloadJson: JSON.stringify(trigger.payload) }
+                                  : {}),
+                                ...(trigger.messageTemplate
+                                  ? { messageTemplate: trigger.messageTemplate }
+                                  : {}),
+                                maxRetries: String(trigger.maxRetries ?? 1),
+                                retryDelaySeconds: String(trigger.retryDelaySeconds ?? 60),
+                                timeoutSeconds: String(trigger.timeoutSeconds ?? 780),
+                              }
+                            ).toString()}`}
                           >
-                            <Pencil className="w-4 h-4" />
-                            Edit
+                            <Copy className="w-4 h-4" />
+                            Duplicate
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canManage && (
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

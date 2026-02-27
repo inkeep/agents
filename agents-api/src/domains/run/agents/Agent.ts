@@ -5,6 +5,7 @@ import {
   type ArtifactComponentApiInsert,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  configureComposioMCPServer,
   createMessage,
   type DataComponentApiInsert,
   type DataPart,
@@ -665,6 +666,20 @@ export class Agent {
           const resolvedArgs = artifactParser
             ? await artifactParser.resolveArgs(parsedArgsForResolution)
             : args;
+
+          if (artifactParser && toolDefinition.parameters?.safeParse) {
+            const resolvedChanged =
+              JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+            if (resolvedChanged) {
+              const validation = toolDefinition.parameters.safeParse(resolvedArgs);
+              if (!validation.success) {
+                throw new Error(
+                  `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+                );
+              }
+            }
+          }
+
           const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
@@ -690,6 +705,8 @@ export class Agent {
                   a2a_metadata: {
                     toolName,
                     toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: this.delegationId,
                     isDelegated: this.isDelegatedAgent,
@@ -1557,7 +1574,7 @@ export class Agent {
     }
   }
 
-  private collectProjectArtifactComponents(): any[] {
+  private collectProjectArtifactComponents(): ArtifactComponentApiInsert[] {
     const project = this.executionContext.project;
     try {
       const agentDefinition = project.agents[this.config.agentId];
@@ -1566,24 +1583,31 @@ export class Agent {
       }
 
       const seen = new Set<string>();
-      const all: any[] = [];
-      for (const ac of this.artifactComponents) {
-        if (ac.name && !seen.has(ac.name)) {
-          seen.add(ac.name);
-          all.push(ac);
-        }
-      }
-      for (const subAgent of Object.values(agentDefinition.subAgents)) {
-        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
-          for (const ac of subAgent.artifactComponents as any[]) {
-            if (ac.name && !seen.has(ac.name)) {
-              seen.add(ac.name);
-              all.push(ac);
-            }
+      const collected: ArtifactComponentApiInsert[] = [];
+
+      const addUnique = (components: ArtifactComponentApiInsert[]) => {
+        for (const ac of components) {
+          if (ac.name && !seen.has(ac.name)) {
+            seen.add(ac.name);
+            collected.push(ac);
           }
         }
+      };
+
+      addUnique(this.artifactComponents);
+
+      const projectArtifactComponents = project.artifactComponents || {};
+
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          const resolved = (subAgent.artifactComponents as string[])
+            .map((id) => projectArtifactComponents[id])
+            .filter(Boolean) as ArtifactComponentApiInsert[];
+          addUnique(resolved);
+        }
       }
-      return all;
+
+      return collected;
     } catch {
       return this.artifactComponents;
     }
@@ -2733,6 +2757,7 @@ ${output}`;
           options: historyConfig,
           filters,
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -2750,6 +2775,7 @@ ${output}`;
             isDelegated: this.isDelegatedAgent,
           },
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3290,6 +3316,25 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    const entries = Array.from(this.mcpClientCache.entries());
+    if (entries.length > 0) {
+      const results = await Promise.allSettled(entries.map(([, client]) => client.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          logger.warn(
+            { error: result.reason, clientKey: entries[i][0] },
+            'Failed to disconnect MCP client during cleanup'
+          );
+        }
+      }
+    }
+    this.mcpClientCache.clear();
+    this.mcpConnectionLocks.clear();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(

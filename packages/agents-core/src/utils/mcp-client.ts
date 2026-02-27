@@ -12,7 +12,7 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from 'ai';
-import { asyncExitHook, gracefulExit } from 'exit-hook';
+import { asyncExitHook } from 'exit-hook';
 import { match } from 'ts-pattern';
 import {
   MCP_TOOL_CONNECTION_TIMEOUT_MS,
@@ -22,6 +22,31 @@ import {
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
 } from '../constants/execution-limits-shared';
 import { MCPTransportType } from '../types/utility';
+
+export const activeMcpClients = new Set<McpClient>();
+
+let exitHookRegistered = false;
+
+function ensureExitHook() {
+  if (exitHookRegistered) return;
+  exitHookRegistered = true;
+  asyncExitHook(
+    async () => {
+      const clients = Array.from(activeMcpClients);
+      const results = await Promise.allSettled(clients.map((c) => c.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          console.error(
+            `[MCP] Failed to disconnect client "${clients[i]?.name}" during exit:`,
+            result.reason
+          );
+        }
+      }
+    },
+    { wait: 5000 }
+  );
+}
 
 interface SharedServerConfig {
   timeout?: number;
@@ -103,8 +128,8 @@ export class McpClient {
       }
     };
 
-    asyncExitHook(() => this.disconnect(), { wait: 5000 });
-    process.on('SIGTERM', () => gracefulExit());
+    ensureExitHook();
+    activeMcpClients.add(this);
   }
 
   private async connectSSE(config: McpSSEConfig) {
@@ -176,13 +201,14 @@ export class McpClient {
   }
 
   async disconnect() {
+    activeMcpClients.delete(this);
     if (!this.transport) {
       return;
     }
     try {
       await this.transport.close();
     } catch (e) {
-      console.error(e);
+      console.error(`[MCP] Error disconnecting client "${this.name}":`, e);
       throw e;
     } finally {
       this.transport = undefined;

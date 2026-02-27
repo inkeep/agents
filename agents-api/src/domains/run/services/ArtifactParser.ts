@@ -1,5 +1,6 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
+import { SENTINEL_KEY } from '../constants/artifact-syntax';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
@@ -14,6 +15,16 @@ import {
 } from './ArtifactService';
 
 const logger = getLogger('ArtifactParser');
+
+export class ToolChainResolutionError extends Error {
+  constructor(
+    public readonly toolCallId: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'ToolChainResolutionError';
+  }
+}
 
 export interface StreamPart {
   kind: 'text' | 'data';
@@ -76,9 +87,9 @@ export class ArtifactParser {
 
   private artifactService: ArtifactService;
   private contextWindowSize?: number;
-  private typeSchemaMap: Record<
+  private artifactSchemasByType: Record<
     string,
-    { previewShape: Record<string, unknown>; fullShape: Record<string, unknown> }
+    { preview: Record<string, unknown>; full: Record<string, unknown> }
   > = {};
 
   constructor(
@@ -110,11 +121,9 @@ export class ArtifactParser {
         if (ac.name && (ac.props as any)?.properties) {
           const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
           const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
-          this.typeSchemaMap[ac.name] = {
-            previewShape: previewSchema.properties
-              ? buildSchemaShape(previewSchema.properties)
-              : {},
-            fullShape: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
+          this.artifactSchemasByType[ac.name] = {
+            preview: previewSchema.properties ? buildSchemaShape(previewSchema.properties) : {},
+            full: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
           };
         }
       }
@@ -129,7 +138,7 @@ export class ArtifactParser {
   }
 
   private buildArtifactDataPart(artifactData: ArtifactSummaryData): StreamPart {
-    const schemas = this.typeSchemaMap[artifactData.type ?? ''];
+    const schemas = this.artifactSchemasByType[artifactData.type ?? ''];
     return {
       kind: 'data',
       data: {
@@ -220,33 +229,40 @@ export class ArtifactParser {
    */
   async resolveArgs(args: any): Promise<any> {
     if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
-      if (typeof args.$artifact === 'string' && typeof args.$tool === 'string') {
-        const fullData = await this.artifactService.getArtifactFull(args.$artifact, args.$tool);
+      if (
+        typeof args[SENTINEL_KEY.ARTIFACT] === 'string' &&
+        typeof args[SENTINEL_KEY.TOOL] === 'string'
+      ) {
+        const fullData = await this.artifactService.getArtifactFull(
+          args[SENTINEL_KEY.ARTIFACT],
+          args[SENTINEL_KEY.TOOL]
+        );
         if (fullData?.data) {
           logger.debug(
-            { artifactId: args.$artifact, toolCallId: args.$tool },
+            { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved artifact ref in tool arg'
           );
           return fullData.data;
         }
-        logger.warn(
-          { artifactId: args.$artifact, toolCallId: args.$tool },
-          'Artifact ref in tool arg could not be resolved'
+        throw new ToolChainResolutionError(
+          args[SENTINEL_KEY.TOOL],
+          `Artifact '${args[SENTINEL_KEY.ARTIFACT]}' from tool call '${args[SENTINEL_KEY.TOOL]}' could not be resolved`
         );
-        return args;
       }
 
-      if (typeof args.$tool === 'string' && args.$artifact === undefined) {
-        const raw = this.artifactService.getToolResultRaw(args.$tool);
+      if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
+        const raw = this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
         if (raw !== undefined) {
           logger.debug(
-            { toolCallId: args.$tool },
+            { toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved ephemeral tool result ref in tool arg'
           );
           return raw;
         }
-        logger.warn({ toolCallId: args.$tool }, 'Ephemeral tool result ref could not be resolved');
-        return args;
+        throw new ToolChainResolutionError(
+          args[SENTINEL_KEY.TOOL],
+          `Tool result for call '${args[SENTINEL_KEY.TOOL]}' not found or failed`
+        );
       }
 
       const result: Record<string, any> = {};

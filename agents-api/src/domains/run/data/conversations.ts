@@ -10,6 +10,7 @@ import {
   getLedgerArtifacts,
   type ResolvedRef,
 } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
@@ -17,7 +18,6 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
 import { ConversationCompressor } from '../services/ConversationCompressor';
-import { getCompressionConfigForModel } from '../utils/model-context-utils';
 
 const logger = getLogger('conversations');
 
@@ -159,7 +159,8 @@ export async function getScopedHistory({
     const compressionSummaries = allMessages.filter(
       (msg) =>
         msg.messageType === 'compression_summary' &&
-        msg.metadata?.compressionType === 'conversation_history'
+        (msg.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
+          msg.metadata?.compressionType === 'conversation_history')
     );
 
     const latestCompressionSummary =
@@ -169,16 +170,18 @@ export async function getScopedHistory({
           )
         : null;
 
+    const limit = options?.limit;
+
     let messages: any[];
     if (latestCompressionSummary) {
       // Get the summary + all messages after it
       const summaryDate = new Date(latestCompressionSummary.createdAt);
+      const messagesAfter = allMessages.filter(
+        (msg) => new Date(msg.createdAt) > summaryDate && msg.messageType !== 'compression_summary'
+      );
       messages = [
         latestCompressionSummary,
-        ...allMessages.filter(
-          (msg) =>
-            new Date(msg.createdAt) > summaryDate && msg.messageType !== 'compression_summary'
-        ),
+        ...(limit ? messagesAfter.slice(-limit) : messagesAfter),
       ];
 
       logger.debug(
@@ -192,8 +195,7 @@ export async function getScopedHistory({
         'Retrieved conversation with compression summary'
       );
     } else {
-      // No compression summary, use all messages
-      messages = allMessages;
+      messages = limit ? allMessages.slice(-limit) : allMessages;
 
       logger.debug(
         {
@@ -267,7 +269,7 @@ export async function getScopedHistory({
 
     return relevantMessages;
   } catch (error) {
-    console.error('Failed to fetch scoped messages:', error);
+    logger.error({ error }, 'Failed to fetch scoped messages');
     return [];
   }
 }
@@ -410,6 +412,7 @@ export async function getConversationHistoryWithCompression({
   options,
   filters,
   summarizerModel,
+  baseModel,
   streamRequestId,
   fullContextSize,
 }: {
@@ -420,6 +423,7 @@ export async function getConversationHistoryWithCompression({
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
   summarizerModel?: any;
+  baseModel?: any;
   streamRequestId?: string;
   fullContextSize?: number;
 }): Promise<string> {
@@ -430,8 +434,9 @@ export async function getConversationHistoryWithCompression({
   // Also disable maxOutputTokens limit to let compression system handle context management
   const compressionOptions = {
     ...historyOptions,
-    includeInternal: true, // Override to ensure tool results are always included for compression
-    maxOutputTokens: undefined, // Disable token limit - let compression system manage context intelligently
+    includeInternal: true,
+    maxOutputTokens: undefined,
+    limit: undefined,
   };
 
   // Get scoped history (same as legacy method)
@@ -456,129 +461,105 @@ export async function getConversationHistoryWithCompression({
     return '';
   }
 
-  // Log model context info and apply compression if needed
+  // Replace tool-result content with compact artifact references BEFORE compression.
+  // This ensures the compressor sees the actual trimmed size rather than the raw
+  // oversized tool output that was already persisted as a ledger artifact.
+  const toolCallIds = messagesToFormat
+    .filter((msg) => msg.messageType === 'tool-result')
+    .map((msg) => msg.metadata?.a2a_metadata?.toolCallId)
+    .filter((id): id is string => !!id);
+
+  if (toolCallIds.length > 0) {
+    try {
+      const artifacts = await getLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        toolCallIds,
+      });
+      const artifactsByToolCallId = new Map(
+        artifacts.filter((a) => a.toolCallId).map((a) => [a.toolCallId as string, a])
+      );
+      if (artifactsByToolCallId.size > 0) {
+        messagesToFormat = messagesToFormat.map((msg) => {
+          if (msg.messageType !== 'tool-result') return msg;
+          const tcId = msg.metadata?.a2a_metadata?.toolCallId;
+          const artifact = tcId ? artifactsByToolCallId.get(tcId) : undefined;
+          if (!artifact) return msg;
+          const toolArgs = msg.metadata?.a2a_metadata?.toolArgs;
+          const rawArgs = toolArgs ? JSON.stringify(toolArgs) : undefined;
+          const argsStr =
+            rawArgs && rawArgs.length > 300 ? `${rawArgs.slice(0, 300)}...[truncated]` : rawArgs;
+          const dataPart = artifact.parts?.find(
+            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
+              p.kind === 'data'
+          );
+          const summaryValue = dataPart?.data?.summary;
+          const rawSummary = summaryValue ? JSON.stringify(summaryValue) : undefined;
+          const summaryDataStr =
+            rawSummary && rawSummary.length > 1000
+              ? `${rawSummary.slice(0, 1000)}...[truncated]`
+              : rawSummary;
+          const refParts = [
+            `Artifact: "${artifact.name ?? artifact.artifactId}" (id: ${artifact.artifactId})`,
+          ];
+          if (argsStr) refParts.push(`args: ${argsStr}`);
+          if (artifact.description) refParts.push(`description: ${artifact.description}`);
+          if (summaryDataStr) refParts.push(`summary: ${summaryDataStr}`);
+          return {
+            ...msg,
+            content: { text: `[${refParts.join(' | ')}]` },
+          };
+        });
+      }
+    } catch (err) {
+      trace.getActiveSpan()?.setAttribute('artifact_lookup.failed', true);
+      logger.warn(
+        { err, conversationId, unsubstitutedCount: toolCallIds.length },
+        'Failed to fetch artifacts for conversation history — tool results will not be substituted, compression may trigger unnecessarily'
+      );
+    }
+  }
+
   if (summarizerModel) {
-    const compressionInfo = getCompressionConfigForModel(summarizerModel, 0.5); // 50% for conversation
-    const estimatedTokens = messagesToFormat.reduce((total, msg) => {
-      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-      return total + Math.ceil(text.length / 4); // 4 chars = 1 token estimate
-    }, 0);
-
-    const remaining = compressionInfo.hardLimit - estimatedTokens;
-    const compressionNeeded = remaining <= compressionInfo.safetyBuffer;
-    const contextWindowUtilization = compressionInfo.modelContextInfo.contextWindow
-      ? ((estimatedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)
-      : 'unknown';
-
-    logger.info(
-      {
-        conversationId,
-        model: summarizerModel.model,
-        modelContextWindow: compressionInfo.modelContextInfo.contextWindow,
-        currentTokens: estimatedTokens,
-        hardLimit: compressionInfo.hardLimit,
-        safetyBuffer: compressionInfo.safetyBuffer,
-        remaining,
-        compressionNeeded,
-        contextWindowUtilization: `${contextWindowUtilization}%`,
-        messageCount: messagesToFormat.length,
-        source: compressionInfo.source,
-      },
-      'Conversation history fetch - model context analysis'
-    );
-
-    // Check if we need to re-compress based on messages since last compression
-    const compressionSummary = messagesToFormat.find(
-      (msg) =>
-        msg.messageType === 'compression_summary' &&
-        msg.metadata?.compressionType === 'conversation_history'
-    );
+    const firstMsg = messagesToFormat[0];
+    const compressionSummary =
+      firstMsg?.messageType === 'compression_summary' &&
+      (firstMsg?.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
+        firstMsg?.metadata?.compressionType === 'conversation_history')
+        ? firstMsg
+        : null;
 
     if (compressionSummary) {
-      const messagesAfterCompression = messagesToFormat.filter(
-        (msg) =>
-          new Date(msg.createdAt) > new Date(compressionSummary.createdAt) &&
-          msg.messageType !== 'compression_summary'
-      );
+      const priorSummary = compressionSummary.metadata?.a2a_metadata?.summaryData ?? null;
+      const messagesAfterCompression = messagesToFormat.slice(1);
 
-      // Only re-compress if we have significant new messages AND they exceed context limits
-      if (messagesAfterCompression.length >= 10) {
-        // At least 10 new messages
-        logger.info(
-          {
-            conversationId,
-            messagesAfterLastCompression: messagesAfterCompression.length,
-            lastCompressionDate: compressionSummary.createdAt,
-          },
-          'Checking if re-compression needed for new messages'
-        );
+      const recompressResult = await compressConversationIfNeeded(messagesAfterCompression, {
+        conversationId,
+        tenantId,
+        projectId,
+        summarizerModel,
+        baseModel,
+        streamRequestId,
+        fullContextSize,
+        priorSummary,
+      });
 
-        const newMessagesCompressed = await compressConversationIfNeeded(messagesAfterCompression, {
-          conversationId,
-          tenantId,
-          projectId,
-          summarizerModel,
-          streamRequestId,
-          fullContextSize,
-        });
-
-        // If new messages were compressed, combine with existing summary
-        if (
-          newMessagesCompressed.length === 1 &&
-          newMessagesCompressed[0].messageType === 'compression_summary'
-        ) {
-          messagesToFormat = [compressionSummary, ...newMessagesCompressed];
-          logger.info(
-            {
-              conversationId,
-              totalCompressedMessages: messagesToFormat.length,
-            },
-            'Re-compression completed - combined with existing summary'
-          );
-        } else {
-          // No re-compression needed, keep messages as-is
-          messagesToFormat = [compressionSummary, ...messagesAfterCompression];
-        }
-      }
+      const wasRecompressed = recompressResult[0]?.messageType === 'compression_summary';
+      messagesToFormat = wasRecompressed
+        ? recompressResult
+        : [compressionSummary, ...messagesAfterCompression];
     } else {
-      // No existing compression, check if we need to compress for the first time
       messagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
         conversationId,
         tenantId,
         projectId,
         summarizerModel,
+        baseModel,
         streamRequestId,
         fullContextSize,
       });
     }
-
-    // Log final message composition
-    const compressedTokens = messagesToFormat.reduce((total, msg) => {
-      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-      return total + Math.ceil(text.length / 4);
-    }, 0);
-
-    const compressionSummaryMessages = messagesToFormat.filter(
-      (msg) => msg.messageType === 'compression_summary'
-    );
-
-    if (compressionSummaryMessages.length > 0) {
-      logger.info(
-        {
-          conversationId,
-          finalMessages: messagesToFormat.length,
-          compressionSummaries: compressionSummaryMessages.length,
-          finalTokens: compressedTokens,
-          contextWindowUtilization: compressionInfo.modelContextInfo.contextWindow
-            ? `${((compressedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)}%`
-            : 'unknown',
-        },
-        'Final conversation history with compression summaries'
-      );
-    }
   }
 
-  // Format messages into conversation history string
   return formatMessagesAsConversationHistory(messagesToFormat);
 }
 
@@ -592,8 +573,10 @@ export async function compressConversationIfNeeded(
     tenantId: string;
     projectId: string;
     summarizerModel: any;
+    baseModel?: any;
     streamRequestId?: string;
     fullContextSize?: number;
+    priorSummary?: any;
   }
 ): Promise<any[]> {
   const { conversationId, tenantId, projectId } = params;
@@ -629,11 +612,21 @@ async function performActualCompression(
     tenantId: string;
     projectId: string;
     summarizerModel: any;
+    baseModel?: any;
     streamRequestId?: string;
     fullContextSize?: number;
+    priorSummary?: any;
   }
 ): Promise<any[]> {
-  const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
+  const {
+    conversationId,
+    tenantId,
+    projectId,
+    summarizerModel,
+    baseModel,
+    priorSummary,
+    streamRequestId,
+  } = params;
 
   // Use streamRequestId when available (for agent transfers), otherwise conversationId
   const sessionIdForCompression = streamRequestId || conversationId;
@@ -642,8 +635,7 @@ async function performActualCompression(
     conversationId,
     tenantId,
     projectId,
-    undefined, // Use default conversation compression config
-    summarizerModel
+    { summarizerModel, baseModel, priorSummary }
   );
 
   // Check if compression is needed based on model context limits
@@ -889,7 +881,8 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 }
 
 /**
- * Format messages into conversation history string (extracted from legacy method)
+ * Reconstruct message text from multi-part content, converting artifact data parts to `<artifact:ref>` tags.
+ * Falls back to `content.text` for simple messages.
  */
 export function reconstructMessageText(msg: any): string {
   const parts = msg.content?.parts;

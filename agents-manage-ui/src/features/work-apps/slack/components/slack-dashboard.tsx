@@ -105,14 +105,9 @@ export function SlackDashboard() {
         {hasWorkspace && (
           <>
             {isLoadingRole ? (
-              <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <Skeleton className="h-[400px] w-full rounded-lg" />
-                </div>
-                <div className="space-y-6">
-                  <Skeleton className="h-[200px] w-full rounded-lg" />
-                  <Skeleton className="h-[150px] w-full rounded-lg" />
-                </div>
+              <div className="grid gap-6">
+                <Skeleton className="h-52 w-full rounded-lg" />
+                <Skeleton className="h-64 w-full rounded-lg" />
               </div>
             ) : isAdmin ? (
               /* Admin Dashboard View */

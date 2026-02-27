@@ -572,6 +572,30 @@ describe('ArtifactService', () => {
       });
       expect(artifactService.getToolResultRaw('call-db')).toEqual(rawResult);
     });
+
+    it('returns undefined for failed MCP tool results', () => {
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-failed',
+        toolName: 'mcp_tool',
+        result: { error: 'Connection refused', failed: true },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-failed')).toBeUndefined();
+    });
+
+    it('returns the result when failed is false', () => {
+      const successResult = { data: 'ok' };
+      toolSessionManagerMock.getToolResult.mockReturnValue({
+        toolCallId: 'call-ok',
+        toolName: 'mcp_tool',
+        result: { ...successResult, failed: false },
+        timestamp: Date.now(),
+      });
+      expect(artifactService.getToolResultRaw('call-ok')).toEqual({
+        ...successResult,
+        failed: false,
+      });
+    });
   });
 
   describe('JMESPath sanitization', () => {
@@ -713,6 +737,238 @@ describe('ArtifactService', () => {
         title: 'Test Title',
         summary: 'Test Summary',
       });
+    });
+  });
+
+  describe('cache key regression (data → full)', () => {
+    it('should store full data under parts[0].data.full in the cache', async () => {
+      const mockToolResult = {
+        toolCallId: 'test-tool-call',
+        toolName: 'test-tool',
+        timestamp: Date.now(),
+        result: {
+          data: [
+            {
+              title: 'Title',
+              summary: 'Summary',
+              content: 'Full Content',
+              details: { nested: 'info' },
+            },
+          ],
+        },
+      };
+
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
+      agentSessionManagerMock.setArtifactCache.mockResolvedValue(undefined);
+
+      const request: ArtifactCreateRequest = {
+        artifactId: 'cache-key-test',
+        toolCallId: 'test-tool-call',
+        type: 'TestComponent',
+        baseSelector: 'result.data[0]',
+        detailsSelector: {
+          title: 'title',
+          summary: 'summary',
+          content: 'content',
+          details: 'details',
+        },
+      };
+
+      await artifactService.createArtifact(request);
+
+      expect(agentSessionManagerMock.setArtifactCache).toHaveBeenCalledWith(
+        'test-stream-request',
+        'cache-key-test:test-tool-call',
+        expect.objectContaining({
+          parts: [
+            {
+              data: {
+                summary: expect.any(Object),
+                full: expect.objectContaining({
+                  title: 'Title',
+                  content: 'Full Content',
+                }),
+              },
+            },
+          ],
+        })
+      );
+
+      // Verify the cache does NOT have parts[0].data.data (the old bug)
+      const cacheCall = agentSessionManagerMock.setArtifactCache.mock.calls[0][2];
+      expect(cacheCall.parts[0].data).not.toHaveProperty('data');
+      expect(cacheCall.parts[0].data).toHaveProperty('full');
+      expect(cacheCall.parts[0].data).toHaveProperty('summary');
+    });
+
+    it('should return full data (not summary) from getArtifactFull via in-memory cache', async () => {
+      const mockToolResult = {
+        toolCallId: 'test-tool-call',
+        toolName: 'test-tool',
+        timestamp: Date.now(),
+        result: {
+          data: [
+            {
+              title: 'Title',
+              summary: 'Summary',
+              content: 'Full Content',
+              details: { nested: 'info' },
+            },
+          ],
+        },
+      };
+
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
+      agentSessionManagerMock.setArtifactCache.mockResolvedValue(undefined);
+      // Cache miss on session cache so it falls through to createdArtifacts
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+
+      const request: ArtifactCreateRequest = {
+        artifactId: 'roundtrip-test',
+        toolCallId: 'test-tool-call',
+        type: 'TestComponent',
+        baseSelector: 'result.data[0]',
+        detailsSelector: {
+          title: 'title',
+          summary: 'summary',
+          content: 'content',
+          details: 'details',
+        },
+      };
+
+      await artifactService.createArtifact(request);
+
+      const fullResult = await artifactService.getArtifactFull('roundtrip-test', 'test-tool-call');
+
+      expect(fullResult).not.toBeNull();
+      expect(fullResult?.artifactId).toBe('roundtrip-test');
+      // Should contain full fields (content, details), not just summary fields
+      expect(fullResult?.data).toHaveProperty('content', 'Full Content');
+      expect(fullResult?.data).toHaveProperty('details');
+      expect(fullResult?.data).toHaveProperty('title', 'Title');
+    });
+  });
+
+  describe('getArtifactFull fallback chain', () => {
+    it('should return full data from session cache (cache hit)', async () => {
+      const cachedArtifact = {
+        name: 'Cached',
+        description: 'Cached desc',
+        parts: [
+          {
+            data: {
+              full: { title: 'Cached Title', content: 'Cached Content' },
+              summary: { title: 'Cached Title' },
+            },
+          },
+        ],
+        metadata: { artifactType: 'TestComponent', toolCallId: 'tc-1' },
+      };
+
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(cachedArtifact);
+
+      const result = await artifactService.getArtifactFull('art-1', 'tc-1');
+
+      expect(result).not.toBeNull();
+      expect(result?.data).toEqual({ title: 'Cached Title', content: 'Cached Content' });
+      expect(result?.name).toBe('Cached');
+      expect(agentSessionManagerMock.getArtifactCache).toHaveBeenCalledWith(
+        'test-stream-request',
+        'art-1:tc-1'
+      );
+      // Should not reach DB
+      expect(getLedgerArtifactsMock).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to database when cache misses', async () => {
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+
+      const dbArtifact = {
+        artifactId: 'art-db',
+        name: 'DB Artifact',
+        description: 'From DB',
+        parts: [{ kind: 'data' as const, data: { full: { title: 'DB Title', body: 'DB Body' } } }],
+        metadata: { artifactType: 'TestComponent', toolCallId: 'tc-db' },
+        createdAt: '2024-01-16T00:30:00.000Z',
+      };
+
+      getLedgerArtifactsMock.mockReturnValue(() => Promise.resolve([dbArtifact]));
+
+      const result = await artifactService.getArtifactFull('art-db', 'tc-db');
+
+      expect(result).not.toBeNull();
+      expect(result?.data).toEqual({ title: 'DB Title', body: 'DB Body' });
+      expect(result?.name).toBe('DB Artifact');
+    });
+
+    it('should fall back to database lookup by taskId when toolCallId query returns empty', async () => {
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+
+      const dbArtifact = {
+        artifactId: 'art-task',
+        name: 'TaskId Artifact',
+        description: 'Found by taskId',
+        parts: [
+          {
+            kind: 'data' as const,
+            data: { full: { title: 'Task Title', info: 'Task Info' } },
+          },
+        ],
+        metadata: { artifactType: 'TestComponent', toolCallId: 'tc-task' },
+        createdAt: '2024-01-16T01:00:00.000Z',
+      };
+
+      // First call (by toolCallId) returns empty, second (by taskId) returns artifact
+      getLedgerArtifactsMock
+        .mockReturnValueOnce(() => Promise.resolve([]))
+        .mockReturnValueOnce(() => Promise.resolve([dbArtifact]));
+
+      const result = await artifactService.getArtifactFull('art-task', 'tc-task');
+
+      expect(result).not.toBeNull();
+      expect(result?.data).toEqual({ title: 'Task Title', info: 'Task Info' });
+      expect(result?.name).toBe('TaskId Artifact');
+      expect(getLedgerArtifactsMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('should use artifactMap when cache and in-memory miss', async () => {
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+
+      const mapArtifact = {
+        name: 'Map Artifact',
+        description: 'From map',
+        parts: [
+          {
+            data: {
+              full: { title: 'Map Title', content: 'Map Content' },
+              summary: { title: 'Map Title' },
+            },
+          },
+        ],
+        metadata: { artifactType: 'TestComponent', toolCallId: 'tc-map' },
+      };
+
+      const artifactMap = new Map();
+      artifactMap.set('art-map:tc-map', mapArtifact);
+
+      const result = await artifactService.getArtifactFull('art-map', 'tc-map', artifactMap);
+
+      expect(result).not.toBeNull();
+      expect(result?.data).toEqual({ title: 'Map Title', content: 'Map Content' });
+      expect(result?.name).toBe('Map Artifact');
+      // Should not reach DB since map had the artifact
+      expect(getLedgerArtifactsMock).not.toHaveBeenCalled();
+    });
+
+    it('should return null when artifact is not found in any source', async () => {
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+      getLedgerArtifactsMock.mockReturnValue(() => Promise.resolve([]));
+
+      const result = await artifactService.getArtifactFull('missing', 'missing-tc');
+
+      expect(result).toBeNull();
     });
   });
 });

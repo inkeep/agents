@@ -1,5 +1,85 @@
 # @inkeep/agents-api
 
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+- 03629e8: Fix premature conversation compression when tool results are persisted as artifacts
+- d62c5b0: Add support for passing artifacts as tool arguments
+- Updated dependencies [e915ef8]
+- Updated dependencies [23b6b48]
+  - @inkeep/agents-core@0.53.13
+  - @inkeep/agents-work-apps@0.53.13
+  - @inkeep/agents-mcp@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 6762a28: Fix Agent Card 400 error caused by system identifiers in x-inkeep-run-as-user-id header (PRD-6187)
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-mcp@0.53.12
+  - @inkeep/agents-work-apps@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- e094c16: Improve Agent Card fetch error diagnostics by logging response body on failure
+- 5061d64: Add blob storage abstraction (S3 and Vercel Blob providers)
+  - @inkeep/agents-core@0.53.11
+  - @inkeep/agents-mcp@0.53.11
+  - @inkeep/agents-work-apps@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [7299f4a]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-work-apps@0.53.10
+  - @inkeep/agents-mcp@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [8a0c90c]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+  - @inkeep/agents-work-apps@0.53.9
+  - @inkeep/agents-mcp@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 50b63a3: Add Slack source indicator with entry point tracking to conversation traces and stats. Distinguishes between app mention, DM, slash command, message shortcut, modal submission, and smart link resume entry points. Fix resume-intent to use getInProcessFetch for multi-instance safety.
+- Updated dependencies [50b63a3]
+- Updated dependencies [4761e1f]
+  - @inkeep/agents-work-apps@0.53.8
+  - @inkeep/agents-core@0.53.8
+  - @inkeep/agents-mcp@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+  - @inkeep/agents-work-apps@0.53.7
+  - @inkeep/agents-mcp@0.53.7
+
 ## 0.53.6
 
 ### Patch Changes
