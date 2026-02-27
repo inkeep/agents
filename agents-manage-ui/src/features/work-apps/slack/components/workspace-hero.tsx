@@ -397,7 +397,7 @@ export function WorkspaceHero() {
             </Select>
             {channels.length === 0 && (
               <p className="text-xs text-muted-foreground mt-2">
-                No channels found. Make sure the bot is invited to at least one channel.
+                No channels found. Add the bot to channels in Slack to enable test messaging.
               </p>
             )}
           </div>

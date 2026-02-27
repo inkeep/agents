@@ -1,5 +1,99 @@
 # @inkeep/agents-work-apps
 
+## 0.53.12
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- 7299f4a: UI tweaks for slack app
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 8a0c90c: Increasing slack streaming timeout to 30 minutes
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 50b63a3: Add Slack source indicator with entry point tracking to conversation traces and stats. Distinguishes between app mention, DM, slash command, message shortcut, modal submission, and smart link resume entry points. Fix resume-intent to use getInProcessFetch for multi-instance safety.
+- 4761e1f: Add indexed citation formatting and inline citation injection in Slack
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- 7abd1bd: Dont stream tool errors that were successfully retried
+  - @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 16d775c: Use users.conversations API for channel listing to return only bot-member channels, reducing API calls for large workspaces
+- be72c29: Add move-file tool to GitHub MCP
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 8063da9: Add attachment content to slack messages
+- bd3aab5: Add randomness to generated branch names to prevent collisions
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- c4d8a7b: Add project name and link to /inkeep status command response.
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
 ## 0.53.0
 
 ### Minor Changes

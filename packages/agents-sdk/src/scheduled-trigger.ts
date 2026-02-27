@@ -1,23 +1,23 @@
-import type { ScheduledTriggerInsert } from '@inkeep/agents-core';
+import type { ScheduledTriggerApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 const logger = getLogger('scheduled-trigger');
 
 // Type for the config that users provide
-export type ScheduledTriggerConfig = Omit<ScheduledTriggerInsert, 'id'> & {
+export type ScheduledTriggerConfig = Omit<ScheduledTriggerApiInsert, 'id'> & {
   id?: string;
 };
 
 export interface ScheduledTriggerInterface {
   getId(): string;
   getName(): string;
-  getConfig(): Omit<ScheduledTriggerInsert, 'id'> & { id: string };
+  getConfig(): Omit<ScheduledTriggerApiInsert, 'id'> & { id: string };
   with(config: Partial<ScheduledTriggerConfig>): ScheduledTrigger;
 }
 
 export class ScheduledTrigger implements ScheduledTriggerInterface {
-  private config: ScheduledTriggerInsert & { id: string };
+  private config: ScheduledTriggerApiInsert & { id: string };
   private id: string;
 
   constructor(config: ScheduledTriggerConfig) {
@@ -47,7 +47,7 @@ export class ScheduledTrigger implements ScheduledTriggerInterface {
     return this.config.name;
   }
 
-  getConfig(): Omit<ScheduledTriggerInsert, 'id'> & { id: string } {
+  getConfig(): Omit<ScheduledTriggerApiInsert, 'id'> & { id: string } {
     return this.config;
   }
 

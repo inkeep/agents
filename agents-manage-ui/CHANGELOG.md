@@ -1,5 +1,103 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.12
+
+### Patch Changes
+
+- 0038a02: Update signout methods and remove logout route
+  - @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+- ff9e307: Fix broken logout on app.inkeep.com by using full page navigation for route handler and clearing cookies on all candidate domains
+- 901058e: extract aria-invalid classes into reused `inkeep-aria-invalid`, fixes form error state propagation for `Select` and `ComboBox` components
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale session cookie blocking dev auto-login after setup re-run
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 7e60710: Update @inkeep/agents-ui package to version 0.15.13
+- a879934: Fix Collapse All / Expand All on traces page to collapse and expand all tree hierarchy nodes in addition to AI message content
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- df4b020: fix breadcrumb `Error` on trigger invocations page
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- 090bedc: Fix dev auto-login proxy to check ENVIRONMENT instead of NODE_ENV, enabling auto-login when running via inkeep dev standalone build
+  - @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- e06a945: fix generic combobox text color and chevron color, fix select hover color on light mode
+- 2222e08: Show MCP tool overrides in agent editor sidepane — display name, description, and schema overrides are now reflected in the tool configuration table
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
 ## 0.53.0
 
 ### Patch Changes

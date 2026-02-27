@@ -1,5 +1,57 @@
 # @inkeep/agents-core
 
+## 0.53.12
+
+## 0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale process.env after generateSecrets() and add password reconciliation in init.ts
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+
+## 0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- aa37d3f: Bump Slack user token and A2A service token TTL from 5 minutes to 1 hour to prevent 401 failures during long-running agent delegations
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+
+## 0.53.6
+
+## 0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+
+## 0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+
 ## 0.53.0
 
 ### Patch Changes

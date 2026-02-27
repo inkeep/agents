@@ -528,17 +528,20 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Environment file generation', () => {
-    it('should contain INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET from .env.example', async () => {
+    it('should generate a unique INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
         anthropicKey: 'test-anthropic-key',
       });
 
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        '.env',
-        expect.stringContaining('INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=test-bypass-secret-for-ci')
-      );
+      const envWriteCall = vi.mocked(fs.writeFile).mock.calls.find((call) => call[0] === '.env');
+      expect(envWriteCall).toBeDefined();
+      const envContent = envWriteCall?.[1] as string;
+      const match = envContent.match(/INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=(.+)/);
+      expect(match).not.toBeNull();
+      expect(match?.[1]).not.toBe('test-bypass-secret-for-ci');
+      expect(match?.[1]).toHaveLength(64);
     });
 
     it('should inject CLI-prompted API keys into the .env', async () => {
@@ -694,6 +697,11 @@ describe('syncTemplateDependencies', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('no network in tests')));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should update @inkeep/* dependencies to match CLI version', async () => {
@@ -827,13 +835,52 @@ describe('syncTemplateDependencies', () => {
     );
   });
 
-  it('should not update excluded packages like @inkeep/agents-ui', async () => {
+  it('should resolve @inkeep/agents-ui version from npm registry', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: '0.16.0' }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
     const mockPkg = {
       name: 'test-project',
       dependencies: {
         '@inkeep/agents-core': '^0.50.3',
-        '@inkeep/agents-ui': '^0.50.3',
+        '@inkeep/agents-ui': '^0.15.12',
         '@inkeep/agents-sdk': '^0.50.3',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://registry.npmjs.org/@inkeep/agents-ui/latest',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-ui': '^0.16.0',
+          '@inkeep/agents-sdk': '^1.2.3',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should leave divergent package specifier unchanged when registry fetch fails', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('network error'));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-core': '^0.50.3',
+        '@inkeep/agents-ui': '^0.15.12',
       },
     };
     setupFlatTemplate(mockPkg);
@@ -845,7 +892,116 @@ describe('syncTemplateDependencies', () => {
       expect.objectContaining({
         dependencies: {
           '@inkeep/agents-core': '^1.2.3',
-          '@inkeep/agents-ui': '^0.50.3',
+          '@inkeep/agents-ui': '^0.15.12',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should leave divergent package specifier unchanged when registry returns non-ok', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: {
+        '@inkeep/agents-ui': '^0.15.12',
+      },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-ui': '^0.15.12',
+        },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should resolve divergent package version in devDependencies from npm registry', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: '0.16.0' }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const mockPkg = {
+      name: 'test-project',
+      dependencies: { '@inkeep/agents-core': '^0.50.3' },
+      devDependencies: { '@inkeep/agents-ui': '^0.15.12' },
+    };
+    setupFlatTemplate(mockPkg);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: { '@inkeep/agents-core': '^1.2.3' },
+        devDependencies: { '@inkeep/agents-ui': '^0.16.0' },
+      }),
+      { spaces: 2 }
+    );
+  });
+
+  it('should only fetch once when same divergent package appears in multiple files', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: '0.16.0' }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const nodeFs = await import('node:fs');
+    vi.mocked(nodeFs.readFileSync).mockReturnValue(JSON.stringify({ version: '1.2.3' }));
+
+    const rootPkg = {
+      name: 'monorepo',
+      dependencies: { '@inkeep/agents-core': '^0.50.3', '@inkeep/agents-ui': '^0.15.12' },
+    };
+    const nestedPkg = {
+      name: 'nested-app',
+      dependencies: { '@inkeep/agents-ui': '^0.15.12', '@inkeep/agents-sdk': '^0.50.3' },
+    };
+
+    vi.mocked(fs.pathExists).mockImplementation(async (p) => {
+      const s = String(p);
+      return s === '/test/path/package.json' || s === '/test/path/apps/api/package.json';
+    });
+    vi.mocked(fs.readdir as any)
+      .mockResolvedValueOnce([mockDirent('apps', true)])
+      .mockResolvedValueOnce([mockDirent('api', true)])
+      .mockResolvedValueOnce([]);
+    vi.mocked(fs.readJson).mockResolvedValueOnce(rootPkg).mockResolvedValueOnce(nestedPkg);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+
+    await syncTemplateDependencies('/test/path');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(fs.writeJson).toHaveBeenCalledTimes(2);
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-core': '^1.2.3',
+          '@inkeep/agents-ui': '^0.16.0',
+        },
+      }),
+      { spaces: 2 }
+    );
+    expect(fs.writeJson).toHaveBeenCalledWith(
+      '/test/path/apps/api/package.json',
+      expect.objectContaining({
+        dependencies: {
+          '@inkeep/agents-ui': '^0.16.0',
           '@inkeep/agents-sdk': '^1.2.3',
         },
       }),
@@ -883,20 +1039,20 @@ describe('syncTemplateDependencies', () => {
       dependencies: { '@inkeep/agents-sdk': '^0.50.3', express: '^4.0.0' },
     };
 
-    vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+    vi.mocked(fs.pathExists).mockImplementation(async (p) => {
+      const s = String(p);
+      return s === '/test/path/package.json' || s === '/test/path/apps/api/package.json';
+    });
     vi.mocked(fs.readdir as any)
       .mockResolvedValueOnce([mockDirent('apps', true), mockDirent('README.md', false)])
       .mockResolvedValueOnce([mockDirent('api', true)])
       .mockResolvedValueOnce([]);
-    vi.mocked(fs.readJson)
-      .mockResolvedValueOnce(rootPkg)
-      .mockResolvedValueOnce(nestedPkg)
-      .mockResolvedValueOnce(nestedPkg);
+    vi.mocked(fs.readJson).mockResolvedValueOnce(rootPkg).mockResolvedValueOnce(nestedPkg);
     vi.mocked(fs.writeJson).mockResolvedValue(undefined);
 
     await syncTemplateDependencies('/test/path');
 
-    expect(fs.writeJson).toHaveBeenCalledTimes(3);
+    expect(fs.writeJson).toHaveBeenCalledTimes(2);
     expect(fs.writeJson).toHaveBeenCalledWith(
       '/test/path/package.json',
       expect.objectContaining({
@@ -905,12 +1061,7 @@ describe('syncTemplateDependencies', () => {
       { spaces: 2 }
     );
     expect(fs.writeJson).toHaveBeenCalledWith(
-      expect.stringContaining('apps/package.json'),
-      expect.anything(),
-      { spaces: 2 }
-    );
-    expect(fs.writeJson).toHaveBeenCalledWith(
-      expect.stringContaining('apps/api/package.json'),
+      '/test/path/apps/api/package.json',
       expect.objectContaining({
         dependencies: { '@inkeep/agents-sdk': '^1.2.3', express: '^4.0.0' },
       }),

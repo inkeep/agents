@@ -14,6 +14,8 @@ import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
+  flushTraces,
+  getWaitUntil,
   isUniqueConstraintError,
   verifySlackLinkToken,
 } from '@inkeep/agents-core';
@@ -21,6 +23,7 @@ import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { createConnectSession } from '../services';
+import { resumeSmartLinkIntent } from '../services/resume-intent';
 import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-users');
@@ -162,15 +165,13 @@ app.openapi(
       const verifyResult = await verifySlackLinkToken(body.token);
 
       if (!verifyResult.valid || !verifyResult.payload) {
-        logger.warn({ error: verifyResult.error }, 'Invalid link token');
-        return c.json(
-          {
-            error:
-              verifyResult.error ||
-              'Invalid or expired link token. Please run /inkeep link in Slack to get a new one.',
-          },
-          400
-        );
+        const isExpired = verifyResult.error?.includes('"exp" claim timestamp check failed');
+        const errorMessage = isExpired
+          ? 'Token expired. Please run /inkeep link in Slack to get a new one.'
+          : verifyResult.error ||
+            'Invalid or expired link token. Please run /inkeep link in Slack to get a new one.';
+        logger.warn({ error: verifyResult.error, isExpired }, 'Invalid link token');
+        return c.json({ error: errorMessage }, 400);
       }
 
       const { tenantId, slack } = verifyResult.payload;
@@ -250,6 +251,40 @@ app.openapi(
         },
         'Successfully linked Slack user to Inkeep account via JWT token'
       );
+
+      const { intent } = verifyResult.payload;
+      if (intent) {
+        logger.info(
+          {
+            event: 'smart_link_intent_resume_triggered',
+            entryPoint: intent.entryPoint,
+            questionLength: intent.question.length,
+          },
+          'Smart link intent detected in verify-token'
+        );
+
+        const resumeWork = resumeSmartLinkIntent({
+          intent,
+          teamId,
+          slackUserId,
+          inkeepUserId,
+          tenantId,
+          slackEnterpriseId: enterpriseId,
+          slackUsername: username,
+        })
+          .catch((error) => logger.error({ error }, 'Resume smart link intent failed'))
+          .finally(() => flushTraces());
+
+        const waitUntil = await getWaitUntil();
+        if (waitUntil) {
+          waitUntil(resumeWork);
+        } else {
+          logger.warn(
+            { entryPoint: intent.entryPoint },
+            'waitUntil not available, resume work may not complete'
+          );
+        }
+      }
 
       return c.json({
         success: true,
