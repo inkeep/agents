@@ -536,4 +536,294 @@ describe('serializeAgentData', () => {
       });
     });
   });
+
+  describe('non-MCP relation form state', () => {
+    it('should use RHF function tool policies when serializing canUse', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+            skills: [],
+          },
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            functionToolId: 'function-tool-1',
+            functionId: 'function-1',
+            name: 'Lookup customer',
+            description: 'Looks up customer information',
+            code: 'async function execute() { return { ok: true }; }',
+            inputSchema: { type: 'object', properties: {}, required: [] },
+            dependencies: {},
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          'function-tool-1': {
+            id: 'function-tool-1',
+            name: 'Lookup customer',
+            executeCode: 'async function execute() { return { ok: true }; }',
+            inputSchema: {},
+            tempToolPolicies: {
+              '*': { needsApproval: true },
+            },
+          },
+        } as any
+      );
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+          toolPolicies: {
+            '*': { needsApproval: true },
+          },
+        },
+      ]);
+    });
+
+    it('should use RHF external/team headers for delegation relationships', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+            skills: [],
+          },
+        },
+        {
+          id: 'external-1',
+          type: NodeType.ExternalAgent,
+          position: { x: 300, y: -100 },
+          data: {
+            id: 'external-1',
+            name: 'External Agent',
+            baseUrl: 'https://example.com',
+            relationshipId: 'ext-rel-1',
+            tempHeaders: { stale: 'node' },
+          },
+        },
+        {
+          id: 'team-1',
+          type: NodeType.TeamAgent,
+          position: { x: 300, y: 100 },
+          data: {
+            id: 'team-1',
+            name: 'Team Agent',
+            description: '',
+            relationshipId: 'team-rel-1',
+            tempHeaders: { stale: 'node' },
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-ext',
+          type: EdgeType.A2AExternal,
+          source: 'agent1',
+          target: 'external-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team',
+          type: EdgeType.A2ATeam,
+          source: 'agent1',
+          target: 'team-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+      ];
+
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          'external-1': {
+            id: 'external-1',
+            name: 'External Agent',
+            baseUrl: 'https://example.com',
+            headers: { authorization: 'Bearer external-token' },
+          },
+        } as any,
+        {
+          'team-1': {
+            id: 'team-1',
+            name: 'Team Agent',
+            description: '',
+            headers: { authorization: 'Bearer team-token' },
+          },
+        } as any
+      );
+
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer external-token' },
+        subAgentExternalAgentRelationId: 'ext-rel-1',
+      });
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer team-token' },
+        subAgentTeamAgentRelationId: 'team-rel-1',
+      });
+    });
+  });
+
+  describe('function tool serialization', () => {
+    it('should include empty functionTools and functions records when no function tool nodes exist', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+            skills: [],
+          },
+        },
+      ];
+
+      const result = serializeAgentData(nodes, []);
+
+      expect(result.functionTools).toEqual({});
+      expect(result.functions).toEqual({});
+    });
+
+    it('should serialize connected function tool nodes into functionTools and functions', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+            skills: [],
+          },
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            functionToolId: 'function-tool-1',
+            functionId: 'function-1',
+            name: 'Lookup customer',
+            description: 'Looks up customer information',
+            code: 'async function execute() { return { ok: true }; }',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                customerId: { type: 'string' },
+              },
+              required: ['customerId'],
+            },
+            dependencies: {
+              axios: '^1.7.0',
+            },
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = serializeAgentData(nodes, edges);
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+        },
+      ]);
+      expect(result.functionTools).toEqual({
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          functionId: 'function-1',
+        },
+      });
+      expect(result.functions).toEqual({
+        'function-1': {
+          id: 'function-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+            },
+            required: ['customerId'],
+          },
+          dependencies: {
+            axios: '^1.7.0',
+          },
+        },
+      });
+    });
+  });
 });
