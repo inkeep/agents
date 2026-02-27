@@ -192,7 +192,7 @@ cmd_up() {
   echo "Waiting for databases to become healthy..."
 
   local all_healthy=true
-  for svc in doltgres-db postgres-db spicedb-postgres; do
+  for svc in doltgres-db postgres-db spicedb-postgres spicedb; do
     printf "  %-20s " "$svc"
     if wait_healthy "$project" "$svc"; then
       echo "✓ healthy"
@@ -227,26 +227,33 @@ cmd_setup() {
   eval "$(cmd_env "$name")"
 
   echo "  Manage database migrations..."
-  if pnpm db:manage:migrate 2>&1 | tail -1; then
+  local output
+  if output=$(pnpm db:manage:migrate 2>&1); then
+    echo "$output" | tail -1
     echo "  ✓ Manage migrations applied"
   else
+    echo "$output" | tail -5
     echo "  ✗ Manage migrations failed"
     return 1
   fi
 
   echo "  Runtime database migrations..."
-  if pnpm db:run:migrate 2>&1 | tail -1; then
+  if output=$(pnpm db:run:migrate 2>&1); then
+    echo "$output" | tail -1
     echo "  ✓ Runtime migrations applied"
   else
+    echo "$output" | tail -5
     echo "  ✗ Runtime migrations failed"
     return 1
   fi
 
   echo ""
   echo "Initializing auth..."
-  if pnpm db:auth:init 2>&1 | tail -3; then
+  if output=$(pnpm db:auth:init 2>&1); then
+    echo "$output" | tail -3
     echo "  ✓ Auth initialized"
   else
+    echo "$output" | tail -5
     echo "  ✗ Auth init failed"
     return 1
   fi
