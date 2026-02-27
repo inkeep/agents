@@ -750,28 +750,8 @@ ${creationInstructions}
   }
 
   private getToolChainingGuidance(): string {
-    return `;
-    TOOL;
-    RESULT;
-    CHAINING: Any;
-    tool;
-    argument;
-    can;
-    reference;
-    the;
-    raw;
-    output;
-    of;
-    a;
-    previous;
-    tool;
-    call;
-    using;
-    {
-      ('${SENTINEL_KEY.TOOL}');
-      : "tool_call_id"
-    }
-    .
+    return `TOOL RESULT CHAINING:
+Any tool argument can reference the raw output of a previous tool call using { "${SENTINEL_KEY.TOOL}": "tool_call_id" }.
 The system resolves this to the complete raw output of that tool call before executing the next tool.
 
 🚨 MANDATORY: When a tool's output is the direct input to the next tool, you MUST use { "${SENTINEL_KEY.TOOL}": "call_id" }.
@@ -779,155 +759,36 @@ NEVER read a tool result and copy its value as a literal string or object into t
 
 ❌ WRONG — copying tool output inline:
   Call tool_a → returns "some text"
-  Call tool_b
-    with { "input": "some text" }
-    ← you copied the value manually
+  Call tool_b with { "input": "some text" }  ← you copied the value manually
 
 ✅ CORRECT — referencing the previous call:
   Call tool_a → returns "some text" (tool_call_id: "call_a_xyz")
-  Call tool_b
-    with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }
-    ← system resolves it automatically
+  Call tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }  ← system resolves it automatically
 
-HOW PRIMITIVE RESULTS APPEAR vs. WHAT
-    {
-      ('${SENTINEL_KEY.TOOL}');
-    }
-    RESOLVES;
-    TO: When;
-    a;
-    tool;
-    returns;
-    a;
-    primitive(string, number, boolean), the;
-    result;
-    appears in the;
-    conversation;
-    wrapped;
-    for display purposes — e.g.
-    {
-      ('text');
-      : "...", "_toolCallId": "call_a_xyz"
-    }
-    for strings
+HOW PRIMITIVE RESULTS APPEAR vs. WHAT { "${SENTINEL_KEY.TOOL}" } RESOLVES TO:
+When a tool returns a primitive (string, number, boolean), the result appears in the conversation
+wrapped for display purposes — e.g. { "text": "...", "_toolCallId": "call_a_xyz" } for strings
 or { "value": 42, "_toolCallId": "call_a_xyz" } for numbers. This wrapper is display-only.
-    {
-      ('${SENTINEL_KEY.TOOL}');
-      : "call_a_xyz"
-    }
-    resolves;
-    to;
-    the;
-    raw;
-    primitive;
-    itself;
-    — not the wrapper object.
+{ "${SENTINEL_KEY.TOOL}": "call_a_xyz" } resolves to the raw primitive itself — not the wrapper object.
 
-  Call tool_a → result shown as
-    {
-      ('value');
-      : 42, "_toolCallId": "call_a_xyz"
-    }
-    tool_b;
-    with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }
-    receives: 42;
-    ← raw number, not the wrapper
+  Call tool_a → result shown as { "value": 42, "_toolCallId": "call_a_xyz" }
+  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: 42  ← raw number, not the wrapper
 
-  Call tool_a → result shown as
-    {
-      ('text');
-      : "hello", "_toolCallId": "call_a_xyz"
-    }
-    tool_b;
-    with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }
-    receives: 'hello';
-    ← raw string, not the wrapper
+  Call tool_a → result shown as { "text": "hello", "_toolCallId": "call_a_xyz" }
+  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: "hello"  ← raw string, not the wrapper
 
 Pipeline example:
-  Step 1: tool_a(
-    {
-      ('arg');
-      : "value"
-    }
-    ) → (tool_call_id: "call_a")
-  Step 2: tool_b(
-    {
-      ('input');
-      :
-      {
-        ('${SENTINEL_KEY.TOOL}');
-        : "call_a"
-      }
-      , "other": "value"
-    }
-    )
+  Step 1: tool_a({ "arg": "value" }) → (tool_call_id: "call_a")
+  Step 2: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a" }, "other": "value" })
 
 This is different from artifact passing:
--
-    {
-      ('${SENTINEL_KEY.TOOL}');
-      : "call_id"
-    }
-    — raw output pipe
-    no;
-    artifact;
-    exists;
-    or;
-    is;
-    needed;
-    intermediate;
-    data;
-    never;
-    surfaces;
-    to;
-    the;
-    user - { '${SENTINEL_KEY.ARTIFACT}': 'id', '${SENTINEL_KEY.TOOL}': 'call_id' };
-    — passes a structured object you explicitly extracted and saved from a tool result
+- { "${SENTINEL_KEY.TOOL}": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
+- { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } — passes a structured object you explicitly extracted and saved from a tool result
 
 When to use each:
-✅ Use
-    {
-      ('${SENTINEL_KEY.TOOL}');
-      : "call_id"
-    }
-    when;
-    chaining;
-    processing;
-    steps;
-    and;
-    the;
-    intermediate;
-    result;
-    is;
-    not;
-    shown;
-    to;
-    the;
-    user;
-    ✅ Use
-    {
-      ('${SENTINEL_KEY.ARTIFACT}');
-      : "id", "${SENTINEL_KEY.TOOL}": "call_id"
-    }
-    when;
-    you;
-    have;
-    already;
-    created;
-    an;
-    artifact;
-    and;
-    want;
-    to;
-    pass;
-    its;
-    full;
-    structured;
-    data;
-    to;
-    a;
-    tool;
-    ⚠️ Only references tool calls from the current response turn`;
+✅ Use { "${SENTINEL_KEY.TOOL}": "call_id" } when chaining processing steps and the intermediate result is not shown to the user
+✅ Use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } when you have already created an artifact and want to pass its full structured data to a tool
+⚠️ Only references tool calls from the current response turn`;
   }
 
   private generateToolsSection(templates: Map<string, string>, tools: ToolData[]): string {
