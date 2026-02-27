@@ -690,6 +690,8 @@ export class Agent {
                   a2a_metadata: {
                     toolName,
                     toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: this.delegationId,
                     isDelegated: this.isDelegatedAgent,
@@ -3299,6 +3301,7 @@ ${output}`;
           options: historyConfig,
           filters,
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3316,6 +3319,7 @@ ${output}`;
             isDelegated: this.isDelegatedAgent,
           },
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
