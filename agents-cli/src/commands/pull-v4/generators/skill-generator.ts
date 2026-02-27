@@ -1,18 +1,16 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { stringify } from 'yaml';
+import { z } from 'zod';
 
-type SkillMap = Record<
-  string,
-  {
-    name: string;
-    description?: string | null;
-    content: string;
-    metadata?: Record<string, unknown> | null;
-  }
->;
+const MySchema = FullProjectDefinitionSchema.shape.skills.unwrap().valueType;
 
-function formatMetadata(metadata: Record<string, unknown>): string {
+type SkillInput = z.input<typeof MySchema>;
+
+type SkillMap = Record<string, SkillInput>;
+
+function formatMetadata(metadata: NonNullable<SkillInput['metadata']>): string {
   const yaml = stringify(metadata);
   const indented = yaml
     .split('\n')

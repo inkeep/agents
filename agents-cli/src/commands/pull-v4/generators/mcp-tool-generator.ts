@@ -9,20 +9,6 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface McpToolDefinitionData {
-  mcpToolId: string;
-  name: string;
-  description?: string | null;
-  config?: unknown;
-  serverUrl?: string;
-  transport?: unknown;
-  activeTools?: unknown[];
-  imageUrl?: string;
-  headers?: unknown;
-  credential?: unknown;
-  credentialReferenceId?: string;
-}
-
 const MySchema = FullProjectDefinitionSchema.shape.tools.valueType.omit({
   id: true,
   createdAt: true,
@@ -34,9 +20,10 @@ const McpToolSchema = z.strictObject({
   ...MySchema.shape,
 });
 
-type ParsedMcpToolDefinitionData = z.infer<typeof McpToolSchema>;
+type McpTooInput = z.input<typeof McpToolSchema>;
+type McpTooOutput = z.output<typeof McpToolSchema>;
 
-export function generateMcpToolDefinition(data: McpToolDefinitionData): SourceFile {
+export function generateMcpToolDefinition(data: McpTooInput): SourceFile {
   const result = McpToolSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for MCP tool:\n${z.prettifyError(result.error)}`);
@@ -71,7 +58,7 @@ function writeMcpToolConfig(
     credential,
     credentialReferenceId,
     ...rest
-  }: ParsedMcpToolDefinitionData
+  }: McpTooOutput
 ): void {
   for (const [k, v] of Object.entries({
     id: mcpToolId,
@@ -107,20 +94,16 @@ function writeMcpToolConfig(
   }
 }
 
-function resolveServerUrl(
-  data: Pick<ParsedMcpToolDefinitionData, 'config' | 'serverUrl'>
-): string | undefined {
+function resolveServerUrl(data: Pick<McpTooOutput, 'config' | 'serverUrl'>): string | undefined {
   return data.config?.mcp?.server?.url ?? data.serverUrl;
 }
 
-function resolveTransport(
-  data: Pick<ParsedMcpToolDefinitionData, 'transport' | 'config'>
-): unknown {
+function resolveTransport(data: Pick<McpTooOutput, 'transport' | 'config'>): unknown {
   return data.config?.mcp?.transport ?? data.transport;
 }
 
 function resolveActiveTools(
-  data: Pick<ParsedMcpToolDefinitionData, 'config' | 'activeTools'>
+  data: Pick<McpTooOutput, 'config' | 'activeTools'>
 ): unknown[] | undefined {
   return data.config?.mcp?.activeTools ?? data.activeTools;
 }
