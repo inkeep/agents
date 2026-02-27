@@ -36,6 +36,7 @@ import { formatDateAgo } from '@/lib/utils/format-date';
 import { useSlackLinkedUsersQuery, useSlackUnlinkUserMutation } from '../api/queries';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
+import { getSlackProfileUrl } from '../utils/slack-urls';
 
 interface LinkedUser {
   id: string;
@@ -121,7 +122,7 @@ export function LinkedUsersSection() {
         <p className="text-sm font-medium truncate">
           {user.slackUserId ? (
             <a
-              href={`https://app.slack.com/team/${user.slackUserId}`}
+              href={getSlackProfileUrl(user.slackUserId, selectedWorkspace?.teamDomain)}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"

@@ -1,5 +1,18 @@
 # @inkeep/agents-cli
 
+## 0.53.10
+
+### Patch Changes
+
+- b2f3879: Enable inkeep pull to handle nullable values in triggers.
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [ff9e307]
+- Updated dependencies [901058e]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-manage-ui@0.53.10
+  - @inkeep/agents-sdk@0.53.10
+
 ## 0.53.9
 
 ### Patch Changes
