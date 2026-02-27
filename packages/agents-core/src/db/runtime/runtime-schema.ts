@@ -211,6 +211,9 @@ export const workAppSlackWorkspaces = pgTable(
     shouldAllowJoinFromWorkspace: boolean('should_allow_join_from_workspace')
       .notNull()
       .default(false),
+    defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    defaultProjectId: varchar('default_project_id', { length: 256 }),
+    defaultGrantAccessToMembers: boolean('default_grant_access_to_members').default(true),
     ...timestamps,
   },
   (table) => [
@@ -218,6 +221,11 @@ export const workAppSlackWorkspaces = pgTable(
     unique('work_app_slack_workspaces_nango_connection_unique').on(table.nangoConnectionId),
     index('work_app_slack_workspaces_tenant_idx').on(table.tenantId),
     index('work_app_slack_workspaces_team_idx').on(table.slackTeamId),
+    index('work_app_slack_workspaces_defaults_idx').on(
+      table.tenantId,
+      table.defaultProjectId,
+      table.defaultAgentId
+    ),
   ]
 );
 
@@ -257,6 +265,12 @@ export const workAppSlackUserMappings = pgTable(
     index('work_app_slack_user_mappings_user_idx').on(table.inkeepUserId),
     index('work_app_slack_user_mappings_team_idx').on(table.slackTeamId),
     index('work_app_slack_user_mappings_slack_user_idx').on(table.slackUserId),
+    index('work_app_slack_user_mappings_tenant_team_idx').on(table.tenantId, table.slackTeamId),
+    index('work_app_slack_user_mappings_lookup_idx').on(
+      table.clientId,
+      table.slackTeamId,
+      table.slackUserId
+    ),
   ]
 );
 
@@ -278,7 +292,6 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     slackChannelType: varchar('slack_channel_type', { length: 50 }),
     projectId: varchar('project_id', { length: 256 }).notNull(),
     agentId: varchar('agent_id', { length: 256 }).notNull(),
-    agentName: varchar('agent_name', { length: 256 }),
     configuredByUserId: text('configured_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
@@ -295,6 +308,16 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     index('work_app_slack_channel_agent_configs_tenant_idx').on(table.tenantId),
     index('work_app_slack_channel_agent_configs_team_idx').on(table.slackTeamId),
     index('work_app_slack_channel_agent_configs_channel_idx').on(table.slackChannelId),
+    index('work_app_slack_channel_agent_configs_tenant_team_idx').on(
+      table.tenantId,
+      table.slackTeamId
+    ),
+    index('work_app_slack_channel_agent_configs_agent_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId
+    ),
+    index('work_app_slack_channel_agent_configs_project_idx').on(table.tenantId, table.projectId),
   ]
 );
 

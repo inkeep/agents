@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.54.0
+
+### Minor Changes
+
+- addc4a0: Move workspace default agent config from Nango metadata to PostgreSQL
+- addc4a0: Remove denormalized agent names from Slack channel configs — resolve names at read time from manage DB, clean up orphaned configs on agent/project deletion, validate agent existence on write
+
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+
 ## 0.53.12
 
 ## 0.53.11

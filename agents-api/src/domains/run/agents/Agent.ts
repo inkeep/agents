@@ -661,7 +661,24 @@ export class Agent {
           const artifactParser = streamRequestId
             ? agentSessionManager.getArtifactParser(streamRequestId)
             : null;
-          const resolvedArgs = artifactParser ? await artifactParser.resolveArgs(args) : args;
+          const parsedArgsForResolution = artifactParser ? parseEmbeddedJson(args) : args;
+          const resolvedArgs = artifactParser
+            ? await artifactParser.resolveArgs(parsedArgsForResolution)
+            : args;
+
+          if (artifactParser && toolDefinition.parameters?.safeParse) {
+            const resolvedChanged =
+              JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+            if (resolvedChanged) {
+              const validation = toolDefinition.parameters.safeParse(resolvedArgs);
+              if (!validation.success) {
+                throw new Error(
+                  `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+                );
+              }
+            }
+          }
+
           const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
@@ -687,6 +704,8 @@ export class Agent {
                   a2a_metadata: {
                     toolName,
                     toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: this.delegationId,
                     isDelegated: this.isDelegatedAgent,
@@ -1096,7 +1115,7 @@ export class Agent {
                 toolCallId,
                 toolName,
                 args: finalArgs,
-                result: enhancedResult,
+                result: parsedResult,
                 timestamp: Date.now(),
               });
 
@@ -1693,7 +1712,16 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return result;
+              // If a tool explicitly returns the AI SDK text format { type:"text", value:"..." },
+              // convert it to a neutral object so the full result (including _toolCallId) is
+              // preserved when the AI SDK serializes it for the Anthropic API. The content-array
+              // format { content: [{type:"text", text}] } is recognized by the AI SDK and only
+              // the content array is forwarded, dropping any extra metadata fields.
+              const r = result as any;
+              const resultForEnhancement =
+                r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
+
+              return this.enhanceToolResultWithStructureHints(resultForEnhancement, toolCallId);
             } catch (error) {
               logger.error(
                 {
@@ -2589,16 +2617,32 @@ ${output}`;
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
-   * Also adds tool call ID to the result for easy reference
-   * Only adds hints when artifact components are available
+   * Also adds _toolCallId to every object result for LLM tool-chaining reference.
+   * Structure hints are only added when artifact components are available.
    */
   private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
-    if (!result) {
+    if (result === undefined) {
       return result;
     }
 
-    // Only add structure hints and tool call ID if artifact components are available
+    // Wrap primitive results (string, number, boolean, null) with _toolCallId so the LLM can
+    // reference them for tool chaining. The AI SDK serializes plain objects as JSON for the
+    // Anthropic API, so the LLM sees the full object including _toolCallId — unlike bare
+    // primitives which have no place to embed it. The raw value is stored separately in
+    // ToolSessionManager, so downstream tools still receive the bare primitive via {$tool}.
+    // Covers all primitives including falsy ones (false, 0, "", null).
+    if (typeof result !== 'object' || result === null) {
+      if (toolCallId) {
+        return { [typeof result === 'string' ? 'text' : 'value']: result, _toolCallId: toolCallId };
+      }
+      return result;
+    }
+
+    // Always inject _toolCallId into object results so the LLM can reference them for chaining
     if (!this.artifactComponents || this.artifactComponents.length === 0) {
+      if (toolCallId && typeof result === 'object') {
+        return { ...result, _toolCallId: toolCallId };
+      }
       return result;
     }
 
@@ -3271,6 +3315,7 @@ ${output}`;
           options: historyConfig,
           filters,
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3288,6 +3333,7 @@ ${output}`;
             isDelegated: this.isDelegatedAgent,
           },
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
