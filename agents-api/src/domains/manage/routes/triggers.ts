@@ -794,6 +794,8 @@ app.openapi(
     const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
     logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
 
@@ -807,6 +809,10 @@ app.openapi(
         code: 'not_found',
         message: 'Trigger not found',
       });
+    }
+
+    if (trigger.runAsUserId) {
+      assertCanMutateTrigger({ trigger, callerId, tenantRole });
     }
 
     if (!trigger.enabled) {
