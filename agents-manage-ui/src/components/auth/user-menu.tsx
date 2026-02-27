@@ -12,17 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useSignOut } from '@/hooks/use-sign-out';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
+  const handleSignOut = useSignOut();
 
   if (isLoading || !user) {
     return null;
   }
-
-  const handleSignOut = () => {
-    window.location.href = '/logout';
-  };
 
   return (
     <DropdownMenu>
