@@ -16,6 +16,8 @@ const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().value
 const DataComponentSchema = z.strictObject({
   dataComponentId: z.string().nonempty(),
   ...MySchema.shape,
+  // Each property must have a "description" for LLM compatibility
+  props: z.unknown(),
 });
 
 type DataComponentInput = z.input<typeof DataComponentSchema>;

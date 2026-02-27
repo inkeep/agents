@@ -43,7 +43,7 @@ const AgentSchema = z.strictObject({
       models: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.models),
       stopWhen: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.stopWhen),
       // Unrecognized keys: "name", "description", "content", "metadata", "subAgentSkillId", "subAgentId", "createdAt", "updatedAt"
-      skills: z.unknown()
+      skills: z.unknown(),
     })
   ),
   tools: z.record(
@@ -54,6 +54,9 @@ const AgentSchema = z.strictObject({
       imageUrl: z.preprocess((v) => v ?? undefined, ToolSchema.shape.imageUrl),
     })
   ),
+  // ✖ Invalid input: expected string, received undefined
+  // → at triggers.t546ck7yueh52jils88rm.authentication.headers[0].value
+  triggers: z.record(z.string(), z.unknown()).optional(),
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),

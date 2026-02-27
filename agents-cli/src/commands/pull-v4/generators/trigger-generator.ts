@@ -21,7 +21,12 @@ const TriggerSchema = z.strictObject({
   inputSchema: z.preprocess((v) => v || undefined, MySchema.shape.inputSchema),
   outputTransform: z.preprocess((v) => v || undefined, MySchema.shape.outputTransform),
   messageTemplate: z.preprocess((v) => v || undefined, MySchema.shape.messageTemplate),
-  authentication: z.preprocess((v) => v || undefined, MySchema.shape.authentication),
+  authentication: z.preprocess(
+    (v) => v || undefined,
+    // ✖ Invalid input: expected string, received undefined
+    // → at authentication.headers[0].value
+    z.unknown()
+  ),
   signatureVerification: z.preprocess((v) => v || undefined, MySchema.shape.signatureVerification),
 });
 
