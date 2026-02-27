@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Copy, CopyPlus, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -199,6 +199,27 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                           >
                             <Pencil className="w-4 h-4" />
                             Edit
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={(() => {
+                              const params = new URLSearchParams();
+                              if (trigger.messageTemplate)
+                                params.set('messageTemplate', trigger.messageTemplate);
+                              if (trigger.inputSchema)
+                                params.set('inputSchema', JSON.stringify(trigger.inputSchema));
+                              if (trigger.outputTransform)
+                                params.set(
+                                  'outputTransform',
+                                  JSON.stringify(trigger.outputTransform)
+                                );
+                              params.set('enabled', String(trigger.enabled));
+                              return `/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/new?${params.toString()}`;
+                            })()}
+                          >
+                            <CopyPlus className="w-4 h-4" />
+                            Duplicate
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
