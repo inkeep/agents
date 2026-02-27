@@ -121,6 +121,9 @@
     ],
     "scripts/generate-jwt-keys.sh": [
       "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
+    ],
+    "packages/agents-core/src/**/*.{ts,tsx}": [
+      "bash scripts/lint-data-access-boundary.sh"
     ]
   },
   "packageManager": "pnpm@10.10.0"
