@@ -9103,9 +9103,6 @@
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9194,9 +9191,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
