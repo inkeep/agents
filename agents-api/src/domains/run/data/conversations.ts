@@ -10,6 +10,7 @@ import {
   getLedgerArtifacts,
   type ResolvedRef,
 } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
@@ -17,7 +18,6 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
 import { ConversationCompressor } from '../services/ConversationCompressor';
-import { trace } from '@opentelemetry/api';
 
 const logger = getLogger('conversations');
 
