@@ -1955,9 +1955,6 @@
       },
       "CredentialReferenceCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "maxLength": 256,
             "nullable": true,
@@ -1991,9 +1988,6 @@
               "keychain",
               "nango"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "userId": {
@@ -2041,9 +2035,6 @@
       },
       "CredentialReferenceUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "maxLength": 256,
             "nullable": true,
@@ -2077,9 +2068,6 @@
               "keychain",
               "nango"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "userId": {
