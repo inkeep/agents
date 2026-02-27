@@ -84,12 +84,11 @@ type SerializeAgentDataType = Pick<
   'defaultSubAgentId' | 'subAgents' | 'functions' | 'functionTools'
 >;
 
-type PartialMCPRelation = Pick<z.output<typeof MCPRelationSchema>, 'selectedTools' | 'headers' | 'toolPolicies'>
-
-type MCPRelationFormData = Record<
-  string,
-    PartialMCPRelation
+type PartialMCPRelation = Pick<
+  z.output<typeof MCPRelationSchema>,
+  'selectedTools' | 'headers' | 'toolPolicies'
 >;
+type MCPRelationFormData = Record<string, PartialMCPRelation>;
 
 /**
  * Transforms React Flow nodes and edges back into the API data structure
@@ -102,11 +101,20 @@ export function serializeAgentData(
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
-  mcpRelations?: MCPRelationFormData
+  mcpRelations?: MCPRelationFormData,
+  functionToolFormData?: FullAgentOutput['functionTools'],
+  externalAgentFormData?: FullAgentOutput['externalAgents'],
+  teamAgentFormData?: FullAgentOutput['teamAgents']
 ): SerializeAgentDataType {
   const subAgents: Record<string, ExtendedAgent> = {};
-  const externalAgents: Record<string, ExternalAgent> = {};
-  const teamAgents: Record<string, TeamAgent> = {};
+  const externalAgents: Record<
+    string,
+    ExternalAgent & { relationshipId: string | null; headers?: Record<string, string> }
+  > = {};
+  const teamAgents: Record<
+    string,
+    TeamAgent & { relationshipId: string | null; headers?: Record<string, string> }
+  > = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
   // Note: Tools are now project-scoped and not included in agent serialization
@@ -271,13 +279,13 @@ export function serializeAgentData(
 
           functionTools[functionToolId] = functionToolData;
 
-          const tempToolPolicies = nodeData.tempToolPolicies;
+          const toolPolicies = functionToolFormData?.[functionToolId]?.tempToolPolicies;
 
           canUse.push({
             toolId: functionToolId,
             toolSelection: null,
             headers: null,
-            ...(tempToolPolicies !== undefined ? { toolPolicies: tempToolPolicies } : {}),
+            ...(toolPolicies && { toolPolicies }),
             ...(relationshipId && { agentToolRelationId: relationshipId }),
           });
         }
