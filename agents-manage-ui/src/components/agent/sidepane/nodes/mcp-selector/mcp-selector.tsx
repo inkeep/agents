@@ -9,10 +9,7 @@ import { MCPServerItem } from './mcp-server-item';
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   'use memo';
   const { updateNode } = useReactFlow();
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string; }>();
   const toolLookup = useAgentStore((state) => state.toolLookup);
   const tools = Object.values(toolLookup);
 
@@ -38,7 +35,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
       <div className="space-y-2">
         <h3 className="text-sm font-medium mb-2">Select MCP server</h3>
         <div className="flex flex-col gap-2 min-w-0 min-h-0">
-          {tools.map((mcp: MCPTool) => (
+          {tools.map((mcp) => (
             <MCPServerItem key={mcp.id} mcp={mcp} onClick={handleSelect} />
           ))}
         </div>
