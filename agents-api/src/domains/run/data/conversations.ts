@@ -18,6 +18,7 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
 import { ConversationCompressor } from '../services/ConversationCompressor';
+import { trace } from '@opentelemetry/api';
 
 const logger = getLogger('conversations');
 
@@ -511,6 +512,7 @@ export async function getConversationHistoryWithCompression({
         });
       }
     } catch (err) {
+      trace.getActiveSpan()?.setAttribute('artifact_lookup.failed', true);
       logger.warn(
         { err, conversationId, unsubstitutedCount: toolCallIds.length },
         'Failed to fetch artifacts for conversation history — tool results will not be substituted, compression may trigger unnecessarily'

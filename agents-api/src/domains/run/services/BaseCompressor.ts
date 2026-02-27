@@ -188,6 +188,7 @@ export abstract class BaseCompressor {
       logger.warn(
         {
           sessionId: this.sessionId,
+          toolCallCount: toolCallIds.length,
           error: error instanceof Error ? error.message : String(error),
         },
         'Artifact batch lookup failed — existing artifacts may not be reused'
