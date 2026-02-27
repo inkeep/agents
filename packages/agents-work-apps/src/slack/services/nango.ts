@@ -9,7 +9,6 @@
  * Nango is used ONLY for:
  * - OAuth token storage and refresh (bot tokens for workspaces)
  * - OAuth flow management (createConnectSession)
- * - Workspace default agent config (stored in connection metadata)
  *
  * PERFORMANCE: Workspace lookups use PostgreSQL first (O(1)), with Nango
  * fallback only when needed for bot token retrieval.
@@ -18,7 +17,13 @@
  * @see packages/agents-core/src/data-access/runtime/workAppSlack.ts
  */
 
-import { findWorkAppSlackWorkspaceBySlackTeamId, retryWithBackoff } from '@inkeep/agents-core';
+import {
+  findWorkAppSlackWorkspaceBySlackTeamId,
+  listWorkAppSlackWorkspacesByTenant,
+  retryWithBackoff,
+  updateWorkAppSlackWorkspace,
+  type WorkAppSlackAgentConfigRequest,
+} from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -137,13 +142,7 @@ export async function getConnectionAccessToken(connectionId: string): Promise<st
   }
 }
 
-export interface DefaultAgentConfig {
-  agentId: string;
-  agentName?: string;
-  projectId: string;
-  projectName?: string;
-  grantAccessToMembers?: boolean;
-}
+export type DefaultAgentConfig = WorkAppSlackAgentConfigRequest;
 
 export interface SlackWorkspaceConnection {
   connectionId: string;
@@ -212,21 +211,23 @@ export async function findWorkspaceConnectionByTeamId(
       const botToken = await getConnectionAccessToken(dbWorkspace.nangoConnectionId);
 
       if (botToken) {
+        const defaultAgent =
+          dbWorkspace.defaultAgentId && dbWorkspace.defaultProjectId
+            ? {
+                agentId: dbWorkspace.defaultAgentId,
+                projectId: dbWorkspace.defaultProjectId,
+                grantAccessToMembers: dbWorkspace.defaultGrantAccessToMembers ?? true,
+              }
+            : undefined;
+
         const connection: SlackWorkspaceConnection = {
           connectionId: dbWorkspace.nangoConnectionId,
           teamId,
           teamName: dbWorkspace.slackTeamName || undefined,
           botToken,
           tenantId: dbWorkspace.tenantId,
-          defaultAgent: undefined,
+          defaultAgent,
         };
-
-        const defaultAgentConfig = await getWorkspaceDefaultAgentFromNangoByConnectionId(
-          dbWorkspace.nangoConnectionId
-        );
-        if (defaultAgentConfig) {
-          connection.defaultAgent = defaultAgentConfig;
-        }
 
         evictWorkspaceCache();
         workspaceConnectionCache.set(teamId, {
@@ -244,33 +245,6 @@ export async function findWorkspaceConnectionByTeamId(
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to find workspace connection by team ID');
     return findWorkspaceConnectionByTeamIdFromNango(teamId);
-  }
-}
-
-async function getWorkspaceDefaultAgentFromNangoByConnectionId(
-  connectionId: string
-): Promise<DefaultAgentConfig | null> {
-  if (isSlackDevMode()) {
-    return getDevDefaultAgent(loadSlackDevConfig());
-  }
-
-  try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-    const fullConn = await nango.getConnection(integrationId, connectionId);
-    const metadata = fullConn.metadata as Record<string, string> | undefined;
-
-    if (metadata?.default_agent) {
-      try {
-        return JSON.parse(metadata.default_agent);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  } catch (error) {
-    logger.warn({ error }, 'Failed to get workspace default agent from Nango');
-    return null;
   }
 }
 
@@ -298,22 +272,13 @@ async function findWorkspaceConnectionByTeamIdFromNango(
           const connTeamId = connectionConfig?.['team.id'] || metadata?.slack_team_id;
 
           if (connTeamId === teamId && credentials.credentials?.access_token) {
-            let defaultAgent: DefaultAgentConfig | undefined;
-            if (metadata?.default_agent) {
-              try {
-                defaultAgent = JSON.parse(metadata.default_agent);
-              } catch {
-                // Invalid JSON, ignore
-              }
-            }
-
             const connection: SlackWorkspaceConnection = {
               connectionId: conn.connection_id,
               teamId,
               teamName: metadata?.slack_team_name,
               botToken: credentials.credentials.access_token,
               tenantId: metadata?.tenant_id || metadata?.inkeep_tenant_id || '',
-              defaultAgent,
+              defaultAgent: undefined,
             };
 
             evictWorkspaceCache();
@@ -381,9 +346,16 @@ export async function setWorkspaceDefaultAgent(
   if (isSlackDevMode()) {
     const devConfig = loadSlackDevConfig();
     if (!devConfig) return false;
+    const persistedDevAgent = defaultAgent
+      ? {
+          agentId: defaultAgent.agentId,
+          projectId: defaultAgent.projectId,
+          grantAccessToMembers: defaultAgent.grantAccessToMembers,
+        }
+      : null;
     devConfig.metadata = {
       ...devConfig.metadata,
-      default_agent: defaultAgent ? JSON.stringify(defaultAgent) : '',
+      default_agent: persistedDevAgent ? JSON.stringify(persistedDevAgent) : '',
     };
     const saved = saveSlackDevConfig(devConfig);
     if (saved) clearWorkspaceConnectionCache(teamId);
@@ -391,42 +363,52 @@ export async function setWorkspaceDefaultAgent(
   }
 
   try {
-    const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    if (!workspace) {
-      logger.warn({ teamId }, 'No workspace connection found to set default agent');
+    const dbWorkspace = await findWorkAppSlackWorkspaceBySlackTeamId(runDbClient)(teamId);
+    if (!dbWorkspace) {
+      logger.warn({ teamId }, 'No workspace found in DB to set default agent');
       return false;
     }
 
-    const success = await updateConnectionMetadata(workspace.connectionId, {
-      default_agent: defaultAgent ? JSON.stringify(defaultAgent) : '',
+    const updated = await updateWorkAppSlackWorkspace(runDbClient)(dbWorkspace.id, {
+      defaultAgentId: defaultAgent?.agentId ?? null,
+      defaultProjectId: defaultAgent?.projectId ?? null,
+      defaultGrantAccessToMembers: defaultAgent?.grantAccessToMembers ?? null,
     });
 
-    if (success) {
+    if (updated) {
       clearWorkspaceConnectionCache(teamId);
     }
 
-    return success;
+    return !!updated;
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to set workspace default agent');
     return false;
   }
 }
 
-export async function getWorkspaceDefaultAgentFromNango(
-  teamId: string
-): Promise<DefaultAgentConfig | null> {
+export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultAgentConfig | null> {
   if (isSlackDevMode()) {
     return getDevDefaultAgent(loadSlackDevConfig());
   }
 
   try {
-    const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    return workspace?.defaultAgent || null;
+    const dbWorkspace = await findWorkAppSlackWorkspaceBySlackTeamId(runDbClient)(teamId);
+    if (!dbWorkspace?.defaultAgentId || !dbWorkspace.defaultProjectId) {
+      return null;
+    }
+    return {
+      agentId: dbWorkspace.defaultAgentId,
+      projectId: dbWorkspace.defaultProjectId,
+      grantAccessToMembers: dbWorkspace.defaultGrantAccessToMembers ?? true,
+    };
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to get workspace default agent');
     return null;
   }
 }
+
+/** @deprecated Use `getWorkspaceDefaultAgent` instead */
+export const getWorkspaceDefaultAgentFromNango = getWorkspaceDefaultAgent;
 
 /**
  * Compute a stable, deterministic connection ID for a Slack workspace.
@@ -603,9 +585,12 @@ export async function storeWorkspaceInstallation(
 }
 
 /**
- * List all workspace installations from Nango.
+ * List all workspace installations for a tenant.
+ * Reads workspace metadata from PostgreSQL and retrieves bot tokens from Nango.
  */
-export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnection[]> {
+export async function listWorkspaceInstallations(
+  tenantId: string
+): Promise<SlackWorkspaceConnection[]> {
   if (isSlackDevMode()) {
     const devConfig = loadSlackDevConfig();
     if (!devConfig) return [];
@@ -623,51 +608,37 @@ export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnec
   }
 
   try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-
-    const connections = await nango.listConnections();
+    const dbWorkspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
     const workspaces: SlackWorkspaceConnection[] = [];
 
-    for (const conn of connections.connections) {
-      if (conn.provider_config_key === integrationId) {
-        try {
-          const fullConn = await nango.getConnection(integrationId, conn.connection_id);
-          const metadata = fullConn.metadata as Record<string, string> | undefined;
-          const credentials = fullConn as { credentials?: { access_token?: string } };
+    await Promise.all(
+      dbWorkspaces.map(async (ws) => {
+        const botToken = await getConnectionAccessToken(ws.nangoConnectionId);
+        if (!botToken) return;
 
-          if (metadata?.connection_type === 'workspace' && credentials.credentials?.access_token) {
-            let defaultAgent: DefaultAgentConfig | undefined;
-            if (metadata?.default_agent) {
-              try {
-                defaultAgent = JSON.parse(metadata.default_agent);
-              } catch {
-                // Invalid JSON, ignore
+        const defaultAgent =
+          ws.defaultAgentId && ws.defaultProjectId
+            ? {
+                agentId: ws.defaultAgentId,
+                projectId: ws.defaultProjectId,
+                grantAccessToMembers: ws.defaultGrantAccessToMembers ?? true,
               }
-            }
+            : undefined;
 
-            workspaces.push({
-              connectionId: conn.connection_id,
-              teamId: metadata.slack_team_id || '',
-              teamName: metadata.slack_team_name,
-              teamDomain: metadata.slack_team_domain || undefined,
-              botToken: credentials.credentials.access_token,
-              tenantId: metadata.tenant_id || metadata.inkeep_tenant_id || '',
-              defaultAgent,
-            });
-          }
-        } catch (error) {
-          logger.warn(
-            { error, connectionId: conn.connection_id },
-            'Failed to get Nango connection during list'
-          );
-        }
-      }
-    }
+        workspaces.push({
+          connectionId: ws.nangoConnectionId,
+          teamId: ws.slackTeamId,
+          teamName: ws.slackTeamName || undefined,
+          botToken,
+          tenantId: ws.tenantId,
+          defaultAgent,
+        });
+      })
+    );
 
     return workspaces;
   } catch (error) {
-    logger.error({ error }, 'Failed to list workspace installations');
+    logger.error({ error, tenantId }, 'Failed to list workspace installations');
     return [];
   }
 }
