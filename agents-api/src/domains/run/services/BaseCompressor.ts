@@ -138,9 +138,7 @@ export abstract class BaseCompressor {
     return toolCallToArtifactMap;
   }
 
-  private async findExistingArtifacts(
-    toolCallIds: string[]
-  ): Promise<
+  private async findExistingArtifacts(toolCallIds: string[]): Promise<
     Map<
       string,
       {
