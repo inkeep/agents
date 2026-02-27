@@ -225,8 +225,8 @@ describe('AgentMcpManager', () => {
 
       const result = await createManager().getToolSet(mcpTool);
 
-      expect(result.tools['renamed_tool']).toBeDefined();
-      expect(result.tools['original_name']).toBeUndefined();
+      expect(result.tools.renamed_tool).toBeDefined();
+      expect(result.tools.original_name).toBeUndefined();
     });
 
     test('applies description override', async () => {
@@ -252,8 +252,8 @@ describe('AgentMcpManager', () => {
 
       const result = await createManager().getToolSet(mcpTool);
 
-      expect(result.tools['search']).toBeDefined();
-      expect(result.tools['search'].description).toBe('Override description');
+      expect(result.tools.search).toBeDefined();
+      expect(result.tools.search.description).toBe('Override description');
     });
 
     test('falls back to original tool when override processing fails', async () => {
@@ -279,7 +279,7 @@ describe('AgentMcpManager', () => {
 
       const result = await createManager().getToolSet(mcpTool);
 
-      expect(result.tools['search']).toBe(originalTool);
+      expect(result.tools.search).toBe(originalTool);
     });
   });
 

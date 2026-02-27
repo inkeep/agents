@@ -5,7 +5,6 @@ import {
   type ArtifactComponentApiInsert,
   type CredentialStoreRegistry,
   CredentialStuffer,
-  configureComposioMCPServer,
   createMessage,
   type DataComponentApiInsert,
   type DataPart,
