@@ -17,6 +17,7 @@ import { generateTriggerDefinition } from './generators/trigger-generator';
 import { mergeGeneratedModule } from './module-merge';
 import { generateScheduledTriggerDefinition } from './scheduled-trigger-generator';
 import {
+  buildComponentFileName,
   collectTemplateVariableNames,
   createInMemoryProject,
   isPlainObject,
@@ -242,7 +243,10 @@ function collectCredentialRecords(
         context,
         'credentials',
         credentialId,
-        join(context.paths.credentialsDir, `${credentialId}.ts`)
+        join(
+          context.paths.credentialsDir,
+          buildComponentFileName(credentialId, credentialData.name ?? undefined)
+        )
       ),
       payload: {
         credentialId,
@@ -266,7 +270,10 @@ function collectArtifactComponentRecords(
         context,
         'artifactComponents',
         artifactComponentId,
-        join(context.paths.artifactComponentsDir, `${artifactComponentId}.ts`)
+        join(
+          context.paths.artifactComponentsDir,
+          buildComponentFileName(artifactComponentId, artifactComponentData.name ?? undefined)
+        )
       ),
       payload: {
         artifactComponentId,
@@ -289,7 +296,10 @@ function collectDataComponentRecords(
       context,
       'dataComponents',
       dataComponentId,
-      join(context.paths.dataComponentsDir, `${dataComponentId}.ts`)
+      join(
+        context.paths.dataComponentsDir,
+        buildComponentFileName(dataComponentId, dataComponent.name ?? undefined)
+      )
     ),
     payload: {
       dataComponentId,
@@ -375,7 +385,7 @@ function collectToolRecords(
       context,
       'tools',
       toolId,
-      join(context.paths.toolsDir, `${toolId}.ts`)
+      join(context.paths.toolsDir, buildComponentFileName(toolId, toolData.name ?? undefined))
     ),
     payload: {
       mcpToolId: toolId,
@@ -517,7 +527,11 @@ function collectTriggerRecords(
           context,
           'triggers',
           triggerId,
-          join(context.paths.agentsDir, 'triggers', `${triggerId}.ts`)
+          join(
+            context.paths.agentsDir,
+            'triggers',
+            buildComponentFileName(triggerId, triggerData.name ?? undefined)
+          )
         ),
         payload: {
           triggerId,
@@ -554,7 +568,11 @@ function collectScheduledTriggerRecords(
           context,
           'scheduledTriggers',
           scheduledTriggerId,
-          join(context.paths.agentsDir, 'scheduled-triggers', `${scheduledTriggerId}.ts`)
+          join(
+            context.paths.agentsDir,
+            'scheduled-triggers',
+            buildComponentFileName(scheduledTriggerId, scheduledTriggerData.name ?? undefined)
+          )
         ),
         payload: {
           scheduledTriggerId,
@@ -581,11 +599,12 @@ function collectAgentRecords(
       continue;
     }
 
+    const agentName = typeof agentData.name === 'string' ? agentData.name : undefined;
     const agentFilePath = resolveRecordFilePath(
       context,
       'agents',
       agentId,
-      join(context.paths.agentsDir, `${agentId}.ts`)
+      join(context.paths.agentsDir, buildComponentFileName(agentId, agentName))
     );
     const existingAgent = context.existingComponentRegistry?.get(agentId, 'agents');
     const subAgentReferences = collectSubAgentReferenceOverrides(context, agentData, agentFilePath);
@@ -642,11 +661,16 @@ function collectSubAgentRecords(
       }
 
       const referenceOverrides = collectSubAgentDependencyReferenceOverrides(context, payload);
+      const subAgentName = typeof payload.name === 'string' ? payload.name : undefined;
       const subAgentFilePath = resolveRecordFilePath(
         context,
         'subAgents',
         subAgentId,
-        join(context.paths.agentsDir, 'sub-agents', `${subAgentId}.ts`)
+        join(
+          context.paths.agentsDir,
+          'sub-agents',
+          buildComponentFileName(subAgentId, subAgentName)
+        )
       );
       const contextTemplateReferences = collectContextTemplateReferences(
         context,
@@ -707,13 +731,17 @@ function collectStatusComponentRecords(
         continue;
       }
 
+      const statusComponentName = typeof payload.name === 'string' ? payload.name : undefined;
       statusComponentRecordsById.set(statusComponentId, {
         id: statusComponentId,
         filePath: resolveRecordFilePath(
           context,
           'statusComponents',
           statusComponentId,
-          join(context.paths.statusComponentsDir, `${statusComponentId}.ts`)
+          join(
+            context.paths.statusComponentsDir,
+            buildComponentFileName(statusComponentId, statusComponentName)
+          )
         ),
         payload: {
           statusComponentId,
