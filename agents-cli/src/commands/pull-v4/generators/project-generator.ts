@@ -35,8 +35,8 @@ const MySchema = FullProjectDefinitionSchema.pick({
   name: true,
   description: true,
   models: true,
-  stopWhen: true
-})
+  stopWhen: true,
+});
 
 const ProjectSchema = z.strictObject({
   projectId: z.string().nonempty(),
@@ -51,7 +51,7 @@ const ProjectSchema = z.strictObject({
   referenceOverrides: ReferenceOverridesSchema.optional(),
 });
 
-type ProjectInput = z.input<typeof ProjectSchema>
+type ProjectInput = z.input<typeof ProjectSchema>;
 
 export function generateProjectDefinition(data: ProjectInput): SourceFile {
   const result = ProjectSchema.safeParse(data);

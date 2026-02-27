@@ -611,7 +611,7 @@ async function pullSingleProject(
     }
 
     // No existing project - use introspect mode to generate fresh
-    console.log(styleText('gray', `   🆕 New project - using introspect mode`));
+    console.log(styleText('gray', `   New project - using introspect mode`));
 
     // Suppress SDK logging
     const originalLogLevel = process.env.LOG_LEVEL;
@@ -636,7 +636,37 @@ async function pullSingleProject(
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
-
+    // delete remoteProject.createdAt;
+    for (const o of Object.values(remoteProject.credentialReferences ?? {})) {
+      delete o.tenantId;
+      delete o.createdAt;
+      delete o.updatedAt;
+      delete o.createdBy;
+      delete o.id;
+      delete o.projectId;
+    }
+    for (const o of Object.values(remoteProject.dataComponents ?? {})) {
+      delete o.tenantId;
+      delete o.id;
+      delete o.projectId;
+      delete o.createdAt;
+      delete o.updatedAt;
+    }
+    for (const o of Object.values(remoteProject.artifactComponents ?? {})) {
+      delete o.tenantId;
+      delete o.id;
+      delete o.projectId;
+      delete o.createdAt;
+      delete o.updatedAt;
+    }
+    for (const o of Object.values(remoteProject.tools ?? {})) {
+      delete o.tenantId;
+      delete o.id;
+      delete o.projectId;
+      delete o.createdAt;
+      delete o.updatedAt;
+    }
+    // console.log({ remoteProject });
     // Create project structure
     const paths = createProjectStructure(targetDir);
 
