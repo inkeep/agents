@@ -889,7 +889,8 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 }
 
 /**
- * Format messages into conversation history string (extracted from legacy method)
+ * Reconstruct message text from multi-part content, converting artifact data parts to `<artifact:ref>` tags.
+ * Falls back to `content.text` for simple messages.
  */
 export function reconstructMessageText(msg: any): string {
   const parts = msg.content?.parts;

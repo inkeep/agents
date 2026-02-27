@@ -3,7 +3,7 @@ import {
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
-  type ScheduledTriggerInsert,
+  type ScheduledTriggerApiInsert,
   type SignatureVerificationConfig,
   SignatureVerificationConfigSchema,
   type TriggerApiInsert,
@@ -585,7 +585,7 @@ export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }):
  * ```
  */
 export function scheduledTrigger(
-  config: Omit<ScheduledTriggerInsert, 'id'> & { id?: string }
+  config: Omit<ScheduledTriggerApiInsert, 'id'> & { id?: string }
 ): ScheduledTrigger {
   return new ScheduledTrigger(config as ScheduledTriggerConfig);
 }

@@ -3,6 +3,7 @@ import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/
 import type { SSOProviderConfig, UserAuthConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
 import { createAgentsHono } from './createApp';
+import manageDbPool from './data/db/manageDbPool';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
 import type { SandboxConfig } from './types';
@@ -25,6 +26,7 @@ export function createAgentsAuth(userAuthConfig?: UserAuthConfig) {
     baseURL: env.INKEEP_AGENTS_API_URL || `http://localhost:3002`,
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
     dbClient: runDbClient,
+    manageDbPool,
     ...(env.AUTH_COOKIE_DOMAIN && { cookieDomain: env.AUTH_COOKIE_DOMAIN }),
     ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),

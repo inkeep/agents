@@ -3,9 +3,9 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  buildComposioMCPUrl,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  configureComposioMCPServer,
   createMessage,
   type DataComponentApiInsert,
   type DataPart,
@@ -823,7 +823,7 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const tools = await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)));
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const toolSet of tools) {
@@ -1290,16 +1290,14 @@ export class Agent {
       };
     }
 
-    // Inject user_id for Composio servers at runtime
-    if (serverConfig.url) {
-      serverConfig.url = buildComposioMCPUrl(
-        serverConfig.url.toString(),
-        this.config.tenantId,
-        this.config.projectId,
-        isUserScoped ? 'user' : 'project',
-        userId
-      );
-    }
+    // Inject user_id and x-api-key for Composio servers at runtime
+    configureComposioMCPServer(
+      serverConfig,
+      this.config.tenantId,
+      this.config.projectId,
+      isUserScoped ? 'user' : 'project',
+      userId
+    );
 
     // Merge forwarded headers (user session auth) into server config
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
@@ -1865,7 +1863,7 @@ export class Agent {
     }
   }
 
-  private collectProjectArtifactComponents(): any[] {
+  private collectProjectArtifactComponents(): ArtifactComponentApiInsert[] {
     const project = this.executionContext.project;
     try {
       const agentDefinition = project.agents[this.config.agentId];
@@ -1874,24 +1872,31 @@ export class Agent {
       }
 
       const seen = new Set<string>();
-      const all: any[] = [];
-      for (const ac of this.artifactComponents) {
-        if (ac.name && !seen.has(ac.name)) {
-          seen.add(ac.name);
-          all.push(ac);
-        }
-      }
-      for (const subAgent of Object.values(agentDefinition.subAgents)) {
-        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
-          for (const ac of subAgent.artifactComponents as any[]) {
-            if (ac.name && !seen.has(ac.name)) {
-              seen.add(ac.name);
-              all.push(ac);
-            }
+      const collected: ArtifactComponentApiInsert[] = [];
+
+      const addUnique = (components: ArtifactComponentApiInsert[]) => {
+        for (const ac of components) {
+          if (ac.name && !seen.has(ac.name)) {
+            seen.add(ac.name);
+            collected.push(ac);
           }
         }
+      };
+
+      addUnique(this.artifactComponents);
+
+      const projectArtifactComponents = project.artifactComponents || {};
+
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          const resolved = (subAgent.artifactComponents as string[])
+            .map((id) => projectArtifactComponents[id])
+            .filter(Boolean) as ArtifactComponentApiInsert[];
+          addUnique(resolved);
+        }
       }
-      return all;
+
+      return collected;
     } catch {
       return this.artifactComponents;
     }
@@ -3851,6 +3856,25 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    const entries = Array.from(this.mcpClientCache.entries());
+    if (entries.length > 0) {
+      const results = await Promise.allSettled(entries.map(([, client]) => client.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          logger.warn(
+            { error: result.reason, clientKey: entries[i][0] },
+            'Failed to disconnect MCP client during cleanup'
+          );
+        }
+      }
+    }
+    this.mcpClientCache.clear();
+    this.mcpConnectionLocks.clear();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(

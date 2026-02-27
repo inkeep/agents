@@ -9,12 +9,19 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildCitationsBlock,
+  buildDataComponentBlocks,
+  buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
   buildToolApprovalDoneBlocks,
+  buildToolApprovalExpiredBlocks,
+  buildToolOutputErrorBlock,
   createAlreadyLinkedMessage,
   createContextBlock,
+  createContextBlockFromText,
   createErrorMessage,
   createNotLinkedMessage,
+  createStatusMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../../slack/services/blocks';
@@ -28,24 +35,17 @@ describe('Slack Block Builders', () => {
       expect(result.elements[0].type).toBe('mrkdwn');
       expect(result.elements[0].text).toBe('Powered by *Test Agent* via Inkeep');
     });
+  });
 
-    it('should add private response prefix when isPrivate is true', () => {
-      const result = createContextBlock({ agentName: 'Test Agent', isPrivate: true });
+  describe('createContextBlockFromText', () => {
+    it('should create context block for subtle styling', () => {
+      const text = '_Test Agent is thinking..._';
+      const result = createContextBlockFromText(text);
 
-      expect(result.elements[0].text).toBe(
-        '_Private response_ • Powered by *Test Agent* via Inkeep'
-      );
-    });
-
-    it('should combine isPrivate correctly', () => {
-      const result = createContextBlock({
-        agentName: 'Test Agent',
-        isPrivate: true,
+      expect(result).toEqual({
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text }],
       });
-
-      expect(result.elements[0].text).toBe(
-        '_Private response_ • Powered by *Test Agent* via Inkeep'
-      );
     });
   });
 
@@ -74,7 +74,7 @@ describe('Slack Block Builders', () => {
       expect(result.blocks).toBeDefined();
       expect(JSON.stringify(result)).toContain('How to Use');
       expect(JSON.stringify(result)).toContain('Public');
-      expect(JSON.stringify(result)).toContain('Private');
+      expect(JSON.stringify(result)).toContain('Slash Commands');
       expect(JSON.stringify(result)).toContain('/inkeep status');
       expect(JSON.stringify(result)).toContain('Learn more');
     });
@@ -112,6 +112,97 @@ describe('Slack Block Builders', () => {
       expect(result.blocks).toBeDefined();
       expect(JSON.stringify(result)).toContain('Not linked');
       expect(JSON.stringify(result)).toContain('/inkeep link');
+    });
+  });
+
+  describe('createStatusMessage', () => {
+    const dashboardUrl = 'https://app.inkeep.com/tenant-1/work-apps/slack';
+
+    it('should show agent and project with links when both are available', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentName: 'Support Agent',
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          projectName: 'My Project',
+          source: 'workspace',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain('Connected to Inkeep');
+      expect(json).toContain('user@example.com');
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|Support Agent>'
+      );
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|My Project>');
+    });
+
+    it('should use agentId as display name when agentName is missing', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          projectName: 'My Project',
+          source: 'channel',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|support-agent>'
+      );
+    });
+
+    it('should use projectId as display name when projectName is missing', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentName: 'Support Agent',
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          source: 'workspace',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|proj-1>');
+    });
+
+    it('should show no agent message when effective is null', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: null,
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain('None configured');
+      expect(json).not.toContain('Project:');
+    });
+
+    it('should always include project and agent links when effective config is present', () => {
+      const result = createStatusMessage('user@example.com', '2026-01-25T12:00:00Z', dashboardUrl, {
+        channelConfig: null,
+        workspaceConfig: null,
+        effective: {
+          agentName: 'Support Agent',
+          agentId: 'support-agent',
+          projectId: 'proj-1',
+          source: 'workspace',
+        },
+      });
+
+      const json = JSON.stringify(result);
+      expect(json).toContain(
+        '<https://app.inkeep.com/tenant-1/projects/proj-1/agents/support-agent|Support Agent>'
+      );
+      expect(json).toContain('<https://app.inkeep.com/tenant-1/projects/proj-1/agents|proj-1>');
     });
   });
 });
@@ -224,5 +315,140 @@ describe('buildToolApprovalDoneBlocks', () => {
     expect(text).toContain('❌');
     expect(text).toContain('search_web');
     expect(text).toContain('<@U456>');
+  });
+});
+
+describe('mrkdwn special character escaping', () => {
+  describe('buildToolApprovalBlocks', () => {
+    it('should escape special characters in toolName', () => {
+      const blocks = buildToolApprovalBlocks({
+        toolName: 'search <web> & more',
+        buttonValue: '{}',
+      });
+      const section = blocks.find((b: any) => b.type === 'section');
+      expect(section.text.text).toContain('search &lt;web&gt; &amp; more');
+      expect(section.text.text).not.toContain('<web>');
+    });
+
+    it('should escape special characters in input field keys and values', () => {
+      const blocks = buildToolApprovalBlocks({
+        toolName: 'tool',
+        input: { '<key>': 'val & "more"', safe: 'normal' },
+        buttonValue: '{}',
+      });
+      const inputSection = blocks.find((b: any) => b.type === 'section' && b.fields);
+      const texts: string[] = inputSection.fields.map((f: any) => f.text);
+      expect(texts.some((t) => t.includes('&lt;key&gt;'))).toBe(true);
+      expect(texts.some((t) => t.includes('&amp;'))).toBe(true);
+      expect(texts.some((t) => t.includes('<key>'))).toBe(false);
+    });
+  });
+
+  describe('buildToolApprovalDoneBlocks', () => {
+    it('should escape special characters in toolName', () => {
+      const blocks = buildToolApprovalDoneBlocks({
+        toolName: 'tool <x>',
+        approved: true,
+        actorUserId: 'U1',
+      });
+      const text: string = blocks[0].elements[0].text;
+      expect(text).toContain('&lt;x&gt;');
+      expect(text).not.toContain('<x>');
+    });
+  });
+
+  describe('buildToolApprovalExpiredBlocks', () => {
+    it('should escape special characters in toolName', () => {
+      const blocks = buildToolApprovalExpiredBlocks({ toolName: 'tool & <x>' });
+      const text: string = blocks[0].elements[0].text;
+      expect(text).toContain('&amp;');
+      expect(text).toContain('&lt;x&gt;');
+    });
+  });
+
+  describe('buildToolOutputErrorBlock', () => {
+    it('should escape special characters in toolName and errorText', () => {
+      const block = buildToolOutputErrorBlock('my <tool>', 'failed: a > b & c');
+      const text: string = block.elements[0].text;
+      expect(text).toContain('&lt;tool&gt;');
+      expect(text).toContain('a &gt; b &amp; c');
+    });
+  });
+
+  describe('buildSummaryBreadcrumbBlock', () => {
+    it('should escape special characters in labels', () => {
+      const block = buildSummaryBreadcrumbBlock(['Step <1>', 'Step & 2']);
+      const text: string = block.elements[0].text;
+      expect(text).toContain('Step &lt;1&gt;');
+      expect(text).toContain('Step &amp; 2');
+    });
+  });
+
+  describe('buildDataComponentBlocks', () => {
+    it('should escape special characters in flat record field keys and values', () => {
+      const { blocks } = buildDataComponentBlocks({
+        id: 'c1',
+        data: { '<field>': 'val & more' },
+      });
+      const section = blocks.find((b: any) => b.type === 'section' && b.fields);
+      const texts: string[] = section.fields.map((f: any) => f.text);
+      expect(texts.some((t) => t.includes('&lt;field&gt;'))).toBe(true);
+      expect(texts.some((t) => t.includes('&amp;'))).toBe(true);
+    });
+  });
+
+  describe('createContextBlock', () => {
+    it('should escape special characters in agentName', () => {
+      const block = createContextBlock({ agentName: 'Agent <X> & Y' });
+      const text: string = block.elements[0].text;
+      expect(text).toContain('&lt;X&gt;');
+      expect(text).toContain('&amp;');
+      expect(text).not.toContain('<X>');
+    });
+  });
+});
+
+describe('buildCitationsBlock', () => {
+  it('should return empty array when citations is empty', () => {
+    expect(buildCitationsBlock([])).toHaveLength(0);
+  });
+
+  it('should return empty array when no citation has a url', () => {
+    expect(buildCitationsBlock([{ title: 'No URL' }])).toHaveLength(0);
+  });
+
+  it('should render each citation as a [N] Title link', () => {
+    const blocks = buildCitationsBlock([
+      { url: 'https://example.com/1', title: 'First Source' },
+      { url: 'https://example.com/2', title: 'Second Source' },
+    ]);
+    expect(blocks).toHaveLength(1);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('<https://example.com/1|[1] First Source>');
+    expect(text).toContain('<https://example.com/2|[2] Second Source>');
+  });
+
+  it('should use the url as title when title is absent', () => {
+    const blocks = buildCitationsBlock([{ url: 'https://example.com/1' }]);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('<https://example.com/1|[1] https://example.com/1>');
+  });
+
+  it('should escape special characters in the title', () => {
+    const blocks = buildCitationsBlock([{ url: 'https://example.com', title: 'A & B <title>' }]);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('A &amp; B &lt;title&gt;');
+  });
+
+  it('should append "and N more" suffix when citations exceed cap', () => {
+    const citations = Array.from({ length: 12 }, (_, i) => ({
+      url: `https://example.com/${i + 1}`,
+      title: `Source ${i + 1}`,
+    }));
+    const blocks = buildCitationsBlock(citations);
+    const text: string = blocks[0].text.text;
+    expect(text).toContain('[10]');
+    expect(text).not.toContain('[11]');
+    expect(text).toContain('_and 2 more_');
   });
 });

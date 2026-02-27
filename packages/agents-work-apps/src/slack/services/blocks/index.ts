@@ -1,79 +1,29 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
 import { z } from 'zod';
 import { SlackStrings } from '../../i18n';
+import { escapeSlackLinkText, escapeSlackMrkdwn } from '../events/utils';
 
 export function createErrorMessage(message: string) {
   return Message().blocks(Blocks.Section().text(message)).buildToObject();
 }
 
+export function createContextBlockFromText(text: string) {
+  return { type: 'context' as const, elements: [{ type: 'mrkdwn' as const, text }] };
+}
+
 export interface ContextBlockParams {
   agentName: string;
-  isPrivate?: boolean;
 }
 
 export function createContextBlock(params: ContextBlockParams) {
-  const { agentName, isPrivate = false } = params;
+  const { agentName } = params;
 
-  let text = SlackStrings.context.poweredBy(agentName);
-  if (isPrivate) {
-    text = `${SlackStrings.context.privateResponse} • ${text}`;
-  }
+  const text = SlackStrings.context.poweredBy(escapeSlackMrkdwn(agentName));
 
   return {
     type: 'context' as const,
     elements: [{ type: 'mrkdwn' as const, text }],
   };
-}
-
-export interface FollowUpButtonParams {
-  conversationId: string;
-  agentId: string;
-  agentName?: string;
-  projectId: string;
-  tenantId: string;
-  teamId: string;
-  slackUserId: string;
-  channel: string;
-}
-
-export function buildFollowUpButton(params: FollowUpButtonParams) {
-  return [
-    {
-      type: 'button' as const,
-      text: { type: 'plain_text' as const, text: SlackStrings.buttons.followUp, emoji: true },
-      action_id: 'open_follow_up_modal',
-      value: JSON.stringify(params),
-    },
-  ];
-}
-
-/**
- * Build Block Kit blocks for a private conversational response.
- * Shows the user's message, a divider, the agent response, context, and a Follow Up button.
- */
-export function buildConversationResponseBlocks(params: {
-  userMessage: string;
-  responseText: string;
-  agentName: string;
-  isError: boolean;
-  followUpParams: FollowUpButtonParams;
-}) {
-  const { responseText, agentName, isError, followUpParams } = params;
-
-  const blocks: any[] = [
-    {
-      type: 'section',
-      text: { type: 'mrkdwn', text: responseText },
-    },
-  ];
-
-  if (!isError) {
-    const contextBlock = createContextBlock({ agentName });
-    blocks.push(contextBlock);
-    blocks.push({ type: 'actions', elements: buildFollowUpButton(followUpParams) });
-  }
-
-  return blocks;
 }
 
 export function createUpdatedHelpMessage() {
@@ -82,7 +32,7 @@ export function createUpdatedHelpMessage() {
       Blocks.Header().text(SlackStrings.help.title),
       Blocks.Section().text(SlackStrings.help.publicSection),
       Blocks.Divider(),
-      Blocks.Section().text(SlackStrings.help.privateSection),
+      Blocks.Section().text(SlackStrings.help.slashSection),
       Blocks.Divider(),
       Blocks.Section().text(SlackStrings.help.otherCommands),
       Blocks.Divider(),
@@ -137,9 +87,25 @@ export function createNotLinkedMessage() {
 }
 
 export interface AgentConfigSources {
-  channelConfig: { agentName?: string; agentId: string } | null;
-  workspaceConfig: { agentName?: string; agentId: string } | null;
-  effective: { agentName?: string; agentId: string; source: string } | null;
+  channelConfig: {
+    agentName?: string;
+    agentId: string;
+    projectId: string;
+    projectName?: string;
+  } | null;
+  workspaceConfig: {
+    agentName?: string;
+    agentId: string;
+    projectId: string;
+    projectName?: string;
+  } | null;
+  effective: {
+    agentName?: string;
+    agentId: string;
+    projectId: string;
+    projectName?: string;
+    source: string;
+  } | null;
 }
 
 export function createStatusMessage(
@@ -150,29 +116,56 @@ export function createStatusMessage(
 ) {
   const { effective } = agentConfigs;
 
+  const baseUrl = dashboardUrl.replace(/\/work-apps\/slack$/, '');
+
   let agentLine: string;
+  let projectLine: string;
   if (effective) {
-    agentLine = `${Md.bold('Agent:')} ${effective.agentName || effective.agentId}`;
+    const agentDisplayName = effective.agentName || effective.agentId;
+    const agentUrl = `${baseUrl}/projects/${effective.projectId}/agents/${effective.agentId}`;
+    agentLine = `${Md.bold('Agent:')} <${agentUrl}|${agentDisplayName}>`;
+    const projectDisplayName = effective.projectName || effective.projectId;
+    const projectUrl = `${baseUrl}/projects/${effective.projectId}/agents`;
+    projectLine = `${Md.bold('Project:')} <${projectUrl}|${projectDisplayName}>`;
   } else {
     agentLine =
       `${Md.bold('Agent:')} None configured\n` +
       `${Md.italic('Ask your admin to set up an agent in the dashboard.')}`;
+    projectLine = '';
+  }
+
+  const lines = [
+    Md.bold('Connected to Inkeep'),
+    '',
+    `${Md.bold('Account:')} ${email}`,
+    `${Md.bold('Linked:')} ${new Date(linkedAt).toLocaleDateString()}`,
+    agentLine,
+  ];
+  if (projectLine) {
+    lines.push(projectLine);
   }
 
   return Message()
     .blocks(
-      Blocks.Section().text(
-        Md.bold('Connected to Inkeep') +
-          `\n\n${Md.bold('Account:')} ${email}\n` +
-          `${Md.bold('Linked:')} ${new Date(linkedAt).toLocaleDateString()}\n` +
-          agentLine
-      ),
+      Blocks.Section().text(lines.join('\n')),
       Blocks.Actions().elements(
         Elements.Button()
           .text(SlackStrings.buttons.openDashboard)
           .url(dashboardUrl)
           .actionId('open_dashboard')
       )
+    )
+    .buildToObject();
+}
+
+export function createSmartLinkMessage(linkUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text("To get started, let's connect your Inkeep account with Slack."),
+      Blocks.Actions().elements(
+        Elements.Button().text('Link Account').url(linkUrl).actionId('smart_link_account').primary()
+      ),
+      Blocks.Context().elements('🕐 This only needs to happen once.')
     )
     .buildToObject();
 }
@@ -184,7 +177,7 @@ export interface ToolApprovalButtonValue {
   agentId: string;
   slackUserId: string;
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   toolName: string;
 }
 
@@ -195,7 +188,7 @@ export const ToolApprovalButtonValueSchema = z.object({
   agentId: z.string(),
   slackUserId: z.string(),
   channel: z.string(),
-  threadTs: z.string(),
+  threadTs: z.string().optional(),
   toolName: z.string(),
 });
 
@@ -209,7 +202,7 @@ export function buildToolApprovalBlocks(params: {
   const blocks: any[] = [
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Approval required - \`${toolName}\`*` },
+      text: { type: 'mrkdwn', text: `Approval required for *${escapeSlackMrkdwn(toolName)}*` },
     },
   ];
 
@@ -219,7 +212,10 @@ export function buildToolApprovalBlocks(params: {
       .map(([k, v]) => {
         const val = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
         const truncated = val.length > 80 ? `${val.slice(0, 80)}…` : val;
-        return { type: 'mrkdwn', text: `*${k}:*\n${truncated}` };
+        return {
+          type: 'mrkdwn',
+          text: `*${escapeSlackMrkdwn(k)}:*\n${escapeSlackMrkdwn(truncated)}`,
+        };
       });
     blocks.push({ type: 'section', fields });
   }
@@ -254,8 +250,8 @@ export function buildToolApprovalDoneBlocks(params: {
 }) {
   const { toolName, approved, actorUserId } = params;
   const statusText = approved
-    ? `✅ Approved \`${toolName}\` · <@${actorUserId}>`
-    : `❌ Denied \`${toolName}\` · <@${actorUserId}>`;
+    ? `✅ <@${actorUserId}> approved *${escapeSlackMrkdwn(toolName)}*`
+    : `❌ <@${actorUserId}> denied *${escapeSlackMrkdwn(toolName)}*`;
 
   return [{ type: 'context', elements: [{ type: 'mrkdwn', text: statusText }] }];
 }
@@ -264,7 +260,7 @@ export function buildToolApprovalExpiredBlocks(params: { toolName: string }) {
   return [
     {
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `⏱️ Expired · \`${params.toolName}\`` }],
+      elements: [{ type: 'mrkdwn', text: `⏱️ Expired · \`${escapeSlackMrkdwn(params.toolName)}\`` }],
     },
   ];
 }
@@ -273,14 +269,19 @@ export function buildToolOutputErrorBlock(toolName: string, errorText: string) {
   const truncated = errorText.length > 100 ? `${errorText.slice(0, 100)}…` : errorText;
   return {
     type: 'context' as const,
-    elements: [{ type: 'mrkdwn' as const, text: `⚠️ *${toolName}* · failed: ${truncated}` }],
+    elements: [
+      {
+        type: 'mrkdwn' as const,
+        text: `⚠️ *${escapeSlackMrkdwn(toolName)}* · failed: ${escapeSlackMrkdwn(truncated)}`,
+      },
+    ],
   };
 }
 
 export function buildSummaryBreadcrumbBlock(labels: string[]) {
   return {
     type: 'context' as const,
-    elements: [{ type: 'mrkdwn' as const, text: labels.join(' → ') }],
+    elements: [{ type: 'mrkdwn' as const, text: labels.map(escapeSlackMrkdwn).join(' → ') }],
   };
 }
 
@@ -329,9 +330,10 @@ export function buildDataComponentBlocks(component: {
         .slice(0, 10)
         .map(([k, v]) => {
           const val = String(v ?? '');
+          const truncated = val.length > 80 ? `${val.slice(0, 80)}…` : val;
           return {
             type: 'mrkdwn',
-            text: `*${k}*\n${val.length > 80 ? `${val.slice(0, 80)}…` : val}`,
+            text: `*${escapeSlackMrkdwn(k)}*\n${escapeSlackMrkdwn(truncated)}`,
           };
         });
       blocks.push({ type: 'section', fields });
@@ -351,7 +353,9 @@ export function buildDataComponentBlocks(component: {
   if (componentType) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `data component · type: ${componentType}` }],
+      elements: [
+        { type: 'mrkdwn', text: `data component · type: ${escapeSlackMrkdwn(componentType)}` },
+      ],
     });
   }
 
@@ -372,7 +376,8 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
     const lines = shown
       .map((s) => {
         const url = s.url || s.href;
-        const title = s.title || s.name || url;
+        const rawTitle = s.title || s.name || url;
+        const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
         return url ? `• <${url}|${title}>` : null;
       })
       .filter((l): l is string => l !== null);
@@ -386,7 +391,7 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
         blocks: [
           {
             type: 'section',
-            text: { type: 'mrkdwn', text: `📚 *Sources*\n${lines.join('\n')}${suffix}` },
+            text: { type: 'mrkdwn', text: `*Sources*\n${lines.join('\n')}${suffix}` },
           },
         ],
       };
@@ -403,7 +408,7 @@ export function buildDataArtifactBlocks(artifact: { data: Record<string, unknown
   if (artifactType) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `type: ${artifactType}` }],
+      elements: [{ type: 'mrkdwn', text: `type: ${escapeSlackMrkdwn(artifactType)}` }],
     });
   }
 
@@ -423,10 +428,11 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   const MAX_CITATIONS = 10;
   const shown = citations.slice(0, MAX_CITATIONS);
   const lines = shown
-    .map((c) => {
+    .map((c, i) => {
       const url = c.url;
-      const title = c.title || url;
-      return url ? `• <${url}|${title}>` : null;
+      const rawTitle = c.title || url;
+      const title = rawTitle ? escapeSlackLinkText(rawTitle) : rawTitle;
+      return url ? `<${url}|[${i + 1}] ${title}>` : null;
     })
     .filter((l): l is string => l !== null);
 
@@ -437,24 +443,9 @@ export function buildCitationsBlock(citations: Array<{ title?: string; url?: str
   return [
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `📚 *Sources*\n${lines.join('\n')}${suffix}` },
+      text: { type: 'mrkdwn', text: `*Sources*\n${lines.join('\n')}${suffix}` },
     },
   ];
-}
-
-export function createJwtLinkMessage(linkUrl: string, expiresInMinutes: number) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold('Link your Inkeep account')}\n\n` +
-          'Connect your Slack and Inkeep accounts to use Inkeep agents.'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('Link Account').url(linkUrl).actionId('link_account').primary()
-      ),
-      Blocks.Context().elements(`This link expires in ${expiresInMinutes} minutes.`)
-    )
-    .buildToObject();
 }
 
 export function createCreateInkeepAccountMessage(acceptUrl: string, expiresInMinutes: number) {

@@ -200,11 +200,14 @@ export function AgentConfigurationCard() {
 
     setSavingChannel(channelId);
 
+    const channel = channels.find((ch) => ch.id === channelId);
+    const grantAccessToMembers = channel?.agentConfig?.grantAccessToMembers ?? true;
+
     const config = {
       projectId: agent.projectId,
       agentId: agent.id,
       agentName: agent.name || agent.id,
-      grantAccessToMembers: true,
+      grantAccessToMembers,
     };
 
     try {
@@ -466,7 +469,7 @@ export function AgentConfigurationCard() {
               `Used by ${channelsUsingDefault.length} channel${channelsUsingDefault.length !== 1 ? 's' : ''}.`}
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="min-w-0 space-y-6">
           <WorkspaceDefaultSection
             defaultAgent={defaultAgent}
             agents={agents}

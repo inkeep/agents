@@ -114,8 +114,8 @@ describe('ArtifactParser — typeSchema in data parts', () => {
     vi.restoreAllMocks();
   });
 
-  describe('typeSchemaMap construction', () => {
-    it('builds typeSchemaMap from artifactComponents with inPreview fields', async () => {
+  describe('artifactSchemasByType construction', () => {
+    it('builds artifactSchemasByType from artifactComponents with inPreview fields', async () => {
       const parser = new ArtifactParser(mockExecutionContext, {
         artifactService: mockArtifactService,
         artifactComponents: testArtifactComponents,
@@ -139,11 +139,11 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       expect(dataPart).toBeDefined();
       expect(dataPart?.data?.typeSchema).toBeDefined();
 
-      expect(dataPart?.data?.typeSchema?.previewShape).toEqual({
+      expect(dataPart?.data?.typeSchema?.preview).toEqual({
         title: 'string',
         summary: 'string',
       });
-      expect(dataPart?.data?.typeSchema?.fullShape).toEqual({
+      expect(dataPart?.data?.typeSchema?.full).toEqual({
         title: 'string',
         summary: 'string',
         content: 'string',
@@ -272,7 +272,7 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       const parts = await parser.parseObject(obj, undefined);
       const dataPart = parts.find((p) => p.kind === 'data');
       expect(dataPart?.data?.typeSchema).toBeDefined();
-      expect(dataPart?.data?.typeSchema?.previewShape).toEqual({
+      expect(dataPart?.data?.typeSchema?.preview).toEqual({
         title: 'string',
         summary: 'string',
       });

@@ -4,7 +4,7 @@ import { defineConfig } from 'cypress';
 try {
   process.loadEnvFile('../../.env');
 } catch {
-  // In CI, environment variables are set directly via workflow env blocks
+  // In CI, setup-dev generates .env and exports values to $GITHUB_ENV
 }
 
 export default defineConfig({

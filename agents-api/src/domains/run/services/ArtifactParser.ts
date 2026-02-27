@@ -77,9 +77,9 @@ export class ArtifactParser {
 
   private artifactService: ArtifactService;
   private contextWindowSize?: number;
-  private typeSchemaMap: Record<
+  private artifactSchemasByType: Record<
     string,
-    { previewShape: Record<string, unknown>; fullShape: Record<string, unknown> }
+    { preview: Record<string, unknown>; full: Record<string, unknown> }
   > = {};
 
   constructor(
@@ -111,11 +111,9 @@ export class ArtifactParser {
         if (ac.name && (ac.props as any)?.properties) {
           const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
           const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
-          this.typeSchemaMap[ac.name] = {
-            previewShape: previewSchema.properties
-              ? buildSchemaShape(previewSchema.properties)
-              : {},
-            fullShape: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
+          this.artifactSchemasByType[ac.name] = {
+            preview: previewSchema.properties ? buildSchemaShape(previewSchema.properties) : {},
+            full: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
           };
         }
       }
@@ -130,7 +128,7 @@ export class ArtifactParser {
   }
 
   private buildArtifactDataPart(artifactData: ArtifactSummaryData): StreamPart {
-    const schemas = this.typeSchemaMap[artifactData.type ?? ''];
+    const schemas = this.artifactSchemasByType[artifactData.type ?? ''];
     return {
       kind: 'data',
       data: {

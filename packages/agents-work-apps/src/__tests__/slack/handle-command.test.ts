@@ -14,6 +14,13 @@ vi.mock('@inkeep/agents-core', () => ({
   deleteWorkAppSlackUserMapping: () => vi.fn().mockResolvedValue(true),
   findWorkAppSlackUserMapping: () => vi.fn().mockResolvedValue(null),
   findWorkAppSlackUserMappingBySlackUser: () => vi.fn().mockResolvedValue(null),
+  flushTraces: vi.fn().mockReturnValue(Promise.resolve()),
+  getTracer: vi.fn(() => ({
+    startActiveSpan: vi.fn((_name: string, fn: (span: unknown) => unknown) =>
+      fn({ setAttribute: vi.fn(), end: vi.fn() })
+    ),
+  })),
+  getWaitUntil: vi.fn().mockResolvedValue(null),
   signSlackLinkToken: vi.fn().mockResolvedValue('mock-link-token'),
   signSlackUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
 }));
@@ -56,6 +63,10 @@ vi.mock('../../slack/services/client', () => ({
   })),
 }));
 
+vi.mock('../../slack/services/events/execution', () => ({
+  executeAgentPublicly: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../slack/services/events/utils', () => ({
   fetchProjectsForTenant: vi.fn().mockResolvedValue([{ id: 'proj-1', name: 'Project' }]),
   fetchAgentsForProject: vi
@@ -63,11 +74,15 @@ vi.mock('../../slack/services/events/utils', () => ({
     .mockResolvedValue([
       { id: 'agent-1', name: 'Agent', projectId: 'proj-1', projectName: 'Project' },
     ]),
+  generateSlackConversationId: vi.fn().mockReturnValue('slack-trigger-T789-123.456000-agent-1'),
   getChannelAgentConfig: vi.fn().mockResolvedValue(null),
-  sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../slack/services/blocks', () => ({
+  createContextBlockFromText: vi.fn((msg: string) => ({
+    type: 'context',
+    elements: [{ type: 'mrkdwn', text: msg }],
+  })),
   createErrorMessage: vi.fn((msg: string) => ({
     blocks: [{ type: 'section', text: { type: 'mrkdwn', text: msg } }],
   })),
@@ -76,8 +91,17 @@ vi.mock('../../slack/services/blocks', () => ({
   createNotLinkedMessage: vi.fn(() => ({ blocks: [] })),
   createUnlinkSuccessMessage: vi.fn(() => ({ blocks: [] })),
   createStatusMessage: vi.fn(() => ({ blocks: [] })),
-  createJwtLinkMessage: vi.fn(() => ({ blocks: [] })),
+  createSmartLinkMessage: vi.fn(() => ({ blocks: [] })),
   createContextBlock: vi.fn(() => ({ type: 'context', elements: [] })),
+}));
+
+vi.mock('../../slack/services/link-prompt', () => ({
+  resolveUnlinkedUserAction: vi.fn().mockResolvedValue({
+    type: 'jwt_link',
+    url: 'http://localhost:3000/link?token=test',
+    expiresInMinutes: 10,
+  }),
+  buildLinkPromptMessage: vi.fn().mockReturnValue({ text: 'Link account', blocks: [] }),
 }));
 
 vi.mock('../../slack/services/modals', () => ({

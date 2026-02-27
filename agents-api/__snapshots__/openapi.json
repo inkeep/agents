@@ -752,7 +752,7 @@
           },
           "name": {
             "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -760,7 +760,8 @@
           }
         },
         "required": [
-          "agentId"
+          "agentId",
+          "name"
         ],
         "type": "object"
       },
@@ -808,7 +809,7 @@
           },
           "name": {
             "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -3964,6 +3965,7 @@
       "ExternalAgentCreate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
@@ -3971,19 +3973,18 @@
           },
           "credentialReferenceId": {
             "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
@@ -4028,6 +4029,7 @@
       "ExternalAgentUpdate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
@@ -4035,19 +4037,18 @@
           },
           "credentialReferenceId": {
             "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
@@ -6074,6 +6075,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "maxLength": 256,
             "nullable": true,
@@ -6120,6 +6126,11 @@
             "minimum": -9007199254740991,
             "type": "number"
           },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "runAt": {
             "nullable": true,
             "type": "string"
@@ -6145,6 +6156,8 @@
           "maxRetries",
           "retryDelaySeconds",
           "timeoutSeconds",
+          "runAsUserId",
+          "createdBy",
           "createdAt",
           "updatedAt"
         ],
@@ -6153,6 +6166,11 @@
       "ScheduledTriggerCreate": {
         "properties": {
           "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
             "type": "string"
           },
           "cronExpression": {
@@ -6208,6 +6226,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -6235,6 +6258,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "$ref": "#/components/schemas/CronExpression"
           },
@@ -6288,6 +6316,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -6455,6 +6488,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "$ref": "#/components/schemas/CronExpression"
           },
@@ -6511,6 +6549,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -38378,6 +38421,9 @@
                           "hasDefaultAgent": {
                             "type": "boolean"
                           },
+                          "teamDomain": {
+                            "type": "string"
+                          },
                           "teamId": {
                             "type": "string"
                           },
@@ -38559,7 +38605,7 @@
     },
     "/work-apps/slack/workspaces/{teamId}/channels": {
       "get": {
-        "description": "List Slack channels in the workspace that the bot can see",
+        "description": "List Slack channels where the bot is a member",
         "operationId": "slack-list-channels",
         "parameters": [
           {

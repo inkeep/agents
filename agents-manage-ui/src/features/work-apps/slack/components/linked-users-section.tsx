@@ -2,7 +2,6 @@
 
 import {
   Download,
-  Link2,
   Loader2,
   MoreHorizontal,
   RefreshCw,
@@ -37,6 +36,7 @@ import { formatDateAgo } from '@/lib/utils/format-date';
 import { useSlackLinkedUsersQuery, useSlackUnlinkUserMutation } from '../api/queries';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
+import { getSlackProfileUrl } from '../utils/slack-urls';
 
 interface LinkedUser {
   id: string;
@@ -122,7 +122,7 @@ export function LinkedUsersSection() {
         <p className="text-sm font-medium truncate">
           {user.slackUserId ? (
             <a
-              href={`https://app.slack.com/team/${user.slackUserId}`}
+              href={getSlackProfileUrl(user.slackUserId, selectedWorkspace?.teamDomain)}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"
@@ -212,10 +212,7 @@ export function LinkedUsersSection() {
             </div>
           ) : linkedUsers.length === 0 ? (
             <div className="text-center py-6 space-y-2">
-              <div className="rounded-full bg-muted p-3 w-fit mx-auto">
-                <Link2 className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">No users linked yet</p>
+              <p className="text-sm text-muted-foreground">No users linked yet.</p>
               <p className="text-xs text-muted-foreground">
                 Users can run{' '}
                 <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/inkeep link</code> in
