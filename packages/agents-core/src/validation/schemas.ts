@@ -1651,9 +1651,14 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).ope
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
-export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
-  id: ResourceIdSchema,
-});
+export const DataComponentInsertSchema = createInsertSchema(dataComponents)
+  .extend({
+    id: ResourceIdSchema,
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
@@ -1828,15 +1833,17 @@ export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
-export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
-  id: ResourceIdSchema,
-  type: z.string(),
-  credentialStoreId: ResourceIdSchema,
-  retrievalParams: z.record(z.string(), z.unknown()).nullish(),
-}).omit({
+export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences)
+  .extend({
+    id: ResourceIdSchema,
+    type: z.string(),
+    credentialStoreId: ResourceIdSchema,
+    retrievalParams: z.record(z.string(), z.unknown()).nullish(),
+  })
+  .omit({
     createdAt: true,
-    updatedAt: true
-});
+    updatedAt: true,
+  });
 
 export const CredentialReferenceUpdateSchema = CredentialReferenceInsertSchema.partial();
 

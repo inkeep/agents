@@ -2241,9 +2241,6 @@
       },
       "DataComponentCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
@@ -2286,9 +2283,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -2329,9 +2323,6 @@
       },
       "DataComponentUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
@@ -2374,9 +2365,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
