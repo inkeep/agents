@@ -59,10 +59,8 @@ if (isolatedName) {
   if (existsSync(stateFile)) {
     const state = JSON.parse(readFileSync(stateFile, 'utf-8'));
     const p = state.ports;
-    process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL =
-      `postgresql://appuser:password@localhost:${p.doltgres}/inkeep_agents`;
-    process.env.INKEEP_AGENTS_RUN_DATABASE_URL =
-      `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
+    process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL = `postgresql://appuser:password@localhost:${p.doltgres}/inkeep_agents`;
+    process.env.INKEEP_AGENTS_RUN_DATABASE_URL = `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
     process.env.SPICEDB_ENDPOINT = `localhost:${p.spicedb_grpc}`;
   }
 
@@ -73,11 +71,13 @@ if (isolatedName) {
     manageMigrateCommand: 'true',
     runMigrateCommand: 'true',
     authInitCommand: 'true',
-    pushProject: skipPush ? undefined : {
-      projectPath: 'agents-cookbook/template-projects/activities-planner',
-      configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
-      apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
-    },
+    pushProject: skipPush
+      ? undefined
+      : {
+          projectPath: 'agents-cookbook/template-projects/activities-planner',
+          configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
+          apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+        },
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: 'http://localhost:3002/health',
     isCloud: true,
