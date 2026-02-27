@@ -481,19 +481,12 @@ export function serializeAgentData(
       // Handle edges to external agents (only delegation is allowed)
       if (isTargetExternal) {
         if (relationships.delegateSourceToTarget) {
-          const tempHeaders = (targetExternalAgent as any).tempHeaders;
-          let externalAgentHeaders: Record<string, string> | undefined;
-          const relationshipId = (targetExternalAgent as any).relationshipId;
+          const relationshipId = (targetExternalAgent as any).relationshipId as string | undefined;
+          let externalAgentHeaders = (targetExternalAgent as any).headers as
+            | Record<string, string>
+            | undefined;
 
-          if (tempHeaders !== undefined) {
-            if (
-              typeof tempHeaders === 'object' &&
-              tempHeaders !== null &&
-              !Array.isArray(tempHeaders)
-            ) {
-              externalAgentHeaders = tempHeaders;
-            }
-          } else {
+          if (externalAgentHeaders === undefined) {
             const existingConfig = relationshipId
               ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
               : null;
@@ -518,19 +511,12 @@ export function serializeAgentData(
       // Handle edges to team agents (only delegation is allowed)
       if (isTargetTeamAgent) {
         if (relationships.delegateSourceToTarget) {
-          const tempHeaders = (targetAgentNode as any).data?.tempHeaders;
-          let teamAgentHeaders: Record<string, string> | undefined;
-          const relationshipId = (targetAgentNode as any).data?.relationshipId;
+          const relationshipId = (targetTeamAgent as any).relationshipId as string | undefined;
+          let teamAgentHeaders = (targetTeamAgent as any).headers as
+            | Record<string, string>
+            | undefined;
 
-          if (tempHeaders !== undefined) {
-            if (
-              typeof tempHeaders === 'object' &&
-              tempHeaders !== null &&
-              !Array.isArray(tempHeaders)
-            ) {
-              teamAgentHeaders = tempHeaders;
-            }
-          } else {
+          if (teamAgentHeaders === undefined) {
             const existingConfig = relationshipId
               ? subAgentTeamAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
               : null;
