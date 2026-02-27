@@ -99,7 +99,7 @@ Sometimes, you want your Agent to reply not in plain text but with specific type
 
 With Inkeep, there are a few ways to do this:
 - **Data Components**: Structured Outputs that Sub Agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
-- **Artifacts**: A Sub Agent can save information from a **tool call result** as an artifact in order to make it available to others. For example, a Sub Agent that did a web search can save the contents of a webpage it looked at as an artifact. Once saved, a Sub Agent can cite or reference artifacts in its response, and other Sub Agents or users can fetch the full artifacts if they'd like.
+- **Artifacts**: A Sub Agent can save information from a **tool call result** as an artifact. Artifact schemas define **preview fields** (immediately available in the agent's context and streamed to clients) and non-preview fields (persisted in storage but kept out of context by default). Agents can reference artifacts in their responses, pass them to tools for full data access, or retrieve the complete artifact on demand when they need the non-preview fields. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) for details.
 - **Status Updates**: Real-time progress updates that can be plain text or Structured Outputs that can be used to keep users informed about what the Sub Agent is doing during longer operations.
 
 ## Passing context to Sub Agents
