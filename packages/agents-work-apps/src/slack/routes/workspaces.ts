@@ -31,6 +31,8 @@ import {
   listWorkAppSlackUserMappingsByTeam,
   updateWorkAppSlackWorkspace,
   upsertWorkAppSlackChannelAgentConfig,
+  WorkAppSlackAgentConfigRequestSchema,
+  WorkAppSlackAgentConfigResponseSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
@@ -69,26 +71,12 @@ function verifyTenantOwnership(
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const ChannelAgentConfigResponseSchema = z.object({
-  projectId: z.string(),
-  agentId: z.string(),
-  agentName: z.string().optional(),
-  projectName: z.string().optional(),
-  grantAccessToMembers: z.boolean().optional(),
-});
-
-const ChannelAgentConfigRequestSchema = z.object({
-  projectId: z.string(),
-  agentId: z.string(),
-  grantAccessToMembers: z.boolean().optional(),
-});
-
 const WorkspaceSettingsResponseSchema = z.object({
-  defaultAgent: ChannelAgentConfigResponseSchema.optional(),
+  defaultAgent: WorkAppSlackAgentConfigResponseSchema.optional(),
 });
 
 const WorkspaceSettingsRequestSchema = z.object({
-  defaultAgent: ChannelAgentConfigRequestSchema.optional(),
+  defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
 });
 
 const JoinFromWorkspaceSettingsSchema = z.object({
@@ -205,7 +193,7 @@ app.openapi(
               teamName: z.string().optional(),
               tenantId: z.string(),
               connectionId: z.string(),
-              defaultAgent: ChannelAgentConfigResponseSchema.optional(),
+              defaultAgent: WorkAppSlackAgentConfigResponseSchema.optional(),
             }),
           },
         },
@@ -690,7 +678,7 @@ app.openapi(
                   isShared: z.boolean(),
                   memberCount: z.number().optional(),
                   hasAgentConfig: z.boolean(),
-                  agentConfig: ChannelAgentConfigResponseSchema.optional(),
+                  agentConfig: WorkAppSlackAgentConfigResponseSchema.optional(),
                 })
               ),
               nextCursor: z.string().optional(),
@@ -809,7 +797,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelId: z.string(),
-              agentConfig: ChannelAgentConfigResponseSchema.optional(),
+              agentConfig: WorkAppSlackAgentConfigResponseSchema.optional(),
             }),
           },
         },
@@ -875,7 +863,7 @@ app.openapi(
         content: {
           'application/json': {
             schema: z.object({
-              agentConfig: ChannelAgentConfigRequestSchema,
+              agentConfig: WorkAppSlackAgentConfigRequestSchema,
               channelName: z.string().optional(),
               channelType: z.string().optional(),
             }),
@@ -965,7 +953,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelIds: z.array(z.string()).min(1),
-              agentConfig: ChannelAgentConfigRequestSchema,
+              agentConfig: WorkAppSlackAgentConfigRequestSchema,
             }),
           },
         },

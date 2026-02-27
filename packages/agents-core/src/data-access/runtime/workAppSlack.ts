@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
@@ -504,3 +506,62 @@ export const clearWorkspaceDefaultsByProject =
 
     return result.length;
   };
+
+// ============================================================================
+// Dev Mode (.slack-dev.json) Workspace Default Clearing
+// ============================================================================
+// In development, workspace config lives in .slack-dev.json instead of PostgreSQL.
+// These functions handle clearing stale default agents from the dev config file
+// during cascade deletes, so deleted agents don't persist as workspace defaults.
+
+const DEV_CONFIG_FILENAME = '.slack-dev.json';
+
+function findSlackDevConfigPath(): string | null {
+  if (process.env.ENVIRONMENT !== 'development') return null;
+
+  let dir = process.cwd();
+  while (true) {
+    const candidate = join(dir, DEV_CONFIG_FILENAME);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+export function clearDevConfigWorkspaceDefaultsByAgent(projectId: string, agentId: string): void {
+  const configPath = findSlackDevConfigPath();
+  if (!configPath) return;
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    if (!config?.metadata?.default_agent) return;
+
+    const defaultAgent = JSON.parse(config.metadata.default_agent);
+    if (defaultAgent.agentId === agentId && defaultAgent.projectId === projectId) {
+      config.metadata.default_agent = '';
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+    }
+  } catch {
+    // Invalid JSON or file read error — safe to ignore during cleanup
+  }
+}
+
+export function clearDevConfigWorkspaceDefaultsByProject(projectId: string): void {
+  const configPath = findSlackDevConfigPath();
+  if (!configPath) return;
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    if (!config?.metadata?.default_agent) return;
+
+    const defaultAgent = JSON.parse(config.metadata.default_agent);
+    if (defaultAgent.projectId === projectId) {
+      config.metadata.default_agent = '';
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+    }
+  } catch {
+    // Invalid JSON or file read error — safe to ignore during cleanup
+  }
+}

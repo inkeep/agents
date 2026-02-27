@@ -22,6 +22,7 @@ import {
   listWorkAppSlackWorkspacesByTenant,
   retryWithBackoff,
   updateWorkAppSlackWorkspace,
+  type WorkAppSlackAgentConfigRequest,
 } from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
 import runDbClient from '../../db/runDbClient';
@@ -141,13 +142,10 @@ export async function getConnectionAccessToken(connectionId: string): Promise<st
   }
 }
 
-export interface DefaultAgentConfig {
-  agentId: string;
+export type DefaultAgentConfig = WorkAppSlackAgentConfigRequest & {
   agentName?: string;
-  projectId: string;
   projectName?: string;
-  grantAccessToMembers?: boolean;
-}
+};
 
 export interface SlackWorkspaceConnection {
   connectionId: string;
@@ -414,29 +412,6 @@ export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultA
 
 /** @deprecated Use `getWorkspaceDefaultAgent` instead */
 export const getWorkspaceDefaultAgentFromNango = getWorkspaceDefaultAgent;
-
-/**
- * Clear workspace default agent when the referenced agent is deleted.
- * Handles dev mode (.slack-dev.json) since cascade delete only covers PostgreSQL.
- * Production cleanup is handled by cascadeDeleteByAgent in the data access layer.
- */
-export function clearWorkspaceDefaultsForDeletedAgent(projectId: string, agentId: string): void {
-  if (!isSlackDevMode()) return;
-
-  const devConfig = loadSlackDevConfig();
-  if (!devConfig?.metadata?.default_agent) return;
-
-  try {
-    const defaultAgent = JSON.parse(devConfig.metadata.default_agent);
-    if (defaultAgent.agentId === agentId && defaultAgent.projectId === projectId) {
-      devConfig.metadata.default_agent = '';
-      saveSlackDevConfig(devConfig);
-      clearWorkspaceConnectionCache(devConfig.teamId);
-    }
-  } catch {
-    // Invalid JSON in dev config, ignore
-  }
-}
 
 /**
  * Compute a stable, deterministic connection ID for a Slack workspace.

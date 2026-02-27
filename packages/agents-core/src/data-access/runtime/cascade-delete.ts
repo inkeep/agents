@@ -9,10 +9,16 @@ import {
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectAccessMode,
   workAppGitHubProjectRepositoryAccess,
-  workAppSlackChannelAgentConfigs,
-  workAppSlackWorkspaces,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
+import {
+  clearDevConfigWorkspaceDefaultsByAgent,
+  clearDevConfigWorkspaceDefaultsByProject,
+  clearWorkspaceDefaultsByAgent,
+  clearWorkspaceDefaultsByProject,
+  deleteWorkAppSlackChannelAgentConfigsByAgent,
+  deleteWorkAppSlackChannelAgentConfigsByProject,
+} from './workAppSlack';
 
 /**
  * Result of a cascade delete operation
@@ -152,39 +158,25 @@ export const cascadeDeleteByProject =
       projectId: scopes.projectId,
     });
 
-    const slackConfigsResult = await db
-      .delete(workAppSlackChannelAgentConfigs)
-      .where(
-        and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, scopes.tenantId),
-          eq(workAppSlackChannelAgentConfigs.projectId, scopes.projectId)
-        )
-      )
-      .returning();
+    const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByProject(db)(
+      scopes.tenantId,
+      scopes.projectId
+    );
 
-    const slackWorkspaceDefaultsResult = await db
-      .update(workAppSlackWorkspaces)
-      .set({
-        defaultAgentId: null,
-        defaultProjectId: null,
-        defaultGrantAccessToMembers: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(workAppSlackWorkspaces.tenantId, scopes.tenantId),
-          eq(workAppSlackWorkspaces.defaultProjectId, scopes.projectId)
-        )
-      )
-      .returning();
+    const slackWorkspaceDefaultsCleared = await clearWorkspaceDefaultsByProject(db)(
+      scopes.tenantId,
+      scopes.projectId
+    );
+
+    clearDevConfigWorkspaceDefaultsByProject(scopes.projectId);
 
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
       apiKeysDeleted: apiKeysResult.length,
-      slackChannelConfigsDeleted: slackConfigsResult.length,
-      slackWorkspaceDefaultsCleared: slackWorkspaceDefaultsResult.length,
+      slackChannelConfigsDeleted,
+      slackWorkspaceDefaultsCleared,
     };
   };
 
@@ -282,41 +274,27 @@ export const cascadeDeleteByAgent =
       .returning();
     apiKeysDeleted = apiKeysResult.length;
 
-    const slackConfigsResult = await db
-      .delete(workAppSlackChannelAgentConfigs)
-      .where(
-        and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, scopes.tenantId),
-          eq(workAppSlackChannelAgentConfigs.projectId, scopes.projectId),
-          eq(workAppSlackChannelAgentConfigs.agentId, scopes.agentId)
-        )
-      )
-      .returning();
+    const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByAgent(db)(
+      scopes.tenantId,
+      scopes.projectId,
+      scopes.agentId
+    );
 
-    const slackWorkspaceDefaultsResult = await db
-      .update(workAppSlackWorkspaces)
-      .set({
-        defaultAgentId: null,
-        defaultProjectId: null,
-        defaultGrantAccessToMembers: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(workAppSlackWorkspaces.tenantId, scopes.tenantId),
-          eq(workAppSlackWorkspaces.defaultProjectId, scopes.projectId),
-          eq(workAppSlackWorkspaces.defaultAgentId, scopes.agentId)
-        )
-      )
-      .returning();
+    const slackWorkspaceDefaultsCleared = await clearWorkspaceDefaultsByAgent(db)(
+      scopes.tenantId,
+      scopes.projectId,
+      scopes.agentId
+    );
+
+    clearDevConfigWorkspaceDefaultsByAgent(scopes.projectId, scopes.agentId);
 
     return {
       conversationsDeleted,
       tasksDeleted,
       contextCacheDeleted,
       apiKeysDeleted,
-      slackChannelConfigsDeleted: slackConfigsResult.length,
-      slackWorkspaceDefaultsCleared: slackWorkspaceDefaultsResult.length,
+      slackChannelConfigsDeleted,
+      slackWorkspaceDefaultsCleared,
     };
   };
 

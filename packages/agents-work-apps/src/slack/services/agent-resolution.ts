@@ -5,7 +5,10 @@
  * Priority: Channel default > Workspace default (all admin-controlled)
  */
 
-import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
+import {
+  findWorkAppSlackChannelAgentConfig,
+  type WorkAppSlackAgentConfigRequest,
+} from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { fetchAgentsForProject, fetchProjectsForTenant } from './events/utils';
@@ -110,12 +113,10 @@ export async function lookupProjectName(
   return found?.name || undefined;
 }
 
-/** Configuration for a resolved agent */
-export interface ResolvedAgentConfig {
-  projectId: string;
-  projectName?: string;
-  agentId: string;
+/** Configuration for a resolved agent — extends the canonical config with resolution metadata */
+export interface ResolvedAgentConfig extends WorkAppSlackAgentConfigRequest {
   agentName?: string;
+  projectName?: string;
   source: 'channel' | 'workspace' | 'none';
   grantAccessToMembers: boolean;
 }
