@@ -658,7 +658,11 @@ export class Agent {
         }
 
         try {
-          const result = await originalExecute(args, context);
+          const artifactParser = streamRequestId
+            ? agentSessionManager.getArtifactParser(streamRequestId)
+            : null;
+          const resolvedArgs = artifactParser ? await artifactParser.resolveArgs(args) : args;
+          const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
           // Store tool result in conversation history
@@ -683,6 +687,8 @@ export class Agent {
                   a2a_metadata: {
                     toolName,
                     toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: this.delegationId,
                     isDelegated: this.isDelegatedAgent,
@@ -816,7 +822,7 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const tools = await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)));
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const toolSet of tools) {
@@ -1847,6 +1853,45 @@ export class Agent {
     }
   }
 
+  private collectProjectArtifactComponents(): ArtifactComponentApiInsert[] {
+    const project = this.executionContext.project;
+    try {
+      const agentDefinition = project.agents[this.config.agentId];
+      if (!agentDefinition) {
+        return this.artifactComponents;
+      }
+
+      const seen = new Set<string>();
+      const collected: ArtifactComponentApiInsert[] = [];
+
+      const addUnique = (components: ArtifactComponentApiInsert[]) => {
+        for (const ac of components) {
+          if (ac.name && !seen.has(ac.name)) {
+            seen.add(ac.name);
+            collected.push(ac);
+          }
+        }
+      };
+
+      addUnique(this.artifactComponents);
+
+      const projectArtifactComponents = project.artifactComponents || {};
+
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          const resolved = (subAgent.artifactComponents as string[])
+            .map((id) => projectArtifactComponents[id])
+            .filter(Boolean) as ArtifactComponentApiInsert[];
+          addUnique(resolved);
+        }
+      }
+
+      return collected;
+    } catch {
+      return this.artifactComponents;
+    }
+  }
+
   /**
    * Get the client's current time formatted in their timezone
    */
@@ -2022,6 +2067,7 @@ export class Agent {
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
       artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
+      allProjectArtifactComponents: this.collectProjectArtifactComponents(),
       hasAgentArtifactComponents,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -2034,7 +2080,7 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Retrieves the complete data of an existing artifact. NOTE: To pass an artifact to a tool you do NOT need to call this — use the { "$artifact": "id", "$tool": "toolCallId" } sentinel and the system resolves the full data automatically. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
@@ -3227,6 +3273,7 @@ ${output}`;
           options: historyConfig,
           filters,
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3244,6 +3291,7 @@ ${output}`;
             isDelegated: this.isDelegatedAgent,
           },
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3784,6 +3832,25 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    const entries = Array.from(this.mcpClientCache.entries());
+    if (entries.length > 0) {
+      const results = await Promise.allSettled(entries.map(([, client]) => client.disconnect()));
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'rejected') {
+          logger.warn(
+            { error: result.reason, clientKey: entries[i][0] },
+            'Failed to disconnect MCP client during cleanup'
+          );
+        }
+      }
+    }
+    this.mcpClientCache.clear();
+    this.mcpConnectionLocks.clear();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(

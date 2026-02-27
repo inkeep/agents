@@ -568,6 +568,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
       includeDataComponents: false,
       clientCurrentTime: undefined,
@@ -593,6 +594,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
       includeDataComponents: false,
       clientCurrentTime: undefined,
@@ -618,6 +620,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
       includeDataComponents: false,
       clientCurrentTime: undefined,
@@ -654,6 +657,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
       includeDataComponents: false,
       clientCurrentTime: undefined,
@@ -912,6 +916,10 @@ describe('Agent conversationHistoryConfig Functionality', () => {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: undefined,
       },
+      baseModel: {
+        model: 'anthropic/claude-sonnet-4-20250514',
+        providerOptions: undefined,
+      },
     });
   });
 
@@ -945,6 +953,10 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       fullContextSize: 0,
       streamRequestId: undefined,
       summarizerModel: {
+        model: 'anthropic/claude-sonnet-4-20250514',
+        providerOptions: undefined,
+      },
+      baseModel: {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: undefined,
       },

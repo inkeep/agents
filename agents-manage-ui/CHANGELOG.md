@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 0038a02: Update signout methods and remove logout route
+  - @inkeep/agents-core@0.53.12
+
 ## 0.53.11
 
 ### Patch Changes
