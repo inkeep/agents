@@ -24,7 +24,12 @@ const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.omit({
   id: true,
 });
 
-const SubAgentSchema = MySchema.shape.subAgents.valueType;
+const SubAgentSchema = MySchema.shape.subAgents.valueType.omit({
+  // Invalid input: expected "internal"
+  type: true,
+});
+
+const ToolSchema = MySchema.shape.tools.unwrap().valueType;
 
 const AgentSchema = z.strictObject({
   agentId: z.string().nonempty(),
@@ -37,6 +42,16 @@ const AgentSchema = z.strictObject({
       ...SubAgentSchema.shape,
       models: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.models),
       stopWhen: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.stopWhen),
+      // Unrecognized keys: "name", "description", "content", "metadata", "subAgentSkillId", "subAgentId", "createdAt", "updatedAt"
+      skills: z.unknown()
+    })
+  ),
+  tools: z.record(
+    z.string(),
+    z.strictObject({
+      ...ToolSchema.shape,
+      // Invalid input: expected string, received null
+      imageUrl: z.preprocess((v) => v ?? undefined, ToolSchema.shape.imageUrl),
     })
   ),
   agentVariableName: z.string().nonempty().optional(),

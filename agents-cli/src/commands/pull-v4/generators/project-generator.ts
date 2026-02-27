@@ -41,6 +41,8 @@ const MySchema = FullProjectDefinitionSchema.pick({
 const ProjectSchema = z.strictObject({
   projectId: z.string().nonempty(),
   ...MySchema.shape,
+  // Invalid input: expected object, received null
+  stopWhen: z.preprocess(v => v ?? undefined, MySchema.shape.stopWhen),
   skills: z.array(z.string()).optional(),
   agents: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
