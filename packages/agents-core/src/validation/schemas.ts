@@ -2728,6 +2728,17 @@ export const TriggerWithWebhookUrlResponse = z
     data: TriggerWithWebhookUrlSchema,
   })
   .openapi('TriggerWithWebhookUrlResponse');
+export const TriggerWithWebhookUrlWithWarningResponse = z
+  .object({
+    data: TriggerWithWebhookUrlSchema,
+    warning: z
+      .string()
+      .optional()
+      .describe(
+        'Security warning when runAsUserId is set but no authentication or signature verification is configured'
+      ),
+  })
+  .openapi('TriggerWithWebhookUrlWithWarningResponse');
 export const TriggerWithWebhookUrlListResponse = z
   .object({
     data: z.array(TriggerWithWebhookUrlSchema),

@@ -206,7 +206,7 @@ app.openapi(
         description: 'Trigger created successfully',
         content: {
           'application/json': {
-            schema: TriggerWithWebhookUrlResponse,
+            schema: TriggerWithWebhookUrlWithWarningResponse,
           },
         },
       },
@@ -347,7 +347,7 @@ app.openapi(
         description: 'Trigger updated successfully',
         content: {
           'application/json': {
-            schema: TriggerWithWebhookUrlResponse,
+            schema: TriggerWithWebhookUrlWithWarningResponse,
           },
         },
       },

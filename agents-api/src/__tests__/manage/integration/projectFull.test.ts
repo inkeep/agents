@@ -741,5 +741,126 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(trigger.name).toBe('Updated trigger name');
       expect(trigger.cronExpression).toBe('0 12 * * *');
     });
+
+    it('should reconcile webhook triggers with runAsUserId validation', async () => {
+      const tenantId = await createTrackedTenant();
+      const projectId = `project-${generateId()}`;
+      const agentId = `agent-${generateId()}`;
+      const subAgentId = `sub-agent-${generateId()}`;
+      const triggerId = `trigger-${generateId()}`;
+
+      const projectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        agents: {
+          [agentId]: {
+            ...createTestAgentDefinition(agentId, subAgentId),
+            triggers: {
+              [triggerId]: {
+                id: triggerId,
+                name: 'User-scoped webhook',
+                messageTemplate: 'Hello {{user}}',
+                enabled: true,
+                runAsUserId: 'test-user-id',
+              },
+            },
+          },
+        },
+      };
+
+      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(projectDefinition),
+      });
+
+      expect(response.status).toBe(201);
+
+      const getRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`);
+      expect(getRes.status).toBe(200);
+      const body = await getRes.json();
+      const agentData = body.data.agents[agentId];
+      expect(agentData).toBeDefined();
+      expect(agentData.triggers).toBeDefined();
+
+      const trigger = agentData.triggers[triggerId];
+      expect(trigger).toBeDefined();
+      expect(trigger.runAsUserId).toBe('test-user-id');
+      expect(trigger.createdBy).toBe('system');
+    });
+
+    it('should reject webhook trigger reconciliation when user lacks use permission', async () => {
+      const { canUseProjectStrict } = await import('@inkeep/agents-core');
+      const canUseProjectStrictMock = vi.mocked(canUseProjectStrict);
+      canUseProjectStrictMock.mockResolvedValueOnce(false);
+
+      const tenantId = await createTrackedTenant();
+      const projectId = `project-${generateId()}`;
+      const agentId = `agent-${generateId()}`;
+      const subAgentId = `sub-agent-${generateId()}`;
+      const triggerId = `trigger-${generateId()}`;
+
+      const projectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        agents: {
+          [agentId]: {
+            ...createTestAgentDefinition(agentId, subAgentId),
+            triggers: {
+              [triggerId]: {
+                id: triggerId,
+                name: 'User-scoped webhook',
+                messageTemplate: 'Hello',
+                enabled: true,
+                runAsUserId: 'user-without-access',
+              },
+            },
+          },
+        },
+      };
+
+      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(projectDefinition),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reconcile webhook triggers without runAsUserId (backward compatible)', async () => {
+      const tenantId = await createTrackedTenant();
+      const projectId = `project-${generateId()}`;
+      const agentId = `agent-${generateId()}`;
+      const subAgentId = `sub-agent-${generateId()}`;
+      const triggerId = `trigger-${generateId()}`;
+
+      const projectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        agents: {
+          [agentId]: {
+            ...createTestAgentDefinition(agentId, subAgentId),
+            triggers: {
+              [triggerId]: {
+                id: triggerId,
+                name: 'Anonymous webhook',
+                messageTemplate: 'Hello',
+                enabled: true,
+              },
+            },
+          },
+        },
+      };
+
+      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(projectDefinition),
+      });
+
+      expect(response.status).toBe(201);
+
+      const getRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`);
+      const body = await getRes.json();
+      const trigger = body.data.agents[agentId].triggers[triggerId];
+      expect(trigger).toBeDefined();
+      expect(trigger.runAsUserId).toBeNull();
+    });
   });
 });
