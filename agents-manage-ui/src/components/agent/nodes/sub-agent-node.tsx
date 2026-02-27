@@ -45,7 +45,7 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
-  const { models, status } = data;
+  const { status } = data;
 
   const { control } = useFullAgentFormContext();
   const formKey = `subAgents.${id}` as const;
@@ -53,7 +53,14 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const processedErrors = useProcessedErrors('subAgents', id);
   const hasErrors = processedErrors.length > 0;
 
-  const { name, description, isDefault } = subAgent;
+  const {
+    name,
+    description,
+    isDefault,
+    models,
+    dataComponents: dataComponentIds,
+    artifactComponents: artifactComponentIds,
+  } = subAgent;
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
@@ -63,16 +70,15 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
 
   const dataComponentNames = useMemo(
     () =>
-      data?.dataComponents?.map((id: string) => dataComponentLookup[id]?.name).filter(Boolean) ||
-      [],
-    [data?.dataComponents, dataComponentLookup]
+      dataComponentIds
+        ?.map((componentId) => dataComponentLookup[componentId]?.name)
+        .filter(Boolean) || [],
+    [dataComponentIds, dataComponentLookup]
   );
   const artifactComponentNames = useMemo(
     () =>
-      data?.artifactComponents
-        ?.map((id: string) => artifactComponentLookup[id]?.name)
-        .filter(Boolean) || [],
-    [data?.artifactComponents, artifactComponentLookup]
+      artifactComponentIds?.map((id) => artifactComponentLookup[id]?.name).filter(Boolean) || [],
+    [artifactComponentIds, artifactComponentLookup]
   );
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';

@@ -1,6 +1,8 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Globe } from 'lucide-react';
+import { useWatch } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
@@ -12,7 +14,9 @@ import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
 export function ExternalAgentNode({ data, selected }: NodeProps & { data: ExternalAgentNodeData }) {
-  const { name, description } = data;
+  const { control } = useFullAgentFormContext();
+  const externalAgent = useWatch({ control, name: `externalAgents.${data.id}` });
+  const { name, description } = externalAgent;
   const processedErrors = useProcessedErrors('externalAgents', data.id);
   const hasErrors = processedErrors.length > 0;
   return (

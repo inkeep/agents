@@ -1,6 +1,8 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Users } from 'lucide-react';
+import { useWatch } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
@@ -12,7 +14,9 @@ import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
 export function TeamAgentNode({ data, selected }: NodeProps & { data: TeamAgentNodeData }) {
-  const { name, description } = data;
+  const { control } = useFullAgentFormContext();
+  const teamAgent = useWatch({ control, name: `teamAgents.${data.id}` });
+  const { name, description } = teamAgent;
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
   const processedErrors = useProcessedErrors('teamAgents', data.id);

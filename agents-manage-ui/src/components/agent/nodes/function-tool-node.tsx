@@ -1,6 +1,8 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code, Shield } from 'lucide-react';
+import { useWatch } from 'react-hook-form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
@@ -10,15 +12,18 @@ import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
-  const { name = 'Function Tool', description } = data;
+  const { control } = useFullAgentFormContext();
+  const toolId = data.toolId ?? '';
+  const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
+  const { name = 'Function Tool', description, tempToolPolicies: toolPolicies } = functionTool;
 
-  const processedErrors = useProcessedErrors('functionTools', data.toolId ?? '');
+  const processedErrors = useProcessedErrors('functionTools', toolId);
   const hasErrors = processedErrors.length > 0;
 
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
-  const needsApproval = toolPoliciesNeedApproval(data.tempToolPolicies);
+  const needsApproval = toolPoliciesNeedApproval(toolPolicies);
   return (
     <div className="relative">
       <BaseNode
