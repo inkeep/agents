@@ -106,7 +106,7 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess, readOnly = false }) =
           control={form.control}
           name="name"
           label="Name"
-          placeholder="My skill"
+          placeholder="my-skill"
           description={
             initialData
               ? ''
