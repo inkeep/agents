@@ -51,16 +51,9 @@ export function TeamAgentNodeEditor({
     form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
-  console.log(teamAgent);
   if (!teamAgent) {
     return;
   }
-  // useEffect(() => {
-  //   form.setError(path('name'), {
-  //     type: 'manual',
-  //     message: 'This field is invalid',
-  //   });
-  // }, []);
 
   return (
     <div className="space-y-8 flex flex-col">

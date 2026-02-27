@@ -2,7 +2,6 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
-import { useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -34,10 +33,6 @@ export function ExternalAgentNodeEditor({
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.id;
-  const externalAgent = useWatch({
-    control: form.control,
-    name: `externalAgents.${id}`,
-  });
 
   const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
 
@@ -63,15 +58,6 @@ export function ExternalAgentNodeEditor({
     form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
-  if (!externalAgent) {
-    return;
-  }
-  // useEffect(() => {
-  //   form.setError(path('name'), {
-  //     type: 'manual',
-  //     message: 'This field is invalid',
-  //   });
-  // }, []);
   return (
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">

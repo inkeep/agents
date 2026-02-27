@@ -79,13 +79,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 
   const { deleteNode } = useDeleteNode(selectedNode.id);
 
-  // useEffect(() => {
-  //   form.setError(path('stopWhen.stepCountIs'), {
-  //     type: 'manual',
-  //     message: 'This field is invalid',
-  //   });
-  // }, []);
-  console.log({ subAgent });
   if (!subAgent) {
     return;
   }

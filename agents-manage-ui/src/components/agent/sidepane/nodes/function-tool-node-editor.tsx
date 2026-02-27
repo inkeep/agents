@@ -1,6 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
@@ -62,16 +62,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   };
 
   const canWriteWithAI = isCopilotConfigured && canEdit;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: just debug
-  useEffect(() => {
-    form.setError(path('name'), {
-      type: 'manual',
-      message: 'This field is invalid',
-    });
-  }, []);
-  // if (!functionTool) {
-  //   return;
-  // }
+
   return (
     <div className="space-y-8">
       <GenericInput
