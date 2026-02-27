@@ -819,11 +819,11 @@ describe('ArtifactService', () => {
       const fullResult = await artifactService.getArtifactFull('roundtrip-test', 'test-tool-call');
 
       expect(fullResult).not.toBeNull();
-      expect(fullResult!.artifactId).toBe('roundtrip-test');
+      expect(fullResult?.artifactId).toBe('roundtrip-test');
       // Should contain full fields (content, details), not just summary fields
-      expect(fullResult!.data).toHaveProperty('content', 'Full Content');
-      expect(fullResult!.data).toHaveProperty('details');
-      expect(fullResult!.data).toHaveProperty('title', 'Title');
+      expect(fullResult?.data).toHaveProperty('content', 'Full Content');
+      expect(fullResult?.data).toHaveProperty('details');
+      expect(fullResult?.data).toHaveProperty('title', 'Title');
     });
   });
 
@@ -848,8 +848,8 @@ describe('ArtifactService', () => {
       const result = await artifactService.getArtifactFull('art-1', 'tc-1');
 
       expect(result).not.toBeNull();
-      expect(result!.data).toEqual({ title: 'Cached Title', content: 'Cached Content' });
-      expect(result!.name).toBe('Cached');
+      expect(result?.data).toEqual({ title: 'Cached Title', content: 'Cached Content' });
+      expect(result?.name).toBe('Cached');
       expect(agentSessionManagerMock.getArtifactCache).toHaveBeenCalledWith(
         'test-stream-request',
         'art-1:tc-1'
@@ -875,8 +875,8 @@ describe('ArtifactService', () => {
       const result = await artifactService.getArtifactFull('art-db', 'tc-db');
 
       expect(result).not.toBeNull();
-      expect(result!.data).toEqual({ title: 'DB Title', body: 'DB Body' });
-      expect(result!.name).toBe('DB Artifact');
+      expect(result?.data).toEqual({ title: 'DB Title', body: 'DB Body' });
+      expect(result?.name).toBe('DB Artifact');
     });
 
     it('should fall back to database lookup by taskId when toolCallId query returns empty', async () => {
@@ -904,8 +904,8 @@ describe('ArtifactService', () => {
       const result = await artifactService.getArtifactFull('art-task', 'tc-task');
 
       expect(result).not.toBeNull();
-      expect(result!.data).toEqual({ title: 'Task Title', info: 'Task Info' });
-      expect(result!.name).toBe('TaskId Artifact');
+      expect(result?.data).toEqual({ title: 'Task Title', info: 'Task Info' });
+      expect(result?.name).toBe('TaskId Artifact');
       expect(getLedgerArtifactsMock).toHaveBeenCalledTimes(2);
     });
 
@@ -932,8 +932,8 @@ describe('ArtifactService', () => {
       const result = await artifactService.getArtifactFull('art-map', 'tc-map', artifactMap);
 
       expect(result).not.toBeNull();
-      expect(result!.data).toEqual({ title: 'Map Title', content: 'Map Content' });
-      expect(result!.name).toBe('Map Artifact');
+      expect(result?.data).toEqual({ title: 'Map Title', content: 'Map Content' });
+      expect(result?.name).toBe('Map Artifact');
       // Should not reach DB since map had the artifact
       expect(getLedgerArtifactsMock).not.toHaveBeenCalled();
     });
