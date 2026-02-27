@@ -61,6 +61,7 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
                 <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="sr-only">Connected</span>
               </span>
               <p className="text-sm text-muted-foreground">
                 {'Connected as '}
@@ -73,7 +74,6 @@ export function MyLinkStatus({ currentUserId }: MyLinkStatusProps) {
 
             <ExternalLink
               href={getSlackProfileUrl(myLink.slackUserId, selectedWorkspace?.teamDomain)}
-              target="_blank"
               rel="noopener noreferrer"
               className="text-xs"
             >
