@@ -4,7 +4,7 @@
  * Tests the agent card endpoint through the full middleware stack
  * to identify what produces the 400 response.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { makeRunRequest, makeRunRequestWithContext } from '../../utils/testRequest';
 
 describe('PRD-6187: Agent Card 400 reproduction (full middleware stack)', () => {
