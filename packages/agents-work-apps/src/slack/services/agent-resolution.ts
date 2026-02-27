@@ -177,9 +177,7 @@ export async function resolveEffectiveAgent(
       );
       result = {
         projectId: workspaceConfig.projectId,
-        projectName: workspaceConfig.projectName,
         agentId: workspaceConfig.agentId,
-        agentName: workspaceConfig.agentName,
         source: 'workspace',
         grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
       };

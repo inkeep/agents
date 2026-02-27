@@ -116,9 +116,7 @@ export function AgentConfigurationCard() {
 
     const config: DefaultAgentConfig = {
       agentId: agent.id,
-      agentName: agent.name || agent.id,
       projectId: agent.projectId,
-      projectName: agent.projectName || 'Unknown Project',
       grantAccessToMembers: true,
     };
 
@@ -137,7 +135,7 @@ export function AgentConfigurationCard() {
       });
 
       installedWorkspaces.refetch();
-      toast.success(`Default agent set to "${agent.name || agent.id}"`);
+      toast.success(`Default agent set to "${agent.name}"`);
     } catch (error) {
       console.error('Failed to save default agent:', error);
       toast.error('Failed to save default agent');
@@ -211,10 +209,9 @@ export function AgentConfigurationCard() {
     const channel = channels.find((ch) => ch.id === channelId);
     const grantAccessToMembers = channel?.agentConfig?.grantAccessToMembers ?? true;
 
-    const config = {
+    const config: DefaultAgentConfig = {
       projectId: agent.projectId,
       agentId: agent.id,
-      agentName: agent.name || agent.id,
       grantAccessToMembers,
     };
 
@@ -236,7 +233,7 @@ export function AgentConfigurationCard() {
         )
       );
 
-      toast.success(`#${channelName} now uses "${agent.name || agent.id}"`);
+      toast.success(`#${channelName} now uses "${agent.name}"`);
     } catch (error) {
       console.error('Failed to set channel agent:', error);
       const errorMessage =
@@ -359,7 +356,6 @@ export function AgentConfigurationCard() {
                 agentConfig: {
                   projectId: agent.projectId,
                   agentId: agent.id,
-                  agentName: agent.name || agent.id,
                   grantAccessToMembers: true,
                 },
               }

@@ -16,7 +16,7 @@ import { deleteFullAgentAction } from '@/lib/actions/agent-full';
 
 interface DeleteAgentConfirmationProps {
   agentId: string;
-  agentName?: string;
+  agentName: string;
   setIsOpen: (isOpen: boolean) => void;
 }
 
@@ -31,7 +31,7 @@ export function DeleteAgentConfirmation({
   }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const displayName = agentName || 'this agent';
+  const displayName = agentName;
 
   const handleDelete = async () => {
     setIsSubmitting(true);

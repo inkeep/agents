@@ -142,10 +142,7 @@ export async function getConnectionAccessToken(connectionId: string): Promise<st
   }
 }
 
-export type DefaultAgentConfig = WorkAppSlackAgentConfigRequest & {
-  agentName?: string;
-  projectName?: string;
-};
+export type DefaultAgentConfig = WorkAppSlackAgentConfigRequest;
 
 export interface SlackWorkspaceConnection {
   connectionId: string;

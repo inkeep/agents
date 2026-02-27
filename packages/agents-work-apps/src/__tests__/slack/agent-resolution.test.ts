@@ -82,6 +82,9 @@ describe('Agent Resolution', () => {
     it('should fall back to workspace config when no channel default', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgent } = await import('../../slack/services/nango');
+      const { fetchAgentsForProject, fetchProjectsForTenant } = await import(
+        '../../slack/services/events/utils'
+      );
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
@@ -89,9 +92,18 @@ describe('Agent Resolution', () => {
       vi.mocked(getWorkspaceDefaultAgent).mockResolvedValue({
         agentId: 'workspace-agent',
         projectId: 'workspace-project',
-        agentName: 'Workspace Agent',
-        projectName: 'Workspace Project',
       });
+      vi.mocked(fetchAgentsForProject).mockResolvedValue([
+        {
+          id: 'workspace-agent',
+          name: 'Workspace Agent',
+          projectId: 'workspace-project',
+          projectName: '',
+        },
+      ]);
+      vi.mocked(fetchProjectsForTenant).mockResolvedValue([
+        { id: 'workspace-project', name: 'Workspace Project' },
+      ]);
 
       const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
@@ -115,6 +127,7 @@ describe('Agent Resolution', () => {
     it('should propagate explicit grantAccessToMembers: false from workspace config', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgent } = await import('../../slack/services/nango');
+      const { fetchAgentsForProject } = await import('../../slack/services/events/utils');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
@@ -122,9 +135,16 @@ describe('Agent Resolution', () => {
       vi.mocked(getWorkspaceDefaultAgent).mockResolvedValue({
         agentId: 'workspace-agent',
         projectId: 'workspace-project',
-        agentName: 'Workspace Agent',
         grantAccessToMembers: false,
       });
+      vi.mocked(fetchAgentsForProject).mockResolvedValue([
+        {
+          id: 'workspace-agent',
+          name: 'Workspace Agent',
+          projectId: 'workspace-project',
+          projectName: '',
+        },
+      ]);
 
       const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
@@ -135,7 +155,7 @@ describe('Agent Resolution', () => {
         userId: 'U123',
       });
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         projectId: 'workspace-project',
         agentId: 'workspace-agent',
         agentName: 'Workspace Agent',
@@ -261,18 +281,17 @@ describe('Agent Resolution', () => {
         vi.fn().mockResolvedValue(null)
       );
       vi.mocked(getWorkspaceDefaultAgent).mockResolvedValue({
-        agentId: 'workspace-agent',
-        projectId: 'workspace-project',
-        agentName: 'Workspace Agent',
+        agentId: 'enrich-agent',
+        projectId: 'enrich-project-unique',
       });
       vi.mocked(fetchProjectsForTenant).mockResolvedValue([
-        { id: 'workspace-project', name: 'My Cool Project' },
+        { id: 'enrich-project-unique', name: 'My Cool Project' },
       ]);
 
       const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
       const result = await resolveEffectiveAgent({
-        tenantId: 'tenant-1',
+        tenantId: 'tenant-enrich',
         teamId: 'T123',
         channelId: 'C123',
         userId: 'U123',
@@ -291,7 +310,6 @@ describe('Agent Resolution', () => {
       vi.mocked(getWorkspaceDefaultAgent).mockResolvedValue({
         agentId: 'cache-agent',
         projectId: 'cache-project-unique',
-        agentName: 'Cache Agent',
       });
       vi.mocked(fetchProjectsForTenant).mockResolvedValue([
         { id: 'cache-project-unique', name: 'Cached Project' },

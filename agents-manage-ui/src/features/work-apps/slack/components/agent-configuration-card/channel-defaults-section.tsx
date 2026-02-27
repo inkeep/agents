@@ -29,6 +29,7 @@ import { BulkSelectAgentBar } from './bulk-select-agent-bar';
 import { ChannelAccessCell } from './channel-access-cell';
 import { ChannelAgentCell } from './channel-agent-cell';
 import type { Channel, SlackAgentOption } from './types';
+import { getAgentDisplayName } from './types';
 
 interface ChannelFilterProps {
   isSelected: boolean;
@@ -159,7 +160,10 @@ export function ChannelDefaultsSection({
         ),
       },
       {
-        accessorFn: (row) => row.agentConfig?.agentName ?? undefined,
+        accessorFn: (row) =>
+          row.agentConfig
+            ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
+            : undefined,
         id: 'agent',
         sortUndefined: 'last',
         header: ({ column }) => (

@@ -85,7 +85,7 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
                       }}
                     >
                       <div className="flex flex-col">
-                        <span className="font-medium">{agent.name || agent.id}</span>
+                        <span className="font-medium">{agent.name}</span>
                         <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                       </div>
                     </CommandItem>

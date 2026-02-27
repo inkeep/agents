@@ -32,7 +32,6 @@ import {
   updateWorkAppSlackWorkspace,
   upsertWorkAppSlackChannelAgentConfig,
   WorkAppSlackAgentConfigRequestSchema,
-  WorkAppSlackAgentConfigResponseSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
@@ -48,7 +47,6 @@ import {
   getSlackClient,
   listWorkspaceInstallations,
   lookupAgentName,
-  lookupProjectName,
   revokeSlackToken,
   setWorkspaceDefaultAgent,
 } from '../services';
@@ -72,7 +70,7 @@ function verifyTenantOwnership(
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 const WorkspaceSettingsResponseSchema = z.object({
-  defaultAgent: WorkAppSlackAgentConfigResponseSchema.optional(),
+  defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
 });
 
 const WorkspaceSettingsRequestSchema = z.object({
@@ -193,7 +191,7 @@ app.openapi(
               teamName: z.string().optional(),
               tenantId: z.string(),
               connectionId: z.string(),
-              defaultAgent: WorkAppSlackAgentConfigResponseSchema.optional(),
+              defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
             }),
           },
         },
@@ -212,36 +210,18 @@ app.openapi(
       return c.json({ error: 'Workspace not found' }, 404);
     }
 
-    let defaultAgent:
-      | { projectId: string; agentId: string; agentName?: string; projectName?: string }
-      | undefined;
-
-    if (workspace.defaultAgent) {
-      const [agentName, projectName] = await Promise.all([
-        lookupAgentName(
-          workspace.tenantId,
-          workspace.defaultAgent.projectId,
-          workspace.defaultAgent.agentId,
-          { skipCache: true }
-        ),
-        lookupProjectName(workspace.tenantId, workspace.defaultAgent.projectId, {
-          skipCache: true,
-        }),
-      ]);
-      defaultAgent = {
-        projectId: workspace.defaultAgent.projectId,
-        agentId: workspace.defaultAgent.agentId,
-        agentName: agentName || workspace.defaultAgent.agentId,
-        projectName: projectName || workspace.defaultAgent.projectId,
-      };
-    }
-
     return c.json({
       teamId: workspace.teamId,
       teamName: workspace.teamName,
       tenantId: workspace.tenantId,
       connectionId: workspace.connectionId,
-      defaultAgent,
+      defaultAgent: workspace.defaultAgent
+        ? {
+            projectId: workspace.defaultAgent.projectId,
+            agentId: workspace.defaultAgent.agentId,
+            grantAccessToMembers: workspace.defaultAgent.grantAccessToMembers,
+          }
+        : undefined,
     });
   }
 );
@@ -280,32 +260,14 @@ app.openapi(
       return c.json({ defaultAgent: undefined });
     }
 
-    let defaultAgent:
-      | { projectId: string; agentId: string; agentName?: string; projectName?: string }
-      | undefined;
-
-    if (workspace.defaultAgent) {
-      const [agentName, projectName] = await Promise.all([
-        lookupAgentName(
-          workspace.tenantId,
-          workspace.defaultAgent.projectId,
-          workspace.defaultAgent.agentId,
-          { skipCache: true }
-        ),
-        lookupProjectName(workspace.tenantId, workspace.defaultAgent.projectId, {
-          skipCache: true,
-        }),
-      ]);
-      defaultAgent = {
-        projectId: workspace.defaultAgent.projectId,
-        agentId: workspace.defaultAgent.agentId,
-        agentName: agentName || workspace.defaultAgent.agentId,
-        projectName: projectName || workspace.defaultAgent.projectId,
-      };
-    }
-
     return c.json({
-      defaultAgent,
+      defaultAgent: workspace.defaultAgent
+        ? {
+            projectId: workspace.defaultAgent.projectId,
+            agentId: workspace.defaultAgent.agentId,
+            grantAccessToMembers: workspace.defaultAgent.grantAccessToMembers,
+          }
+        : undefined,
     });
   }
 );
@@ -678,7 +640,7 @@ app.openapi(
                   isShared: z.boolean(),
                   memberCount: z.number().optional(),
                   hasAgentConfig: z.boolean(),
-                  agentConfig: WorkAppSlackAgentConfigResponseSchema.optional(),
+                  agentConfig: WorkAppSlackAgentConfigRequestSchema.optional(),
                 })
               ),
               nextCursor: z.string().optional(),
@@ -722,30 +684,8 @@ app.openapi(
       }
       const configMap = new Map(channelConfigs.map((c) => [c.slackChannelId, c]));
 
-      const agentNameMap = new Map<string, string>();
-      const uniquePairs = new Map<string, { projectId: string; agentId: string }>();
-      for (const config of channelConfigs) {
-        const key = `${config.projectId}:${config.agentId}`;
-        if (!uniquePairs.has(key)) {
-          uniquePairs.set(key, { projectId: config.projectId, agentId: config.agentId });
-        }
-      }
-      await Promise.all(
-        Array.from(uniquePairs.entries()).map(async ([key, { projectId, agentId }]) => {
-          try {
-            const name = await lookupAgentName(tenantId, projectId, agentId, {
-              skipCache: true,
-            });
-            if (name) agentNameMap.set(key, name);
-          } catch {
-            logger.warn({ projectId, agentId }, 'Failed to resolve agent name');
-          }
-        })
-      );
-
       const channelsWithConfig = channels.map((channel) => {
         const config = channel.id ? configMap.get(channel.id) : undefined;
-        const agentNameKey = config ? `${config.projectId}:${config.agentId}` : undefined;
         return {
           id: channel.id || '',
           name: channel.name || '',
@@ -757,7 +697,6 @@ app.openapi(
             ? {
                 projectId: config.projectId,
                 agentId: config.agentId,
-                agentName: (agentNameKey && agentNameMap.get(agentNameKey)) || config.agentId,
                 grantAccessToMembers: config.grantAccessToMembers,
               }
             : undefined,
@@ -797,7 +736,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelId: z.string(),
-              agentConfig: WorkAppSlackAgentConfigResponseSchema.optional(),
+              agentConfig: WorkAppSlackAgentConfigRequestSchema.optional(),
             }),
           },
         },
@@ -820,24 +759,12 @@ app.openapi(
       channelId
     );
 
-    let agentName: string | undefined;
-    if (config) {
-      try {
-        agentName = await lookupAgentName(tenantId, config.projectId, config.agentId, {
-          skipCache: true,
-        });
-      } catch {
-        logger.warn({ agentId: config.agentId }, 'Failed to resolve agent name');
-      }
-    }
-
     return c.json({
       channelId,
       agentConfig: config
         ? {
             projectId: config.projectId,
             agentId: config.agentId,
-            agentName: agentName || config.agentId,
             grantAccessToMembers: config.grantAccessToMembers,
           }
         : undefined,

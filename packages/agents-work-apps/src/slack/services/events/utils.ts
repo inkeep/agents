@@ -12,13 +12,9 @@ import {
 import runDbClient from '../../../db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import { lookupAgentName, lookupProjectName } from '../agent-resolution';
+import { lookupAgentName, lookupProjectName, type ResolvedAgentConfig } from '../agent-resolution';
 import type { AgentOption } from '../modals';
-import {
-  type DefaultAgentConfig,
-  findWorkspaceConnectionByTeamId,
-  type SlackWorkspaceConnection,
-} from '../nango';
+import { findWorkspaceConnectionByTeamId, type SlackWorkspaceConnection } from '../nango';
 
 const logger = getLogger('slack-event-utils');
 
@@ -348,7 +344,7 @@ export async function fetchAgentsForProject(
 export async function getChannelAgentConfig(
   teamId: string,
   channelId: string
-): Promise<DefaultAgentConfig | null> {
+): Promise<ResolvedAgentConfig | null> {
   const workspace = await findWorkspaceConnectionByTeamId(teamId);
   return resolveChannelAgentConfig(teamId, channelId, workspace);
 }
@@ -356,12 +352,13 @@ export async function getChannelAgentConfig(
 /**
  * Resolve channel agent config using a pre-resolved workspace connection.
  * Avoids redundant workspace lookups when the connection is already available.
+ * Returns a ResolvedAgentConfig with enriched agent/project names and source metadata.
  */
 export async function resolveChannelAgentConfig(
   teamId: string,
   channelId: string,
   workspace: SlackWorkspaceConnection | null
-): Promise<DefaultAgentConfig | null> {
+): Promise<ResolvedAgentConfig | null> {
   const tenantId = workspace?.tenantId;
   if (!tenantId) return null;
 
@@ -381,10 +378,27 @@ export async function resolveChannelAgentConfig(
       agentId: channelConfig.agentId,
       agentName: agentName || channelConfig.agentId,
       projectName: projectName || channelConfig.projectId,
+      source: 'channel',
+      grantAccessToMembers: channelConfig.grantAccessToMembers,
     };
   }
 
-  return workspace?.defaultAgent || null;
+  if (workspace?.defaultAgent) {
+    const [agentName, projectName] = await Promise.all([
+      lookupAgentName(tenantId, workspace.defaultAgent.projectId, workspace.defaultAgent.agentId),
+      lookupProjectName(tenantId, workspace.defaultAgent.projectId),
+    ]);
+    return {
+      projectId: workspace.defaultAgent.projectId,
+      agentId: workspace.defaultAgent.agentId,
+      agentName: agentName || workspace.defaultAgent.agentId,
+      projectName: projectName || workspace.defaultAgent.projectId,
+      source: 'workspace',
+      grantAccessToMembers: workspace.defaultAgent.grantAccessToMembers ?? true,
+    };
+  }
+
+  return null;
 }
 
 export async function sendResponseUrlMessage(

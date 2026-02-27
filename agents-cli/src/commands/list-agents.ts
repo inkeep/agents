@@ -66,7 +66,7 @@ export async function listAgentsCommand(options: ListAgentsOptions): Promise<voi
 
       table.push([
         agent.id || '',
-        agent.name || agent.id || '',
+        agent.name,
         agent.defaultSubAgentId || chalk.gray('None'),
         createdDate,
       ]);

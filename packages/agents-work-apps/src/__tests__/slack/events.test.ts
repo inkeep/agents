@@ -424,9 +424,7 @@ describe('getWorkspaceDefaultAgent', () => {
     const nango = await import('../../slack/services/nango');
     vi.mocked(nango.getWorkspaceDefaultAgent).mockResolvedValue({
       agentId: 'agent-1',
-      agentName: 'Test Agent',
       projectId: 'proj-1',
-      projectName: 'Test Project',
     });
 
     const result = await getWorkspaceDefaultAgent('T123');
@@ -458,9 +456,7 @@ describe('getChannelAgentConfig', () => {
       tenantId: 'tenant-1',
       defaultAgent: {
         agentId: 'workspace-agent',
-        agentName: 'Workspace Agent',
         projectId: 'proj-1',
-        projectName: 'Project',
       },
     });
 

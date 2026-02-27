@@ -15,6 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { Channel, SlackAgentOption } from './types';
+import { getAgentDisplayName } from './types';
 
 interface ChannelAgentCellProps {
   channel: Channel;
@@ -35,7 +36,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
 
   const isSaving = savingChannel === channel.id;
 
-  const { agentId, agentName, projectId } = channel.agentConfig ?? {};
+  const { agentId, projectId } = channel.agentConfig ?? {};
 
   return (
     <div className="flex min-w-0 items-center justify-end gap-1">
@@ -48,8 +49,10 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
             disabled={isSaving}
           >
             {isSaving && <Loader2 className="h-3! w-3! animate-spin" />}
-            {channel.agentConfig ? (
-              <span className="min-w-0 truncate">{agentName}</span>
+            {channel.agentConfig && agentId && projectId ? (
+              <span className="min-w-0 truncate">
+                {getAgentDisplayName(agents, agentId, projectId)}
+              </span>
             ) : (
               <span className="min-w-0 truncate text-muted-foreground font-light">
                 Workspace default
@@ -99,7 +102,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                       )}
                     />
                     <div className="flex flex-col">
-                      <span className="font-medium">{agent.name || agent.id}</span>
+                      <span className="font-medium">{agent.name}</span>
                       <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                     </div>
                   </CommandItem>
