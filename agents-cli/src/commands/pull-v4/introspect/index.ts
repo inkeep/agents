@@ -666,6 +666,18 @@ async function pullSingleProject(
       delete o.createdAt;
       delete o.updatedAt;
     }
+    for (const o of Object.values(remoteProject.agents ?? {})) {
+      delete o.id;
+      delete o.createdAt;
+      delete o.updatedAt;
+
+      if (o.contextConfig) {
+        delete o.contextConfig.id;
+      }
+      for (const trigger of Object.values(o.triggers ?? {})) {
+        delete trigger.id;
+      }
+    }
     // console.log({ remoteProject });
     // Create project structure
     const paths = createProjectStructure(targetDir);
