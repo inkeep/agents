@@ -117,6 +117,18 @@ If the health check shows issues, try reinstalling the Slack app from the dashbo
 | Set channel defaults | Organization admin, or channel member |
 | View configuration | Any authenticated user in the organization |
 
+## Tracking Slack conversations
+
+Slack conversations are automatically tracked in the Inkeep dashboard. You can identify them across several surfaces:
+
+- **Conversation list** — Slack conversations display a `#` badge so you can spot them at a glance
+- **Trace timeline** — Individual Slack messages show a `#` icon with Slack-purple styling in the trace detail view
+- **Stats page** — A dedicated **Slack Conversations** card shows the total count of conversations originating from Slack
+
+<Tip>
+For advanced filtering in SigNoz, use the `invocation.type='slack'` span attribute to query Slack-originated traces. Only conversations created after this feature was enabled are included in the count.
+</Tip>
+
 ## Next steps
 
 <Cards>
