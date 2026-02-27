@@ -287,7 +287,8 @@ function createAgentsHono(config: AppConfig) {
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/work-apps/github', githubRoutes);
 
-  // Work Apps auth - session/API key auth for protected routes (workspace management, user endpoints)
+  // Work Apps auth - session/API key auth for protected routes (workspace management, user endpoints, install)
+  app.use('/work-apps/slack/install', workAppsAuth);
   app.use('/work-apps/slack/workspaces/*', workAppsAuth);
   app.use('/work-apps/slack/users/*', workAppsAuth);
 

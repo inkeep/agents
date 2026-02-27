@@ -129,6 +129,79 @@ export const requireWorkspaceAdmin = <
 };
 
 /**
+ * Middleware that requires Inkeep org admin/owner role for Slack app installation.
+ * Unlike requireWorkspaceAdmin which resolves tenant from a workspace teamId,
+ * this middleware works with the tenantId already set by workAppsAuth (from session).
+ *
+ * It also validates that any tenant_id query parameter matches the session tenant
+ * to prevent IDOR attacks (e.g. installing into another org's tenant).
+ */
+export const requireOrgAdminForInstall = <
+  Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
+>() =>
+  createMiddleware<Env>(async (c: Context, next: Next) => {
+    if (process.env.ENVIRONMENT === 'test' && c.req.header('x-test-bypass-auth') === 'true') {
+      await next();
+      return;
+    }
+
+    const userId = c.get('userId');
+
+    if (!userId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Authentication required to install Slack app',
+        instance: c.req.path,
+      });
+    }
+
+    if (userId === 'system' || userId.startsWith('apikey:')) {
+      await next();
+      return;
+    }
+
+    const sessionTenantId = c.get('tenantId');
+    if (!sessionTenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Organization context not found',
+        instance: c.req.path,
+      });
+    }
+
+    const queryTenantId = new URL(c.req.url).searchParams.get('tenant_id');
+    if (queryTenantId && queryTenantId !== sessionTenantId) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Tenant ID mismatch — you can only install apps for your active organization',
+        instance: c.req.path,
+      });
+    }
+
+    const userOrganizations = await getUserOrganizationsFromDb(runDbClient)(userId);
+    const orgAccess = userOrganizations.find((org) => org.organizationId === sessionTenantId);
+
+    if (!orgAccess || !isOrgAdmin(orgAccess.role)) {
+      logger.warn(
+        { userId, tenantId: sessionTenantId, tenantRole: orgAccess?.role, path: c.req.path },
+        'User does not have admin role for Slack app installation'
+      );
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Only organization administrators can install the Slack app',
+        instance: c.req.path,
+        extensions: {
+          requiredRole: 'admin or owner',
+          currentRole: orgAccess?.role,
+        },
+      });
+    }
+
+    c.set('tenantRole', orgAccess.role);
+    await next();
+  });
+
+/**
  * Middleware that requires either:
  * 1. Org admin/owner role (can modify any channel), OR
  * 2. Member role AND membership in the specific Slack channel
