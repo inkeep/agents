@@ -1,7 +1,6 @@
 'use client';
 
 import { LogOut, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { ThemeToggleTabs } from '@/components/theme-toggle-tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,18 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useSignOut } from '@/hooks/use-sign-out';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
-  const router = useRouter();
+  const handleSignOut = useSignOut();
 
   if (isLoading || !user) {
     return null;
   }
-
-  const handleSignOut = () => {
-    router.push('/logout');
-  };
 
   return (
     <DropdownMenu>
@@ -49,7 +45,7 @@ export function UserMenu() {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="gap-2">
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4" aria-hidden="true" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

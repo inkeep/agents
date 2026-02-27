@@ -149,6 +149,7 @@ export interface SlackWorkspaceConnection {
   connectionId: string;
   teamId: string;
   teamName?: string;
+  teamDomain?: string;
   botToken: string;
   tenantId: string;
   defaultAgent?: DefaultAgentConfig;
@@ -649,6 +650,7 @@ export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnec
               connectionId: conn.connection_id,
               teamId: metadata.slack_team_id || '',
               teamName: metadata.slack_team_name,
+              teamDomain: metadata.slack_team_domain || undefined,
               botToken: credentials.credentials.access_token,
               tenantId: metadata.tenant_id || metadata.inkeep_tenant_id || '',
               defaultAgent,

@@ -1,5 +1,24 @@
 # @inkeep/agents-core
 
+## 0.53.12
+
+## 0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale process.env after generateSecrets() and add password reconciliation in init.ts
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+
 ## 0.53.8
 
 ## 0.53.7
