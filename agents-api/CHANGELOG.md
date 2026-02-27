@@ -1,5 +1,14 @@
 # @inkeep/agents-api
 
+## 0.53.12
+
+### Patch Changes
+
+- 6762a28: Fix Agent Card 400 error caused by system identifiers in x-inkeep-run-as-user-id header (PRD-6187)
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-mcp@0.53.12
+  - @inkeep/agents-work-apps@0.53.12
+
 ## 0.53.11
 
 ### Patch Changes

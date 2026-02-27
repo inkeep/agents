@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.53.12
+
+### Patch Changes
+
+- 9f5204d: Use human readable file names when generating files with inkeep pull
+- Updated dependencies [0038a02]
+  - @inkeep/agents-manage-ui@0.53.12
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-sdk@0.53.12
+
 ## 0.53.11
 
 ### Patch Changes
