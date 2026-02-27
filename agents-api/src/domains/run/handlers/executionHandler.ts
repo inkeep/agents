@@ -281,6 +281,14 @@ export class ExecutionHandler {
           | { type: string; id: string }
           | undefined;
 
+        const runAsUserId =
+          initiatedBy?.type === 'user' &&
+          initiatedBy.id &&
+          initiatedBy.id !== 'system' &&
+          !initiatedBy.id.startsWith('apikey:')
+            ? initiatedBy.id
+            : undefined;
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -288,9 +296,7 @@ export class ExecutionHandler {
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
-            ...(initiatedBy?.type === 'user' && initiatedBy.id
-              ? { 'x-inkeep-run-as-user-id': initiatedBy.id }
-              : {}),
+            ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
             ...(forwardedHeaders || {}),
           },
           fetchFn: getInProcessFetch(),
