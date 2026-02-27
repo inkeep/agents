@@ -14,15 +14,25 @@ export const metadata = {
 
 export default async function NewTriggerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantId: string; projectId: string; agentId: string }>;
+  searchParams: Promise<Record<string, string>>;
 }) {
   const { tenantId, projectId, agentId } = await params;
+  const rawSearchParams = await searchParams;
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);
   if (!agent.success) {
     notFound();
+  }
+
+  const defaultsFromParams: Record<string, string> = {};
+  for (const key of ['messageTemplate', 'inputSchema', 'outputTransform', 'enabled']) {
+    if (rawSearchParams[key]) {
+      defaultsFromParams[key] = rawSearchParams[key];
+    }
   }
 
   return (
@@ -39,7 +49,15 @@ export default async function NewTriggerPage({
         title={metadata.title}
         description={`${metadata.description} (Agent: ${agent.data.name})`}
       />
-      <TriggerForm tenantId={tenantId} projectId={projectId} agentId={agentId} mode="create" />
+      <TriggerForm
+        tenantId={tenantId}
+        projectId={projectId}
+        agentId={agentId}
+        mode="create"
+        defaultsFromParams={
+          Object.keys(defaultsFromParams).length > 0 ? defaultsFromParams : undefined
+        }
+      />
     </div>
   );
 }

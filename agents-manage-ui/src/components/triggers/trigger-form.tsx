@@ -5,7 +5,17 @@ import {
   validateJMESPath as coreValidateJMESPath,
   validateRegex as coreValidateRegex,
 } from '@inkeep/agents-core/utils/signature-validation';
-import { ArrowDown, ArrowUp, Check, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  KeyRound,
+  Loader2,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -21,7 +31,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import {
   Form,
   FormControl,
@@ -32,7 +51,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useAuthSession } from '@/hooks/use-auth';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
+import { useOrgMembers } from '@/hooks/use-org-members';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
@@ -88,6 +118,8 @@ const componentSourceOptions: SelectOption[] = [
 
 // Component join strategy options
 const joinStrategyOptions: SelectOption[] = [{ value: 'concatenate', label: 'Concatenate' }];
+
+const NONE_VALUE = '__none__';
 
 // Provider presets for common webhook signature patterns
 type ProviderPreset = {
@@ -249,6 +281,8 @@ const triggerFormSchema = z.object({
   headerCaseSensitive: z.boolean().optional(),
   allowEmptyBody: z.boolean().optional(),
   normalizeUnicode: z.boolean().optional(),
+  // Execution identity
+  runAsUserId: z.string().optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -259,9 +293,17 @@ interface TriggerFormProps {
   agentId: string;
   trigger?: Trigger;
   mode: 'create' | 'edit';
+  defaultsFromParams?: Record<string, string>;
 }
 
-export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: TriggerFormProps) {
+export function TriggerForm({
+  tenantId,
+  projectId,
+  agentId,
+  trigger,
+  mode,
+  defaultsFromParams,
+}: TriggerFormProps) {
   const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`;
   const router = useRouter();
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
@@ -270,6 +312,14 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const [signatureRegexError, setSignatureRegexError] = useState<string | undefined>();
   const [appliedPreset, setAppliedPreset] = useState<string | null>(null);
   const [presetsExpanded, setPresetsExpanded] = useState(true);
+
+  const { user } = useAuthSession();
+  const { isAdmin, isLoading: isAdminLoading } = useIsOrgAdmin();
+  const { members: orgMembers, isLoading: isMembersLoading } = useOrgMembers(tenantId, projectId);
+
+  const selectableMembers = isAdmin ? orgMembers : orgMembers.filter((m) => m.id === user?.id);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [multiUserOpen, setMultiUserOpen] = useState(false);
 
   // Fetch available credentials (only project-scoped credentials are allowed for triggers)
   useEffect(() => {
@@ -302,15 +352,31 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   // Initialize form with default values or existing trigger data
   const getDefaultValues = (): TriggerFormData => {
     if (!trigger) {
+      const p = defaultsFromParams;
+      let dpTransformType: 'none' | 'object_transformation' | 'jmespath' = 'none';
+      let dpJmespath = '';
+      let dpObjectTransformationJson = '';
+      if (p?.outputTransform) {
+        try {
+          const ot = JSON.parse(p.outputTransform);
+          if (ot?.jmespath) {
+            dpTransformType = 'jmespath';
+            dpJmespath = ot.jmespath;
+          } else if (ot?.objectTransformation) {
+            dpTransformType = 'object_transformation';
+            dpObjectTransformationJson = JSON.stringify(ot.objectTransformation, null, 2);
+          }
+        } catch {}
+      }
       return {
-        enabled: true,
+        enabled: p?.enabled === 'false' ? false : true,
         name: '',
         description: '',
-        messageTemplate: '',
-        inputSchemaJson: '',
-        transformType: 'none',
-        jmespath: '',
-        objectTransformationJson: '',
+        messageTemplate: p?.messageTemplate || '',
+        inputSchemaJson: p?.inputSchema || '',
+        transformType: dpTransformType,
+        jmespath: dpJmespath,
+        objectTransformationJson: dpObjectTransformationJson,
         authHeaders: [],
         signatureVerificationEnabled: false,
         signingSecretCredentialReferenceId: undefined,
@@ -326,6 +392,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         headerCaseSensitive: false,
         allowEmptyBody: true,
         normalizeUnicode: false,
+        runAsUserId: undefined,
       };
     }
 
@@ -397,6 +464,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       headerCaseSensitive: signatureVerification?.validation?.headerCaseSensitive ?? false,
       allowEmptyBody: signatureVerification?.validation?.allowEmptyBody ?? true,
       normalizeUnicode: signatureVerification?.validation?.normalizeUnicode ?? false,
+      runAsUserId: (trigger as any).runAsUserId ?? undefined,
     };
   };
 
@@ -425,6 +493,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const { isSubmitting } = form.formState;
   const transformType = form.watch('transformType');
   const signatureSource = form.watch('signatureSource');
+
+  const resolveRunAsUserId = (value: string | undefined): string | null => {
+    if (!value || value === NONE_VALUE) return null;
+    return value;
+  };
+
+  const getMemberDisplayName = (userId: string): string => {
+    const member = orgMembers.find((m) => m.id === userId);
+    return member?.name || member?.email || userId;
+  };
 
   // Apply provider preset to form fields
   const applyPreset = (presetKey: string) => {
@@ -463,6 +541,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   };
 
   // Watch specific fields for request preview and conditional rendering
+  const watchedRunAsUserId = form.watch('runAsUserId');
   const watchedAuthHeaders = form.watch('authHeaders');
   const watchedSignatureVerificationEnabled = form.watch('signatureVerificationEnabled');
   const watchedSigningCredential = form.watch('signingSecretCredentialReferenceId');
@@ -685,21 +764,69 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         ...(signatureVerification && { signatureVerification }),
       };
 
-      let result: { success: boolean; error?: string };
       if (mode === 'create') {
-        result = await createTriggerAction(tenantId, projectId, agentId, payload);
-      } else if (trigger) {
-        result = await updateTriggerAction(tenantId, projectId, agentId, trigger.id, payload);
-      } else {
+        const usersToCreate =
+          selectedUserIds.length > 0 ? selectedUserIds : [data.runAsUserId || NONE_VALUE];
+
+        if (usersToCreate.length === 1) {
+          const singlePayload = { ...payload, runAsUserId: resolveRunAsUserId(usersToCreate[0]) };
+          const result = await createTriggerAction(tenantId, projectId, agentId, singlePayload);
+          if (result.success) {
+            toast.success('Trigger created successfully');
+            router.push(redirectPath);
+          } else {
+            toast.error(result.error || 'Failed to create trigger');
+          }
+          return;
+        }
+
+        const bulkResults = await Promise.allSettled(
+          usersToCreate.map((userId) => {
+            const displayName = getMemberDisplayName(userId);
+            const bulkPayload = {
+              ...payload,
+              name: `${data.name} (${displayName})`,
+              runAsUserId: resolveRunAsUserId(userId),
+            };
+            return createTriggerAction(tenantId, projectId, agentId, bulkPayload);
+          })
+        );
+
+        const succeeded = bulkResults.filter(
+          (r) => r.status === 'fulfilled' && r.value.success
+        ).length;
+        const failed = bulkResults.length - succeeded;
+
+        if (failed === 0) {
+          toast.success(`Created ${succeeded} triggers successfully`);
+          router.push(redirectPath);
+        } else if (succeeded > 0) {
+          toast.warning(`Created ${succeeded}/${bulkResults.length} triggers. ${failed} failed.`);
+          router.push(redirectPath);
+        } else {
+          toast.error('Failed to create triggers');
+        }
+        return;
+      }
+
+      if (!trigger) {
         toast.error('Trigger not found');
         return;
       }
 
+      const editPayload = { ...payload, runAsUserId: resolveRunAsUserId(data.runAsUserId) };
+      const result = await updateTriggerAction(
+        tenantId,
+        projectId,
+        agentId,
+        trigger.id,
+        editPayload
+      );
       if (result.success) {
-        toast.success(`Trigger ${mode === 'create' ? 'created' : 'updated'} successfully`);
+        toast.success('Trigger updated successfully');
         router.push(redirectPath);
       } else {
-        toast.error(result.error || `Failed to ${mode} trigger`);
+        toast.error(result.error || 'Failed to update trigger');
       }
     } catch (error) {
       console.error(`Failed to ${mode} trigger:`, error);
@@ -749,6 +876,143 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                 </FormItem>
               )}
             />
+          </CardContent>
+        </Card>
+
+        {/* Execution Identity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Execution Identity</CardTitle>
+            <CardDescription>
+              Choose which user identity the trigger should run as. This determines whose
+              credentials and permissions are used during execution.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isAdminLoading || isMembersLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading users...
+              </div>
+            ) : mode === 'create' && isAdmin ? (
+              <FormItem>
+                <FormLabel>Run as Users</FormLabel>
+                <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      role="combobox"
+                      aria-expanded={multiUserOpen}
+                    >
+                      <span className="truncate">
+                        {selectedUserIds.length === 0
+                          ? 'None'
+                          : selectedUserIds.length === 1
+                            ? getMemberDisplayName(selectedUserIds[0])
+                            : `${selectedUserIds.length} users selected`}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search users..." />
+                      <CommandList>
+                        <CommandEmpty>No users found.</CommandEmpty>
+                        <CommandGroup>
+                          {selectableMembers.map((member) => (
+                            <CommandItem
+                              key={member.id}
+                              value={`${member.name} ${member.email}`}
+                              onSelect={() => {
+                                setSelectedUserIds((prev) =>
+                                  prev.includes(member.id)
+                                    ? prev.filter((id) => id !== member.id)
+                                    : [...prev, member.id]
+                                );
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedUserIds.includes(member.id)}
+                                className="mr-2"
+                              />
+                              <div className="flex flex-col">
+                                <span>{member.name || member.email}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {member.email}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedUserIds.length > 1 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedUserIds.map((id) => (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="cursor-pointer"
+                        onClick={() =>
+                          setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
+                        }
+                      >
+                        {getMemberDisplayName(id)} &times;
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <FormDescription>
+                  Select multiple users to create one trigger per user.
+                </FormDescription>
+              </FormItem>
+            ) : (
+              <FormField
+                control={form.control}
+                name="runAsUserId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Run as User</FormLabel>
+                    <Select value={field.value || NONE_VALUE} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>None</SelectItem>
+                        {selectableMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name || member.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Choose whose identity and credentials this trigger uses when running.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {(watchedRunAsUserId && watchedRunAsUserId !== NONE_VALUE) ||
+            selectedUserIds.length > 0 ? (
+              (!watchedAuthHeaders || watchedAuthHeaders.length === 0) &&
+              !watchedSignatureVerificationEnabled ? (
+                <Alert variant="warning">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Security warning:</strong> This trigger will run as a specific user but
+                    has no authentication or signature verification configured. Anyone who knows the
+                    webhook URL can trigger it on behalf of this user.
+                  </AlertDescription>
+                </Alert>
+              ) : null
+            ) : null}
           </CardContent>
         </Card>
 
