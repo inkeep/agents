@@ -906,7 +906,7 @@ export const Agent: FC<AgentProps> = ({
       id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
-      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
+      className="relative bg-muted/20 dark:bg-background flex overflow-hidden no-parent-container"
     >
       <CopilotChat
         agentId={agent.id}
