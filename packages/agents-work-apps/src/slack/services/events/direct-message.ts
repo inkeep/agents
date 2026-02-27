@@ -168,6 +168,7 @@ export async function handleDirectMessage(params: {
         'Executing agent for DM'
       );
 
+      span.end();
       await executeAgentPublicly({
         slackClient,
         channel,
@@ -183,7 +184,6 @@ export async function handleDirectMessage(params: {
         conversationId,
         entryPoint: 'direct_message',
       });
-      span.end();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error({ errorMessage: errorMsg, channel, teamId }, 'Failed in DM handler');

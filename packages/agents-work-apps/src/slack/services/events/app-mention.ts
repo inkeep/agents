@@ -307,6 +307,7 @@ export async function handleAppMention(params: {
           'Auto-executing agent with thread context'
         );
 
+        span.end();
         await executeAgentPublicly({
           slackClient,
           channel,
@@ -322,7 +323,6 @@ export async function handleAppMention(params: {
           conversationId,
           entryPoint: 'app_mention',
         });
-        span.end();
         return;
       }
 
@@ -410,6 +410,7 @@ export async function handleAppMention(params: {
         'Executing agent'
       );
 
+      span.end();
       await executeAgentPublicly({
         slackClient,
         channel,
@@ -425,7 +426,6 @@ export async function handleAppMention(params: {
         conversationId,
         entryPoint: 'app_mention',
       });
-      span.end();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error({ errorMessage: errorMsg, channel, teamId }, 'Failed in app mention handler');

@@ -308,6 +308,8 @@ export async function streamAgentResponse(params: {
     let richMessageCapWarned = false;
     const MAX_RICH_MESSAGES = 20;
 
+    span.end();
+
     try {
       let agentCompleted = false;
 
