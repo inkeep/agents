@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ProjectConfig } from '@inkeep/agents-sdk';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
@@ -24,54 +25,22 @@ const ReferenceOverridesSchema = z.object({
   credentialReferences: ReferenceNameByIdSchema.optional(),
 });
 
-type ProjectDefinitionData = Omit<
-  ProjectConfig,
-  | 'id'
-  | 'skills'
-  | 'agents'
-  | 'tools'
-  | 'externalAgents'
-  | 'dataComponents'
-  | 'artifactComponents'
-  | 'credentialReferences'
-> & {
-  projectId: string;
-  skills?: string[];
-  agents?: string[];
-  tools?: string[];
-  externalAgents?: string[];
-  dataComponents?: string[];
-  artifactComponents?: string[];
-  credentialReferences?: string[];
-  referenceOverrides?: z.infer<typeof ReferenceOverridesSchema>;
-};
-
 interface ResolvedReference {
   id: string;
   importName: string;
   localName: string;
 }
 
-const ProjectSchema = z.looseObject({
+const MySchema = FullProjectDefinitionSchema.pick({
+  name: true,
+  description: true,
+  models: true,
+  stopWhen: true
+})
+
+const ProjectSchema = z.strictObject({
   projectId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().optional(),
-  models: z.looseObject({
-    base: z.looseObject({
-      model: z.string().nonempty(),
-    }),
-    structuredOutput: z.looseObject({}).optional(),
-    summarizer: z.looseObject({}).optional(),
-  }),
-  stopWhen: z.preprocess(
-    convertNullToUndefined,
-    z
-      .strictObject({
-        transferCountIs: z.int().optional(),
-        stepCountIs: z.int().optional(),
-      })
-      .optional()
-  ),
+  ...MySchema.shape,
   skills: z.array(z.string()).optional(),
   agents: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
@@ -82,7 +51,9 @@ const ProjectSchema = z.looseObject({
   referenceOverrides: ReferenceOverridesSchema.optional(),
 });
 
-export function generateProjectDefinition(data: ProjectDefinitionData): SourceFile {
+type ProjectInput = z.input<typeof ProjectSchema>
+
+export function generateProjectDefinition(data: ProjectInput): SourceFile {
   const result = ProjectSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for project:
