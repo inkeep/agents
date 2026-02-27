@@ -188,8 +188,23 @@ export class A2AClient {
       });
 
       if (!response.ok) {
+        let responseBody: string | undefined;
+        try {
+          responseBody = await response.text();
+        } catch {
+          // ignore body read failures
+        }
+        logger.error(
+          {
+            url: url.toString(),
+            status: response.status,
+            statusText: response.statusText,
+            responseBody,
+          },
+          'Agent Card fetch failed'
+        );
         throw new Error(
-          `Failed to fetch Agent Card from ${url.toString()}: ${response.status} ${response.statusText}`
+          `Failed to fetch Agent Card from ${url.toString()}: ${response.status}${responseBody ? ` - ${responseBody}` : ''}`
         );
       }
       const agentCard: AgentCard = await response.json();
@@ -233,8 +248,23 @@ export class A2AClient {
         },
       });
       if (!response.ok) {
+        let responseBody: string | undefined;
+        try {
+          responseBody = await response.text();
+        } catch {
+          // ignore body read failures
+        }
+        logger.error(
+          {
+            url: url.toString(),
+            status: response.status,
+            statusText: response.statusText,
+            responseBody,
+          },
+          'Agent Card fetch failed (getAgentCard)'
+        );
         throw new Error(
-          `Failed to fetch Agent Card from ${url.toString()}: ${response.status} ${response.statusText}`
+          `Failed to fetch Agent Card from ${url.toString()}: ${response.status}${responseBody ? ` - ${responseBody}` : ''}`
         );
       }
       return (await response.json()) as AgentCard;
