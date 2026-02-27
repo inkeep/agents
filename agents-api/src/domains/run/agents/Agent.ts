@@ -1873,9 +1873,14 @@ export class Agent {
 
       addUnique(this.artifactComponents);
 
+      const projectArtifactComponents = project.artifactComponents || {};
+
       for (const subAgent of Object.values(agentDefinition.subAgents)) {
         if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
-          addUnique(subAgent.artifactComponents as ArtifactComponentApiInsert[]);
+          const resolved = (subAgent.artifactComponents as string[])
+            .map((id) => projectArtifactComponents[id])
+            .filter(Boolean) as ArtifactComponentApiInsert[];
+          addUnique(resolved);
         }
       }
 
