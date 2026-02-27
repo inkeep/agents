@@ -455,7 +455,6 @@ export async function handleAppMention(params: {
           );
         }
       }
-      span.end();
     }
   });
 }

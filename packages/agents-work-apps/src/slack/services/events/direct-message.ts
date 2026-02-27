@@ -201,7 +201,6 @@ export async function handleDirectMessage(params: {
       } catch (postError) {
         logger.error({ error: postError }, 'Failed to post DM error message');
       }
-      span.end();
     }
   });
 }
