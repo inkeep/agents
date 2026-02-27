@@ -32,7 +32,9 @@ if (isolatedIdx !== -1 && (!isolatedName || isolatedName.startsWith('-'))) {
 }
 
 if (isolatedName && !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$/.test(isolatedName)) {
-  console.error('Error: environment name must be 1-63 chars starting with alphanumeric, containing only [a-zA-Z0-9._-]');
+  console.error(
+    'Error: environment name must be 1-63 chars starting with alphanumeric, containing only [a-zA-Z0-9._-]'
+  );
   process.exit(1);
 }
 
@@ -75,10 +77,8 @@ if (isolatedName) {
   }
 
   const p = state.ports;
-  process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL =
-    `postgresql://appuser:password@localhost:${p.doltgres}/inkeep_agents`;
-  process.env.INKEEP_AGENTS_RUN_DATABASE_URL =
-    `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
+  process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL = `postgresql://appuser:password@localhost:${p.doltgres}/inkeep_agents`;
+  process.env.INKEEP_AGENTS_RUN_DATABASE_URL = `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
   process.env.SPICEDB_ENDPOINT = `localhost:${p.spicedb_grpc}`;
 
   // Run remaining setup steps (secrets generation, project push) but skip
