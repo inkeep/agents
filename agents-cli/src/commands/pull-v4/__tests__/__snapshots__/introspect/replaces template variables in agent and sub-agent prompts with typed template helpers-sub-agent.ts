@@ -1,5 +1,5 @@
 import { subAgent } from '@inkeep/agents-sdk';
-import { activitiesPlannerContext, activitiesPlannerContextHeaders } from '../context-configs/activities-planner-context';
+import { activitiesPlannerContext, activitiesPlannerContextHeaders } from '../../context-configs/activities-planner-context';
 
 export const activitiesPlanner = subAgent({
   id: 'activities-planner',

@@ -365,6 +365,13 @@ Emitted when an agent creates or saves an artifact (document, chart, file, etc.)
 }
 ```
 
+**Field notes:**
+
+- `summaryData` — contains the artifact's **preview fields** (those marked `inPreview: true` in the schema). These are available immediately in the agent's context and streamed to clients.
+- `fullData` — contains all remaining non-preview fields. This data is persisted in storage and retrievable on demand.
+
+See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) for how to define preview and non-preview fields in your artifact schemas.
+
 ## System Events
 
 ### `agent_initializing`

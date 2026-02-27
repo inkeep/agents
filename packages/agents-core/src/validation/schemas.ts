@@ -435,20 +435,21 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 
 export const AgentSelectSchema = createSelectSchema(agents);
 
-const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
-  'ID of the default sub-agent that handles initial user messages. ' +
-  'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
-  'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.';
-
 export const AgentInsertSchema = createInsertSchema(agents, {
   id: () => ResourceIdSchema,
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    ResourceIdSchema.clone().nullable().optional().openapi({
-      description: DEFAULT_SUB_AGENT_ID_DESCRIPTION,
-      example: 'my-default-subagent',
-    }),
+    ResourceIdSchema.clone()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'ID of the default sub-agent that handles initial user messages. ' +
+          'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+          'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
+        example: 'my-default-subagent',
+      }),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -927,6 +928,7 @@ export const CronExpressionSchema = z
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  createdBy: z.string().nullable().describe('User ID of the user who created this trigger'),
 });
 
 const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
@@ -953,6 +955,8 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   maxRetries: () => z.number().int().min(0).max(10).default(1),
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
+  createdBy: () =>
+    z.string().nullable().optional().describe('User ID of the user who created this trigger'),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
@@ -1756,6 +1760,10 @@ export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).exte
 });
 export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
+  baseUrl: z.url(),
+  credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 

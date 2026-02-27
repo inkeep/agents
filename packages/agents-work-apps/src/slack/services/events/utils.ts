@@ -93,6 +93,24 @@ export async function findCachedUserMapping(
 }
 
 /**
+ * Escape special characters in Slack mrkdwn link display text.
+ * In Slack's <url|text> format, `>` terminates the link, `<` opens a new one,
+ * and `&` begins an HTML entity — all must be escaped.
+ */
+export function escapeSlackLinkText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Escape special characters in Slack mrkdwn text.
+ * In Slack's mrkdwn, `&`, `<`, and `>` are treated as HTML entities/tags
+ * and must be escaped in all dynamic mrkdwn text fields.
+ */
+export function escapeSlackMrkdwn(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
  * Convert standard Markdown to Slack's mrkdwn format
  *
  * Key differences:
@@ -111,7 +129,10 @@ export function markdownToMrkdwn(markdown: string): string {
   result = result.replace(/^#{1,6}\s+(.+)$/gm, '*$1*');
 
   // Convert markdown links [text](url) to Slack links <url|text>
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<$2|$1>');
+  result = result.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, text, url) => `<${url}|${escapeSlackLinkText(text)}>`
+  );
 
   // Convert bold: **text** or __text__ to *text*
   // Do this before italic to avoid conflicts
@@ -703,4 +724,79 @@ export function formatChannelLabel(channelInfo: { name?: string } | null): strin
 export function formatChannelContext(channelInfo: { name?: string } | null): string {
   const label = formatChannelLabel(channelInfo);
   return label ? `the Slack channel ${label}` : 'Slack';
+}
+
+export function formatMessageTimestamp(messageTs: string, timezone: string): string {
+  const date = new Date(Number.parseFloat(messageTs) * 1000);
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    }).format(date);
+  } catch (error) {
+    logger.error({ error, messageTs, timezone }, 'Failed to format message timestamp');
+    return '';
+  }
+}
+
+export interface FormatSlackQueryOptions {
+  text: string;
+  channelContext: string;
+  userName: string;
+  attachmentContext?: string;
+  threadContext?: string;
+  isAutoExecute?: boolean;
+  messageTs?: string;
+  senderTimezone?: string;
+}
+
+export function formatSlackQuery(options: FormatSlackQueryOptions): string {
+  const {
+    text,
+    channelContext,
+    userName,
+    attachmentContext,
+    threadContext,
+    isAutoExecute,
+    messageTs,
+    senderTimezone,
+  } = options;
+
+  const formattedMessageTs =
+    messageTs && senderTimezone ? formatMessageTimestamp(messageTs, senderTimezone) : '';
+  const timestampSuffix = formattedMessageTs ? ` (sent ${formattedMessageTs})` : '';
+
+  if (isAutoExecute && threadContext) {
+    return `A user mentioned you in a thread in ${channelContext}${timestampSuffix}.
+
+<slack_thread_context>
+${threadContext}
+</slack_thread_context>
+
+Based on the thread above, provide a helpful response. Consider:
+- What is the main topic or question being discussed?
+- Is there anything that needs clarification or a direct answer?
+- If appropriate, summarize key points or provide relevant information.
+
+Respond naturally as if you're joining the conversation to help.`;
+  }
+
+  if (threadContext) {
+    let messageContent = text;
+    if (attachmentContext) {
+      messageContent = `${text}\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+    }
+    return `The following is thread context from ${channelContext}:\n\n<slack_thread_context>\n${threadContext}\n</slack_thread_context>\n\nMessage from ${userName}${timestampSuffix}: ${messageContent}`;
+  }
+
+  if (attachmentContext) {
+    return `The following is a message from ${channelContext} from ${userName}${timestampSuffix}: """${text}"""\n\nThe message also includes the following shared/forwarded content:\n\n<attached_content>\n${attachmentContext}\n</attached_content>`;
+  }
+
+  return `The following is a message from ${channelContext} from ${userName}${timestampSuffix}: """${text}"""`;
 }

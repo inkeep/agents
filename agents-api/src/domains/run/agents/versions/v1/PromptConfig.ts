@@ -10,6 +10,12 @@ import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-c
 
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 import {
+  buildSchemaShape,
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../../../utils/schema-validation';
+import {
   type AssembleResult,
   type BreakdownComponentDef,
   calculateBreakdownTotal,
@@ -129,7 +135,8 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       config.artifacts,
       hasArtifactComponents,
       config.artifactComponents,
-      config.hasAgentArtifactComponents
+      config.hasAgentArtifactComponents,
+      config.allProjectArtifactComponents
     );
 
     const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
@@ -381,15 +388,30 @@ COMMON FAILURE POINTS (AVOID THESE):
     if (hasArtifactComponents) {
       return `${sharedGuidance}
 
-ARTIFACT MANAGEMENT FOR TEXT RESPONSES:
+ARTIFACT MANAGEMENT:
 
-You will create and reference artifacts using inline annotations in your text response.
+Artifacts have three modes of use. Each surfaces a different amount of data:
 
-CREATING ARTIFACTS (SERVES AS CITATION):
-Use the artifact:create annotation to extract data from tool results. The creation itself serves as a citation.
-Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
+1. CREATE — extract and save data from a tool result as a citable artifact:
+   Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
+   ⚠️ Do not create artifacts from get_reference_artifact results — only from original research tools.
 
-⚠️ IMPORTANT: Do not create artifacts from get_reference_artifact tool results - these are already compressed artifacts being retrieved. Only create artifacts from original research and analysis tools.
+2. REFERENCE IN TEXT — cite a saved artifact inline in your response:
+   Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
+   ⚠️ PREVIEW FIELDS ONLY. Only the preview fields appear in your context — you cannot see full fields this way.
+
+3. PASS TO A TOOL — supply a saved artifact as a tool argument:
+   Format: { "$artifact": "artifact-id", "$tool": "tool_call_id" }
+   ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
+   Use the exact artifactId and toolCallId from when the artifact was created.
+   ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you create during THIS response are equally valid — use the id and tool values from your own artifact:create tag.
+   See AVAILABLE ARTIFACT TYPES for the exact preview vs full schema breakdown per type.
+   ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
+      { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
+   ✅ ALWAYS pass the reference instead:
+      { "artifactArg": { "$artifact": "artifact-id", "$tool": "toolu_abc123" }, "param2": "value" }
+
+CREATING ARTIFACTS — JMESPATH SELECTOR RULES:
 
 🚨 CRITICAL: DETAILS PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
 
@@ -415,7 +437,7 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
-❌ NEVER: [?field=='value'] (escaped quotes in filters)  
+❌ NEVER: [?field=='value'] (escaped quotes in filters)
 ❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
@@ -441,14 +463,14 @@ STEP 1: INSPECT THE ACTUAL DATA FIRST
 - Look at what titles, record_types, and field names actually exist in the data
 - Don't assume field names or values based on the user's question
 
-STEP 2: USE STRUCTURE HINTS AS YOUR SELECTOR GUIDE  
+STEP 2: USE STRUCTURE HINTS AS YOUR SELECTOR GUIDE
 - The _structureHints.exampleSelectors show you exactly what selectors work with this data
 - Copy and modify the patterns from exampleSelectors that target your needed data
 - Use the commonFields list to see what field names are available
 - Follow the exact path structure indicated by the hints
 
 STEP 3: MATCH ACTUAL VALUES, NOT ASSUMPTIONS
-- Look for real titles in the data like "Inkeep", "Team", "About Us", "API Guide" 
+- Look for real titles in the data like "Inkeep", "Team", "About Us", "API Guide"
 - Check actual record_type values like "site", "documentation", "blog"
 - Use exact matches from the real data structure, not guessed patterns
 - If looking for team info, it might be in a document titled "Inkeep" with record_type="site"
@@ -465,10 +487,6 @@ EXAMPLE PATTERNS FOR BASE SELECTORS:
 ✅ CORRECT: result.items[?type=='document'][0] (filter by type, single quotes!)
 ✅ CORRECT: result.data[?category=='api'][0] (filter by category)
 ✅ CORRECT: result.documents[?status=='published'][0] (filter by status)
-
-REFERENCING ARTIFACTS (WHEN CITING AGAIN):
-Only use artifact:ref when you need to cite the SAME artifact again for a different statement or context.
-Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
 
 EXAMPLE TEXT RESPONSE:
 "I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
@@ -494,13 +512,23 @@ IMPORTANT GUIDELINES:
     if (!hasArtifactComponents) {
       return `${sharedGuidance}
 
-ARTIFACT REFERENCING FOR TEXT RESPONSES:
+ARTIFACT USAGE:
 
-You can reference existing artifacts but cannot create new ones.
+You cannot create artifacts, but you can use existing ones in two ways:
 
-HOW TO REFERENCE ARTIFACTS:
-Use the artifact:ref annotation to reference existing artifacts.
-Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
+1. REFERENCE IN TEXT — cite a saved artifact inline in your response:
+   Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
+   ⚠️ PREVIEW FIELDS ONLY. Only the preview fields appear in your context — you cannot see full fields this way.
+
+2. PASS TO A TOOL — supply a saved artifact as a tool argument:
+   Format: { "$artifact": "artifact-id", "$tool": "tool_call_id" }
+   ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
+   Use the exact artifactId and toolCallId from when the artifact was created.
+   ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you just received in this conversation (e.g. from a delegation) are equally valid — use the id and tool values shown in the artifact reference.
+   ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
+      { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
+   ✅ ALWAYS pass the reference instead:
+      { "artifactArg": { "$artifact": "artifact-id", "$tool": "toolu_abc123" }, "param2": "value" }
 
 EXAMPLE TEXT RESPONSE:
 "Based on the authentication guide <artifact:ref id='existing-auth-guide' tool='call_previous456' /> that was previously collected, the API uses OAuth 2.0.
@@ -538,13 +566,19 @@ IMPORTANT GUIDELINES:
         let schemaDescription = 'No schema defined';
 
         if (ac.props?.properties) {
-          const fieldDetails = Object.entries(ac.props.properties)
-            .map(([key, value]: [string, any]) => {
-              const inPreview = value.inPreview ? ' [PREVIEW]' : ' [FULL]';
-              return `${key} (${value.description || value.type || 'field'})${inPreview}`;
-            })
-            .join(', ');
-          schemaDescription = `Fields: ${fieldDetails}`;
+          const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
+          const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
+
+          const previewShape = previewSchema.properties
+            ? buildSchemaShape(previewSchema.properties)
+            : {};
+          const fullShape = fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {};
+
+          schemaDescription = `PREVIEW FIELDS — artifact:ref in text or artifact:create (summary only):
+    ${JSON.stringify(previewShape, null, 2)}
+
+    FULL FIELDS — { "$artifact": "...", "$tool": "..." } tool argument or get_reference_artifact tool:
+    ${JSON.stringify(fullShape, null, 2)}`;
         }
 
         return `  - "${ac.name}": ${ac.description || 'No description available'}
@@ -573,12 +607,32 @@ ${typeDescriptions}
 - Copy the exact quoted name from the "AVAILABLE ARTIFACT TYPES" list above`;
   }
 
+  private buildTypeSchemaMap(
+    artifactComponents: any[]
+  ): Record<string, { previewShape: Record<string, unknown>; fullShape: Record<string, unknown> }> {
+    const map: Record<
+      string,
+      { previewShape: Record<string, unknown>; fullShape: Record<string, unknown> }
+    > = {};
+    for (const ac of artifactComponents) {
+      if (!ac.name || !ac.props?.properties) continue;
+      const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
+      const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
+      map[ac.name] = {
+        previewShape: previewSchema.properties ? buildSchemaShape(previewSchema.properties) : {},
+        fullShape: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
+      };
+    }
+    return map;
+  }
+
   private generateArtifactsSection(
     templates: Map<string, string>,
     artifacts: Artifact[],
     hasArtifactComponents: boolean = false,
     artifactComponents?: any[],
-    hasAgentArtifactComponents?: boolean
+    hasAgentArtifactComponents?: boolean,
+    allProjectArtifactComponents?: any[]
   ): string {
     const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const rules = this.getArtifactReferencingRules(
@@ -589,6 +643,10 @@ ${typeDescriptions}
     const creationInstructions = this.getArtifactCreationInstructions(
       hasArtifactComponents,
       artifactComponents
+    );
+
+    const typeSchemaMap = this.buildTypeSchemaMap(
+      allProjectArtifactComponents ?? artifactComponents ?? []
     );
 
     if (artifacts.length === 0) {
@@ -602,7 +660,7 @@ ${creationInstructions}
     }
 
     const artifactsXml = artifacts
-      .map((artifact) => this.generateArtifactXml(templates, artifact))
+      .map((artifact) => this.generateArtifactXml(templates, artifact, typeSchemaMap))
       .join('\n  ');
 
     return `<available_artifacts description="These are the artifacts available for you to use in generating responses.
@@ -616,7 +674,14 @@ ${creationInstructions}
 </available_artifacts>`;
   }
 
-  private generateArtifactXml(templates: Map<string, string>, artifact: Artifact): string {
+  private generateArtifactXml(
+    templates: Map<string, string>,
+    artifact: Artifact,
+    typeSchemaMap?: Record<
+      string,
+      { previewShape: Record<string, unknown>; fullShape: Record<string, unknown> }
+    >
+  ): string {
     const artifactTemplate = templates.get('artifact');
     if (!artifactTemplate) {
       throw new Error('Artifact template not loaded');
@@ -629,11 +694,20 @@ ${creationInstructions}
     const artifactSummary =
       summaryData.length > 0 ? JSON.stringify(summaryData, null, 2) : 'No summary data available';
 
+    const artifactType = artifact.type || 'unknown';
+    const schemas = typeSchemaMap?.[artifactType];
+    const typeSchema = schemas
+      ? `PREVIEW (artifact:ref in text / artifact:create): ${JSON.stringify(schemas.previewShape)}
+    FULL ({ "$artifact": "...", "$tool": "..." } tool argument or get_reference_artifact): ${JSON.stringify(schemas.fullShape)}`
+      : 'Schema not available';
+
     artifactXml = artifactXml.replace('{{ARTIFACT_NAME}}', artifact.name || '');
     artifactXml = artifactXml.replace('{{ARTIFACT_DESCRIPTION}}', artifact.description || '');
     artifactXml = artifactXml.replace('{{TASK_ID}}', artifact.taskId || '');
     artifactXml = artifactXml.replace('{{ARTIFACT_ID}}', artifact.artifactId || '');
     artifactXml = artifactXml.replace('{{TOOL_CALL_ID}}', artifact.toolCallId || 'unknown');
+    artifactXml = artifactXml.replace('{{ARTIFACT_TYPE}}', artifactType);
+    artifactXml = artifactXml.replace('{{ARTIFACT_TYPE_SCHEMA}}', typeSchema);
     artifactXml = artifactXml.replace('{{ARTIFACT_SUMMARY}}', artifactSummary);
 
     return artifactXml;

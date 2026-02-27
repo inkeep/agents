@@ -7,12 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AgentForm, type AgentFormData } from './agent-form';
+import { AgentForm, type AgentInput } from './agent-form';
 
 interface EditAgentDialogProps {
   tenantId: string;
   projectId: string;
-  agentData: AgentFormData;
+  agentData: AgentInput;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }
@@ -38,7 +38,7 @@ export function EditAgentDialog({
         <AgentForm
           projectId={projectId}
           agentId={agentData.id}
-          initialData={agentData}
+          defaultValues={agentData}
           tenantId={tenantId}
           onSuccess={handleSuccess}
         />

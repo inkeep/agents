@@ -976,6 +976,8 @@ const getFullAgentDefinitionInternal =
             maxRetries: scheduledTrigger.maxRetries,
             retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
             timeoutSeconds: scheduledTrigger.timeoutSeconds,
+            runAsUserId: scheduledTrigger.runAsUserId,
+            createdBy: scheduledTrigger.createdBy,
           };
         }
         result.scheduledTriggers = scheduledTriggersObject;

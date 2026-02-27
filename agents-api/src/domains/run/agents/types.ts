@@ -37,6 +37,7 @@ export interface SystemPromptV1 {
   mcpServerGroups?: McpServerGroupData[];
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
+  allProjectArtifactComponents?: ArtifactComponentApiInsert[];
   hasAgentArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities

@@ -97,7 +97,7 @@ The setup script tells you the exact project name and command. After stopping th
 
 ## Check service logs (local development)
 
-When running `pnpm dev` from your [quickstart workspace](/quick-start/start-development), you will see an interactive terminal interface. This interface allows you to inspect the logs of each [running service](/quick-start/start-development#service-ports). You can navigate between services using the up and down arrow keys.
+When running `pnpm dev` from your [quickstart workspace](/get-started/quick-start), you will see an interactive terminal interface. This interface allows you to inspect the logs of each running service. You can navigate between services using the up and down arrow keys.
 
 <img src="/images/agents-quickstart-pnpm-dev.png" alt="Service logs in local development" style={{ borderRadius: '8px' }} />
 
@@ -134,6 +134,7 @@ This usually means the manage UI was unreachable when you tried to approve the d
 
 If auto-login isn't working when you open `http://localhost:3000`:
 
+- **You recently logged out**: After clicking "Log out", a `dev-logged-out` cookie prevents auto-login so you can test login flows. To restore auto-login, clear your cookies or restart your browser.
 - **`pnpm db:auth:init` not run**: The admin user must exist in the database. Run `pnpm db:auth:init` to create it.
 - **API not running**: The auto-login proxy calls `POST /api/auth/dev-session` on the API server. Make sure the API is running on `localhost:3002`.
 - **Bypass secret missing from `.env`**: Ensure `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` is set in your `.env` file. The proxy uses this to authenticate with the API. Check the server console for `[proxy]` warnings.

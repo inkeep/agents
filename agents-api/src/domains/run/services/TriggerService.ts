@@ -610,6 +610,7 @@ export async function executeAgentAsync(params: {
   messageParts: Part[];
   resolvedRef: ResolvedRef;
   dispatchedAt?: number;
+  runAsUserId?: string;
 }): Promise<void> {
   const {
     tenantId,
@@ -622,6 +623,7 @@ export async function executeAgentAsync(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    runAsUserId,
   } = params;
 
   const execStartedAt = Date.now();
@@ -717,6 +719,7 @@ export async function executeAgentAsync(params: {
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
         'invocation.type': 'trigger',
+        ...(runAsUserId && { 'user.id': runAsUserId, 'trigger.run_as_user_id': runAsUserId }),
       },
     },
     ctxWithBaggage,
@@ -797,10 +800,9 @@ export async function executeAgentAsync(params: {
           resolvedRef,
           project,
           metadata: {
-            initiatedBy: {
-              type: 'api_key',
-              id: triggerId,
-            },
+            initiatedBy: runAsUserId
+              ? { type: 'user', id: runAsUserId }
+              : { type: 'api_key', id: triggerId },
           },
         };
 

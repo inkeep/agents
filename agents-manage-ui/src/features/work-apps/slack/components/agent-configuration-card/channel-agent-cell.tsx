@@ -33,13 +33,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
 }: ChannelAgentCellProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  if (savingChannel === channel.id) {
-    return (
-      <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      </div>
-    );
-  }
+  const isSaving = savingChannel === channel.id;
 
   const { agentId, agentName, projectId } = channel.agentConfig ?? {};
 
@@ -47,7 +41,13 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
     <div className="flex min-w-0 items-center justify-end gap-1">
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className={cn('h-8 min-w-0 max-w-full text-xs')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('h-8 min-w-0 max-w-full text-xs')}
+            disabled={isSaving}
+          >
+            {isSaving && <Loader2 className="h-3! w-3! animate-spin" />}
             {channel.agentConfig ? (
               <span className="min-w-0 truncate">{agentName}</span>
             ) : (
