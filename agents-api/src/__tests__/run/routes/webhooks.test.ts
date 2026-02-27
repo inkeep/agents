@@ -36,6 +36,7 @@ const {
   getCredentialReferenceMock,
   createKeyChainStoreMock,
   keychainGetMock,
+  canUseProjectStrictMock,
 } = vi.hoisted(() => {
   const keychainGetMock = vi.fn();
   return {
@@ -54,6 +55,7 @@ const {
       delete: vi.fn(),
     })),
     keychainGetMock,
+    canUseProjectStrictMock: vi.fn().mockResolvedValue(true),
   };
 });
 
@@ -79,6 +81,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     JsonTransformer: actual.JsonTransformer,
     hashTriggerHeaderValue: actual.hashTriggerHeaderValue,
     verifySignatureWithConfig: actual.verifySignatureWithConfig,
+    canUseProjectStrict: canUseProjectStrictMock,
     generateId: () => 'test-id-123',
     getConversationId: () => 'conv-test-123',
   };
@@ -256,6 +259,7 @@ describe('Webhook Endpoint Tests', () => {
     createMessageMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     getCredentialReferenceMock.mockReturnValue(vi.fn().mockResolvedValue(null));
     keychainGetMock.mockResolvedValue(null);
+    canUseProjectStrictMock.mockResolvedValue(true);
   });
 
   describe('Success path', () => {
@@ -1879,6 +1883,125 @@ describe('Webhook Endpoint Tests', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('User-scoped execution', () => {
+    const userScopedTrigger = {
+      ...testTrigger,
+      runAsUserId: 'user-abc',
+    };
+
+    it('should check permission and proceed when runAsUserId is set and user has access', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(userScopedTrigger));
+      canUseProjectStrictMock.mockResolvedValue(true);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
+        userId: 'user-abc',
+        tenantId: 'tenant-123',
+        projectId: 'project-123',
+      });
+
+      // Execution proceeded — conversation was created
+      expect(createOrGetConversationMock).toHaveBeenCalled();
+    });
+
+    it('should mark invocation failed and skip execution when user lacks permission', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(userScopedTrigger));
+      canUseProjectStrictMock.mockResolvedValue(false);
+
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining("no longer has 'use' permission"),
+          }),
+        })
+      );
+      // Execution did not proceed — no conversation created
+      expect(createOrGetConversationMock).not.toHaveBeenCalled();
+    });
+
+    it('should mark invocation failed when permission check throws', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(userScopedTrigger));
+      canUseProjectStrictMock.mockRejectedValue(new Error('SpiceDB unavailable'));
+
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('Permission check failed'),
+          }),
+        })
+      );
+      // Execution did not proceed — no conversation created
+      expect(createOrGetConversationMock).not.toHaveBeenCalled();
+    });
+
+    it('should skip permission check and use anonymous initiatedBy when trigger has no runAsUserId', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+      // Execution proceeded — conversation was created
+      expect(createOrGetConversationMock).toHaveBeenCalled();
     });
   });
 });

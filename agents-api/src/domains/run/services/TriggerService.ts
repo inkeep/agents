@@ -13,6 +13,7 @@ import type {
   SignatureVerificationConfig,
 } from '@inkeep/agents-core';
 import {
+  canUseProjectStrict,
   createKeyChainStore,
   createMessage,
   createNangoCredentialStore,
@@ -149,6 +150,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId: trigger.runAsUserId ?? undefined,
   });
 
   return { success: true, invocationId, conversationId };
@@ -501,6 +503,7 @@ export async function dispatchExecution(params: {
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
+  runAsUserId?: string;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -512,6 +515,7 @@ export async function dispatchExecution(params: {
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId,
   } = params;
 
   const conversationId = getConversationId();
@@ -550,6 +554,7 @@ export async function dispatchExecution(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    runAsUserId,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -698,6 +703,44 @@ export async function executeAgentAsync(params: {
   }
 
   const agentName = agent.name;
+
+  // Permission check for user-scoped webhook triggers
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({ userId: runAsUserId, tenantId, projectId });
+      if (!canUse) {
+        logger.warn(
+          { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId },
+          'User no longer has access to project, failing invocation'
+        );
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId,
+          invocationId,
+          data: {
+            status: 'failed',
+            errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
+          },
+        });
+        return;
+      }
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId, error: err },
+        'Failed to check user project access'
+      );
+      await updateTriggerInvocationStatus(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        invocationId,
+        data: {
+          status: 'failed',
+          errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+        },
+      });
+      return;
+    }
+  }
 
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
