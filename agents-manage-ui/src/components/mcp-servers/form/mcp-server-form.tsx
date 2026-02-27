@@ -299,7 +299,7 @@ export function MCPServerForm({
             label="Prompt (optional)"
             placeholder={
               tool?.capabilities?.serverInstructions
-                ? `Server default: "${tool.capabilities.serverInstructions}"`
+                ? `Leave empty to use server default: "${tool.capabilities.serverInstructions.slice(0, 100)}${tool.capabilities.serverInstructions.length > 100 ? '...' : ''}"`
                 : 'Override the instructions sent by the MCP server...'
             }
           />
