@@ -879,8 +879,35 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 }
 
 /**
- * Format messages into conversation history string (extracted from legacy method)
+ * Reconstruct message text from multi-part content, converting artifact data parts to `<artifact:ref>` tags.
+ * Falls back to `content.text` for simple messages.
  */
+export function reconstructMessageText(msg: any): string {
+  const parts = msg.content?.parts;
+  if (!Array.isArray(parts) || parts.length === 0) {
+    return msg.content?.text ?? '';
+  }
+
+  return parts
+    .map((part: any) => {
+      if (part.type === 'text') {
+        return part.text ?? '';
+      }
+      if (part.type === 'data') {
+        try {
+          const data = typeof part.data === 'string' ? JSON.parse(part.data) : part.data;
+          if (data?.artifactId && data?.toolCallId) {
+            return `<artifact:ref id="${data.artifactId}" tool="${data.toolCallId}" />`;
+          }
+        } catch {
+          // ignore unparseable data parts
+        }
+      }
+      return '';
+    })
+    .join('');
+}
+
 function formatMessagesAsConversationHistory(messages: any[]): string {
   const formattedHistory = messages
     .map((msg: any) => {
@@ -908,7 +935,7 @@ function formatMessagesAsConversationHistory(messages: any[]): string {
         roleLabel = msg.role || 'system';
       }
 
-      return `${roleLabel}: """${msg.content.text}"""`;
+      return `${roleLabel}: """${reconstructMessageText(msg)}"""`;
     })
     .join('\n');
 
