@@ -3,13 +3,11 @@ import { ModelFactory } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
-import type { ArtifactInfo } from '../utils/artifact-utils';
+import { getModelContextWindow } from '../utils/model-context-utils';
+import { estimateTokens } from '../utils/token-estimator';
 
 const logger = getLogger('distill-conversation-history-tool');
 
-/**
- * Conversation History Summary Schema - structured object for replacing entire conversation histories
- */
 export const ConversationHistorySummarySchema = z.object({
   type: z.literal('conversation_history_summary_v1'),
   session_id: z.string().nullable().optional(),
@@ -80,16 +78,13 @@ export const ConversationHistorySummarySchema = z.object({
 
 export type ConversationHistorySummary = z.infer<typeof ConversationHistorySummarySchema>;
 
-/**
- * Distill entire conversation history into a comprehensive summary that can replace the full message history
- */
 export async function distillConversationHistory(params: {
-  messages: any[];
   conversationId: string;
   summarizerModel: ModelSettings;
-  toolCallToArtifactMap?: Record<string, ArtifactInfo>;
+  currentSummary?: ConversationHistorySummary | null;
+  messageFormatter: (maxChars?: number) => string;
 }): Promise<ConversationHistorySummary> {
-  const { messages, conversationId, summarizerModel, toolCallToArtifactMap } = params;
+  const { conversationId, summarizerModel, currentSummary, messageFormatter } = params;
 
   try {
     if (!summarizerModel?.model?.trim()) {
@@ -98,54 +93,34 @@ export async function distillConversationHistory(params: {
 
     const model = ModelFactory.createModel(summarizerModel);
 
-    // Format messages for prompt with comprehensive content handling
-    const formattedMessages = messages
-      .map((msg: any) => {
-        const parts: string[] = [];
+    const modelContextInfo = getModelContextWindow(summarizerModel);
+    if (!modelContextInfo.contextWindow) {
+      throw new Error('Could not determine model context window for history distillation');
+    }
+    const contextWindow = modelContextInfo.contextWindow;
+    const safeLimit = Math.floor(contextWindow * 0.8);
 
-        if (typeof msg.content === 'string') {
-          parts.push(msg.content);
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === 'text') {
-              parts.push(block.text);
-            } else if (block.type === 'tool-call') {
-              parts.push(
-                `[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`
-              );
-            } else if (block.type === 'tool-result') {
-              const artifactInfo = toolCallToArtifactMap?.[block.toolCallId];
+    logger.info(
+      { conversationId, contextWindow, safeLimit },
+      'Starting history distillation with context window limits'
+    );
 
-              if (artifactInfo?.isOversized) {
-                // Oversized artifact - use metadata instead of full output
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\n${artifactInfo.oversizedWarning}\nStructure: ${artifactInfo.structureInfo}`
-                );
-              } else if (artifactInfo) {
-                // Normal artifact created - include tool args and result
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\nResult: ${JSON.stringify(block.result)}`
-                );
-              } else {
-                // No artifact - include full result
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nResult: ${JSON.stringify(block.result)}`
-                );
-              }
-            }
-          }
-        } else if (msg.content?.text) {
-          parts.push(msg.content.text);
-        }
+    const priorSummarySection = currentSummary
+      ? `**Prior summary (build on this — the new summary must incorporate everything from here plus the new messages below):**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\`\n\n**New messages to incorporate:**`
+      : '**Complete Conversation to Summarize:**';
 
-        return parts.length > 0 ? `${msg.role || 'system'}: ${parts.join('\n')}` : '';
-      })
-      .filter((line) => line.trim().length > 0)
-      .join('\n\n');
+    const truncationAttempts = [
+      { name: 'no_truncation', maxChars: undefined },
+      { name: 'moderate', maxChars: Math.floor(safeLimit * 4) },
+      { name: 'aggressive', maxChars: Math.floor(safeLimit * 2) },
+    ];
 
-    const prompt = `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
+    for (const attempt of truncationAttempts) {
+      const formattedMessages = messageFormatter(attempt.maxChars);
 
-**Complete Conversation to Summarize:**
+      const prompt = `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
+
+${priorSummarySection}
 
 \`\`\`text
 ${formattedMessages}
@@ -230,29 +205,47 @@ Create a comprehensive summary using this exact JSON schema:
 
 Return **only** valid JSON.`;
 
-    const { output: summary } = await generateText({
-      model,
-      prompt,
-      output: Output.object({
-        schema: ConversationHistorySummarySchema,
-      }),
-    });
+      const estimatedTokens = estimateTokens(prompt);
 
-    // Set session ID
-    summary.session_id = conversationId;
+      if (estimatedTokens > safeLimit) {
+        logger.info(
+          { conversationId, attempt: attempt.name, estimatedTokens, safeLimit },
+          'Prompt exceeds safe limit, trying more aggressive truncation'
+        );
+        continue;
+      }
 
-    return summary;
+      try {
+        const { output: summary } = await generateText({
+          model,
+          prompt,
+          output: Output.object({ schema: ConversationHistorySummarySchema }),
+        });
+
+        summary.session_id = conversationId;
+        return summary;
+      } catch (llmError) {
+        const errorMessage = llmError instanceof Error ? llmError.message : String(llmError);
+        if (errorMessage.includes('too long') || errorMessage.includes('token')) {
+          logger.info(
+            { conversationId, attempt: attempt.name, error: errorMessage },
+            'LLM rejected prompt as too long, trying more aggressive truncation'
+          );
+          continue;
+        }
+        throw llmError;
+      }
+    }
+
+    throw new Error(
+      `Failed to distill conversation history: all truncation attempts exceeded limits (context window: ${contextWindow}, safe limit: ${safeLimit})`
+    );
   } catch (error) {
     logger.error(
-      {
-        conversationId,
-        messageCount: messages.length,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { conversationId, error: error instanceof Error ? error.message : 'Unknown error' },
       'Failed to distill conversation history'
     );
 
-    // Return minimal fallback summary
     return {
       type: 'conversation_history_summary_v1',
       session_id: conversationId,

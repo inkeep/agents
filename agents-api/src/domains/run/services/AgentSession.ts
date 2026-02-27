@@ -964,25 +964,23 @@ export class AgentSession {
       async (span) => {
         try {
           const userVisibleActivities = this.extractUserVisibleActivities(newEvents);
+          let activitiesStr = userVisibleActivities.join('\n') || 'No New Activities';
 
-          let conversationContext = '';
+          let rawConversationHistory = '';
           if (tenantId && projectId) {
             try {
-              const conversationHistory = await getFormattedConversationHistory({
+              rawConversationHistory = await getFormattedConversationHistory({
                 tenantId,
                 projectId,
                 conversationId: this.contextId || 'default',
                 options: {
                   limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
                   maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
-                  includeInternal: true,
-                  messageTypes: ['chat', 'tool-result'],
+                  includeInternal: false,
+                  messageTypes: ['chat'],
                 },
                 filters: {},
               });
-              conversationContext = conversationHistory.trim()
-                ? `\nUser's Question/Context:\n${conversationHistory}\n`
-                : '';
             } catch (error) {
               logger.warn(
                 { sessionId: this.sessionId, error },
@@ -1021,9 +1019,13 @@ export class AgentSession {
             ),
           });
 
-          const basePrompt = `Generate status updates for relevant components based on what the user has asked for.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
+          const buildPrompt = (activities: string, convHistory: string) => {
+            const convContext = convHistory.trim()
+              ? `\nUser's Question/Context:\n${convHistory}\n`
+              : '';
+            return `Generate status updates for relevant components based on what the user has asked for.${convContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
 
-Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
+Activities:\n${activities}
 
 Available component types: no_relevant_updates, ${statusComponents.map((c) => c.type).join(', ')}
 
@@ -1046,9 +1048,9 @@ CRITICAL - HIDE ALL INTERNAL SYSTEM OPERATIONS:
 - If you see "transfer", "delegation_sent", "delegation_returned", or "artifact_saved" events - IGNORE THEM or translate to user-facing information only
 - Focus ONLY on actual discoveries, findings, and results that matter to the user
 
-- Bad examples: 
+- Bad examples:
   * "Transferring to search agent"
-  * "Delegating research task" 
+  * "Delegating research task"
   * "Routing to QA specialist"
   * "Artifact saved successfully"
   * "Storing results for later"
@@ -1057,7 +1059,7 @@ CRITICAL - HIDE ALL INTERNAL SYSTEM OPERATIONS:
   * "Handing off to processor"
 - Good examples:
   * "Slack bot needs admin privileges"
-  * "Found 3-step OAuth flow required"  
+  * "Found 3-step OAuth flow required"
   * "Channel limit is 500 per workspace"
   * Use no_relevant_updates if nothing new to report
 
@@ -1074,8 +1076,37 @@ CRITICAL ANTI-HALLUCINATION RULES:
 REMEMBER YOU CAN ONLY USE 'no_relevant_updates' ALONE! IT CANNOT BE CONCATENATED WITH OTHER STATUS UPDATES!
 
 ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
+          };
 
-          const prompt = basePrompt;
+          let prompt = buildPrompt(activitiesStr, rawConversationHistory);
+
+          const modelForContext = summarizerModel ?? this.statusUpdateState?.baseModel;
+          const contextWindow = modelForContext
+            ? getModelContextWindow(modelForContext).contextWindow
+            : null;
+          if (contextWindow) {
+            const safeLimit = Math.floor(contextWindow * 0.8);
+            const totalTokens = estimateTokens(prompt);
+            if (totalTokens > safeLimit) {
+              const activitiesTokens = estimateTokens(activitiesStr);
+              const convHistoryTokens = estimateTokens(rawConversationHistory);
+              const totalContentTokens = activitiesTokens + convHistoryTokens;
+              const overhead = totalTokens - totalContentTokens;
+              const available = Math.max(0, safeLimit - overhead);
+              if (totalContentTokens > available && totalContentTokens > 0) {
+                const scale = available / totalContentTokens;
+                const maxActivitiesChars = Math.floor(activitiesTokens * scale) * 4;
+                const maxConvHistoryChars = Math.floor(convHistoryTokens * scale) * 4;
+                if (activitiesStr.length > maxActivitiesChars) {
+                  activitiesStr = `${activitiesStr.slice(0, maxActivitiesChars)}\n...[truncated]`;
+                }
+                if (rawConversationHistory.length > maxConvHistoryChars) {
+                  rawConversationHistory = `${rawConversationHistory.slice(0, maxConvHistoryChars)}\n...[truncated]`;
+                }
+                prompt = buildPrompt(activitiesStr, rawConversationHistory);
+              }
+            }
+          }
 
           let modelToUse = summarizerModel;
           if (!summarizerModel?.model?.trim()) {
