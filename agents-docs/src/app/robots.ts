@@ -1,29 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { BASE_URL } from '@/lib/constants';
 
-const machineRoutes = ['/llms.txt', '/llms-full.txt', '/llms.mdx/'];
-
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/*.md', '/*.mdx'],
-      },
-      {
-        userAgent: 'GPTBot',
-        allow: machineRoutes,
-        disallow: ['/api/'],
-      },
-      {
-        userAgent: 'OAI-SearchBot',
-        allow: machineRoutes,
-        disallow: ['/api/'],
-      },
-      {
-        userAgent: 'ChatGPT-User',
-        allow: machineRoutes,
         disallow: ['/api/'],
       },
     ],

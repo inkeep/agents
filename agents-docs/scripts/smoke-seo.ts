@@ -83,49 +83,16 @@ async function main() {
     `Invalid lastmod timestamp for /overview in sitemap: "${overviewSitemapMatch?.[1]}".`
   );
 
-  const machineRouteResponse = await fetch(`${BASE_URL}/overview.mdx`);
-  assert(
-    machineRouteResponse.ok,
-    `Expected /overview.mdx to return 200, got ${machineRouteResponse.status}.`
-  );
-  const machineBody = await machineRouteResponse.text();
-  const canonicalLinkHeader = machineRouteResponse.headers.get('link');
-  assert(canonicalLinkHeader, 'Missing canonical Link header on /overview.mdx response.');
-  assert(
-    machineRouteResponse.headers.get('x-llm-canonical'),
-    'Missing X-LLM-Canonical header on /overview.mdx response.'
-  );
-  assert(
-    machineRouteResponse.headers.get('x-llm-last-modified'),
-    'Missing X-LLM-Last-Modified header on /overview.mdx response.'
-  );
-  assert(
-    canonicalLinkHeader.includes(`${BASE_URL}/overview`) &&
-      canonicalLinkHeader.includes('rel="canonical"'),
-    `Invalid canonical Link header on /overview.mdx: "${canonicalLinkHeader}".`
-  );
-  assert(
-    hasMetadataMarker(machineBody, ['LLM_METADATA', 'LLM_SECTIONS']),
-    'Missing compact LLM metadata header or section map markers in /overview.mdx body.'
-  );
-
   const llmsTxtResponse = await fetch(`${BASE_URL}/llms.txt`);
   assert(llmsTxtResponse.ok, `Expected /llms.txt to return 200, got ${llmsTxtResponse.status}.`);
   const llmsTxtBody = await llmsTxtResponse.text();
-  assert(
-    hasMetadataMarker(llmsTxtBody, ['LLM_METADATA', 'sections=']),
-    'Missing metadata and section summary in /llms.txt.'
-  );
+  assert(llmsTxtBody.includes('# Inkeep'), 'Missing heading in /llms.txt.');
+  assert(llmsTxtBody.includes('## Docs'), 'Missing docs section in /llms.txt.');
 
   const llmsFullResponse = await fetch(`${BASE_URL}/llms-full.txt`);
   assert(
     llmsFullResponse.ok,
     `Expected /llms-full.txt to return 200, got ${llmsFullResponse.status}.`
-  );
-  const llmsFullBody = await llmsFullResponse.text();
-  assert(
-    hasMetadataMarker(llmsFullBody, ['LLM_PAGE_START', 'LLM_METADATA', 'LLM_PAGE_END']),
-    'Missing compact LLM page boundaries or metadata blocks in /llms-full.txt.'
   );
 
   const ogResponse = await fetch(`${BASE_URL}/api/docs-og/overview/image.png`, {

@@ -12,9 +12,26 @@ import type {
 import { JsonLd } from '@/components/seo/json-ld';
 import { BASE_URL } from '@/lib/constants';
 import { formatFreshnessDate } from '@/lib/freshness';
-import type { TocEntry } from '@/lib/llm-metadata';
-import { normalizeTitle } from '@/lib/llm-metadata';
 import { resolveSchemaPolicy } from '@/lib/schema-policy';
+
+interface TocEntry {
+  title?: unknown;
+  url?: string;
+  depth?: number;
+  children?: TocEntry[];
+}
+
+function normalizeTitle(value: unknown) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  if (typeof value === 'number') {
+    return `${value}`;
+  }
+
+  return '';
+}
 
 interface BreadcrumbItem {
   name: string;

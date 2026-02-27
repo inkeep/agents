@@ -1,28 +1,23 @@
 import { BASE_URL } from '@/lib/constants';
-import { parseFreshnessMetadata } from '@/lib/freshness';
-import { buildLLMMetadataHeader, extractSectionMap } from '@/lib/llm-metadata';
 import { source } from '@/lib/source';
 
 export const revalidate = false;
 
 export async function GET() {
-  const scan = source.getPages().map((page) => {
-    const sectionCount = extractSectionMap(page.data.toc).length;
-    const freshness = parseFreshnessMetadata(page.data.datePublished, page.data.dateModified);
-    const metadata = buildLLMMetadataHeader({
-      baseUrl: BASE_URL,
-      canonicalPath: page.url,
-      title: page.data.title,
-      description: page.data.description,
-      datePublished: freshness.datePublished?.value,
-      dateModified: freshness.dateModified?.value,
-    });
-    const freshnessLabel = freshness.lastModified ?? 'missing';
-    return `- ${metadata.replace('<!-- ', '').replace(' -->', '')}\n  - [${page.data.title}](${BASE_URL}${page.url})\n  - fresh=${freshnessLabel}\n  - sections=${sectionCount}`;
+  const pages = source.getPages().map((page) => {
+    return `- [${page.data.title}](${BASE_URL}${page.url}): ${page.data.description ?? ''}`;
   });
-  const scanned = scan;
-  const heading = `# Inkeep \n\n## Docs`;
-  return new Response(`${heading}\n\n${scanned.join('\n\n')}`, {
+
+  const body = `# Inkeep
+
+> Inkeep is an open-source multi-agent AI framework with A2A communication capabilities.
+
+## Docs
+
+${pages.join('\n')}
+`;
+
+  return new Response(body, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'X-Content-Type-Options': 'nosniff',
