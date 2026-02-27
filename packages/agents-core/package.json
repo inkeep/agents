@@ -54,6 +54,10 @@
       "types": "./dist/constants/schema-validation/index.d.ts",
       "import": "./dist/constants/schema-validation/index.js"
     },
+    "./constants/allowed-image-formats": {
+      "types": "./dist/constants/allowed-image-formats.d.ts",
+      "import": "./dist/constants/allowed-image-formats.js"
+    },
     "./credential-stores": {
       "types": "./dist/credential-stores/index.d.ts",
       "import": "./dist/credential-stores/index.js"
