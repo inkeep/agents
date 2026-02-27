@@ -68,12 +68,12 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     artifactComponentLookup: state.artifactComponentLookup,
   }));
 
-  const dataComponentNames =
-    dataComponentIds
-      .map((componentId) => dataComponentLookup[componentId]?.name)
-      .filter(Boolean);
-  const artifactComponentNames =
-    artifactComponentIds.map((id) => artifactComponentLookup[id]?.name).filter(Boolean);
+  const dataComponentNames = dataComponentIds
+    .map((componentId) => dataComponentLookup[componentId]?.name)
+    .filter(Boolean);
+  const artifactComponentNames = artifactComponentIds
+    .map((id) => artifactComponentLookup[id]?.name)
+    .filter(Boolean);
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';

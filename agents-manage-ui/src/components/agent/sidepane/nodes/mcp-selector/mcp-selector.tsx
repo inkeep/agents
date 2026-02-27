@@ -9,7 +9,7 @@ import { MCPServerItem } from './mcp-server-item';
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   'use memo';
   const { updateNode } = useReactFlow();
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string; }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const toolLookup = useAgentStore((state) => state.toolLookup);
   const tools = Object.values(toolLookup);
 
