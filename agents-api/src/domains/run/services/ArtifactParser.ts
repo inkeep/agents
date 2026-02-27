@@ -111,9 +111,7 @@ export class ArtifactParser {
           const previewSchema = extractPreviewFields(ac.props as ExtendedJsonSchema);
           const fullSchema = extractFullFields(ac.props as ExtendedJsonSchema);
           this.artifactSchemasByType[ac.name] = {
-            preview: previewSchema.properties
-              ? buildSchemaShape(previewSchema.properties)
-              : {},
+            preview: previewSchema.properties ? buildSchemaShape(previewSchema.properties) : {},
             full: fullSchema.properties ? buildSchemaShape(fullSchema.properties) : {},
           };
         }
