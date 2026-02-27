@@ -124,13 +124,13 @@ importers:
         version: 3.995.0
       '@hono/mcp':
         specifier: ^0.1.5
-        version: 0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(hono@4.11.8)
+        version: 0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(hono@4.12.3)
       '@hono/swagger-ui':
         specifier: ^0.5.1
-        version: 0.5.2(hono@4.11.8)
+        version: 0.5.2(hono@4.12.3)
       '@hono/zod-openapi':
         specifier: ^1.1.5
-        version: 1.2.0(hono@4.11.8)(zod@4.3.6)
+        version: 1.2.0(hono@4.12.3)(zod@4.3.6)
       '@inkeep/agents-core':
         specifier: workspace:^
         version: link:../packages/agents-core
@@ -219,11 +219,11 @@ importers:
         specifier: ^21.3.0
         version: 21.3.0
       hono:
-        specifier: ^4.11.7
-        version: 4.11.8
+        specifier: ^4.12.2
+        version: 4.12.3
       hono-pino:
         specifier: ^0.10.1
-        version: 0.10.3(hono@4.11.8)(pino@9.14.0)
+        version: 0.10.3(hono@4.12.3)(pino@9.14.0)
       ipaddr.js:
         specifier: ^2.3.0
         version: 2.3.0
@@ -254,7 +254,7 @@ importers:
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.20.1
-        version: 0.20.1(hono@4.11.8)
+        version: 0.20.1(hono@4.12.3)
       '@types/jmespath':
         specifier: ^0.15.2
         version: 0.15.2
@@ -8699,7 +8699,6 @@ packages:
 
   bun@1.3.5:
     resolution: {integrity: sha512-c1YHIGUfgvYPJmLug5QiLzNWlX2Dg7X/67JWu1Va+AmMXNXzC/KQn2lgQ7rD+n1u1UqDpJMowVGGxTNpbPydNw==}
-    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 
@@ -10587,10 +10586,6 @@ packages:
     peerDependencies:
       hono: '>=4.0.0'
       pino: '>=7.1.0'
-
-  hono@4.11.8:
-    resolution: {integrity: sha512-eVkB/CYCCei7K2WElZW9yYQFWssG0DhaDhVvr7wy5jJ22K+ck8fWW0EsLpB0sITUTvPnc97+rrbQqIr5iqiy9Q==}
-    engines: {node: '>=16.9.0'}
 
   hono@4.12.3:
     resolution: {integrity: sha512-SFsVSjp8sj5UumXOOFlkZOG6XS9SJDKw0TbwFeV+AJ8xlST8kxK5Z/5EYa111UY8732lK2S/xB653ceuaoGwpg==}
@@ -17101,40 +17096,32 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(hono@4.11.8)':
+  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(hono@4.12.3)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.26.0(zod@4.3.6)
-      hono: 4.11.8
+      hono: 4.12.3
 
-  '@hono/node-server@1.19.7(hono@4.11.8)':
+  '@hono/node-server@1.19.7(hono@4.12.3)':
     dependencies:
-      hono: 4.11.8
+      hono: 4.12.3
 
   '@hono/node-server@1.19.8(hono@4.12.3)':
     dependencies:
       hono: 4.12.3
 
-  '@hono/node-server@1.19.9(hono@4.11.8)':
+  '@hono/node-server@1.19.9(hono@4.12.3)':
     dependencies:
-      hono: 4.11.8
+      hono: 4.12.3
 
-  '@hono/swagger-ui@0.5.2(hono@4.11.8)':
+  '@hono/swagger-ui@0.5.2(hono@4.12.3)':
     dependencies:
-      hono: 4.11.8
+      hono: 4.12.3
 
-  '@hono/vite-dev-server@0.20.1(hono@4.11.8)':
+  '@hono/vite-dev-server@0.20.1(hono@4.12.3)':
     dependencies:
-      '@hono/node-server': 1.19.7(hono@4.11.8)
-      hono: 4.11.8
+      '@hono/node-server': 1.19.7(hono@4.12.3)
+      hono: 4.12.3
       minimatch: 10.2.4
-
-  '@hono/zod-openapi@1.2.0(hono@4.11.8)(zod@4.3.6)':
-    dependencies:
-      '@asteasolutions/zod-to-openapi': 8.2.0(zod@4.3.6)
-      '@hono/zod-validator': 0.7.6(hono@4.11.8)(zod@4.3.6)
-      hono: 4.11.8
-      openapi3-ts: 4.5.0
-      zod: 4.3.6
 
   '@hono/zod-openapi@1.2.0(hono@4.12.3)(zod@4.3.6)':
     dependencies:
@@ -17142,11 +17129,6 @@ snapshots:
       '@hono/zod-validator': 0.7.6(hono@4.12.3)(zod@4.3.6)
       hono: 4.12.3
       openapi3-ts: 4.5.0
-      zod: 4.3.6
-
-  '@hono/zod-validator@0.7.6(hono@4.11.8)(zod@4.3.6)':
-    dependencies:
-      hono: 4.11.8
       zod: 4.3.6
 
   '@hono/zod-validator@0.7.6(hono@4.12.3)(zod@4.3.6)':
@@ -18072,7 +18054,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.26.0(zod@4.3.6)':
     dependencies:
-      '@hono/node-server': 1.19.9(hono@4.11.8)
+      '@hono/node-server': 1.19.9(hono@4.12.3)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -18082,7 +18064,7 @@ snapshots:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.2.1(express@5.2.1)
-      hono: 4.11.8
+      hono: 4.12.3
       jose: 6.1.3
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -28516,13 +28498,11 @@ snapshots:
       react-is: 16.13.1
     optional: true
 
-  hono-pino@0.10.3(hono@4.11.8)(pino@9.14.0):
+  hono-pino@0.10.3(hono@4.12.3)(pino@9.14.0):
     dependencies:
       defu: 6.1.4
-      hono: 4.11.8
+      hono: 4.12.3
       pino: 9.14.0
-
-  hono@4.11.8: {}
 
   hono@4.12.3: {}
 
