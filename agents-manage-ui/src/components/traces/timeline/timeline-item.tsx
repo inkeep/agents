@@ -13,6 +13,7 @@ import {
   Library,
   Settings,
   Sparkles,
+  Timer,
   User,
   X,
   Zap,
@@ -133,7 +134,8 @@ function statusIcon(
     | 'tool_approval_denied'
     | 'trigger_invocation'
     | 'slack_message'
-    | 'max_steps_reached',
+    | 'max_steps_reached'
+    | 'stream_lifetime_exceeded',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string; style?: React.CSSProperties }> = {
@@ -157,6 +159,7 @@ function statusIcon(
     tool_approval_denied: { Icon: X, cls: 'text-red-500' },
     compression: { Icon: Archive, cls: 'text-orange-500' },
     max_steps_reached: { Icon: AlertTriangle, cls: 'text-yellow-500' },
+    stream_lifetime_exceeded: { Icon: Timer, cls: 'text-red-500' },
   };
 
   const map = base[type] || base.tool_call;
@@ -538,6 +541,18 @@ export function TimelineItem({
                 <div className="text-sm text-yellow-900 dark:text-yellow-300">
                   <span className="font-medium">Steps:</span> {activity.stepsCompleted} /{' '}
                   {activity.maxSteps}
+                </div>
+              </div>
+            )}
+
+          {/* Stream lifetime exceeded display */}
+          {activity.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED &&
+            activity.streamMaxLifetimeMs != null &&
+            activity.streamMaxLifetimeMs > 0 && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 rounded-lg max-w-4xl">
+                <div className="text-sm text-red-900 dark:text-red-300">
+                  <span className="font-medium">Lifetime limit:</span>{' '}
+                  {Math.round(activity.streamMaxLifetimeMs / 1000)}s
                 </div>
               </div>
             )}

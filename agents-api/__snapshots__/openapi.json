@@ -38421,6 +38421,9 @@
                           "hasDefaultAgent": {
                             "type": "boolean"
                           },
+                          "teamDomain": {
+                            "type": "string"
+                          },
                           "teamId": {
                             "type": "string"
                           },

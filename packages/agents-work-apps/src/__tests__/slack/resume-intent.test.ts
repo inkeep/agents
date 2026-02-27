@@ -22,6 +22,10 @@ vi.mock('../../slack/services/client', () => ({
       postEphemeral: mockPostEphemeral,
     },
   })),
+  getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -44,6 +48,11 @@ vi.mock('../../slack/services/events/utils', () => ({
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
   generateSlackConversationId: vi.fn().mockReturnValue('mock-conversation-id'),
   escapeSlackMrkdwn: vi.fn((t: string) => t),
+  formatChannelContext: vi.fn().mockReturnValue('Slack'),
+  formatSlackQuery: vi.fn((opts: { text: string; threadContext?: string }) => {
+    if (opts.threadContext) return `${opts.threadContext}\n\n${opts.text}`;
+    return opts.text;
+  }),
 }));
 
 vi.mock('../../env', () => ({
@@ -136,6 +145,15 @@ describe('resumeSmartLinkIntent', () => {
         agentId: 'agent_123',
         projectId: 'project_456',
         question: 'What is the API rate limit?',
+      })
+    );
+
+    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+    expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'What is the API rate limit?',
+        messageTs: '1234567890.123457',
+        senderTimezone: 'America/New_York',
       })
     );
   });

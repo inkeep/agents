@@ -1214,6 +1214,50 @@ function buildConversationListPayload(
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
+        streamLifetimeExceeded: listQuery(
+          QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.STREAM_FORCE_CLEANUP,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.STREAM_CLEANUP_REASON,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.STREAM_MAX_LIFETIME_MS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -1275,6 +1319,7 @@ export async function GET(
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
+    const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -1344,7 +1389,8 @@ export async function GET(
         | 'tool_approval_approved'
         | 'tool_approval_denied'
         | 'compression'
-        | 'max_steps_reached';
+        | 'max_steps_reached'
+        | 'stream_lifetime_exceeded';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1436,6 +1482,9 @@ export async function GET(
       maxStepsReached?: boolean;
       stepsCompleted?: number;
       maxSteps?: number;
+      streamCleanupReason?: string;
+      streamMaxLifetimeMs?: number;
+      streamBufferSizeBytes?: number;
     };
 
     const activities: Activity[] = [];
@@ -1938,6 +1987,26 @@ export async function GET(
         maxStepsReached: true,
         stepsCompleted,
         maxSteps,
+      });
+    }
+
+    for (const span of streamLifetimeExceededSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const cleanupReason = getString(span, SPAN_KEYS.STREAM_CLEANUP_REASON, '');
+      const maxLifetimeMs = getNumber(span, SPAN_KEYS.STREAM_MAX_LIFETIME_MS, 0);
+      const bufferSizeBytes = getNumber(span, SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, 0);
+
+      activities.push({
+        id: spanId,
+        type: ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED,
+        description: `Stream lifetime exceeded (${Math.round(maxLifetimeMs / 1000)}s limit)`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
+        status: ACTIVITY_STATUS.ERROR,
+        result: cleanupReason,
+        streamCleanupReason: cleanupReason,
+        streamMaxLifetimeMs: maxLifetimeMs,
+        streamBufferSizeBytes: bufferSizeBytes,
       });
     }
 

@@ -8,7 +8,7 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { Globe, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
+import { Building2, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -131,7 +131,10 @@ export function ChannelDefaultsSection({
           return (
             <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
               {channel.isShared ? (
-                <Globe aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <Building2
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                />
               ) : channel.isPrivate ? (
                 <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               ) : (
@@ -225,7 +228,7 @@ export function ChannelDefaultsSection({
                 onClick={() => onChannelFilterChange('connect')}
                 count={channels.filter((c) => c.isShared).length}
                 label="Slack Connect"
-                Icon={Globe}
+                Icon={Building2}
               />
             </div>
             <div className="relative flex-1 max-w-md">
