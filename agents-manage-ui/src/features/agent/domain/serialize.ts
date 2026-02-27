@@ -189,7 +189,7 @@ export function serializeAgentData(
               }
             }
 
-            let toolHeaders = relationFormData?.headers;
+            let toolHeaders = relationFormData?.headers ?? null;
 
             if (toolHeaders === undefined) {
               // No changes made to headers - preserve existing headers
@@ -200,7 +200,7 @@ export function serializeAgentData(
                 toolHeaders = existingConfig.headers;
               }
             }
-            let toolPolicies = relationFormData?.toolPolicies;
+            let toolPolicies = relationFormData?.toolPolicies ?? null;
 
             if (toolPolicies === undefined) {
               // No changes made to tool policies - preserve existing policies
