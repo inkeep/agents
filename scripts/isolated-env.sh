@@ -172,11 +172,17 @@ cmd_up() {
 
   check_docker
 
-  # Check if already running
   if [ -f "$STATE_DIR/${name}.json" ]; then
-    echo "Environment '$name' already exists."
-    echo "Use '$0 down $name' first, or '$0 env $name' to get connection info."
-    exit 1
+    local probe_port
+    probe_port=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['ports']['postgres'])" "$STATE_DIR/${name}.json" 2>/dev/null) || probe_port=""
+    if [ -n "$probe_port" ] && bash -c "echo >/dev/tcp/localhost/$probe_port" 2>/dev/null; then
+      echo "Environment '$name' is already running."
+      echo "Use '$0 down $name' first, or '$0 env $name' to get connection info."
+      exit 1
+    else
+      echo "Stale state file found for '$name' (containers not running). Cleaning up..."
+      rm -f "$STATE_DIR/${name}.json"
+    fi
   fi
 
   local compose
