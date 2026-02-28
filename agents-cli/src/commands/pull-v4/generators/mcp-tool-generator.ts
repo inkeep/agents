@@ -11,6 +11,7 @@ import {
 
 const MySchema = FullProjectDefinitionSchema.shape.tools.valueType.omit({
   id: true,
+  lastError: true,
 });
 
 const McpToolSchema = z.strictObject({
@@ -30,6 +31,7 @@ export function generateMcpToolDefinition({
   projectId,
   createdAt,
   updatedAt,
+  lastError,
   ...data
 }: McpTooInput): SourceFile {
   const result = McpToolSchema.safeParse(data);

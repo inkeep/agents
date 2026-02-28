@@ -44,16 +44,20 @@ const AgentSchema = z.strictObject({
       stopWhen: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.stopWhen),
       // Unrecognized keys: "name", "description", "content", "metadata", "subAgentSkillId", "subAgentId", "createdAt", "updatedAt"
       skills: z.unknown(),
+      // Invalid input
+      canDelegateTo: z.unknown(),
     })
   ),
-  tools: z.record(
-    z.string(),
-    z.strictObject({
-      ...ToolSchema.shape,
-      // Invalid input: expected string, received null
-      imageUrl: z.preprocess((v) => v ?? undefined, ToolSchema.shape.imageUrl),
-    })
-  ),
+  tools: z
+    .record(
+      z.string(),
+      z.strictObject({
+        ...ToolSchema.shape,
+        // Invalid input: expected string, received null
+        imageUrl: z.preprocess((v) => v ?? undefined, ToolSchema.shape.imageUrl),
+      })
+    )
+    .optional(),
   // ✖ Invalid input: expected string, received undefined
   // → at triggers.t546ck7yueh52jils88rm.authentication.headers[0].value
   triggers: z.record(z.string(), z.unknown()).optional(),

@@ -1967,8 +1967,6 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   projectId: true,
   status: true,
   version: true,
-  createdAt: true,
-  updatedAt: true,
   credentialReferenceId: true,
 }).extend({
   tenantId: z.string().optional(),
