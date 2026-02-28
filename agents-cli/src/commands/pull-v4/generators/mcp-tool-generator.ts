@@ -26,11 +26,17 @@ type McpTooInput = z.input<typeof McpToolSchema>;
 type McpTooOutput = z.output<typeof McpToolSchema>;
 
 export function generateMcpToolDefinition({
+  // @ts-expect-error
   tenantId,
+  // @ts-expect-error
   id,
+  // @ts-expect-error
   projectId,
+  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
+  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
+  // @ts-expect-error
   lastError,
   ...data
 }: McpTooInput): SourceFile {

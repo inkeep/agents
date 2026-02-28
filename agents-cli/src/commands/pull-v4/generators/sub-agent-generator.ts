@@ -61,7 +61,11 @@ const SubAgentSchema = z.strictObject({
 type SubAgentInput = z.input<typeof SubAgentSchema>;
 type SubAgentOutput = z.output<typeof SubAgentSchema>;
 
-export function generateSubAgentDefinition({ subAgentId, ...data }: SubAgentInput): SourceFile {
+export function generateSubAgentDefinition({
+  // @ts-expect-error
+  subAgentId,
+  ...data
+}: SubAgentInput): SourceFile {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);

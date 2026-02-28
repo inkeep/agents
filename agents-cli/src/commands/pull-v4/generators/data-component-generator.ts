@@ -25,10 +25,15 @@ type DataComponentInput = z.input<typeof DataComponentSchema>;
 type DataComponentOutput = z.output<typeof DataComponentSchema>;
 
 export function generateDataComponentDefinition({
+  // @ts-expect-error
   tenantId,
+  // @ts-expect-error
   id,
+  // @ts-expect-error
   projectId,
+  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
+  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
   ...data
 }: DataComponentInput): SourceFile {

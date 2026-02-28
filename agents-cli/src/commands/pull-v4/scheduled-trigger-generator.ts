@@ -22,8 +22,11 @@ const ScheduledTriggerSchema = z.strictObject({
 type ScheduledTriggerInput = z.input<typeof ScheduledTriggerSchema>;
 
 export function generateScheduledTriggerDefinition({
+  // @ts-expect-error
   id,
+  // @ts-expect-error
   runAsUserId,
+  // @ts-expect-error
   createdBy,
   ...data
 }: ScheduledTriggerInput): SourceFile {

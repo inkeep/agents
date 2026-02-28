@@ -18,13 +18,21 @@ const CredentialSchema = z.strictObject({
 type CredentialInput = z.input<typeof CredentialSchema>;
 
 export function generateCredentialDefinition({
+  // @ts-expect-error
   tenantId,
+  // @ts-expect-error
   id,
+  // @ts-expect-error
   projectId,
+  // @ts-expect-error
   createdBy,
+  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
+  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
+  // @ts-expect-error
   toolId,
+  // @ts-expect-error
   userId,
   ...data
 }: CredentialInput): SourceFile {

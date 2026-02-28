@@ -82,8 +82,11 @@ interface AgentReferenceNames {
 }
 
 export function generateAgentDefinition({
+  // @ts-expect-error
   id,
+  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
+  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
   ...data
 }: AgentInput): SourceFile {
