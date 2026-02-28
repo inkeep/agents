@@ -27,7 +27,8 @@ updates:
           - '*'
 
   - package-ecosystem: 'npm'
-    directory: '/create-agents-template'
+    directories:
+      - '/create-agents-template/**'
     schedule:
       interval: 'daily'
     versioning-strategy: increase
