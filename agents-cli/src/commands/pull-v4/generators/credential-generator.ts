@@ -6,6 +6,8 @@ import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils
 const MySchema = FullProjectDefinitionSchema.shape.credentialReferences.unwrap().valueType.omit({
   id: true,
   createdBy: true,
+  toolId: true,
+  userId: true,
 });
 
 const CredentialSchema = z.strictObject({
@@ -22,6 +24,8 @@ export function generateCredentialDefinition({
   createdBy,
   createdAt,
   updatedAt,
+  toolId,
+  userId,
   ...data
 }: CredentialInput): SourceFile {
   const result = CredentialSchema.safeParse(data);

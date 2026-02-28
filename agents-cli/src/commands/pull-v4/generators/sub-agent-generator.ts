@@ -38,7 +38,7 @@ const MySchema = FullAgentAgentInsertSchema.pick({
   name: true,
   description: true,
   stopWhen: true,
-})
+});
 
 const SubAgentSchema = z.strictObject({
   ...MySchema.shape,
@@ -61,7 +61,7 @@ const SubAgentSchema = z.strictObject({
 type SubAgentInput = z.input<typeof SubAgentSchema>;
 type SubAgentOutput = z.output<typeof SubAgentSchema>;
 
-export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
+export function generateSubAgentDefinition({ subAgentId, ...data }: SubAgentInput): SourceFile {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);

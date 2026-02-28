@@ -6074,9 +6074,6 @@
       },
       "ScheduledTriggerCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "nullable": true,
@@ -6152,9 +6149,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -6164,9 +6158,6 @@
       },
       "ScheduledTriggerInsertBase": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "nullable": true,
@@ -6242,9 +6233,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -6394,9 +6382,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "nullable": true,
@@ -6479,9 +6464,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"

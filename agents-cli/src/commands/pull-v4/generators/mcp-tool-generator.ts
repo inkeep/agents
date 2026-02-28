@@ -17,9 +17,9 @@ const MySchema = FullProjectDefinitionSchema.shape.tools.valueType.omit({
 const McpToolSchema = z.strictObject({
   mcpToolId: z.string().nonempty(),
   ...MySchema.shape,
-  headers: z.preprocess(v => v ?? undefined,MySchema.shape.headers),
-  capabilities: z.preprocess(v => v ?? undefined,MySchema.shape.capabilities),
-  imageUrl: z.preprocess(v => v ?? undefined, MySchema.shape.imageUrl),
+  headers: z.preprocess((v) => v ?? undefined, MySchema.shape.headers),
+  capabilities: z.preprocess((v) => v ?? undefined, MySchema.shape.capabilities),
+  imageUrl: z.preprocess((v) => v ?? undefined, MySchema.shape.imageUrl),
 });
 
 type McpTooInput = z.input<typeof McpToolSchema>;
