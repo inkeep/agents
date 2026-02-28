@@ -52,7 +52,7 @@ export function GenericPromptEditor<
               <FormLabel isRequired={isRequired} className="inline-flex grow">
                 {label}
               </FormLabel>
-              {uri.endsWith('.template') && <AddVariableAction uri={uri} />}
+              {uri.endsWith('.template') && !readOnly && <AddVariableAction uri={uri} />}
               {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>

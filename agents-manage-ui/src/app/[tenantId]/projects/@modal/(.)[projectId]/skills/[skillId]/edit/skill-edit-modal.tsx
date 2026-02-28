@@ -22,8 +22,10 @@ export const SkillEditModal: FC<SkillEditModalProps> = ({ readOnly }) => {
     <Dialog open onOpenChange={router.back}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit skill</DialogTitle>
-          <DialogDescription className="sr-only">Edit skill details.</DialogDescription>
+          <DialogTitle>{readOnly ? 'View skill' : 'Edit skill'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {readOnly ? 'View skill details.' : 'Edit skill details.'}
+          </DialogDescription>
         </DialogHeader>
         <SkillForm onSuccess={router.back} readOnly={readOnly} />
       </DialogContent>

@@ -72,7 +72,8 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
             </TableHeader>
             <TableBody>
               {skills.data.map((skill) => (
-                <TableRow key={skill.id} className="relative">
+                // transform is needed to fix an issue in Safari where table rows cannot be relative.
+                <TableRow key={skill.id} style={{ transform: 'translate(0)' }} className="relative">
                   <TableCell className="align-top">
                     <NextLink
                       // <tr> cannot contain a nested <a>.
