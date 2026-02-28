@@ -1,3 +1,4 @@
+import { CredentialNameBadge } from '@/components/credentials/credential-name-badge';
 import FullPageError from '@/components/errors/full-page-error';
 import { ViewExternalAgentDetails } from '@/components/external-agents/view-external-agent-details';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
@@ -14,6 +15,15 @@ async function ExternalAgentPage({
       <ViewExternalAgentDetails
         className="max-w-2xl mx-auto"
         externalAgent={externalAgent}
+        credentialBadge={
+          externalAgent.credentialReferenceId ? (
+            <CredentialNameBadge
+              tenantId={tenantId}
+              projectId={projectId}
+              credentialReferenceId={externalAgent.credentialReferenceId}
+            />
+          ) : undefined
+        }
         tenantId={tenantId}
         projectId={projectId}
       />

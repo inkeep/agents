@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
+import { AlertCircle, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
+import { CredentialBadgeFallback } from '@/components/credentials/credential-name-badge';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { useProjectPermissions } from '@/contexts/project';
@@ -25,10 +26,12 @@ import { isGitHubWorkapp, WorkAppGitHubAccessSection } from './work-app-github-a
 
 export function ViewMCPServerDetailsProjectScope({
   tool,
+  credentialBadge,
   tenantId,
   projectId,
 }: {
   tool: MCPTool;
+  credentialBadge?: React.ReactNode;
   tenantId: string;
   projectId: string;
 }) {
@@ -191,10 +194,9 @@ export function ViewMCPServerDetailsProjectScope({
               <ItemLabel>Project Credential</ItemLabel>
               <ItemValue className="items-center">
                 <div className="flex items-center gap-2">
-                  <Badge variant="code" className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    {tool.credentialReferenceId}
-                  </Badge>
+                  {credentialBadge ?? (
+                    <CredentialBadgeFallback credentialReferenceId={tool.credentialReferenceId} />
+                  )}
                   <ExternalLink
                     href={`/${tenantId}/projects/${projectId}/credentials/${tool.credentialReferenceId}`}
                     className="text-xs"
