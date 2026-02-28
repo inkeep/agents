@@ -195,7 +195,7 @@ export function ViewMCPServerDetailsProjectScope({
               <ItemValue className="items-center">
                 <div className="flex items-center gap-2">
                   {credentialBadge ?? (
-                    <CredentialBadgeFallback credentialReferenceId={tool.credentialReferenceId!} />
+                    <CredentialBadgeFallback credentialReferenceId={tool.credentialReferenceId} />
                   )}
                   <ExternalLink
                     href={`/${tenantId}/projects/${projectId}/credentials/${tool.credentialReferenceId}`}

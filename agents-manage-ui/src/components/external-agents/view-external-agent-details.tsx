@@ -106,7 +106,7 @@ export function ViewExternalAgentDetails({
               <div className="flex items-center gap-2">
                 {credentialBadge ?? (
                   <CredentialBadgeFallback
-                    credentialReferenceId={externalAgent.credentialReferenceId!}
+                    credentialReferenceId={externalAgent.credentialReferenceId}
                   />
                 )}
                 <ExternalLink
