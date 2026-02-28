@@ -1,7 +1,8 @@
 'use client';
 
-import { Lock, LockOpen, Pencil } from 'lucide-react';
+import { LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import { CredentialBadgeFallback } from '@/components/credentials/credential-name-badge';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { useProjectPermissions } from '@/contexts/project';
@@ -104,10 +105,9 @@ export function ViewExternalAgentDetails({
             {externalAgent.credentialReferenceId ? (
               <div className="flex items-center gap-2">
                 {credentialBadge ?? (
-                  <Badge variant="code" className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    {externalAgent.credentialReferenceId}
-                  </Badge>
+                  <CredentialBadgeFallback
+                    credentialReferenceId={externalAgent.credentialReferenceId!}
+                  />
                 )}
                 <ExternalLink
                   href={`/${tenantId}/projects/${projectId}/credentials/${externalAgent.credentialReferenceId}`}

@@ -1,3 +1,4 @@
+import { CredentialNameBadge } from '@/components/credentials/credential-name-badge';
 import FullPageError from '@/components/errors/full-page-error';
 import { ViewMCPServerDetailsProjectScope } from '@/components/mcp-servers/view-mcp-server-details-project-scope';
 import { ViewMCPServerDetailsUserScope } from '@/components/mcp-servers/view-mcp-server-details-user-scope';
@@ -14,7 +15,20 @@ async function MCPPage({
     return tool.credentialScope === 'user' ? (
       <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
     ) : (
-      <ViewMCPServerDetailsProjectScope tool={tool} tenantId={tenantId} projectId={projectId} />
+      <ViewMCPServerDetailsProjectScope
+        tool={tool}
+        credentialBadge={
+          tool.credentialReferenceId ? (
+            <CredentialNameBadge
+              tenantId={tenantId}
+              projectId={projectId}
+              credentialReferenceId={tool.credentialReferenceId}
+            />
+          ) : undefined
+        }
+        tenantId={tenantId}
+        projectId={projectId}
+      />
     );
   } catch (error) {
     return (
