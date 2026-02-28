@@ -20,6 +20,7 @@ import {
   getProjectMainBranchName,
   getProjectMetadata,
   listScheduledTriggers,
+  listTriggers,
   type OrgRole,
   OrgRoles,
   type ResolvedRef,
@@ -28,6 +29,7 @@ import {
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
+  type TriggerSelect,
   throwIfUniqueConstraintError,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
@@ -43,11 +45,8 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import {
-  assertCanMutateTrigger,
-  isScheduledTriggerChanged,
-  validateRunAsUserId,
-} from './scheduledTriggers';
+import { isScheduledTriggerChanged } from './scheduledTriggers';
+import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
 
@@ -417,6 +416,18 @@ app.openapi(
         }
       }
 
+      // fetch existing webhook triggers for all agents
+      const existingWebhookTriggersByAgent = new Map<string, TriggerSelect[]>();
+      if (!isCreate) {
+        const agents = Object.keys(validatedProjectData.agents || {});
+        for (const agentId of agents) {
+          const existingTriggers = await listTriggers(configDb)({
+            scopes: { tenantId, projectId, agentId },
+          });
+          existingWebhookTriggersByAgent.set(agentId, existingTriggers);
+        }
+      }
+
       const callerId = userId ?? '';
       const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
 
@@ -433,6 +444,42 @@ app.openapi(
             const changed = isScheduledTriggerChanged(triggerData, existing);
             if (!changed) continue;
 
+            assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
+
+            if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {
+              await validateRunAsUserId({
+                runAsUserId: triggerData.runAsUserId,
+                callerId,
+                tenantId,
+                projectId,
+                tenantRole,
+              });
+            }
+          } else {
+            if (triggerData.runAsUserId) {
+              await validateRunAsUserId({
+                runAsUserId: triggerData.runAsUserId,
+                callerId,
+                tenantId,
+                projectId,
+                tenantRole,
+              });
+            }
+            triggerData.createdBy = callerId;
+          }
+        }
+      }
+
+      for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
+        if (!agentData.triggers) continue;
+
+        const existingTriggers = existingWebhookTriggersByAgent.get(agentId) || [];
+        const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
+
+        for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
+          const existing = existingById.get(triggerId);
+
+          if (existing) {
             assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
 
             if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {

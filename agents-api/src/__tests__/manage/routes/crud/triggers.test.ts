@@ -1,10 +1,11 @@
 import {
   createFullAgentServerSide,
+  createTrigger,
   createTriggerInvocation,
   generateId,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
@@ -12,7 +13,38 @@ import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
 
+const { dispatchExecutionMock, assertCanMutateTriggerMock } = vi.hoisted(() => ({
+  dispatchExecutionMock: vi.fn().mockResolvedValue({
+    invocationId: 'test-invocation-id',
+    conversationId: 'test-conversation-id',
+  }),
+  assertCanMutateTriggerMock: vi.fn(),
+}));
+
+vi.mock('../../../../domains/run/services/TriggerService', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../../domains/run/services/TriggerService')>();
+  return {
+    ...actual,
+    dispatchExecution: dispatchExecutionMock,
+  };
+});
+
+vi.mock('../../../../domains/manage/routes/triggerHelpers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../../domains/manage/routes/triggerHelpers')>();
+  return {
+    ...actual,
+    assertCanMutateTrigger: assertCanMutateTriggerMock,
+  };
+});
+
 describe('Trigger CRUD Routes - Integration Tests', () => {
+  beforeEach(() => {
+    dispatchExecutionMock.mockClear();
+    assertCanMutateTriggerMock.mockClear();
+  });
+
   // Helper function to create full agent data
   const createFullAgentData = (agentId: string) => {
     const id = agentId || generateId();
@@ -1140,6 +1172,156 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         expect(body.data.status).toBe('failed');
         expect(body.data.errorMessage).toBe('Test error message');
       });
+    });
+  });
+
+  describe('POST /{id}/rerun', () => {
+    it('should forward runAsUserId to dispatchExecution and call assertCanMutateTrigger when trigger has runAsUserId', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-with-user');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      const runAsUserId = `user-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'User-scoped Trigger',
+        description: 'Test trigger with runAsUserId',
+        enabled: true,
+        runAsUserId,
+        createdBy: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: 'Hello {{name}}',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message' }),
+        }
+      );
+
+      expect(res.status).toBe(202);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+
+      expect(assertCanMutateTriggerMock).toHaveBeenCalledOnce();
+      const guardArgs = assertCanMutateTriggerMock.mock.calls[0][0];
+      expect(guardArgs.trigger.runAsUserId).toBe(runAsUserId);
+
+      expect(dispatchExecutionMock).toHaveBeenCalledOnce();
+      const callArgs = dispatchExecutionMock.mock.calls[0][0];
+      expect(callArgs.runAsUserId).toBe(runAsUserId);
+      expect(callArgs.triggerId).toBe(triggerId);
+      expect(callArgs.tenantId).toBe(tenantId);
+      expect(callArgs.projectId).toBe(projectId);
+      expect(callArgs.agentId).toBe(agentId);
+    });
+
+    it('should return 403 when non-admin caller is not the runAsUserId or createdBy', async () => {
+      const { createApiError } = await import('@inkeep/agents-core');
+      assertCanMutateTriggerMock.mockImplementationOnce(() => {
+        throw createApiError({ code: 'forbidden', message: 'forbidden' });
+      });
+
+      const tenantId = await createTestTenantWithOrg('rerun-forbidden');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'Other User Trigger',
+        description: null,
+        enabled: true,
+        runAsUserId: 'other-user-id',
+        createdBy: 'other-user-id',
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message' }),
+        }
+      );
+
+      expect(res.status).toBe(403);
+      expect(dispatchExecutionMock).not.toHaveBeenCalled();
+    });
+
+    it('should not call assertCanMutateTrigger when trigger has no runAsUserId', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-no-user');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message' }),
+        }
+      );
+
+      expect(res.status).toBe(202);
+      expect(assertCanMutateTriggerMock).not.toHaveBeenCalled();
+
+      expect(dispatchExecutionMock).toHaveBeenCalledOnce();
+      const callArgs = dispatchExecutionMock.mock.calls[0][0];
+      expect(callArgs.runAsUserId).toBeUndefined();
+    });
+
+    it('should return 409 when trigger is disabled', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-disabled');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId, enabled: false });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message' }),
+        }
+      );
+
+      expect(res.status).toBe(409);
+      expect(dispatchExecutionMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 for non-existent trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-not-found');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const nonExistentId = `non-existent-${generateId()}`;
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${nonExistentId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message' }),
+        }
+      );
+
+      expect(res.status).toBe(404);
+      expect(dispatchExecutionMock).not.toHaveBeenCalled();
     });
   });
 });

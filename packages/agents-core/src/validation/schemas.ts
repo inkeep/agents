@@ -769,6 +769,12 @@ export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
     signingSecretCredentialReferenceId: z.string().nullable().optional(),
     signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
+    runAsUserId: z.string().nullable().optional().describe('User ID to run the webhook as'),
+    createdBy: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('User ID of the user who created this trigger'),
   })
 );
 
@@ -790,6 +796,9 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
   authentication: () => TriggerAuthenticationInputSchema.optional(),
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
+  runAsUserId: () => z.string().nullable().optional().describe('User ID to run the webhook as'),
+  createdBy: () =>
+    z.string().nullable().optional().describe('User ID of the user who created this trigger'),
   signatureVerification: () =>
     SignatureVerificationConfigSchema.nullish()
       .superRefine((config, ctx) => {
@@ -2719,6 +2728,17 @@ export const TriggerWithWebhookUrlResponse = z
     data: TriggerWithWebhookUrlSchema,
   })
   .openapi('TriggerWithWebhookUrlResponse');
+export const TriggerWithWebhookUrlWithWarningResponse = z
+  .object({
+    data: TriggerWithWebhookUrlSchema,
+    warning: z
+      .string()
+      .optional()
+      .describe(
+        'Security warning when runAsUserId is set but no authentication or signature verification is configured'
+      ),
+  })
+  .openapi('TriggerWithWebhookUrlWithWarningResponse');
 export const TriggerWithWebhookUrlListResponse = z
   .object({
     data: z.array(TriggerWithWebhookUrlSchema),

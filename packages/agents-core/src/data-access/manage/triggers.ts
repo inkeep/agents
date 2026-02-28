@@ -142,6 +142,24 @@ export const deleteTrigger =
   };
 
 /**
+ * Delete all webhook triggers for a given runAsUserId within a tenant+project scope.
+ * Operates across all agents in the project (not agent-scoped).
+ */
+export const deleteTriggersByRunAsUserId =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { tenantId: string; projectId: string; runAsUserId: string }): Promise<void> => {
+    await db
+      .delete(triggers)
+      .where(
+        and(
+          eq(triggers.tenantId, params.tenantId),
+          eq(triggers.projectId, params.projectId),
+          eq(triggers.runAsUserId, params.runAsUserId)
+        )
+      );
+  };
+
+/**
  * Upsert a trigger (create or update based on existence)
  */
 export const upsertTrigger =

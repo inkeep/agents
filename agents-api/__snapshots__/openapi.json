@@ -9066,6 +9066,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -9146,6 +9151,11 @@
                 "nullable": true
               }
             ]
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "nullable": true,
+            "type": "string"
           },
           "signatureVerification": {
             "$ref": "#/components/schemas/SignatureVerificationConfig"
@@ -9209,6 +9219,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9243,6 +9258,11 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "nullable": true,
+            "type": "string"
           },
           "signatureVerification": {
             "description": "Configuration for webhook signature verification",
@@ -9577,6 +9597,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9613,6 +9638,11 @@
           },
           "projectId": {
             "maxLength": 256,
+            "type": "string"
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "nullable": true,
             "type": "string"
           },
           "signatureVerification": {
@@ -9721,6 +9751,21 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "TriggerWithWebhookUrlWithWarningResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          },
+          "warning": {
+            "description": "Security warning when runAsUserId is set but no authentication or signature verification is configured",
+            "type": "string"
           }
         },
         "required": [
@@ -22581,7 +22626,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlWithWarningResponse"
                 }
               }
             },
@@ -22951,7 +22996,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlWithWarningResponse"
                 }
               }
             },

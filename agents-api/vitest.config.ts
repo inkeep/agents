@@ -14,6 +14,7 @@ export default defineProject({
       'dist',
       'src/__tests__/manage/integration/**/*.test.ts',
       'src/domains/run/services/__tests__/ArtifactService.test.ts',
+      'src/domains/run/services/__tests__/blob-storage-factory.test.ts',
     ],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
