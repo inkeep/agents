@@ -26,9 +26,11 @@ export function GenericJsonEditor<
   label,
   placeholder,
   customTemplate = placeholder,
+  readOnly,
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   placeholder: string;
   customTemplate?: string;
+  readOnly?: boolean;
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
@@ -52,6 +54,7 @@ export function GenericJsonEditor<
                 placeholder={placeholder}
                 customTemplate={customTemplate}
                 hasDynamicHeight={!open}
+                readOnly={readOnly}
                 {...field}
               />
             </FormControl>
