@@ -6,7 +6,6 @@ import {
   addReferenceGetterProperty,
   addStringProperty,
   collectTemplateVariableNames as collectTemplateVariableNamesFromString,
-  convertNullToUndefined,
   createFactoryDefinition,
   createUniqueReferenceName,
   formatStringLiteral,

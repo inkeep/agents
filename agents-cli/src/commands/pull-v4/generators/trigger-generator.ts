@@ -3,7 +3,6 @@ import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
   addValueToObject,
-  convertNullToUndefined,
   createFactoryDefinition,
   toCamelCase,
 } from '../utils';

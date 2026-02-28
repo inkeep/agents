@@ -6,7 +6,6 @@ import {
   addStringProperty,
   addValueToObject,
   collectTemplateVariableNames,
-  convertNullToUndefined,
   createFactoryDefinition,
   formatInlineLiteral,
   formatTemplate,

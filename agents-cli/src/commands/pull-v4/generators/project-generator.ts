@@ -5,7 +5,6 @@ import { z } from 'zod';
 import {
   addReferenceGetterProperty,
   addValueToObject,
-  convertNullToUndefined,
   createFactoryDefinition,
   createUniqueReferenceName,
   formatStringLiteral,

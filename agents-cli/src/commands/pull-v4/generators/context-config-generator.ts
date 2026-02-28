@@ -10,7 +10,6 @@ import {
   addStringProperty,
   addValueToObject,
   convertJsonSchemaToZodSafe,
-  convertNullToUndefined,
   createInMemoryProject,
   formatPropertyName,
   isPlainObject,

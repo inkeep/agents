@@ -4,7 +4,6 @@ import { z } from 'zod';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
-  convertNullToUndefined,
   createFactoryDefinition,
   formatPropertyName,
   formatStringLiteral,
