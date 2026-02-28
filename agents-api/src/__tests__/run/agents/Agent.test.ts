@@ -1,15 +1,12 @@
-import {
-  type DataComponentSelect,
-  type JsonSchemaForLlmSchemaType,
-  MCPServerType,
-  MCPTransportType,
-  type McpTool,
-  type MessageType,
+import type {
+  DataComponentSelect,
+  JsonSchemaForLlmSchemaType,
+  McpTool,
+  MessageType,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -198,6 +195,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       connect: vi.fn().mockResolvedValue(undefined),
       tools: vi.fn().mockImplementation(() => Promise.resolve(mockMcpTools)),
       disconnect: vi.fn().mockResolvedValue(undefined),
+      getInstructions: vi.fn().mockReturnValue(undefined),
     })),
     CredentialStuffer: vi.fn().mockImplementation(function CredentialStuffer() {
       return {
@@ -543,25 +541,31 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      tools: [
+      tools: [],
+      mcpServerGroups: [
         {
-          name: 'search_database',
-          description: 'Search the database for information',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'The search query',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results',
+          serverName: 'Test Tool',
+          serverInstructions: undefined,
+          tools: [
+            {
+              name: 'search_database',
+              description: 'Search the database for information',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'The search query',
+                  },
+                  limit: {
+                    type: 'number',
+                    description: 'Maximum number of results',
+                  },
+                },
+                required: ['query'],
               },
             },
-            required: ['query'],
-          },
-          usageGuidelines: 'Use this tool when appropriate for the task at hand.',
+          ],
         },
       ],
       skills: [],
@@ -591,6 +595,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       prompt: undefined,
       skills: [],
       tools: [],
+      mcpServerGroups: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -617,6 +622,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       prompt: undefined,
       skills: [],
       tools: [],
+      mcpServerGroups: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -652,7 +658,14 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      tools: [], // Empty tools array since availableTools is undefined
+      tools: [],
+      mcpServerGroups: [
+        {
+          serverName: 'Test Tool',
+          serverInstructions: undefined,
+          tools: [],
+        },
+      ],
       skills: [],
       dataComponents: [],
       artifacts: [],
@@ -674,119 +687,6 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder).toBeDefined();
     // The constructor should have been called with 'v1' and a PromptConfig instance
     // This is tested implicitly by the fact that the agent creates successfully
-  });
-});
-
-describe('PromptConfig Tool Conversion', () => {
-  test('should convert McpTool availableTools to ToolData format correctly', () => {
-    const mockTools: McpTool[] = [
-      {
-        id: 'tool1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        name: 'Test Server',
-        description: 'A test server',
-        status: 'healthy',
-        config: {
-          type: 'mcp',
-          mcp: { server: { url: 'http://example.com' } },
-        },
-        capabilities: {
-          tools: true,
-          resources: false,
-          prompts: false,
-          logging: false,
-        },
-        availableTools: [
-          {
-            name: 'search',
-            description: 'Search for information',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: 'Search query' },
-              },
-              required: ['query'],
-            },
-          },
-          {
-            name: 'analyze',
-            description: 'Analyze data',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                data: { type: 'string', description: 'Data to analyze' },
-              },
-              required: ['data'],
-            },
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as McpTool,
-    ];
-
-    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
-
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({
-      name: 'search',
-      description: 'Search for information',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Search query' },
-        },
-        required: ['query'],
-      },
-      usageGuidelines: 'Use this tool from Test Server server when appropriate.',
-    });
-    expect(result[1]).toEqual({
-      name: 'analyze',
-      description: 'Analyze data',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          data: { type: 'string', description: 'Data to analyze' },
-        },
-        required: ['data'],
-      },
-      usageGuidelines: 'Use this tool from Test Server server when appropriate.',
-    });
-  });
-
-  test('should handle empty or undefined McpTool arrays', () => {
-    expect(PromptConfig.convertMcpToolsToToolData([])).toEqual([]);
-    expect(PromptConfig.convertMcpToolsToToolData(undefined)).toEqual([]);
-  });
-
-  test('should handle McpTools without availableTools', () => {
-    const mockTools: McpTool[] = [
-      {
-        id: 'tool1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        name: 'Test Server',
-        description: 'A test server',
-        status: 'healthy',
-        config: {
-          type: 'mcp',
-          mcp: { server: { url: 'http://example.com' } },
-        },
-        capabilities: {
-          tools: true,
-          resources: false,
-          prompts: false,
-          logging: false,
-        },
-        availableTools: undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as McpTool,
-    ];
-
-    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
-    expect(result).toEqual([]);
   });
 });
 
@@ -961,383 +861,6 @@ describe('Agent conversationHistoryConfig Functionality', () => {
         providerOptions: undefined,
       },
     });
-  });
-});
-
-describe('Agent Credential Integration', () => {
-  let mockAgentConfig: AgentConfig;
-  let mockAgentFramework: any;
-  let mockCredentialStuffer: any;
-  let mockExecutionContext: any;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    // Mock getCredentialReference
-    getCredentialReferenceMock.mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'test-credential-id',
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'test-connection',
-          providerConfigKey: 'test-provider',
-        },
-      } as any)
-    );
-
-    // Mock credential stuffer
-    mockCredentialStuffer = {
-      buildMcpServerConfig: vi.fn().mockResolvedValue({
-        type: MCPTransportType.sse,
-        url: 'https://api.nango.dev/mcp',
-        headers: {
-          Authorization: 'Bearer secret-key',
-          'provider-config-key': 'test-provider',
-          'connection-id': 'test-connection',
-        },
-      }),
-    };
-
-    // Mock agent framework
-    mockAgentFramework = {
-      getCredentialStore: vi.fn().mockReturnValue({
-        id: 'nango-default',
-        get: vi.fn().mockResolvedValue({
-          headers: {
-            Authorization: 'Bearer secret-key',
-            'provider-config-key': 'test-provider',
-            'connection-id': 'test-connection',
-          },
-        }),
-      }),
-    };
-
-    // Set up mock tools that will be returned by MCP client
-    mockMcpTools = {
-      search_database: {
-        description: 'Search the database for information',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'The search query',
-            },
-            limit: {
-              type: 'number',
-              description: 'Maximum number of results',
-            },
-          },
-          required: ['query'],
-        },
-        execute: vi.fn(),
-      },
-    };
-
-    mockAgentConfig = {
-      id: 'test-agent',
-      tenantId: 'test-tenant',
-      agentId: 'test-agent',
-      projectId: 'test-project',
-      baseUrl: 'http://localhost:3000',
-      name: 'Test Agent',
-      description: 'A test agent with credentials',
-      prompt: `You are a test agent with MCP tools.`,
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      tools: [],
-      dataComponents: [],
-    };
-
-    mockExecutionContext = createMockExecutionContext({
-      credentialReferences: {
-        'test-credential-id': {
-          id: 'test-credential-id',
-          credentialStoreId: 'nango-default',
-          retrievalParams: {
-            connectionId: 'test-connection',
-            providerConfigKey: 'test-provider',
-          },
-        },
-        'context-credential': {
-          id: 'context-credential',
-          credentialStoreId: 'nango-default',
-          retrievalParams: {
-            connectionId: 'context-connection',
-            providerConfigKey: 'context-provider',
-          },
-        },
-      },
-    });
-  });
-
-  test('should convert McpTool to MCPToolConfig format', () => {
-    const mockMcpTool: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Test MCP Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: MCPTransportType.sse },
-        },
-      },
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const agent = new Agent(mockAgentConfig, mockExecutionContext, mockAgentFramework);
-    const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
-
-    expect(converted).toEqual({
-      id: 'test-tool',
-      name: 'Test MCP Tool',
-      description: 'Test MCP Tool',
-      serverUrl: 'https://api.nango.dev/mcp',
-      activeTools: undefined,
-      mcpType: MCPServerType.nango,
-      transport: { type: MCPTransportType.sse },
-      headers: {},
-    });
-  });
-
-  test('should detect non-Nango MCP tools correctly', () => {
-    const mockMcpTool: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Generic MCP Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://mcp.example.com' },
-          transport: { type: MCPTransportType.streamableHttp },
-        },
-      },
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const agent = new Agent(mockAgentConfig, mockExecutionContext, mockAgentFramework);
-    const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
-
-    expect(converted.mcpType).toBe(MCPServerType.generic);
-    expect(converted.serverUrl).toBe('https://mcp.example.com');
-  });
-
-  test('should build MCP server config with credentials when available', async () => {
-    const mockToolConfig: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Nango Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: MCPTransportType.sse },
-        },
-      },
-      credentialReferenceId: 'test-credential-id',
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const configWithCredentials = {
-      ...mockAgentConfig,
-      tools: [mockToolConfig],
-    };
-
-    const agent = new Agent(configWithCredentials, mockExecutionContext, mockAgentFramework);
-
-    // Mock the credential stuffer to simulate credential loading
-    (agent as any).credentialStuffer = mockCredentialStuffer;
-
-    const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
-
-    expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-      }),
-      expect.objectContaining({
-        name: 'Nango Tool',
-        serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: MCPServerType.nango,
-        id: 'test-tool',
-        description: 'Nango Tool',
-      }),
-      {
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'test-connection',
-          providerConfigKey: 'test-provider',
-        },
-      },
-      undefined
-    );
-
-    expect(mcpTool).toEqual({
-      tools: mockMcpTools,
-      toolPolicies: {},
-      mcpServerId: 'test-tool',
-      mcpServerName: 'Nango Tool',
-    });
-  });
-
-  test('should handle tools without credential reference', async () => {
-    const mockToolConfig: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Generic Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://mcp.example.com' },
-          transport: { type: MCPTransportType.streamableHttp },
-        },
-      },
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const configWithoutCredentials = {
-      ...mockAgentConfig,
-      tools: [mockToolConfig],
-    };
-
-    const agent = new Agent(configWithoutCredentials, mockExecutionContext, mockAgentFramework);
-
-    // Mock the credential stuffer
-    (agent as any).credentialStuffer = {
-      buildMcpServerConfig: vi.fn().mockResolvedValue({
-        type: MCPTransportType.streamableHttp,
-        url: 'https://mcp.example.com',
-        headers: {},
-      }),
-    };
-
-    const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
-
-    expect(mcpTool).toEqual({
-      tools: mockMcpTools,
-      toolPolicies: {},
-      mcpServerId: 'test-tool',
-      mcpServerName: 'Generic Tool',
-    });
-  });
-
-  test('should pass correct context to credential stuffer', async () => {
-    // Mock the specific credential for this test
-    getCredentialReferenceMock.mockReturnValueOnce(
-      vi.fn().mockResolvedValue({
-        id: 'context-credential',
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'context-connection',
-          providerConfigKey: 'context-provider',
-        },
-      } as any)
-    );
-
-    const mockToolConfig: McpTool = {
-      id: 'context-tool',
-      tenantId: 'context-tenant',
-      projectId: 'test-project',
-      name: 'Context Test Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: MCPTransportType.sse },
-        },
-      },
-      credentialReferenceId: 'context-credential',
-      capabilities: { tools: true, resources: false, prompts: false, logging: false },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const contextConfig = {
-      id: 'context-agent',
-      tenantId: 'context-tenant',
-      agentId: 'context-agent',
-      projectId: 'test-project',
-      baseUrl: 'http://localhost:3000',
-      name: 'Context Agent',
-      description: 'Agent for testing context',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      tools: [mockToolConfig],
-      dataComponents: [],
-    };
-
-    const agent = new Agent(contextConfig, mockExecutionContext, mockAgentFramework);
-    (agent as any).credentialStuffer = mockCredentialStuffer;
-
-    await (agent as any).getMcpTool(mockToolConfig);
-
-    expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'context-tenant',
-        projectId: 'test-project',
-      }),
-      expect.objectContaining({
-        name: 'Context Test Tool',
-        serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: MCPServerType.nango,
-        id: 'context-tool',
-        description: 'Context Test Tool',
-      }),
-      {
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'context-connection',
-          providerConfigKey: 'context-provider',
-        },
-      },
-      undefined
-    );
   });
 });
 

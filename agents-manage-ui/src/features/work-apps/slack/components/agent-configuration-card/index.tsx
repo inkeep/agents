@@ -486,10 +486,10 @@ export function AgentConfigurationCard() {
           {!defaultAgent && channels.length > 0 && (
             <Alert variant="warning">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>No default agent set</AlertTitle>
+              <AlertTitle>No default agent set for your workspace</AlertTitle>
               <AlertDescription>
-                Channels using the workspace default won&apos;t respond to @Inkeep mentions or
-                /inkeep commands.
+                Unless you configure a default agent for a channel, it won&apos;t respond to @Inkeep
+                mentions or /inkeep commands.
               </AlertDescription>
             </Alert>
           )}

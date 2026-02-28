@@ -161,12 +161,17 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
   };
 };
 
+type DiscoveryResult = {
+  tools: McpToolDefinition[];
+  serverInstructions?: string;
+};
+
 const discoverToolsFromServer = async (
   tool: ToolSelect,
   credentialReference?: CredentialReferenceSelect,
   credentialStoreRegistry?: CredentialStoreRegistry,
   userId?: string
-): Promise<McpToolDefinition[]> => {
+): Promise<DiscoveryResult> => {
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot discover tools from non-MCP tool: ${tool.id}`);
   }
@@ -234,6 +239,9 @@ const discoverToolsFromServer = async (
     await client.connect();
 
     const serverTools = await client.tools();
+    const rawServerInstructions = client.getInstructions();
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control chars to remove them
+    const serverInstructions = rawServerInstructions?.replace(/\u0000/g, '');
 
     await client.disconnect();
 
@@ -250,7 +258,7 @@ const discoverToolsFromServer = async (
       }
     );
 
-    return toolDefinitions;
+    return { tools: toolDefinitions, serverInstructions };
   } catch (error) {
     logger.error({ toolId: tool.id, error }, 'Tool discovery failed');
     throw error;
@@ -313,6 +321,7 @@ export const dbResultToMcpTool = async (
   let lastErrorComputed: string | null;
   let expiresAt: string | undefined;
   let createdBy: string | undefined;
+  let serverInstructions: string | undefined;
 
   // Look up credential reference based on scope
   const credentialReference =
@@ -337,12 +346,14 @@ export const dbResultToMcpTool = async (
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromServer(
+    const discoveryResult = await discoverToolsFromServer(
       dbResult,
       credentialReference,
       credentialStoreRegistry,
       userId
     );
+    availableTools = discoveryResult.tools;
+    serverInstructions = discoveryResult.serverInstructions;
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {
@@ -391,6 +402,11 @@ export const dbResultToMcpTool = async (
 
   // Update tool metadata - wrap in try-catch to handle serialization conflicts gracefully.
   // Concurrent Tool reads can cause serialization conflicts, so we need to handle them gracefully.
+  const updatedCapabilities = {
+    ...capabilities,
+    ...(serverInstructions !== undefined && { serverInstructions }),
+  };
+
   try {
     await updateTool(dbClient)({
       scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
@@ -398,6 +414,7 @@ export const dbResultToMcpTool = async (
       data: {
         updatedAt: now,
         lastError: lastErrorComputed,
+        capabilities: updatedCapabilities,
       },
     });
   } catch (updateError: unknown) {
@@ -426,7 +443,7 @@ export const dbResultToMcpTool = async (
     ...rest,
     status,
     availableTools,
-    capabilities: capabilities || undefined,
+    capabilities: Object.keys(updatedCapabilities).length > 0 ? updatedCapabilities : undefined,
     credentialReferenceId: credentialReferenceId || undefined,
     createdAt: toISODateString(createdAt),
     createdBy: createdBy || undefined,
