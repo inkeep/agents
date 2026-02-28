@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -7,23 +8,18 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface StatusComponentDefinitionData {
-  statusComponentId: string;
-  type: string;
-  description?: string;
-  detailsSchema?: unknown;
-  schema?: unknown;
-}
+const MySchema = FullProjectDefinitionSchema.shape.statusUpdates
+  .unwrap()
+  .shape.statusComponents.unwrap().element;
 
-const StatusComponentSchema = z.looseObject({
+const StatusComponentSchema = z.strictObject({
   statusComponentId: z.string().nonempty(),
-  type: z.string().nonempty(),
-  description: z.string().optional(),
-  detailsSchema: z.unknown().optional(),
-  schema: z.unknown().optional(),
+  ...MySchema.shape,
 });
 
-export function generateStatusComponentDefinition(data: StatusComponentDefinitionData): SourceFile {
+type StatusComponentInput = z.input<typeof StatusComponentSchema>;
+
+export function generateStatusComponentDefinition(data: StatusComponentInput): SourceFile {
   const result = StatusComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for status component:\n${z.prettifyError(result.error)}`);

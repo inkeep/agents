@@ -152,9 +152,6 @@
             "nullable": true,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "defaultSubAgentId": {
             "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
             "example": "my-default-subagent",
@@ -269,9 +266,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -480,20 +474,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/FunctionCreate"
-                    },
-                    {
-                      "properties": {
-                        "executeCode": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -1961,9 +1942,6 @@
       },
       "CredentialReferenceCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "maxLength": 256,
             "nullable": true,
@@ -1997,9 +1975,6 @@
               "keychain",
               "nango"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "userId": {
@@ -2047,9 +2022,6 @@
       },
       "CredentialReferenceUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "maxLength": 256,
             "nullable": true,
@@ -2083,9 +2055,6 @@
               "keychain",
               "nango"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "userId": {
@@ -2259,9 +2228,6 @@
       },
       "DataComponentCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
@@ -2304,9 +2270,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -2347,9 +2310,6 @@
       },
       "DataComponentUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
@@ -2392,9 +2352,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -3968,9 +3925,6 @@
             "format": "uri",
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "minLength": 1,
@@ -3985,9 +3939,6 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -4032,9 +3983,6 @@
             "format": "uri",
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "minLength": 1,
@@ -4049,9 +3997,6 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -4423,20 +4368,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/FunctionCreate"
-                    },
-                    {
-                      "properties": {
-                        "executeCode": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -4684,9 +4616,6 @@
       },
       "FunctionCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "dependencies": {
             "anyOf": [
               {
@@ -4719,6 +4648,7 @@
             ]
           },
           "executeCode": {
+            "minLength": 1,
             "type": "string"
           },
           "id": {
@@ -4754,9 +4684,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -4839,9 +4766,6 @@
       },
       "FunctionToolCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4855,9 +4779,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -4903,9 +4824,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4919,9 +4837,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -5431,9 +5346,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "type": "string"
           },
@@ -5521,9 +5433,6 @@
           },
           "tenantId": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "version": {
@@ -6165,9 +6074,6 @@
       },
       "ScheduledTriggerCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "nullable": true,
@@ -6243,9 +6149,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -6255,9 +6158,6 @@
       },
       "ScheduledTriggerInsertBase": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "nullable": true,
@@ -6333,9 +6233,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -6485,9 +6382,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "nullable": true,
@@ -6570,9 +6464,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -8744,9 +8635,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
@@ -8806,9 +8694,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -8960,9 +8845,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
@@ -9022,9 +8904,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -9206,9 +9085,6 @@
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9297,9 +9173,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -32908,20 +32781,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/FunctionCreate"
-                  },
-                  {
-                    "properties": {
-                      "executeCode": {
-                        "minLength": 1,
-                        "type": "string"
-                      }
-                    },
-                    "type": "object"
-                  }
-                ]
+                "$ref": "#/components/schemas/FunctionCreate"
               }
             }
           }

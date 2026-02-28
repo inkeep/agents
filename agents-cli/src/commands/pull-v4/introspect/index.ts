@@ -428,7 +428,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
   console.log(
     styleText(
       'gray',
-      '  • Existing projects: Smart comparison + LLM merging + confirmation prompts'
+      '  • Existing projects: Smart comparison + AST merging + confirmation prompts'
     )
   );
   console.log(styleText('gray', '  • New projects: Fresh generation with introspect mode\n'));
@@ -609,9 +609,7 @@ async function pullSingleProject(
         throw error;
       }
     }
-
-    // No existing project - use introspect mode to generate fresh
-    console.log(styleText('gray', `   🆕 New project - using introspect mode`));
+    console.log(styleText('gray', '   New project'));
 
     // Suppress SDK logging
     const originalLogLevel = process.env.LOG_LEVEL;
@@ -636,7 +634,6 @@ async function pullSingleProject(
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
-
     // Create project structure
     const paths = createProjectStructure(targetDir);
 

@@ -447,10 +447,6 @@ export async function expectSnapshots(definitionV4: string): Promise<void> {
   );
 }
 
-export function convertNullToUndefined(v: unknown) {
-  return v == null ? undefined : v;
-}
-
 export function hasReferences<T>(references?: T[]): references is T[] {
   return Array.isArray(references) && references.length > 0;
 }

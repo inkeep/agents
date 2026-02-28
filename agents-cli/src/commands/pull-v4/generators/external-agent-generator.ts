@@ -1,41 +1,21 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import { addStringProperty, createFactoryDefinition, toCamelCase } from '../utils';
 
-interface ExternalAgentDefinitionData {
-  externalAgentId: string;
-  name: string;
-  description?: string | null;
-  baseUrl: string;
-  credentialReference?:
-    | string
-    | {
-        id?: string;
-        name?: string;
-        description?: string;
-      };
-}
-
-const ExternalAgentSchema = z.looseObject({
-  externalAgentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional(),
-  baseUrl: z.string().nonempty(),
-  credentialReference: z
-    .union([
-      z.string(),
-      z.looseObject({
-        id: z.string().optional(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    ])
-    .optional(),
+const MySchema = FullProjectDefinitionSchema.shape.externalAgents.unwrap().valueType.omit({
+  id: true,
 });
 
-type ParsedExternalAgentDefinitionData = z.infer<typeof ExternalAgentSchema>;
+const ExternalAgentSchema = z.strictObject({
+  externalAgentId: z.string().nonempty(),
+  ...MySchema.shape,
+});
 
-export function generateExternalAgentDefinition(data: ExternalAgentDefinitionData): SourceFile {
+type ExternalAgentInput = z.input<typeof ExternalAgentSchema>;
+type ExternalAgentOutput = z.output<typeof ExternalAgentSchema>;
+
+export function generateExternalAgentDefinition(data: ExternalAgentInput): SourceFile {
   const result = ExternalAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for external agent:\n${z.prettifyError(result.error)}`);
@@ -60,7 +40,7 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
 
 function writeExternalAgentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedExternalAgentDefinitionData
+  data: ExternalAgentOutput
 ): void {
   addStringProperty(configObject, 'id', data.externalAgentId);
   addStringProperty(configObject, 'name', data.name);
