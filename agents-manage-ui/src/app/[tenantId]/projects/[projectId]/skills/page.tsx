@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { fetchSkills } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -41,17 +42,21 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
   const { tenantId, projectId } = await params;
 
   try {
-    const { data } = await fetchSkills(tenantId, projectId);
-    const action = (
+    const [skills, permissions] = await Promise.all([
+      fetchSkills(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    const action = permissions.canEdit ? (
       <Button asChild className="flex items-center gap-2">
         <NextLink href={`/${tenantId}/projects/${projectId}/skills/new`}>
           <Plus />
           Create skill
         </NextLink>
       </Button>
-    );
+    ) : undefined;
 
-    return data.length ? (
+    return skills.data.length ? (
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
         <div className="rounded-lg border">
@@ -66,8 +71,9 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((skill) => (
-                <TableRow key={skill.id} className="relative">
+              {skills.data.map((skill) => (
+                // transform is needed to fix an issue in Safari where table rows cannot be relative.
+                <TableRow key={skill.id} style={{ transform: 'translate(0)' }} className="relative">
                   <TableCell className="align-top">
                     <NextLink
                       // <tr> cannot contain a nested <a>.
