@@ -30,6 +30,9 @@ updates:
     directory: '/create-agents-template'
     schedule:
       interval: 'daily'
+    versioning-strategy: increase
+    allow:
+      - dependency-name: '@inkeep/agents-*'
     groups:
       inkeep-agents:
         patterns:
