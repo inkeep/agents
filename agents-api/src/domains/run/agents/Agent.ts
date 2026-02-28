@@ -667,15 +667,19 @@ export class Agent {
           if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
             try {
               const messageId = generateId();
+              const messageContent = this.buildToolResultMessageContent(
+                toolName,
+                args,
+                result,
+                toolCallId
+              );
               const messagePayload = {
                 id: messageId,
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
                 conversationId: toolResultConversationId,
                 role: 'assistant',
-                content: {
-                  text: this.formatToolResult(toolName, args, result, toolCallId),
-                },
+                content: messageContent,
                 visibility: 'internal',
                 messageType: 'tool-result',
                 fromSubAgentId: this.config.id,
@@ -2480,6 +2484,98 @@ export class Agent {
   /**
    * Format tool result for storage in conversation history
    */
+  private buildToolResultMessageContent(
+    toolName: string,
+    args: any,
+    result: any,
+    toolCallId: string
+  ): MessageContent {
+    const text = this.formatToolResult(toolName, args, result, toolCallId);
+    const parts = this.getStructuredToolResultParts(result);
+
+    if (!parts || parts.length === 0) {
+      return { text };
+    }
+
+    return { text, parts };
+  }
+
+  private getStructuredToolResultParts(result: any):
+    | Array<{
+        kind: string;
+        text?: string;
+        data?: string | Record<string, unknown>;
+        metadata?: Record<string, unknown>;
+      }>
+    | undefined {
+    if (!result || typeof result !== 'object' || !Array.isArray(result.content)) {
+      return undefined;
+    }
+
+    const parts = result.content
+      .map((item: any) => this.mapMcpContentItemToMessagePart(item))
+      .filter(
+        (
+          part: ReturnType<Agent['mapMcpContentItemToMessagePart']>
+        ): part is {
+          kind: string;
+          text?: string;
+          data?: string | Record<string, unknown>;
+          metadata?: Record<string, unknown>;
+        } => part !== null
+      );
+
+    return parts.length > 0 ? parts : undefined;
+  }
+
+  private mapMcpContentItemToMessagePart(item: any): {
+    kind: string;
+    text?: string;
+    data?: string | Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+  } | null {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+
+    if (item.type === 'text') {
+      if (typeof item.text === 'string') {
+        return { kind: 'text', text: item.text };
+      }
+      if (item.text !== undefined) {
+        return { kind: 'text', text: JSON.stringify(item.text, null, 2) };
+      }
+      return null;
+    }
+
+    if (item.type === 'image' && typeof item.data === 'string') {
+      return {
+        kind: 'file',
+        data: item.data,
+        metadata: {
+          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+          type: 'image',
+        },
+      };
+    }
+
+    if (item.type === 'audio' && typeof item.data === 'string') {
+      return {
+        kind: 'file',
+        data: item.data,
+        metadata: {
+          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+          type: 'audio',
+        },
+      };
+    }
+
+    return {
+      kind: 'data',
+      data: item as Record<string, unknown>,
+    };
+  }
+
   private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
     const input = args ? JSON.stringify(args, null, 2) : 'No input';
 
@@ -2521,8 +2617,9 @@ export class Agent {
           }
         : parsedResult;
 
+    const textOnlyResult = this.filterNonTextToolResultContent(cleanResult);
     const output =
-      typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
+      typeof textOnlyResult === 'string' ? textOnlyResult : JSON.stringify(textOnlyResult, null, 2);
 
     return `## Tool: ${toolName}
 
@@ -2533,6 +2630,25 @@ ${input}
 
 ### Output
 ${output}`;
+  }
+
+  private filterNonTextToolResultContent(result: any): any {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      return result;
+    }
+
+    if (!Array.isArray(result.content)) {
+      return result;
+    }
+
+    const textContent = result.content.filter(
+      (item: any) => item?.type === 'text' && 'text' in item
+    );
+
+    return {
+      ...result,
+      content: textContent,
+    };
   }
 
   /**

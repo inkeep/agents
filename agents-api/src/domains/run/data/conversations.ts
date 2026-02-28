@@ -59,7 +59,7 @@ function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): s
     .replace(/\r/g, '\\r') // Escape carriage returns
     .replace(/\t/g, '\\t') // Escape tabs
     .replace(/\f/g, '\\f') // Escape form feeds
-    .replace(/\b/g, '\\b'); // Escape backspaces
+    .replace(/[\b]/g, '\\b'); // Escape backspace (ASCII 8)
 }
 
 /**

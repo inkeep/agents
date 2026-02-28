@@ -1930,3 +1930,60 @@ describe('Agent Image Support', () => {
     );
   });
 });
+
+describe('Agent tool result persistence', () => {
+  test('builds message content with structured MCP parts', () => {
+    const config: AgentConfig = {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      name: 'Test Agent',
+      description: 'Test agent',
+      prompt: 'Test instructions',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      tools: [],
+      dataComponents: [],
+    };
+    const executionContext = createMockExecutionContext() as any;
+    const agent = new Agent(config, executionContext);
+
+    const result = {
+      content: [
+        {
+          type: 'text',
+          text: { success: true },
+        },
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+      ],
+      isError: false,
+    };
+
+    const content = (agent as any).buildToolResultMessageContent(
+      'get_ticket_attachments',
+      { ticket_id: 6662 },
+      result,
+      'toolu_123'
+    );
+
+    expect(content.text).toContain('## Tool: get_ticket_attachments');
+    expect(content.text).toContain('"success": true');
+    expect(content.text).not.toContain('base64-image-data');
+    expect(content.text).not.toContain('"type": "image"');
+    expect(content.parts).toEqual([
+      { kind: 'text', text: '{\n  "success": true\n}' },
+      {
+        kind: 'file',
+        data: 'base64-image-data',
+        metadata: { mimeType: 'image/webp', type: 'image' },
+      },
+    ]);
+  });
+});
