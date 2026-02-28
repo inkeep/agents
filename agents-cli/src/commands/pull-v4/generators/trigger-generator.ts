@@ -1,11 +1,7 @@
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import {
-  addValueToObject,
-  createFactoryDefinition,
-  toCamelCase,
-} from '../utils';
+import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.triggers
   .unwrap()
