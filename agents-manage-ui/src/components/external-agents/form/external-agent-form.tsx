@@ -114,10 +114,19 @@ export function ExternalAgentForm({
               placeholder="Select a credential"
               options={[
                 { value: 'none', label: 'No Authentication' },
-                ...credentials.map((credential) => ({
-                  value: credential.id,
-                  label: credential.id,
-                })),
+                ...credentials.map((credential) => {
+                  const displayName = credential.name || credential.id;
+                  const hasDuplicateName = credentials.some(
+                    (c) => c.id !== credential.id && c.name === credential.name
+                  );
+                  return {
+                    value: credential.id,
+                    label:
+                      hasDuplicateName || !credential.name
+                        ? `${displayName} (${credential.id.slice(0, 8)})`
+                        : credential.name,
+                  };
+                }),
               ]}
               isRequired={isRequired(ExternalAgentFormSchema, 'credentialReferenceId')}
             />

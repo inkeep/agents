@@ -351,10 +351,19 @@ export function MCPServerForm({
                     options={[
                       { value: 'oauth', label: 'OAuth' },
                       { value: 'none', label: 'No Authentication' },
-                      ...credentials.map((credential) => ({
-                        value: credential.id,
-                        label: credential.name,
-                      })),
+                      ...credentials.map((credential) => {
+                        const displayName = credential.name || credential.id;
+                        const hasDuplicateName = credentials.some(
+                          (c) => c.id !== credential.id && c.name === credential.name
+                        );
+                        return {
+                          value: credential.id,
+                          label:
+                            hasDuplicateName || !credential.name
+                              ? `${displayName} (${credential.id.slice(0, 8)})`
+                              : credential.name,
+                        };
+                      }),
                     ]}
                   />
                   <InfoCard title="How this works">
