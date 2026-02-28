@@ -16,7 +16,7 @@ const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().value
 const DataComponentSchema = z.strictObject({
   dataComponentId: z.string().nonempty(),
   ...MySchema.shape,
-  description: z.preprocess(v => v || undefined, MySchema.shape.description),
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
   // Each property must have a "description" for LLM compatibility
   props: z.unknown(),
 });

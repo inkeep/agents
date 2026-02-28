@@ -19,7 +19,7 @@ const MySchema = FullProjectDefinitionSchema.shape.artifactComponents.unwrap().v
 const ArtifactComponentSchema = z.strictObject({
   artifactComponentId: z.string().nonempty(),
   ...MySchema.shape,
-  description: z.preprocess(v => v || undefined, MySchema.shape.description),
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
   render: z.preprocess((v) => v ?? undefined, MySchema.shape.render),
   // Invalid input
   props: z.unknown(),
