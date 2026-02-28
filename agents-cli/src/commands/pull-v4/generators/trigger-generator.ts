@@ -32,7 +32,7 @@ const TriggerSchema = z.strictObject({
 
 type TriggerInput = z.input<typeof TriggerSchema>;
 
-export function generateTriggerDefinition(data: TriggerInput): SourceFile {
+export function generateTriggerDefinition({ id, ...data }: TriggerInput): SourceFile {
   const result = TriggerSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for trigger:\n${z.prettifyError(result.error)}`);

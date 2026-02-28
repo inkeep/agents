@@ -34,12 +34,12 @@ const ContextTemplateReferenceSchema = z.object({
 
 const SubAgentSchema = FullAgentAgentInsertSchema.pick({
   id: true,
-  description: true,
   prompt: true,
 }).extend({
   name: z.string().optional(),
-  stopWhen: z.preprocess(convertNullToUndefined, FullAgentAgentInsertSchema.shape.stopWhen),
-  models: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
+  description: z.preprocess((v) => v ?? undefined, FullAgentAgentInsertSchema.shape.description),
+  stopWhen: z.preprocess((v) => v ?? undefined, FullAgentAgentInsertSchema.shape.stopWhen),
+  models: z.preprocess((v) => v ?? undefined, z.looseObject({}).optional()),
   skills: z.array(z.unknown()).optional(),
   canUse: z.array(z.unknown()).optional(),
   canDelegateTo: z.array(z.unknown()).optional(),
