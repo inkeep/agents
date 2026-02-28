@@ -14,9 +14,9 @@ const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.schedu
 const ScheduledTriggerSchema = z.strictObject({
   scheduledTriggerId: z.string().nonempty(),
   ...MySchema.shape,
-  description: z.preprocess(v => v ?? undefined, MySchema.shape.description),
-  runAt: z.preprocess(v => v ?? undefined, MySchema.shape.runAt),
-  payload: z.preprocess(v => v ?? undefined, MySchema.shape.payload),
+  description: z.preprocess((v) => v ?? undefined, MySchema.shape.description),
+  runAt: z.preprocess((v) => v ?? undefined, MySchema.shape.runAt),
+  payload: z.preprocess((v) => v ?? undefined, MySchema.shape.payload),
 });
 
 type ScheduledTriggerInput = z.input<typeof ScheduledTriggerSchema>;

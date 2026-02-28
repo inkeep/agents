@@ -34,14 +34,15 @@ const ToolSchema = MySchema.shape.tools.unwrap().valueType;
 const AgentSchema = z.strictObject({
   agentId: z.string().nonempty(),
   ...MySchema.shape,
-  models: z.preprocess(convertNullToUndefined, MySchema.shape.models),
-  stopWhen: z.preprocess(convertNullToUndefined, MySchema.shape.stopWhen),
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  models: z.preprocess((v) => v ?? undefined, MySchema.shape.models),
+  stopWhen: z.preprocess((v) => v ?? undefined, MySchema.shape.stopWhen),
   subAgents: z.record(
     z.string(),
     z.strictObject({
       ...SubAgentSchema.shape,
-      models: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.models),
-      stopWhen: z.preprocess(convertNullToUndefined, SubAgentSchema.shape.stopWhen),
+      models: z.preprocess((v) => v ?? undefined, SubAgentSchema.shape.models),
+      stopWhen: z.preprocess((v) => v ?? undefined, SubAgentSchema.shape.stopWhen),
       // Unrecognized keys: "name", "description", "content", "metadata", "subAgentSkillId", "subAgentId", "createdAt", "updatedAt"
       skills: z.unknown(),
       // Invalid input

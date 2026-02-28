@@ -19,7 +19,7 @@ const McpToolSchema = z.strictObject({
   ...MySchema.shape,
   headers: z.preprocess((v) => v ?? undefined, MySchema.shape.headers),
   capabilities: z.preprocess((v) => v ?? undefined, MySchema.shape.capabilities),
-  imageUrl: z.preprocess((v) => v ?? undefined, MySchema.shape.imageUrl),
+  imageUrl: z.preprocess((v) => v || undefined, MySchema.shape.imageUrl),
 });
 
 type McpTooInput = z.input<typeof McpToolSchema>;
