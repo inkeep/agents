@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.55.0
+
+### Minor Changes
+
+- 08d678d: Group MCP tools by server in system prompt using mcp_server blocks with server-level instructions; extract MCP connection management into AgentMcpManager
+
+### Patch Changes
+
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+  - @inkeep/agents-work-apps@0.55.0
+  - @inkeep/agents-mcp@0.55.0
+
 ## 0.54.0
 
 ### Minor Changes
