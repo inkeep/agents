@@ -30,6 +30,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Data Components': 'LuBlocks',
   Evaluations: 'LuFlaskConical',
   'External Agents': 'LuGlobe',
+  Feedback: 'LuThumbsUp',
   'Function Tools': 'LuCode',
   Functions: 'LuCode2',
   GitHub: 'LuGithub',

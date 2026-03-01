@@ -18,6 +18,7 @@ export const TagToDescription = {
   'Data Components': 'Operations for managing data components',
   Evaluations: 'Operations for managing evaluations',
   'External Agents': 'Operations for managing external agents',
+  Feedback: 'Operations for managing conversation and message feedback',
   'Function Tools': 'Operations for managing function tools',
   Functions: 'Operations for managing functions',
   GitHub: 'GitHub App integration endpoints',
