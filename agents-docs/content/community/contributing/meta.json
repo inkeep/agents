@@ -6,6 +6,7 @@
     "manage-database",
     "spans",
     "environment-configuration",
+    "isolated-environments",
     "..."
   ]
 }
