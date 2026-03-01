@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import { DATA_URI_IMAGE_BASE64_REGEX } from '../constants/allowed-image-formats';
 
 export type TextContentItem = {
   type: 'text';
@@ -10,7 +11,7 @@ export const ImageUrlSchema = z.union([
   z
     .string()
     .regex(
-      /^data:image\/(png|jpeg|jpg|webp);base64,/,
+      DATA_URI_IMAGE_BASE64_REGEX,
       'Image must be PNG, JPEG, or WebP format (GIF not supported by all providers)'
     )
     .refine((val) => {
