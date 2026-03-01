@@ -207,7 +207,7 @@ pnpm setup-dev --isolated my-feature
 # Point your shell at it
 source <(./scripts/isolated-env.sh env my-feature)
 
-# Run the app against the isolated databases
+# Run the app (uses isolated databases + dynamic app ports)
 pnpm dev
 
 # Tear down when done
@@ -229,7 +229,7 @@ pnpm dev
 - Uses `docker-compose.isolated.yml` with `COMPOSE_PROJECT_NAME` for namespace isolation
 - Docker assigns random available host ports (no hardcoded bindings)
 - Ports are discovered post-startup via `docker compose port` and saved to `.isolated-envs/<name>.json`
-- The `env` command outputs `export` statements that override `INKEEP_AGENTS_MANAGE_DATABASE_URL`, `INKEEP_AGENTS_RUN_DATABASE_URL`, and `SPICEDB_ENDPOINT`
+- The `env` command outputs `export` statements that override database URLs (`INKEEP_AGENTS_MANAGE_DATABASE_URL`, `INKEEP_AGENTS_RUN_DATABASE_URL`, `SPICEDB_ENDPOINT`) and app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`, `INKEEP_AGENTS_API_URL`)
 - Default environment (`docker-compose.dbs.yml` on fixed ports) continues to work unchanged
 
 #### Key Files
