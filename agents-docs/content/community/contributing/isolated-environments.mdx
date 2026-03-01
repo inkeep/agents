@@ -22,7 +22,7 @@ The default `pnpm setup-dev` workflow is unchanged. Isolated environments are op
 
 ```bash
 # 1. Create a fully provisioned isolated environment
-./scripts/isolated-env.sh setup feature-auth
+pnpm setup-dev --isolated feature-auth
 
 # 2. Point your shell at it
 source <(./scripts/isolated-env.sh env feature-auth)
@@ -38,11 +38,11 @@ pnpm dev
 
 | Command | Description |
 |---------|-------------|
-| `setup <name>` | Start containers, run migrations, initialize auth — full dev setup |
-| `up <name>` | Start containers only (no migrations) |
-| `down <name>` | Stop containers and remove volumes |
-| `status` | List all running isolated environments with their ports |
-| `env <name>` | Print shell-exportable environment variables for an instance |
+| `./scripts/isolated-env.sh setup <name>` | Start containers, run migrations, initialize auth - full dev setup |
+| `./scripts/isolated-env.sh up <name>` | Start containers only (no migrations) |
+| `./scripts/isolated-env.sh down <name>` | Stop containers and remove volumes |
+| `./scripts/isolated-env.sh status` | List all running isolated environments with their ports |
+| `./scripts/isolated-env.sh env <name>` | Print shell-exportable environment variables for an instance |
 
 The `<name>` can be anything descriptive — a feature name, ticket ID, or branch name (e.g., `feature-auth`, `PRD-6168`, `billing-v2`).
 
@@ -61,7 +61,7 @@ The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Pos
 
 Running `source <(./scripts/isolated-env.sh env <name>)` exports:
 
-```bash
+```text
 INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:<doltgres-port>/inkeep_agents
 INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:<postgres-port>/inkeep_agents
 SPICEDB_ENDPOINT=localhost:<spicedb-grpc-port>
