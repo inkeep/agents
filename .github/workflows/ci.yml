@@ -71,7 +71,7 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -79,7 +79,27 @@ jobs:
           HUSKY: 0
 
       - name: Install Playwright
-        run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+        run: pnpx playwright install chromium --with-deps
+
+      - name: Start Playwright Docker server
+        run: |
+          docker run --rm --init -d --name playwright-server \
+            --network host \
+            mcr.microsoft.com/playwright:v1.58.0-noble \
+            /bin/sh -c "npx -y playwright@1.58.0 run-server --port 3100 --host 0.0.0.0"
+          echo "Waiting for Playwright server..."
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 3100 2>/dev/null; then
+              echo "Playwright server is ready!"
+              break
+            fi
+            sleep 1
+          done
+          if ! nc -z 127.0.0.1 3100 2>/dev/null; then
+            echo "::error::Playwright server failed to start within 30s"
+            docker logs playwright-server || true
+            exit 1
+          fi
 
       # Clean database files before running tests
       - name: Clean database files
@@ -100,6 +120,7 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          PW_TEST_CONNECT_WS_ENDPOINT: ws://127.0.0.1:3100
           CI: true
           HUSKY: 0
 
@@ -232,7 +253,7 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright
         run: pnpx playwright install chromium --with-deps
