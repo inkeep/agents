@@ -131,9 +131,14 @@ save_state() {
   spicedb_http_port=$(discover_port "$project" "spicedb" "8443") || true
   spicedb_pg_port=$(discover_port "$project" "spicedb-postgres" "5432") || true
 
+  # Find free host ports for the app layer (agents-api and manage-ui)
+  local agents_api_port manage_ui_port
+  agents_api_port=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
+  manage_ui_port=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
+
   # Validate all ports were discovered
   local failed=false
-  for var_name in doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port; do
+  for var_name in doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port agents_api_port manage_ui_port; do
     if [ -z "${!var_name}" ]; then
       echo "Error: failed to discover port for $var_name. Are containers running?" >&2
       failed=true
@@ -155,15 +160,20 @@ print(json.dumps({
         'spicedb_grpc': int(sys.argv[5]),
         'spicedb_http': int(sys.argv[6]),
         'spicedb_pg': int(sys.argv[7]),
+        'agents_api': int(sys.argv[8]),
+        'manage_ui': int(sys.argv[9]),
     }
 }, indent=2))" "$name" "$project" "$doltgres_port" "$postgres_port" \
-    "$spicedb_grpc_port" "$spicedb_http_port" "$spicedb_pg_port" > "$STATE_DIR/${name}.json"
+    "$spicedb_grpc_port" "$spicedb_http_port" "$spicedb_pg_port" \
+    "$agents_api_port" "$manage_ui_port" > "$STATE_DIR/${name}.json"
 
   echo "Ports assigned:"
   echo "  Doltgres (manage DB):  localhost:$doltgres_port"
   echo "  Postgres (runtime DB): localhost:$postgres_port"
   echo "  SpiceDB gRPC:          localhost:$spicedb_grpc_port"
   echo "  SpiceDB HTTP:          localhost:$spicedb_http_port"
+  echo "  Agents API:            localhost:$agents_api_port"
+  echo "  Manage UI:             localhost:$manage_ui_port"
 }
 
 cmd_up() {
@@ -301,8 +311,8 @@ cmd_status() {
     return
   fi
 
-  printf "%-20s %-25s %-10s %-10s %-10s\n" "NAME" "PROJECT" "DOLTGRES" "POSTGRES" "SPICEDB"
-  printf "%-20s %-25s %-10s %-10s %-10s\n" "----" "-------" "--------" "--------" "-------"
+  printf "%-20s %-25s %-10s %-10s %-10s %-10s %-10s\n" "NAME" "PROJECT" "DOLTGRES" "POSTGRES" "SPICEDB" "API" "UI"
+  printf "%-20s %-25s %-10s %-10s %-10s %-10s %-10s\n" "----" "-------" "--------" "--------" "-------" "---" "--"
 
   for state_file in "$STATE_DIR"/*.json; do
     [ -f "$state_file" ] || continue
@@ -310,7 +320,9 @@ cmd_status() {
 import json, sys
 d = json.load(open(sys.argv[1]))
 p = d['ports']
-print(f"{d['name']:20s} {d['project']:25s} {p['doltgres']:<10} {p['postgres']:<10} {p['spicedb_grpc']:<10}")
+api = p.get('agents_api', '-')
+ui = p.get('manage_ui', '-')
+print(f"{d['name']:20s} {d['project']:25s} {p['doltgres']:<10} {p['postgres']:<10} {p['spicedb_grpc']:<10} {api:<10} {ui:<10}")
 PYEOF
   done
 }
@@ -331,6 +343,11 @@ p = d['ports']
 print(f"export INKEEP_AGENTS_MANAGE_DATABASE_URL='postgresql://appuser:password@localhost:{p['doltgres']}/inkeep_agents'")
 print(f"export INKEEP_AGENTS_RUN_DATABASE_URL='postgresql://appuser:password@localhost:{p['postgres']}/inkeep_agents'")
 print(f"export SPICEDB_ENDPOINT='localhost:{p['spicedb_grpc']}'")
+print(f"export AGENTS_API_PORT='{p['agents_api']}'")
+print(f"export MANAGE_UI_PORT='{p['manage_ui']}'")
+print(f"export INKEEP_AGENTS_API_URL='http://localhost:{p['agents_api']}'")
+print(f"export PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{p['agents_api']}'")
+print(f"export NEXT_PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{p['agents_api']}'")
 PYEOF
 }
 
