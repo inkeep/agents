@@ -47,7 +47,7 @@ jobs:
 
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
@@ -280,7 +280,7 @@ jobs:
 
       - name: Upload Debug Artifacts
         if: always() && steps.analyze.outputs.execution_file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number || inputs.pr_number || github.event.pull_request.number }}-${{ github.run_id }}
           path: ${{ steps.analyze.outputs.execution_file }}
