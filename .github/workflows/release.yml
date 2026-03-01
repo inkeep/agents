@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/composite-actions/install
 
       - name: Setup npm for OIDC publishing
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
@@ -42,7 +42,7 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Setup Turborepo cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -88,7 +88,7 @@ jobs:
       - name: Generate GitHub App Token
         if: steps.changesets.outputs.published == 'true'
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
