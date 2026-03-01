@@ -81,6 +81,12 @@ if (isolatedName) {
   process.env.INKEEP_AGENTS_RUN_DATABASE_URL = `postgresql://appuser:password@localhost:${p.postgres}/inkeep_agents`;
   process.env.SPICEDB_ENDPOINT = `localhost:${p.spicedb_grpc}`;
 
+  const apiPort = p.agents_api || 3002;
+  process.env.AGENTS_API_PORT = String(apiPort);
+  if (p.manage_ui) {
+    process.env.MANAGE_UI_PORT = String(p.manage_ui);
+  }
+
   // Run remaining setup steps (secrets generation, project push) but skip
   // Docker startup + migrations + auth (already done by isolated-env.sh).
   // Using isCloud: false so database URL validation still runs against the
@@ -98,7 +104,7 @@ if (isolatedName) {
           apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
         },
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
-    apiHealthUrl: 'http://localhost:3002/health',
+    apiHealthUrl: `http://localhost:${apiPort}/health`,
     isCloud: false,
     skipPush,
   });
