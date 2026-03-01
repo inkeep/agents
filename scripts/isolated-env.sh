@@ -343,11 +343,13 @@ p = d['ports']
 print(f"export INKEEP_AGENTS_MANAGE_DATABASE_URL='postgresql://appuser:password@localhost:{p['doltgres']}/inkeep_agents'")
 print(f"export INKEEP_AGENTS_RUN_DATABASE_URL='postgresql://appuser:password@localhost:{p['postgres']}/inkeep_agents'")
 print(f"export SPICEDB_ENDPOINT='localhost:{p['spicedb_grpc']}'")
-print(f"export AGENTS_API_PORT='{p['agents_api']}'")
-print(f"export MANAGE_UI_PORT='{p['manage_ui']}'")
-print(f"export INKEEP_AGENTS_API_URL='http://localhost:{p['agents_api']}'")
-print(f"export PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{p['agents_api']}'")
-print(f"export NEXT_PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{p['agents_api']}'")
+api = p.get('agents_api', 3002)
+ui = p.get('manage_ui', 3000)
+print(f"export AGENTS_API_PORT='{api}'")
+print(f"export MANAGE_UI_PORT='{ui}'")
+print(f"export INKEEP_AGENTS_API_URL='http://localhost:{api}'")
+print(f"export PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
+print(f"export NEXT_PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 PYEOF
 }
 

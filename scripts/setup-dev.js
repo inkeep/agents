@@ -82,6 +82,9 @@ if (isolatedName) {
   process.env.SPICEDB_ENDPOINT = `localhost:${p.spicedb_grpc}`;
 
   const apiPort = p.agents_api || 3002;
+  if (!p.agents_api) {
+    console.warn('\x1b[33m⚠\x1b[0m agents_api port missing from state file, falling back to 3002. Re-run setup to fix.');
+  }
   process.env.AGENTS_API_PORT = String(apiPort);
   if (p.manage_ui) {
     process.env.MANAGE_UI_PORT = String(p.manage_ui);
