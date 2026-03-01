@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import { enforceSecurityFilters } from '../../../utils/signozHelpers';
+import { enforceQuerySecurity } from '../../../utils/signozHelpers';
 
 const logger = getLogger('signoz-proxy');
 
@@ -62,7 +62,8 @@ app.post('/query', async (c) => {
   }
 
   // Always enforce server-side tenant filter, and project filter if provided
-  payload = enforceSecurityFilters(payload, tenantId, requestedProjectId);
+  // Automatically detects builder vs clickhouse_sql queries
+  payload = enforceQuerySecurity(payload, tenantId, requestedProjectId);
   logger.debug({ tenantId, projectId: requestedProjectId }, 'Security filters enforced');
 
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
@@ -202,18 +203,12 @@ app.post('/query-batch', async (c) => {
   };
 
   try {
-    // Step 1: Execute pagination query
-    const securedPagination = enforceSecurityFilters(
-      paginationPayload,
-      tenantId,
-      requestedProjectId
-    );
+    const securedPagination = enforceQuerySecurity(paginationPayload, tenantId, requestedProjectId);
     const step1 = await axios.post(signozEndpoint, securedPagination, {
       headers: signozHeaders,
       timeout: 30000,
     });
 
-    // Extract conversation IDs from the pageConversations result
     const pageResult = step1.data?.data?.result?.find(
       (r: any) => r?.queryName === 'pageConversations'
     );
@@ -225,9 +220,8 @@ app.post('/query-batch', async (c) => {
       return c.json({ paginationResponse: step1.data, detailResponse: null });
     }
 
-    // Step 2: Inject conversation IDs into the detail template and execute
     const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
-    const securedDetail = enforceSecurityFilters(detailWithIds, tenantId, requestedProjectId);
+    const securedDetail = enforceQuerySecurity(detailWithIds, tenantId, requestedProjectId);
     const step2 = await axios.post(signozEndpoint, securedDetail, {
       headers: signozHeaders,
       timeout: 30000,
@@ -261,39 +255,21 @@ app.post('/query-batch', async (c) => {
 });
 
 /**
- * Inject a `conversation.id IN [...]` filter into every builder query
- * of a SigNoz composite query payload.
+ * Inject conversation IDs into the __CONVERSATION_IDS__ placeholder
+ * in ClickHouse SQL queries within a SigNoz composite query payload.
  */
 function injectConversationIdFilter(payload: any, conversationIds: string[]): any {
   const modified = JSON.parse(JSON.stringify(payload));
-  const builderQueries = modified.compositeQuery?.builderQueries;
-  if (!builderQueries) return modified;
+  const chQueries = modified.compositeQuery?.chQueries;
+  if (!chQueries) return modified;
 
-  const inFilter = {
-    key: {
-      key: 'conversation.id',
-      dataType: 'string',
-      type: 'tag',
-      isColumn: false,
-      isJSON: false,
-      id: 'false',
-    },
-    op: 'in',
-    value: conversationIds,
-  };
+  const inClause = conversationIds.map((id: string) => `'${id.replace(/'/g, "''")}'`).join(',');
 
-  for (const queryKey in builderQueries) {
-    const query = builderQueries[queryKey];
-    if (!query.filters) {
-      query.filters = { op: 'AND', items: [] };
+  for (const key of Object.keys(chQueries)) {
+    if (chQueries[key]?.query) {
+      chQueries[key].query = chQueries[key].query.replace('__CONVERSATION_IDS__', inClause);
     }
-    // Remove any existing conversation.id IN filter to avoid duplication
-    query.filters.items = query.filters.items.filter(
-      (item: any) => !(item.key?.key === 'conversation.id' && item.op === 'in')
-    );
-    query.filters.items.push(inFilter);
   }
-
   return modified;
 }
 
