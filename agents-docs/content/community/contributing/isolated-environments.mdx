@@ -62,12 +62,28 @@ The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Pos
 Running `source <(./scripts/isolated-env.sh env <name>)` exports:
 
 ```text
+# Backing service connections
 INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:<doltgres-port>/inkeep_agents
 INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:<postgres-port>/inkeep_agents
 SPICEDB_ENDPOINT=localhost:<spicedb-grpc-port>
+
+# App ports (so parallel pnpm dev sessions don't collide)
+AGENTS_API_PORT=<random-port>
+MANAGE_UI_PORT=<random-port>
+
+# API URL overrides (so manage-ui reaches the correct agents-api)
+INKEEP_AGENTS_API_URL=http://localhost:<agents-api-port>
+PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:<agents-api-port>
+NEXT_PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:<agents-api-port>
 ```
 
 These override the values in your `.env` file for the current shell session. Run `pnpm dev` in the same shell to connect to the isolated instance.
+
+You can also set app ports manually without using isolated environments:
+
+```bash
+AGENTS_API_PORT=4002 MANAGE_UI_PORT=4000 pnpm dev
+```
 
 ## Running multiple environments
 
@@ -103,5 +119,5 @@ Each environment is fully independent — separate databases, separate data, sep
 `down` removes containers **and** volumes, so all data is deleted. If you just want to stop containers and keep data, use `docker compose -p agents-<name> stop` directly.
 
 <Note>
-Isolated environments currently cover the backing services layer (databases and authorization). The application processes (`agents-api`, `agents-manage-ui`) still run via `pnpm dev` on their standard ports. Full app-level isolation per environment is planned as part of the preview environments workstream.
+Each isolated environment gets its own backing services (databases, authorization) and app ports. Running `source <(./scripts/isolated-env.sh env <name>)` before `pnpm dev` ensures both the backing services and the application layer (`agents-api`, `agents-manage-ui`) use isolated ports with zero collisions.
 </Note>

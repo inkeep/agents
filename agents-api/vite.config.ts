@@ -33,7 +33,7 @@ export default defineConfig({
     warmup(),
   ],
   server: {
-    port: 3002,
+    port: parseInt(process.env.AGENTS_API_PORT || '3002', 10),
     strictPort: true,
     cors: false,
     allowedHosts: true,
