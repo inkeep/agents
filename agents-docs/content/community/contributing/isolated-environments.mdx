@@ -1,0 +1,107 @@
+---
+title: Isolated Development Environments
+sidebarTitle: Isolated Environments
+description: Run multiple parallel dev environments with zero port conflicts
+icon: LuContainer
+---
+
+## Overview
+
+The default `pnpm setup-dev` uses fixed host ports (5432, 5433, etc.), so only one dev stack can run at a time. Isolated environments remove this limitation — each instance gets its own Docker containers, volumes, and network with dynamically assigned ports.
+
+Use cases:
+- Working on multiple features side-by-side
+- Running parallel AI agent sessions (Claude Code, Ship)
+- Avoiding port conflicts with teammates or other Docker projects
+
+<Tip>
+The default `pnpm setup-dev` workflow is unchanged. Isolated environments are opt-in — use them only when you need parallelism.
+</Tip>
+
+## Quick start
+
+```bash
+# 1. Create a fully provisioned isolated environment
+./scripts/isolated-env.sh setup feature-auth
+
+# 2. Point your shell at it
+source <(./scripts/isolated-env.sh env feature-auth)
+
+# 3. Run the app against the isolated backing services
+pnpm dev
+
+# 4. Tear down when done
+./scripts/isolated-env.sh down feature-auth
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `setup <name>` | Start containers, run migrations, initialize auth — full dev setup |
+| `up <name>` | Start containers only (no migrations) |
+| `down <name>` | Stop containers and remove volumes |
+| `status` | List all running isolated environments with their ports |
+| `env <name>` | Print shell-exportable environment variables for an instance |
+
+The `<name>` can be anything descriptive — a feature name, ticket ID, or branch name (e.g., `feature-auth`, `PRD-6168`, `billing-v2`).
+
+## How it works
+
+Each isolated environment is a separate Docker Compose project:
+
+1. **`COMPOSE_PROJECT_NAME=agents-<name>`** namespaces all containers, volumes, and networks in Docker
+2. **Dynamic port allocation** — services expose container ports without binding to specific host ports, so Docker assigns random available ones
+3. **Port discovery** — after startup, the script queries Docker for the assigned ports and saves them to `.isolated-envs/<name>.json`
+4. **Environment export** — `env <name>` reads the state file and prints the correct `DATABASE_URL` and `SPICEDB_ENDPOINT` values
+
+The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Postgres (runtime DB), SpiceDB + its Postgres (authorization).
+
+## Environment variables
+
+Running `source <(./scripts/isolated-env.sh env <name>)` exports:
+
+```bash
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:<doltgres-port>/inkeep_agents
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:<postgres-port>/inkeep_agents
+SPICEDB_ENDPOINT=localhost:<spicedb-grpc-port>
+```
+
+These override the values in your `.env` file for the current shell session. Run `pnpm dev` in the same shell to connect to the isolated instance.
+
+## Running multiple environments
+
+```bash
+# Start two environments
+./scripts/isolated-env.sh setup feature-auth
+./scripts/isolated-env.sh setup feature-billing
+
+# Check what's running
+./scripts/isolated-env.sh status
+
+# Work on one
+source <(./scripts/isolated-env.sh env feature-auth)
+pnpm dev
+
+# Switch to the other (in a new terminal)
+source <(./scripts/isolated-env.sh env feature-billing)
+pnpm dev
+```
+
+Each environment is fully independent — separate databases, separate data, separate ports.
+
+## Cleanup
+
+```bash
+# Remove a specific environment
+./scripts/isolated-env.sh down feature-auth
+
+# Check what's still running
+./scripts/isolated-env.sh status
+```
+
+`down` removes containers **and** volumes, so all data is deleted. If you just want to stop containers and keep data, use `docker compose -p agents-<name> stop` directly.
+
+<Note>
+Isolated environments currently cover the backing services layer (databases and authorization). The application processes (`agents-api`, `agents-manage-ui`) still run via `pnpm dev` on their standard ports. Full app-level isolation per environment is planned as part of the [preview environments](/community/contributing/overview) workstream.
+</Note>
