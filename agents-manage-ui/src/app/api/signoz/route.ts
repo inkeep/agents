@@ -14,7 +14,7 @@ axiosRetry(axios, {
 const compositeQuerySchema = z.object({
   queryType: z.string(),
   panelType: z.string(),
-  builderQueries: z.record(z.string(), z.any()),
+  chQueries: z.record(z.string(), z.any()),
 });
 
 const signozPayloadSchema = z.object({
