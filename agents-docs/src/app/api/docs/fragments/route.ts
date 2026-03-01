@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { NextResponse } from 'next/server';
-import { getLLMText } from '@/lib/get-llm-text';
 import { source } from '@/lib/source';
 
 export const revalidate = false;
@@ -13,7 +12,8 @@ export async function GET() {
       notFound();
     }
 
-    let llmText = await getLLMText(page);
+    const processed = await page.data.getText('processed');
+    let llmText = `# ${page.data.title} (${page.url})\n\n${page.data.description || ''}\n\n${processed}`;
 
     const sectionsToKeep = [
       'Agents',

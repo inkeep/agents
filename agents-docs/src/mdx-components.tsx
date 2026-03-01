@@ -73,7 +73,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     Image: (props) => (
       <ImageZoom
-        alt={props.alt ?? 'Image'}
+        alt={props.alt ?? ''}
         {...props}
         height={props.height ?? 1200}
         width={props.width ?? 1200}
@@ -84,7 +84,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...components,
     img: (props) => (
       <img
-        alt={props.alt ?? 'Image'}
+        alt={props.alt ?? ''}
         {...props}
         height={props.height ?? 1200}
         width={props.width ?? 1200}
