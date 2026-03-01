@@ -1,0 +1,124 @@
+---
+title: Isolated Development Environments
+sidebarTitle: Isolated Environments
+description: Run multiple parallel dev environments with zero port conflicts
+icon: LuContainer
+---
+
+## Overview
+
+The default `pnpm setup-dev` uses fixed host ports (5432, 5433, etc.), so only one dev stack can run at a time. Isolated environments remove this limitation — each instance gets its own Docker containers, volumes, and network with dynamically assigned ports.
+
+Use cases:
+- Working on multiple features side-by-side
+- Running parallel AI agent sessions (Claude Code, Ship)
+- Avoiding port conflicts with teammates or other Docker projects
+
+<Tip>
+The default `pnpm setup-dev` workflow is unchanged. Isolated environments are opt-in — use them only when you need parallelism.
+</Tip>
+
+## Quick start
+
+```bash
+# 1. Create a fully provisioned isolated environment
+pnpm setup-dev --isolated feature-auth
+
+# 2. Point your shell at it
+source <(./scripts/isolated-env.sh env feature-auth)
+
+# 3. Run the app against the isolated backing services
+pnpm dev
+
+# 4. Tear down when done
+./scripts/isolated-env.sh down feature-auth
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/isolated-env.sh setup <name>` | Start containers, run migrations, initialize auth - full dev setup |
+| `./scripts/isolated-env.sh up <name>` | Start containers only (no migrations) |
+| `./scripts/isolated-env.sh down <name>` | Stop containers and remove volumes |
+| `./scripts/isolated-env.sh status` | List all running isolated environments with their ports |
+| `./scripts/isolated-env.sh env <name>` | Print shell-exportable environment variables for an instance |
+
+The `<name>` can be anything descriptive — a feature name, ticket ID, or branch name (e.g., `feature-auth`, `PRD-6168`, `billing-v2`).
+
+## How it works
+
+Each isolated environment is a separate Docker Compose project:
+
+1. **`COMPOSE_PROJECT_NAME=agents-<name>`** namespaces all containers, volumes, and networks in Docker
+2. **Dynamic port allocation** — services expose container ports without binding to specific host ports, so Docker assigns random available ones
+3. **Port discovery** — after startup, the script queries Docker for the assigned ports and saves them to `.isolated-envs/<name>.json`
+4. **App port allocation** — free host ports are found for `agents-api` and `agents-manage-ui` via python socket binding
+5. **Environment export** — `env <name>` reads the state file and exports database URLs, app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`), and API URLs (`INKEEP_AGENTS_API_URL`) so both backing services and the app layer use isolated ports
+
+The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Postgres (runtime DB), SpiceDB + its Postgres (authorization).
+
+## Environment variables
+
+Running `source <(./scripts/isolated-env.sh env <name>)` exports:
+
+```text
+# Backing service connections
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:<doltgres-port>/inkeep_agents
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:<postgres-port>/inkeep_agents
+SPICEDB_ENDPOINT=localhost:<spicedb-grpc-port>
+
+# App ports (so parallel pnpm dev sessions don't collide)
+AGENTS_API_PORT=<random-port>
+MANAGE_UI_PORT=<random-port>
+
+# API URL overrides (so manage-ui reaches the correct agents-api)
+INKEEP_AGENTS_API_URL=http://localhost:<agents-api-port>
+PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:<agents-api-port>
+NEXT_PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:<agents-api-port>
+```
+
+These override the values in your `.env` file for the current shell session. Run `pnpm dev` in the same shell to connect to the isolated instance.
+
+You can also set app ports manually without using isolated environments:
+
+```bash
+AGENTS_API_PORT=4002 MANAGE_UI_PORT=4000 pnpm dev
+```
+
+## Running multiple environments
+
+```bash
+# Start two environments
+./scripts/isolated-env.sh setup feature-auth
+./scripts/isolated-env.sh setup feature-billing
+
+# Check what's running
+./scripts/isolated-env.sh status
+
+# Work on one
+source <(./scripts/isolated-env.sh env feature-auth)
+pnpm dev
+
+# Switch to the other (in a new terminal)
+source <(./scripts/isolated-env.sh env feature-billing)
+pnpm dev
+```
+
+Each environment is fully independent — separate databases, separate data, separate ports.
+
+## Cleanup
+
+```bash
+# Remove a specific environment
+./scripts/isolated-env.sh down feature-auth
+
+# Check what's still running
+./scripts/isolated-env.sh status
+```
+
+`down` removes containers **and** volumes, so all data is deleted. If you just want to stop containers and keep data, use `docker compose -p agents-<name> stop` directly.
+
+<Note>
+Each isolated environment gets its own backing services (databases, authorization) and app ports. Running `source <(./scripts/isolated-env.sh env <name>)` before `pnpm dev` ensures both the backing services and the application layer (`agents-api`, `agents-manage-ui`) use isolated ports with zero collisions.
+</Note>

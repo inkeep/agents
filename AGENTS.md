@@ -8,6 +8,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
 - **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (isolated)**: `pnpm setup-dev --isolated <name>` — same as above but in a parallel environment (see [Isolated Environments](#isolated-parallel-environments))
 - **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
 - **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 
@@ -190,6 +191,54 @@ ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error
 ```
+
+### Isolated Parallel Environments
+
+Run multiple full dev stacks simultaneously with zero port conflicts. Each isolated environment gets its own Docker containers, volumes, and network with dynamically assigned ports.
+
+**When to use:** Running multiple features in parallel, AI coding agents executing concurrently, or testing against an isolated database without affecting the default environment.
+
+#### Quick Start
+
+```bash
+# Create an isolated environment (Docker + migrations + auth)
+pnpm setup-dev --isolated my-feature
+
+# Point your shell at it
+source <(./scripts/isolated-env.sh env my-feature)
+
+# Run the app (uses isolated databases + dynamic app ports)
+pnpm dev
+
+# Tear down when done
+./scripts/isolated-env.sh down my-feature
+```
+
+#### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/isolated-env.sh setup <name>` | Full setup: Docker + health checks + migrations + auth init |
+| `./scripts/isolated-env.sh up <name>` | Start containers only (no migrations) |
+| `./scripts/isolated-env.sh down <name>` | Stop and remove containers + volumes |
+| `./scripts/isolated-env.sh status` | List all running isolated environments with ports |
+| `./scripts/isolated-env.sh env <name>` | Print source-able env var exports |
+
+#### How It Works
+
+- Uses `docker-compose.isolated.yml` with `COMPOSE_PROJECT_NAME` for namespace isolation
+- Docker assigns random available host ports (no hardcoded bindings)
+- Ports are discovered post-startup via `docker compose port` and saved to `.isolated-envs/<name>.json`
+- The `env` command outputs `export` statements that override database URLs (`INKEEP_AGENTS_MANAGE_DATABASE_URL`, `INKEEP_AGENTS_RUN_DATABASE_URL`, `SPICEDB_ENDPOINT`) and app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`, `INKEEP_AGENTS_API_URL`)
+- Default environment (`docker-compose.dbs.yml` on fixed ports) continues to work unchanged
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.isolated.yml` | Compose file with dynamic port allocation |
+| `scripts/isolated-env.sh` | CLI for managing isolated environments |
+| `.isolated-envs/<name>.json` | Port state files (gitignored) |
 
 ## High Product-level Thinking
 
