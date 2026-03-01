@@ -53,7 +53,7 @@ Each isolated environment is a separate Docker Compose project:
 1. **`COMPOSE_PROJECT_NAME=agents-<name>`** namespaces all containers, volumes, and networks in Docker
 2. **Dynamic port allocation** — services expose container ports without binding to specific host ports, so Docker assigns random available ones
 3. **Port discovery** — after startup, the script queries Docker for the assigned ports and saves them to `.isolated-envs/<name>.json`
-4. **Environment export** — `env <name>` reads the state file and prints the correct `DATABASE_URL` and `SPICEDB_ENDPOINT` values
+4. **Environment export** — `env <name>` reads the state file and prints the correct `INKEEP_AGENTS_MANAGE_DATABASE_URL`, `INKEEP_AGENTS_RUN_DATABASE_URL`, and `SPICEDB_ENDPOINT` values
 
 The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Postgres (runtime DB), SpiceDB + its Postgres (authorization).
 
@@ -103,5 +103,5 @@ Each environment is fully independent — separate databases, separate data, sep
 `down` removes containers **and** volumes, so all data is deleted. If you just want to stop containers and keep data, use `docker compose -p agents-<name> stop` directly.
 
 <Note>
-Isolated environments currently cover the backing services layer (databases and authorization). The application processes (`agents-api`, `agents-manage-ui`) still run via `pnpm dev` on their standard ports. Full app-level isolation per environment is planned as part of the [preview environments](/community/contributing/overview) workstream.
+Isolated environments currently cover the backing services layer (databases and authorization). The application processes (`agents-api`, `agents-manage-ui`) still run via `pnpm dev` on their standard ports. Full app-level isolation per environment is planned as part of the preview environments workstream.
 </Note>
