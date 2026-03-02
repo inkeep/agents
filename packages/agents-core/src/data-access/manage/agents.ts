@@ -715,7 +715,10 @@ const getFullAgentDefinitionInternal =
           id: agent.contextConfigId,
         });
       } catch (error) {
-        agentsLogger.warn({ error, contextConfigId: agent.contextConfigId }, 'Failed to retrieve contextConfig');
+        agentsLogger.warn(
+          { error, contextConfigId: agent.contextConfigId },
+          'Failed to retrieve contextConfig'
+        );
       }
     }
 
@@ -853,7 +856,10 @@ const getFullAgentDefinitionInternal =
                       stopWhen: agent.stopWhen,
                     };
                   } catch (dbError) {
-                    agentsLogger.warn({ error: dbError, subAgentId }, 'Failed to persist stopWhen for agent');
+                    agentsLogger.warn(
+                      { error: dbError, subAgentId },
+                      'Failed to persist stopWhen for agent'
+                    );
                   }
                 }
               }
@@ -975,7 +981,10 @@ const getFullAgentDefinitionInternal =
           };
         }
         result.triggers = triggersObject;
-        agentsLogger.debug({ agentId, triggerIds: Object.keys(triggersObject) }, 'Added triggers to result');
+        agentsLogger.debug(
+          { agentId, triggerIds: Object.keys(triggersObject) },
+          'Added triggers to result'
+        );
       }
     } catch (error) {
       agentsLogger.warn({ error }, 'Failed to load triggers');
