@@ -41,13 +41,12 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
-import { isEntityChanged } from '../../../utils/entityDiff';
 import {
   onTriggerCreated,
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
+import { validateTriggerPermissions } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
 
@@ -446,35 +445,14 @@ app.openapi(
         const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
 
         for (const [triggerId, triggerData] of Object.entries(agentData.scheduledTriggers)) {
-          const existing = existingById.get(triggerId);
-
-          if (existing) {
-            const changed = isEntityChanged(triggerData, existing);
-            if (!changed) continue;
-
-            assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
-
-            if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {
-              await validateRunAsUserId({
-                runAsUserId: triggerData.runAsUserId,
-                callerId,
-                tenantId,
-                projectId,
-                tenantRole,
-              });
-            }
-          } else {
-            if (triggerData.runAsUserId) {
-              await validateRunAsUserId({
-                runAsUserId: triggerData.runAsUserId,
-                callerId,
-                tenantId,
-                projectId,
-                tenantRole,
-              });
-            }
-            triggerData.createdBy = callerId;
-          }
+          await validateTriggerPermissions({
+            triggerData,
+            existing: existingById.get(triggerId),
+            callerId,
+            tenantId,
+            projectId,
+            tenantRole,
+          });
         }
       }
 
@@ -485,35 +463,14 @@ app.openapi(
         const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
 
         for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
-          const existing = existingById.get(triggerId);
-
-          if (existing) {
-            const changed = isEntityChanged(triggerData, existing);
-            if (!changed) continue;
-
-            assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
-
-            if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {
-              await validateRunAsUserId({
-                runAsUserId: triggerData.runAsUserId,
-                callerId,
-                tenantId,
-                projectId,
-                tenantRole,
-              });
-            }
-          } else {
-            if (triggerData.runAsUserId) {
-              await validateRunAsUserId({
-                runAsUserId: triggerData.runAsUserId,
-                callerId,
-                tenantId,
-                projectId,
-                tenantRole,
-              });
-            }
-            triggerData.createdBy = callerId;
-          }
+          await validateTriggerPermissions({
+            triggerData,
+            existing: existingById.get(triggerId),
+            callerId,
+            tenantId,
+            projectId,
+            tenantRole,
+          });
         }
       }
 
