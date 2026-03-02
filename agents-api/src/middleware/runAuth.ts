@@ -104,7 +104,13 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
   if (
     !authResult.metadata?.teamDelegation &&
     reqData.agentId &&
-    reqData.agentId !== authResult.agentId
+    reqData.agentId !== authResult.agentId &&
+    authResult.apiKeyId &&
+    !authResult.apiKeyId.startsWith('temp-') &&
+    authResult.apiKeyId !== 'bypass' &&
+    authResult.apiKeyId !== 'slack-user-token' &&
+    authResult.apiKeyId !== 'team-agent-token' &&
+    authResult.apiKeyId !== 'test-key'
   ) {
     logger.warn(
       {

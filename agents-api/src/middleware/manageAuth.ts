@@ -25,7 +25,7 @@ const logger = getLogger('env-key-auth');
  * NOTE: Database API keys are intentionally NOT accepted on manage endpoints.
  * API keys are restricted to the run domain only (chat, agent execution).
  */
-export const manageApiKeyAuth = () =>
+export const manageBearerAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext: BaseExecutionContext;
@@ -167,9 +167,10 @@ export const manageApiKeyAuth = () =>
 
 /**
  * Middleware that gates a route with manage-domain authentication.
- * Uses Bearer token → API key auth, otherwise falls back to session auth.
+ * Uses Bearer token → manage bearer auth (bypass secret, session, Slack JWT, internal service),
+ * otherwise falls back to session auth.
  */
-export const manageApiKeyOrSessionAuth = () => {
+export const manageBearerOrSessionAuth = () => {
   const mw = createMiddleware(async (c, next) => {
     if (env.ENVIRONMENT === 'test') {
       await next();
@@ -178,7 +179,7 @@ export const manageApiKeyOrSessionAuth = () => {
 
     const authHeader = c.req.header('Authorization');
     if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
+      return manageBearerAuth()(c as any, next);
     }
 
     return sessionAuth()(c as any, next);

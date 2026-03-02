@@ -26,10 +26,6 @@ vi.mock('@inkeep/agents-core/middleware', () => ({
   registerAuthzMeta: vi.fn(),
 }));
 
-vi.mock('../../../data/db/runDbClient', () => ({
-  default: {},
-}));
-
 vi.mock('../../../env.js', () => ({
   env: {
     ENVIRONMENT: 'production',
@@ -45,7 +41,7 @@ vi.mock('../../../middleware/sessionAuth', () => ({
 }));
 
 import { Hono } from 'hono';
-import { manageApiKeyAuth } from '../../../middleware/manageAuth';
+import { manageBearerAuth } from '../../../middleware/manageAuth';
 
 describe('Manage Auth - API Key Rejection', () => {
   let app: Hono;
@@ -62,21 +58,7 @@ describe('Manage Auth - API Key Rejection', () => {
   });
 
   it('should reject a valid database API key on manage endpoints', async () => {
-    validateAndGetApiKeyMock.mockResolvedValueOnce({
-      id: 'key_123',
-      tenantId: 'tenant_123',
-      projectId: 'project_123',
-      agentId: 'agent_123',
-      publicId: 'pub_123',
-      keyHash: 'hash_123',
-      keyPrefix: 'sk_test_',
-      expiresAt: null,
-      lastUsedAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
-    app.use('*', manageApiKeyAuth());
+    app.use('*', manageBearerAuth());
     app.get('/', (c) => c.text('OK'));
 
     const res = await app.request('/', {
@@ -86,11 +68,13 @@ describe('Manage Auth - API Key Rejection', () => {
     });
 
     expect(res.status).toBe(401);
+    const body = await res.text();
+    expect(body).toContain('Invalid Token');
     expect(validateAndGetApiKeyMock).not.toHaveBeenCalled();
   });
 
   it('should still accept the bypass secret', async () => {
-    app.use('*', manageApiKeyAuth());
+    app.use('*', manageBearerAuth());
     app.get('/', (c) => {
       return c.json({
         userId: (c as any).get('userId'),
