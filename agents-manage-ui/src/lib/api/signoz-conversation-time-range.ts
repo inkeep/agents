@@ -1,6 +1,6 @@
 import { makeManagementApiRequest } from './api-config';
 
-export const BOUNDS_PADDING_MS = 3 * 60 * 60 * 1000; // 3 hours
+const BOUNDS_PADDING_MS = 3 * 60 * 60 * 1000; // 3 hours
 export const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days — fallback when bounds unavailable
 
 export async function getConversationTimeRange(params: {
