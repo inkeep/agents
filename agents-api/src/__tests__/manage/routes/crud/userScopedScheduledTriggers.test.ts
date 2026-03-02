@@ -782,9 +782,8 @@ describe('User-Scoped Scheduled Triggers', () => {
         expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
-      it('should ignore server-stamped fields (createdBy, createdAt, updatedAt)', () => {
+      it('should ignore server-stamped fields (createdAt, updatedAt)', () => {
         const incoming = {
-          createdBy: 'different-creator',
           createdAt: '2099-01-01T00:00:00Z',
           updatedAt: '2099-01-01T00:00:00Z',
           name: 'Daily sync',
