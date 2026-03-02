@@ -67,7 +67,8 @@ function ForgotPasswordForm() {
             </div>
             <CardDescription>
               If an account exists with that email, we sent a password reset link. Check your inbox
-              and spam folder.
+              and spam folder. If you signed up with Google or SSO, please sign in with that method
+              instead.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -118,7 +119,8 @@ function ForgotPasswordForm() {
             Forgot your password?
           </CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your password. If you signed
+            up with Google or SSO, please sign in with that method instead.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">

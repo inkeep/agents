@@ -22,8 +22,6 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const invitationId = searchParams.get('invitation');
   const returnUrl = searchParams.get('returnUrl');
-  const emailHint = searchParams.get('email');
-  const authMethod = searchParams.get('authMethod');
   const authClient = useAuthClient();
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
     useRuntimeConfig();
@@ -72,7 +70,6 @@ function LoginForm() {
   }, [invitationId, returnUrl]);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [autoSignInTriggered, setAutoSignInTriggered] = useState(false);
 
   // Check for OAuth/SSO errors in URL params (e.g., from provider redirects)
   const urlError = searchParams.get('error');
@@ -134,12 +131,10 @@ function LoginForm() {
           ? await authClient.signIn.social({
               provider: identifier as 'google',
               callbackURL: getFullCallbackURL(),
-              ...(emailHint && { loginHint: emailHint }),
             })
           : await authClient.signIn.sso({
               providerId: identifier,
               callbackURL: getFullCallbackURL(),
-              ...(emailHint && { loginHint: emailHint }),
             });
 
       // If we got here without redirecting, something went wrong
@@ -159,70 +154,6 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (
-      !emailHint ||
-      !invitationId ||
-      isSessionLoading ||
-      isAuthenticated ||
-      autoSignInTriggered ||
-      isLoading
-    ) {
-      return;
-    }
-
-    const shouldAutoGoogle = authMethod === 'google' && PUBLIC_GOOGLE_CLIENT_ID;
-    const shouldAutoSSO = authMethod === 'sso' && PUBLIC_AUTH0_DOMAIN;
-
-    // Fallback: if no explicit authMethod, use Google when available (backwards compat)
-    const shouldFallbackGoogle = !authMethod && PUBLIC_GOOGLE_CLIENT_ID;
-
-    if (!shouldAutoGoogle && !shouldAutoSSO && !shouldFallbackGoogle) {
-      return;
-    }
-
-    setAutoSignInTriggered(true);
-    setIsLoading(true);
-
-    const signInPromise = shouldAutoSSO
-      ? authClient.signIn.sso({
-          providerId: 'auth0',
-          callbackURL: getFullCallbackURL(),
-          loginHint: emailHint,
-        })
-      : authClient.signIn.social({
-          provider: 'google',
-          callbackURL: getFullCallbackURL(),
-          loginHint: emailHint,
-        });
-
-    const providerLabel = shouldAutoSSO ? 'SSO' : 'Google';
-
-    signInPromise
-      .then((result) => {
-        if (result?.error) {
-          setError(result.error.message || `${providerLabel} sign in failed`);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        setError(`${providerLabel} sign in failed`);
-        setIsLoading(false);
-      });
-  }, [
-    emailHint,
-    invitationId,
-    authMethod,
-    PUBLIC_GOOGLE_CLIENT_ID,
-    PUBLIC_AUTH0_DOMAIN,
-    isSessionLoading,
-    isAuthenticated,
-    autoSignInTriggered,
-    isLoading,
-    authClient,
-    getFullCallbackURL,
-  ]);
 
   // Show loading state while checking authentication
   if (isSessionLoading || isAuthenticated) {

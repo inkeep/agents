@@ -90,6 +90,7 @@ invitationsRoutes.get('/verify', async (c) => {
       organizationId: invitation.organizationId,
       role: invitation.role,
       expiresAt: invitation.expiresAt,
+      authMethod: invitation.authMethod || null,
     });
   } catch (error) {
     // Re-throw API errors (HTTPExceptions from createApiError)

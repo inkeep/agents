@@ -161,6 +161,7 @@ describe('Invitations Route', () => {
             organizationId: 'org-123',
             organizationName: 'Test Org',
             role: 'member',
+            authMethod: 'email-password',
           },
         ]);
 
@@ -172,6 +173,26 @@ describe('Invitations Route', () => {
         expect(body.organizationId).toBe('org-123');
         expect(body.role).toBe('member');
         expect(body.expiresAt).toBe(futureDate);
+        expect(body.authMethod).toBe('email-password');
+      });
+
+      it('should return authMethod as null when not set on invitation', async () => {
+        const futureDate = new Date(Date.now() + 86400000).toISOString();
+        const res = await makeRequestWithAuth('/verify?email=test@example.com&id=inv-123', [
+          {
+            id: 'inv-123',
+            email: 'test@example.com',
+            status: 'pending',
+            expiresAt: futureDate,
+            organizationId: 'org-123',
+            organizationName: 'Test Org',
+            role: 'member',
+          },
+        ]);
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.authMethod).toBeNull();
       });
 
       it('should handle invitation with no organizationName', async () => {

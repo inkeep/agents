@@ -3,7 +3,7 @@ import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
@@ -205,6 +205,21 @@ async function registerSSOProvider(
   }
 }
 
+async function hasCredentialAccount(
+  dbClient: AgentsRunDatabaseClient,
+  userId: string
+): Promise<boolean> {
+  const [row] = await dbClient
+    .select({ id: authSchema.account.id })
+    .from(authSchema.account)
+    .where(
+      and(eq(authSchema.account.userId, userId), eq(authSchema.account.providerId, 'credential'))
+    )
+    .limit(1);
+
+  return !!row;
+}
+
 export function createAuth(config: BetterAuthConfig) {
   const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
   const isSecure = config.baseURL.startsWith('https://');
@@ -223,6 +238,10 @@ export function createAuth(config: BetterAuthConfig) {
       autoSignIn: true,
       resetPasswordTokenExpiresIn: 60 * 30,
       sendResetPassword: async ({ user, url, token }) => {
+        if (!(await hasCredentialAccount(config.dbClient, user.id))) {
+          return;
+        }
+
         setPasswordResetLink({ email: user.email, url, token });
         if (config.emailService?.isConfigured) {
           try {
