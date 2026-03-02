@@ -230,7 +230,7 @@ app.openapi(
       if (!callerId) {
         throw createApiError({
           code: 'bad_request',
-          message: 'callerId is required when setting runAsUserId',
+          message: 'Authenticated user ID is required when setting runAsUserId',
         });
       }
       await validateRunAsUserId({ runAsUserId, callerId, tenantId, projectId, tenantRole });
