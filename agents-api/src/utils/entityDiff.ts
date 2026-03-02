@@ -3,7 +3,6 @@ const DEFAULT_IGNORED_FIELDS = new Set([
   'id',
   'projectId',
   'agentId',
-  'createdBy',
   'createdAt',
   'updatedAt',
 ]);
