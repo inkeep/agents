@@ -34,6 +34,7 @@ import {
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
+import { HTTPException } from 'hono/http-exception';
 import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
@@ -719,6 +720,10 @@ app.openapi(
               'Failed to set up project authorization. No changes were made to the database.',
           });
         }
+      }
+
+      if (error instanceof HTTPException) {
+        throw error;
       }
 
       throw createApiError({
