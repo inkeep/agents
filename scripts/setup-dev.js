@@ -48,12 +48,7 @@ if (isolatedName) {
     process.exit(1);
   }
 
-  console.log(
-    styleText(
-      'bold',
-      `\n=== Isolated Environment Setup: ${isolatedName} ===\n`
-    )
-  );
+  console.log(styleText('bold', `\n=== Isolated Environment Setup: ${isolatedName} ===\n`));
 
   try {
     execSync(`bash "${scriptPath}" setup "${isolatedName}"`, {
@@ -79,7 +74,7 @@ if (isolatedName) {
       with: {
         type: 'json',
       },
-    })
+    });
   } catch (e) {
     console.error(`Error: failed to parse ${stateFile}: ${e.message}`);
     process.exit(1);
