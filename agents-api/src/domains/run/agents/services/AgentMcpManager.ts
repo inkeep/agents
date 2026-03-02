@@ -13,11 +13,11 @@ import {
   type McpTool,
 } from '@inkeep/agents-core';
 import { tool } from 'ai';
-import { env } from '../../../env';
-import { getLogger } from '../../../logger';
-import { agentSessionManager } from '../services/AgentSession';
-import { setSpanWithError, tracer } from '../utils/tracer';
-import type { AgentConfig } from './Agent';
+import { env } from '../../../../env';
+import { getLogger } from '../../../../logger';
+import { agentSessionManager } from '../../session/AgentSession';
+import { setSpanWithError, tracer } from '../../utils/tracer';
+import type { AgentConfig } from '../Agent';
 
 const logger = getLogger('AgentMcpManager');
 

@@ -5,7 +5,7 @@ import type {
   StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StreamHelper } from '../../utils/stream-helpers';
+import type { StreamHelper } from '../../stream/stream-helpers';
 import { AgentSession, agentSessionManager } from '../AgentSession';
 
 // Mock the AI SDK

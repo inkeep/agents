@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { toolSessionManager } from '../../agents/ToolSessionManager';
-import type { ArtifactSavedData } from '../AgentSession';
-import { agentSessionManager } from '../AgentSession';
+import { toolSessionManager } from '../../agents/services/ToolSessionManager';
+import type { ArtifactSavedData } from '../../session/AgentSession';
+import { agentSessionManager } from '../../session/AgentSession';
 import { ArtifactService } from '../ArtifactService';
 
-vi.mock('../../agents/ToolSessionManager');
-vi.mock('../AgentSession');
+vi.mock('../../agents/services/ToolSessionManager');
+vi.mock('../../session/AgentSession');
 
 describe('Oversized Artifact Detection', () => {
   const mockExecutionContext = {

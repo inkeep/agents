@@ -29,7 +29,7 @@ import {
 } from '../constants/execution-limits';
 import { ContextResolver } from '../context';
 import { saveA2AMessageResponse } from '../data/conversations';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext } from '../types/executionContext';
 import {
   getExternalAgentRelationsForTargetSubAgent,
@@ -38,7 +38,7 @@ import {
   type InternalRelation,
 } from '../utils/project';
 import type { AgentConfig, DelegateRelation } from './Agent';
-import { toolSessionManager } from './ToolSessionManager';
+import { toolSessionManager } from './services/ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
 

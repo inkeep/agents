@@ -4,7 +4,7 @@ import {
   type ConversationHistorySummary,
   distillConversationHistory,
 } from '../tools/distill-conversation-history-tool';
-import type { CompressedArtifactInfo } from '../utils/artifact-utils';
+import type { CompressedArtifactInfo } from '../artifacts/artifact-utils';
 import {
   BaseCompressor,
   type CompressionConfig,

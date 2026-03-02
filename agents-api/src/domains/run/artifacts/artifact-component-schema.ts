@@ -6,7 +6,7 @@ import type {
   JsonSchemaForLlmSchemaType,
 } from '@inkeep/agents-core';
 import type { JSONSchema } from 'zod/v4/core';
-import { SchemaProcessor } from './SchemaProcessor';
+import { SchemaProcessor } from '../utils/SchemaProcessor';
 
 /**
  * Standard artifact reference component schema for tool responses

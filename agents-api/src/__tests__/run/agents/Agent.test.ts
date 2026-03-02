@@ -7,6 +7,8 @@ import type {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
+import { buildSystemPrompt } from '../../../domains/run/agents/generation/system-prompt';
+import { getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -228,7 +230,7 @@ vi.mock('../../../domains/run/data/conversations', async (importOriginal) => {
 });
 
 // Mock ToolSessionManager
-vi.mock('../../../domains/run/agents/ToolSessionManager', () => ({
+vi.mock('../../../domains/run/agents/services/ToolSessionManager', () => ({
   toolSessionManager: {
     createSession: vi.fn().mockReturnValue('test-session-id'),
     endSession: vi.fn(),
@@ -248,14 +250,14 @@ vi.mock('../../../domains/run/agents/ToolSessionManager', () => ({
 }));
 
 // Mock AgentSessionManager
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     recordEvent: vi.fn(),
   },
 }));
 
 // Mock ResponseFormatter
-vi.mock('../../../domains/run/services/ResponseFormatter.js', () => ({
+vi.mock('../../../domains/run/stream/ResponseFormatter.js', () => ({
   ResponseFormatter: vi.fn().mockImplementation(() => ({
     formatObjectResponse: vi.fn().mockResolvedValue({
       parts: [
@@ -528,14 +530,14 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should create Agent and use SystemPromptBuilder to generate XML system prompt', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
 
     expect(systemPromptBuilder).toBeDefined();
     expect(systemPromptBuilder.buildSystemPrompt).toBeDefined();
 
     // Call buildSystemPrompt to ensure it works
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
-    const result = await buildSystemPrompt();
+    // buildSystemPrompt now imported from generation/system-prompt
+    const result = await buildSystemPrompt((agent as any).ctx);
 
     expect(result.prompt).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
@@ -584,12 +586,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   test('should handle Agent with no tools', async () => {
     const configWithNoTools = { ...mockAgentConfig, tools: [] };
     const agent = new Agent(configWithNoTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx);
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
@@ -611,12 +613,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   test('should handle Agent with undefined tools', async () => {
     const configWithUndefinedTools = { ...mockAgentConfig, tools: undefined };
     const agent = new Agent(configWithUndefinedTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx);
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
@@ -649,12 +651,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       ],
     };
     const agent = new Agent(configWithEmptyAvailableTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx);
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
@@ -681,7 +683,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should use v1 version of SystemPromptBuilder by default', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
 
     // Verify the SystemPromptBuilder was instantiated with 'v1' and PromptConfig
     expect(systemPromptBuilder).toBeDefined();
@@ -736,7 +738,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
 
   test('should apply default conversationHistoryConfig when none provided', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const config = (agent as any).config;
+    const config = (agent as any).ctx.config;
 
     expect(config.conversationHistoryConfig).toBeDefined();
     expect(config.conversationHistoryConfig.mode).toBe('full');
@@ -761,7 +763,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithHistory, mockExecutionContext);
-    const config = (agent as any).config;
+    const config = (agent as any).ctx.config;
 
     expect(config.conversationHistoryConfig).toEqual(customConfig);
   });
@@ -1228,7 +1230,7 @@ describe('Agent Conditional Tool Availability', () => {
     const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have no artifact tools
     expect(tools.get_reference_artifact).toBeUndefined();
@@ -1246,7 +1248,7 @@ describe('Agent Conditional Tool Availability', () => {
     const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
@@ -1284,7 +1286,7 @@ describe('Agent Conditional Tool Availability', () => {
     const agent = new Agent(config, mockExecutionContext);
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
@@ -1312,10 +1314,10 @@ describe('Agent Conditional Tool Availability', () => {
     };
 
     const agent = new Agent(config, mockExecutionContext);
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     expect(tools.load_skill).toBeDefined();
-    const result = await tools.load_skill.execute({ name: 'on-demand-skill' });
+    const result = await (tools.load_skill as any).execute({ name: 'on-demand-skill' });
     expect(result).toMatchObject({
       id: 'on-demand-skill',
       name: 'on-demand-skill',

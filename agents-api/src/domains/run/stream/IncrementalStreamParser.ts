@@ -5,9 +5,9 @@ import {
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,
   STREAM_PARSER_MAX_STREAMED_SIZE,
 } from '../constants/execution-limits';
-import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
-import type { StreamHelper } from '../utils/stream-helpers';
-import { agentSessionManager } from './AgentSession';
+import { ArtifactParser, type StreamPart } from '../artifacts/ArtifactParser';
+import type { StreamHelper } from './stream-helpers';
+import { agentSessionManager } from '../session/AgentSession';
 
 const logger = getLogger('IncrementalStreamParser');
 

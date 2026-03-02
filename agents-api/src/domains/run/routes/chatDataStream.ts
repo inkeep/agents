@@ -23,12 +23,12 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
-import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
+import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;

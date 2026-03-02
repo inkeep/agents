@@ -43,7 +43,7 @@ import { env } from '../../../env';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { createSSEStreamHelper } from '../stream/stream-helpers';
 import { tracer } from '../utils/tracer';
 
 const logger = getLogger('TriggerService');

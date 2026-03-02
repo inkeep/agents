@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { agentSessionManager } from '../AgentSession';
+import { agentSessionManager } from '../../session/AgentSession';
 import { BaseCompressor } from '../BaseCompressor';
 
 // Mock dependencies
 
-vi.mock('../AgentSession', () => ({
+vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: {
     getSession: vi.fn(),
   },
@@ -19,7 +19,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../tools/distill-conversation-tool', () => ({
+vi.mock('../../tools/distill-conversation-tool', () => ({
   distillConversation: vi.fn(),
 }));
 

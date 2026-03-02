@@ -17,7 +17,7 @@ import {
   CONVERSATION_ARTIFACTS_LIMIT,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
-import { ConversationCompressor } from '../services/ConversationCompressor';
+import { ConversationCompressor } from '../compression/ConversationCompressor';
 
 const logger = getLogger('conversations');
 

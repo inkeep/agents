@@ -9,7 +9,7 @@ import dataComponentTemplate from '../../../../../../templates/v1/shared/data-co
 import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
 import { ARTIFACT_TAG, ARTIFACT_TOOL, SENTINEL_KEY } from '../../../constants/artifact-syntax';
 
-import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
+import { ArtifactCreateSchema } from '../../../artifacts/artifact-component-schema';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,

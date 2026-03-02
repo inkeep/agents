@@ -9,14 +9,14 @@ import {
 import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import { toolSessionManager } from '../agents/ToolSessionManager';
-import { detectOversizedArtifact } from '../utils/artifact-utils';
+import { toolSessionManager } from '../agents/services/ToolSessionManager';
+import { detectOversizedArtifact } from './artifact-utils';
 import {
   type ExtendedJsonSchema,
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { agentSessionManager } from './AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 
 const logger = getLogger('ArtifactService');
 

@@ -15,7 +15,7 @@ import {
 import manageDbPool from 'src/data/db/manageDbPool';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
 import { resolveModelConfig } from '../utils/model-resolver';
 import {
@@ -29,7 +29,7 @@ import {
 } from '../utils/project';
 import { Agent } from './Agent';
 import { buildTransferRelationConfig } from './relationTools';
-import { toolSessionManager } from './ToolSessionManager';
+import { toolSessionManager } from './services/ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
 
