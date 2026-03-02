@@ -584,3 +584,27 @@ This repository uses symlinks so multiple AI tools (Claude Code, Cursor, Codex) 
 | `.cursor/skills/` | `.claude/skills/`, `.codex/skills/` |
 
 AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+
+## Cursor Cloud specific instructions
+
+### Prerequisites
+
+Docker is required for the dev databases. The VM snapshot includes Docker pre-installed with `fuse-overlayfs` storage driver and `iptables-legacy` (required for nested Docker-in-Docker). If Docker is not running, start it with `sudo dockerd &>/tmp/dockerd.log &` and ensure the socket is accessible (`sudo chmod 666 /var/run/docker.sock`).
+
+### Starting the dev environment
+
+1. **Databases**: `pnpm setup-dev --skip-push` starts Doltgres (port 5432), Postgres (port 5433), SpiceDB (port 50051), runs migrations, and creates the admin user. Use `--skip-push` to skip pushing a template project (faster startup).
+2. **Dev servers**: `pnpm dev` starts the API (port 3002) and Manage UI (port 3000) plus core/SDK in watch mode. The API health endpoint is `GET /health` (returns 204).
+3. The Manage UI login credentials are in `.env` (`INKEEP_AGENTS_MANAGE_UI_USERNAME` / `INKEEP_AGENTS_MANAGE_UI_PASSWORD`). Auto-login may not work in headless Chrome; use the credentials from `.env` if prompted.
+
+### Key gotchas
+
+- The `pnpm test` command's turbo pipeline depends on building `@inkeep/agents-docs`, which may fail or OOM in constrained environments. Run tests per-package instead: `cd agents-api && pnpm test` or `cd packages/agents-core && pnpm test`.
+- The `pnpm build` command also builds the Next.js apps (docs, manage-ui), which may fail on prerendering. Core library builds (`agents-core`, `agents-sdk`, `agents-cli`, etc.) succeed independently and are cached by turbo.
+- The `agents-core` keychain integration test (`keychain-store.integration.test.ts`) may fail with a different error message in the Cloud VM environment — this is expected and not a code issue.
+- Tests in `agents-api` and `agents-core` use embedded PGlite databases, so they do **not** require Docker databases to be running.
+- `vitest` is configured with `--run` in the package scripts; do not pass `--run` again or it will error with "Expected a single value".
+
+### Standard commands reference
+
+See the [Essential Commands](#essential-commands---quick-reference) section above for `pnpm lint`, `pnpm typecheck`, `pnpm format`, `pnpm check`, and database operations.
