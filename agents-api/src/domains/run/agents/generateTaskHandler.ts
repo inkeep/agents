@@ -496,6 +496,44 @@ export const createTaskHandler = (
         }
       }
 
+      // Check if execution was paused for user input (tool approval)
+      if ((response as any).paused) {
+        const pausedInfo = (response as any).paused;
+        logger.info(
+          {
+            interactionId: pausedInfo.interactionId,
+            toolCallId: pausedInfo.toolCallId,
+            toolName: pausedInfo.toolName,
+            subAgentId: config.subAgentId,
+          },
+          'Task paused for user input (tool approval required)'
+        );
+
+        return {
+          status: {
+            state: TaskState.InputRequired,
+            message: `Tool "${pausedInfo.toolName}" requires approval`,
+          },
+          artifacts: [
+            {
+              artifactId: generateId(),
+              parts: [
+                {
+                  kind: 'data' as const,
+                  data: {
+                    type: 'paused',
+                    interactionId: pausedInfo.interactionId,
+                    toolCallId: pausedInfo.toolCallId,
+                    toolName: pausedInfo.toolName,
+                  },
+                },
+              ],
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
+      }
+
       const parts: Part[] = (response.formattedContent?.parts || []).map((part: any): Part => {
         if (part.kind === 'data') {
           return { kind: 'data' as const, data: part.data };

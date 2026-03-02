@@ -13,6 +13,7 @@ import {
   type Part,
   type SendMessageResponse,
   setSpanWithError,
+  TaskState,
   unwrapError,
   updateTask,
 } from '@inkeep/agents-core';
@@ -54,6 +55,8 @@ interface ExecutionResult {
   error?: string;
   iterations: number;
   response?: string; // Optional response for MCP contexts
+  paused?: boolean; // True if execution paused for user input
+  interactionId?: string; // ID of pending interaction if paused
 }
 
 export class ExecutionHandler {
@@ -392,6 +395,70 @@ export class ExecutionHandler {
           }
 
           continue;
+        }
+
+        // Check if execution is paused waiting for user input (tool approval)
+        const taskStatus = (messageResponse.result as any)?.status;
+        if (taskStatus?.state === TaskState.InputRequired) {
+          logger.info(
+            {
+              currentAgentId,
+              iterations,
+              message: taskStatus.message,
+            },
+            'Execution paused - waiting for user input (tool approval)'
+          );
+
+          // Extract pause data from artifacts
+          const pauseArtifact = (messageResponse.result as any)?.artifacts?.[0];
+          const pauseData = pauseArtifact?.parts?.find(
+            (p: any) => p.kind === 'data' && p.data?.type === 'paused'
+          )?.data;
+
+          return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+            try {
+              span.setAttributes({
+                'ai.response.type': 'paused',
+                'ai.response.timestamp': new Date().toISOString(),
+                'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+                'subAgent.id': currentAgentId,
+                'interaction.id': pauseData?.interactionId,
+              });
+
+              // Update task status to paused
+              if (task) {
+                await updateTask(runDbClient)({
+                  taskId: task.id,
+                  data: {
+                    status: 'paused',
+                    metadata: {
+                      ...task.metadata,
+                      paused_at: new Date().toISOString(),
+                      interaction_id: pauseData?.interactionId,
+                      tool_name: pauseData?.toolName,
+                    },
+                  },
+                });
+              }
+
+              // Complete the stream - the client will see the approval request
+              await sseHelper.complete();
+
+              await agentSessionManager.endSession(requestId);
+              unregisterStreamHelper(requestId);
+
+              return {
+                success: true,
+                iterations,
+                paused: true,
+                interactionId: pauseData?.interactionId,
+              };
+            } finally {
+              span.end();
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
+            }
+          });
         }
 
         if (isTransferTask(messageResponse.result)) {
