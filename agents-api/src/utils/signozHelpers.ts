@@ -1,55 +1,36 @@
 /**
- * Helper function to enforce projectId filter on SigNoz queries.
- * This modifies the query payload to ensure all builder queries include
- * a server-side project.id filter, preventing client-side filter bypass.
+ * Enforce tenant/project security on ClickHouse SQL queries by:
+ * 1. Injecting server-side variables (tenant_id, project_id) — always overrides client values
+ * 2. Validating every chQuery references {{.tenant_id}} to prevent tenant isolation bypass
+ *
+ * Returns null if valid, or an error message string if a query is missing the tenant filter.
  */
-export function enforceSecurityFilters(payload: any, tenantId: string, projectId?: string): any {
+export function enforceQuerySecurity(
+  payload: any,
+  tenantId: string,
+  projectId?: string
+): { payload: any; error?: string } {
   const modifiedPayload = JSON.parse(JSON.stringify(payload));
+  if (!modifiedPayload.variables) {
+    modifiedPayload.variables = {};
+  }
+  modifiedPayload.variables.tenant_id = tenantId;
+  if (projectId) {
+    modifiedPayload.variables.project_id = projectId;
+  }
 
-  if (modifiedPayload.compositeQuery?.builderQueries) {
-    for (const queryKey in modifiedPayload.compositeQuery.builderQueries) {
-      const query = modifiedPayload.compositeQuery.builderQueries[queryKey];
-
-      if (!query.filters) {
-        query.filters = { op: 'AND', items: [] };
-      }
-
-      // Remove any existing tenant.id and project.id filters to prevent bypass
-      query.filters.items = query.filters.items.filter(
-        (item: any) => item.key?.key !== 'tenant.id' && item.key?.key !== 'project.id'
-      );
-
-      // Always add server-side tenant filter
-      query.filters.items.push({
-        key: {
-          key: 'tenant.id',
-          dataType: 'string',
-          type: 'tag',
-          isColumn: false,
-          isJSON: false,
-          id: 'false',
-        },
-        op: '=',
-        value: tenantId,
-      });
-
-      // Add server-side project filter if provided
-      if (projectId) {
-        query.filters.items.push({
-          key: {
-            key: 'project.id',
-            dataType: 'string',
-            type: 'tag',
-            isColumn: false,
-            isJSON: false,
-            id: 'false',
-          },
-          op: '=',
-          value: projectId,
-        });
+  const chQueries = modifiedPayload.compositeQuery?.chQueries;
+  if (chQueries) {
+    for (const [name, entry] of Object.entries(chQueries)) {
+      const query = (entry as any)?.query;
+      if (typeof query === 'string' && !query.includes('{{.tenant_id}}')) {
+        return {
+          payload: modifiedPayload,
+          error: `Query "${name}" is missing required {{.tenant_id}} tenant filter`,
+        };
       }
     }
   }
 
-  return modifiedPayload;
+  return { payload: modifiedPayload };
 }

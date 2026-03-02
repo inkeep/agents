@@ -52,6 +52,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
       step: 60,
       variables: {
         conversation_id: conversationId,
+        tenant_id: tenantId,
         span_id: spanId,
       },
       compositeQuery: {
@@ -69,7 +70,8 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
                 toJSONString(attributes_bool)   AS attributes_bool_json,
                 toJSONString(resources_string)  AS resources_string_json
               FROM signoz_traces.${tableName}
-              WHERE attributes_string['conversation.id'] = {{.conversation_id}}
+              WHERE attributes_string['tenant.id'] = {{.tenant_id}}
+                AND attributes_string['conversation.id'] = {{.conversation_id}}
                 AND span_id = {{.span_id}}
                 AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
                 AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
