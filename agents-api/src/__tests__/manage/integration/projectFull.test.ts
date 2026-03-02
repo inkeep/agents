@@ -822,7 +822,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         expectError: true,
       });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(500);
     });
 
     it('should reconcile webhook triggers without runAsUserId (backward compatible)', async () => {
