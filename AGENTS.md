@@ -605,6 +605,24 @@ Docker is required for the dev databases. The VM snapshot includes Docker pre-in
 - Tests in `agents-api` and `agents-core` use embedded PGlite databases, so they do **not** require Docker databases to be running.
 - `vitest` is configured with `--run` in the package scripts; do not pass `--run` again or it will error with "Expected a single value".
 
+### Pushing agent projects via CLI
+
+To push a project to the local API, use the `inkeep` CLI binary at `agents-cli/dist/index.js`:
+
+```bash
+INKEEP_CI=true \
+  INKEEP_API_KEY=$(grep '^INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=' .env | cut -d'=' -f2) \
+  INKEEP_TENANT_ID=default \
+  node agents-cli/dist/index.js push \
+    --project <path-to-project-dir> \
+    --config agents-cookbook/template-projects/inkeep.config.ts
+```
+
+- `pnpm inkeep` does not resolve in the monorepo; invoke the CLI via `node agents-cli/dist/index.js` directly.
+- The project directory must contain an `index.ts` exporting a `project()` from `@inkeep/agents-sdk`.
+- Use the shared `agents-cookbook/template-projects/inkeep.config.ts` for local dev (points to `127.0.0.1:3002` with the bypass secret).
+- External projects (e.g. from a separate repo) can be pushed by copying their project directory into the monorepo temporarily so that `@inkeep/agents-sdk` and other imports resolve from the monorepo's `node_modules`. Clean up after pushing.
+
 ### Standard commands reference
 
 See the [Essential Commands](#essential-commands---quick-reference) section above for `pnpm lint`, `pnpm typecheck`, `pnpm format`, `pnpm check`, and database operations.
