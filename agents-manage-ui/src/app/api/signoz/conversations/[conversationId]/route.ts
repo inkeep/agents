@@ -171,7 +171,7 @@ function buildConversationListPayload(
   end = Date.now(),
   projectId?: string
 ) {
-  const baseFilters: any[] = [
+  const baseFilters = [
     {
       key: {
         key: SPAN_KEYS.CONVERSATION_ID,
@@ -180,18 +180,19 @@ function buildConversationListPayload(
       op: OPERATORS.EQUALS,
       value: conversationId,
     },
+    ...(projectId
+      ? [
+          {
+            key: {
+              key: SPAN_KEYS.PROJECT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            op: OPERATORS.EQUALS,
+            value: projectId,
+          },
+        ]
+      : []),
   ];
-
-  if (projectId) {
-    baseFilters.push({
-      key: {
-        key: SPAN_KEYS.PROJECT_ID,
-        ...QUERY_FIELD_CONFIGS.STRING_TAG,
-      },
-      op: OPERATORS.EQUALS,
-      value: projectId,
-    });
-  }
 
   const listQuery = (queryName: string, items: any[], selectColumns: any[], limit?: number) => ({
     dataSource: DATA_SOURCES.TRACES,

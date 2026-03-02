@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-trace fix for same conv id across project
+Fix trace filtering when same conversation ID exists across projects
