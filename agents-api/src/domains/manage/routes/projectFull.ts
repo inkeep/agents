@@ -405,27 +405,34 @@ app.openapi(
         });
       }
 
-      // fetch existing scheduled triggers for all agents
+      // fetch existing scheduled triggers and webhook triggers for all agents in parallel
       const existingTriggersByAgent = new Map<string, ScheduledTrigger[]>();
-      if (!isCreate) {
-        const agents = Object.keys(validatedProjectData.agents || {});
-        for (const agentId of agents) {
-          const existingTriggers = await listScheduledTriggers(configDb)({
-            scopes: { tenantId, projectId, agentId },
-          });
-          existingTriggersByAgent.set(agentId, existingTriggers);
-        }
-      }
-
-      // fetch existing webhook triggers for all agents
       const existingWebhookTriggersByAgent = new Map<string, TriggerSelect[]>();
       if (!isCreate) {
         const agents = Object.keys(validatedProjectData.agents || {});
-        for (const agentId of agents) {
-          const existingTriggers = await listTriggers(configDb)({
-            scopes: { tenantId, projectId, agentId },
-          });
-          existingWebhookTriggersByAgent.set(agentId, existingTriggers);
+        const [scheduledResults, webhookResults] = await Promise.all([
+          Promise.all(
+            agents.map(async (agentId) => ({
+              agentId,
+              triggers: await listScheduledTriggers(configDb)({
+                scopes: { tenantId, projectId, agentId },
+              }),
+            })),
+          ),
+          Promise.all(
+            agents.map(async (agentId) => ({
+              agentId,
+              triggers: await listTriggers(configDb)({
+                scopes: { tenantId, projectId, agentId },
+              }),
+            })),
+          ),
+        ]);
+        for (const { agentId, triggers } of scheduledResults) {
+          existingTriggersByAgent.set(agentId, triggers);
+        }
+        for (const { agentId, triggers } of webhookResults) {
+          existingWebhookTriggersByAgent.set(agentId, triggers);
         }
       }
 
