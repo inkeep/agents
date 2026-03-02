@@ -27,6 +27,10 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import {
+  DEFAULT_LOOKBACK_MS,
+  getConversationTimeRange,
+} from '@/lib/api/signoz-conversation-time-range';
 
 import { getLogger } from '@/lib/logger';
 
@@ -44,8 +48,6 @@ type SigNozListItem = { data?: Record<string, any>; [k: string]: any };
 type SigNozResp = {
   data?: { result?: Array<{ queryName?: string; list?: SigNozListItem[] }> };
 };
-
-const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
@@ -1306,11 +1308,13 @@ export async function GET(
   const cookieHeader = req.headers.get('cookie');
 
   try {
-    const now = Date.now();
-    const start = startParam ? Number(startParam) : now - DEFAULT_LOOKBACK_MS;
-    const end = endParam ? Number(endParam) : now;
-
-    // Build the query payload
+    const { start, end } = await getConversationTimeRange({
+      startParam,
+      endParam,
+      projectId,
+      tenantId,
+      conversationId,
+    });
     const payload = buildConversationListPayload(conversationId, start, end, projectId);
 
     // Single SigNoz builder query — allSpanAttributes SQL removed from initial load
