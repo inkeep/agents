@@ -4,18 +4,23 @@ on:
   pull_request_review:
     types: [submitted]
 
+concurrency:
+  group: claude-autofix-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   autofix:
-    # Only run when claude[bot] submits a review - skip human reviews
-    if: github.event.review.user.login == 'claude[bot]'
+    # Only run when claude[bot] submits a review on a non-fork PR
+    if: github.event.review.user.login == 'claude[bot]' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
       pull-requests: read
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 1
@@ -28,6 +33,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+          allowed_bots: "claude"
           claude_args: '--max-turns 20'
           prompt: |
             Apply the code suggestions from Claude's PR review on PR #${{ github.event.pull_request.number }} in repo ${{ github.repository }}.
