@@ -2,7 +2,7 @@
 
 import type { ProjectPermissions } from '@inkeep/agents-core';
 import { cache } from 'react';
-import type { ProjectFormData } from '@/components/projects/form/validation';
+import type { ProjectOutput } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
@@ -49,7 +49,7 @@ export const fetchProject = cache($fetchProject);
 
 export async function createProject(
   tenantId: string,
-  project: ProjectFormData
+  project: ProjectOutput
 ): Promise<SingleResponse<Project>> {
   validateTenantId(tenantId);
 
@@ -74,7 +74,7 @@ export async function createProject(
 export async function updateProject(
   tenantId: string,
   projectId: string,
-  project: ProjectFormData
+  project: ProjectOutput
 ): Promise<SingleResponse<Project>> {
   validateTenantId(tenantId);
 
