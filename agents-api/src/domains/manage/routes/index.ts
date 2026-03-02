@@ -11,6 +11,7 @@ import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
 import evalsRoutes from './evals';
 import externalAgentsRoutes from './externalAgents';
+import feedbackRoutes from './feedback';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
@@ -84,6 +85,7 @@ app.route('/projects/:projectId/agents/:agentId/sub-agent-skills', subAgentSkill
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/conversations', conversationsRoutes);
+app.route('/projects/:projectId/feedback', feedbackRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/credential-stores', credentialStoresRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
