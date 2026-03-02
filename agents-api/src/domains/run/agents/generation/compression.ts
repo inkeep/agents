@@ -1,6 +1,6 @@
 import { getLogger } from '../../../../logger';
-import { agentSessionManager } from '../../session/AgentSession';
 import { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
+import { agentSessionManager } from '../../session/AgentSession';
 import { getCompressionConfigForModel } from '../../utils/model-context-utils';
 import type { AgentRunContext } from '../agent-types';
 import { getSummarizerModel } from './model-config';

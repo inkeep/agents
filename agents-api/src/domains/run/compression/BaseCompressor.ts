@@ -4,12 +4,12 @@ import { getLedgerArtifacts } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { type CompressedArtifactInfo, detectOversizedArtifact } from '../artifacts/artifact-utils';
+import { agentSessionManager } from '../session/AgentSession';
+import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { estimateTokens as estimateTokensUtil } from '../utils/token-estimator';
 import { tracer } from '../utils/tracer';
-import { agentSessionManager } from '../session/AgentSession';
 
 const logger = getLogger('BaseCompressor');
 

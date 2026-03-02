@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StreamHelper } from '../stream-helpers';
 import { ArtifactParser } from '../../artifacts/ArtifactParser';
 import { IncrementalStreamParser } from '../IncrementalStreamParser';
+import type { StreamHelper } from '../stream-helpers';
 
 // Mock dependencies
 vi.mock('../../artifacts/ArtifactParser');

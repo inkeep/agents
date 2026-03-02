@@ -6,11 +6,10 @@ import {
   type Part,
 } from '@inkeep/agents-core';
 import type { ToolSet } from 'ai';
+import { ArtifactReferenceSchema } from '../artifacts/artifact-component-schema';
 import { ContextResolver } from '../context';
 import { createDefaultConversationHistoryConfig } from '../data/conversations';
-import { ArtifactReferenceSchema } from '../artifacts/artifact-component-schema';
 import type { StreamHelper } from '../stream/stream-helpers';
-import { AgentMcpManager } from './services/AgentMcpManager';
 import {
   type AgentConfig,
   type AgentRunContext,
@@ -24,6 +23,7 @@ import {
 } from './agent-types';
 import { getRelationTools, runGenerate } from './generation/generate';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
+import { AgentMcpManager } from './services/AgentMcpManager';
 import { getFunctionTools } from './tools/function-tools';
 import { getRelationshipIdForTool } from './tools/tool-wrapper';
 import { PromptConfig } from './versions/v1/PromptConfig';

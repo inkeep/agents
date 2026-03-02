@@ -14,13 +14,13 @@ import type {
   SubAgentStopWhen,
 } from '@inkeep/agents-core';
 import type { FinishReason, StepResult, ToolSet } from 'ai';
-import type { ContextResolver } from '../context';
 import type { MidGenerationCompressor } from '../compression/MidGenerationCompressor';
+import type { ContextResolver } from '../context';
+import type { StreamHelper } from '../stream/stream-helpers';
 import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
-import type { StreamHelper } from '../stream/stream-helpers';
-import type { AgentMcpManager } from './services/AgentMcpManager';
 import type { SystemPromptBuilder } from './SystemPromptBuilder';
+import type { AgentMcpManager } from './services/AgentMcpManager';
 
 export type AiSdkTextPart = {
   type: 'text';
@@ -193,9 +193,7 @@ export type DelegateRelation =
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
-export function isValidTool(
-  tool: any
-): tool is {
+export function isValidTool(tool: any): tool is {
   description: string;
   inputSchema: any;
   execute: (args: any, context?: any) => Promise<any>;

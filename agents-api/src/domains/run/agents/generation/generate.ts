@@ -4,24 +4,24 @@ import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateText, Output, streamText, type ToolSet } from 'ai';
 import { getLogger } from '../../../../logger';
-import { agentSessionManager } from '../../session/AgentSession';
-import { ResponseFormatter } from '../../stream/ResponseFormatter';
 import {
   ArtifactCreateSchema,
   ArtifactReferenceSchema,
 } from '../../artifacts/artifact-component-schema';
+import { agentSessionManager } from '../../session/AgentSession';
+import { ResponseFormatter } from '../../stream/ResponseFormatter';
+import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
 import { extractTextFromParts } from '../../utils/message-parts';
 import { getModelContextWindow } from '../../utils/model-context-utils';
 import { SchemaProcessor } from '../../utils/SchemaProcessor';
-import { getStreamHelper } from '../../stream/stream-registry';
 import type { ContextBreakdown } from '../../utils/token-estimator';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
 import { createDelegateToAgentTool, createTransferToAgentTool } from '../relationTools';
-import { handleStreamGeneration } from '../streaming/stream-handler';
 import { toolSessionManager } from '../services/ToolSessionManager';
+import { handleStreamGeneration } from '../streaming/stream-handler';
 import { getDefaultTools } from '../tools/default-tools';
 import { getFunctionTools } from '../tools/function-tools';
 import { getMcpTools } from '../tools/mcp-tools';

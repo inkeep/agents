@@ -1,8 +1,8 @@
 import type { Artifact, ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { TemplateEngine } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
-import { createDefaultConversationHistoryConfig } from '../../data/conversations';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
+import { createDefaultConversationHistoryConfig } from '../../data/conversations';
 import type { AssembleResult } from '../../utils/token-estimator';
 import type { AgentRunContext } from '../agent-types';
 import { createLoadSkillTool } from '../tools/default-tools';

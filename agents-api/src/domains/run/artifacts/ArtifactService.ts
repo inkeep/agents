@@ -10,13 +10,13 @@ import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
-import { detectOversizedArtifact } from './artifact-utils';
+import { agentSessionManager } from '../session/AgentSession';
 import {
   type ExtendedJsonSchema,
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { agentSessionManager } from '../session/AgentSession';
+import { detectOversizedArtifact } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
 

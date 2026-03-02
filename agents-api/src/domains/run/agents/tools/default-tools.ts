@@ -1,9 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
-import { agentSessionManager } from '../../session/AgentSession';
-import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
 import { formatOversizedRetrievalReason } from '../../artifacts/artifact-utils';
+import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
+import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
 import { wrapToolWithStreaming } from './tool-wrapper';
 

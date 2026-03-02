@@ -1,13 +1,13 @@
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
+import { ArtifactParser, type StreamPart } from '../artifacts/ArtifactParser';
 import {
   STREAM_PARSER_MAX_COLLECTED_PARTS,
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,
   STREAM_PARSER_MAX_STREAMED_SIZE,
 } from '../constants/execution-limits';
-import { ArtifactParser, type StreamPart } from '../artifacts/ArtifactParser';
-import type { StreamHelper } from './stream-helpers';
 import { agentSessionManager } from '../session/AgentSession';
+import type { StreamHelper } from './stream-helpers';
 
 const logger = getLogger('IncrementalStreamParser');
 

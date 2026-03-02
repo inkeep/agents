@@ -70,7 +70,9 @@ vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
 vi.mock('../../../domains/run/utils/model-resolver.js', () => ({
   resolveModelConfig: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({ BufferingStreamHelper: vi.fn() }));
+vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
+  BufferingStreamHelper: vi.fn(),
+}));
 vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   registerStreamHelper: vi.fn(),
   unregisterStreamHelper: vi.fn(),

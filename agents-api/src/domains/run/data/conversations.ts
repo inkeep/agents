@@ -13,11 +13,11 @@ import {
 import { trace } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { ConversationCompressor } from '../compression/ConversationCompressor';
 import {
   CONVERSATION_ARTIFACTS_LIMIT,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
-import { ConversationCompressor } from '../compression/ConversationCompressor';
 
 const logger = getLogger('conversations');
 
