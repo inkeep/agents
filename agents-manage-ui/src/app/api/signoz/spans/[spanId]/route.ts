@@ -3,6 +3,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { getConversationTimeRange } from '@/lib/api/signoz-conversation-time-range';
 
 axiosRetry(axios, {
   retries: 3,
@@ -10,8 +11,6 @@ axiosRetry(axios, {
 });
 
 export const dynamic = 'force-dynamic';
-
-const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
 function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
   return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
@@ -35,6 +34,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const conversationId = url.searchParams.get('conversationId');
+  const projectId = url.searchParams.get('projectId') ?? undefined;
 
   if (!conversationId) {
     return NextResponse.json({ error: 'conversationId query param is required' }, { status: 400 });
@@ -43,12 +43,18 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
   const cookieHeader = req.headers.get('cookie');
 
   try {
-    const now = Date.now();
+    const { start, end } = await getConversationTimeRange({
+      startParam: null,
+      endParam: null,
+      projectId,
+      tenantId,
+      conversationId,
+    });
     const tableName = 'distributed_signoz_index_v3';
 
     const payload = {
-      start: now - DEFAULT_LOOKBACK_MS,
-      end: now,
+      start,
+      end,
       step: 60,
       variables: {
         conversation_id: conversationId,

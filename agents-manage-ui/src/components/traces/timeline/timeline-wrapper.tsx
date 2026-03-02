@@ -480,9 +480,12 @@ export function TimelineWrapper({
     setLazySpan(null);
     setLazySpanLoading(true);
 
-    fetch(
-      `/api/signoz/spans/${activityId}?conversationId=${encodeURIComponent(conversationId)}&tenantId=${encodeURIComponent(tenantId)}`
-    )
+    const params = new URLSearchParams({
+      conversationId,
+      tenantId,
+      ...(projectId && { projectId }),
+    });
+    fetch(`/api/signoz/spans/${activityId}?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           console.warn(`Span fetch failed: ${res.status} ${res.statusText}`);
@@ -505,7 +508,7 @@ export function TimelineWrapper({
     return () => {
       cancelled = true;
     };
-  }, [selected, conversationId, tenantId]);
+  }, [selected, conversationId, tenantId, projectId]);
 
   const findSpanById = useCallback(
     (id?: string) => (id && lazySpan?.spanId === id ? lazySpan : undefined),
