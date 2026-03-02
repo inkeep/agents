@@ -58,7 +58,8 @@ export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
           toolInfo: {
             toolName: artifactData.metadata?.toolName,
             toolArgs: artifactData.metadata?.toolArgs,
-            structureInfo: (artifactData.data as any)?._structureInfo,
+            structureInfo: (artifactData.data as { _structureInfo?: unknown } | null | undefined)
+              ?._structureInfo,
           },
           recommendation:
             'The tool arguments that caused this large result are included above. Consider: 1) Using more specific filters/queries with the original tool, 2) Asking the user to break down the request, 3) Processing the data differently.',

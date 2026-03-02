@@ -12,12 +12,13 @@ import {
   type McpServerConfig,
   type McpTool,
 } from '@inkeep/agents-core';
-import { tool } from 'ai';
+import { jsonSchema, tool } from 'ai';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentConfig } from '../Agent';
+import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
 
@@ -302,15 +303,14 @@ export class AgentMcpManager {
 
   private buildOverriddenTool(
     toolName: string,
-    toolDef: any,
+    toolDef: AiSdkToolDefinition,
     override: any,
     mcpToolName: string
-  ): { finalName: string; definition: any } {
-    let inputSchema: any;
+  ) {
+    const rawSchema = toolDef.inputSchema as Record<string, unknown>;
+    let inputSchema: ReturnType<typeof z.fromJSONSchema> | ReturnType<typeof jsonSchema>;
     try {
-      inputSchema = override.schema
-        ? z.fromJSONSchema(override.schema)
-        : (toolDef as any).inputSchema;
+      inputSchema = override.schema ? z.fromJSONSchema(override.schema) : jsonSchema(rawSchema);
     } catch (schemaError) {
       logger.error(
         {
@@ -321,11 +321,11 @@ export class AgentMcpManager {
         },
         'Failed to convert override schema, using original'
       );
-      inputSchema = (toolDef as any).inputSchema;
+      inputSchema = jsonSchema(rawSchema);
     }
 
     const finalName = override.displayName || toolName;
-    const description = override.description || (toolDef as any).description || `Tool ${finalName}`;
+    const description = override.description || toolDef.description || `Tool ${finalName}`;
 
     const definition = tool({
       description,
@@ -367,12 +367,12 @@ export class AgentMcpManager {
           }
         }
 
-        if (typeof (toolDef as any).execute !== 'function') {
+        if (typeof toolDef.execute !== 'function') {
           throw new Error(`Original tool ${toolName} does not have a valid execute function`);
         }
 
         try {
-          return await (toolDef as any).execute(complexArgs);
+          return await toolDef.execute(complexArgs);
         } catch (executeError) {
           const msg = AgentMcpManager.errMsg(executeError);
           logger.error(
@@ -387,9 +387,11 @@ export class AgentMcpManager {
     return { finalName, definition };
   }
 
-  private async applyToolOverrides(originalTools: any, mcpTool: McpTool): Promise<any> {
-    const toolOverrides =
-      mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
+  private async applyToolOverrides(
+    originalTools: Record<string, AiSdkToolDefinition>,
+    mcpTool: McpTool
+  ): Promise<Record<string, AiSdkToolDefinition>> {
+    const toolOverrides = mcpTool.config.mcp?.toolOverrides;
 
     if (!toolOverrides) return originalTools;
 

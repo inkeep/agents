@@ -4,7 +4,7 @@ import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
 import { createDefaultConversationHistoryConfig } from '../../data/conversations';
 import type { AssembleResult } from '../../utils/token-estimator';
-import type { AgentRunContext } from '../agent-types';
+import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { createLoadSkillTool } from '../tools/default-tools';
 import { getFunctionTools } from '../tools/function-tools';
 import { getMcpTools } from '../tools/mcp-tools';
@@ -249,7 +249,10 @@ export async function buildSystemPrompt(
   const relationTools = getRelationTools(ctx, runtimeContext);
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
   const skillTools = hasOnDemandSkills ? { load_skill: createLoadSkillTool(ctx) } : {};
-  const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools };
+  const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools } as Record<
+    string,
+    AiSdkToolDefinition
+  >;
 
   logger.info(
     {
@@ -274,8 +277,8 @@ export async function buildSystemPrompt(
     .filter(([name]) => !mcpToolNames.has(name))
     .map(([name, tool]) => ({
       name,
-      description: (tool as any).description || '',
-      inputSchema: (tool as any).inputSchema || (tool as any).parameters || {},
+      description: tool.description || '',
+      inputSchema: (tool.inputSchema ?? tool.parameters ?? {}) as Record<string, unknown>,
       usageGuidelines:
         name === 'load_skill'
           ? 'Use this tool to load the full content of an on-demand skill by name.'
@@ -287,11 +290,13 @@ export async function buildSystemPrompt(
   const mcpServerGroups = toolSets.map((ts) => ({
     serverName: ts.mcpServerName,
     serverInstructions: ts.serverInstructions,
-    tools: Object.entries(ts.tools).map(([toolName, tool]) => ({
-      name: toolName,
-      description: (tool as any).description || '',
-      inputSchema: (tool as any).inputSchema || {},
-    })),
+    tools: Object.entries(ts.tools as Record<string, AiSdkToolDefinition>).map(
+      ([toolName, tool]) => ({
+        name: toolName,
+        description: tool.description || '',
+        inputSchema: (tool.inputSchema ?? {}) as Record<string, unknown>,
+      })
+    ),
   }));
 
   const { getConversationScopedArtifacts } = await import('../../data/conversations');

@@ -93,7 +93,7 @@ export class Agent {
     const ctx: AgentRunContext = {
       config: processedConfig,
       executionContext,
-      mcpManager: undefined as any,
+      mcpManager: undefined,
       contextResolver,
       credentialStoreRegistry,
       credentialStuffer,
@@ -193,7 +193,7 @@ export class Agent {
   }
 
   async cleanup(): Promise<void> {
-    await this.ctx.mcpManager.cleanup();
+    await this.ctx.mcpManager?.cleanup();
     this.cleanupCompression();
   }
 }

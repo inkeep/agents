@@ -27,13 +27,14 @@ export async function handleStreamGeneration(
 
   const collectedParts = parser.getCollectedParts();
   if (collectedParts.length > 0) {
-    (response as any).formattedContent = {
-      parts: collectedParts.map((part: any) => ({
-        kind: part.kind,
-        ...(part.kind === 'text' && { text: part.text }),
-        ...(part.kind === 'data' && { data: part.data }),
-      })),
-    };
+    (response as StreamTextResult<ToolSet, any> & { formattedContent?: unknown }).formattedContent =
+      {
+        parts: collectedParts.map((part: any) => ({
+          kind: part.kind,
+          ...(part.kind === 'text' && { text: part.text }),
+          ...(part.kind === 'data' && { data: part.data }),
+        })),
+      };
   }
 
   return response;
@@ -63,7 +64,7 @@ export async function processStreamEvents(
         if (event.error instanceof Error) {
           throw event.error;
         }
-        const errorMessage = (event.error as any)?.error?.message;
+        const errorMessage = (event.error as { error?: { message?: string } })?.error?.message;
         throw new Error(errorMessage);
       }
     }

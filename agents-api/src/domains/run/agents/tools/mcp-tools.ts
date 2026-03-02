@@ -25,8 +25,10 @@ export async function getMcpTools(
     ctx.config.tools?.filter((tool) => {
       return tool.config?.type === 'mcp';
     }) || [];
-  const toolSets =
-    (await Promise.all(mcpTools.map((tool) => ctx.mcpManager.getToolSet(tool)))) || [];
+  const { mcpManager } = ctx;
+  const toolSets = mcpManager
+    ? (await Promise.all(mcpTools.map((tool) => mcpManager.getToolSet(tool)))) || []
+    : [];
 
   if (!sessionId) {
     const wrappedTools: ToolSet = {};

@@ -498,23 +498,24 @@ export async function runGenerate(
         if (shouldStream) {
           rawResponse = (await handleStreamGeneration(
             ctx,
-            streamText(generationConfig as any),
+            streamText(generationConfig as Parameters<typeof streamText>[0]),
             sessionId,
             contextId,
             !!dataComponentsSchema
           )) as unknown as Record<string, unknown>;
         } else {
-          rawResponse = (await generateText(nonStreamingConfig as any)) as unknown as Record<
-            string,
-            unknown
-          >;
+          rawResponse = (await generateText(
+            nonStreamingConfig as Parameters<typeof generateText>[0]
+          )) as unknown as Record<string, unknown>;
         }
 
         logger.info(
           {
             agentId: ctx.config.id,
             hasOutput: !!rawResponse.output,
-            dataComponentsCount: (rawResponse.output as any)?.dataComponents?.length || 0,
+            dataComponentsCount:
+              (rawResponse.output as { dataComponents?: unknown[] } | undefined)?.dataComponents
+                ?.length ?? 0,
             finishReason: rawResponse.finishReason,
           },
           'Generation completed'

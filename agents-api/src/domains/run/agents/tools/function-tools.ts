@@ -83,10 +83,7 @@ export async function getFunctionTools(
       const zodSchema = functionData.inputSchema
         ? z.fromJSONSchema(functionData.inputSchema)
         : z.string();
-      const toolPolicies = (functionToolDef as any).toolPolicies as
-        | Record<string, { needsApproval?: boolean }>
-        | null
-        | undefined;
+      const toolPolicies = functionToolDef.toolPolicies;
       const needsApproval =
         !!toolPolicies?.['*']?.needsApproval ||
         !!toolPolicies?.[functionToolDef.name]?.needsApproval;
@@ -278,7 +275,7 @@ export async function getFunctionTools(
               timestamp: Date.now(),
             });
 
-            const r = result as any;
+            const r = result as { type?: string; value?: string } | null | undefined;
             const resultForEnhancement =
               r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
 

@@ -1,11 +1,12 @@
 import { createMessage, generateId, parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
+import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
-import type { AgentRunContext, ToolType } from '../agent-types';
+import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
 import { formatToolResult } from '../generation/tool-result';
 
 const logger = getLogger('Agent');
@@ -71,7 +72,7 @@ export function sanitizeToolsForAISDK(tools: Record<string, any>): Record<string
       sanitizedKey = sanitizedKey.substring(0, 100);
     }
 
-    const originalId = (toolDef as any).id || originalKey;
+    const originalId = (toolDef as { id?: string }).id || originalKey;
     let sanitizedId = originalId.replace(/[^a-zA-Z0-9_.-]/g, '_');
     sanitizedId = sanitizedId.replace(/_+/g, '_');
     sanitizedId = sanitizedId.replace(/^_+|_+$/g, '');
@@ -94,12 +95,16 @@ export function sanitizeToolsForAISDK(tools: Record<string, any>): Record<string
 export function wrapToolWithStreaming(
   ctx: AgentRunContext,
   toolName: string,
-  toolDefinition: any,
+  toolDefinition: ToolSet[string],
   streamRequestId?: string,
   toolType?: ToolType,
   options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
-): any {
-  if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
+): ToolSet[string] {
+  if (
+    !toolDefinition ||
+    typeof toolDefinition !== 'object' ||
+    typeof toolDefinition.execute !== 'function'
+  ) {
     return toolDefinition;
   }
   const relationshipId = getRelationshipIdForTool(ctx, toolName, toolType);
@@ -187,11 +192,12 @@ export function wrapToolWithStreaming(
           ? await artifactParser.resolveArgs(parsedArgsForResolution)
           : args;
 
-        if (artifactParser && toolDefinition.parameters?.safeParse) {
+        const parameters = (toolDefinition as AiSdkToolDefinition).parameters;
+        if (artifactParser && parameters?.safeParse) {
           const resolvedChanged =
             JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
           if (resolvedChanged) {
-            const validation = toolDefinition.parameters.safeParse(resolvedArgs);
+            const validation = parameters.safeParse(resolvedArgs);
             if (!validation.success) {
               throw new Error(
                 `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`

@@ -207,10 +207,22 @@ export function isValidTool(tool: any): tool is {
   );
 }
 
+export type AiSdkToolDefinition = {
+  id?: string;
+  description?: string;
+  inputSchema?: unknown;
+  parameters?: {
+    safeParse?: (
+      args: unknown
+    ) => { success: true; error?: never } | { success: false; error: { message: string } };
+  };
+  execute?: (args: unknown, context?: unknown) => Promise<unknown>;
+};
+
 export interface AgentRunContext {
   config: AgentConfig;
   executionContext: FullExecutionContext;
-  mcpManager: AgentMcpManager;
+  mcpManager: AgentMcpManager | undefined;
   contextResolver?: ContextResolver;
   credentialStoreRegistry?: CredentialStoreRegistry;
   credentialStuffer?: CredentialStuffer;
