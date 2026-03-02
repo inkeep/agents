@@ -75,7 +75,11 @@ if (isolatedName) {
 
   let state;
   try {
-    state = JSON.parse(readFileSync(stateFile, 'utf-8'));
+    state = await import(stateFile, {
+      with: {
+        type: 'json',
+      },
+    })
   } catch (e) {
     console.error(`Error: failed to parse ${stateFile}: ${e.message}`);
     process.exit(1);
