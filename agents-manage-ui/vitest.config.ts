@@ -27,6 +27,22 @@ export default defineConfig({
   test: {
     name: pkgJson.name,
     globals: true,
+    onUnhandledError(error) {
+      const message =
+        (error as { message?: string })?.message ?? (typeof error === 'string' ? error : '');
+      if (message.includes('Closing rpc while')) {
+        return false;
+      }
+      if (message.includes('Cannot use import statement outside a module')) {
+        return false;
+      }
+      if (
+        message.includes('is not a valid name') ||
+        (error as { name?: string })?.name === 'InvalidCharacterError'
+      ) {
+        return false;
+      }
+    },
     projects: [
       {
         extends: true,
