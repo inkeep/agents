@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.55.0
+
+### Patch Changes
+
+- 08d678d: Add serverInstructions to ToolServerCapabilities and expose getInstructions() on McpClient to surface MCP server default instructions
+
 ## 0.54.0
 
 ### Minor Changes
