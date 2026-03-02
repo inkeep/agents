@@ -17,8 +17,11 @@ import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
   ConversationMetadata,
+  ExecutionCheckpoint,
+  InteractionResponse,
   MessageContent,
   MessageMetadata,
+  PendingInteractionData,
   TaskMetadataConfig,
   WorkAppGitHubAccountType,
   WorkAppGitHubInstallationStatus,
@@ -852,6 +855,73 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
     }).onDelete('cascade'),
   ]
 );
+
+// ============================================================================
+// PENDING INTERACTIONS (Durable Execution)
+// ============================================================================
+
+/**
+ * Pending user interactions for durable execution.
+ * Stores tool approvals and (future) elicitations that are waiting for user response.
+ * Includes execution checkpoint data to resume agent execution after user responds.
+ *
+ * Interaction types:
+ * - 'tool-approval': Tool needs user approval before execution
+ * - 'elicitation-form': (Future) Collect structured data via form
+ * - 'elicitation-url': (Future) Redirect user to URL for auth/input
+ *
+ * Status flow: pending -> accepted/declined/cancelled/expired
+ */
+export const pendingInteractions = pgTable(
+  'pending_interactions',
+  {
+    ...projectScoped,
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    taskId: varchar('task_id', { length: 256 }),
+    subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
+
+    type: varchar('type', { length: 64 })
+      .notNull()
+      .$type<'tool-approval' | 'elicitation-form' | 'elicitation-url'>(),
+
+    status: varchar('status', { length: 64 })
+      .notNull()
+      .default('pending')
+      .$type<'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired'>(),
+
+    interactionData: jsonb('interaction_data').$type<PendingInteractionData>().notNull(),
+
+    checkpoint: jsonb('checkpoint').$type<ExecutionCheckpoint>().notNull(),
+
+    response: jsonb('response').$type<InteractionResponse | null>(),
+
+    expiresAt: timestamp('expires_at', { mode: 'string' }),
+    respondedAt: timestamp('responded_at', { mode: 'string' }),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('pending_interactions_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+    index('pending_interactions_status_idx').on(table.status),
+    index('pending_interactions_type_idx').on(table.type),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'pending_interactions_conversation_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const pendingInteractionsRelations = relations(pendingInteractions, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [pendingInteractions.conversationId],
+    references: [conversations.id],
+  }),
+}));
 
 // ============================================================================
 // GITHUB APP INSTALLATION RELATIONS

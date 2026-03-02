@@ -6,8 +6,10 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  createPendingInteraction,
   type DataComponentApiInsert,
   type DataPart,
+  type ExecutionCheckpoint,
   type FilePart,
   type FullExecutionContext,
   generateId,
@@ -23,6 +25,7 @@ import {
   type SubAgentSkillWithIndex,
   type SubAgentStopWhen,
   TemplateEngine,
+  type ToolApprovalInteractionData,
   unwrapError,
   withRef,
 } from '@inkeep/agents-core';
@@ -57,9 +60,7 @@ import { agentSessionManager, type ToolCallData } from '../services/AgentSession
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
@@ -77,7 +78,7 @@ import {
   calculateBreakdownTotal,
   estimateTokens,
 } from '../utils/token-estimator';
-import { createDeniedToolResult, isToolResultDenied } from '../utils/tool-result';
+import { isToolResultDenied, PausedForInteractionError } from '../utils/tool-result';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { AgentMcpManager } from './AgentMcpManager';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
@@ -894,7 +895,7 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
-          execute: async (args, { toolCallId, providerMetadata }: any) => {
+          execute: async (args, { toolCallId }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
             let processedArgs: typeof args;
@@ -923,7 +924,7 @@ export class Agent {
             if (needsApproval) {
               logger.info(
                 { toolName, toolCallId, args: finalArgs },
-                'Tool requires approval - waiting for user response'
+                'Tool requires approval - creating durable interaction'
               );
 
               // Add an event to the current active span if one exists
@@ -936,6 +937,50 @@ export class Agent {
                 });
               }
 
+              // Create the pending interaction in the database
+              const interactionId = generateId();
+              const interactionData: ToolApprovalInteractionData = {
+                type: 'tool-approval',
+                toolCallId,
+                toolName,
+                toolArgs: finalArgs as Record<string, unknown>,
+                toolType: 'mcp',
+                mcpServerId: toolResult.mcpServerId,
+                mcpServerName: toolResult.mcpServerName,
+              };
+
+              const checkpoint: ExecutionCheckpoint = {
+                conversationId: this.conversationId || 'unknown',
+                taskId: this.getStreamRequestId(),
+                subAgentId: this.config.id,
+                agentId: this.config.agentId,
+                toolCall: {
+                  toolCallId,
+                  toolName,
+                  toolType: 'mcp',
+                  args: finalArgs as Record<string, unknown>,
+                  mcpServerId: toolResult.mcpServerId,
+                  mcpServerName: toolResult.mcpServerName,
+                },
+                metadata: {
+                  streamRequestId: this.getStreamRequestId(),
+                  fromSubAgentId: this.config.id,
+                },
+              };
+
+              await createPendingInteraction(runDbClient)({
+                id: interactionId,
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: this.conversationId || 'unknown',
+                taskId: this.getStreamRequestId(),
+                subAgentId: this.config.id,
+                type: 'tool-approval',
+                interactionData,
+                checkpoint,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              });
+
               // Emit an immediate span to mark that approval request was sent
               tracer.startActiveSpan(
                 'tool.approval_requested',
@@ -945,6 +990,7 @@ export class Agent {
                     'tool.callId': toolCallId,
                     'subAgent.id': this.config.id,
                     'subAgent.name': this.config.name,
+                    'interaction.id': interactionId,
                   },
                 },
                 (requestSpan: Span) => {
@@ -953,104 +999,24 @@ export class Agent {
                 }
               );
 
-              // Emit a user-facing approval request stream part (tools in delegated agents are hidden)
+              // Emit a user-facing approval request stream part
               const streamHelper = this.getStreamingHelper();
               if (streamHelper) {
                 await streamHelper.writeToolApprovalRequest({
-                  approvalId: `aitxt-${toolCallId}`,
+                  approvalId: interactionId,
                   toolCallId,
                   toolName,
                   input: finalArgs as Record<string, unknown>,
                 });
-              } else if (this.isDelegatedAgent) {
-                const streamRequestId = this.getStreamRequestId();
-                if (streamRequestId) {
-                  await toolApprovalUiBus.publish(streamRequestId, {
-                    type: 'approval-needed',
-                    toolCallId,
-                    toolName,
-                    input: finalArgs,
-                    providerMetadata,
-                    approvalId: `aitxt-${toolCallId}`,
-                  });
-                }
               }
 
-              // Wait for approval (this promise resolves when user responds via API)
-              const approvalResult = await pendingToolApprovalManager.waitForApproval(
-                toolCallId,
-                toolName,
-                args,
-                this.conversationId || 'unknown',
-                this.config.id
+              logger.info(
+                { toolName, toolCallId, interactionId },
+                'Pausing execution for tool approval'
               );
 
-              if (!approvalResult.approved) {
-                if (!streamHelper && this.isDelegatedAgent) {
-                  const streamRequestId = this.getStreamRequestId();
-                  if (streamRequestId) {
-                    await toolApprovalUiBus.publish(streamRequestId, {
-                      type: 'approval-resolved',
-                      toolCallId,
-                      approved: false,
-                      reason: approvalResult.reason,
-                    });
-                  }
-                }
-                // User denied approval - return a message instead of executing the tool
-                return tracer.startActiveSpan(
-                  'tool.approval_denied',
-                  {
-                    attributes: {
-                      'tool.name': toolName,
-                      'tool.callId': toolCallId,
-                      'subAgent.id': this.config.id,
-                      'subAgent.name': this.config.name,
-                      'tool.approval.reason': approvalResult.reason,
-                    },
-                  },
-                  (denialSpan: Span) => {
-                    logger.info(
-                      { toolName, toolCallId, reason: approvalResult.reason },
-                      'Tool execution denied by user'
-                    );
-
-                    denialSpan.setStatus({ code: SpanStatusCode.OK });
-                    denialSpan.end();
-
-                    return createDeniedToolResult(toolCallId, approvalResult.reason);
-                  }
-                );
-              }
-
-              // Tool was approved - create a span to show this
-              tracer.startActiveSpan(
-                'tool.approval_approved',
-                {
-                  attributes: {
-                    'tool.name': toolName,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': this.config.id,
-                    'subAgent.name': this.config.name,
-                  },
-                },
-                (approvedSpan: Span) => {
-                  logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
-                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
-                  approvedSpan.end();
-                }
-              );
-
-              if (!streamHelper && this.isDelegatedAgent) {
-                const streamRequestId = this.getStreamRequestId();
-                if (streamRequestId) {
-                  await toolApprovalUiBus.publish(streamRequestId, {
-                    type: 'approval-resolved',
-                    toolCallId,
-                    approved: true,
-                  });
-                }
-              }
+              // Throw to stop execution - will be caught by generate() method
+              throw new PausedForInteractionError(interactionId, toolCallId, toolName);
             }
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
@@ -1219,7 +1185,7 @@ export class Agent {
         const aiTool = tool({
           description: functionToolDef.description || functionToolDef.name,
           inputSchema: zodSchema,
-          execute: async (args, { toolCallId, providerMetadata }: any) => {
+          execute: async (args, { toolCallId }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             let processedArgs: typeof args;
             try {
@@ -1246,7 +1212,7 @@ export class Agent {
             if (needsApproval) {
               logger.info(
                 { toolName: functionToolDef.name, toolCallId, args: finalArgs },
-                'Function tool requires approval - waiting for user response'
+                'Function tool requires approval - creating durable interaction'
               );
 
               const currentSpan = trace.getActiveSpan();
@@ -1258,6 +1224,46 @@ export class Agent {
                 });
               }
 
+              // Create the pending interaction in the database
+              const interactionId = generateId();
+              const interactionData: ToolApprovalInteractionData = {
+                type: 'tool-approval',
+                toolCallId,
+                toolName: functionToolDef.name,
+                toolArgs: finalArgs as Record<string, unknown>,
+                toolType: 'function',
+              };
+
+              const checkpoint: ExecutionCheckpoint = {
+                conversationId: this.conversationId || 'unknown',
+                taskId: this.getStreamRequestId(),
+                subAgentId: this.config.id,
+                agentId: this.config.agentId,
+                toolCall: {
+                  toolCallId,
+                  toolName: functionToolDef.name,
+                  toolType: 'function',
+                  args: finalArgs as Record<string, unknown>,
+                },
+                metadata: {
+                  streamRequestId: this.getStreamRequestId(),
+                  fromSubAgentId: this.config.id,
+                },
+              };
+
+              await createPendingInteraction(runDbClient)({
+                id: interactionId,
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: this.conversationId || 'unknown',
+                taskId: this.getStreamRequestId(),
+                subAgentId: this.config.id,
+                type: 'tool-approval',
+                interactionData,
+                checkpoint,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              });
+
               tracer.startActiveSpan(
                 'tool.approval_requested',
                 {
@@ -1266,6 +1272,7 @@ export class Agent {
                     'tool.callId': toolCallId,
                     'subAgent.id': this.config.id,
                     'subAgent.name': this.config.name,
+                    'interaction.id': interactionId,
                   },
                 },
                 (requestSpan: Span) => {
@@ -1277,100 +1284,20 @@ export class Agent {
               const streamHelper = this.getStreamingHelper();
               if (streamHelper) {
                 await streamHelper.writeToolApprovalRequest({
-                  approvalId: `aitxt-${toolCallId}`,
+                  approvalId: interactionId,
                   toolCallId,
                   toolName: functionToolDef.name,
                   input: finalArgs as Record<string, unknown>,
                 });
-              } else if (this.isDelegatedAgent) {
-                const streamRequestId = this.getStreamRequestId();
-                if (streamRequestId) {
-                  await toolApprovalUiBus.publish(streamRequestId, {
-                    type: 'approval-needed',
-                    toolCallId,
-                    toolName: functionToolDef.name,
-                    input: finalArgs,
-                    providerMetadata,
-                    approvalId: `aitxt-${toolCallId}`,
-                  });
-                }
               }
 
-              const approvalResult = await pendingToolApprovalManager.waitForApproval(
-                toolCallId,
-                functionToolDef.name,
-                args,
-                this.conversationId || 'unknown',
-                this.config.id
+              logger.info(
+                { toolName: functionToolDef.name, toolCallId, interactionId },
+                'Pausing execution for function tool approval'
               );
 
-              if (!approvalResult.approved) {
-                if (!streamHelper && this.isDelegatedAgent) {
-                  const streamRequestId = this.getStreamRequestId();
-                  if (streamRequestId) {
-                    await toolApprovalUiBus.publish(streamRequestId, {
-                      type: 'approval-resolved',
-                      toolCallId,
-                      approved: false,
-                      reason: approvalResult.reason,
-                    });
-                  }
-                }
-
-                return tracer.startActiveSpan(
-                  'tool.approval_denied',
-                  {
-                    attributes: {
-                      'tool.name': functionToolDef.name,
-                      'tool.callId': toolCallId,
-                      'subAgent.id': this.config.id,
-                      'subAgent.name': this.config.name,
-                    },
-                  },
-                  (denialSpan: Span) => {
-                    logger.info(
-                      { toolName: functionToolDef.name, toolCallId, reason: approvalResult.reason },
-                      'Function tool execution denied by user'
-                    );
-
-                    denialSpan.setStatus({ code: SpanStatusCode.OK });
-                    denialSpan.end();
-
-                    return createDeniedToolResult(toolCallId, approvalResult.reason);
-                  }
-                );
-              }
-
-              tracer.startActiveSpan(
-                'tool.approval_approved',
-                {
-                  attributes: {
-                    'tool.name': functionToolDef.name,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': this.config.id,
-                    'subAgent.name': this.config.name,
-                  },
-                },
-                (approvedSpan: Span) => {
-                  logger.info(
-                    { toolName: functionToolDef.name, toolCallId },
-                    'Function tool approved, continuing with execution'
-                  );
-                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
-                  approvedSpan.end();
-                }
-              );
-
-              if (!streamHelper && this.isDelegatedAgent) {
-                const streamRequestId = this.getStreamRequestId();
-                if (streamRequestId) {
-                  await toolApprovalUiBus.publish(streamRequestId, {
-                    type: 'approval-resolved',
-                    toolCallId,
-                    approved: true,
-                  });
-                }
-              }
+              // Throw to stop execution - will be caught by generate() method
+              throw new PausedForInteractionError(interactionId, toolCallId, functionToolDef.name);
             }
 
             logger.debug(
@@ -2615,6 +2542,50 @@ ${output}`;
 
           return formattedResponse;
         } catch (error) {
+          // Handle paused execution for durable tool approvals/elicitations
+          if (error instanceof PausedForInteractionError) {
+            logger.info(
+              {
+                agentId: this.config.id,
+                interactionId: error.interactionId,
+                toolCallId: error.toolCallId,
+                toolName: error.toolName,
+              },
+              'Execution paused for user interaction'
+            );
+
+            span.setStatus({ code: SpanStatusCode.OK });
+            span.addEvent('execution.paused', {
+              'interaction.id': error.interactionId,
+              'tool.callId': error.toolCallId,
+              'tool.name': error.toolName,
+            });
+            span.end();
+
+            // Return a paused response
+            return {
+              text: '',
+              object: null,
+              finishReason: 'paused' as FinishReason,
+              usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+              steps: [],
+              formattedContent: {
+                text: `Execution paused waiting for approval of tool "${error.toolName}"`,
+                parts: [
+                  {
+                    kind: 'text' as const,
+                    text: `Execution paused waiting for approval of tool "${error.toolName}"`,
+                  },
+                ],
+              },
+              paused: {
+                interactionId: error.interactionId,
+                toolCallId: error.toolCallId,
+                toolName: error.toolName,
+              },
+            };
+          }
+
           this.handleGenerationError(error, span);
         }
       }

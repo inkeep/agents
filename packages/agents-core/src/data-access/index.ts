@@ -37,6 +37,7 @@ export * from './runtime/github-work-app-installations';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';
+export * from './runtime/pending-interactions';
 export * from './runtime/projects';
 export * from './runtime/scheduledTriggerInvocations';
 export * from './runtime/tasks';

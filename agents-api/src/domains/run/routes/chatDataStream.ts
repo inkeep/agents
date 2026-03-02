@@ -9,9 +9,11 @@ import {
   getActiveAgentForConversation,
   getConversation,
   getConversationId,
+  getPendingInteractionsByConversation,
   loggerFactory,
   type Part,
   PartSchema,
+  respondToInteraction,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
@@ -23,8 +25,6 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
@@ -173,12 +173,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
-      // Resolve the pending approval (in-memory). Idempotent: if already processed, return 200.
-      const ok = approved
-        ? pendingToolApprovalManager.approveToolCall(toolCallId)
-        : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+      // Look up pending interaction by toolCallId from conversation
+      const pendingInteractions = await getPendingInteractionsByConversation(runDbClient)({
+        tenantId,
+        projectId,
+        conversationId,
+        status: 'pending',
+      });
 
-      if (!ok) {
+      const interaction = pendingInteractions.find((i) => {
+        const data = i.interactionData as { toolCallId?: string };
+        return data?.toolCallId === toolCallId;
+      });
+
+      if (!interaction) {
         return c.json({
           success: true,
           toolCallId,
@@ -187,10 +195,26 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const status = approved ? 'accepted' : 'declined';
+      const responseData = {
+        type: 'tool-approval' as const,
+        approved,
+        reason,
+      };
+
+      await respondToInteraction(runDbClient)({
+        tenantId,
+        projectId,
+        interactionId: interaction.id,
+        response: responseData,
+        status,
+      });
+
       return c.json({
         success: true,
         toolCallId,
         approved,
+        interactionId: interaction.id,
       });
     }
 
@@ -430,7 +454,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
           const streamHelper = createVercelStreamHelper(writer);
-          let unsubscribe: (() => void) | undefined;
           try {
             // Check for emit operations header
             const emitOperationsHeader = c.req.header('x-emit-operations');
@@ -442,61 +465,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const datasetRunId = c.req.header('x-inkeep-dataset-run-id');
 
             const requestId = `chatds-${Date.now()}`;
-
-            const chunkString = (s: string, size = 16) => {
-              const out: string[] = [];
-              for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size));
-              return out;
-            };
-
-            const seenToolCalls = new Set<string>();
-            const seenOutputs = new Set<string>();
-
-            unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
-              if (event.type === 'approval-needed') {
-                if (seenToolCalls.has(event.toolCallId)) return;
-                seenToolCalls.add(event.toolCallId);
-
-                await streamHelper.writeToolInputStart({
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                });
-
-                const inputText = JSON.stringify(event.input ?? {});
-                for (const part of chunkString(inputText, 16)) {
-                  await streamHelper.writeToolInputDelta({
-                    toolCallId: event.toolCallId,
-                    inputTextDelta: part,
-                  });
-                }
-
-                await streamHelper.writeToolInputAvailable({
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                  input: event.input ?? {},
-                  providerMetadata: event.providerMetadata,
-                });
-
-                await streamHelper.writeToolApprovalRequest({
-                  approvalId: event.approvalId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                  input: event.input as Record<string, unknown>,
-                });
-              } else if (event.type === 'approval-resolved') {
-                if (seenOutputs.has(event.toolCallId)) return;
-                seenOutputs.add(event.toolCallId);
-
-                if (event.approved) {
-                  await streamHelper.writeToolOutputAvailable({
-                    toolCallId: event.toolCallId,
-                    output: { status: 'approved' },
-                  });
-                } else {
-                  await streamHelper.writeToolOutputDenied({ toolCallId: event.toolCallId });
-                }
-              }
-            });
 
             const result = await executionHandler.execute({
               executionContext,
@@ -518,9 +486,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
             logger.error({ err }, 'Streaming error');
             await streamHelper.writeOperation(errorOp('Internal server error', 'system'));
           } finally {
-            try {
-              unsubscribe?.();
-            } catch (_e) {}
             // Clean up stream helper resources if it has cleanup method
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();
@@ -664,20 +629,43 @@ app.openapi(toolApprovalRoute, async (c) => {
         return c.json({ error: 'Conversation not found' }, 404);
       }
 
-      // Process the approval request using PendingToolApprovalManager
-      let success = false;
-      if (approved) {
-        success = pendingToolApprovalManager.approveToolCall(toolCallId);
-      } else {
-        success = pendingToolApprovalManager.denyToolCall(toolCallId, reason);
-      }
+      // Look up pending interaction by toolCallId from conversation
+      const pendingInteractions = await getPendingInteractionsByConversation(runDbClient)({
+        tenantId,
+        projectId,
+        conversationId,
+        status: 'pending',
+      });
 
-      if (!success) {
+      const interaction = pendingInteractions.find((i) => {
+        const data = i.interactionData as { toolCallId?: string };
+        return data?.toolCallId === toolCallId;
+      });
+
+      if (!interaction) {
         span.setStatus({ code: 1, message: 'Tool call not found' });
         return c.json({ error: 'Tool call not found or already processed' }, 404);
       }
 
-      logger.info({ conversationId, toolCallId, approved }, 'Tool approval processed successfully');
+      const status = approved ? 'accepted' : 'declined';
+      const responseData = {
+        type: 'tool-approval' as const,
+        approved,
+        reason,
+      };
+
+      await respondToInteraction(runDbClient)({
+        tenantId,
+        projectId,
+        interactionId: interaction.id,
+        response: responseData,
+        status,
+      });
+
+      logger.info(
+        { conversationId, toolCallId, approved, interactionId: interaction.id },
+        'Tool approval processed successfully'
+      );
 
       span.setStatus({ code: 1, message: 'Success' });
 

@@ -49,6 +49,7 @@ import {
   evaluationRun,
   ledgerArtifacts,
   messages,
+  pendingInteractions,
   projectMetadata,
   scheduledTriggerInvocations,
   taskRelations,
@@ -1124,6 +1125,39 @@ export const TaskRelationUpdateSchema = TaskRelationInsertSchema.partial();
 export const TaskRelationApiSelectSchema = createApiSchema(TaskRelationSelectSchema);
 export const TaskRelationApiInsertSchema = createApiInsertSchema(TaskRelationInsertSchema);
 export const TaskRelationApiUpdateSchema = createApiUpdateSchema(TaskRelationUpdateSchema);
+
+// Pending Interactions (Durable Execution)
+export const PendingInteractionTypeEnum = z.enum([
+  'tool-approval',
+  'elicitation-form',
+  'elicitation-url',
+]);
+
+export const PendingInteractionStatusEnum = z.enum([
+  'pending',
+  'accepted',
+  'declined',
+  'cancelled',
+  'expired',
+]);
+
+export const PendingInteractionSelectSchema = createSelectSchema(pendingInteractions);
+export const PendingInteractionInsertSchema = createInsertSchema(pendingInteractions).extend({
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema,
+  taskId: ResourceIdSchema.optional(),
+  type: PendingInteractionTypeEnum,
+  status: PendingInteractionStatusEnum.optional(),
+});
+export const PendingInteractionUpdateSchema = PendingInteractionInsertSchema.partial();
+
+export const PendingInteractionApiSelectSchema = createApiSchema(PendingInteractionSelectSchema);
+export const PendingInteractionApiInsertSchema = createApiInsertSchema(
+  PendingInteractionInsertSchema
+);
+export const PendingInteractionApiUpdateSchema = createApiUpdateSchema(
+  PendingInteractionUpdateSchema
+);
 
 const imageUrlSchema = z
   .string()

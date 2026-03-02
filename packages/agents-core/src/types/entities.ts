@@ -146,6 +146,12 @@ import type {
   MessageSelectSchema,
   MessageUpdateSchema,
   PaginationSchema,
+  PendingInteractionApiInsertSchema,
+  PendingInteractionApiSelectSchema,
+  PendingInteractionApiUpdateSchema,
+  PendingInteractionInsertSchema,
+  PendingInteractionSelectSchema,
+  PendingInteractionUpdateSchema,
   ProjectApiInsertSchema,
   ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
@@ -383,6 +389,13 @@ export type TaskRelationUpdate = z.infer<typeof TaskRelationUpdateSchema>;
 export type TaskRelationApiSelect = z.infer<typeof TaskRelationApiSelectSchema>;
 export type TaskRelationApiInsert = z.infer<typeof TaskRelationApiInsertSchema>;
 export type TaskRelationApiUpdate = z.infer<typeof TaskRelationApiUpdateSchema>;
+
+export type PendingInteractionSelect = z.infer<typeof PendingInteractionSelectSchema>;
+export type PendingInteractionInsert = z.infer<typeof PendingInteractionInsertSchema>;
+export type PendingInteractionUpdate = z.infer<typeof PendingInteractionUpdateSchema>;
+export type PendingInteractionApiSelect = z.infer<typeof PendingInteractionApiSelectSchema>;
+export type PendingInteractionApiInsert = z.infer<typeof PendingInteractionApiInsertSchema>;
+export type PendingInteractionApiUpdate = z.infer<typeof PendingInteractionApiUpdateSchema>;
 
 export type ToolSelect = z.infer<typeof ToolSelectSchema>;
 export type ToolInsert = z.infer<typeof ToolInsertSchema>;

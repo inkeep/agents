@@ -410,3 +410,137 @@ export type WorkAppGitHubInstallationStatus = z.infer<typeof WorkAppGitHubInstal
  * - 'User': Installed on a personal GitHub account
  */
 export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSchema>;
+
+// ============================================================================
+// PENDING INTERACTIONS (Durable Execution)
+// ============================================================================
+
+/**
+ * Types of user interactions that can pause execution
+ */
+export type PendingInteractionType = 'tool-approval' | 'elicitation-form' | 'elicitation-url';
+
+/**
+ * Status of a pending interaction
+ */
+export type PendingInteractionStatus =
+  | 'pending'
+  | 'accepted'
+  | 'declined'
+  | 'cancelled'
+  | 'expired';
+
+/**
+ * Tool type for checkpoint context
+ */
+export type CheckpointToolType = 'mcp' | 'function';
+
+/**
+ * Data specific to the interaction type
+ */
+export type PendingInteractionData =
+  | ToolApprovalInteractionData
+  | ElicitationFormInteractionData
+  | ElicitationUrlInteractionData;
+
+/**
+ * Tool approval interaction data
+ */
+export interface ToolApprovalInteractionData {
+  type: 'tool-approval';
+  toolCallId: string;
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  toolType: CheckpointToolType;
+  mcpServerId?: string;
+  mcpServerName?: string;
+}
+
+/**
+ * Form-based elicitation interaction data (future)
+ */
+export interface ElicitationFormInteractionData {
+  type: 'elicitation-form';
+  message: string;
+  requestedSchema: Record<string, unknown>;
+}
+
+/**
+ * URL-based elicitation interaction data (future)
+ */
+export interface ElicitationUrlInteractionData {
+  type: 'elicitation-url';
+  message: string;
+  url: string;
+  returnPath?: string;
+}
+
+/**
+ * Execution checkpoint - everything needed to resume execution
+ */
+export interface ExecutionCheckpoint {
+  conversationId: string;
+  taskId?: string;
+  subAgentId: string;
+  agentId: string;
+
+  toolCall: {
+    toolCallId: string;
+    toolName: string;
+    toolType: CheckpointToolType;
+    args: Record<string, unknown>;
+    mcpServerId?: string;
+    mcpServerName?: string;
+  };
+
+  delegationChain?: DelegationChainEntry[];
+
+  metadata: {
+    streamRequestId?: string;
+    fromSubAgentId?: string;
+    originalUserMessage?: string;
+  };
+}
+
+/**
+ * Entry in delegation chain for A2A resumption
+ */
+export interface DelegationChainEntry {
+  parentTaskId: string;
+  parentSubAgentId: string;
+  contextId: string;
+}
+
+/**
+ * User's response to an interaction
+ */
+export type InteractionResponse =
+  | ToolApprovalResponse
+  | ElicitationFormResponse
+  | ElicitationUrlResponse;
+
+/**
+ * Response to tool approval
+ */
+export interface ToolApprovalResponse {
+  type: 'tool-approval';
+  approved: boolean;
+  reason?: string;
+}
+
+/**
+ * Response to form elicitation (future)
+ */
+export interface ElicitationFormResponse {
+  type: 'elicitation-form';
+  action: 'accept' | 'decline' | 'cancel';
+  content?: Record<string, unknown>;
+}
+
+/**
+ * Response to URL elicitation (future)
+ */
+export interface ElicitationUrlResponse {
+  type: 'elicitation-url';
+  action: 'completed' | 'cancelled';
+}

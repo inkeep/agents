@@ -37218,6 +37218,239 @@
         }
       }
     },
+    "/run/api/interactions/{interactionId}": {
+      "get": {
+        "description": "Retrieves details about a pending interaction including its status and checkpoint data.",
+        "parameters": [
+          {
+            "description": "The ID of the pending interaction",
+            "in": "path",
+            "name": "interactionId",
+            "required": true,
+            "schema": {
+              "description": "The ID of the pending interaction",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "interactionData": {
+                      "nullable": true
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "status",
+                    "conversationId",
+                    "createdAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Interaction details"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Interaction not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get a pending interaction",
+        "tags": [
+          "Interactions"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/api/interactions/{interactionId}/respond": {
+      "post": {
+        "description": "Responds to a pending tool approval or elicitation request. For approved tool calls, the tool will be executed and the result stored.",
+        "parameters": [
+          {
+            "description": "The ID of the pending interaction",
+            "in": "path",
+            "name": "interactionId",
+            "required": true,
+            "schema": {
+              "description": "The ID of the pending interaction",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "approved": {
+                    "description": "Whether the interaction is approved",
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "description": "Optional reason for approval/denial",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "approved"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "alreadyProcessed": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "interactionId": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "toolResult": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Interaction response processed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Interaction not found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Respond to a pending interaction",
+        "tags": [
+          "Interactions"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
     "/run/api/tool-approvals": {
       "post": {
         "description": "Handle user approval/denial of tool execution requests during conversations",
