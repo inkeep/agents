@@ -119,3 +119,6 @@ progress.txt
 
 .pnpm-store/
 .vercel
+
+# Git worktrees (created by Claude Code / git worktree add)
+.claude/worktrees/
