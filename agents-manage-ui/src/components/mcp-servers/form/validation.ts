@@ -126,7 +126,7 @@ export const mcpToolSchema = z.object({
           })
         )
         .optional(),
-      prompt: z.string().max(2000, 'Custom prompt must be less than 2000 characters.').optional(),
+      prompt: z.string().max(2000, 'Prompt must be less than 2000 characters.').optional(),
     }),
   }),
   credentialReferenceId: z.string().nullish(),

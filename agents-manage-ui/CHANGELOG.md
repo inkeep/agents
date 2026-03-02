@@ -1,5 +1,32 @@
 # @inkeep/agents-manage-ui
 
+## 0.55.0
+
+### Patch Changes
+
+- 1093d69: Fix trace filtering when same conversation ID exists across projects
+- 9ee889e: Use credential name instead of id in external agent and MCP server credential selectors and detail pages
+- 08d678d: Show MCP server default instructions as placeholder in edit form and as fallback in detail views when no custom prompt is set
+- 1e0cfc5: Hide create / edit buttons for skills if user doesn't have edit permissions
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
+## 0.54.0
+
+### Patch Changes
+
+- 781f15f: Add delete button to edit external agent page
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
 ## 0.53.12
 
 ### Patch Changes

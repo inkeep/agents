@@ -38546,18 +38546,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -38655,18 +38651,14 @@
                           "agentConfig": {
                             "properties": {
                               "agentId": {
-                                "type": "string"
-                              },
-                              "agentName": {
+                                "maxLength": 256,
                                 "type": "string"
                               },
                               "grantAccessToMembers": {
                                 "type": "boolean"
                               },
                               "projectId": {
-                                "type": "string"
-                              },
-                              "projectName": {
+                                "maxLength": 256,
                                 "type": "string"
                               }
                             },
@@ -38826,18 +38818,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39011,18 +38999,14 @@
                     "agentConfig": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39085,18 +39069,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39143,6 +39123,9 @@
               }
             },
             "description": "Channel settings updated"
+          },
+          "400": {
+            "description": "Agent not found"
           }
         },
         "summary": "Set Channel Default Agent",
@@ -39381,18 +39364,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39441,18 +39420,14 @@
                   "defaultAgent": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39487,22 +39462,10 @@
             },
             "description": "Settings updated"
           },
+          "400": {
+            "description": "Agent not found"
+          },
           "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
             "description": "Failed to update settings"
           }
         },

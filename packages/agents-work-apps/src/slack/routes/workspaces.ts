@@ -31,6 +31,7 @@ import {
   listWorkAppSlackUserMappingsByTeam,
   updateWorkAppSlackWorkspace,
   upsertWorkAppSlackChannelAgentConfig,
+  WorkAppSlackAgentConfigRequestSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedWorkAppsAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../db/runDbClient';
@@ -44,10 +45,10 @@ import {
   getBotMemberChannels,
   getSlackChannels,
   getSlackClient,
-  getWorkspaceDefaultAgentFromNango,
   listWorkspaceInstallations,
+  lookupAgentName,
   revokeSlackToken,
-  setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
+  setWorkspaceDefaultAgent,
 } from '../services';
 import type { ManageAppVariables } from '../types';
 
@@ -68,16 +69,12 @@ function verifyTenantOwnership(
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const ChannelAgentConfigSchema = z.object({
-  projectId: z.string(),
-  agentId: z.string(),
-  agentName: z.string().optional(),
-  projectName: z.string().optional(),
-  grantAccessToMembers: z.boolean().optional(),
+const WorkspaceSettingsResponseSchema = z.object({
+  defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
 });
 
-const WorkspaceSettingsSchema = z.object({
-  defaultAgent: ChannelAgentConfigSchema.optional(),
+const WorkspaceSettingsRequestSchema = z.object({
+  defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
 });
 
 const JoinFromWorkspaceSettingsSchema = z.object({
@@ -118,32 +115,55 @@ app.openapi(
   }),
   async (c) => {
     try {
-      const allWorkspaces = await listWorkspaceInstallations();
-
-      // Filter by authenticated user's tenant to enforce tenant isolation
       const sessionTenantId = c.get('tenantId') as string | undefined;
       if (!sessionTenantId) {
         logger.warn({}, 'No tenantId in session context — cannot list workspaces');
         return c.json({ workspaces: [] });
       }
 
-      const workspaces = allWorkspaces.filter((w) => w.tenantId === sessionTenantId);
+      const workspaces = await listWorkspaceInstallations(sessionTenantId);
 
       logger.info(
-        { count: workspaces.length, totalCount: allWorkspaces.length, tenantId: sessionTenantId },
+        { count: workspaces.length, tenantId: sessionTenantId },
         'Listed workspace installations'
       );
 
+      const workspacesWithNames = await Promise.all(
+        workspaces.map(async (w) => {
+          let defaultAgentName: string | undefined;
+          if (w.defaultAgent?.agentId && w.defaultAgent.projectId) {
+            try {
+              defaultAgentName = await lookupAgentName(
+                w.tenantId,
+                w.defaultAgent.projectId,
+                w.defaultAgent.agentId,
+                { skipCache: true }
+              );
+            } catch {
+              logger.warn(
+                {
+                  tenantId: w.tenantId,
+                  teamId: w.teamId,
+                  projectId: w.defaultAgent.projectId,
+                  agentId: w.defaultAgent.agentId,
+                },
+                'Failed to resolve default agent name for workspace listing'
+              );
+            }
+          }
+          return {
+            connectionId: w.connectionId,
+            teamId: w.teamId,
+            teamName: w.teamName,
+            tenantId: w.tenantId,
+            hasDefaultAgent: !!w.defaultAgent,
+            defaultAgentName: defaultAgentName || w.defaultAgent?.agentId,
+          };
+        })
+      );
+
       return c.json({
-        workspaces: workspaces.map((w) => ({
-          connectionId: w.connectionId,
-          teamId: w.teamId,
-          teamName: w.teamName,
-          teamDomain: w.teamDomain,
-          tenantId: w.tenantId,
-          hasDefaultAgent: !!w.defaultAgent,
-          defaultAgentName: w.defaultAgent?.agentName,
-        })),
+        workspaces: workspacesWithNames,
       });
     } catch (error) {
       logger.error({ error }, 'Failed to list workspaces');
@@ -176,7 +196,7 @@ app.openapi(
               teamName: z.string().optional(),
               tenantId: z.string(),
               connectionId: z.string(),
-              defaultAgent: ChannelAgentConfigSchema.optional(),
+              defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
             }),
           },
         },
@@ -195,23 +215,18 @@ app.openapi(
       return c.json({ error: 'Workspace not found' }, 404);
     }
 
-    let defaultAgent: { projectId: string; agentId: string; agentName?: string } | undefined;
-
-    const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
-    if (nangoDefault) {
-      defaultAgent = {
-        projectId: nangoDefault.projectId,
-        agentId: nangoDefault.agentId,
-        agentName: nangoDefault.agentName,
-      };
-    }
-
     return c.json({
       teamId: workspace.teamId,
       teamName: workspace.teamName,
       tenantId: workspace.tenantId,
       connectionId: workspace.connectionId,
-      defaultAgent,
+      defaultAgent: workspace.defaultAgent
+        ? {
+            projectId: workspace.defaultAgent.projectId,
+            agentId: workspace.defaultAgent.agentId,
+            grantAccessToMembers: workspace.defaultAgent.grantAccessToMembers,
+          }
+        : undefined,
     });
   }
 );
@@ -235,7 +250,7 @@ app.openapi(
         description: 'Workspace settings',
         content: {
           'application/json': {
-            schema: WorkspaceSettingsSchema,
+            schema: WorkspaceSettingsResponseSchema,
           },
         },
       },
@@ -250,22 +265,14 @@ app.openapi(
       return c.json({ defaultAgent: undefined });
     }
 
-    let defaultAgent:
-      | { projectId: string; agentId: string; agentName?: string; projectName?: string }
-      | undefined;
-
-    const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
-    if (nangoDefault) {
-      defaultAgent = {
-        projectId: nangoDefault.projectId,
-        agentId: nangoDefault.agentId,
-        agentName: nangoDefault.agentName,
-        projectName: nangoDefault.projectName,
-      };
-    }
-
     return c.json({
-      defaultAgent,
+      defaultAgent: workspace.defaultAgent
+        ? {
+            projectId: workspace.defaultAgent.projectId,
+            agentId: workspace.defaultAgent.agentId,
+            grantAccessToMembers: workspace.defaultAgent.grantAccessToMembers,
+          }
+        : undefined,
     });
   }
 );
@@ -286,7 +293,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: WorkspaceSettingsSchema,
+            schema: WorkspaceSettingsRequestSchema,
           },
         },
       },
@@ -300,13 +307,11 @@ app.openapi(
           },
         },
       },
+      400: {
+        description: 'Agent not found',
+      },
       500: {
         description: 'Failed to update settings',
-        content: {
-          'application/json': {
-            schema: z.object({ success: z.boolean() }),
-          },
-        },
       },
     },
   }),
@@ -315,9 +320,43 @@ app.openapi(
     const body = c.req.valid('json');
 
     if (body.defaultAgent) {
-      const nangoSuccess = await setWorkspaceDefaultAgentInNango(teamId, body.defaultAgent);
-      if (!nangoSuccess) {
-        logger.warn({ teamId }, 'Failed to persist workspace settings to Nango');
+      const workspace = await findWorkspaceConnectionByTeamId(teamId);
+      if (!workspace) {
+        return c.json({ success: false }, 500);
+      }
+
+      let agentName: string | undefined;
+      try {
+        agentName = await lookupAgentName(
+          workspace.tenantId,
+          body.defaultAgent.projectId,
+          body.defaultAgent.agentId,
+          { skipCache: true, throwOnError: true }
+        );
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            teamId,
+            projectId: body.defaultAgent.projectId,
+            agentId: body.defaultAgent.agentId,
+          },
+          'Agent lookup failed during workspace default validation'
+        );
+        return c.json({ error: 'Unable to validate agent — please try again' }, 503);
+      }
+      if (!agentName) {
+        return c.json(
+          {
+            error: `Agent '${body.defaultAgent.agentId}' not found in project '${body.defaultAgent.projectId}'`,
+          },
+          400
+        );
+      }
+
+      const success = await setWorkspaceDefaultAgent(teamId, body.defaultAgent);
+      if (!success) {
+        logger.warn({ teamId }, 'Failed to persist workspace settings');
         return c.json({ success: false }, 500);
       }
 
@@ -325,12 +364,11 @@ app.openapi(
         {
           teamId,
           agentId: body.defaultAgent.agentId,
-          agentName: body.defaultAgent.agentName,
         },
-        'Saved workspace default agent to Nango'
+        'Saved workspace default agent'
       );
     } else {
-      await setWorkspaceDefaultAgentInNango(teamId, null);
+      await setWorkspaceDefaultAgent(teamId, null);
       logger.info({ teamId }, 'Cleared workspace default agent');
     }
 
@@ -621,7 +659,7 @@ app.openapi(
                   isShared: z.boolean(),
                   memberCount: z.number().optional(),
                   hasAgentConfig: z.boolean(),
-                  agentConfig: ChannelAgentConfigSchema.optional(),
+                  agentConfig: WorkAppSlackAgentConfigRequestSchema.optional(),
                 })
               ),
               nextCursor: z.string().optional(),
@@ -678,7 +716,6 @@ app.openapi(
             ? {
                 projectId: config.projectId,
                 agentId: config.agentId,
-                agentName: config.agentName || undefined,
                 grantAccessToMembers: config.grantAccessToMembers,
               }
             : undefined,
@@ -718,7 +755,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelId: z.string(),
-              agentConfig: ChannelAgentConfigSchema.optional(),
+              agentConfig: WorkAppSlackAgentConfigRequestSchema.optional(),
             }),
           },
         },
@@ -747,7 +784,6 @@ app.openapi(
         ? {
             projectId: config.projectId,
             agentId: config.agentId,
-            agentName: config.agentName || undefined,
             grantAccessToMembers: config.grantAccessToMembers,
           }
         : undefined,
@@ -773,7 +809,7 @@ app.openapi(
         content: {
           'application/json': {
             schema: z.object({
-              agentConfig: ChannelAgentConfigSchema,
+              agentConfig: WorkAppSlackAgentConfigRequestSchema,
               channelName: z.string().optional(),
               channelType: z.string().optional(),
             }),
@@ -793,6 +829,9 @@ app.openapi(
           },
         },
       },
+      400: {
+        description: 'Agent not found',
+      },
     },
   }),
   async (c) => {
@@ -806,6 +845,36 @@ app.openapi(
     }
     const tenantId = workspace.tenantId;
 
+    let agentName: string | undefined;
+    try {
+      agentName = await lookupAgentName(
+        tenantId,
+        body.agentConfig.projectId,
+        body.agentConfig.agentId,
+        { skipCache: true, throwOnError: true }
+      );
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          teamId,
+          tenantId,
+          projectId: body.agentConfig.projectId,
+          agentId: body.agentConfig.agentId,
+        },
+        'Agent lookup failed during channel config validation'
+      );
+      return c.json({ error: 'Unable to validate agent — please try again' }, 503);
+    }
+    if (!agentName) {
+      return c.json(
+        {
+          error: `Agent '${body.agentConfig.agentId}' not found in project '${body.agentConfig.projectId}'`,
+        },
+        400
+      );
+    }
+
     const config = await upsertWorkAppSlackChannelAgentConfig(runDbClient)({
       tenantId,
       slackTeamId: teamId,
@@ -814,7 +883,6 @@ app.openapi(
       slackChannelType: body.channelType,
       projectId: body.agentConfig.projectId,
       agentId: body.agentConfig.agentId,
-      agentName: body.agentConfig.agentName,
       grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
       enabled: true,
     });
@@ -846,7 +914,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               channelIds: z.array(z.string()).min(1),
-              agentConfig: ChannelAgentConfigSchema,
+              agentConfig: WorkAppSlackAgentConfigRequestSchema,
             }),
           },
         },
@@ -884,6 +952,37 @@ app.openapi(
     }
 
     const tenantId = workspace.tenantId;
+
+    let agentName: string | undefined;
+    try {
+      agentName = await lookupAgentName(
+        tenantId,
+        body.agentConfig.projectId,
+        body.agentConfig.agentId,
+        { skipCache: true, throwOnError: true }
+      );
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          teamId,
+          tenantId,
+          projectId: body.agentConfig.projectId,
+          agentId: body.agentConfig.agentId,
+        },
+        'Agent lookup failed during bulk channel config validation'
+      );
+      return c.json({ error: 'Unable to validate agent — please try again' }, 503);
+    }
+    if (!agentName) {
+      return c.json(
+        {
+          error: `Agent '${body.agentConfig.agentId}' not found in project '${body.agentConfig.projectId}'`,
+        },
+        400
+      );
+    }
+
     const slackClient = getSlackClient(workspace.botToken);
 
     let channels: Awaited<ReturnType<typeof getSlackChannels>> = [];
@@ -915,7 +1014,6 @@ app.openapi(
             slackChannelType: 'public',
             projectId: body.agentConfig.projectId,
             agentId: body.agentConfig.agentId,
-            agentName: body.agentConfig.agentName,
             grantAccessToMembers: body.agentConfig.grantAccessToMembers ?? true,
             enabled: true,
           });

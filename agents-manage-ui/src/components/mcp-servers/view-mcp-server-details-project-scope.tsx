@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
+import { AlertCircle, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
+import { CredentialBadgeFallback } from '@/components/credentials/credential-name-badge';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { useProjectPermissions } from '@/contexts/project';
@@ -25,10 +26,12 @@ import { isGitHubWorkapp, WorkAppGitHubAccessSection } from './work-app-github-a
 
 export function ViewMCPServerDetailsProjectScope({
   tool,
+  credentialBadge,
   tenantId,
   projectId,
 }: {
   tool: MCPTool;
+  credentialBadge?: React.ReactNode;
   tenantId: string;
   projectId: string;
 }) {
@@ -145,17 +148,23 @@ export function ViewMCPServerDetailsProjectScope({
           )}
         </div>
 
-        {/* Custom Prompt */}
-        {tool.config.type === 'mcp' && tool.config.mcp.prompt && (
-          <div className="space-y-2">
-            <ItemLabel>Custom Prompt</ItemLabel>
-            <ItemValue>
-              <div className="text-sm bg-muted/50 p-3 rounded border whitespace-pre-wrap">
-                {tool.config.mcp.prompt}
-              </div>
-            </ItemValue>
-          </div>
-        )}
+        {/* Prompt */}
+        {tool.config.type === 'mcp' &&
+          (tool.config.mcp.prompt || tool.capabilities?.serverInstructions) && (
+            <div className="space-y-2">
+              <ItemLabel>
+                Prompt
+                {!tool.config.mcp.prompt && tool.capabilities?.serverInstructions && (
+                  <span className="text-muted-foreground font-normal ml-1">(server default)</span>
+                )}
+              </ItemLabel>
+              <ItemValue>
+                <div className="text-sm bg-muted/50 p-3 rounded border whitespace-pre-wrap">
+                  {tool.config.mcp.prompt || tool.capabilities?.serverInstructions}
+                </div>
+              </ItemValue>
+            </div>
+          )}
 
         {/* Credential Scope and Created By */}
         {!isGitHubWorkapp(tool) && (
@@ -185,10 +194,9 @@ export function ViewMCPServerDetailsProjectScope({
               <ItemLabel>Project Credential</ItemLabel>
               <ItemValue className="items-center">
                 <div className="flex items-center gap-2">
-                  <Badge variant="code" className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    {tool.credentialReferenceId}
-                  </Badge>
+                  {credentialBadge ?? (
+                    <CredentialBadgeFallback credentialReferenceId={tool.credentialReferenceId} />
+                  )}
                   <ExternalLink
                     href={`/${tenantId}/projects/${projectId}/credentials/${tool.credentialReferenceId}`}
                     className="text-xs"
