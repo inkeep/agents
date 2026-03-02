@@ -133,6 +133,7 @@ export async function introspectGenerate({
     completeAgentIds,
     existingComponentRegistry,
   };
+  setImportStems({});
   const tasks = createGenerationTasks();
   const failures: string[] = [];
   const generatedFiles: string[] = [];
