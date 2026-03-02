@@ -1,12 +1,43 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
 import * as schema from './manage-schema';
 import { createTestManageDatabaseClientNoMigrations } from './test-manage-client';
 
 loadEnvironmentFiles();
+
+/**
+ * Register binary format type parsers for PostgreSQL timestamp types.
+ *
+ * Doltgres has a bug where it returns RowDescription fields with binary format
+ * code (1) for timestamp columns when the extended query protocol is used
+ * (which Drizzle forces via named prepared statements). Without these parsers,
+ * the raw 8-byte binary data passes through as garbage strings.
+ *
+ * Binary TIMESTAMP format: signed int64 microseconds since 2000-01-01 00:00:00 UTC.
+ */
+const PG_EPOCH_MS = 946684800000;
+const TIMESTAMP_OID = 1114;
+const TIMESTAMPTZ_OID = 1184;
+
+function decodeBinaryTimestamp(buf: Buffer): string {
+  const microseconds = buf.readBigInt64BE(0);
+  const ms = Number(microseconds / 1000n) + PG_EPOCH_MS;
+  const iso = new Date(ms).toISOString();
+  return iso.replace('T', ' ').replace('Z', '');
+}
+
+function decodeBinaryTimestampTz(buf: Buffer): string {
+  const microseconds = buf.readBigInt64BE(0);
+  const ms = Number(microseconds / 1000n) + PG_EPOCH_MS;
+  return new Date(ms).toISOString();
+}
+
+// pg's TypeScript definitions don't include the binary format overload, but it's supported at runtime
+(types.setTypeParser as Function)(TIMESTAMP_OID, 'binary', decodeBinaryTimestamp);
+(types.setTypeParser as Function)(TIMESTAMPTZ_OID, 'binary', decodeBinaryTimestampTz);
 
 // Union type that accepts both production (node-postgres) and test (PGlite) clients
 export type AgentsManageDatabaseClient =
