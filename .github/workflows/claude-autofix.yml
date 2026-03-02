@@ -1,0 +1,48 @@
+name: Claude Auto-Apply Review Suggestions
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  autofix:
+    # Only run when claude[bot] submits a review - skip human reviews
+    if: github.event.review.user.login == 'claude[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+
+      - name: Apply review suggestions
+        # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
+        # Tracking: https://github.com/anthropics/claude-code-action/issues/892
+        # Remove pin when issue is resolved and @v1 is stable again
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          claude_args: '--max-turns 20'
+          prompt: |
+            Apply the code suggestions from Claude's PR review on PR #${{ github.event.pull_request.number }} in repo ${{ github.repository }}.
+
+            Steps:
+            1. Fetch Claude's inline review comments:
+               gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments \
+                 --jq '[.[] | select(.user.login == "claude[bot]")]'
+            2. For each comment, check if it contains a concrete code suggestion (e.g. a code block showing a proposed change, a specific line replacement, etc.)
+            3. Apply each concrete suggestion to the corresponding file and location
+            4. Skip any comment that is purely informational, raises an architectural concern, asks a question, or requires a product decision
+            5. If any changes were made:
+               git add -A
+               git commit -m "chore: apply Claude review suggestions"
+               git push
+            6. If no actionable code suggestions exist, do nothing - no commit needed
+
+            IMPORTANT: Only apply clear, unambiguous code-level changes. Do not implement new features, refactor beyond what is explicitly suggested, or make any judgment calls.
