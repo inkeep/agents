@@ -19,7 +19,8 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { styleText } from 'node:util';
 import { runSetup } from '../packages/agents-core/dist/setup/index.js';
 
 const skipPush = process.argv.includes('--skip-push');
@@ -56,7 +57,7 @@ if (isolatedName) {
       cwd: process.cwd(),
     });
   } catch {
-    console.error('\x1b[31mFailed to set up isolated environment.\x1b[0m');
+    console.error(styleText('red', 'Failed to set up isolated environment.'));
     process.exit(1);
   }
 
@@ -70,11 +71,12 @@ if (isolatedName) {
 
   let state;
   try {
-    state = await import(stateFile, {
+    const module = await import(stateFile, {
       with: {
         type: 'json',
       },
     });
+    state = module.default;
   } catch (e) {
     console.error(`Error: failed to parse ${stateFile}: ${e.message}`);
     process.exit(1);
@@ -88,7 +90,7 @@ if (isolatedName) {
   const apiPort = p.agents_api || 3002;
   if (!p.agents_api) {
     console.warn(
-      '\x1b[33m⚠\x1b[0m agents_api port missing from state file, falling back to 3002. Re-run setup to fix.'
+      `${styleText('yellow', '⚠')} agents_api port missing from state file, falling back to 3002. Re-run setup to fix.`
     );
   }
   process.env.AGENTS_API_PORT = String(apiPort);
@@ -118,10 +120,10 @@ if (isolatedName) {
     skipPush,
   });
 
-  console.log(`\n\x1b[1m=== To use this environment ===\x1b[0m`);
+  console.log(styleText('bold', `\n=== To use this environment ===`));
   console.log(`  source <(./scripts/isolated-env.sh env ${isolatedName})`);
   console.log(`  pnpm dev`);
-  console.log(`\n\x1b[1m=== To tear down ===\x1b[0m`);
+  console.log(styleText('bold', `\n=== To tear down ===`));
   console.log(`  ./scripts/isolated-env.sh down ${isolatedName}\n`);
 } else {
   // Default mode: standard setup with docker-compose.dbs.yml
