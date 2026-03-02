@@ -34,7 +34,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
           allowed_bots: "claude"
-          claude_args: '--max-turns 20'
+          claude_args: '--max-turns 20 --allowedTools "Read,Edit,Write,Bash(gh api:*),Bash(gh pr view:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git diff:*)"'
           prompt: |
             Apply the code suggestions from Claude's PR review on PR #${{ github.event.pull_request.number }} in repo ${{ github.repository }}.
 
