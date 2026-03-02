@@ -1,6 +1,6 @@
 import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addStringProperty, createFactoryDefinition, toCamelCase } from '../utils';
+import { addStringProperty, createFactoryDefinition, getImportStem, toCamelCase } from '../utils';
 
 interface ExternalAgentDefinitionData {
   externalAgentId: string;
@@ -50,7 +50,7 @@ export function generateExternalAgentDefinition(data: ExternalAgentDefinitionDat
   if (typeof parsed.credentialReference === 'string') {
     sourceFile.addImportDeclaration({
       namedImports: [toCamelCase(parsed.credentialReference)],
-      moduleSpecifier: `../credentials/${parsed.credentialReference}`,
+      moduleSpecifier: `../credentials/${getImportStem(parsed.credentialReference)}`,
     });
   }
 

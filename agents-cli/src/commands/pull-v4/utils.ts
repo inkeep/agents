@@ -155,6 +155,16 @@ export function buildComponentFileName(id: string, name?: string): string {
   return `${kebabName}-${shortId}.ts`;
 }
 
+let _importStems: Record<string, string> = {};
+
+export function setImportStems(stems: Record<string, string>): void {
+  _importStems = stems;
+}
+
+export function getImportStem(id: string): string {
+  return _importStems[id] ?? id;
+}
+
 export function createUniqueReferenceName(
   baseName: string,
   reservedNames: Set<string>,
