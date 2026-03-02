@@ -48,7 +48,12 @@ if (isolatedName) {
     process.exit(1);
   }
 
-  console.log(`\n\x1b[1m=== Isolated Environment Setup: ${isolatedName} ===\x1b[0m\n`);
+  console.log(
+    styleText(
+      'bold',
+      `\n=== Isolated Environment Setup: ${isolatedName} ===\n`
+    )
+  );
 
   try {
     execSync(`bash "${scriptPath}" setup "${isolatedName}"`, {
