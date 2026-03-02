@@ -1907,16 +1907,14 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(202);
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
-        userId: 'user-abc',
-        tenantId: 'tenant-123',
-        projectId: 'project-123',
+      await vi.waitFor(() => {
+        expect(canUseProjectStrictMock).toHaveBeenCalledWith({
+          userId: 'user-abc',
+          tenantId: 'tenant-123',
+          projectId: 'project-123',
+        });
+        expect(createOrGetConversationMock).toHaveBeenCalled();
       });
-
-      // Execution proceeded — conversation was created
-      expect(createOrGetConversationMock).toHaveBeenCalled();
     });
 
     it('should mark invocation failed and skip execution when user lacks permission', async () => {
@@ -1937,17 +1935,16 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(202);
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      expect(updateStatusFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: 'failed',
-            errorMessage: expect.stringContaining("no longer has 'use' permission"),
-          }),
-        })
-      );
-      // Execution did not proceed — no conversation created
+      await vi.waitFor(() => {
+        expect(updateStatusFn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: 'failed',
+              errorMessage: expect.stringContaining("no longer has 'use' permission"),
+            }),
+          })
+        );
+      });
       expect(createOrGetConversationMock).not.toHaveBeenCalled();
     });
 
@@ -1969,17 +1966,16 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(202);
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      expect(updateStatusFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: 'failed',
-            errorMessage: expect.stringContaining('Permission check failed'),
-          }),
-        })
-      );
-      // Execution did not proceed — no conversation created
+      await vi.waitFor(() => {
+        expect(updateStatusFn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: 'failed',
+              errorMessage: expect.stringContaining('Permission check failed'),
+            }),
+          })
+        );
+      });
       expect(createOrGetConversationMock).not.toHaveBeenCalled();
     });
 
@@ -1997,11 +1993,10 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(202);
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
+      await vi.waitFor(() => {
+        expect(createOrGetConversationMock).toHaveBeenCalled();
+      });
       expect(canUseProjectStrictMock).not.toHaveBeenCalled();
-      // Execution proceeded — conversation was created
-      expect(createOrGetConversationMock).toHaveBeenCalled();
     });
   });
 });
