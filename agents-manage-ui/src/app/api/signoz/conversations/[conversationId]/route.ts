@@ -168,9 +168,10 @@ function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
 function buildConversationListPayload(
   conversationId: string,
   start = Date.now() - DEFAULT_LOOKBACK_MS,
-  end = Date.now()
+  end = Date.now(),
+  projectId?: string
 ) {
-  const baseFilters = [
+  const baseFilters: any[] = [
     {
       key: {
         key: SPAN_KEYS.CONVERSATION_ID,
@@ -180,6 +181,17 @@ function buildConversationListPayload(
       value: conversationId,
     },
   ];
+
+  if (projectId) {
+    baseFilters.push({
+      key: {
+        key: SPAN_KEYS.PROJECT_ID,
+        ...QUERY_FIELD_CONFIGS.STRING_TAG,
+      },
+      op: OPERATORS.EQUALS,
+      value: projectId,
+    });
+  }
 
   const listQuery = (queryName: string, items: any[], selectColumns: any[], limit?: number) => ({
     dataSource: DATA_SOURCES.TRACES,
@@ -203,6 +215,7 @@ function buildConversationListPayload(
     end,
     step: QUERY_DEFAULTS.STEP,
     variables: {},
+    ...(projectId && { projectId }),
     compositeQuery: {
       queryType: QUERY_TYPES.BUILDER,
       panelType: PANEL_TYPES.LIST,
@@ -1282,6 +1295,7 @@ export async function GET(
   // Get tenantId and projectId from URL search params
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
+  const projectId = url.searchParams.get('projectId') || undefined;
 
   // Optional time range params to narrow the ClickHouse scan window
   const startParam = url.searchParams.get('start');
@@ -1296,7 +1310,7 @@ export async function GET(
     const end = endParam ? Number(endParam) : now;
 
     // Build the query payload
-    const payload = buildConversationListPayload(conversationId, start, end);
+    const payload = buildConversationListPayload(conversationId, start, end, projectId);
 
     // Single SigNoz builder query — allSpanAttributes SQL removed from initial load
     // (span details are now fetched lazily via /api/signoz/spans/[spanId])
