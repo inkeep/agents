@@ -417,7 +417,7 @@ app.openapi(
               triggers: await listScheduledTriggers(configDb)({
                 scopes: { tenantId, projectId, agentId },
               }),
-            })),
+            }))
           ),
           Promise.all(
             agents.map(async (agentId) => ({
@@ -425,7 +425,7 @@ app.openapi(
               triggers: await listTriggers(configDb)({
                 scopes: { tenantId, projectId, agentId },
               }),
-            })),
+            }))
           ),
         ]);
         for (const { agentId, triggers } of scheduledResults) {
