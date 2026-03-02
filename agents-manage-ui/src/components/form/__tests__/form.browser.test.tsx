@@ -13,11 +13,25 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
+// @ts-expect-error -- worker params exist in vite
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker';
+// @ts-expect-error -- worker param exist in vite
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker.js?worker';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
 
 vi.mock('@/lib/monaco-editor/setup-monaco-workers', () => {
+  globalThis.MonacoEnvironment = {
+    getWorker(_workerId: string, label: string) {
+      console.info('setup-workers/vite', { label });
+      switch (label) {
+        case 'json':
+          return new JsonWorker();
+      }
+      return new EditorWorker();
+    },
+  };
   return {};
 });
 
@@ -127,7 +141,7 @@ describe('Form', () => {
   }, 30_000);
 
   test('should properly highlight nested error state', async () => {
-      agentStore.setState({ jsonSchemaMode: true });
+    agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
 
     await waitFor(async () => {
