@@ -40,13 +40,18 @@ export default defineConfig({
             enabled: true,
             headless: true,
             provider: playwright({
-              // With the larger viewport, we use DPR=2 so screenshots match CSS pixel sizes.
-              // contextOptions: { viewport: { width: 2560, height: 1440 } },
-              launchOptions: {
-                // Applying the `antialiased` class to <body> and enabling this option
-                // significantly reduces pixel mismatches (<1%) between macOS and Linux.
-                args: ['--font-render-hinting=none'],
-              },
+              ...(process.env.PW_TEST_CONNECT_WS_ENDPOINT
+                ? {
+                    connectOptions: {
+                      wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
+                      exposeNetwork: '<loopback>',
+                    },
+                  }
+                : {
+                    launchOptions: {
+                      args: ['--font-render-hinting=none'],
+                    },
+                  }),
             }),
             instances: [{ browser: 'chromium' }],
             expect: {
