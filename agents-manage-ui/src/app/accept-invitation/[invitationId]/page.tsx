@@ -352,7 +352,7 @@ export default function AcceptInvitationPage({
           <CardContent className="space-y-5">
             {error && (
               <Alert variant="destructive" className="border-destructive/10 dark:border-border">
-                <AlertCircleIcon className="h-4 w-4" />
+                <AlertCircleIcon aria-hidden className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -366,12 +366,12 @@ export default function AcceptInvitationPage({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
                     Redirecting...
                   </>
                 ) : (
                   <>
-                    <GoogleColorIcon />
+                    <GoogleColorIcon aria-hidden />
                     Continue with Google
                   </>
                 )}
@@ -387,12 +387,12 @@ export default function AcceptInvitationPage({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
                     Redirecting...
                   </>
                 ) : (
                   <>
-                    <InkeepIcon />
+                    <InkeepIcon aria-hidden />
                     Continue with SSO
                   </>
                 )}
