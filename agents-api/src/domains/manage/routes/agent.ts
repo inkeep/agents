@@ -5,7 +5,6 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -16,7 +15,6 @@ import {
   getAgentSubAgentInfos,
   getFullAgentDefinition,
   listAgentsPaginated,
-  listSubAgents,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -27,7 +25,7 @@ import {
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import runDbClient from '../../../data/db/runDbClient';
+import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
@@ -344,23 +342,8 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
-    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    // Get all subAgentIds for this agent before deleting
-    const subAgents = await listSubAgents(db)({
-      scopes: { tenantId, projectId, agentId: id },
-    });
-    const subAgentIds = subAgents.map((sa) => sa.id);
-
-    // Delete runtime entities for this agent on this branch
-    await cascadeDeleteByAgent(runDbClient)({
-      scopes: { tenantId, projectId, agentId: id },
-      fullBranchName: resolvedRef.name,
-      subAgentIds,
-    });
-
-    // Delete the agent from the config DB
     const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
@@ -371,6 +354,8 @@ app.openapi(
         message: 'Agent not found',
       });
     }
+
+    clearWorkspaceConnectionCache();
 
     return c.body(null, 204);
   }

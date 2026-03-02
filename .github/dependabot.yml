@@ -4,6 +4,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       docker-compose:
         patterns:
@@ -13,21 +17,27 @@ updates:
     directory: '/create-agents-template'
     schedule:
       interval: 'weekly'
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       docker-compose:
         patterns:
           - '*'
 
   - package-ecosystem: 'npm'
-    directory: '/create-agents-template'
+    directories:
+      - '/create-agents-template/**'
     schedule:
-      interval: 'weekly'
+      interval: 'daily'
+    versioning-strategy: increase
     allow:
-      - dependency-name: '@inkeep/*'
+      - dependency-name: '@inkeep/agents-*'
     groups:
       inkeep-agents:
         patterns:
-          - '@inkeep/*'
+          - '@inkeep/agents-*'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

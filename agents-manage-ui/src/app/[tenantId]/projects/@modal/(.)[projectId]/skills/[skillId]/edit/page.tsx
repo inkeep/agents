@@ -1,30 +1,11 @@
-'use client';
+import { fetchProjectPermissions } from '@/lib/api/projects';
+import { SkillEditModal } from './skill-edit-modal';
 
-import { useRouter } from 'next/navigation';
-import { SkillForm } from '@/components/skills/form/skill-form';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-
-export default function Page(
+export default async function Page(
   _props: PageProps<'/[tenantId]/projects/[projectId]/skills/[skillId]/edit'>
 ) {
-  'use memo';
-  const router = useRouter();
+  const { tenantId, projectId } = await _props.params;
+  const permissions = await fetchProjectPermissions(tenantId, projectId);
 
-  return (
-    <Dialog open onOpenChange={router.back}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Edit skill</DialogTitle>
-          <DialogDescription className="sr-only">Edit skill details.</DialogDescription>
-        </DialogHeader>
-        <SkillForm onSuccess={router.back} />
-      </DialogContent>
-    </Dialog>
-  );
+  return <SkillEditModal readOnly={!permissions.canEdit} />;
 }

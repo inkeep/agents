@@ -5,8 +5,9 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
-import { type ArtifactInfo, detectOversizedArtifact } from '../utils/artifact-utils';
+import { type CompressedArtifactInfo, detectOversizedArtifact } from '../utils/artifact-utils';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
+import { estimateTokens as estimateTokensUtil } from '../utils/token-estimator';
 import { tracer } from '../utils/tracer';
 import { agentSessionManager } from './AgentSession';
 
@@ -32,13 +33,11 @@ export interface CompressionEventData {
   compressionType: 'mid_generation' | 'conversation_level';
 }
 
-/**
- * Base compressor class containing shared functionality for all compression types
- */
 export abstract class BaseCompressor {
   protected processedToolCalls = new Set<string>();
   protected cumulativeSummary: ConversationSummary | null = null;
   protected contextWindowSize?: number;
+  private toolCallInputMap = new Map<string, unknown>();
 
   constructor(
     protected sessionId: string,
@@ -49,51 +48,28 @@ export abstract class BaseCompressor {
     protected summarizerModel?: ModelSettings,
     protected baseModel?: ModelSettings
   ) {
-    // Calculate context window size from baseModel if available
     if (baseModel) {
       const modelContextInfo = getModelContextWindow(baseModel);
       this.contextWindowSize = modelContextInfo.contextWindow ?? undefined;
-      logger.debug(
-        {
-          sessionId,
-          model: baseModel.model,
-          contextWindowSize: this.contextWindowSize,
-        },
-        'BaseCompressor initialized with context window size'
-      );
     }
   }
 
-  /**
-   * Get the hard limit for compression decisions
-   */
   getHardLimit(): number {
     return this.config.hardLimit;
   }
 
-  /**
-   * Estimate tokens (4 chars = 1 token)
-   */
   protected estimateTokens(content: any): number {
-    const text = typeof content === 'string' ? content : JSON.stringify(content);
-    return Math.ceil(text.length / 4);
+    return estimateTokensUtil(typeof content === 'string' ? content : JSON.stringify(content));
   }
 
-  /**
-   * Calculate total context size for messages
-   */
   protected calculateContextSize(messages: any[]): number {
-    const messageTokens = messages.reduce((total, msg) => {
-      let msgTokens = 0;
-
-      // Handle Vercel AI SDK message format
+    return messages.reduce((total, msg) => {
       if (Array.isArray(msg.content)) {
-        // Content is array of content blocks
         for (const block of msg.content) {
           if (block.type === 'text') {
-            msgTokens += this.estimateTokens(block.text || '');
+            total += this.estimateTokens(block.text || '');
           } else if (block.type === 'tool-call') {
-            msgTokens += this.estimateTokens(
+            total += this.estimateTokens(
               JSON.stringify({
                 toolCallId: block.toolCallId,
                 toolName: block.toolName,
@@ -101,7 +77,7 @@ export abstract class BaseCompressor {
               })
             );
           } else if (block.type === 'tool-result') {
-            msgTokens += this.estimateTokens(
+            total += this.estimateTokens(
               JSON.stringify({
                 toolCallId: block.toolCallId,
                 toolName: block.toolName,
@@ -111,26 +87,18 @@ export abstract class BaseCompressor {
           }
         }
       } else if (typeof msg.content === 'string') {
-        // Content is a simple string
-        msgTokens += this.estimateTokens(msg.content);
+        total += this.estimateTokens(msg.content);
       } else if (msg.content) {
-        // Fallback - try to stringify the content
-        msgTokens += this.estimateTokens(JSON.stringify(msg.content));
+        total += this.estimateTokens(JSON.stringify(msg.content));
       }
-
-      return total + msgTokens;
+      return total;
     }, 0);
-
-    return messageTokens;
   }
 
-  /**
-   * Save tool results as artifacts
-   */
   async saveToolResultsAsArtifacts(
     messages: any[],
-    startIndex: number = 0
-  ): Promise<Record<string, ArtifactInfo>> {
+    startIndex = 0
+  ): Promise<Record<string, CompressedArtifactInfo>> {
     const session = agentSessionManager.getSession(this.sessionId);
     if (!session) {
       throw new Error(`No session found: ${this.sessionId}`);
@@ -138,136 +106,98 @@ export abstract class BaseCompressor {
 
     const messagesToProcess = messages.slice(startIndex);
 
-    // Step 1: Extract all tool call IDs and batch lookup existing artifacts (solve N+1)
-    const toolCallIds = this.extractToolCallIds(messagesToProcess);
-    const existingArtifacts = await this.batchFindExistingArtifacts(toolCallIds);
-
-    const toolCallToArtifactMap: Record<string, ArtifactInfo> = {};
-
-    // Step 2: Process messages with existing artifacts cache
+    this.toolCallInputMap = new Map();
     for (const message of messagesToProcess) {
-      // Convert database format to SDK format if needed
-      this.convertDatabaseFormatMessage(message);
-
-      // Process SDK format messages
       if (Array.isArray(message.content)) {
-        const messageArtifacts = await this.processMessageToolResults(
-          message,
-          session,
-          existingArtifacts
-        );
-        Object.assign(toolCallToArtifactMap, messageArtifacts);
+        for (const block of message.content) {
+          if (block.type === 'tool-call' && block.toolCallId != null) {
+            this.toolCallInputMap.set(block.toolCallId, block.input);
+          }
+        }
+      }
+    }
+
+    const toolCallIds = this.extractToolCallIds(messagesToProcess);
+    const existingArtifacts = await this.findExistingArtifacts([...new Set(toolCallIds)]);
+    const toolCallToArtifactMap: Record<string, CompressedArtifactInfo> = {};
+
+    for (const message of messagesToProcess) {
+      this.convertDatabaseFormatMessage(message);
+      if (Array.isArray(message.content)) {
+        for (const block of message.content) {
+          if (block.type === 'tool-result') {
+            const artifactInfo = await this.processToolResult(block, session, existingArtifacts);
+            if (artifactInfo) {
+              toolCallToArtifactMap[block.toolCallId] = artifactInfo;
+            }
+          }
+        }
       }
     }
 
     return toolCallToArtifactMap;
   }
 
-  /**
-   * Extract all tool call IDs from messages for batch lookup
-   */
-  private extractToolCallIds(messages: any[]): string[] {
-    const toolCallIds: string[] = [];
-
-    for (const message of messages) {
-      // Handle database format
-      if (message.messageType === 'tool-result' && !Array.isArray(message.content)) {
-        const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
-        if (toolCallId && !this.shouldSkipToolCall(message.metadata?.a2a_metadata?.toolName)) {
-          toolCallIds.push(toolCallId);
-        }
+  private async findExistingArtifacts(toolCallIds: string[]): Promise<
+    Map<
+      string,
+      {
+        artifactId: string;
+        isOversized: boolean;
+        toolArgs?: unknown;
+        toolName?: string;
+        summaryData?: Record<string, any>;
       }
-
-      // Handle SDK format
-      if (Array.isArray(message.content)) {
-        for (const block of message.content) {
-          if (block.type === 'tool-result' && !this.shouldSkipToolCall(block.toolName)) {
-            toolCallIds.push(block.toolCallId);
-          }
-        }
+    >
+  > {
+    const result = new Map<
+      string,
+      {
+        artifactId: string;
+        isOversized: boolean;
+        toolArgs?: unknown;
+        toolName?: string;
+        summaryData?: Record<string, any>;
       }
-    }
+    >();
 
-    return [...new Set(toolCallIds)]; // Remove duplicates
-  }
-
-  /**
-   * Batch lookup existing artifacts for multiple tool call IDs (solves N+1 query problem)
-   */
-  private async batchFindExistingArtifacts(toolCallIds: string[]): Promise<Map<string, string>> {
-    const existingArtifacts = new Map<string, string>();
-
-    if (toolCallIds.length === 0) {
-      return existingArtifacts;
-    }
+    if (toolCallIds.length === 0) return result;
 
     try {
-      // Use SQL IN clause to batch query all tool call IDs at once
-      const artifacts = await this.queryExistingArtifactsBatch(toolCallIds);
+      const artifacts = await getLedgerArtifacts(runDbClient)({
+        scopes: { tenantId: this.tenantId, projectId: this.projectId },
+        toolCallIds,
+      });
 
       for (const artifact of artifacts) {
         if (artifact.toolCallId) {
-          existingArtifacts.set(artifact.toolCallId, artifact.artifactId);
+          const dataPart = artifact.parts?.find(
+            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
+              p.kind === 'data'
+          );
+          result.set(artifact.toolCallId, {
+            artifactId: artifact.artifactId,
+            isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
+            toolArgs: artifact.metadata?.toolArgs,
+            toolName: artifact.metadata?.toolName as string | undefined,
+            summaryData: dataPart?.data?.summary ?? dataPart?.data,
+          });
         }
       }
-
-      logger.debug(
-        {
-          sessionId: this.sessionId,
-          toolCallIds: toolCallIds.length,
-          foundArtifacts: existingArtifacts.size,
-        },
-        'Batched artifact lookup completed'
-      );
     } catch (error) {
-      logger.debug(
+      logger.warn(
         {
           sessionId: this.sessionId,
+          toolCallCount: toolCallIds.length,
           error: error instanceof Error ? error.message : String(error),
         },
-        'Batch artifact lookup failed, will create new artifacts'
+        'Artifact batch lookup failed — existing artifacts may not be reused'
       );
     }
 
-    return existingArtifacts;
+    return result;
   }
 
-  /**
-   * Query database for existing artifacts using enhanced getLedgerArtifacts with batch support
-   */
-  private async queryExistingArtifactsBatch(toolCallIds: string[]): Promise<any[]> {
-    if (toolCallIds.length === 0) {
-      return [];
-    }
-
-    try {
-      // Use the enhanced getLedgerArtifacts with toolCallIds for batch query
-      const artifacts = await getLedgerArtifacts(runDbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-        toolCallIds: toolCallIds,
-      });
-
-      // Map to expected format for compatibility
-      return artifacts.map((artifact) => ({
-        artifactId: artifact.artifactId,
-        toolCallId: artifact.toolCallId,
-      }));
-    } catch (error) {
-      logger.debug(
-        {
-          sessionId: this.sessionId,
-          toolCallIds: toolCallIds.length,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'Batch artifact lookup failed'
-      );
-      return [];
-    }
-  }
-
-  /**
-   * Convert database format tool-result messages to Vercel AI SDK format
-   */
   private convertDatabaseFormatMessage(message: any): void {
     if (
       message.messageType === 'tool-result' &&
@@ -276,117 +206,56 @@ export abstract class BaseCompressor {
     ) {
       const toolName = message.metadata?.a2a_metadata?.toolName;
       const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
-
-      // Skip internal tools
-      if (this.shouldSkipToolCall(toolName)) {
-        return;
-      }
-
+      if (this.shouldSkipToolCall(toolName)) return;
       if (toolName && toolCallId) {
-        // Convert to SDK format
+        const a2a = message.metadata?.a2a_metadata;
         message.content = [
           {
             type: 'tool-result',
-            toolCallId: toolCallId,
-            toolName: toolName,
-            output: message.content.text,
+            toolCallId,
+            toolName,
+            input: a2a?.toolArgs ?? null,
+            output: a2a?.toolOutput ?? message.content.text,
           },
         ];
       }
     }
   }
 
-  /**
-   * Process all tool results in a message
-   */
-  private async processMessageToolResults(
-    message: any,
-    session: any,
-    existingArtifacts: Map<string, string>
-  ): Promise<Record<string, ArtifactInfo>> {
-    const toolCallToArtifactMap: Record<string, ArtifactInfo> = {};
-
-    for (const block of message.content) {
-      if (block.type === 'tool-result') {
-        const artifactInfo = await this.processToolResult(
-          block,
-          message,
-          session,
-          existingArtifacts
-        );
-        if (artifactInfo) {
-          toolCallToArtifactMap[block.toolCallId] = artifactInfo;
-        }
-      }
-    }
-
-    return toolCallToArtifactMap;
-  }
-
-  /**
-   * Process a single tool result block
-   */
   private async processToolResult(
     block: any,
-    message: any,
     session: any,
-    existingArtifacts: Map<string, string>
-  ): Promise<ArtifactInfo | null> {
-    // Skip internal tools
+    existingArtifacts: Map<
+      string,
+      {
+        artifactId: string;
+        isOversized: boolean;
+        toolArgs?: unknown;
+        toolName?: string;
+        summaryData?: Record<string, any>;
+      }
+    >
+  ): Promise<CompressedArtifactInfo | null> {
     if (this.shouldSkipToolCall(block.toolName)) {
-      logger.debug(
-        {
-          toolCallId: block.toolCallId,
-          toolName: block.toolName,
-        },
-        'Skipping special tool - not creating artifacts'
-      );
       this.processedToolCalls.add(block.toolCallId);
       return null;
     }
 
-    // Skip already processed tool calls
-    if (this.processedToolCalls.has(block.toolCallId)) {
-      logger.debug(
-        {
-          toolCallId: block.toolCallId,
-          toolName: block.toolName,
-        },
-        'Skipping already processed tool call'
-      );
-      return null;
-    }
+    if (this.processedToolCalls.has(block.toolCallId)) return null;
 
-    // Check for existing artifact in cache (no more N+1 queries!)
-    const existingArtifactId = existingArtifacts.get(block.toolCallId);
-    if (existingArtifactId) {
-      logger.debug(
-        {
-          toolCallId: block.toolCallId,
-          existingArtifactId: existingArtifactId,
-          toolName: block.toolName,
-        },
-        'Reusing existing artifact from batch lookup'
-      );
-      // Existing artifact - assume not oversized since we don't have metadata for existing artifacts
-      // LIMITATION: This assumption is safe when compressing new conversations, but could be problematic
-      // when re-compressing conversations that already contain oversized artifacts. In such cases,
-      // the distillation prompt may incorrectly try to include the full tool result output instead
-      // of just metadata. To fix this properly, getLedgerArtifacts() would need to return the
-      // metadata.isOversized flag along with artifact IDs.
+    const existing = existingArtifacts.get(block.toolCallId);
+    if (existing) {
       return {
-        artifactId: existingArtifactId,
-        isOversized: false,
+        artifactId: existing.artifactId,
+        isOversized: existing.isOversized,
+        toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
+        summaryData: existing.summaryData,
       };
     }
 
-    // Create new artifact
-    return await this.createNewArtifact(block, message, session);
+    return await this.createNewArtifact(block, session);
   }
 
-  /**
-   * Check if a tool should be skipped
-   */
   private shouldSkipToolCall(toolName: string): boolean {
     return (
       toolName === 'get_reference_artifact' ||
@@ -397,114 +266,53 @@ export abstract class BaseCompressor {
     );
   }
 
-  /**
-   * Create a new artifact for a tool call
-   */
-  private async createNewArtifact(
-    block: any,
-    message: any,
-    session: any
-  ): Promise<ArtifactInfo | null> {
-    const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
-
-    // Find corresponding tool input
-    const toolInput = this.findToolInput(message, block.toolCallId);
-
-    // Prepare tool result data
-    const toolResultData = {
-      toolName: block.toolName,
-      toolInput: toolInput,
-      toolResult: this.removeStructureHints(block.output),
-      compressedAt: new Date().toISOString(),
-    };
-
-    // Skip if data is empty
-    if (this.isEmpty(toolResultData)) {
-      logger.debug(
-        {
-          toolName: block.toolName,
-          toolCallId: block.toolCallId,
-        },
-        'Skipping empty tool result'
-      );
-      return null;
+  private extractToolCallIds(messages: any[]): string[] {
+    const toolCallIds: string[] = [];
+    for (const message of messages) {
+      if (message.messageType === 'tool-result' && !Array.isArray(message.content)) {
+        const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
+        if (toolCallId && !this.shouldSkipToolCall(message.metadata?.a2a_metadata?.toolName)) {
+          toolCallIds.push(toolCallId);
+        }
+      }
+      if (Array.isArray(message.content)) {
+        for (const block of message.content) {
+          if (block.type === 'tool-result' && !this.shouldSkipToolCall(block.toolName)) {
+            toolCallIds.push(block.toolCallId);
+          }
+        }
+      }
     }
-
-    // Create artifact data
-    const artifactData = this.buildArtifactData(artifactId, block, toolResultData);
-
-    // Final validation
-    if (!this.validateArtifactData(artifactData)) {
-      logger.debug(
-        {
-          artifactId,
-          toolName: block.toolName,
-          toolCallId: block.toolCallId,
-        },
-        'Skipping empty compression artifact'
-      );
-      return null;
-    }
-
-    // Save artifact
-    session.recordEvent('artifact_saved', this.sessionId, artifactData);
-    this.processedToolCalls.add(block.toolCallId);
-
-    logger.debug(
-      {
-        artifactId,
-        toolName: block.toolName,
-        toolCallId: block.toolCallId,
-      },
-      'Created new compression artifact'
-    );
-
-    // Extract metadata for oversized detection
-    return {
-      artifactId,
-      isOversized: artifactData.metadata?.isOversized || false,
-      toolArgs: artifactData.metadata?.toolArgs,
-      structureInfo: artifactData.summaryData?._structureInfo,
-      oversizedWarning: artifactData.summaryData?._oversizedWarning,
-    };
+    return toolCallIds;
   }
 
-  /**
-   * Find tool input for a given tool call ID
-   */
-  private findToolInput(message: any, toolCallId: string): any {
-    if (!Array.isArray(message.content)) {
-      return null;
-    }
-
-    const toolCall = message.content.find(
-      (b: any) => b.type === 'tool-call' && b.toolCallId === toolCallId
-    );
-    return toolCall?.input || null;
+  private isEmpty(data: any): boolean {
+    if (!data.toolResult) return true;
+    if (typeof data.toolResult === 'object' && Object.keys(data.toolResult).length === 0)
+      return true;
+    return false;
   }
 
-  /**
-   * Build artifact data structure
-   */
   private buildArtifactData(artifactId: string, block: any, toolResultData: any): any {
-    // Detect if artifact data is oversized
-    const oversizedDetection = detectOversizedArtifact(toolResultData, this.contextWindowSize, {
+    const toolInput = block.input ?? this.toolCallInputMap.get(block.toolCallId) ?? null;
+
+    const oversized = detectOversizedArtifact(toolResultData, this.contextWindowSize, {
       artifactId,
       toolCallId: block.toolCallId,
       toolName: block.toolName,
     });
 
-    // Build summary data with oversized warning if needed
-    const summaryData: any = {
+    const summaryData: Record<string, any> = {
       toolCallId: block.toolCallId,
       toolName: block.toolName,
-      resultPreview: this.generateResultPreview(toolResultData.toolResult),
+      toolInput: this.generatePreview(toolInput),
+      resultPreview: this.generatePreview(toolResultData.toolResult),
       note: `Tool result from ${block.toolName} - compressed to save context space`,
     };
 
-    if (oversizedDetection.isOversized) {
-      summaryData._oversizedWarning = oversizedDetection.oversizedWarning;
-      summaryData._structureInfo = oversizedDetection.structureInfo;
+    if (oversized.isOversized) {
+      summaryData._oversizedWarning = oversized.oversizedWarning;
+      summaryData._structureInfo = oversized.structureInfo;
     }
 
     return {
@@ -520,78 +328,151 @@ export abstract class BaseCompressor {
       metadata: {
         toolCallId: block.toolCallId,
         toolName: block.toolName,
-        toolArgs: block.input || null,
+        toolArgs: toolInput ?? null,
         compressionReason: this.getCompressionType(),
-        isOversized: oversizedDetection.isOversized,
-        originalTokenSize: oversizedDetection.originalTokenSize,
-        contextWindowSize: oversizedDetection.contextWindowSize,
-        retrievalBlocked: oversizedDetection.retrievalBlocked,
+        isOversized: oversized.isOversized,
+        originalTokenSize: oversized.originalTokenSize,
+        contextWindowSize: oversized.contextWindowSize,
+        retrievalBlocked: oversized.retrievalBlocked,
       },
       summaryData,
       data: toolResultData,
     };
   }
 
-  /**
-   * Validate artifact data has meaningful content
-   */
-  private validateArtifactData(artifactData: any): boolean {
-    const fullData = artifactData.data;
-    return (
-      fullData &&
-      typeof fullData === 'object' &&
-      Object.keys(fullData).length > 0 &&
-      fullData.toolResult &&
-      (typeof fullData.toolResult !== 'object' || Object.keys(fullData.toolResult).length > 0)
-    );
+  private async createNewArtifact(
+    block: any,
+    session: any
+  ): Promise<CompressedArtifactInfo | null> {
+    const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
+    const toolInput = block.input ?? this.toolCallInputMap.get(block.toolCallId) ?? null;
+    const toolResultData = {
+      toolName: block.toolName,
+      toolInput,
+      toolResult: this.removeStructureHints(block.output),
+      compressedAt: new Date().toISOString(),
+    };
+
+    if (this.isEmpty(toolResultData)) return null;
+
+    const artifactData = this.buildArtifactData(artifactId, block, toolResultData);
+
+    session.recordEvent('artifact_saved', this.sessionId, artifactData);
+    this.processedToolCalls.add(block.toolCallId);
+
+    return {
+      artifactId,
+      isOversized: artifactData.metadata.isOversized,
+      toolArgs: artifactData.metadata.toolArgs ?? undefined,
+      structureInfo: artifactData.summaryData._structureInfo,
+      oversizedWarning: artifactData.summaryData._oversizedWarning,
+      summaryData: artifactData.summaryData,
+    };
   }
 
-  /**
-   * Create conversation summary using distillConversation
-   */
+  protected formatMessagesForDistillation(
+    messages: any[],
+    toolCallToArtifactMap: Record<string, CompressedArtifactInfo> | undefined,
+    maxTotalChars?: number
+  ): string {
+    let nonToolResultChars = 0;
+    let numToolResults = 0;
+
+    for (const msg of messages) {
+      if (typeof msg.content === 'string') {
+        nonToolResultChars += msg.content.length;
+      } else if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          if (block.type === 'text') {
+            nonToolResultChars += (block.text || '').length;
+          } else if (block.type === 'tool-call') {
+            nonToolResultChars +=
+              JSON.stringify(block.input || {}).length + (block.toolName || '').length;
+          } else if (block.type === 'tool-result' && toolCallToArtifactMap?.[block.toolCallId]) {
+            numToolResults++;
+          }
+        }
+      } else if (msg.content?.text) {
+        nonToolResultChars += msg.content.text.length;
+      }
+    }
+
+    const perResultLimit =
+      maxTotalChars && numToolResults > 0
+        ? Math.max(200, Math.floor((maxTotalChars - nonToolResultChars) / numToolResults))
+        : maxTotalChars;
+
+    return messages
+      .map((msg: any) => {
+        const parts: string[] = [];
+
+        if (typeof msg.content === 'string') {
+          parts.push(msg.content);
+        } else if (Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block.type === 'text') {
+              parts.push(block.text);
+            } else if (block.type === 'tool-call') {
+              parts.push(
+                `[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`
+              );
+            } else if (block.type === 'tool-result') {
+              const artifactInfo = toolCallToArtifactMap?.[block.toolCallId];
+              // Intentionally skip tool results without artifact mappings (skipped/internal tools).
+              // Only artifact-backed results are included so the distillation prompt stays compact.
+              if (artifactInfo) {
+                const summary = artifactInfo.summaryData
+                  ? JSON.stringify(artifactInfo.summaryData)
+                  : '';
+                const truncated =
+                  perResultLimit && summary.length > perResultLimit
+                    ? `${summary.slice(0, perResultLimit)}...`
+                    : summary;
+                parts.push(
+                  `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]\n${truncated}`
+                );
+              } else {
+                logger.debug(
+                  { toolCallId: block.toolCallId, toolName: block.toolName },
+                  'Skipping tool result without artifact mapping in distillation'
+                );
+              }
+            }
+          }
+        } else if (msg.content?.text) {
+          parts.push(msg.content.text);
+        }
+
+        return parts.length > 0 ? `${msg.role || 'system'}: ${parts.join('\n')}` : '';
+      })
+      .filter((line) => line.trim().length > 0)
+      .join('\n\n');
+  }
+
   protected async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, ArtifactInfo>
+    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
   ): Promise<any> {
     const summary = await distillConversation({
-      messages: messages,
       conversationId: this.conversationId,
       currentSummary: this.cumulativeSummary,
       summarizerModel: this.summarizerModel,
-      toolCallToArtifactMap: toolCallToArtifactMap,
+      messageFormatter: (maxChars) =>
+        this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
     });
-
-    // Update cumulative summary for next compression cycle
     this.cumulativeSummary = summary;
-
     return summary;
   }
 
-  /**
-   * Record compression event in session
-   */
-  /**
-   * Generate a preview of the tool result for the artifact summary
-   */
-  protected generateResultPreview(toolResult: any): string {
+  protected generatePreview(value: any, maxChars = 150): string | null {
+    if (value == null) return null;
     try {
-      if (!toolResult) return 'No result data';
-
-      let preview: string;
-      if (typeof toolResult === 'string') {
-        preview = toolResult;
-      } else if (typeof toolResult === 'object') {
-        preview = JSON.stringify(toolResult);
-      } else {
-        preview = String(toolResult);
-      }
-
-      // Limit to 150 characters and clean up
-      return (
-        preview.slice(0, 150).replace(/\s+/g, ' ').trim() + (preview.length > 150 ? '...' : '')
-      );
+      const str = typeof value === 'string' ? value : JSON.stringify(value);
+      return str.length > maxChars
+        ? `${str.slice(0, maxChars).replace(/\s+/g, ' ').trim()}...`
+        : str.replace(/\s+/g, ' ').trim();
     } catch {
-      return 'Preview unavailable';
+      return null;
     }
   }
 
@@ -602,136 +483,43 @@ export abstract class BaseCompressor {
     }
   }
 
-  /**
-   * Check if tool result data is effectively empty
-   */
-  protected isEmpty(toolResultData: any): boolean {
-    if (!toolResultData || typeof toolResultData !== 'object') {
-      return true;
-    }
-
-    // Check if toolResult is empty/null/undefined
-    const { toolResult } = toolResultData;
-    if (!toolResult) {
-      return true;
-    }
-
-    // Check if toolResult is an empty object
-    if (typeof toolResult === 'object' && !Array.isArray(toolResult)) {
-      const keys = Object.keys(toolResult);
-      if (keys.length === 0) {
-        return true;
-      }
-
-      // Check if all values are empty/null/undefined
-      return keys.every((key) => {
-        const value = toolResult[key];
-        if (value === null || value === undefined || value === '') {
-          return true;
-        }
-        if (Array.isArray(value) && value.length === 0) {
-          return true;
-        }
-        if (typeof value === 'object' && Object.keys(value).length === 0) {
-          return true;
-        }
-        return false;
-      });
-    }
-
-    // Check if toolResult is an empty array
-    if (Array.isArray(toolResult) && toolResult.length === 0) {
-      return true;
-    }
-
-    // Check if toolResult is an empty string
-    if (typeof toolResult === 'string' && toolResult.trim() === '') {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Recursively remove _structureHints from an object
-   */
   protected removeStructureHints(obj: any): any {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => this.removeStructureHints(item));
-    }
-
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map((item) => this.removeStructureHints(item));
     if (typeof obj === 'object') {
       const cleaned: any = {};
       for (const [key, value] of Object.entries(obj)) {
-        if (key !== '_structureHints') {
-          cleaned[key] = this.removeStructureHints(value);
-        }
+        if (key !== '_structureHints') cleaned[key] = this.removeStructureHints(value);
       }
       return cleaned;
     }
-
     return obj;
   }
 
-  /**
-   * Get current compression summary
-   */
   getCompressionSummary(): ConversationSummary | null {
     return this.cumulativeSummary;
   }
 
-  /**
-   * Clean up memory by clearing processed tool calls and optionally resetting summary
-   * Call this at the end of agent generation or after compression cycles
-   */
   cleanup(options: { resetSummary?: boolean; keepRecentToolCalls?: number } = {}): void {
     const { resetSummary = false, keepRecentToolCalls = 0 } = options;
-
-    // Clear processed tool calls, optionally keeping some recent ones
     if (keepRecentToolCalls > 0) {
-      const recentCalls = Array.from(this.processedToolCalls).slice(-keepRecentToolCalls);
-      this.processedToolCalls = new Set(recentCalls);
+      this.processedToolCalls = new Set(
+        Array.from(this.processedToolCalls).slice(-keepRecentToolCalls)
+      );
     } else {
       this.processedToolCalls.clear();
     }
-
-    // Optionally reset cumulative summary
-    if (resetSummary) {
-      this.cumulativeSummary = null;
-    }
-
-    logger.debug(
-      {
-        sessionId: this.sessionId,
-        conversationId: this.conversationId,
-        processedToolCallsSize: this.processedToolCalls.size,
-        summaryReset: resetSummary,
-      },
-      'BaseCompressor cleanup completed'
-    );
+    if (resetSummary) this.cumulativeSummary = null;
   }
 
-  /**
-   * Partial cleanup that preserves recent state for ongoing conversations
-   */
   partialCleanup(): void {
-    this.cleanup({ keepRecentToolCalls: 50 }); // Keep last 50 tool calls
+    this.cleanup({ keepRecentToolCalls: 50 });
   }
 
-  /**
-   * Full cleanup that resets all state - use when conversation/session ends
-   */
   fullCleanup(): void {
     this.cleanup({ resetSummary: true });
   }
 
-  /**
-   * Get current state for debugging
-   */
   getState() {
     return {
       config: this.config,
@@ -740,9 +528,6 @@ export abstract class BaseCompressor {
     };
   }
 
-  /**
-   * Safe compression wrapper with fallback handling
-   */
   async safeCompress(messages: any[], fullContextSize?: number): Promise<CompressionResult> {
     return await tracer.startActiveSpan(
       'compressor.safe_compress',
@@ -751,7 +536,8 @@ export abstract class BaseCompressor {
           'compression.type': this.getCompressionType(),
           'compression.session_id': this.sessionId,
           'compression.message_count': messages.length,
-          'compression.input_tokens': fullContextSize ?? this.calculateContextSize(messages),
+          'compression.input_tokens': this.calculateContextSize(messages),
+          'compression.full_context_size': fullContextSize,
           'compression.hard_limit': this.getHardLimit(),
           'compression.safety_buffer': this.config.safetyBuffer,
         },
@@ -759,24 +545,18 @@ export abstract class BaseCompressor {
       async (compressionSpan: Span) => {
         try {
           const result = await this.compress(messages);
-
-          // Add result attributes
           const resultTokens = Array.isArray(result.summary)
             ? this.calculateContextSize(result.summary)
             : this.estimateTokens(result.summary);
-
+          const inputTokens = fullContextSize ?? this.calculateContextSize(messages);
           compressionSpan.setAttributes({
             'compression.result.artifact_count': result.artifactIds.length,
             'compression.result.output_tokens': resultTokens,
             'compression.result.compression_ratio':
-              (fullContextSize ?? this.calculateContextSize(messages)) > 0
-                ? ((fullContextSize ?? this.calculateContextSize(messages)) - resultTokens) /
-                  (fullContextSize ?? this.calculateContextSize(messages))
-                : 0,
+              inputTokens > 0 ? (inputTokens - resultTokens) / inputTokens : 0,
             'compression.success': true,
             'compression.result.summary': result.summary?.high_level || '',
           });
-
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return result;
         } catch (error) {
@@ -789,29 +569,21 @@ export abstract class BaseCompressor {
             },
             'Compression failed, using simple fallback'
           );
-
           compressionSpan.setAttributes({
             'compression.error': error instanceof Error ? error.message : String(error),
           });
-
-          // Use simple compression fallback - same logic as Agent.simpleCompression
           const fallbackResult = await this.simpleCompressionFallback(messages);
-
           const fallbackTokens = Array.isArray(fallbackResult.summary)
             ? this.calculateContextSize(fallbackResult.summary)
             : this.estimateTokens(fallbackResult.summary);
-
+          const inputTokens = fullContextSize ?? this.calculateContextSize(messages);
           compressionSpan.setAttributes({
             'compression.result.artifact_count': fallbackResult.artifactIds.length,
             'compression.result.output_tokens': fallbackTokens,
             'compression.result.compression_ratio':
-              (fullContextSize ?? this.calculateContextSize(messages)) > 0
-                ? ((fullContextSize ?? this.calculateContextSize(messages)) - fallbackTokens) /
-                  (fullContextSize ?? this.calculateContextSize(messages))
-                : 0,
+              inputTokens > 0 ? (inputTokens - fallbackTokens) / inputTokens : 0,
             'compression.success': true,
           });
-
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return fallbackResult;
         } finally {
@@ -821,36 +593,18 @@ export abstract class BaseCompressor {
     );
   }
 
-  /**
-   * Simple compression fallback using the same logic as Agent.simpleCompression
-   * Returns the compressed messages, not just a summary
-   */
   protected async simpleCompressionFallback(messages: any[]): Promise<CompressionResult> {
-    if (messages.length === 0) {
-      return {
-        artifactIds: [],
-        summary: [],
-      };
-    }
+    if (messages.length === 0) return { artifactIds: [], summary: [] };
 
-    // Use 50% of hard limit as target
     const targetTokens = Math.floor(this.getHardLimit() * 0.5);
     let totalTokens = this.calculateContextSize(messages);
 
-    if (totalTokens <= targetTokens) {
-      return {
-        artifactIds: [],
-        summary: messages, // Return original messages if no compression needed
-      };
-    }
+    if (totalTokens <= targetTokens) return { artifactIds: [], summary: messages };
 
-    // Keep dropping messages from the beginning until we're under the limit
     const result = [...messages];
     while (totalTokens > targetTokens && result.length > 1) {
       const dropped = result.shift();
-      if (dropped) {
-        totalTokens -= this.estimateTokens(dropped);
-      }
+      if (dropped) totalTokens -= this.estimateTokens(dropped);
     }
 
     logger.info(
@@ -859,35 +613,23 @@ export abstract class BaseCompressor {
         conversationId: this.conversationId,
         originalCount: messages.length,
         compressedCount: result.length,
-        compressionType: 'simple_fallback',
       },
       'Simple compression fallback completed'
     );
 
-    // Return the compressed messages in the summary field
-    return {
-      artifactIds: [],
-      summary: result,
-    };
+    return { artifactIds: [], summary: result };
   }
 
-  // Abstract methods that subclasses must implement
   abstract isCompressionNeeded(messages: any[]): boolean;
   abstract compress(messages: any[]): Promise<CompressionResult>;
   abstract getCompressionType(): string;
 }
 
-/**
- * Get model-aware compression config for any model
- * @param modelSettings - Model settings to get context window for
- * @param targetPercentage - Target percentage of context window (e.g., 0.5 for conversation, undefined for aggressive)
- */
 export function getModelAwareCompressionConfig(
   modelSettings?: ModelSettings,
   targetPercentage?: number
 ): CompressionConfig {
   const config = getCompressionConfigForModel(modelSettings, targetPercentage);
-
   return {
     hardLimit: config.hardLimit,
     safetyBuffer: config.safetyBuffer,
