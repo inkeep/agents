@@ -79,6 +79,10 @@ vi.mock('../../slack/services/events/utils', () => ({
 }));
 
 vi.mock('../../slack/services/blocks', () => ({
+  createContextBlockFromText: vi.fn((msg: string) => ({
+    type: 'context',
+    elements: [{ type: 'mrkdwn', text: msg }],
+  })),
   createErrorMessage: vi.fn((msg: string) => ({
     blocks: [{ type: 'section', text: { type: 'mrkdwn', text: msg } }],
   })),

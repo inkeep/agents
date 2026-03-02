@@ -137,7 +137,7 @@ describe('Function tool approvals (toolPolicies)', () => {
       { toolCallId: 'call_2' }
     );
 
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual(expect.objectContaining({ ok: true }));
     expect(sandboxExecutorMock.executeFunctionTool).toHaveBeenCalled();
     expect(publishSpy).toHaveBeenCalledWith(
       'req_2',

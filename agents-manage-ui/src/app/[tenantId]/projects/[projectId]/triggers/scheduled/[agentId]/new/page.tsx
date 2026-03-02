@@ -14,10 +14,19 @@ export const metadata = {
 
 export default async function NewScheduledTriggerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantId: string; projectId: string; agentId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { tenantId, projectId, agentId } = await params;
+  const rawSearchParams = await searchParams;
+  const defaultsFromParams: Record<string, string> = {};
+  for (const [key, value] of Object.entries(rawSearchParams)) {
+    if (typeof value === 'string') {
+      defaultsFromParams[key] = value;
+    }
+  }
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);
@@ -44,6 +53,9 @@ export default async function NewScheduledTriggerPage({
         projectId={projectId}
         agentId={agentId}
         mode="create"
+        defaultsFromParams={
+          Object.keys(defaultsFromParams).length > 0 ? defaultsFromParams : undefined
+        }
       />
     </div>
   );

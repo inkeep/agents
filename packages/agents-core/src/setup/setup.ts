@@ -295,6 +295,7 @@ async function generateSecrets() {
           lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=')
         ) {
           lines[i] = `INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`;
+          process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
           privateKeyFound = true;
         }
         if (
@@ -302,12 +303,19 @@ async function generateSecrets() {
           lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=')
         ) {
           lines[i] = `INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`;
+          process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
           publicKeyFound = true;
         }
       }
 
-      if (!privateKeyFound) lines.push(`INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`);
-      if (!publicKeyFound) lines.push(`INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`);
+      if (!privateKeyFound) {
+        lines.push(`INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`);
+        process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = privateKeyBase64;
+      }
+      if (!publicKeyFound) {
+        lines.push(`INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`);
+        process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = publicKeyBase64;
+      }
 
       modified = true;
       logSuccess('JWT keys generated and added to .env');
@@ -348,21 +356,27 @@ async function generateSecrets() {
         found = true;
         const isCommented = lines[i].startsWith(`# ${varName}=`);
         if (isCommented) {
-          lines[i] = `${varName}=${generate()}`;
+          const value = generate();
+          lines[i] = `${varName}=${value}`;
+          process.env[varName] = value;
           modified = true;
           break;
         }
         const eqIdx = lines[i].indexOf('=');
         const currentValue = lines[i].substring(eqIdx + 1).trim();
         if (currentValue === '' || placeholders.includes(currentValue)) {
-          lines[i] = `${varName}=${generate()}`;
+          const value = generate();
+          lines[i] = `${varName}=${value}`;
+          process.env[varName] = value;
           modified = true;
         }
         break;
       }
     }
     if (!found) {
-      lines.push(`${varName}=${generate()}`);
+      const value = generate();
+      lines.push(`${varName}=${value}`);
+      process.env[varName] = value;
       modified = true;
     }
   }

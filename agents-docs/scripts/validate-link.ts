@@ -3,14 +3,14 @@ import { getSlugs } from 'fumadocs-core/source';
 import { printErrors, readFiles, scanURLs, validateFiles } from 'next-validate-link';
 
 async function checkLinks() {
-  const docsFiles = await readFiles('content/docs/**/*.{md,mdx}');
+  const docsFiles = await readFiles('content/**/*.{md,mdx}');
 
   // Build valid URLs manually from the slugs
   const scanned = await scanURLs({
     populate: {
       '[[...slug]]': docsFiles.map((file) => {
         return {
-          value: getSlugs(file.path),
+          value: getSlugs(file.path.replace(/^content\//, '')),
           hashes: getTableOfContents(file.content).map((item) => item.url.slice(1)),
         };
       }),

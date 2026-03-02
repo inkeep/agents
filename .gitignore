@@ -27,6 +27,7 @@ coverage/
 *.pem
 *.db
 .setup-complete
+.blob-storage/
 
 # debug
 npm-debug.log*

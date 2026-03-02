@@ -333,9 +333,9 @@ function LoginForm() {
             </>
           )}
 
-          <div className="text-center pt-2">
+          <div className="flex items-center justify-center gap-1 text-sm">
             <p className="font-medium">Don&apos;t have an account?</p>
-            <p className="text-sm text-muted-foreground">Ask your administrator for an invite.</p>
+            <p className="text-muted-foreground">Ask your administrator for an invite.</p>
           </div>
         </CardContent>
       </Card>

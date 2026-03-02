@@ -1,18 +1,23 @@
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import {
+  addValueToObject,
+  convertNullToUndefined,
+  createFactoryDefinition,
+  toCamelCase,
+} from '../utils';
 
 type TriggerDefinitionData = {
   triggerId: string;
   name: string;
-  description?: string;
+  description?: string | null;
   enabled?: boolean;
-  messageTemplate: string;
+  messageTemplate?: string | null;
   inputSchema?: unknown;
   outputTransform?: {
     jmespath?: string;
     objectTransformation?: unknown;
-  };
+  } | null;
   authentication?: {
     headers?: Array<{
       name?: string;
@@ -20,7 +25,7 @@ type TriggerDefinitionData = {
       valuePrefix?: string;
       value?: string;
     }>;
-  };
+  } | null;
   signatureVerification?: {
     algorithm?: string;
     encoding?: string;
@@ -46,29 +51,33 @@ type TriggerDefinitionData = {
       allowEmptyBody?: boolean;
       normalizeUnicode?: boolean;
     };
-  };
-  signingSecretCredentialReferenceId?: string;
-  signingSecretCredentialReference?: string | { id?: string };
+  } | null;
+  signingSecretCredentialReferenceId?: string | null;
+  signingSecretCredentialReference?: string | { id?: string } | null;
 };
 
 const TriggerSchema = z.looseObject({
   triggerId: z.string().nonempty(),
   name: z.string().nonempty(),
-  description: z.string().optional(),
+  description: z.string().nullable().optional().transform(convertNullToUndefined),
   enabled: z.boolean().optional(),
-  messageTemplate: z.string().nonempty(),
+  messageTemplate: z.string().nullable().optional().transform(convertNullToUndefined),
   inputSchema: z.unknown().optional(),
   outputTransform: z
     .looseObject({
       jmespath: z.string().optional(),
       objectTransformation: z.unknown().optional(),
     })
-    .optional(),
+    .nullable()
+    .optional()
+    .transform(convertNullToUndefined),
   authentication: z
     .looseObject({
       headers: z.array(z.looseObject({})).optional(),
     })
-    .optional(),
+    .nullable()
+    .optional()
+    .transform(convertNullToUndefined),
   signatureVerification: z
     .looseObject({
       algorithm: z.string().optional(),
@@ -78,11 +87,19 @@ const TriggerSchema = z.looseObject({
       componentJoin: z.looseObject({}).optional(),
       validation: z.looseObject({}).optional(),
     })
-    .optional(),
-  signingSecretCredentialReferenceId: z.string().optional(),
+    .nullable()
+    .optional()
+    .transform(convertNullToUndefined),
+  signingSecretCredentialReferenceId: z
+    .string()
+    .nullable()
+    .optional()
+    .transform(convertNullToUndefined),
   signingSecretCredentialReference: z
     .union([z.string(), z.looseObject({ id: z.string().optional() })])
-    .optional(),
+    .nullable()
+    .optional()
+    .transform(convertNullToUndefined),
 });
 
 export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFile {
@@ -108,7 +125,7 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFi
   }
 
   if (signingSecretCredentialReferenceId) {
-    const varName = toCamelCase(signingSecretCredentialReferenceId);
+    const varName = toCamelCase(signingSecretCredentialReferenceId as string);
     sourceFile.addImportDeclaration({
       namedImports: [varName],
       moduleSpecifier: `../../credentials/${signingSecretCredentialReferenceId}`,

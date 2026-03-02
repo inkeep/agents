@@ -25,14 +25,14 @@
         "name": "Talk to an Inkeep Agent",
         "type": "message",
         "callback_id": "ask_agent_shortcut",
-        "description": "Talk to an Inkeep agent about this message"
+        "description": "Talk to an Inkeep agent with this message"
       }
     ],
     "slash_commands": [
       {
         "command": "/inkeep",
         "url": "https://<YOUR_API_DOMAIN>/work-apps/slack/commands",
-        "description": "Ask AI agents questions and manage your Inkeep integration",
+        "description": "Talk to an Inkeep agent or manage your Inkeep integration",
         "usage_hint": "[question] | link | unlink | status | help",
         "should_escape": false
       }
@@ -49,15 +49,20 @@
         "app_mentions:read",
         "channels:history",
         "channels:read",
+        "channels:join",
         "chat:write",
         "chat:write.public",
         "commands",
         "files:write",
+        "files:read",
         "groups:history",
         "groups:read",
         "im:history",
         "im:read",
         "im:write",
+        "mpim:history",
+        "mpim:read",
+        "mpim:write",
         "team:read",
         "users:read",
         "users:read.email"

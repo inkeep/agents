@@ -44,15 +44,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
         <PageHeader
           title={metadata.title}
           description={metadata.description}
-          action={
-            canUse ? (
-              <NewApiKeyDialog
-                tenantId={tenantId}
-                projectId={projectId}
-                agentsOptions={agentOptions}
-              />
-            ) : undefined
-          }
+          action={canUse ? <NewApiKeyDialog agentsOptions={agentOptions} /> : undefined}
         />
         <ApiKeysTable apiKeys={apiKeys.data} agentLookup={agentLookup} canUse={canUse} />
       </>

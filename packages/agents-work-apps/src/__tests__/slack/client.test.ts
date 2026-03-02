@@ -104,6 +104,8 @@ describe('Slack Client', () => {
               },
               is_admin: true,
               is_owner: false,
+              tz: 'America/New_York',
+              tz_offset: -18000,
             },
           }),
         },
@@ -120,6 +122,8 @@ describe('Slack Client', () => {
         isAdmin: true,
         isOwner: false,
         avatar: 'https://example.com/avatar.png',
+        tz: 'America/New_York',
+        tzOffset: -18000,
       });
     });
 

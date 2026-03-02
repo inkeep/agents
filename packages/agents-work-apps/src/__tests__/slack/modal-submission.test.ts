@@ -69,6 +69,10 @@ vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     chat: { postEphemeral: mockPostEphemeral, postMessage: mockPostMessage },
   })),
+  getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -85,6 +89,11 @@ vi.mock('../../slack/services/events/utils', () => ({
   generateSlackConversationId: vi.fn().mockReturnValue('conv-123'),
   getThreadContext: mockGetThreadContext,
   getUserFriendlyErrorMessage: vi.fn().mockReturnValue('Something went wrong'),
+  formatChannelContext: vi.fn().mockReturnValue('Slack'),
+  formatSlackQuery: vi.fn((opts: { text: string; threadContext?: string }) => {
+    if (opts.threadContext) return `${opts.threadContext}\n\n${opts.text}`;
+    return opts.text;
+  }),
 }));
 
 const linkedUser = {
@@ -186,6 +195,23 @@ describe('handleModalSubmission', () => {
         question: 'Test question',
         conversationId: 'conv-123',
         threadTs: undefined,
+      })
+    );
+  });
+
+  it('should pass messageTs and senderTimezone to formatSlackQuery', async () => {
+    setupDefaults();
+
+    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+
+    const { handleModalSubmission } = await import('../../slack/services/events/modal-submission');
+    await handleModalSubmission(buildView(baseMetadata));
+
+    expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'Test question',
+        messageTs: '1234.5678',
+        senderTimezone: 'America/New_York',
       })
     );
   });

@@ -55,17 +55,32 @@ runs:
         ENVIRONMENT: development
       run: pnpm setup-dev --skip-push
 
+    - name: Export generated secrets to GITHUB_ENV
+      shell: bash
+      run: |
+        # setup-dev generated fresh secrets in .env — export only the ones needed
+        # by subsequent steps (project push, Cypress login). The API server reads
+        # .env from disk via findUpSync so it doesn't need $GITHUB_ENV.
+        # IMPORTANT: Do not export all .env vars — extra env vars in $GITHUB_ENV
+        # leak into the Next.js build and cause prerender failures.
+        grep -E '^(BETTER_AUTH_SECRET|INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET|INKEEP_AGENTS_MANAGE_UI_USERNAME|INKEEP_AGENTS_MANAGE_UI_PASSWORD)=' .env >> "$GITHUB_ENV"
+
     # --- Phase 4: Dashboard build + API startup (reordered) ---
     - name: Build dashboard and monorepo dependencies
       shell: bash
+      env:
+        # Next.js prerender executes server components at build time. With
+        # ENVIRONMENT=development, agents-core's ref-scope.ts attempts real DB
+        # queries during prerender (doltStatus().length), which fails.
+        # ENVIRONMENT=test makes ref-scope take an early-return path that skips
+        # DB operations — correct for a build step that should never hit the DB.
+        ENVIRONMENT: test
       run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-sdk'
 
     - name: Start backend API server
       shell: bash
       env:
         ENVIRONMENT: development
-        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
-        BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
       run: |
         # Start API server and capture logs using nohup to ensure child process output is captured
         nohup pnpm exec turbo dev --filter='@inkeep/agents-api' > /tmp/api-server.log 2>&1 &

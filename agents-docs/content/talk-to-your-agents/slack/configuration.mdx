@@ -8,10 +8,6 @@ description: Admin guide — set up workspace and channel default agents for the
 This page is for **workspace administrators**. Regular team members should see [Using the Slack App](/talk-to-your-agents/slack/commands) for usage instructions.
 </Note>
 
-<Note>
-Only one Slack workspace can be connected per Inkeep tenant. To switch workspaces, uninstall the existing one first from the [Installation](/talk-to-your-agents/slack/installation) page.
-</Note>
-
 After installing the Slack app, configure which agents respond to your team's messages. You can set a workspace-wide default and optionally assign different agents to specific channels.
 
 ## Workspace default
@@ -46,10 +42,10 @@ Channel defaults let you assign a specific agent to individual channels. This is
   <Step>
     ### Open channel defaults
 
-    In the Slack dashboard, scroll to the **Channel Defaults** section. You'll see a list of all channels the bot has access to.
+    In the Slack dashboard, scroll to the **Channel Defaults** section. You'll see a list of channels where the Inkeep bot is a member.
 
     <Note>
-    Private channels only appear in this list after you add the Inkeep bot to them in Slack. Open the private channel in Slack, add `@Inkeep` as a member, and the channel will then be available for configuration in the dashboard.
+    Channels only appear in this list if the Inkeep bot is a member. To add a channel, open it in Slack, add `@Inkeep` as a member, and the channel will then be available for configuration. If the list is empty, the bot hasn't been added to any channels yet.
     </Note>
   </Step>
   <Step>

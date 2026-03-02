@@ -30,6 +30,7 @@ import {
   listIssueCommentReactions,
   listIssueReactions,
   listPullRequestReviewCommentReactions,
+  moveFile,
   type ReactionDetail,
   visualizeUpdateOperations,
 } from './utils';
@@ -865,6 +866,92 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error creating file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'move-file',
+    `Move (rename) a file within a repository in a single atomic commit. The file content is preserved and the old path is deleted. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      branch_name: z.string().describe('Branch to commit the move to'),
+      source_path: z.string().describe('Current path of the file (relative to repository root)'),
+      destination_path: z.string().describe('New path for the file (relative to repository root)'),
+      commit_message: z.string().describe('Commit message for the move'),
+    },
+    async ({ owner, repo, branch_name, source_path, destination_path, commit_message }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const commitSha = await moveFile({
+          githubClient,
+          owner,
+          repo,
+          sourcePath: source_path,
+          destinationPath: destination_path,
+          branchName: branch_name,
+          commitMessage: commit_message,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully moved "${source_path}" to "${destination_path}" in ${owner}/${repo} on branch "${branch_name}"\n\nCommit SHA: ${commitSha}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Repository ${owner}/${repo}, branch "${branch_name}", or source file "${source_path}" not found.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 422) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Invalid move operation. The destination path "${destination_path}" may already exist or the path is invalid.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error moving file: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,

@@ -1,5 +1,7 @@
 import { execSync } from 'node:child_process';
 
+const skipMigrate = process.argv.includes('--skip-migrate');
+
 function runCommand(command, description, options = {}) {
   console.log(`${description}...`);
   try {
@@ -30,6 +32,10 @@ runCommand('pnpm update @inkeep/agents-ui --latest', 'Upgrading agents-ui packag
   cwd: './apps/agents-ui',
 });
 
-runCommand('pnpm db:migrate', 'Migrating database schema');
+if (!skipMigrate) {
+  runCommand('pnpm db:migrate', 'Migrating database schema');
+} else {
+  console.log('⏭️  Skipping database migrations (--skip-migrate)');
+}
 
 console.log('Done!');

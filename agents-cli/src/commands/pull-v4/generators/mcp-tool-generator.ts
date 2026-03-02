@@ -45,7 +45,11 @@ const McpToolSchema = z
     serverUrl: z.string().optional(),
     transport: z.object({ type: z.string() }).optional(),
     activeTools: z.array(z.unknown()).optional(),
-    imageUrl: z.string().nullish(),
+    // Null is not a valid value
+    imageUrl: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
     headers: z.unknown().optional(),
     credential: z.unknown().optional(),
     credentialReferenceId: z.string().nullish(),
