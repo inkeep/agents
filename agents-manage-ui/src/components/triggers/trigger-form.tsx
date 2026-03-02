@@ -281,7 +281,6 @@ const triggerFormSchema = z.object({
   headerCaseSensitive: z.boolean().optional(),
   allowEmptyBody: z.boolean().optional(),
   normalizeUnicode: z.boolean().optional(),
-  // Execution identity
   runAsUserId: z.string().optional(),
 });
 
@@ -879,10 +878,10 @@ export function TriggerForm({
           </CardContent>
         </Card>
 
-        {/* Execution Identity */}
+        {/* Run As */}
         <Card>
           <CardHeader>
-            <CardTitle>Execution Identity</CardTitle>
+            <CardTitle>Run As</CardTitle>
             <CardDescription>
               Choose which user identity the trigger should run as. This determines whose
               credentials and permissions are used during execution.

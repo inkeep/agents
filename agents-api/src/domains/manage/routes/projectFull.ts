@@ -40,12 +40,12 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
+import { isEntityChanged } from '../../../utils/entityDiff';
 import {
   onTriggerCreated,
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import { isScheduledTriggerChanged } from './scheduledTriggers';
 import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
@@ -441,7 +441,7 @@ app.openapi(
           const existing = existingById.get(triggerId);
 
           if (existing) {
-            const changed = isScheduledTriggerChanged(triggerData, existing);
+            const changed = isEntityChanged(triggerData, existing);
             if (!changed) continue;
 
             assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
@@ -480,6 +480,9 @@ app.openapi(
           const existing = existingById.get(triggerId);
 
           if (existing) {
+            const changed = isEntityChanged(triggerData, existing);
+            if (!changed) continue;
+
             assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
 
             if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {

@@ -28,7 +28,6 @@ import {
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
-  type ScheduledTrigger,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
@@ -76,36 +75,6 @@ function validateRunNowDelegation(params: {
       message: 'Only org admins or owners can run triggers configured to run as a different user.',
     });
   }
-}
-
-const TRIGGER_IGNORED_FIELDS = new Set([
-  'tenantId',
-  'id',
-  'projectId',
-  'agentId',
-  'createdBy',
-  'createdAt',
-  'updatedAt',
-]);
-
-export function isScheduledTriggerChanged(
-  incoming: Record<string, unknown>,
-  existing: ScheduledTrigger
-): boolean {
-  for (const key of Object.keys(existing) as (keyof ScheduledTrigger)[]) {
-    if (TRIGGER_IGNORED_FIELDS.has(key)) continue;
-    if (!(key in incoming)) continue;
-
-    const incomingVal = incoming[key] ?? null;
-    const existingVal = existing[key] ?? null;
-
-    if (typeof incomingVal === 'object' || typeof existingVal === 'object') {
-      if (JSON.stringify(incomingVal) !== JSON.stringify(existingVal)) return true;
-    } else if (incomingVal !== existingVal) {
-      return true;
-    }
-  }
-  return false;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();

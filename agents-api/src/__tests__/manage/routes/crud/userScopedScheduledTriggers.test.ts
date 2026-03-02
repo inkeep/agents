@@ -8,13 +8,11 @@ import {
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
+import { isEntityChanged } from 'src/utils/entityDiff';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
-import {
-  assertCanMutateTrigger,
-  isScheduledTriggerChanged,
-} from '../../../../domains/manage/routes/scheduledTriggers';
+import { assertCanMutateTrigger } from '../../../../domains/manage/routes/scheduledTriggers';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
@@ -639,7 +637,7 @@ describe('User-Scoped Scheduled Triggers', () => {
     });
   });
 
-  describe('Push flow authorization (isScheduledTriggerChanged + assertCanMutateTrigger)', () => {
+  describe('Push flow authorization (isEntityChanged + assertCanMutateTrigger)', () => {
     const baseTrigger: ScheduledTrigger = {
       tenantId: 'tenant-1',
       id: 'trigger-1',
@@ -662,7 +660,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       updatedAt: '2025-01-01T00:00:00Z',
     };
 
-    describe('isScheduledTriggerChanged', () => {
+    describe('isEntityChanged', () => {
       it('should return false when no fields changed', () => {
         const incoming = {
           name: 'Daily sync',
@@ -678,7 +676,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
       it('should return false when incoming undefined matches existing null', () => {
@@ -694,7 +692,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
       it('should return true when a scalar field changed', () => {
@@ -710,7 +708,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(true);
       });
 
       it('should return true when runAsUserId changed', () => {
@@ -726,7 +724,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-b',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(true);
       });
 
       it('should return true when payload changed', () => {
@@ -743,7 +741,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(true);
       });
 
       it('should return false when payload objects are deeply equal', () => {
@@ -761,10 +759,10 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, triggerWithPayload)).toBe(false);
+        expect(isEntityChanged(incoming, triggerWithPayload)).toBe(false);
       });
 
-      it('should ignore identity fields (id, tenantId, projectId, agentId)', () => {
+      it('should ignore fields (id, tenantId, projectId, agentId)', () => {
         const incoming = {
           id: 'different-id',
           tenantId: 'different-tenant',
@@ -781,7 +779,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
       it('should ignore server-stamped fields (createdBy, createdAt, updatedAt)', () => {
@@ -800,7 +798,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
     });
 
