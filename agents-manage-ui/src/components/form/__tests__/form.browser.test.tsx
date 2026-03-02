@@ -1,6 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { transformToJson } from '@inkeep/agents-core/client-exports';
 import { act, render, screen, waitFor } from '@testing-library/react';
+// @ts-expect-error -- worker params exist in vite
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker';
+// @ts-expect-error -- worker param exist in vite
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker.js?worker';
 import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -13,10 +17,6 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
-// @ts-expect-error -- worker params exist in vite
-import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker';
-// @ts-expect-error -- worker param exist in vite
-import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker.js?worker';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
