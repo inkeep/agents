@@ -134,6 +134,7 @@ const {
   agentHasArtifactComponentsMock,
   getToolsForAgentMock,
   getFunctionToolsForSubAgentMock,
+  buildPersistedMessageContentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -155,6 +156,7 @@ const {
     })
   );
   const getFunctionToolsForSubAgentMock = vi.fn().mockResolvedValue([]);
+  const buildPersistedMessageContentMock = vi.fn();
 
   return {
     getCredentialReferenceMock,
@@ -165,6 +167,7 @@ const {
     agentHasArtifactComponentsMock,
     getToolsForAgentMock,
     getFunctionToolsForSubAgentMock,
+    buildPersistedMessageContentMock,
   };
 });
 
@@ -254,6 +257,10 @@ vi.mock('../../../domains/run/services/AgentSession.js', () => ({
   agentSessionManager: {
     recordEvent: vi.fn(),
   },
+}));
+
+vi.mock('../../../domains/run/services/blob-storage/image-upload-helpers', () => ({
+  buildPersistedMessageContent: buildPersistedMessageContentMock,
 }));
 
 // Mock ResponseFormatter
@@ -1932,7 +1939,7 @@ describe('Agent Image Support', () => {
 });
 
 describe('Agent tool result persistence', () => {
-  test('builds message content with structured MCP parts', () => {
+  test('builds message content with uploaded image parts', async () => {
     const config: AgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
@@ -1950,6 +1957,17 @@ describe('Agent tool result persistence', () => {
     };
     const executionContext = createMockExecutionContext() as any;
     const agent = new Agent(config, executionContext);
+    buildPersistedMessageContentMock.mockResolvedValue({
+      text: 'persisted text',
+      parts: [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+          metadata: { mimeType: 'image/webp', type: 'image' },
+        },
+      ],
+    });
 
     const result = {
       content: [
@@ -1966,22 +1984,40 @@ describe('Agent tool result persistence', () => {
       isError: false,
     };
 
-    const content = (agent as any).buildToolResultMessageContent(
+    const content = await (agent as any).buildToolResultMessageContent(
       'get_ticket_attachments',
       { ticket_id: 6662 },
       result,
-      'toolu_123'
+      'toolu_123',
+      'conv-123',
+      'msg-123'
     );
 
-    expect(content.text).toContain('## Tool: get_ticket_attachments');
-    expect(content.text).toContain('"success": true');
-    expect(content.text).not.toContain('base64-image-data');
-    expect(content.text).not.toContain('"type": "image"');
+    expect(buildPersistedMessageContentMock).toHaveBeenCalledWith(
+      expect.stringContaining('## Tool: get_ticket_attachments'),
+      [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          file: {
+            bytes: 'base64-image-data',
+            mimeType: 'image/webp',
+          },
+          metadata: { type: 'image' },
+        },
+      ],
+      {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        conversationId: 'conv-123',
+        messageId: 'msg-123',
+      }
+    );
     expect(content.parts).toEqual([
       { kind: 'text', text: '{\n  "success": true\n}' },
       {
         kind: 'file',
-        data: 'base64-image-data',
+        data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
         metadata: { mimeType: 'image/webp', type: 'image' },
       },
     ]);

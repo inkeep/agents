@@ -64,6 +64,8 @@ import {
 } from '../data/conversations';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
+import { makeMessageContentParts } from '../services/blob-storage/image-upload';
+import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
@@ -667,11 +669,13 @@ export class Agent {
           if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
             try {
               const messageId = generateId();
-              const messageContent = this.buildToolResultMessageContent(
+              const messageContent = await this.buildToolResultMessageContent(
                 toolName,
                 args,
                 result,
-                toolCallId
+                toolCallId,
+                toolResultConversationId,
+                messageId
               );
               const messagePayload = {
                 id: messageId,
@@ -873,6 +877,9 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
+          toModelOutput: ({ output }: { output: any }) => {
+            return this.buildToolModelOutput(output) as any;
+          },
           execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
@@ -2484,12 +2491,109 @@ export class Agent {
   /**
    * Format tool result for storage in conversation history
    */
-  private buildToolResultMessageContent(
+  private buildToolModelOutput(output: any): any {
+    if (isToolResultDenied(output)) {
+      return {
+        type: 'execution-denied',
+        reason: output.reason,
+      };
+    }
+
+    if (!output || typeof output !== 'object') {
+      return {
+        type: 'json',
+        value: output,
+      };
+    }
+
+    const outputRecord = output as Record<string, unknown>;
+    const content = outputRecord.content;
+    if (!Array.isArray(content)) {
+      return {
+        type: 'json',
+        value: output,
+      };
+    }
+
+    const mappedContent = content
+      .map((item) => this.mapMcpContentItemToToolResultContentPart(item))
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    if (mappedContent.length === 0) {
+      return {
+        type: 'json',
+        value: output,
+      };
+    }
+
+    return {
+      type: 'content',
+      value: mappedContent,
+    };
+  }
+
+  private mapMcpContentItemToToolResultContentPart(item: unknown): Record<string, unknown> | null {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+
+    const contentItem = item as Record<string, unknown>;
+    const type = contentItem.type;
+
+    if (type === 'text') {
+      if (typeof contentItem.text === 'string') {
+        return {
+          type: 'text',
+          text: contentItem.text,
+        };
+      }
+
+      if (contentItem.text !== undefined) {
+        return {
+          type: 'text',
+          text: JSON.stringify(contentItem.text, null, 2),
+        };
+      }
+
+      return null;
+    }
+
+    if (type === 'image') {
+      if (typeof contentItem.data === 'string' && contentItem.data.trim() !== '') {
+        return {
+          type: 'image-data',
+          data: contentItem.data,
+          mediaType:
+            typeof contentItem.mimeType === 'string' && contentItem.mimeType.trim() !== ''
+              ? contentItem.mimeType
+              : 'image/*',
+        };
+      }
+
+      if (typeof contentItem.url === 'string' && contentItem.url.trim() !== '') {
+        return {
+          type: 'image-url',
+          url: contentItem.url,
+        };
+      }
+
+      return null;
+    }
+
+    return {
+      type: 'text',
+      text: JSON.stringify(contentItem, null, 2),
+    };
+  }
+
+  private async buildToolResultMessageContent(
     toolName: string,
     args: any,
     result: any,
-    toolCallId: string
-  ): MessageContent {
+    toolCallId: string,
+    conversationId: string,
+    messageId: string
+  ): Promise<MessageContent> {
     const text = this.formatToolResult(toolName, args, result, toolCallId);
     const parts = this.getStructuredToolResultParts(result);
 
@@ -2497,17 +2601,20 @@ export class Agent {
       return { text };
     }
 
-    return { text, parts };
+    const hasImageFileParts = parts.some((part) => part.kind === 'file');
+    if (!hasImageFileParts) {
+      return { text, parts: makeMessageContentParts(parts) };
+    }
+
+    return buildPersistedMessageContent(text, parts, {
+      tenantId: this.config.tenantId,
+      projectId: this.config.projectId,
+      conversationId,
+      messageId,
+    });
   }
 
-  private getStructuredToolResultParts(result: any):
-    | Array<{
-        kind: string;
-        text?: string;
-        data?: string | Record<string, unknown>;
-        metadata?: Record<string, unknown>;
-      }>
-    | undefined {
+  private getStructuredToolResultParts(result: any): Array<Part> | undefined {
     if (!result || typeof result !== 'object' || !Array.isArray(result.content)) {
       return undefined;
     }
@@ -2515,25 +2622,13 @@ export class Agent {
     const parts = result.content
       .map((item: any) => this.mapMcpContentItemToMessagePart(item))
       .filter(
-        (
-          part: ReturnType<Agent['mapMcpContentItemToMessagePart']>
-        ): part is {
-          kind: string;
-          text?: string;
-          data?: string | Record<string, unknown>;
-          metadata?: Record<string, unknown>;
-        } => part !== null
+        (part: ReturnType<Agent['mapMcpContentItemToMessagePart']>): part is Part => part !== null
       );
 
     return parts.length > 0 ? parts : undefined;
   }
 
-  private mapMcpContentItemToMessagePart(item: any): {
-    kind: string;
-    text?: string;
-    data?: string | Record<string, unknown>;
-    metadata?: Record<string, unknown>;
-  } | null {
+  private mapMcpContentItemToMessagePart(item: any): Part | null {
     if (!item || typeof item !== 'object') {
       return null;
     }
@@ -2551,21 +2646,12 @@ export class Agent {
     if (item.type === 'image' && typeof item.data === 'string') {
       return {
         kind: 'file',
-        data: item.data,
-        metadata: {
+        file: {
+          bytes: item.data,
           ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
-          type: 'image',
         },
-      };
-    }
-
-    if (item.type === 'audio' && typeof item.data === 'string') {
-      return {
-        kind: 'file',
-        data: item.data,
         metadata: {
-          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
-          type: 'audio',
+          type: 'image',
         },
       };
     }
