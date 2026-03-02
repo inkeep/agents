@@ -354,11 +354,16 @@ function collectContextConfigRecords(
     }
 
     if (!contextConfigRecordsById.has(contextConfigId)) {
+      const contextConfigName =
+        typeof normalizedContextConfig.name === 'string' ? normalizedContextConfig.name : undefined;
       const contextConfigFilePath = resolveRecordFilePath(
         context,
         'contextConfigs',
         contextConfigId,
-        join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+        join(
+          context.paths.contextConfigsDir,
+          buildComponentFileName(contextConfigId, contextConfigName)
+        )
       );
       const credentialReferenceOverrides = collectContextConfigCredentialReferenceOverrides(
         context,
@@ -989,11 +994,16 @@ function collectContextTemplateReferences(
     return;
   }
 
+  const contextConfigName =
+    typeof contextConfig.value.name === 'string' ? contextConfig.value.name : undefined;
   const contextConfigFilePath = resolveRecordFilePath(
     context,
     'contextConfigs',
     contextConfigId,
-    join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+    join(
+      context.paths.contextConfigsDir,
+      buildComponentFileName(contextConfigId, contextConfigName)
+    )
   );
   const isLocal = normalizeFilePath(contextConfigFilePath) === normalizeFilePath(targetFilePath);
 
