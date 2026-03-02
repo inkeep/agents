@@ -19,20 +19,47 @@ jobs:
       pull-requests: read
 
     steps:
+      - name: Check iteration limit
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MAX=3
+          COUNT=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits \
+            --jq '[.[].commit.message | select(test("chore: apply Claude review suggestions \\[\\d+/'"$MAX"'\\]"))] | length')
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          if [ "$COUNT" -ge "$MAX" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "iteration=$((COUNT + 1))" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate app token
+        if: steps.guard.outputs.skip != 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
       - name: Checkout PR branch
+        if: steps.guard.outputs.skip != 'true'
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 1
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Apply review suggestions
+        if: steps.guard.outputs.skip != 'true'
         # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
         # Tracking: https://github.com/anthropics/claude-code-action/issues/892
         # Remove pin when issue is resolved and @v1 is stable again
         uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
+          github_token: ${{ steps.app-token.outputs.token }}
           allowed_bots: "claude"
           claude_args: '--max-turns 20 --allowedTools "Read,Edit,Write,Bash(gh api:*),Bash(gh pr view:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git diff:*)"'
           prompt: |
@@ -47,7 +74,7 @@ jobs:
             4. Skip any comment that is purely informational, raises an architectural concern, asks a question, or requires a product decision
             5. If any changes were made:
                git add -A
-               git commit -m "chore: apply Claude review suggestions"
+               git commit -m "chore: apply Claude review suggestions [${{ steps.guard.outputs.iteration }}/3]"
                git push
             6. If no actionable code suggestions exist, do nothing - no commit needed
 
