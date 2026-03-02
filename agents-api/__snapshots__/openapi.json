@@ -10539,7 +10539,7 @@
         },
         "summary": "Get server capabilities",
         "x-authz": {
-          "description": "Requires session cookie or API key authentication",
+          "description": "Requires session cookie authentication",
           "permission": "member",
           "resource": "organization"
         }
