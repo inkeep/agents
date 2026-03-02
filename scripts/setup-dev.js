@@ -32,9 +32,9 @@ if (isolatedIdx !== -1 && (!isolatedName || isolatedName.startsWith('-'))) {
   process.exit(1);
 }
 
-if (isolatedName && !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$/.test(isolatedName)) {
+if (isolatedName && !/^[a-z0-9][a-z0-9_-]{0,62}$/.test(isolatedName)) {
   console.error(
-    'Error: environment name must be 1-63 chars starting with alphanumeric, containing only [a-zA-Z0-9._-]'
+    'Error: environment name must be 1-63 lowercase alphanumeric chars, hyphens, or underscores (no dots, no uppercase)'
   );
   process.exit(1);
 }

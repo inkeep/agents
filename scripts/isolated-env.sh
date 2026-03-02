@@ -20,8 +20,8 @@ STATE_DIR="$REPO_ROOT/.isolated-envs"
 
 validate_name() {
   local name="$1"
-  if [[ ! "$name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$ ]]; then
-    echo "Error: name must be 1-63 chars starting with alphanumeric, containing only [a-zA-Z0-9._-]." >&2
+  if [[ ! "$name" =~ ^[a-z0-9][a-z0-9_-]{0,62}$ ]]; then
+    echo "Error: name must be 1-63 lowercase alphanumeric chars, hyphens, or underscores (no dots, no uppercase)." >&2
     exit 1
   fi
 }
