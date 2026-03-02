@@ -455,7 +455,9 @@ export function createAuth(config: BetterAuthConfig) {
           beforeRemoveMember: async ({ member, organization: org }) => {
             try {
               if (config.manageDbPool) {
-                const { cleanupUserTriggers } = await import('./cleanup');
+                const { cleanupUserTriggers } = await import(
+                  '../data-access/manage/triggerCleanup'
+                );
                 await cleanupUserTriggers({
                   tenantId: org.id,
                   userId: member.userId,

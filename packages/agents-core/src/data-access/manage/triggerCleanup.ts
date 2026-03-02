@@ -1,15 +1,15 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
-import { deleteScheduledTriggersByRunAsUserId } from '../data-access/manage/scheduledTriggers';
-import { deleteTriggersByRunAsUserId } from '../data-access/manage/triggers';
-import { listProjectsMetadata } from '../data-access/runtime/projects';
-import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
-import * as schema from '../db/manage/manage-schema';
-import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
-import { resolveProjectMainRefs } from '../dolt/ref-helpers';
-import { withRef } from '../dolt/ref-scope';
-import { getLogger } from '../utils/logger';
-import type { ResolvedRef } from '../validation/dolt-schemas';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import * as schema from '../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { resolveProjectMainRefs } from '../../dolt/ref-helpers';
+import { withRef } from '../../dolt/ref-scope';
+import { getLogger } from '../../utils/logger';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { listProjectsMetadata } from '../runtime/projects';
+import { deleteScheduledTriggersByRunAsUserId } from './scheduledTriggers';
+import { deleteTriggersByRunAsUserId } from './triggers';
 
 const logger = getLogger('auth-cleanup');
 

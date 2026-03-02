@@ -1,33 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanupUserTriggers } from '../cleanup';
+import { cleanupUserTriggers } from '../triggerCleanup';
 
-vi.mock('../../data-access/runtime/projects', () => ({
+vi.mock('../../runtime/projects', () => ({
   listProjectsMetadata: vi.fn(),
 }));
 
-vi.mock('../../dolt/ref-helpers', () => ({
+vi.mock('../../../dolt/ref-helpers', () => ({
   resolveProjectMainRefs: vi.fn(),
 }));
 
-vi.mock('../../dolt/ref-scope', () => ({
+vi.mock('../../../dolt/ref-scope', () => ({
   withRef: vi.fn(),
 }));
 
-vi.mock('../../data-access/manage/scheduledTriggers', () => ({
+vi.mock('../scheduledTriggers', () => ({
   deleteScheduledTriggersByRunAsUserId: vi.fn(),
 }));
 
-vi.mock('../../data-access/manage/triggers', () => ({
+vi.mock('../triggers', () => ({
   deleteTriggersByRunAsUserId: vi.fn(),
 }));
 
-const { listProjectsMetadata } = await import('../../data-access/runtime/projects');
-const { resolveProjectMainRefs } = await import('../../dolt/ref-helpers');
-const { withRef } = await import('../../dolt/ref-scope');
-const { deleteScheduledTriggersByRunAsUserId } = await import(
-  '../../data-access/manage/scheduledTriggers'
-);
-const { deleteTriggersByRunAsUserId } = await import('../../data-access/manage/triggers');
+const { listProjectsMetadata } = await import('../../runtime/projects');
+const { resolveProjectMainRefs } = await import('../../../dolt/ref-helpers');
+const { withRef } = await import('../../../dolt/ref-scope');
+const { deleteScheduledTriggersByRunAsUserId } = await import('../scheduledTriggers');
+const { deleteTriggersByRunAsUserId } = await import('../triggers');
 
 const listProjectsMetadataMock = vi.mocked(listProjectsMetadata);
 const resolveProjectMainRefsMock = vi.mocked(resolveProjectMainRefs);
