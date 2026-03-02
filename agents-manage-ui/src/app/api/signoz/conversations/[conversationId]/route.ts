@@ -139,7 +139,6 @@ async function signozQuery(
       };
     });
   } catch (e) {
-    const logger = getLogger('signoz-query');
     logger.error({ error: e }, 'SigNoz query error');
 
     if (axios.isAxiosError(e)) {
@@ -177,6 +176,7 @@ function safeJsonParse(str: unknown): Record<string, any> {
 
 function buildConversationPayload(
   conversationId: string,
+  tenantId: string,
   start = Date.now() - DEFAULT_LOOKBACK_MS,
   end = Date.now(),
   projectId?: string
@@ -187,6 +187,7 @@ function buildConversationPayload(
     step: 60,
     variables: {
       conversation_id: conversationId,
+      tenant_id: tenantId,
     },
     ...(projectId && { projectId }),
     compositeQuery: {
@@ -209,7 +210,8 @@ function buildConversationPayload(
               toJSONString(attributes_number) AS attrs_num,
               toJSONString(attributes_bool) AS attrs_bool
             FROM signoz_traces.distributed_signoz_index_v3
-            WHERE attributes_string['conversation.id'] = {{.conversation_id}}
+            WHERE attributes_string['tenant.id'] = {{.tenant_id}}
+              AND attributes_string['conversation.id'] = {{.conversation_id}}
               AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
               AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
             ORDER BY timestamp ASC
@@ -253,7 +255,7 @@ export async function GET(
     const start = startParam ? Number(startParam) : now - DEFAULT_LOOKBACK_MS;
     const end = endParam ? Number(endParam) : now;
 
-    const payload = buildConversationPayload(conversationId, start, end, projectId);
+    const payload = buildConversationPayload(conversationId, tenantId, start, end, projectId);
     const allSpans = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = allSpans.filter(
@@ -280,7 +282,7 @@ export async function GET(
     const contextFetcherSpans = allSpans.filter(
       (s) => getString(s, SPAN_KEYS.NAME) === SPAN_NAMES.CONTEXT_FETCHER
     );
-    const durationSpans = allSpans;
+
     const artifactProcessingSpans = allSpans.filter(
       (s) => getString(s, SPAN_KEYS.NAME) === SPAN_NAMES.ARTIFACT_PROCESSING
     );
@@ -322,9 +324,9 @@ export async function GET(
       if (agentId || agentName) break;
     }
 
-    // Build parent-span map from durationSpans (already fetched in builder query)
+    // Build parent-span map from allSpans (already fetched in builder query)
     const spanIdToParentSpanId = new Map<string, string | null>();
-    for (const span of durationSpans) {
+    for (const span of allSpans) {
       const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       const parentSpanId = getString(span, SPAN_KEYS.PARENT_SPAN_ID, '') || null;
       if (spanId) {
@@ -993,7 +995,7 @@ export async function GET(
     }
 
     // Pre-parse all timestamps once for better performance
-    const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
+    const allSpanTimes = allSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
     const operationEndTime = allSpanTimes.length > 0 ? Math.max(...allSpanTimes) : null;
 

@@ -61,9 +61,12 @@ app.post('/query', async (c) => {
     }
   }
 
-  // Always enforce server-side tenant filter, and project filter if provided
-  // Automatically detects builder vs clickhouse_sql queries
-  payload = enforceQuerySecurity(payload, tenantId, requestedProjectId);
+  const secured = enforceQuerySecurity(payload, tenantId, requestedProjectId);
+  if (secured.error) {
+    logger.warn({ tenantId, error: secured.error }, 'Query rejected: missing tenant filter');
+    return c.json({ error: 'Bad Request', message: secured.error }, 400);
+  }
+  payload = secured.payload;
   logger.debug({ tenantId, projectId: requestedProjectId }, 'Security filters enforced');
 
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
@@ -202,9 +205,17 @@ app.post('/query-batch', async (c) => {
     'SIGNOZ-API-KEY': signozApiKey,
   };
 
+  const securedPagination = enforceQuerySecurity(paginationPayload, tenantId, requestedProjectId);
+  if (securedPagination.error) {
+    logger.warn(
+      { tenantId, error: securedPagination.error },
+      'Pagination query rejected: missing tenant filter'
+    );
+    return c.json({ error: 'Bad Request', message: securedPagination.error }, 400);
+  }
+
   try {
-    const securedPagination = enforceQuerySecurity(paginationPayload, tenantId, requestedProjectId);
-    const step1 = await axios.post(signozEndpoint, securedPagination, {
+    const step1 = await axios.post(signozEndpoint, securedPagination.payload, {
       headers: signozHeaders,
       timeout: 30000,
     });
@@ -222,7 +233,14 @@ app.post('/query-batch', async (c) => {
 
     const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
     const securedDetail = enforceQuerySecurity(detailWithIds, tenantId, requestedProjectId);
-    const step2 = await axios.post(signozEndpoint, securedDetail, {
+    if (securedDetail.error) {
+      logger.warn(
+        { tenantId, error: securedDetail.error },
+        'Detail query rejected: missing tenant filter'
+      );
+      return c.json({ error: 'Bad Request', message: securedDetail.error }, 400);
+    }
+    const step2 = await axios.post(signozEndpoint, securedDetail.payload, {
       headers: signozHeaders,
       timeout: 30000,
     });
@@ -267,7 +285,7 @@ function injectConversationIdFilter(payload: any, conversationIds: string[]): an
 
   for (const key of Object.keys(chQueries)) {
     if (chQueries[key]?.query) {
-      chQueries[key].query = chQueries[key].query.replace('__CONVERSATION_IDS__', inClause);
+      chQueries[key].query = chQueries[key].query.replaceAll('__CONVERSATION_IDS__', inClause);
     }
   }
   return modified;

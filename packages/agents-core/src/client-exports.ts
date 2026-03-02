@@ -147,7 +147,6 @@ export function generateIdFromName(name: string): string {
 export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/types';
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
-export * from './constants/signoz-queries';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
 export { transformToJson } from './validation/extend-schemas';
