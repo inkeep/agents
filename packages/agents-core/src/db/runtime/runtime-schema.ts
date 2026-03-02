@@ -603,6 +603,32 @@ export const evaluationResult = pgTable(
   ]
 );
 
+export const userProfile = pgTable(
+  'user_profile',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    timezone: text('timezone'),
+    attributes: jsonb('attributes').$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [uniqueIndex('user_profile_userId_uidx').on(table.userId)]
+);
+
+export const userProfileRelations = relations(userProfile, ({ one }) => ({
+  user: one(user, {
+    fields: [userProfile.userId],
+    references: [user.id],
+  }),
+}));
+
 // ============================================================================
 // RUNTIME RELATIONS
 // ============================================================================
