@@ -391,7 +391,7 @@ export function TriggerForm({
         headerCaseSensitive: false,
         allowEmptyBody: true,
         normalizeUnicode: false,
-        runAsUserId: undefined,
+        runAsUserId: p?.runAsUserId || undefined,
       };
     }
 
@@ -463,7 +463,7 @@ export function TriggerForm({
       headerCaseSensitive: signatureVerification?.validation?.headerCaseSensitive ?? false,
       allowEmptyBody: signatureVerification?.validation?.allowEmptyBody ?? true,
       normalizeUnicode: signatureVerification?.validation?.normalizeUnicode ?? false,
-      runAsUserId: (trigger as any).runAsUserId ?? undefined,
+      runAsUserId: trigger.runAsUserId ?? undefined,
     };
   };
 
@@ -955,6 +955,8 @@ export function TriggerForm({
                         key={id}
                         variant="secondary"
                         className="cursor-pointer"
+                        role="button"
+                        aria-label={`Remove ${getMemberDisplayName(id)}`}
                         onClick={() =>
                           setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
                         }

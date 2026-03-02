@@ -29,7 +29,13 @@ export default async function NewTriggerPage({
   }
 
   const defaultsFromParams: Record<string, string> = {};
-  for (const key of ['messageTemplate', 'inputSchema', 'outputTransform', 'enabled']) {
+  for (const key of [
+    'messageTemplate',
+    'inputSchema',
+    'outputTransform',
+    'enabled',
+    'runAsUserId',
+  ]) {
     if (rawSearchParams[key]) {
       defaultsFromParams[key] = rawSearchParams[key];
     }

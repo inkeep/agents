@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanupUserScheduledTriggers } from '../cleanup';
+import { cleanupUserTriggers } from '../cleanup';
 
 vi.mock('../../data-access/runtime/projects', () => ({
   listProjectsMetadata: vi.fn(),
@@ -35,7 +35,7 @@ const withRefMock = vi.mocked(withRef);
 const deleteScheduledByUserMock = vi.mocked(deleteScheduledTriggersByRunAsUserId);
 const deleteWebhookByUserMock = vi.mocked(deleteTriggersByRunAsUserId);
 
-describe('cleanupUserScheduledTriggers', () => {
+describe('cleanupUserTriggers', () => {
   const mockRunDb = {} as any;
   const mockPool = {
     connect: vi.fn(),
@@ -54,7 +54,7 @@ describe('cleanupUserScheduledTriggers', () => {
   it('should be a no-op when tenant has no projects', async () => {
     listProjectsMetadataMock.mockReturnValue(vi.fn().mockResolvedValue([]));
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -86,7 +86,7 @@ describe('cleanupUserScheduledTriggers', () => {
       return fn({} as any);
     });
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -122,7 +122,7 @@ describe('cleanupUserScheduledTriggers', () => {
       return fn({} as any);
     });
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -159,7 +159,7 @@ describe('cleanupUserScheduledTriggers', () => {
       return fn({} as any);
     });
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -187,7 +187,7 @@ describe('cleanupUserScheduledTriggers', () => {
     deleteScheduledByUserMock.mockReturnValue(scheduledDeleteFn);
     deleteWebhookByUserMock.mockReturnValue(webhookDeleteFn);
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -215,7 +215,7 @@ describe('cleanupUserScheduledTriggers', () => {
     );
 
     await expect(
-      cleanupUserScheduledTriggers({
+      cleanupUserTriggers({
         tenantId: 'tenant-1',
         userId: 'user-1',
         runDb: mockRunDb,

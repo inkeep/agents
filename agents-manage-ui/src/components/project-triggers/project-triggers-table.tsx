@@ -23,6 +23,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuthSession } from '@/hooks/use-auth';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useOrgMembers } from '@/hooks/use-org-members';
 import { deleteTriggerAction, updateTriggerEnabledAction } from '@/lib/actions/triggers';
 import type { TriggerWithAgent } from '@/lib/api/project-triggers';
@@ -37,6 +39,14 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
   const router = useRouter();
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
   const { members: orgMembers } = useOrgMembers(tenantId);
+  const { user } = useAuthSession();
+  const { isAdmin } = useIsOrgAdmin();
+
+  const canManageTrigger = (trigger: TriggerWithAgent): boolean => {
+    if (isAdmin) return true;
+    if (!user) return false;
+    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+  };
 
   const getUserDisplayName = (userId: string): string => {
     const member = orgMembers.find((m) => m.id === userId);
@@ -139,6 +149,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
           ) : (
             triggers.map((trigger) => {
               const isLoading = loadingTriggers.has(trigger.id);
+              const canManage = canManageTrigger(trigger);
               return (
                 <TableRow key={trigger.id} noHover>
                   <TableCell>
@@ -153,18 +164,16 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                     </Link>
                   </TableCell>
                   <TableCell>
-                    {(trigger as any).runAsUserId ? (
+                    {trigger.runAsUserId ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
-                              {getUserDisplayName((trigger as any).runAsUserId)}
+                              {getUserDisplayName(trigger.runAsUserId)}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <code className="font-mono text-xs">
-                              {(trigger as any).runAsUserId}
-                            </code>
+                            <code className="font-mono text-xs">{trigger.runAsUserId}</code>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -222,7 +231,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
+                        <DropdownMenuItem asChild disabled={!canManage}>
                           <Link
                             href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/${trigger.id}/edit`}
                           >
@@ -244,6 +253,8 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                                   JSON.stringify(trigger.outputTransform)
                                 );
                               params.set('enabled', String(trigger.enabled));
+                              if (trigger.runAsUserId)
+                                params.set('runAsUserId', trigger.runAsUserId);
                               return `/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/new?${params.toString()}`;
                             })()}
                           >
@@ -253,6 +264,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
+                          disabled={!canManage}
                           onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
                           <Trash2 className="w-4 h-4" />

@@ -12,7 +12,7 @@ import { isEntityChanged } from 'src/utils/entityDiff';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
-import { assertCanMutateTrigger } from '../../../../domains/manage/routes/scheduledTriggers';
+import { assertCanMutateTrigger } from '../../../../domains/manage/routes/triggerHelpers';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';

@@ -13,7 +13,7 @@ import type { ResolvedRef } from '../validation/dolt-schemas';
 
 const logger = getLogger('auth-cleanup');
 
-export async function cleanupUserScheduledTriggers(params: {
+export async function cleanupUserTriggers(params: {
   tenantId: string;
   userId: string;
   runDb: AgentsRunDatabaseClient;

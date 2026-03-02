@@ -713,15 +713,25 @@ export async function executeAgentAsync(params: {
           { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId },
           'User no longer has access to project, failing invocation'
         );
-        await updateTriggerInvocationStatus(runDbClient)({
-          scopes: { tenantId, projectId, agentId },
-          triggerId,
-          invocationId,
-          data: {
-            status: 'failed',
-            errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
-          },
-        });
+        try {
+          await updateTriggerInvocationStatus(runDbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: {
+              status: 'failed',
+              errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
+            },
+          });
+        } catch (updateError) {
+          logger.error(
+            {
+              err: updateError instanceof Error ? updateError.message : String(updateError),
+              invocationId,
+            },
+            'Failed to update invocation status after permission denial'
+          );
+        }
         return;
       }
     } catch (err) {
@@ -729,15 +739,25 @@ export async function executeAgentAsync(params: {
         { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId, error: err },
         'Failed to check user project access'
       );
-      await updateTriggerInvocationStatus(runDbClient)({
-        scopes: { tenantId, projectId, agentId },
-        triggerId,
-        invocationId,
-        data: {
-          status: 'failed',
-          errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
-        },
-      });
+      try {
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId,
+          invocationId,
+          data: {
+            status: 'failed',
+            errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        });
+      } catch (updateError) {
+        logger.error(
+          {
+            err: updateError instanceof Error ? updateError.message : String(updateError),
+            invocationId,
+          },
+          'Failed to update invocation status after permission check error'
+        );
+      }
       return;
     }
   }
