@@ -58,6 +58,8 @@ import {
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
+  workAppSlackChannelAgentConfigs,
+  workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -3057,3 +3059,29 @@ export const WorkAppGitHubAccessGetResponseSchema = z.object({
   mode: WorkAppGitHubAccessModeSchema,
   repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });
+
+// Slack Schemas (Runtime DB - unversioned)
+export const WorkAppSlackChannelAgentConfigSelectSchema = createSelectSchema(
+  workAppSlackChannelAgentConfigs
+);
+export const WorkAppSlackWorkspaceSelectSchema = createSelectSchema(workAppSlackWorkspaces);
+
+// Shared Slack Agent Config API Schemas
+// Request: projectId + agentId derived from DB schema, grantAccessToMembers optional (defaults on write)
+export const WorkAppSlackAgentConfigRequestSchema = WorkAppSlackChannelAgentConfigSelectSchema.pick(
+  {
+    projectId: true,
+    agentId: true,
+  }
+).extend({
+  grantAccessToMembers: z.boolean().optional(),
+});
+
+// Response: extends request with resolved display names
+export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequestSchema.extend({
+  agentName: z.string(),
+  projectName: z.string().optional(),
+});
+
+export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
+export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;

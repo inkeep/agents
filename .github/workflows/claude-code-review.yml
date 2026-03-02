@@ -314,7 +314,7 @@ jobs:
           CLAUDE_COMMENTS=$(echo "$THREADS" | jq -r '
             [.[]
               | select((.comments.nodes | length) > 0)
-              | select((.comments.nodes[0].author.__typename // "") == "Bot")
+              | select((.comments.nodes[0].author.login // "") == "claude[bot]")
             ] |
             sort_by(.comments.nodes[-1].createdAt) | reverse |
             if length == 0 then

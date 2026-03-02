@@ -1546,6 +1546,29 @@
         },
         "type": "object"
       },
+      "ConversationBoundsResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "updatedAt"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "ConversationWithFormattedMessagesResponse": {
         "properties": {
           "data": {
@@ -25654,6 +25677,121 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/conversations/{id}/bounds": {
+      "get": {
+        "operationId": "get-conversation-bounds",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationBoundsResponse"
+                }
+              }
+            },
+            "description": "Conversation time bounds for trace queries"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get conversation time bounds",
+        "tags": [
+          "Conversations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/credential-stores": {
       "get": {
         "operationId": "list-credential-stores",
@@ -38546,18 +38684,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -38655,18 +38789,14 @@
                           "agentConfig": {
                             "properties": {
                               "agentId": {
-                                "type": "string"
-                              },
-                              "agentName": {
+                                "maxLength": 256,
                                 "type": "string"
                               },
                               "grantAccessToMembers": {
                                 "type": "boolean"
                               },
                               "projectId": {
-                                "type": "string"
-                              },
-                              "projectName": {
+                                "maxLength": 256,
                                 "type": "string"
                               }
                             },
@@ -38826,18 +38956,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39011,18 +39137,14 @@
                     "agentConfig": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39085,18 +39207,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39143,6 +39261,9 @@
               }
             },
             "description": "Channel settings updated"
+          },
+          "400": {
+            "description": "Agent not found"
           }
         },
         "summary": "Set Channel Default Agent",
@@ -39381,18 +39502,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39441,18 +39558,14 @@
                   "defaultAgent": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39487,22 +39600,10 @@
             },
             "description": "Settings updated"
           },
+          "400": {
+            "description": "Agent not found"
+          },
           "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
             "description": "Failed to update settings"
           }
         },
