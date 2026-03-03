@@ -259,10 +259,11 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Message content"
-              value={a.messageContent || 'Message content not available'}
-            />
+            <LabeledBlock label="Message content">
+              <Bubble className="whitespace-pre-wrap break-words">
+                {a.messageContent?.replaceAll('\\n', '\n') || 'Message content not available'}
+              </Bubble>
+            </LabeledBlock>
             {targetTenantId && (
               <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}
