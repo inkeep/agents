@@ -10719,7 +10719,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -10884,7 +10884,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11004,7 +11004,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11207,7 +11207,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11317,7 +11317,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11506,7 +11506,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11745,7 +11745,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11833,7 +11833,7 @@
           "API Keys"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -12498,7 +12498,7 @@
           "Projects"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         },
@@ -36909,7 +36909,7 @@
           "User Project Memberships"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -38558,9 +38558,6 @@
                           },
                           "hasDefaultAgent": {
                             "type": "boolean"
-                          },
-                          "teamDomain": {
-                            "type": "string"
                           },
                           "teamId": {
                             "type": "string"
