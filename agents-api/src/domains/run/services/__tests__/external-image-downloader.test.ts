@@ -268,6 +268,30 @@ describe('external-image-downloader', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it('succeeds after transient 5xx failure on retry', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      )
+      .mockResolvedValueOnce(
+        new Response(VALID_PNG_BYTES, {
+          status: 200,
+          headers: {
+            'content-type': 'image/png',
+            'content-length': String(VALID_PNG_BYTES.length),
+          },
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await downloadExternalImage('https://example.com/image.png');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.mimeType).toBe('image/png');
+    expect(result.data).toBeInstanceOf(Uint8Array);
+    expect(result.data.length).toBe(VALID_PNG_BYTES.length);
+  });
+
   it('does not retry client errors', async () => {
     const fetchMock = vi
       .fn()
