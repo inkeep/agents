@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-email",
-  "version": "0.55.3",
+  "version": "0.56.0",
   "description": "Email service for Inkeep Agents — transactional emails via Nodemailer/SMTP",
   "private": false,
   "type": "module",
