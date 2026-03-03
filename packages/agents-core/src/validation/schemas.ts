@@ -3227,3 +3227,10 @@ export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
   id: true,
   userId: true,
 });
+
+export const AnonymousSessionResponseSchema = z
+  .object({
+    token: z.string().describe('Anonymous session JWT'),
+    expiresAt: z.string().describe('Token expiration time (ISO 8601)'),
+  })
+  .openapi('AnonymousSessionResponse');
