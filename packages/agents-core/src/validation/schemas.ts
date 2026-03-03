@@ -41,6 +41,7 @@ import {
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
+  apps,
   contextCache,
   conversations,
   datasetRun,
@@ -1839,6 +1840,79 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
+// ── App Credential Schemas ──────────────────────────────────────────────────
+
+export const WebClientConfigSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(z.string().min(1)).min(1),
+      authMode: z.enum(['anonymous_only', 'anonymous_and_authenticated', 'authenticated_only']),
+      anonymousSessionLifetimeSeconds: z.number().int().min(60).max(604800).default(86400),
+      hs256Enabled: z.boolean().default(false),
+      hs256Secret: z.string().optional(),
+      captchaEnabled: z.boolean().default(false),
+    }),
+  })
+  .openapi('WebClientConfig');
+
+export const ApiConfigSchema = z
+  .object({
+    type: z.literal('api'),
+    api: z.object({}).default({}),
+  })
+  .openapi('ApiConfig');
+
+export const AppConfigSchema = z
+  .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema])
+  .openapi('AppConfig');
+
+export const AppSelectSchema = createSelectSchema(apps);
+
+export const AppInsertSchema = createInsertSchema(apps).extend({
+  id: ResourceIdSchema,
+  name: z.string().trim().nonempty('Please enter a name.').max(256),
+  type: z.enum(['web_client', 'api']),
+  agentAccessMode: z.enum(['all', 'selected']).default('selected'),
+  allowedAgentIds: z.array(z.string()).default([]),
+  config: AppConfigSchema,
+});
+
+export const AppUpdateSchema = AppInsertSchema.partial().omit({
+  tenantId: true,
+  projectId: true,
+  id: true,
+  publicId: true,
+  keyHash: true,
+  keyPrefix: true,
+  createdAt: true,
+});
+
+export const AppApiSelectSchema = AppSelectSchema.omit({
+  tenantId: true,
+  projectId: true,
+  keyHash: true,
+}).openapi('App');
+
+export const AppApiInsertSchema = AppInsertSchema.omit({
+  tenantId: true,
+  projectId: true,
+  id: true,
+  publicId: true,
+  keyHash: true,
+  keyPrefix: true,
+  lastUsedAt: true,
+}).openapi('AppCreate');
+
+export const AppApiUpdateSchema = AppUpdateSchema.openapi('AppUpdate');
+
+export const AppApiCreationResponseSchema = z.object({
+  data: z.object({
+    app: AppApiSelectSchema,
+    appSecret: z.string().optional().describe('The full app secret for API type (shown only once)'),
+  }),
+});
+
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
@@ -2662,6 +2736,13 @@ export const ApiKeyListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ApiKeyListResponse');
+export const AppResponse = z.object({ data: AppApiSelectSchema }).openapi('AppResponse');
+export const AppListResponse = z
+  .object({
+    data: z.array(AppApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('AppListResponse');
 export const CredentialReferenceListResponse = z
   .object({
     data: z.array(CredentialReferenceApiSelectSchema),
