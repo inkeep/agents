@@ -38,6 +38,10 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
+
+type ToolResultOutput = Awaited<ReturnType<NonNullable<Tool['toModelOutput']>>>;
+type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number];
+
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -902,8 +906,8 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
-          toModelOutput: ({ output }: { output: any }) => {
-            return this.buildToolModelOutput(output) as any;
+          toModelOutput: ({ output }) => {
+            return this.buildToolModelOutput(output);
           },
           execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
@@ -2002,11 +2006,11 @@ export class Agent {
   /**
    * Format tool result for storage in conversation history
    */
-  private buildToolModelOutput(output: any): any {
+  private buildToolModelOutput(output: unknown): ToolResultOutput {
     if (isToolResultDenied(output)) {
       return {
-        type: 'execution-denied',
-        reason: output.reason,
+        type: 'error-text',
+        value: `Tool execution denied: ${(output as { reason: string }).reason}`,
       };
     }
 
@@ -2043,7 +2047,7 @@ export class Agent {
     };
   }
 
-  private mapMcpContentItemToToolResultContentPart(item: unknown): Record<string, unknown> | null {
+  private mapMcpContentItemToToolResultContentPart(item: unknown): ToolResultContentPart | null {
     if (!item || typeof item !== 'object') {
       return null;
     }
@@ -2072,8 +2076,8 @@ export class Agent {
     if (type === 'image') {
       if (typeof contentItem.data === 'string' && contentItem.data.trim() !== '') {
         return {
-          type: 'image-data',
-          data: contentItem.data,
+          type: 'media',
+          data: contentItem.data as string,
           mediaType:
             typeof contentItem.mimeType === 'string' && contentItem.mimeType.trim() !== ''
               ? contentItem.mimeType
@@ -2083,14 +2087,15 @@ export class Agent {
 
       if (typeof contentItem.url === 'string' && contentItem.url.trim() !== '') {
         return {
-          type: 'image-url',
-          url: contentItem.url,
+          type: 'text',
+          text: contentItem.url as string,
         };
       }
 
       return null;
     }
 
+    // Other MCP content types (e.g. 'resource', 'audio') serialize as text for now
     return {
       type: 'text',
       text: JSON.stringify(contentItem, null, 2),
@@ -2112,8 +2117,8 @@ export class Agent {
       return { text };
     }
 
-    const hasImageFileParts = parts.some((part) => part.kind === 'file');
-    if (!hasImageFileParts) {
+    const hasFileParts = parts.some((part) => part.kind === 'file');
+    if (!hasFileParts) {
       return { text, parts: makeMessageContentParts(parts) };
     }
 
@@ -2167,6 +2172,20 @@ export class Agent {
       };
     }
 
+    if (item.type === 'image' && typeof item.url === 'string') {
+      return {
+        kind: 'file',
+        file: {
+          uri: item.url,
+          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+        },
+        metadata: {
+          type: 'image',
+        },
+      };
+    }
+
+    // Other MCP content types (e.g. 'resource', 'audio') fall through to generic data for now
     return {
       kind: 'data',
       data: item as Record<string, unknown>,
