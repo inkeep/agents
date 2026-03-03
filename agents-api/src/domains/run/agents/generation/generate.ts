@@ -5,6 +5,7 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
+import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
@@ -12,7 +13,6 @@ import { extractTextFromParts } from '../../utils/message-parts';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
-import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import {
