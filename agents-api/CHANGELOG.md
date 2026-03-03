@@ -1,5 +1,35 @@
 # @inkeep/agents-api
 
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+- @inkeep/agents-email@0.55.3
+- @inkeep/agents-mcp@0.55.3
+- @inkeep/agents-work-apps@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- add0b4b: Pass cron timezone to agent in scheduled trigger execution.
+- 4414e25: Add email integration for BetterAuth callbacks (invitation and password reset emails via SMTP)
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+  - @inkeep/agents-work-apps@0.55.2
+  - @inkeep/agents-email@0.55.2
+  - @inkeep/agents-mcp@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-mcp@0.55.1
+  - @inkeep/agents-work-apps@0.55.1
+
 ## 0.55.0
 
 ### Minor Changes

@@ -13,6 +13,7 @@ import type {
   SignatureVerificationConfig,
 } from '@inkeep/agents-core';
 import {
+  canUseProjectStrict,
   createKeyChainStore,
   createMessage,
   createNangoCredentialStore,
@@ -48,6 +49,13 @@ import { tracer } from '../utils/tracer';
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
+
+export function buildScheduledTriggerHeaders(cronTimezone?: string | null): Record<string, string> {
+  return {
+    'x-inkeep-client-timezone': cronTimezone || 'UTC',
+    'x-inkeep-client-timestamp': new Date().toISOString(),
+  };
+}
 
 // Credential cache with 5-minute TTL
 const credentialCache = new Map<string, { secret: string; expiresAt: number }>();
@@ -142,6 +150,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId: trigger.runAsUserId ?? undefined,
   });
 
   return { success: true, invocationId, conversationId };
@@ -494,6 +503,7 @@ export async function dispatchExecution(params: {
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
+  runAsUserId?: string;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -505,6 +515,7 @@ export async function dispatchExecution(params: {
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId,
   } = params;
 
   const conversationId = getConversationId();
@@ -543,6 +554,7 @@ export async function dispatchExecution(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    runAsUserId,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -611,6 +623,7 @@ export async function executeAgentAsync(params: {
   resolvedRef: ResolvedRef;
   dispatchedAt?: number;
   runAsUserId?: string;
+  forwardedHeaders?: Record<string, string>;
 }): Promise<void> {
   const {
     tenantId,
@@ -624,6 +637,7 @@ export async function executeAgentAsync(params: {
     resolvedRef,
     dispatchedAt,
     runAsUserId,
+    forwardedHeaders,
   } = params;
 
   const execStartedAt = Date.now();
@@ -689,6 +703,64 @@ export async function executeAgentAsync(params: {
   }
 
   const agentName = agent.name;
+
+  // Permission check for user-scoped webhook triggers
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({ userId: runAsUserId, tenantId, projectId });
+      if (!canUse) {
+        logger.warn(
+          { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId },
+          'User no longer has access to project, failing invocation'
+        );
+        try {
+          await updateTriggerInvocationStatus(runDbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: {
+              status: 'failed',
+              errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
+            },
+          });
+        } catch (updateError) {
+          logger.error(
+            {
+              err: updateError instanceof Error ? updateError.message : String(updateError),
+              invocationId,
+            },
+            'Failed to update invocation status after permission denial'
+          );
+        }
+        return;
+      }
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId, error: err },
+        'Failed to check user project access'
+      );
+      try {
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId,
+          invocationId,
+          data: {
+            status: 'failed',
+            errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        });
+      } catch (updateError) {
+        logger.error(
+          {
+            err: updateError instanceof Error ? updateError.message : String(updateError),
+            invocationId,
+          },
+          'Failed to update invocation status after permission check error'
+        );
+      }
+      return;
+    }
+  }
 
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
@@ -830,6 +902,7 @@ export async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
+          forwardedHeaders,
         });
 
         if (!result.success) {

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.55.0",
+  "version": "0.55.3",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -58,6 +58,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-mcp": "workspace:^",
     "@inkeep/agents-work-apps": "workspace:^",
+    "@inkeep/agents-email": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/auto-instrumentations-node": "catalog:",
