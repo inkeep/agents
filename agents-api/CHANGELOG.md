@@ -1,5 +1,14 @@
 # @inkeep/agents-api
 
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-mcp@0.55.1
+  - @inkeep/agents-work-apps@0.55.1
+
 ## 0.55.0
 
 ### Minor Changes

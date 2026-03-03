@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+- cde371e: Fix playground conversationId not resetting when playground closes or when navigating between agents
+  - @inkeep/agents-core@0.55.1
+
 ## 0.55.0
 
 ### Patch Changes
