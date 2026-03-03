@@ -66,10 +66,10 @@ describe('getOrganizationMemberByUserId', () => {
     const result = await getOrganizationMemberByUserId(db)(ORG_A, USER_IN_A);
 
     expect(result).not.toBeNull();
-    expect(result!.id).toBe(USER_IN_A);
-    expect(result!.email).toBe('a@test.com');
-    expect(result!.role).toBe('member');
-    expect(result!.memberId).toBe('member-a');
+    expect(result?.id).toBe(USER_IN_A);
+    expect(result?.email).toBe('a@test.com');
+    expect(result?.role).toBe('member');
+    expect(result?.memberId).toBe('member-a');
   });
 
   it('should return null when user exists but is not in the organization', async () => {
@@ -94,7 +94,7 @@ describe('getOrganizationMemberByUserId', () => {
     const result = await getOrganizationMemberByUserId(db)(ORG_B, USER_IN_B);
 
     expect(result).not.toBeNull();
-    expect(result!.role).toBe('admin');
-    expect(result!.memberId).toBe('member-b');
+    expect(result?.role).toBe('admin');
+    expect(result?.memberId).toBe('member-b');
   });
 });
