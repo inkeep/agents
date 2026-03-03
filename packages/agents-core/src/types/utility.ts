@@ -195,9 +195,9 @@ export type ToolMcpConfig = {
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server
   activeTools?: string[];
-  // Tool overrides for schema simplification
+  // Tool overrides for individual tool schema/display customization
   toolOverrides?: Record<string, ToolSimplifyConfig>;
-  // Optional custom prompt/instructions for using this MCP server
+  // Custom prompt / instructions sent to the LLM about this MCP server
   prompt?: string;
 };
 
@@ -207,6 +207,8 @@ export type ToolServerCapabilities = {
   prompts?: boolean;
   logging?: boolean;
   streaming?: boolean;
+  // Default instructions from the MCP server's initialize response
+  serverInstructions?: string;
 };
 
 export type TaskMetadataConfig = {

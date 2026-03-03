@@ -1,5 +1,52 @@
 # @inkeep/agents-work-apps
 
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
+## 0.54.0
+
+### Minor Changes
+
+- addc4a0: Move workspace default agent config from Nango metadata to PostgreSQL
+- addc4a0: Remove denormalized agent names from Slack channel configs — resolve names at read time from manage DB, clean up orphaned configs on agent/project deletion, validate agent existence on write
+
+### Patch Changes
+
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- 23b6b48: fix spans for work app
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
 ## 0.53.12
 
 ### Patch Changes

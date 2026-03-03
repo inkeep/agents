@@ -126,6 +126,14 @@ describe('LocalBlobStorageProvider', () => {
         contentType: 'image/png',
       })
     ).rejects.toThrow('Invalid blob key');
+
+    await expect(
+      provider.upload({
+        key: 'bad%00name.png',
+        data: new Uint8Array([1]),
+        contentType: 'image/png',
+      })
+    ).rejects.toThrow('Invalid blob key');
   });
 
   it('rejects malformed percent encoding keys', async () => {
@@ -168,6 +176,7 @@ describe('LocalBlobStorageProvider', () => {
         contentType: 'text/plain',
       })
     ).rejects.toThrow('Invalid blob key');
+    await expect(provider.delete('link/outside.txt')).rejects.toThrow('Invalid blob key');
   });
 
   it('deletes existing files', async () => {

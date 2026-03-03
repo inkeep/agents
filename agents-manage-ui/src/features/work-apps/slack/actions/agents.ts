@@ -5,9 +5,9 @@ import { fetchProjects as apiFetchProjects } from '@/lib/api/projects';
 
 export interface SlackAgentOption {
   id: string;
-  name: string | null;
+  name: string;
   projectId: string;
-  projectName: string | null;
+  projectName: string;
 }
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };

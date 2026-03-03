@@ -15,11 +15,13 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { Channel, SlackAgentOption } from './types';
+import { getAgentDisplayName } from './types';
 
 interface ChannelAgentCellProps {
   channel: Channel;
   agents: SlackAgentOption[];
   savingChannel: string | null;
+  hasWorkspaceDefault: boolean;
   onSetAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
   onResetToDefault: (channelId: string, channelName: string) => void;
 }
@@ -28,6 +30,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
   channel,
   agents,
   savingChannel,
+  hasWorkspaceDefault,
   onSetAgent,
   onResetToDefault,
 }: ChannelAgentCellProps) {
@@ -35,7 +38,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
 
   const isSaving = savingChannel === channel.id;
 
-  const { agentId, agentName, projectId } = channel.agentConfig ?? {};
+  const { agentId, projectId } = channel.agentConfig ?? {};
 
   return (
     <div className="flex min-w-0 items-center justify-end gap-1">
@@ -48,11 +51,17 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
             disabled={isSaving}
           >
             {isSaving && <Loader2 className="h-3! w-3! animate-spin" />}
-            {channel.agentConfig ? (
-              <span className="min-w-0 truncate">{agentName}</span>
-            ) : (
+            {channel.agentConfig && agentId && projectId ? (
+              <span className="min-w-0 truncate">
+                {getAgentDisplayName(agents, agentId, projectId)}
+              </span>
+            ) : hasWorkspaceDefault ? (
               <span className="min-w-0 truncate text-muted-foreground font-light">
                 Workspace default
+              </span>
+            ) : (
+              <span className="min-w-0 truncate text-amber-600 dark:text-amber-400 font-light">
+                No agent
               </span>
             )}
             <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
@@ -74,7 +83,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                       }}
                     >
                       <RotateCcw className="h-4 w-4" />
-                      Reset to workspace default
+                      Reset to workspace default{!hasWorkspaceDefault && ' (not set)'}
                     </CommandItem>
                   </CommandGroup>
                   <CommandSeparator />
@@ -99,7 +108,7 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
                       )}
                     />
                     <div className="flex flex-col">
-                      <span className="font-medium">{agent.name || agent.id}</span>
+                      <span className="font-medium">{agent.name}</span>
                       <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                     </div>
                   </CommandItem>
