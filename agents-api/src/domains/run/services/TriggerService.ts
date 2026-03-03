@@ -611,6 +611,7 @@ export async function executeAgentAsync(params: {
   resolvedRef: ResolvedRef;
   dispatchedAt?: number;
   runAsUserId?: string;
+  forwardedHeaders?: Record<string, string>;
 }): Promise<void> {
   const {
     tenantId,
@@ -624,6 +625,7 @@ export async function executeAgentAsync(params: {
     resolvedRef,
     dispatchedAt,
     runAsUserId,
+    forwardedHeaders,
   } = params;
 
   const execStartedAt = Date.now();
@@ -830,6 +832,7 @@ export async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
+          forwardedHeaders,
         });
 
         if (!result.success) {

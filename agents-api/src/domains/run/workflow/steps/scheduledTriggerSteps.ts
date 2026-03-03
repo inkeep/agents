@@ -458,6 +458,7 @@ export async function executeScheduledTriggerStep(params: {
   payload?: Record<string, unknown> | null;
   timeoutSeconds: number;
   runAsUserId?: string | null;
+  cronTimezone?: string | null;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -471,6 +472,7 @@ export async function executeScheduledTriggerStep(params: {
     payload,
     timeoutSeconds,
     runAsUserId,
+    cronTimezone,
   } = params;
 
   if (runAsUserId) {
@@ -553,6 +555,11 @@ export async function executeScheduledTriggerStep(params: {
       );
     });
 
+    const forwardedHeaders: Record<string, string> = {};
+    const effectiveTimezone = cronTimezone || 'UTC';
+    forwardedHeaders['x-inkeep-client-timezone'] = effectiveTimezone;
+    forwardedHeaders['x-inkeep-client-timestamp'] = new Date().toISOString();
+
     await Promise.race([
       executeAgentAsync({
         tenantId,
@@ -565,6 +572,7 @@ export async function executeScheduledTriggerStep(params: {
         messageParts,
         resolvedRef,
         runAsUserId: runAsUserId ?? undefined,
+        forwardedHeaders,
       }),
       timeoutPromise,
     ]);
