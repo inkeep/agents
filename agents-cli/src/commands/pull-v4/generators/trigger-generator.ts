@@ -54,6 +54,8 @@ type TriggerDefinitionData = {
   } | null;
   signingSecretCredentialReferenceId?: string | null;
   signingSecretCredentialReference?: string | { id?: string } | null;
+  runAsUserId?: string | null;
+  createdBy?: string | null;
 };
 
 const TriggerSchema = z.looseObject({
@@ -100,6 +102,8 @@ const TriggerSchema = z.looseObject({
     .nullable()
     .optional()
     .transform(convertNullToUndefined),
+  runAsUserId: z.string().nullable().optional().transform(convertNullToUndefined),
+  createdBy: z.string().nullable().optional().transform(convertNullToUndefined),
 });
 
 export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFile {

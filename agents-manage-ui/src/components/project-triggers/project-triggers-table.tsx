@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Copy, CopyPlus, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,6 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuthSession } from '@/hooks/use-auth';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
+import { useOrgMembers } from '@/hooks/use-org-members';
 import { deleteTriggerAction, updateTriggerEnabledAction } from '@/lib/actions/triggers';
 import type { TriggerWithAgent } from '@/lib/api/project-triggers';
 
@@ -34,6 +38,20 @@ interface ProjectTriggersTableProps {
 export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectTriggersTableProps) {
   const router = useRouter();
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
+  const { members: orgMembers } = useOrgMembers(tenantId);
+  const { user } = useAuthSession();
+  const { isAdmin } = useIsOrgAdmin();
+
+  const canManageTrigger = (trigger: TriggerWithAgent): boolean => {
+    if (isAdmin) return true;
+    if (!user) return false;
+    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+  };
+
+  const getUserDisplayName = (userId: string): string => {
+    const member = orgMembers.find((m) => m.id === userId);
+    return member?.name || member?.email || userId;
+  };
 
   const copyWebhookUrl = async (webhookUrl: string, name: string) => {
     try {
@@ -113,6 +131,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
           <TableRow noHover>
             <TableHead>Name</TableHead>
             <TableHead>Agent</TableHead>
+            <TableHead>Run As</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Webhook URL</TableHead>
@@ -122,7 +141,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
         <TableBody>
           {triggers.length === 0 ? (
             <TableRow noHover>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 No webhook triggers configured yet. Create a trigger to enable webhook-based agent
                 invocation.
               </TableCell>
@@ -130,6 +149,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
           ) : (
             triggers.map((trigger) => {
               const isLoading = loadingTriggers.has(trigger.id);
+              const canManage = canManageTrigger(trigger);
               return (
                 <TableRow key={trigger.id} noHover>
                   <TableCell>
@@ -142,6 +162,24 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                     >
                       {trigger.agentName}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    {trigger.runAsUserId ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                              {getUserDisplayName(trigger.runAsUserId)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono text-xs">{trigger.runAsUserId}</code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-muted-foreground max-w-md truncate">
@@ -193,7 +231,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
+                        <DropdownMenuItem asChild disabled={!canManage}>
                           <Link
                             href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/${trigger.id}/edit`}
                           >
@@ -201,8 +239,32 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                             Edit
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={(() => {
+                              const params = new URLSearchParams();
+                              if (trigger.messageTemplate)
+                                params.set('messageTemplate', trigger.messageTemplate);
+                              if (trigger.inputSchema)
+                                params.set('inputSchema', JSON.stringify(trigger.inputSchema));
+                              if (trigger.outputTransform)
+                                params.set(
+                                  'outputTransform',
+                                  JSON.stringify(trigger.outputTransform)
+                                );
+                              params.set('enabled', String(trigger.enabled));
+                              if (trigger.runAsUserId)
+                                params.set('runAsUserId', trigger.runAsUserId);
+                              return `/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/new?${params.toString()}`;
+                            })()}
+                          >
+                            <CopyPlus className="w-4 h-4" />
+                            Duplicate
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
+                          disabled={!canManage}
                           onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
                           <Trash2 className="w-4 h-4" />
