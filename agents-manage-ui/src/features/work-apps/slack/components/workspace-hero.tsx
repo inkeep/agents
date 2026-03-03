@@ -247,7 +247,7 @@ export function WorkspaceHero() {
                         )}
                       </TooltipContent>
                     </Tooltip>
-                    {workspace.hasDefaultAgent && (
+                    {workspace.hasDefaultAgent ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Badge variant="code" className="text-xs">
@@ -258,6 +258,20 @@ export function WorkspaceHero() {
                           <p>
                             The default agent for all <code>@Inkeep</code> mentions and{' '}
                             <code>/inkeep</code> commands in {workspace.teamName}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="warning" className="text-xs">
+                            No default agent
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Channels without a dedicated agent won&apos;t respond to{' '}
+                            <code>@Inkeep</code> mentions or <code>/inkeep</code> commands
                           </p>
                         </TooltipContent>
                       </Tooltip>

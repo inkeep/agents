@@ -526,17 +526,19 @@ describe('ArtifactService', () => {
       expect(artifactService.getToolResultRaw('call-missing')).toBeUndefined();
     });
 
-    it('unwraps MCP-style text content', () => {
+    it('unwraps MCP-style text content and returns wrapped in result', () => {
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-1',
         toolName: 'fetch',
         result: { content: [{ type: 'text', text: '<html>page</html>' }] },
         timestamp: Date.now(),
       });
-      expect(artifactService.getToolResultRaw('call-1')).toBe('<html>page</html>');
+      expect(artifactService.getToolResultRaw('call-1')).toEqual({
+        result: '<html>page</html>',
+      });
     });
 
-    it('unwraps MCP-style image content', () => {
+    it('unwraps MCP-style image content and returns wrapped in result', () => {
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-img',
         toolName: 'screenshot',
@@ -546,23 +548,27 @@ describe('ArtifactService', () => {
         timestamp: Date.now(),
       });
       expect(artifactService.getToolResultRaw('call-img')).toEqual({
-        data: 'base64data==',
-        encoding: 'base64',
-        mimeType: 'image/png',
+        result: {
+          data: 'base64data==',
+          encoding: 'base64',
+          mimeType: 'image/png',
+        },
       });
     });
 
-    it('unwraps AI SDK function tool text output', () => {
+    it('unwraps AI SDK function tool text output and returns wrapped in result', () => {
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-fn',
         toolName: 'citation_extract_text',
         result: { type: 'text', value: 'extracted text content' },
         timestamp: Date.now(),
       });
-      expect(artifactService.getToolResultRaw('call-fn')).toBe('extracted text content');
+      expect(artifactService.getToolResultRaw('call-fn')).toEqual({
+        result: 'extracted text content',
+      });
     });
 
-    it('returns raw result for non-standard formats', () => {
+    it('returns raw result for non-standard formats wrapped in result', () => {
       const rawResult = { rows: [{ id: 1, name: 'Alice' }] };
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-db',
@@ -570,7 +576,7 @@ describe('ArtifactService', () => {
         result: rawResult,
         timestamp: Date.now(),
       });
-      expect(artifactService.getToolResultRaw('call-db')).toEqual(rawResult);
+      expect(artifactService.getToolResultRaw('call-db')).toEqual({ result: rawResult });
     });
 
     it('returns undefined for failed MCP tool results', () => {
@@ -583,7 +589,7 @@ describe('ArtifactService', () => {
       expect(artifactService.getToolResultRaw('call-failed')).toBeUndefined();
     });
 
-    it('returns the result when failed is false', () => {
+    it('returns the result when failed is false wrapped in result', () => {
       const successResult = { data: 'ok' };
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-ok',
@@ -592,8 +598,7 @@ describe('ArtifactService', () => {
         timestamp: Date.now(),
       });
       expect(artifactService.getToolResultRaw('call-ok')).toEqual({
-        ...successResult,
-        failed: false,
+        result: { ...successResult, failed: false },
       });
     });
   });

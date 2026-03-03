@@ -22,7 +22,6 @@ export {
   getChannelAgentConfig,
   getThreadContext,
   getUserFriendlyErrorMessage,
-  getWorkspaceDefaultAgent,
   markdownToMrkdwn,
   SlackErrorType,
   sendResponseUrlMessage,

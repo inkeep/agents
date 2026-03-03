@@ -144,6 +144,8 @@ export const triggers = pgTable(
     signatureVerification: jsonb('signature_verification')
       .$type<SignatureVerificationConfig | null>()
       .default(null),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    createdBy: varchar('created_by', { length: 256 }),
     ...timestamps,
   },
   (table) => [

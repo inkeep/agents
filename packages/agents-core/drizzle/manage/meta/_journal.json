@@ -85,6 +85,13 @@
       "when": 1771875473995,
       "tag": "0011_smooth_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772145299599,
+      "tag": "0012_petite_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

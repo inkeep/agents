@@ -67,6 +67,10 @@ vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),
 }));
 
+vi.mock('../../slack/services/agent-resolution', () => ({
+  lookupAgentName: vi.fn().mockResolvedValue('Test Agent'),
+}));
+
 vi.mock('../../slack/services/events/execution', () => ({
   executeAgentPublicly: vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -148,7 +152,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -184,7 +188,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -220,7 +224,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -248,7 +252,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -275,7 +279,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -311,7 +315,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');

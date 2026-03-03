@@ -3,6 +3,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   formatMessagesForLLMContext,
+  getConversation,
   getConversationHistory,
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
@@ -80,6 +81,59 @@ app.openapi(
         formatted: {
           llmContext,
         },
+      },
+    });
+  }
+);
+
+const ConversationBoundsResponse = z
+  .object({
+    data: z.object({
+      createdAt: z.string(),
+      updatedAt: z.string(),
+    }),
+  })
+  .openapi('ConversationBoundsResponse');
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{id}/bounds',
+    summary: 'Get conversation time bounds',
+    operationId: 'get-conversation-bounds',
+    tags: ['Conversations'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Conversation time bounds for trace queries',
+        content: {
+          'application/json': {
+            schema: ConversationBoundsResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, id } = c.req.valid('param');
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId: id,
+    });
+    if (!conversation) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Conversation not found',
+      });
+    }
+    return c.json({
+      data: {
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
       },
     });
   }

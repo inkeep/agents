@@ -31,7 +31,7 @@ import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { executeAgentAsync } from '../../services/TriggerService';
+import { buildScheduledTriggerHeaders, executeAgentAsync } from '../../services/TriggerService';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
 
@@ -458,6 +458,7 @@ export async function executeScheduledTriggerStep(params: {
   payload?: Record<string, unknown> | null;
   timeoutSeconds: number;
   runAsUserId?: string | null;
+  cronTimezone?: string | null;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -471,6 +472,7 @@ export async function executeScheduledTriggerStep(params: {
     payload,
     timeoutSeconds,
     runAsUserId,
+    cronTimezone,
   } = params;
 
   if (runAsUserId) {
@@ -565,6 +567,7 @@ export async function executeScheduledTriggerStep(params: {
         messageParts,
         resolvedRef,
         runAsUserId: runAsUserId ?? undefined,
+        forwardedHeaders: buildScheduledTriggerHeaders(cronTimezone),
       }),
       timeoutPromise,
     ]);

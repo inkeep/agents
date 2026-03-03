@@ -134,7 +134,11 @@ export function ExternalAgentItem({
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
-            {externalAgent.credentialReferenceId && <Badge variant="code">Secured</Badge>}
+            {externalAgent.credentialReferenceId && (
+              <Badge className="uppercase" variant="primary">
+                Secured
+              </Badge>
+            )}
           </div>
         </div>
         <ItemCardFooter footerText={`Created ${formatDate(externalAgent.createdAt)}`} />

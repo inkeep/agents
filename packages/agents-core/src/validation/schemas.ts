@@ -58,6 +58,8 @@ import {
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
+  workAppSlackChannelAgentConfigs,
+  workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -180,6 +182,11 @@ export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
 export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+
+export const UserIdSchema = z.string().openapi('UserId', {
+  description: 'User identifier',
+  example: 'user_123',
+});
 
 export const ResourceIdSchema = z
   .string()
@@ -767,6 +774,10 @@ export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
     signingSecretCredentialReferenceId: z.string().nullable().optional(),
     signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
+    runAsUserId: UserIdSchema.nullable().optional().describe('User ID to run the webhook as'),
+    createdBy: UserIdSchema.nullable()
+      .optional()
+      .describe('User ID of the user who created this trigger'),
   })
 );
 
@@ -788,6 +799,9 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
   authentication: () => TriggerAuthenticationInputSchema.optional(),
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
+  runAsUserId: () => UserIdSchema.nullable().optional().describe('User ID to run the webhook as'),
+  createdBy: () =>
+    UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
   signatureVerification: () =>
     SignatureVerificationConfigSchema.nullish()
       .superRefine((config, ctx) => {
@@ -928,7 +942,10 @@ export const CronExpressionSchema = z
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
-  createdBy: z.string().nullable().describe('User ID of the user who created this trigger'),
+  runAsUserId: UserIdSchema.nullable().describe(
+    'User ID of the user who this trigger is running as'
+  ),
+  createdBy: UserIdSchema.nullable().describe('User ID of the user who created this trigger'),
 });
 
 const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
@@ -956,7 +973,7 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
   createdBy: () =>
-    z.string().nullable().optional().describe('User ID of the user who created this trigger'),
+    UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
@@ -1929,7 +1946,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
   expiresAt: z.string().optional(),
-  createdBy: z.string().optional(),
+  createdBy: UserIdSchema.optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
@@ -2717,6 +2734,17 @@ export const TriggerWithWebhookUrlResponse = z
     data: TriggerWithWebhookUrlSchema,
   })
   .openapi('TriggerWithWebhookUrlResponse');
+export const TriggerWithWebhookUrlWithWarningResponse = z
+  .object({
+    data: TriggerWithWebhookUrlSchema,
+    warning: z
+      .string()
+      .optional()
+      .describe(
+        'Security warning when runAsUserId is set but no authentication or signature verification is configured'
+      ),
+  })
+  .openapi('TriggerWithWebhookUrlWithWarningResponse');
 export const TriggerWithWebhookUrlListResponse = z
   .object({
     data: z.array(TriggerWithWebhookUrlSchema),
@@ -3057,3 +3085,29 @@ export const WorkAppGitHubAccessGetResponseSchema = z.object({
   mode: WorkAppGitHubAccessModeSchema,
   repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });
+
+// Slack Schemas (Runtime DB - unversioned)
+export const WorkAppSlackChannelAgentConfigSelectSchema = createSelectSchema(
+  workAppSlackChannelAgentConfigs
+);
+export const WorkAppSlackWorkspaceSelectSchema = createSelectSchema(workAppSlackWorkspaces);
+
+// Shared Slack Agent Config API Schemas
+// Request: projectId + agentId derived from DB schema, grantAccessToMembers optional (defaults on write)
+export const WorkAppSlackAgentConfigRequestSchema = WorkAppSlackChannelAgentConfigSelectSchema.pick(
+  {
+    projectId: true,
+    agentId: true,
+  }
+).extend({
+  grantAccessToMembers: z.boolean().optional(),
+});
+
+// Response: extends request with resolved display names
+export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequestSchema.extend({
+  agentName: z.string(),
+  projectName: z.string().optional(),
+});
+
+export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
+export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;

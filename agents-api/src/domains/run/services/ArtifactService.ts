@@ -96,7 +96,8 @@ export class ArtifactService {
 
   /**
    * Get raw tool result by toolCallId from the current session.
-   * Returns { result: <data> } so paths like result.structuredContent.content[?...]
+   * Unwraps MCP-style content arrays and AI SDK text output, then returns
+   * { result: <data> } so paths like result.structuredContent.content[?...]
    * work consistently with _structureHints exampleSelectors shown to the agent.
    * Strips system-added fields (_toolCallId, _structureHints, isError).
    */
@@ -116,12 +117,32 @@ export class ArtifactService {
 
     const result = record.result;
 
-    if (result && typeof result === 'object' && !Array.isArray(result)) {
-      const { _toolCallId, _structureHints, isError, ...rest } = result as Record<string, unknown>;
+    let payload: unknown = result;
+
+    const first = result?.content?.[0];
+    if (first?.type === 'text') payload = first.text;
+    else if (first?.type === 'image') {
+      payload = {
+        data: first.data,
+        encoding: 'base64',
+        mimeType: first.mimeType,
+      };
+    } else if (
+      result &&
+      typeof result === 'object' &&
+      !Array.isArray(result) &&
+      (result as { type?: string }).type === 'text' &&
+      typeof (result as { value?: unknown }).value === 'string'
+    ) {
+      payload = (result as { value: string }).value;
+    }
+
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      const { _toolCallId, _structureHints, isError, ...rest } = payload as Record<string, unknown>;
       return { result: rest };
     }
 
-    return { result };
+    return { result: payload };
   }
 
   /**

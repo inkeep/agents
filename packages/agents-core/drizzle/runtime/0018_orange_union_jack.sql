@@ -1,0 +1,6 @@
+CREATE INDEX "work_app_slack_channel_agent_configs_tenant_team_idx" ON "work_app_slack_channel_agent_configs" USING btree ("tenant_id","slack_team_id");--> statement-breakpoint
+CREATE INDEX "work_app_slack_channel_agent_configs_agent_idx" ON "work_app_slack_channel_agent_configs" USING btree ("tenant_id","project_id","agent_id");--> statement-breakpoint
+CREATE INDEX "work_app_slack_channel_agent_configs_project_idx" ON "work_app_slack_channel_agent_configs" USING btree ("tenant_id","project_id");--> statement-breakpoint
+CREATE INDEX "work_app_slack_user_mappings_tenant_team_idx" ON "work_app_slack_user_mappings" USING btree ("tenant_id","slack_team_id");--> statement-breakpoint
+CREATE INDEX "work_app_slack_user_mappings_lookup_idx" ON "work_app_slack_user_mappings" USING btree ("client_id","slack_team_id","slack_user_id");--> statement-breakpoint
+CREATE INDEX "work_app_slack_workspaces_defaults_idx" ON "work_app_slack_workspaces" USING btree ("tenant_id","default_project_id","default_agent_id");
