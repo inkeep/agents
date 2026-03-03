@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+  - @inkeep/agents-work-apps@0.56.0
+  - @inkeep/agents-email@0.56.0
+  - @inkeep/agents-mcp@0.56.0
+
 ## 0.55.3
 
 ### Patch Changes
