@@ -1,17 +1,13 @@
 import { parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
-import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
-import { pendingToolApprovalManager } from '../../session/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../../session/ToolApprovalUiBus';
-import { createDeniedToolResult } from '../../utils/tool-result';
-import { tracer } from '../../utils/tracer';
 import type { AgentRunContext } from '../agent-types';
 import { isValidTool } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
+import { waitForToolApproval } from './tool-approval';
 import { getRelationshipIdForTool, wrapToolWithStreaming } from './tool-wrapper';
 
 const logger = getLogger('Agent');
@@ -103,129 +99,15 @@ export async function getMcpTools(
           const finalArgs = processedArgs;
 
           if (needsApproval) {
-            logger.info(
-              { toolName, toolCallId, args: finalArgs },
-              'Tool requires approval - waiting for user response'
-            );
-
-            const currentSpan = trace.getActiveSpan();
-            if (currentSpan) {
-              currentSpan.addEvent('tool.approval.requested', {
-                'tool.name': toolName,
-                'tool.callId': toolCallId,
-                'subAgent.id': ctx.config.id,
-              });
-            }
-
-            tracer.startActiveSpan(
-              'tool.approval_requested',
-              {
-                attributes: {
-                  'tool.name': toolName,
-                  'tool.callId': toolCallId,
-                  'subAgent.id': ctx.config.id,
-                  'subAgent.name': ctx.config.name,
-                },
-              },
-              (requestSpan: Span) => {
-                requestSpan.setStatus({ code: SpanStatusCode.OK });
-                requestSpan.end();
-              }
-            );
-
-            const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
-            if (streamHelper) {
-              await streamHelper.writeToolApprovalRequest({
-                approvalId: `aitxt-${toolCallId}`,
-                toolCallId,
-                toolName,
-                input: finalArgs as Record<string, unknown>,
-              });
-            } else if (ctx.isDelegatedAgent) {
-              const currentStreamRequestId = ctx.streamRequestId ?? '';
-              if (currentStreamRequestId) {
-                await toolApprovalUiBus.publish(currentStreamRequestId, {
-                  type: 'approval-needed',
-                  toolCallId,
-                  toolName,
-                  input: finalArgs,
-                  providerMetadata,
-                  approvalId: `aitxt-${toolCallId}`,
-                });
-              }
-            }
-
-            const approvalResult = await pendingToolApprovalManager.waitForApproval(
+            const approval = await waitForToolApproval(
+              ctx,
               toolCallId,
               toolName,
               args,
-              ctx.conversationId || 'unknown',
-              ctx.config.id
+              providerMetadata
             );
-
-            if (!approvalResult.approved) {
-              if (!streamHelper && ctx.isDelegatedAgent) {
-                const currentStreamRequestId = ctx.streamRequestId ?? '';
-                if (currentStreamRequestId) {
-                  await toolApprovalUiBus.publish(currentStreamRequestId, {
-                    type: 'approval-resolved',
-                    toolCallId,
-                    approved: false,
-                    reason: approvalResult.reason,
-                  });
-                }
-              }
-              return tracer.startActiveSpan(
-                'tool.approval_denied',
-                {
-                  attributes: {
-                    'tool.name': toolName,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': ctx.config.id,
-                    'subAgent.name': ctx.config.name,
-                    'tool.approval.reason': approvalResult.reason,
-                  },
-                },
-                (denialSpan: Span) => {
-                  logger.info(
-                    { toolName, toolCallId, reason: approvalResult.reason },
-                    'Tool execution denied by user'
-                  );
-
-                  denialSpan.setStatus({ code: SpanStatusCode.OK });
-                  denialSpan.end();
-
-                  return createDeniedToolResult(toolCallId, approvalResult.reason);
-                }
-              );
-            }
-
-            tracer.startActiveSpan(
-              'tool.approval_approved',
-              {
-                attributes: {
-                  'tool.name': toolName,
-                  'tool.callId': toolCallId,
-                  'subAgent.id': ctx.config.id,
-                  'subAgent.name': ctx.config.name,
-                },
-              },
-              (approvedSpan: Span) => {
-                logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
-                approvedSpan.setStatus({ code: SpanStatusCode.OK });
-                approvedSpan.end();
-              }
-            );
-
-            if (!streamHelper && ctx.isDelegatedAgent) {
-              const currentStreamRequestId = ctx.streamRequestId ?? '';
-              if (currentStreamRequestId) {
-                await toolApprovalUiBus.publish(currentStreamRequestId, {
-                  type: 'approval-resolved',
-                  toolCallId,
-                  approved: true,
-                });
-              }
+            if (!approval.approved) {
+              return approval.deniedResult;
             }
           }
 

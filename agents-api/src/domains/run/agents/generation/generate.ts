@@ -19,13 +19,13 @@ import type { ContextBreakdown } from '../../utils/token-estimator';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
-import { createDelegateToAgentTool, createTransferToAgentTool } from '../relationTools';
 import { toolSessionManager } from '../services/ToolSessionManager';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { getDefaultTools } from '../tools/default-tools';
 import { getFunctionTools } from '../tools/function-tools';
 import { getMcpTools } from '../tools/mcp-tools';
-import { sanitizeToolsForAISDK, wrapToolWithStreaming } from '../tools/tool-wrapper';
+import { getRelationTools } from '../tools/relation-tools';
+import { sanitizeToolsForAISDK } from '../tools/tool-wrapper';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import {
   handlePrepareStepCompression,
@@ -37,74 +37,6 @@ import { configureModelSettings, getPrimaryModel } from './model-config';
 import { buildSystemPrompt } from './system-prompt';
 
 const logger = getLogger('Agent');
-
-function createRelationToolName(prefix: string, targetId: string): string {
-  return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
-}
-
-export function getRelationTools(
-  ctx: AgentRunContext,
-  runtimeContext?: {
-    contextId: string;
-    metadata: {
-      conversationId: string;
-      threadId: string;
-      streamRequestId?: string;
-      streamBaseUrl?: string;
-      apiKey?: string;
-      baseUrl?: string;
-    };
-  },
-  sessionId?: string
-): Record<string, any> {
-  const { transferRelations = [], delegateRelations = [] } = ctx.config;
-  return Object.fromEntries([
-    ...transferRelations.map((agentConfig) => {
-      const toolName = createRelationToolName('transfer', agentConfig.id);
-      return [
-        toolName,
-        wrapToolWithStreaming(
-          ctx,
-          toolName,
-          createTransferToAgentTool({
-            transferConfig: agentConfig,
-            callingAgentId: ctx.config.id,
-            streamRequestId: runtimeContext?.metadata?.streamRequestId,
-          }),
-          runtimeContext?.metadata?.streamRequestId,
-          'transfer'
-        ),
-      ];
-    }),
-    ...delegateRelations.map((relation) => {
-      const toolName = createRelationToolName('delegate', relation.config.id);
-
-      return [
-        toolName,
-        wrapToolWithStreaming(
-          ctx,
-          toolName,
-          createDelegateToAgentTool({
-            delegateConfig: relation,
-            callingAgentId: ctx.config.id,
-            executionContext: ctx.executionContext,
-            contextId: runtimeContext?.contextId || 'default',
-            metadata: runtimeContext?.metadata || {
-              conversationId: runtimeContext?.contextId || 'default',
-              threadId: runtimeContext?.contextId || 'default',
-              streamRequestId: runtimeContext?.metadata?.streamRequestId,
-              apiKey: runtimeContext?.metadata?.apiKey,
-            },
-            sessionId,
-            credentialStoreRegistry: ctx.credentialStoreRegistry,
-          }),
-          runtimeContext?.metadata?.streamRequestId,
-          'delegation'
-        ),
-      ];
-    }),
-  ]);
-}
 
 export function setupGenerationContext(
   ctx: AgentRunContext,
@@ -403,15 +335,6 @@ export async function runGenerate(
           sanitizedTools,
           contextBreakdown: initialContextBreakdown,
         } = await loadToolsAndPrompts(ctx, sessionId, streamRequestId || undefined, runtimeContext);
-
-        if (streamRequestId && ctx.artifactComponents.length > 0) {
-          agentSessionManager.updateArtifactComponents(streamRequestId, ctx.artifactComponents);
-        }
-        const conversationId = runtimeContext?.metadata?.conversationId;
-
-        if (conversationId) {
-          ctx.conversationId = conversationId;
-        }
 
         const { conversationHistory, contextBreakdown } = await buildConversationHistory(
           ctx,

@@ -51,7 +51,7 @@ vi.mock('../../agents/ModelFactory.js', () => ({
 }));
 
 // Mock stream registry
-vi.mock('../../utils/stream-registry.js', () => ({
+vi.mock('../../stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),

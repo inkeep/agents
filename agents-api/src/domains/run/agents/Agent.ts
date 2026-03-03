@@ -21,10 +21,11 @@ import {
   type TeamAgentRelationConfig,
   type ToolType,
 } from './agent-types';
-import { getRelationTools, runGenerate } from './generation/generate';
+import { runGenerate } from './generation/generate';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { AgentMcpManager } from './services/AgentMcpManager';
 import { getFunctionTools } from './tools/function-tools';
+import { getRelationTools } from './tools/relation-tools';
 import { getRelationshipIdForTool } from './tools/tool-wrapper';
 import { PromptConfig } from './versions/v1/PromptConfig';
 

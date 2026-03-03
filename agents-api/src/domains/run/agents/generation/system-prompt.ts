@@ -8,8 +8,8 @@ import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { createLoadSkillTool } from '../tools/default-tools';
 import { getFunctionTools } from '../tools/function-tools';
 import { getMcpTools } from '../tools/mcp-tools';
+import { getRelationTools } from '../tools/relation-tools';
 import type { SystemPromptV1 } from '../types';
-import { getRelationTools } from './generate';
 
 const logger = getLogger('Agent');
 
