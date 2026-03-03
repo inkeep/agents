@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
 ## 0.55.3
 
 ## 0.55.2
