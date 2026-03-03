@@ -101,6 +101,27 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
   const agentId =
     authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
 
+  if (
+    !authResult.metadata?.teamDelegation &&
+    reqData.agentId &&
+    reqData.agentId !== authResult.agentId &&
+    authResult.apiKeyId &&
+    !authResult.apiKeyId.startsWith('temp-') &&
+    authResult.apiKeyId !== 'bypass' &&
+    authResult.apiKeyId !== 'slack-user-token' &&
+    authResult.apiKeyId !== 'team-agent-token' &&
+    authResult.apiKeyId !== 'test-key'
+  ) {
+    logger.warn(
+      {
+        requestedAgentId: reqData.agentId,
+        apiKeyAgentId: authResult.agentId,
+        apiKeyId: authResult.apiKeyId,
+      },
+      'API key agent scope mismatch: ignoring x-inkeep-agent-id header, using key-bound agent'
+    );
+  }
+
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
     tenantId: authResult.tenantId,
