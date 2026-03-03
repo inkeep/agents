@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 4414e25: Add email integration for BetterAuth callbacks (invitation and password reset emails via SMTP)
+
+## 0.55.1
+
 ## 0.55.0
 
 ### Patch Changes

@@ -1,5 +1,28 @@
 # @inkeep/agents-manage-ui
 
+## 0.55.3
+
+### Patch Changes
+
+- e8f1549: Fix copilot chat token authentication for manage UI
+  - @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 6dec75f: Add new stepper component, design polish on the "use in your app" modal
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+- cde371e: Fix playground conversationId not resetting when playground closes or when navigating between agents
+  - @inkeep/agents-core@0.55.1
+
 ## 0.55.0
 
 ### Patch Changes

@@ -1,5 +1,24 @@
 # @inkeep/agents-work-apps
 
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.1
+
 ## 0.55.0
 
 ### Patch Changes
