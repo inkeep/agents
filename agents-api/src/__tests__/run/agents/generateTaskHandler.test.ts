@@ -2,6 +2,7 @@ import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
 import { extractTextFromParts } from 'src/domains/run/utils/message-parts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
+import { Agent } from '../../../domains/run/agents/Agent';
 import {
   createTaskHandler,
   createTaskHandlerConfig,
@@ -577,6 +578,36 @@ describe('generateTaskHandler', () => {
           text: 'Response to: Hello, how can you help?',
         },
       ]);
+    });
+
+    it('prepends denial redirect note when task had denied tool calls', async () => {
+      vi.mocked(Agent).prototype.getTaskDenialRedirects = vi.fn().mockReturnValue([
+        {
+          toolName: 'get_coordinates',
+          toolCallId: 'call-abc',
+          reason: 'I want the coordinates for tokyo instead',
+        },
+      ]);
+
+      const taskHandler = createTaskHandler(mockConfig);
+      const task: A2ATask = {
+        id: 'task-123',
+        input: { parts: [{ kind: 'text', text: 'Get coordinates for San Francisco' }] },
+        context: { conversationId: 'conv-123' },
+      };
+
+      const result = await taskHandler(task);
+
+      expect(result.status.state).toBe(TaskState.Completed);
+      expect(result.artifacts?.[0].parts).toHaveLength(2);
+      const notePart = result.artifacts?.[0].parts[0];
+      expect(notePart?.kind).toBe('text');
+      expect((notePart as any)?.text).toContain('[NOTE: Some tool calls were denied');
+      expect((notePart as any)?.text).toContain(
+        'get_coordinates (call-abc): I want the coordinates for tokyo instead'
+      );
+
+      vi.mocked(Agent).prototype.getTaskDenialRedirects = vi.fn().mockReturnValue([]);
     });
 
     it('should pass models to Agent constructor', async () => {

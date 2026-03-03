@@ -294,6 +294,8 @@ export class Agent {
   private currentCompressor: MidGenerationCompressor | null = null;
   private executionContext: FullExecutionContext;
   private functionToolRelationshipIdByName: Map<string, string> = new Map();
+  // Populated during execution; consumed once by generateTaskHandler when assembling the delegation response.
+  // Agents are instantiated per-task so this array is never reused across delegations.
   private taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }> = [];
 
   constructor(
@@ -547,6 +549,14 @@ export class Agent {
    */
   setDelegationId(delegationId: string | undefined) {
     this.delegationId = delegationId;
+  }
+
+  private recordDenial(toolName: string, toolCallId: string, reason: string | undefined): void {
+    this.taskDenialRedirects.push({
+      toolName,
+      toolCallId,
+      reason: reason ?? 'Tool call was denied by the user.',
+    });
   }
 
   getTaskDenialRedirects(): Array<{ toolName: string; toolCallId: string; reason: string }> {
@@ -1024,13 +1034,7 @@ export class Agent {
                       'Tool execution denied by user'
                     );
 
-                    if (approvalResult.reason) {
-                      this.taskDenialRedirects.push({
-                        toolName,
-                        toolCallId,
-                        reason: approvalResult.reason,
-                      });
-                    }
+                    this.recordDenial(toolName, toolCallId, approvalResult.reason);
 
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
@@ -1350,13 +1354,7 @@ export class Agent {
                       'Function tool execution denied by user'
                     );
 
-                    if (approvalResult.reason) {
-                      this.taskDenialRedirects.push({
-                        toolName: functionToolDef.name,
-                        toolCallId,
-                        reason: approvalResult.reason,
-                      });
-                    }
+                    this.recordDenial(functionToolDef.name, toolCallId, approvalResult.reason);
 
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
