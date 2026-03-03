@@ -537,7 +537,22 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
     // Call buildSystemPrompt to ensure it works
     // buildSystemPrompt now imported from generation/system-prompt
-    const result = await buildSystemPrompt((agent as any).ctx);
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: {
+        tools: mockMcpTools,
+        toolSets: [
+          {
+            mcpServerName: 'Test Tool',
+            serverInstructions: undefined,
+            mcpServerId: 'test-tool-id',
+            toolPolicies: {},
+            tools: mockMcpTools,
+          },
+        ],
+      },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result.prompt).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
@@ -588,7 +603,11 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const agent = new Agent(configWithNoTools, mockExecutionContext);
     // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt((agent as any).ctx);
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
     const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
@@ -615,7 +634,11 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const agent = new Agent(configWithUndefinedTools, mockExecutionContext);
     // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt((agent as any).ctx);
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
     const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
@@ -653,7 +676,22 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const agent = new Agent(configWithEmptyAvailableTools, mockExecutionContext);
     // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt((agent as any).ctx);
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: {
+        tools: {},
+        toolSets: [
+          {
+            mcpServerName: 'Test Tool',
+            serverInstructions: undefined,
+            mcpServerId: 'test-tool-id',
+            toolPolicies: {},
+            tools: {},
+          },
+        ],
+      },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
     const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;

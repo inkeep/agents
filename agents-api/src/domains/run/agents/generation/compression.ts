@@ -41,7 +41,7 @@ export function setupCompression(
 
 export async function handlePrepareStepCompression(
   stepMessages: any[],
-  compressor: any,
+  compressor: MidGenerationCompressor | null,
   originalMessageCount: number,
   fullContextSize?: number
 ): Promise<{ messages?: any[] }> {

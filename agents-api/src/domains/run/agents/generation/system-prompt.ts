@@ -9,10 +9,7 @@ import {
 } from '../../data/conversations';
 import type { AssembleResult } from '../../utils/token-estimator';
 import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
-import { createLoadSkillTool } from '../tools/default-tools';
-import { getFunctionTools } from '../tools/function-tools';
-import { getMcpTools } from '../tools/mcp-tools';
-import { getRelationTools } from '../tools/relation-tools';
+import { agentHasArtifactComponents, createLoadSkillTool } from '../tools/default-tools';
 import type { SystemPromptV1 } from '../types';
 
 const logger = getLogger('Agent');
@@ -105,34 +102,6 @@ export async function getPrompt(ctx: AgentRunContext): Promise<string | undefine
   }
 }
 
-export async function hasAgentArtifactComponents(ctx: AgentRunContext): Promise<boolean> {
-  const project = ctx.executionContext.project;
-  try {
-    const agentDefinition = project.agents[ctx.config.agentId];
-    if (!agentDefinition) {
-      return false;
-    }
-
-    return Object.values(agentDefinition.subAgents).some(
-      (subAgent) =>
-        'artifactComponents' in subAgent &&
-        subAgent.artifactComponents &&
-        subAgent.artifactComponents.length > 0
-    );
-  } catch (error) {
-    logger.warn(
-      {
-        agentId: ctx.config.agentId,
-        tenantId: ctx.config.tenantId,
-        projectId: ctx.config.projectId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Failed to check agent artifact components, assuming none exist'
-    );
-    return ctx.artifactComponents.length > 0;
-  }
-}
-
 export function collectProjectArtifactComponents(
   ctx: AgentRunContext
 ): ArtifactComponentApiInsert[] {
@@ -205,17 +174,19 @@ export function getClientCurrentTime(ctx: AgentRunContext): string | undefined {
 
 export async function buildSystemPrompt(
   ctx: AgentRunContext,
-  runtimeContext?: {
-    contextId: string;
-    metadata: {
-      conversationId: string;
-      threadId: string;
-      streamRequestId?: string;
-      streamBaseUrl?: string;
-    };
-  },
+  runtimeContext:
+    | {
+        contextId: string;
+        metadata: {
+          conversationId: string;
+          threadId: string;
+          streamRequestId?: string;
+          streamBaseUrl?: string;
+        };
+      }
+    | undefined = undefined,
   excludeDataComponents: boolean = false,
-  preLoadedTools?: {
+  preLoadedTools: {
     mcpResult: { tools: ToolSet; toolSets: any[] };
     functionTools: ToolSet;
     relationTools: ToolSet;
@@ -246,12 +217,9 @@ export async function buildSystemPrompt(
     }
   }
 
-  const streamRequestId = runtimeContext?.metadata?.streamRequestId;
-  const { tools: mcpTools, toolSets } =
-    preLoadedTools?.mcpResult ?? (await getMcpTools(ctx, undefined, streamRequestId));
-  const functionTools =
-    preLoadedTools?.functionTools ?? (await getFunctionTools(ctx, streamRequestId || ''));
-  const relationTools = preLoadedTools?.relationTools ?? getRelationTools(ctx, runtimeContext);
+  const { tools: mcpTools, toolSets } = preLoadedTools.mcpResult;
+  const functionTools = preLoadedTools.functionTools;
+  const relationTools = preLoadedTools.relationTools;
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
   const skillTools = hasOnDemandSkills ? { load_skill: createLoadSkillTool(ctx) } : {};
   const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools } as Record<
@@ -342,7 +310,7 @@ export async function buildSystemPrompt(
   const shouldIncludeArtifactComponents = !excludeDataComponents;
 
   const compressionConfig = getModelAwareCompressionConfig();
-  const agentHasArtifacts = (await hasAgentArtifactComponents(ctx)) || compressionConfig.enabled;
+  const agentHasArtifacts = (await agentHasArtifactComponents(ctx)) || compressionConfig.enabled;
 
   const hasStructuredOutput = Boolean(
     ctx.config.dataComponents && ctx.config.dataComponents.length > 0

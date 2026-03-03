@@ -175,7 +175,7 @@ export async function getDefaultTools(
   return defaultTools;
 }
 
-async function agentHasArtifactComponents(ctx: AgentRunContext): Promise<boolean> {
+export async function agentHasArtifactComponents(ctx: AgentRunContext): Promise<boolean> {
   try {
     const project = ctx.executionContext.project;
     const agent = project.agents[ctx.config.agentId];
