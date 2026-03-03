@@ -420,3 +420,26 @@ export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSc
  */
 export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
 export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
+
+export type AppType = 'web_client' | 'api';
+export type AppAuthMode = 'anonymous_only' | 'anonymous_and_authenticated' | 'authenticated_only';
+export type AppAgentAccessMode = 'all' | 'selected';
+
+export type WebClientConfig = {
+  type: 'web_client';
+  webClient: {
+    allowedDomains: string[];
+    authMode: AppAuthMode;
+    anonymousSessionLifetimeSeconds: number;
+    hs256Enabled: boolean;
+    hs256Secret?: string;
+    captchaEnabled: boolean;
+  };
+};
+
+export type ApiConfig = {
+  type: 'api';
+  api: Record<string, never>;
+};
+
+export type AppConfig = WebClientConfig | ApiConfig;
