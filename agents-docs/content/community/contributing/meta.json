@@ -4,6 +4,7 @@
     "overview",
     "project-constraints",
     "manage-database",
+    "...connect-to-manage-database-datagrip",
     "spans",
     "environment-configuration",
     "..."
