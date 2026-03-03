@@ -1,5 +1,14 @@
 # @inkeep/agents-api
 
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+- @inkeep/agents-email@0.55.3
+- @inkeep/agents-mcp@0.55.3
+- @inkeep/agents-work-apps@0.55.3
+
 ## 0.55.2
 
 ### Patch Changes
