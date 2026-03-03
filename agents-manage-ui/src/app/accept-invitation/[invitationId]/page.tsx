@@ -13,9 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
+import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 export default function AcceptInvitationPage({
