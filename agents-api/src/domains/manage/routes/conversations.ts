@@ -19,6 +19,18 @@ const logger = getLogger('conversations-media');
 
 const app = new OpenAPIHono();
 
+function isMediaNotFoundError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('enoent') ||
+    normalized.includes('nosuchkey') ||
+    normalized.includes('statuscode: 404') ||
+    normalized.includes(' 404') ||
+    normalized.includes(' not found')
+  );
+}
+
 const ConversationQueryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(200).default(20).optional(),
   includeInternal: z.coerce.boolean().default(false).optional(),
@@ -222,11 +234,22 @@ app.openapi(
         },
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(
-        { error: error instanceof Error ? error.message : String(error), key },
+        {
+          error: errorMessage,
+          key,
+          requestId: c.get('requestId'),
+          tenantId,
+          projectId,
+          conversationId,
+        },
         'Failed to serve media'
       );
-      return c.json({ error: 'Media not found' }, 404);
+      if (isMediaNotFoundError(error)) {
+        return c.json({ error: 'Media not found' }, 404);
+      }
+      return c.json({ error: 'Failed to retrieve media' }, 502);
     }
   }
 );
