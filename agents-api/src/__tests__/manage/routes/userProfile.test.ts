@@ -49,7 +49,7 @@ describe('User Profile Route', () => {
 
   describe('GET /{userId}/profile', () => {
     describe('Authorization', () => {
-      it('should return 403 when requesting a different user\'s profile', async () => {
+      it("should return 403 when requesting a different user's profile", async () => {
         const res = await userProfileRoutes.request('/other-user-456/profile');
 
         expect(res.status).toBe(403);
@@ -117,7 +117,7 @@ describe('User Profile Route', () => {
 
   describe('PUT /{userId}/profile', () => {
     describe('Authorization', () => {
-      it('should return 403 when updating a different user\'s profile', async () => {
+      it("should return 403 when updating a different user's profile", async () => {
         const res = await userProfileRoutes.request('/other-user-456/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
