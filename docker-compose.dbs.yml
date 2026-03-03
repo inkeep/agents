@@ -80,7 +80,7 @@ services:
       retries: 30
 
   mailpit:
-    image: axllent/mailpit:v1.24.1
+    image: axllent/mailpit:v1.29.2
     ports:
       - '8025:8025'
       - '1025:1025'

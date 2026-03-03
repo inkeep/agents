@@ -94,7 +94,7 @@ services:
         condition: service_healthy
     restart: "no"
   inkeep-agents-doltgres-db:
-    image: dolthub/doltgresql:0.55.4
+    image: dolthub/doltgresql:0.55.5
     restart: unless-stopped
     environment:
       DOLTGRES_USER: appuser
@@ -124,7 +124,7 @@ services:
       retries: 30
   # SpiceDB for authorization
   inkeep-agents-spicedb:
-    image: authzed/spicedb:v1.49.1
+    image: authzed/spicedb:v1.49.2
     command: serve
     restart: unless-stopped
     environment:
@@ -143,7 +143,7 @@ services:
       inkeep-agents-spicedb-migrate:
         condition: service_completed_successfully
   inkeep-agents-spicedb-migrate:
-    image: authzed/spicedb:v1.49.1
+    image: authzed/spicedb:v1.49.2
     command: migrate head
     restart: "no"
     environment:
@@ -166,13 +166,6 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
-  # Mailpit for local email testing
-  mailpit:
-    image: axllent/mailpit:v1.24.1
-    ports:
-      - '8025:8025'
-      - '1025:1025'
-    restart: unless-stopped
 volumes:
   inkeep-agents-doltgres-data:
   inkeep-agents-postgres-data:
