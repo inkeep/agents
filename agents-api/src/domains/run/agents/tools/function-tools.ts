@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { getFunctionToolsForSubAgent, parseEmbeddedJson, withRef } from '@inkeep/agents-core';
+import { getFunctionToolsForSubAgent, withRef } from '@inkeep/agents-core';
 import { type ToolSet, tool } from 'ai';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import { getLogger } from '../../../../logger';
@@ -11,7 +11,7 @@ import type { SandboxConfig } from '../../types/executionContext';
 import type { AgentRunContext } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
-import { waitForToolApproval } from './tool-approval';
+import { parseAndCheckApproval } from './tool-approval';
 import { wrapToolWithStreaming } from './tool-wrapper';
 
 const logger = getLogger('Agent');
@@ -87,38 +87,18 @@ export async function getFunctionTools(
         description: functionToolDef.description || functionToolDef.name,
         inputSchema: zodSchema,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
-          let processedArgs: typeof args;
-          try {
-            processedArgs = parseEmbeddedJson(args);
-
-            if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
-              logger.warn(
-                { toolName: functionToolDef.name, toolCallId },
-                'Fixed stringified JSON parameters (indicates schema ambiguity)'
-              );
-            }
-          } catch (error) {
-            logger.warn(
-              { toolName: functionToolDef.name, toolCallId, error: (error as Error).message },
-              'Failed to parse embedded JSON, using original args'
-            );
-            processedArgs = args;
+          const parsed = await parseAndCheckApproval(
+            ctx,
+            functionToolDef.name,
+            toolCallId,
+            args,
+            providerMetadata,
+            needsApproval
+          );
+          if (parsed.denied) {
+            return parsed.result;
           }
-
-          const finalArgs = processedArgs;
-
-          if (needsApproval) {
-            const approval = await waitForToolApproval(
-              ctx,
-              toolCallId,
-              functionToolDef.name,
-              args,
-              providerMetadata
-            );
-            if (!approval.approved) {
-              return approval.deniedResult;
-            }
-          }
+          const finalArgs = parsed.args;
 
           logger.debug(
             { toolName: functionToolDef.name, toolCallId, args: finalArgs },

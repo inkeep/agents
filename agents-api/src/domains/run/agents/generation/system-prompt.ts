@@ -41,10 +41,6 @@ export async function getResolvedContext(
       createdAt: contextConfig.createdAt || '',
       updatedAt: contextConfig.updatedAt || '',
     };
-    if (!contextConfig) {
-      logger.warn({ contextConfigId: ctx.config.contextConfigId }, 'Context config not found');
-      return null;
-    }
 
     if (!ctx.contextResolver) {
       throw new Error('Context resolver not found');
@@ -217,10 +213,6 @@ export async function buildSystemPrompt(
   excludeDataComponents: boolean = false
 ): Promise<AssembleResult> {
   const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
-
-  if (conversationId) {
-    ctx.conversationId = conversationId;
-  }
 
   const resolvedContext = conversationId ? await getResolvedContext(ctx, conversationId) : null;
 

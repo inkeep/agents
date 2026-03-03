@@ -26,7 +26,7 @@ import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { AgentMcpManager } from './services/AgentMcpManager';
 import { getFunctionTools } from './tools/function-tools';
 import { getRelationTools } from './tools/relation-tools';
-import { getRelationshipIdForTool } from './tools/tool-wrapper';
+import { getRelationshipIdForTool } from './tools/tool-utils';
 import { PromptConfig } from './versions/v1/PromptConfig';
 
 export class Agent {

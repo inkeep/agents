@@ -1,3 +1,4 @@
+import { parseEmbeddedJson } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { getLogger } from '../../../../logger';
@@ -140,4 +141,39 @@ export async function waitForToolApproval(
   }
 
   return { approved: true };
+}
+
+export async function parseAndCheckApproval<T>(
+  ctx: AgentRunContext,
+  toolName: string,
+  toolCallId: string,
+  args: T,
+  providerMetadata: unknown,
+  needsApproval: boolean
+): Promise<{ args: T; denied: false } | { args: T; denied: true; result: unknown }> {
+  let processedArgs: T;
+  try {
+    processedArgs = parseEmbeddedJson(args);
+    if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+      logger.warn(
+        { toolName, toolCallId },
+        'Fixed stringified JSON parameters (indicates schema ambiguity)'
+      );
+    }
+  } catch (error) {
+    logger.warn(
+      { toolName, toolCallId, error: (error as Error).message },
+      'Failed to parse embedded JSON, using original args'
+    );
+    processedArgs = args;
+  }
+
+  if (needsApproval) {
+    const approval = await waitForToolApproval(ctx, toolCallId, toolName, args, providerMetadata);
+    if (!approval.approved) {
+      return { args: processedArgs, denied: true, result: approval.deniedResult };
+    }
+  }
+
+  return { args: processedArgs, denied: false };
 }

@@ -7,8 +7,9 @@ import type { AgentRunContext } from '../agent-types';
 import { isValidTool } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
-import { waitForToolApproval } from './tool-approval';
-import { getRelationshipIdForTool, wrapToolWithStreaming } from './tool-wrapper';
+import { parseAndCheckApproval } from './tool-approval';
+import { getRelationshipIdForTool } from './tool-utils';
+import { wrapToolWithStreaming } from './tool-wrapper';
 
 const logger = getLogger('Agent');
 
@@ -78,38 +79,18 @@ export async function getMcpTools(
         description: originalTool.description,
         inputSchema: originalTool.inputSchema,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
-          let processedArgs: typeof args;
-          try {
-            processedArgs = parseEmbeddedJson(args);
-
-            if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
-              logger.warn(
-                { toolName, toolCallId },
-                'Fixed stringified JSON parameters (indicates schema ambiguity)'
-              );
-            }
-          } catch (error) {
-            logger.warn(
-              { toolName, toolCallId, error: (error as Error).message },
-              'Failed to parse embedded JSON, using original args'
-            );
-            processedArgs = args;
+          const parsed = await parseAndCheckApproval(
+            ctx,
+            toolName,
+            toolCallId,
+            args,
+            providerMetadata,
+            needsApproval
+          );
+          if (parsed.denied) {
+            return parsed.result;
           }
-
-          const finalArgs = processedArgs;
-
-          if (needsApproval) {
-            const approval = await waitForToolApproval(
-              ctx,
-              toolCallId,
-              toolName,
-              args,
-              providerMetadata
-            );
-            if (!approval.approved) {
-              return approval.deniedResult;
-            }
-          }
+          const finalArgs = parsed.args;
 
           logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 

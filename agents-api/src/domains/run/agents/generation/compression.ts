@@ -2,8 +2,9 @@ import { getLogger } from '../../../../logger';
 import { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
 import { getCompressionConfigForModel } from '../../utils/model-context-utils';
+import { tracer } from '../../utils/tracer';
 import type { AgentRunContext } from '../agent-types';
-import { getSummarizerModel } from './model-config';
+import { getMaxGenerationSteps, getSummarizerModel } from './model-config';
 
 const logger = getLogger('Agent');
 
@@ -178,7 +179,6 @@ export async function handleStopWhenConditions(
     }
   }
 
-  const { getMaxGenerationSteps } = await import('./model-config');
   const maxSteps = getMaxGenerationSteps(ctx.config);
   if (steps.length >= maxSteps) {
     logger.warn(
@@ -192,7 +192,6 @@ export async function handleStopWhenConditions(
       'Sub-agent reached maximum generation steps limit'
     );
 
-    const { tracer } = await import('../../utils/tracer');
     tracer.startActiveSpan(
       'agent.max_steps_reached',
       {
