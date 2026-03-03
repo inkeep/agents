@@ -729,6 +729,7 @@ jobs:
           allowed_bots: "claude[bot]"
           track_progress: true
           claude_args: |
+            --model opus
             --plugin-dir /tmp/team-skills/ci/pr-review
             --agent pr-review:pr-review
             --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'
