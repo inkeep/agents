@@ -13,4 +13,5 @@ export interface RuntimeConfig {
   PUBLIC_POSTHOG_KEY?: string;
   PUBLIC_POSTHOG_HOST?: string;
   PUBLIC_POSTHOG_SITE_TAG?: string;
+  PUBLIC_IS_SMTP_CONFIGURED?: string;
 }

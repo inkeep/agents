@@ -84,6 +84,7 @@ agents-docs/skills-collections/.generated/
 # Ship spec files (local working artifacts)
 .claude/specs/
 .claude/ship-state.json
+.claude/worktrees/
 
 # Turborepo
 .turbo
@@ -100,6 +101,7 @@ node-compile-cache/
 tmp
 .claude/specs
 specs
+reports
 tasks
 prd.json
 progress.txt

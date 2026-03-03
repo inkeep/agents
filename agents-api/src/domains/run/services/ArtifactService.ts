@@ -95,6 +95,39 @@ export class ArtifactService {
   }
 
   /**
+   * Get raw tool result by toolCallId from the current session.
+   * Unwraps MCP-style content arrays; returns the value as-is for non-MCP results.
+   */
+  getToolResultRaw(toolCallId: string): unknown {
+    if (!this.context.sessionId) return undefined;
+
+    const record = toolSessionManager.getToolResult(this.context.sessionId, toolCallId);
+    if (!record) return undefined;
+
+    if (record.result?.failed === true) {
+      logger.warn(
+        { toolCallId, toolName: record.toolName, error: record.result.error },
+        'Referenced tool call result is a failed/error result'
+      );
+      return undefined;
+    }
+
+    const result = record.result;
+
+    // Unwrap MCP-style content array
+    const first = result?.content?.[0];
+    if (first?.type === 'text') return first.text;
+    if (first?.type === 'image') {
+      return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+    }
+
+    // Unwrap AI SDK function tool output: { type: "text", value: "..." }
+    if (result?.type === 'text' && typeof result?.value === 'string') return result.value;
+
+    return result;
+  }
+
+  /**
    * Get all artifacts for a context from database
    */
   async getContextArtifacts(contextId: string): Promise<Map<string, any>> {
@@ -624,16 +657,8 @@ export class ArtifactService {
     const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
     const fullValidation = validateAgainstSchema(fullData, fullSchema);
 
-    // Block artifact creation if required fields are missing from summary data
+    // Log and return early if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {
-      new Error(
-        `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
-          `for '${artifactType}' schema. ` +
-          `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
-          `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
-          `Consider using a different artifact component type that matches your data structure.`
-      );
-
       logger.error(
         {
           artifactId,
@@ -799,7 +824,7 @@ export class ArtifactService {
     const cacheKey = `${artifactId}:${toolCallId}`;
     const artifactForCache = {
       ...artifactData,
-      parts: [{ data: { summary: artifactData.data, data: fullData } }],
+      parts: [{ data: { summary: artifactData.data, full: fullData } }],
       metadata: { artifactType: artifactData.type, toolCallId },
       taskId: this.context.taskId,
     };

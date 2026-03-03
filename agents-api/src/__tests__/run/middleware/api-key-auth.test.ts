@@ -208,6 +208,42 @@ describe('API Key Authentication Middleware', () => {
       );
     });
 
+    it('should use key-bound agentId and ignore x-inkeep-agent-id header for API key auth', async () => {
+      const mockApiKey: ApiKeySelect = {
+        id: 'key_123',
+        name: 'test-api-key',
+        tenantId: 'tenant_123',
+        projectId: 'project_123',
+        agentId: 'agent_from_key',
+        publicId: 'pub_123',
+        keyHash: 'hash_123',
+        keyPrefix: 'sk_test_',
+        expiresAt: null,
+        lastUsedAt: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      validateAndGetApiKeyMock.mockResolvedValueOnce(mockApiKey);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+          'x-inkeep-agent-id': 'different_agent',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.agentId).toBe('agent_from_key');
+    });
+
     it('should handle unexpected errors gracefully', async () => {
       vi.mocked(validateAndGetApiKey).mockRejectedValueOnce(
         new Error('Database connection failed')

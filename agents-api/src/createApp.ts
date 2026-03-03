@@ -18,7 +18,7 @@ import {
   authCorsConfig,
   defaultCorsConfig,
   errorHandler,
-  manageApiKeyOrSessionAuth,
+  manageBearerOrSessionAuth,
   playgroundCorsConfig,
   requireTenantAccess,
   runApiKeyAuth,
@@ -213,7 +213,7 @@ function createAgentsHono(config: AppConfig) {
   app.route('/', workflowProcessHandler);
 
   // Authentication middleware for protected manage routes
-  app.use('/manage/tenants/*', manageApiKeyOrSessionAuth());
+  app.use('/manage/tenants/*', manageBearerOrSessionAuth());
 
   // Tenant access check (test-mode bypass handled inside requireTenantAccess)
   app.use('/manage/tenants/:tenantId/*', requireTenantAccess());

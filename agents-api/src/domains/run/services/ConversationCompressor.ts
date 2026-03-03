@@ -1,7 +1,10 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { distillConversationHistory } from '../tools/distill-conversation-history-tool';
-import type { ArtifactInfo } from '../utils/artifact-utils';
+import {
+  type ConversationHistorySummary,
+  distillConversationHistory,
+} from '../tools/distill-conversation-history-tool';
+import type { CompressedArtifactInfo } from '../utils/artifact-utils';
 import {
   BaseCompressor,
   type CompressionConfig,
@@ -16,26 +19,32 @@ const logger = getLogger('ConversationCompressor');
  * Compresses entire conversations for long-term storage or analysis
  */
 export class ConversationCompressor extends BaseCompressor {
+  private readonly priorSummary: ConversationHistorySummary | null;
+
   constructor(
     sessionId: string,
     conversationId: string,
     tenantId: string,
     projectId: string,
-    config?: CompressionConfig,
-    summarizerModel?: ModelSettings,
-    baseModel?: ModelSettings
+    options?: {
+      config?: CompressionConfig;
+      summarizerModel?: ModelSettings;
+      baseModel?: ModelSettings;
+      priorSummary?: ConversationHistorySummary | null;
+    }
   ) {
-    // Use conversation-specific config (50% of context window) by default, or fall back to provided config
-    const compressionConfig = config || getModelAwareCompressionConfig(summarizerModel, 0.5);
+    const compressionConfig =
+      options?.config || getModelAwareCompressionConfig(options?.summarizerModel, 0.5);
     super(
       sessionId,
       conversationId,
       tenantId,
       projectId,
       compressionConfig,
-      summarizerModel,
-      baseModel
+      options?.summarizerModel,
+      options?.baseModel
     );
+    this.priorSummary = options?.priorSummary ?? null;
   }
 
   /**
@@ -128,7 +137,7 @@ export class ConversationCompressor extends BaseCompressor {
    */
   protected async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, ArtifactInfo>
+    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
   ): Promise<any> {
     if (!this.summarizerModel) {
       throw new Error('Summarizer model is required for conversation history compression');
@@ -136,10 +145,11 @@ export class ConversationCompressor extends BaseCompressor {
 
     // Use the specialized conversation history distillation
     return await distillConversationHistory({
-      messages,
       conversationId: this.conversationId,
       summarizerModel: this.summarizerModel,
-      toolCallToArtifactMap,
+      currentSummary: this.priorSummary,
+      messageFormatter: (maxChars) =>
+        this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
     });
   }
 }
