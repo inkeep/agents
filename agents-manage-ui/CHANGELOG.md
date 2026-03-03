@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.55.3
+
+### Patch Changes
+
+- e8f1549: Fix copilot chat token authentication for manage UI
+  - @inkeep/agents-core@0.55.3
+
 ## 0.55.2
 
 ### Patch Changes
