@@ -83,7 +83,7 @@ export function ChatUIGuide() {
           baseSettings={{ ...baseSettings }}
           aiChatSettings={{
             ...aiChatSettings,
-            apiKey: 'INKEEP_AGENT_API_KEY',
+            apiKey: 'INKEEP_APP_SECRET',
             headers: { 'x-emit-operations': shouldEmitDataOperations ? 'true' : 'false' },
           }}
         />
