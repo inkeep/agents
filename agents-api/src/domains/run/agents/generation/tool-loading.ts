@@ -1,8 +1,8 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
-import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { ContextBreakdown } from '../../utils/token-estimator';
+import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext } from '../agent-types';
 import { getDefaultTools } from '../tools/default-tools';
 import { getFunctionTools } from '../tools/function-tools';
