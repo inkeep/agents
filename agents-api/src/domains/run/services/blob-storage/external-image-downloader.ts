@@ -1,4 +1,5 @@
 import { lookup as dnsLookup } from 'node:dns';
+import { retryWithBackoff } from '@inkeep/agents-core';
 import { Agent } from 'undici';
 import { resolveDownloadedImageMimeType } from './image-content-security';
 import {
@@ -62,8 +63,6 @@ const externalImageDispatcher = new Agent({
 });
 
 const MAX_EXTERNAL_FETCH_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 250;
-const RETRY_MAX_DELAY_MS = 2_000;
 
 export async function downloadExternalImage(
   url: string
@@ -119,24 +118,33 @@ export async function downloadExternalImage(
 }
 
 async function fetchWithRetry(url: URL): Promise<Response> {
-  for (let attempt = 1; attempt <= MAX_EXTERNAL_FETCH_ATTEMPTS; attempt++) {
-    try {
-      const response = await fetchWithConnectionIpValidation(url);
-      if (isRetryableStatus(response.status) && attempt < MAX_EXTERNAL_FETCH_ATTEMPTS) {
-        await sleep(getBackoffDelayMs(attempt));
-        continue;
+  return retryWithBackoff(
+    async () => {
+      let response: Response;
+      try {
+        response = await fetchWithConnectionIpValidation(url);
+      } catch (error) {
+        if (error instanceof TimedOutDownloadingError || error instanceof FailedToDownloadError) {
+          (error as unknown as { status: number }).status = 502;
+        }
+        throw error;
+      }
+      if (isRetryableStatus(response.status)) {
+        const err = new FailedToDownloadError(
+          toSanitizedUrl(url),
+          `${response.status} ${response.statusText}`
+        );
+        (err as unknown as { status: number }).status = response.status;
+        throw err;
       }
       return response;
-    } catch (error) {
-      if (isRetryableFetchError(error) && attempt < MAX_EXTERNAL_FETCH_ATTEMPTS) {
-        await sleep(getBackoffDelayMs(attempt));
-        continue;
-      }
-      throw error;
+    },
+    {
+      maxAttempts: MAX_EXTERNAL_FETCH_ATTEMPTS,
+      maxDelayMs: 2_000,
+      label: `image-download ${toSanitizedUrl(url)}`,
     }
-  }
-
-  throw new FailedToDownloadError(toSanitizedUrl(url));
+  );
 }
 
 function isRedirectStatus(status: number): boolean {
@@ -145,22 +153,6 @@ function isRedirectStatus(status: number): boolean {
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || (status >= 500 && status <= 599);
-}
-
-function isRetryableFetchError(error: unknown): boolean {
-  return error instanceof TimedOutDownloadingError || error instanceof FailedToDownloadError;
-}
-
-function getBackoffDelayMs(attempt: number): number {
-  const exponential = Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), RETRY_MAX_DELAY_MS);
-  const jitter = Math.floor(Math.random() * 100);
-  return exponential + jitter;
-}
-
-async function sleep(ms: number): Promise<void> {
-  await new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 async function readResponseBytesWithLimit(
