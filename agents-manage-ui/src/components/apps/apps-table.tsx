@@ -1,5 +1,6 @@
 'use client';
 
+import type { SelectOption } from '@/components/form/generic-select';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -17,6 +18,7 @@ import { AppItemMenu } from './app-item-menu';
 interface AppsTableProps {
   apps: App[];
   agentLookup: Record<string, Agent>;
+  agentOptions: SelectOption[];
   canUse: boolean;
 }
 
@@ -30,7 +32,7 @@ const TYPE_BADGE_VARIANT: Record<string, 'sky' | 'violet'> = {
   api: 'violet',
 };
 
-export function AppsTable({ apps, agentLookup, canUse }: AppsTableProps) {
+export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTableProps) {
   return (
     <div className="rounded-lg border">
       <Table>
@@ -86,7 +88,9 @@ export function AppsTable({ apps, agentLookup, canUse }: AppsTableProps) {
                 <TableCell className="text-sm text-muted-foreground">
                   {app.createdAt ? formatDateAgo(app.createdAt) : ''}
                 </TableCell>
-                <TableCell>{canUse && <AppItemMenu app={app} />}</TableCell>
+                <TableCell>
+                  {canUse && <AppItemMenu app={app} agentOptions={agentOptions} />}
+                </TableCell>
               </TableRow>
             ))
           )}
