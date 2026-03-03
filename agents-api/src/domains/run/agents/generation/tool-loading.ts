@@ -26,35 +26,34 @@ export async function loadToolsAndPrompts(
     };
   }
 ): Promise<{ systemPrompt: string; sanitizedTools: ToolSet; contextBreakdown: ContextBreakdown }> {
-  const [mcpToolsResult, functionTools, relationTools, defaultTools] =
-    await tracer.startActiveSpan(
-      'agent.load_tools',
-      {
-        attributes: {
-          'subAgent.name': ctx.config.name,
-          'session.id': sessionId || 'none',
-        },
+  const [mcpToolsResult, functionTools, relationTools, defaultTools] = await tracer.startActiveSpan(
+    'agent.load_tools',
+    {
+      attributes: {
+        'subAgent.name': ctx.config.name,
+        'session.id': sessionId || 'none',
       },
-      async (childSpan: Span) => {
-        try {
-          const result = await Promise.all([
-            getMcpTools(ctx, sessionId, streamRequestId),
-            getFunctionTools(ctx, sessionId, streamRequestId),
-            Promise.resolve(getRelationTools(ctx, runtimeContext, sessionId)),
-            getDefaultTools(ctx, streamRequestId),
-          ]);
+    },
+    async (childSpan: Span) => {
+      try {
+        const result = await Promise.all([
+          getMcpTools(ctx, sessionId, streamRequestId),
+          getFunctionTools(ctx, sessionId, streamRequestId),
+          Promise.resolve(getRelationTools(ctx, runtimeContext, sessionId)),
+          getDefaultTools(ctx, streamRequestId),
+        ]);
 
-          childSpan.setStatus({ code: SpanStatusCode.OK });
-          return result;
-        } catch (err) {
-          const errorObj = err instanceof Error ? err : new Error(String(err));
-          setSpanWithError(childSpan, errorObj);
-          throw err;
-        } finally {
-          childSpan.end();
-        }
+        childSpan.setStatus({ code: SpanStatusCode.OK });
+        return result;
+      } catch (err) {
+        const errorObj = err instanceof Error ? err : new Error(String(err));
+        setSpanWithError(childSpan, errorObj);
+        throw err;
+      } finally {
+        childSpan.end();
       }
-    );
+    }
+  );
 
   const systemPromptResult = await buildSystemPrompt(ctx, runtimeContext, false, {
     mcpResult: mcpToolsResult,
