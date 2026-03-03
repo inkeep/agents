@@ -1,5 +1,82 @@
 # @inkeep/agents-api
 
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+- @inkeep/agents-email@0.55.3
+- @inkeep/agents-mcp@0.55.3
+- @inkeep/agents-work-apps@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- add0b4b: Pass cron timezone to agent in scheduled trigger execution.
+- 4414e25: Add email integration for BetterAuth callbacks (invitation and password reset emails via SMTP)
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+  - @inkeep/agents-work-apps@0.55.2
+  - @inkeep/agents-email@0.55.2
+  - @inkeep/agents-mcp@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-mcp@0.55.1
+  - @inkeep/agents-work-apps@0.55.1
+
+## 0.55.0
+
+### Minor Changes
+
+- 08d678d: Group MCP tools by server in system prompt using mcp_server blocks with server-level instructions; extract MCP connection management into AgentMcpManager
+
+### Patch Changes
+
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+  - @inkeep/agents-work-apps@0.55.0
+  - @inkeep/agents-mcp@0.55.0
+
+## 0.54.0
+
+### Minor Changes
+
+- addc4a0: Move workspace default agent config from Nango metadata to PostgreSQL
+- addc4a0: Remove denormalized agent names from Slack channel configs — resolve names at read time from manage DB, clean up orphaned configs on agent/project deletion, validate agent existence on write
+
+### Patch Changes
+
+- 00c21ec: Add artifact and tool result passing as tool arguments
+
+  Agents can now pass saved artifacts directly to tools as arguments without reconstructing data manually. The system automatically resolves full artifact data — including non-preview fields — before the tool executes.
+
+  Agents can also chain tool calls by passing the raw output of one tool directly into the next, with no artifact creation required for intermediate results. Primitive return types (strings, numbers, booleans) are fully supported for chaining.
+
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+  - @inkeep/agents-work-apps@0.54.0
+  - @inkeep/agents-mcp@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+- 03629e8: Fix premature conversation compression when tool results are persisted as artifacts
+- d62c5b0: Add support for passing artifacts as tool arguments
+- Updated dependencies [e915ef8]
+- Updated dependencies [23b6b48]
+  - @inkeep/agents-core@0.53.13
+  - @inkeep/agents-work-apps@0.53.13
+  - @inkeep/agents-mcp@0.53.13
+
 ## 0.53.12
 
 ### Patch Changes

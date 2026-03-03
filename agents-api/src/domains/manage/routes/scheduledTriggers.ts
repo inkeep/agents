@@ -14,7 +14,6 @@ import {
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
-  getUserById,
   getWaitUntil,
   interpolateTemplate,
   listScheduledTriggerInvocationsPaginated,
@@ -29,7 +28,6 @@ import {
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
-  type ScheduledTrigger,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
@@ -54,57 +52,13 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import { executeAgentAsync } from '../../run/services/TriggerService';
+import { buildScheduledTriggerHeaders, executeAgentAsync } from '../../run/services/TriggerService';
+
+export { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
+
+import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('scheduled-triggers');
-
-export async function validateRunAsUserId(params: {
-  runAsUserId: string;
-  callerId: string;
-  tenantId: string;
-  projectId: string;
-  tenantRole: OrgRole;
-}): Promise<void> {
-  const { runAsUserId, callerId, tenantId, projectId, tenantRole } = params;
-
-  if (runAsUserId === 'system' || runAsUserId.startsWith('apikey:')) {
-    throw createApiError({
-      code: 'bad_request',
-      message: 'runAsUserId must be a real user ID, not a system identifier',
-    });
-  }
-
-  const targetUser = await getUserById(runDbClient)(runAsUserId);
-  if (!targetUser) {
-    throw createApiError({
-      code: 'bad_request',
-      message: `User ${runAsUserId} does not exist`,
-    });
-  }
-
-  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
-
-  if (runAsUserId !== callerId && !isAdmin) {
-    throw createApiError({
-      code: 'forbidden',
-      message:
-        'Only org admins or owners can set runAsUserId to a different user. Regular users can only set runAsUserId to themselves.',
-    });
-  }
-
-  const targetCanUse = await canUseProjectStrict({
-    userId: runAsUserId,
-    tenantId,
-    projectId,
-  });
-
-  if (!targetCanUse) {
-    throw createApiError({
-      code: 'bad_request',
-      message: `User ${runAsUserId} does not have 'use' permission on this project`,
-    });
-  }
-}
 
 function validateRunNowDelegation(params: {
   runAsUserId: string | null;
@@ -121,55 +75,6 @@ function validateRunNowDelegation(params: {
       message: 'Only org admins or owners can run triggers configured to run as a different user.',
     });
   }
-}
-
-/**
- * Check if a non-admin user is allowed to mutate a trigger.
- * Admins can mutate any trigger. Non-admins can only mutate triggers they created or that run as them.
- */
-export function assertCanMutateTrigger(params: {
-  trigger: { createdBy: string | null; runAsUserId: string | null };
-  callerId: string;
-  tenantRole: OrgRole;
-}): void {
-  const { trigger, callerId, tenantRole } = params;
-  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
-  if (isAdmin) return;
-  if (trigger.createdBy === callerId || trigger.runAsUserId === callerId) return;
-  throw createApiError({
-    code: 'forbidden',
-    message: 'You can only modify triggers that you created or that are configured to run as you.',
-  });
-}
-
-const TRIGGER_IGNORED_FIELDS = new Set([
-  'tenantId',
-  'id',
-  'projectId',
-  'agentId',
-  'createdBy',
-  'createdAt',
-  'updatedAt',
-]);
-
-export function isScheduledTriggerChanged(
-  incoming: Record<string, unknown>,
-  existing: ScheduledTrigger
-): boolean {
-  for (const key of Object.keys(existing) as (keyof ScheduledTrigger)[]) {
-    if (TRIGGER_IGNORED_FIELDS.has(key)) continue;
-    if (!(key in incoming)) continue;
-
-    const incomingVal = incoming[key] ?? null;
-    const existingVal = existing[key] ?? null;
-
-    if (typeof incomingVal === 'object' || typeof existingVal === 'object') {
-      if (JSON.stringify(incomingVal) !== JSON.stringify(existingVal)) return true;
-    } else if (incomingVal !== existingVal) {
-      return true;
-    }
-  }
-  return false;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -434,7 +339,14 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     const id = body.id || generateId();
 
@@ -540,7 +452,13 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     // Check if any update fields were actually provided
     const hasUpdateFields =
@@ -726,7 +644,13 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -1059,7 +983,13 @@ app.openapi(
       invocationId,
     } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
@@ -1215,6 +1145,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
+              forwardedHeaders: buildScheduledTriggerHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);
@@ -1391,7 +1322,13 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId },
@@ -1527,6 +1464,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
+              forwardedHeaders: buildScheduledTriggerHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);

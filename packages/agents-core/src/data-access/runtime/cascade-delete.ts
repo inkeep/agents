@@ -11,6 +11,14 @@ import {
   workAppGitHubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
+import {
+  clearDevConfigWorkspaceDefaultsByAgent,
+  clearDevConfigWorkspaceDefaultsByProject,
+  clearWorkspaceDefaultsByAgent,
+  clearWorkspaceDefaultsByProject,
+  deleteWorkAppSlackChannelAgentConfigsByAgent,
+  deleteWorkAppSlackChannelAgentConfigsByProject,
+} from './workAppSlack';
 
 /**
  * Result of a cascade delete operation
@@ -20,6 +28,8 @@ export type CascadeDeleteResult = {
   tasksDeleted: number;
   contextCacheDeleted: number;
   apiKeysDeleted: number;
+  slackChannelConfigsDeleted: number;
+  slackWorkspaceDefaultsCleared: number;
 };
 
 /**
@@ -79,6 +89,8 @@ export const cascadeDeleteByBranch =
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
       apiKeysDeleted: 0, // API keys are branch-agnostic
+      slackChannelConfigsDeleted: 0, // Slack configs are branch-agnostic
+      slackWorkspaceDefaultsCleared: 0,
     };
   };
 
@@ -146,11 +158,25 @@ export const cascadeDeleteByProject =
       projectId: scopes.projectId,
     });
 
+    const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByProject(db)(
+      scopes.tenantId,
+      scopes.projectId
+    );
+
+    const slackWorkspaceDefaultsCleared = await clearWorkspaceDefaultsByProject(db)(
+      scopes.tenantId,
+      scopes.projectId
+    );
+
+    clearDevConfigWorkspaceDefaultsByProject(scopes.projectId);
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
       apiKeysDeleted: apiKeysResult.length,
+      slackChannelConfigsDeleted,
+      slackWorkspaceDefaultsCleared,
     };
   };
 
@@ -248,11 +274,27 @@ export const cascadeDeleteByAgent =
       .returning();
     apiKeysDeleted = apiKeysResult.length;
 
+    const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByAgent(db)(
+      scopes.tenantId,
+      scopes.projectId,
+      scopes.agentId
+    );
+
+    const slackWorkspaceDefaultsCleared = await clearWorkspaceDefaultsByAgent(db)(
+      scopes.tenantId,
+      scopes.projectId,
+      scopes.agentId
+    );
+
+    clearDevConfigWorkspaceDefaultsByAgent(scopes.projectId, scopes.agentId);
+
     return {
       conversationsDeleted,
       tasksDeleted,
       contextCacheDeleted,
       apiKeysDeleted,
+      slackChannelConfigsDeleted,
+      slackWorkspaceDefaultsCleared,
     };
   };
 
@@ -335,6 +377,8 @@ export const cascadeDeleteBySubAgent =
       tasksDeleted: tasksResult.length,
       contextCacheDeleted,
       apiKeysDeleted: 0, // API keys are agent-level, not subAgent-level
+      slackChannelConfigsDeleted: 0, // Slack configs are agent-level, not subAgent-level
+      slackWorkspaceDefaultsCleared: 0,
     };
   };
 

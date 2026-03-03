@@ -314,7 +314,7 @@ jobs:
           CLAUDE_COMMENTS=$(echo "$THREADS" | jq -r '
             [.[]
               | select((.comments.nodes | length) > 0)
-              | select((.comments.nodes[0].author.__typename // "") == "Bot")
+              | select((.comments.nodes[0].author.login // "") == "claude[bot]")
             ] |
             sort_by(.comments.nodes[-1].createdAt) | reverse |
             if length == 0 then
@@ -729,6 +729,7 @@ jobs:
           allowed_bots: "claude[bot]"
           track_progress: true
           claude_args: |
+            --model opus
             --plugin-dir /tmp/team-skills/ci/pr-review
             --agent pr-review:pr-review
             --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'

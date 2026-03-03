@@ -8,10 +8,10 @@ import {
   generateSlackConversationId,
   getChannelAgentConfig,
   getThreadContext,
-  getWorkspaceDefaultAgent,
   sendResponseUrlMessage,
 } from '../../slack/services/events';
 import { formatAttachments } from '../../slack/services/events/utils';
+import { getWorkspaceDefaultAgent } from '../../slack/services/nango';
 
 vi.mock('@inkeep/agents-core', () => ({
   findWorkAppSlackChannelAgentConfig: vi.fn(() => vi.fn()),
@@ -84,9 +84,14 @@ vi.mock('../../logger', () => ({
   }),
 }));
 
-vi.mock('../../slack/services/nango', () => ({
-  findWorkspaceConnectionByTeamId: vi.fn(),
-}));
+vi.mock('../../slack/services/nango', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../slack/services/nango')>();
+  return {
+    ...actual,
+    findWorkspaceConnectionByTeamId: vi.fn(),
+    getWorkspaceDefaultAgent: vi.fn(),
+  };
+});
 
 describe('Event Utils', () => {
   beforeEach(() => {
@@ -416,18 +421,10 @@ describe('getWorkspaceDefaultAgent', () => {
   });
 
   it('should return workspace default when available', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
-      connectionId: 'conn-1',
-      teamId: 'T123',
-      botToken: 'xoxb-123',
-      tenantId: 'tenant-1',
-      defaultAgent: {
-        agentId: 'agent-1',
-        agentName: 'Test Agent',
-        projectId: 'proj-1',
-        projectName: 'Test Project',
-      },
+    const nango = await import('../../slack/services/nango');
+    vi.mocked(nango.getWorkspaceDefaultAgent).mockResolvedValue({
+      agentId: 'agent-1',
+      projectId: 'proj-1',
     });
 
     const result = await getWorkspaceDefaultAgent('T123');
@@ -435,13 +432,8 @@ describe('getWorkspaceDefaultAgent', () => {
   });
 
   it('should return null when no default configured', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
-      connectionId: 'conn-1',
-      teamId: 'T123',
-      botToken: 'xoxb-123',
-      tenantId: 'tenant-1',
-    });
+    const nango = await import('../../slack/services/nango');
+    vi.mocked(nango.getWorkspaceDefaultAgent).mockResolvedValue(null);
 
     const result = await getWorkspaceDefaultAgent('T123');
     expect(result).toBeNull();
@@ -464,9 +456,7 @@ describe('getChannelAgentConfig', () => {
       tenantId: 'tenant-1',
       defaultAgent: {
         agentId: 'workspace-agent',
-        agentName: 'Workspace Agent',
         projectId: 'proj-1',
-        projectName: 'Project',
       },
     });
 
