@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { PageHeader } from '@/components/layout/page-header';
 import { ProfileForm } from '@/components/user-profile/ProfileForm';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
@@ -45,10 +46,7 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-base font-medium">Profile</h2>
-        <p className="text-sm text-muted-foreground">Manage your personal preferences.</p>
-      </div>
+      <PageHeader title="Profile" description="Manage your personal preferences." />
       <ProfileForm userId={user.id} initialTimezone={profile?.timezone ?? null} />
     </div>
   );
