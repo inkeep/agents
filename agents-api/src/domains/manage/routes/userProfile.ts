@@ -43,8 +43,8 @@ userProfileRoutes.get('/:userId/profile', async (c) => {
     userId: profile.userId,
     timezone: profile.timezone,
     attributes: profile.attributes,
-    createdAt: profile.createdAt.toISOString(),
-    updatedAt: profile.updatedAt.toISOString(),
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
   });
 });
 
@@ -78,8 +78,8 @@ userProfileRoutes.put('/:userId/profile', async (c) => {
     userId: updated.userId,
     timezone: updated.timezone,
     attributes: updated.attributes,
-    createdAt: updated.createdAt.toISOString(),
-    updatedAt: updated.updatedAt.toISOString(),
+    createdAt: updated.createdAt,
+    updatedAt: updated.updatedAt,
   });
 });
 

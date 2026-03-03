@@ -26,7 +26,7 @@ export const upsertUserProfile =
   (db: AgentsRunDatabaseClient) =>
   async (userId: string, data: UpsertUserProfileData): Promise<UserProfile> => {
     const id = generateId();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const result = await db
       .insert(userProfile)
