@@ -160,12 +160,9 @@ app.openapi(
 );
 
 const ConversationMediaParamsSchema = TenantProjectIdParamsSchema.extend({
-  mediaKey: z
-    .string()
-    .min(1)
-    .openapi({
-      description: 'URL-encoded path segment(s) for the blob (e.g. message key or path)',
-    }),
+  mediaKey: z.string().min(1).openapi({
+    description: 'URL-encoded path segment(s) for the blob (e.g. message key or path)',
+  }),
 });
 
 app.openapi(
