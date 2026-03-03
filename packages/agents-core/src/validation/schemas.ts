@@ -54,6 +54,7 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
+  userProfile,
   workAppGitHubInstallations,
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
@@ -2931,6 +2932,11 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+export const TenantUserIdParamsSchema = z.object({
+  tenantId: TenantId,
+  userId: UserIdSchema,
+});
+
 export const TenantParamsSchema = z.object({
   tenantId: TenantId,
 });
@@ -3111,3 +3117,30 @@ export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequ
 
 export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
 export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;
+
+const timezoneSchema = z
+  .string()
+  .refine((tz) => Intl.supportedValuesOf('timeZone').includes(tz), {
+    message: 'Invalid IANA timezone',
+  })
+  .nullable()
+  .optional();
+
+// User Profile Schemas (Runtime DB - unversioned)
+export const UserProfileSelectSchema = createSelectSchema(userProfile);
+export const UserProfileInsertSchema = createInsertSchema(userProfile)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    timezone: timezoneSchema,
+  });
+export const UserProfileUpdateSchema = UserProfileInsertSchema.partial().extend({
+  timezone: timezoneSchema,
+});
+export const UserProfileApiSelectSchema = omitTenantScope(UserProfileSelectSchema);
+export const UserProfileApiInsertSchema = omitGeneratedFields(UserProfileInsertSchema);
+export const UserProfileApiUpdateSchema = omitGeneratedFields(UserProfileUpdateSchema).omit({
+  userId: true,
+});

@@ -1,86 +1,141 @@
-import { createApiError, getUserProfile, upsertUserProfile } from '@inkeep/agents-core';
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import {
+  commonGetErrorResponses,
+  createApiError,
+  getUserProfile,
+  TenantUserIdParamsSchema,
+  UserProfileApiSelectSchema,
+  UserProfileApiUpdateSchema,
+  upsertUserProfile,
+} from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
-import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
 
-const userProfileRoutes = new Hono<{ Variables: ManageAppVariables }>();
+const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-userProfileRoutes.use('*', sessionAuth());
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{userId}/profile',
+    summary: 'Get User Profile',
+    description: 'Get the profile for a specific user. Users can only access their own profile.',
+    operationId: 'get-user-profile',
+    tags: ['User Profile'],
+    permission: inheritedManageTenantAuth(),
+    request: {
+      params: TenantUserIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'User profile',
+        content: {
+          'application/json': {
+            schema: UserProfileApiSelectSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { userId } = c.req.valid('param');
+    const authenticatedUserId = c.get('userId') as string;
 
-const timezoneSchema = z
-  .string()
-  .refine((tz) => Intl.supportedValuesOf('timeZone').includes(tz), {
-    message: 'Invalid IANA timezone',
-  })
-  .nullable()
-  .optional();
+    if (userId !== authenticatedUserId) {
+      throw createApiError({
+        code: 'forbidden',
+        message: "Cannot access another user's profile",
+      });
+    }
 
-const putBodySchema = z.object({
-  timezone: timezoneSchema,
-  attributes: z.record(z.string(), z.unknown()).optional(),
-});
+    const profile = await getUserProfile(runDbClient)(userId);
 
-userProfileRoutes.get('/:userId/profile', async (c) => {
-  const userId = c.req.param('userId');
-  const authenticatedUserId = c.get('userId') as string;
+    // If the profile does not exist then we should create it
+    if (!profile) {
+      const newProfile = await upsertUserProfile(runDbClient)(userId, {
+        timezone: null,
+        attributes: {},
+      });
+      return c.json(newProfile, 200);
+    }
 
-  if (userId !== authenticatedUserId) {
-    throw createApiError({
-      code: 'forbidden',
-      message: "Cannot access another user's profile",
+    return c.json(
+      {
+        id: profile.id,
+        userId: profile.userId,
+        timezone: profile.timezone,
+        attributes: profile.attributes ?? {},
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+      },
+      200
+    );
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{userId}/profile',
+    summary: 'Upsert User Profile',
+    description:
+      'Create or update the profile for a specific user. Users can only update their own profile.',
+    operationId: 'upsert-user-profile',
+    tags: ['User Profile'],
+    permission: inheritedManageTenantAuth(),
+    request: {
+      params: TenantUserIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: UserProfileApiUpdateSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Updated user profile',
+        content: {
+          'application/json': {
+            schema: UserProfileApiSelectSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { userId } = c.req.valid('param');
+    const authenticatedUserId = c.get('userId') as string;
+
+    if (userId !== authenticatedUserId) {
+      throw createApiError({
+        code: 'forbidden',
+        message: "Cannot update another user's profile",
+      });
+    }
+
+    const body = c.req.valid('json');
+
+    const updated = await upsertUserProfile(runDbClient)(userId, {
+      timezone: body.timezone,
+      attributes: body.attributes ?? {},
     });
+
+    return c.json(
+      {
+        id: updated.id,
+        userId: updated.userId,
+        timezone: updated.timezone,
+        attributes: updated.attributes ?? {},
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      },
+      200
+    );
   }
+);
 
-  const profile = await getUserProfile(runDbClient)(userId);
-
-  if (!profile) {
-    return c.json({ userId, timezone: null, attributes: {} });
-  }
-
-  return c.json({
-    userId: profile.userId,
-    timezone: profile.timezone,
-    attributes: profile.attributes,
-    createdAt: profile.createdAt,
-    updatedAt: profile.updatedAt,
-  });
-});
-
-userProfileRoutes.put('/:userId/profile', async (c) => {
-  const userId = c.req.param('userId');
-  const authenticatedUserId = c.get('userId') as string;
-
-  if (userId !== authenticatedUserId) {
-    throw createApiError({
-      code: 'forbidden',
-      message: "Cannot update another user's profile",
-    });
-  }
-
-  const body = await c.req.json();
-  const parsed = putBodySchema.safeParse(body);
-
-  if (!parsed.success) {
-    throw createApiError({
-      code: 'bad_request',
-      message: parsed.error.issues[0]?.message ?? 'Invalid request body',
-    });
-  }
-
-  const updated = await upsertUserProfile(runDbClient)(userId, {
-    timezone: parsed.data.timezone,
-    attributes: parsed.data.attributes,
-  });
-
-  return c.json({
-    userId: updated.userId,
-    timezone: updated.timezone,
-    attributes: updated.attributes,
-    createdAt: updated.createdAt,
-    updatedAt: updated.updatedAt,
-  });
-});
-
-export default userProfileRoutes;
+export default app;
