@@ -123,7 +123,7 @@ describe('apps data access', () => {
       const app = await getAppById(db)({ scopes: SCOPES, id: 'app-web-1' });
 
       expect(app).toBeDefined();
-      expect(app!.id).toBe('app-web-1');
+      expect(app?.id).toBe('app-web-1');
     });
 
     it('should return undefined when app does not exist', async () => {
@@ -151,7 +151,7 @@ describe('apps data access', () => {
       const app = await getAppByPublicId(db)('abc123def456');
 
       expect(app).toBeDefined();
-      expect(app!.id).toBe('app-web-1');
+      expect(app?.id).toBe('app-web-1');
     });
 
     it('should return undefined for unknown publicId', async () => {
