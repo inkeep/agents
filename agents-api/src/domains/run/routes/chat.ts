@@ -249,6 +249,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
+        userId: executionContext.metadata?.endUserId,
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
