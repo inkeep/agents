@@ -1,31 +1,17 @@
 import { z } from '@hono/zod-openapi';
-import type { DataPart, FilePart, MessageContent, Part } from '@inkeep/agents-core';
+import type { DataPart, FilePart, Part } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { generateText, Output, streamText, type ToolSet } from 'ai';
+import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
-import {
-  ArtifactCreateSchema,
-  ArtifactReferenceSchema,
-} from '../../artifacts/artifact-component-schema';
 import { agentSessionManager } from '../../session/AgentSession';
-import { ResponseFormatter } from '../../stream/ResponseFormatter';
 import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
 import { extractTextFromParts } from '../../utils/message-parts';
-import { getModelContextWindow } from '../../utils/model-context-utils';
-import { SchemaProcessor } from '../../utils/SchemaProcessor';
-import type { ContextBreakdown } from '../../utils/token-estimator';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
-import { toolSessionManager } from '../services/ToolSessionManager';
 import { handleStreamGeneration } from '../streaming/stream-handler';
-import { getDefaultTools } from '../tools/default-tools';
-import { getFunctionTools } from '../tools/function-tools';
-import { getMcpTools } from '../tools/mcp-tools';
-import { getRelationTools } from '../tools/relation-tools';
-import { sanitizeToolsForAISDK } from '../tools/tool-wrapper';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import {
   handlePrepareStepCompression,
@@ -33,8 +19,10 @@ import {
   setupCompression,
 } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
-import { configureModelSettings, getPrimaryModel } from './model-config';
-import { buildSystemPrompt } from './system-prompt';
+import { configureModelSettings } from './model-config';
+import { formatFinalResponse } from './response-formatting';
+import { buildDataComponentsSchema } from './schema-builder';
+import { loadToolsAndPrompts } from './tool-loading';
 
 const logger = getLogger('Agent');
 
@@ -69,69 +57,6 @@ export function setupGenerationContext(
   }
 
   return { contextId, taskId, streamRequestId: streamRequestId ?? '', sessionId };
-}
-
-export async function loadToolsAndPrompts(
-  ctx: AgentRunContext,
-  sessionId: string,
-  streamRequestId: string | undefined,
-  runtimeContext?: {
-    contextId: string;
-    metadata: {
-      conversationId: string;
-      threadId: string;
-      taskId: string;
-      streamRequestId: string;
-      apiKey?: string;
-    };
-  }
-): Promise<{ systemPrompt: string; sanitizedTools: ToolSet; contextBreakdown: ContextBreakdown }> {
-  const [mcpToolsResult, systemPromptResult, functionTools, relationTools, defaultTools] =
-    await tracer.startActiveSpan(
-      'agent.load_tools',
-      {
-        attributes: {
-          'subAgent.name': ctx.config.name,
-          'session.id': sessionId || 'none',
-        },
-      },
-      async (childSpan: Span) => {
-        try {
-          const result = await Promise.all([
-            getMcpTools(ctx, sessionId, streamRequestId),
-            buildSystemPrompt(ctx, runtimeContext, false),
-            getFunctionTools(ctx, sessionId, streamRequestId),
-            Promise.resolve(getRelationTools(ctx, runtimeContext, sessionId)),
-            getDefaultTools(ctx, streamRequestId),
-          ]);
-
-          childSpan.setStatus({ code: SpanStatusCode.OK });
-          return result;
-        } catch (err) {
-          const errorObj = err instanceof Error ? err : new Error(String(err));
-          setSpanWithError(childSpan, errorObj);
-          throw err;
-        } finally {
-          childSpan.end();
-        }
-      }
-    );
-
-  const { tools: mcpTools } = mcpToolsResult;
-
-  const systemPrompt = systemPromptResult.prompt;
-  const contextBreakdown = systemPromptResult.breakdown;
-
-  const allTools = {
-    ...mcpTools,
-    ...functionTools,
-    ...relationTools,
-    ...defaultTools,
-  };
-
-  const sanitizedTools = sanitizeToolsForAISDK(allTools);
-
-  return { systemPrompt, sanitizedTools, contextBreakdown };
 }
 
 export function buildBaseGenerationConfig(
@@ -178,79 +103,6 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
       subAgentId: ctx.config.id,
       subAgentName: ctx.config.name,
     },
-  };
-}
-
-export function buildDataComponentsSchema(ctx: AgentRunContext): z.ZodType<any> {
-  const componentSchemas: z.ZodType<any>[] = [];
-
-  ctx.config.dataComponents?.forEach((dc) => {
-    const normalizedProps = SchemaProcessor.makeAllPropertiesRequired(dc.props);
-    const propsSchema = z.fromJSONSchema(normalizedProps);
-    componentSchemas.push(
-      z.object({
-        id: z.string(),
-        name: z.literal(dc.name),
-        props: propsSchema,
-      })
-    );
-  });
-
-  if (ctx.artifactComponents.length > 0) {
-    const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(ctx.artifactComponents);
-    componentSchemas.push(...artifactCreateSchemas);
-    componentSchemas.push(ArtifactReferenceSchema.getSchema());
-  }
-
-  let dataComponentsSchema: z.ZodType<any>;
-  if (componentSchemas.length === 1) {
-    dataComponentsSchema = componentSchemas[0];
-    logger.info({ agentId: ctx.config.id }, 'Using single schema (no union needed)');
-  } else {
-    dataComponentsSchema = z.union(
-      componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
-    );
-    logger.info({ agentId: ctx.config.id }, 'Created union schema');
-  }
-
-  return dataComponentsSchema;
-}
-
-export async function formatFinalResponse(
-  ctx: AgentRunContext,
-  response: ResolvedGenerationResponse,
-  textResponse: string,
-  sessionId: string,
-  contextId: string
-): Promise<ResolvedGenerationResponse> {
-  let formattedContent: MessageContent | null = response.formattedContent || null;
-
-  if (!formattedContent) {
-    const session = toolSessionManager.getSession(sessionId);
-
-    const modelContextInfo = getModelContextWindow(getPrimaryModel(ctx.config));
-
-    const responseFormatter = new ResponseFormatter(ctx.executionContext, {
-      sessionId,
-      taskId: session?.taskId,
-      projectId: session?.projectId,
-      contextId,
-      artifactComponents: ctx.artifactComponents,
-      streamRequestId: ctx.streamRequestId ?? '',
-      subAgentId: ctx.config.id,
-      contextWindowSize: modelContextInfo.contextWindow ?? undefined,
-    });
-
-    if (response.object) {
-      formattedContent = await responseFormatter.formatObjectResponse(response.object, contextId);
-    } else if (textResponse) {
-      formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
-    }
-  }
-
-  return {
-    ...response,
-    formattedContent: formattedContent,
   };
 }
 
