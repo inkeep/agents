@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
+import appsRoutes from './apps';
 import artifactComponentsRoutes from './artifactComponents';
 import branchesRoutes from './branches';
 import contextConfigsRoutes from './contextConfigs';
@@ -92,6 +93,7 @@ app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRo
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
+app.route('/projects/:projectId/apps', appsRoutes);
 app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
