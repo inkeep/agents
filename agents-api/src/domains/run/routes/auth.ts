@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AnonymousSessionResponseSchema,
   commonGetErrorResponses,
   createApiError,
   extractAppPublicId,
@@ -28,13 +29,6 @@ export function getAnonJwtSecret(): Uint8Array {
 
   return new TextEncoder().encode(secret);
 }
-
-const AnonymousSessionResponseSchema = z
-  .object({
-    token: z.string().describe('Anonymous session JWT'),
-    expiresAt: z.string().describe('Token expiration time (ISO 8601)'),
-  })
-  .openapi('AnonymousSessionResponse');
 
 const app = new OpenAPIHono();
 

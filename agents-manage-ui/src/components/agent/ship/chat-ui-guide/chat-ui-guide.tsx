@@ -81,11 +81,13 @@ export function ChatUIGuide() {
         <ChatUICode
           component={component}
           baseSettings={{ ...baseSettings }}
-          aiChatSettings={{
-            ...aiChatSettings,
-            apiKey: 'INKEEP_APP_SECRET',
-            headers: { 'x-emit-operations': shouldEmitDataOperations ? 'true' : 'false' },
+          extraAiChatSettings={{
+            introMessage: aiChatSettings.introMessage,
+            placeholder: aiChatSettings.placeholder,
+            aiAssistantAvatar: aiChatSettings.aiAssistantAvatar,
           }}
+          agentUrl={agentUrl}
+          shouldEmitDataOperations={shouldEmitDataOperations}
         />
       </TabsContent>
     </Tabs>

@@ -13,10 +13,32 @@ Define an element in your page that will be the "container" for the embedded cha
 Insert the EmbeddedChat widget by using the \`Inkeep.EmbeddedChat()\` function.
 
 \`\`\`js
-const config = {
-  baseSettings: {{BASE_SETTINGS}},
-  aiChatSettings: {{AI_CHAT_SETTINGS}}
-};
+const APP_ID = "{{APP_ID}}";
+const AGENT_URL = "{{AGENT_URL}}";
+const SESSION_URL = "{{SESSION_URL}}";
 
-const embeddedChat = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", config);
+async function getSessionToken() {
+  const response = await fetch(SESSION_URL, { method: "POST" });
+  const data = await response.json();
+  return data.token;
+}
+
+async function initChat() {
+  const token = await getSessionToken();
+  const config = {
+    baseSettings: {{BASE_SETTINGS}},
+    aiChatSettings: {
+      agentUrl: AGENT_URL,
+      apiKey: token,
+      headers: {
+        "X-Inkeep-App-Id": APP_ID,
+{{EMIT_OPERATIONS}}
+      },
+{{EXTRA_AI_CHAT_SETTINGS}}
+    }
+  };
+  const embeddedChat = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", config);
+}
+
+initChat();
 \`\`\``;
