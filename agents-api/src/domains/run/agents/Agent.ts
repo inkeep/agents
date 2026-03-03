@@ -46,6 +46,10 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
+
+type ToolResultOutput = Awaited<ReturnType<NonNullable<Tool['toModelOutput']>>>;
+type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number];
+
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
@@ -877,8 +881,8 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
-          toModelOutput: ({ output }: { output: any }) => {
-            return this.buildToolModelOutput(output) as any;
+          toModelOutput: ({ output }) => {
+            return this.buildToolModelOutput(output);
           },
           execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
@@ -2491,7 +2495,7 @@ export class Agent {
   /**
    * Format tool result for storage in conversation history
    */
-  private buildToolModelOutput(output: any): any {
+  private buildToolModelOutput(output: unknown): ToolResultOutput {
     if (isToolResultDenied(output)) {
       return {
         type: 'execution-denied',
@@ -2532,7 +2536,7 @@ export class Agent {
     };
   }
 
-  private mapMcpContentItemToToolResultContentPart(item: unknown): Record<string, unknown> | null {
+  private mapMcpContentItemToToolResultContentPart(item: unknown): ToolResultContentPart | null {
     if (!item || typeof item !== 'object') {
       return null;
     }
