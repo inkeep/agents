@@ -19,7 +19,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { runSetup } from '../packages/agents-core/dist/setup/index.js';
 
@@ -71,12 +71,7 @@ if (isolatedName) {
 
   let state;
   try {
-    const module = await import(stateFile, {
-      with: {
-        type: 'json',
-      },
-    });
-    state = module.default;
+    state = JSON.parse(readFileSync(stateFile, 'utf-8'));
   } catch (e) {
     console.error(`Error: failed to parse ${stateFile}: ${e.message}`);
     process.exit(1);
