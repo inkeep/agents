@@ -2498,8 +2498,8 @@ export class Agent {
   private buildToolModelOutput(output: unknown): ToolResultOutput {
     if (isToolResultDenied(output)) {
       return {
-        type: 'execution-denied',
-        reason: output.reason,
+        type: 'error-text',
+        value: `Tool execution denied: ${(output as { reason: string }).reason}`,
       };
     }
 
@@ -2565,8 +2565,8 @@ export class Agent {
     if (type === 'image') {
       if (typeof contentItem.data === 'string' && contentItem.data.trim() !== '') {
         return {
-          type: 'image-data',
-          data: contentItem.data,
+          type: 'media',
+          data: contentItem.data as string,
           mediaType:
             typeof contentItem.mimeType === 'string' && contentItem.mimeType.trim() !== ''
               ? contentItem.mimeType
@@ -2576,14 +2576,15 @@ export class Agent {
 
       if (typeof contentItem.url === 'string' && contentItem.url.trim() !== '') {
         return {
-          type: 'image-url',
-          url: contentItem.url,
+          type: 'text',
+          text: contentItem.url as string,
         };
       }
 
       return null;
     }
 
+    // Other MCP content types (e.g. 'resource', 'audio') serialize as text for now
     return {
       type: 'text',
       text: JSON.stringify(contentItem, null, 2),
@@ -2605,8 +2606,8 @@ export class Agent {
       return { text };
     }
 
-    const hasImageFileParts = parts.some((part) => part.kind === 'file');
-    if (!hasImageFileParts) {
+    const hasFileParts = parts.some((part) => part.kind === 'file');
+    if (!hasFileParts) {
       return { text, parts: makeMessageContentParts(parts) };
     }
 
@@ -2660,6 +2661,20 @@ export class Agent {
       };
     }
 
+    if (item.type === 'image' && typeof item.url === 'string') {
+      return {
+        kind: 'file',
+        file: {
+          uri: item.url,
+          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+        },
+        metadata: {
+          type: 'image',
+        },
+      };
+    }
+
+    // Other MCP content types (e.g. 'resource', 'audio') fall through to generic data for now
     return {
       kind: 'data',
       data: item as Record<string, unknown>,
