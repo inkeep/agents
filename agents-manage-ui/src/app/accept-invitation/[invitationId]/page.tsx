@@ -399,6 +399,17 @@ export default function AcceptInvitationPage({
               </Button>
             )}
 
+            {((isGoogleAuth && !PUBLIC_GOOGLE_CLIENT_ID) ||
+              (isSSOAuth && !PUBLIC_AUTH0_DOMAIN)) && (
+              <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
+                <AlertCircleIcon aria-hidden className="h-4 w-4 text-amber-600" />
+                <AlertDescription>
+                  The sign-in method for this invitation is not available. Please contact your
+                  organization administrator.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {isEmailPassword && (
               <form onSubmit={handleSignupAndAccept} className="space-y-4">
                 <div className="space-y-2">
