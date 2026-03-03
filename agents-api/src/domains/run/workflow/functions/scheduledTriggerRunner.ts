@@ -233,6 +233,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         payload: currentTrigger.payload ?? null,
         timeoutSeconds: currentTrigger.timeoutSeconds,
         runAsUserId: currentTrigger.runAsUserId,
+        cronTimezone: currentTrigger.cronTimezone,
       });
 
       // Save conversation ID immediately after each attempt
