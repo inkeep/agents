@@ -1,4 +1,4 @@
-import { subAgent, functionTool } from '@inkeep/agents-sdk';
+import { functionTool, subAgent } from '@inkeep/agents-sdk';
 import { contextBuilder, headersBuilder } from '../../context-configs/builder';
 import { inkeepManagementTools } from '../../tools/inkeepManagementTools';
 import { builder } from './builder';

@@ -388,7 +388,9 @@ export function createDelegateToAgentTool({
 
       const effectiveHeaders = {
         ...resolvedHeaders,
-        ...(executionContext.resolvedRef ? { 'x-inkeep-ref': executionContext.resolvedRef.name } : {}),
+        ...(executionContext.resolvedRef
+          ? { 'x-inkeep-ref': executionContext.resolvedRef.name }
+          : {}),
         ...(forwardedHeaders || {}),
       };
 

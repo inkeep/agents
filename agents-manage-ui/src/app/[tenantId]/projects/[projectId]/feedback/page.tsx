@@ -17,7 +17,12 @@ export default async function FeedbackPage({
   searchParams,
 }: {
   params: Promise<{ tenantId: string; projectId: string }>;
-  searchParams: Promise<{ conversationId?: string; messageId?: string; page?: string; limit?: string }>;
+  searchParams: Promise<{
+    conversationId?: string;
+    messageId?: string;
+    page?: string;
+    limit?: string;
+  }>;
 }) {
   const { tenantId, projectId } = await params;
   const { conversationId, messageId, page, limit } = await searchParams;
@@ -35,7 +40,10 @@ export default async function FeedbackPage({
 
     return (
       <>
-        <PageHeader title={STATIC_LABELS.feedback ?? metadata.title} description={metadata.description} />
+        <PageHeader
+          title={STATIC_LABELS.feedback ?? metadata.title}
+          description={metadata.description}
+        />
         <FeedbackTable
           tenantId={tenantId}
           projectId={projectId}
@@ -49,4 +57,3 @@ export default async function FeedbackPage({
     return <FullPageError error={error as Error} context="feedback" />;
   }
 }
-

@@ -4,7 +4,10 @@
 
 'use server';
 
-import { FeedbackApiInsertSchema, FeedbackApiSelectSchema } from '@inkeep/agents-core/client-exports';
+import {
+  FeedbackApiInsertSchema,
+  FeedbackApiSelectSchema,
+} from '@inkeep/agents-core/client-exports';
 import type { z } from 'zod';
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
@@ -83,4 +86,3 @@ export async function deleteFeedback(
     }
   );
 }
-

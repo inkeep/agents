@@ -2,11 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import {
+  type Branch,
   deleteBranch,
   fetchBranches,
-  mergeBranch,
-  type Branch,
   type MergeResult,
+  mergeBranch,
 } from '../api/branches';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';

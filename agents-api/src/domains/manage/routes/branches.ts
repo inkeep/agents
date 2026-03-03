@@ -290,10 +290,7 @@ app.openapi(
         content: {
           'application/json': {
             schema: z.object({
-              message: z
-                .string()
-                .optional()
-                .describe('Optional commit message for the merge'),
+              message: z.string().optional().describe('Optional commit message for the merge'),
             }),
           },
         },
@@ -360,9 +357,7 @@ app.openapi(
         fromBranch: fullBranchName,
         toBranch: projectMain,
         message: message || `Merge branch '${branchName}' into main`,
-        author: userId
-          ? { name: userId, email: userEmail || 'api@inkeep.com' }
-          : undefined,
+        author: userId ? { name: userId, email: userEmail || 'api@inkeep.com' } : undefined,
       });
 
       if (result.hasConflicts) {
@@ -373,10 +368,7 @@ app.openapi(
         return c.json({ data: result }, 409) as any;
       }
 
-      logger.info(
-        { tenantId, projectId, branchName, result },
-        'Branch merged successfully'
-      );
+      logger.info({ tenantId, projectId, branchName, result }, 'Branch merged successfully');
       return c.json({ data: result }) as any;
     } catch (error: any) {
       const errorMessage = error?.message || 'Unknown error';

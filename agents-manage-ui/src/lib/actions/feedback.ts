@@ -1,7 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createFeedback, deleteFeedback, type Feedback, type FeedbackCreate } from '../api/feedback';
+import {
+  createFeedback,
+  deleteFeedback,
+  type Feedback,
+  type FeedbackCreate,
+} from '../api/feedback';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
@@ -59,4 +64,3 @@ export async function deleteFeedbackAction(
     };
   }
 }
-

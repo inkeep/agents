@@ -2026,18 +2026,13 @@ export class Agent {
           const textVal = item.text;
           const payload = typeof textVal === 'string' ? JSON.parse(textVal) : textVal;
           const name =
-            payload?.BranchResponse?.data?.baseName ||
-            payload?.data?.baseName ||
-            payload?.baseName;
+            payload?.BranchResponse?.data?.baseName || payload?.data?.baseName || payload?.baseName;
           if (name) return name;
         }
       }
     }
 
-    const direct =
-      obj.BranchResponse?.data?.baseName ||
-      obj.data?.baseName ||
-      obj.baseName;
+    const direct = obj.BranchResponse?.data?.baseName || obj.data?.baseName || obj.baseName;
     if (direct) return direct;
 
     const asStr = JSON.stringify(result);

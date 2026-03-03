@@ -282,7 +282,6 @@ function createAgentsHono(config: AppConfig) {
     return getInProcessFetch()(forwardedRequest);
   });
 
-
   app.route('/evals', evalRoutes);
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication

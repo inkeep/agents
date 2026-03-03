@@ -5,8 +5,8 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -207,7 +207,11 @@ export const FeedbackDialog = ({
             />
             <div className="flex justify-end gap-2">
               <Button type="submit" disabled={isSubmitting}>
-                {type === 'negative' ? <SparklesIcon className="size-4" /> : <ThumbsUp className="size-4" />}
+                {type === 'negative' ? (
+                  <SparklesIcon className="size-4" />
+                ) : (
+                  <ThumbsUp className="size-4" />
+                )}
                 {type === 'negative' ? 'Fix with Copilot' : 'Submit feedback'}
               </Button>
             </div>

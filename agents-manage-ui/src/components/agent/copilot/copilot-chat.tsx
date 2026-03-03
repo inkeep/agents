@@ -67,18 +67,14 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
         if (!dynamicHeaders.targetRef) {
           try {
             const toolName =
-              event.detail.toolName ||
-              event.detail.details?.data?.toolName ||
-              event.detail.label;
+              event.detail.toolName || event.detail.details?.data?.toolName || event.detail.label;
             const isBranchCreate =
               toolName?.includes('branches-create-branch') ||
               toolName?.includes('Create Branch') ||
               event.detail.label?.includes('branches-create-branch');
 
             if (isBranchCreate) {
-              const raw =
-                event.detail.output ??
-                event.detail.details?.data?.output;
+              const raw = event.detail.output ?? event.detail.details?.data?.output;
               const text =
                 typeof raw === 'string'
                   ? raw
@@ -279,9 +275,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               ...(dynamicHeaders?.messageId
                 ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
                 : {}),
-              ...(dynamicHeaders?.targetRef
-                ? { 'x-target-ref': dynamicHeaders.targetRef }
-                : {}),
+              ...(dynamicHeaders?.targetRef ? { 'x-target-ref': dynamicHeaders.targetRef } : {}),
               // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
               ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
             },

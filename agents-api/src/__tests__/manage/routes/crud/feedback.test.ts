@@ -35,10 +35,13 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
       details: 'Improve the response clarity.',
     };
 
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/feedback`, {
-      method: 'POST',
-      body: JSON.stringify(createData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      }
+    );
     expect(createRes.status).toBe(201);
 
     const listRes = await makeRequest(
@@ -78,10 +81,13 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
       details: 'Delete me.',
     };
 
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/feedback`, {
-      method: 'POST',
-      body: JSON.stringify(createData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      }
+    );
     expect(createRes.status).toBe(201);
 
     const deleteRes = await makeRequest(
@@ -101,4 +107,3 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     expect(listBody.data).toEqual([]);
   });
 });
-

@@ -4,13 +4,20 @@ import { ChevronLeft, ChevronRight, MessageSquare, Search, Trash2, X } from 'luc
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
-import EmptyState from '@/components/layout/empty-state';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
+import EmptyState from '@/components/layout/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { Feedback } from '@/lib/api/feedback';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
@@ -286,7 +293,11 @@ export function FeedbackTable({
             <Button
               variant="outline"
               size="sm"
-              disabled={pagination.pages ? pagination.page >= pagination.pages : feedback.length < pagination.limit}
+              disabled={
+                pagination.pages
+                  ? pagination.page >= pagination.pages
+                  : feedback.length < pagination.limit
+              }
               onClick={() => updateQuery({ page: pagination.page + 1 })}
             >
               Next
@@ -298,4 +309,3 @@ export function FeedbackTable({
     </Card>
   );
 }
-

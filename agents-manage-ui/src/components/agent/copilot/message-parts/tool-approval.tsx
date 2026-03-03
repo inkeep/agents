@@ -114,10 +114,7 @@ const ApprovalButtons = ({
     </div>
   );
 
-const MergeBranchApproval = ({
-  tool,
-  approve,
-}: ToolApprovalProps) => {
+const MergeBranchApproval = ({ tool, approve }: ToolApprovalProps) => {
   const { input } = tool;
   const req = (input as Record<string, any>).request || input;
   const branchName = req.branchName || 'unknown';
@@ -143,10 +140,7 @@ const MergeBranchApproval = ({
   );
 };
 
-const CreateBranchApproval = ({
-  tool,
-  approve,
-}: ToolApprovalProps) => {
+const CreateBranchApproval = ({ tool, approve }: ToolApprovalProps) => {
   const { input } = tool;
   const req = (input as Record<string, any>).request || input;
   const branchName = req.body?.name || req.name || req.baseName || req.branchName || 'unknown';
