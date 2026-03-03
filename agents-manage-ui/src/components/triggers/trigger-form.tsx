@@ -890,7 +890,7 @@ export function TriggerForm({
           <CardContent className="space-y-4">
             {isAdminLoading || isMembersLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Loading users...
               </div>
             ) : mode === 'create' && isAdmin ? (
