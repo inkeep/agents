@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
@@ -27,8 +28,7 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_INKEEP_AGENTS_API_URL } =
-    useRuntimeConfig();
+  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
@@ -149,12 +149,7 @@ export default function AcceptInvitationPage({
       const newUserId = signupResult.data?.user?.id;
       if (newUserId) {
         try {
-          await fetch(`${PUBLIC_INKEEP_AGENTS_API_URL}/manage/api/users/${newUserId}/profile`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ timezone }),
-          });
+          await updateUserProfileTimezone(newUserId, timezone);
         } catch {
           // Silently ignore — timezone update is best-effort
         }

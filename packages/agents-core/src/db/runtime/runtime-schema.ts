@@ -613,11 +613,7 @@ export const userProfile = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     timezone: text('timezone'),
     attributes: jsonb('attributes').$type<Record<string, unknown>>().default({}),
-    createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { mode: 'string' })
-      .defaultNow()
-      .$onUpdate(() => new Date().toISOString())
-      .notNull(),
+    ...timestamps,
   },
   (table) => [uniqueIndex('user_profile_userId_uidx').on(table.userId)]
 );

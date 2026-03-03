@@ -4,7 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { and, eq } from 'drizzle-orm';
-import { upsertUserProfile } from '../data-access/runtime/userProfiles';
+import { createUserProfileIfNotExists } from '../data-access/runtime/userProfiles';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
@@ -282,7 +282,7 @@ export function createAuth(config: BetterAuthConfig) {
         create: {
           after: async (user) => {
             try {
-              await upsertUserProfile(config.dbClient)(user.id, { timezone: null });
+              await createUserProfileIfNotExists(config.dbClient)(user.id);
             } catch (error) {
               console.error('[auth] Failed to create user profile for user', user.id, error);
             }

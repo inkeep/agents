@@ -22,6 +22,25 @@ export const getUserProfile =
     return result[0] ?? null;
   };
 
+export const createUserProfileIfNotExists =
+  (db: AgentsRunDatabaseClient) =>
+  async (userId: string): Promise<void> => {
+    const id = generateId();
+    const now = new Date().toISOString();
+
+    await db
+      .insert(userProfile)
+      .values({
+        id,
+        userId,
+        timezone: null,
+        attributes: {},
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoNothing();
+  };
+
 export const upsertUserProfile =
   (db: AgentsRunDatabaseClient) =>
   async (userId: string, data: UpsertUserProfileData): Promise<UserProfile> => {
