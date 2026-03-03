@@ -29,6 +29,7 @@ export * from './manage/triggers';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
+export * from './runtime/apps';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
