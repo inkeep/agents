@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
-import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 
 interface ProfileFormProps {
   userId: string;
@@ -12,7 +12,6 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
-  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const browserTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const [timezone, setTimezone] = useState(initialTimezone ?? browserTimezone);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,17 +35,8 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
     setSaveStatus('idle');
 
     try {
-      const res = await fetch(
-        `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/api/users/${userId}/profile`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ timezone }),
-        }
-      );
-
-      setSaveStatus(res.ok ? 'success' : 'error');
+      await updateUserProfileTimezone(userId, timezone);
+      setSaveStatus('success');
     } catch {
       setSaveStatus('error');
     } finally {

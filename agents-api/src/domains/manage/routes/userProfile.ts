@@ -3,16 +3,19 @@ import {
   commonGetErrorResponses,
   createApiError,
   getUserProfile,
-  TenantUserIdParamsSchema,
-  UserProfileApiSelectSchema,
+  UserIdParamsSchema,
   UserProfileApiUpdateSchema,
+  UserProfileSelectSchema,
   upsertUserProfile,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
+import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+app.use('*', sessionAuth());
 
 app.openapi(
   createProtectedRoute({
@@ -24,14 +27,14 @@ app.openapi(
     tags: ['User Profile'],
     permission: inheritedManageTenantAuth(),
     request: {
-      params: TenantUserIdParamsSchema,
+      params: UserIdParamsSchema,
     },
     responses: {
       200: {
         description: 'User profile',
         content: {
           'application/json': {
-            schema: UserProfileApiSelectSchema,
+            schema: UserProfileSelectSchema,
           },
         },
       },
@@ -85,7 +88,7 @@ app.openapi(
     tags: ['User Profile'],
     permission: inheritedManageTenantAuth(),
     request: {
-      params: TenantUserIdParamsSchema,
+      params: UserIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -99,7 +102,7 @@ app.openapi(
         description: 'Updated user profile',
         content: {
           'application/json': {
-            schema: UserProfileApiSelectSchema,
+            schema: UserProfileSelectSchema,
           },
         },
       },

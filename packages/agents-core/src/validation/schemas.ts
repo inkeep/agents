@@ -96,6 +96,8 @@ const {
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
+
 export const StringRecordSchema = z
   .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
   .openapi('StringRecord');
@@ -2932,8 +2934,7 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
-export const TenantUserIdParamsSchema = z.object({
-  tenantId: TenantId,
+export const UserIdParamsSchema = z.object({
   userId: UserIdSchema,
 });
 
@@ -3120,7 +3121,7 @@ export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentCo
 
 const timezoneSchema = z
   .string()
-  .refine((tz) => Intl.supportedValuesOf('timeZone').includes(tz), {
+  .refine((tz) => VALID_TIMEZONES.has(tz), {
     message: 'Invalid IANA timezone',
   })
   .nullable()
@@ -3139,7 +3140,7 @@ export const UserProfileInsertSchema = createInsertSchema(userProfile)
 export const UserProfileUpdateSchema = UserProfileInsertSchema.partial().extend({
   timezone: timezoneSchema,
 });
-export const UserProfileApiSelectSchema = omitTenantScope(UserProfileSelectSchema);
+export const UserProfileApiSelectSchema = UserProfileSelectSchema;
 export const UserProfileApiInsertSchema = omitGeneratedFields(UserProfileInsertSchema);
 export const UserProfileApiUpdateSchema = omitGeneratedFields(UserProfileUpdateSchema).omit({
   userId: true,

@@ -245,7 +245,6 @@ import type {
   TriggerSelectSchema,
   TriggerUpdateSchema,
   UserProfileApiInsertSchema,
-  UserProfileApiSelectSchema,
   UserProfileApiUpdateSchema,
   UserProfileInsertSchema,
   UserProfileSelectSchema,
@@ -659,7 +658,6 @@ export interface SummaryEvent {
 
 export type UserProfileSelect = z.infer<typeof UserProfileSelectSchema>;
 export type UserProfileInsert = z.infer<typeof UserProfileInsertSchema>;
-export type UserProfileApiSelect = z.infer<typeof UserProfileApiSelectSchema>;
 export type UserProfileApiInsert = z.infer<typeof UserProfileApiInsertSchema>;
 export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
 export type UserProfileApiUpdate = z.infer<typeof UserProfileApiUpdateSchema>;
