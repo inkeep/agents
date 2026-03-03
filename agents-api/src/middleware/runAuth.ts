@@ -1,8 +1,13 @@
 import {
   type BaseExecutionContext,
   canUseProjectStrict,
+  extractAppPublicId,
+  getAppByPublicId,
   isSlackUserToken,
+  updateAppLastUsed,
   validateAndGetApiKey,
+  validateApiKey,
+  validateOrigin,
   validateTargetAgent,
   verifyServiceToken,
   verifySlackUserToken,
@@ -10,7 +15,9 @@ import {
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
+import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
@@ -40,6 +47,8 @@ interface RequestData {
   ref?: string;
   baseUrl: string;
   runAsUserId?: string;
+  appId?: string;
+  origin?: string;
 }
 
 /**
@@ -66,6 +75,8 @@ function extractRequestData(c: { req: any }): RequestData {
   const agentId = c.req.header('x-inkeep-agent-id');
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
   const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
+  const appId = c.req.header('x-inkeep-app-id');
+  const origin = c.req.header('Origin');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
   const host = fwdHost ?? c.req.header('host');
@@ -89,6 +100,8 @@ function extractRequestData(c: { req: any }): RequestData {
     ref,
     baseUrl,
     runAsUserId,
+    appId,
+    origin,
   };
 }
 
@@ -108,6 +121,7 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     reqData.agentId !== authResult.agentId &&
     authResult.apiKeyId &&
     !authResult.apiKeyId.startsWith('temp-') &&
+    !authResult.apiKeyId.startsWith('app:') &&
     authResult.apiKeyId !== 'bypass' &&
     authResult.apiKeyId !== 'slack-user-token' &&
     authResult.apiKeyId !== 'team-agent-token' &&
@@ -457,6 +471,168 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
 }
 
 /**
+ * Resolve which agent the request should target based on the app's access config
+ */
+function resolveAgentId(
+  requestedAgentId: string | undefined,
+  app: { agentAccessMode: string; allowedAgentIds: string[] | null; defaultAgentId: string | null }
+): string | null {
+  const allowedAgentIds = app.allowedAgentIds ?? [];
+
+  if (app.agentAccessMode === 'all') {
+    return requestedAgentId || app.defaultAgentId || null;
+  }
+
+  if (requestedAgentId) {
+    return allowedAgentIds.includes(requestedAgentId) ? requestedAgentId : null;
+  }
+
+  if (app.defaultAgentId && allowedAgentIds.includes(app.defaultAgentId)) {
+    return app.defaultAgentId;
+  }
+
+  return allowedAgentIds[0] || null;
+}
+
+/**
+ * Authenticate using an app credential (X-Inkeep-App-Id header).
+ * Supports web_client (end-user JWT) and api (app secret) types.
+ */
+async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> {
+  const { appId: appIdHeader, apiKey: bearerToken, origin, agentId: requestedAgentId } = reqData;
+
+  if (!appIdHeader) {
+    return { authResult: null };
+  }
+
+  const publicId = extractAppPublicId(appIdHeader);
+  if (!publicId) {
+    return { authResult: null, failureMessage: 'Invalid app ID format' };
+  }
+
+  const app = await getAppByPublicId(runDbClient)(publicId);
+  if (!app) {
+    return { authResult: null, failureMessage: 'App not found' };
+  }
+  if (!app.enabled) {
+    return { authResult: null, failureMessage: 'App is disabled' };
+  }
+
+  let endUserId: string | undefined;
+  let authMethod: 'app_credential_web_client' | 'app_credential_api';
+
+  if (app.type === 'web_client') {
+    authMethod = 'app_credential_web_client';
+    const config = app.config as {
+      type: 'web_client';
+      webClient: {
+        allowedDomains: string[];
+        authMode: string;
+        hs256Enabled: boolean;
+        hs256Secret?: string;
+      };
+    };
+
+    if (!validateOrigin(origin, config.webClient.allowedDomains)) {
+      logger.warn(
+        { origin, allowedDomains: config.webClient.allowedDomains, appId: app.id },
+        'App credential auth: origin not allowed'
+      );
+      return { authResult: null, failureMessage: 'Origin not allowed for this app' };
+    }
+
+    if (!bearerToken) {
+      return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
+    }
+
+    let jwtVerified = false;
+
+    try {
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
+
+      if (payload.app !== appIdHeader) {
+        return { authResult: null, failureMessage: 'JWT app claim does not match request app ID' };
+      }
+
+      endUserId = payload.sub;
+      jwtVerified = true;
+    } catch {
+      // Anonymous JWT failed — try customer HS256
+    }
+
+    if (!jwtVerified && config.webClient.hs256Enabled && config.webClient.hs256Secret) {
+      try {
+        const customerSecret = new TextEncoder().encode(config.webClient.hs256Secret);
+        const { payload } = await jwtVerify(bearerToken, customerSecret);
+
+        if (!payload.sub || !payload.exp) {
+          return {
+            authResult: null,
+            failureMessage: 'Customer JWT must include sub and exp claims',
+          };
+        }
+
+        endUserId = payload.sub;
+        jwtVerified = true;
+      } catch {
+        // Customer JWT also failed
+      }
+    }
+
+    if (!jwtVerified) {
+      return { authResult: null, failureMessage: 'Invalid end-user JWT' };
+    }
+  } else if (app.type === 'api') {
+    authMethod = 'app_credential_api';
+
+    if (!bearerToken || !app.keyHash) {
+      return { authResult: null, failureMessage: 'App secret required' };
+    }
+
+    const valid = await validateApiKey(bearerToken, app.keyHash);
+    if (!valid) {
+      return { authResult: null, failureMessage: 'Invalid app secret' };
+    }
+  } else {
+    return { authResult: null, failureMessage: `Unsupported app type: ${app.type}` };
+  }
+
+  const agentId = resolveAgentId(requestedAgentId, app);
+  if (!agentId) {
+    return {
+      authResult: null,
+      failureMessage: requestedAgentId
+        ? `Agent '${requestedAgentId}' is not allowed for this app`
+        : 'No agent configured for this app',
+    };
+  }
+
+  updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+    logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+  });
+
+  logger.info(
+    { appId: app.id, appType: app.type, agentId, endUserId, authMethod },
+    'App credential authenticated successfully'
+  );
+
+  return {
+    authResult: {
+      apiKey: bearerToken || appIdHeader,
+      tenantId: app.tenantId,
+      projectId: app.projectId,
+      agentId,
+      apiKeyId: `app:${app.id}`,
+      metadata: {
+        endUserId,
+        authMethod,
+      },
+    },
+  };
+}
+
+/**
  * Create default development context
  */
 function createDevContext(reqData: RequestData): AuthResult {
@@ -499,6 +675,15 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
+  // App credential auth: triggered by X-Inkeep-App-Id header.
+  // When present, exclusively use app credential auth (no fallback to API key).
+  if (reqData.appId) {
+    if (!apiKey) {
+      return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
+    }
+    return tryAppCredentialAuth(reqData);
+  }
+
   if (!apiKey) {
     return { authResult: null };
   }
@@ -516,7 +701,7 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   if (slackAttempt.authResult) return { authResult: slackAttempt.authResult };
   if (slackAttempt.failureMessage) return slackAttempt;
 
-  // 4. Try regular API key
+  // 4. Try regular API key (fallback for requests without X-Inkeep-App-Id)
   const apiKeyResult = await tryApiKeyAuth(apiKey);
   if (apiKeyResult) return { authResult: apiKeyResult };
 
