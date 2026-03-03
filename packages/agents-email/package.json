@@ -2,7 +2,7 @@
   "name": "@inkeep/agents-email",
   "version": "0.55.3",
   "description": "Email service for Inkeep Agents — transactional emails via Nodemailer/SMTP",
-  "private": true,
+  "private": false,
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "types": "./dist/index.d.ts",
@@ -49,6 +49,10 @@
     "README.md",
     "LICENSE.md"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inkeep/agents.git",
