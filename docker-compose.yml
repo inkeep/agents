@@ -166,13 +166,6 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
-  # Mailpit for local email testing
-  mailpit:
-    image: axllent/mailpit:v1.29.2
-    ports:
-      - '8025:8025'
-      - '1025:1025'
-    restart: unless-stopped
 volumes:
   inkeep-agents-doltgres-data:
   inkeep-agents-postgres-data:
