@@ -199,6 +199,10 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       };
     }
 
+    getTaskDenialRedirects() {
+      return [];
+    }
+
     cleanupCompression() {
       // Mock implementation for compression cleanup
     }
