@@ -5458,7 +5458,7 @@
             "type": "string"
           },
           "createdBy": {
-            "type": "string"
+            "$ref": "#/components/schemas/UserId"
           },
           "credentialReferenceId": {
             "maxLength": 256,
@@ -6099,9 +6099,15 @@
             "type": "string"
           },
           "createdBy": {
-            "description": "User ID of the user who created this trigger",
-            "nullable": true,
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserId"
+              },
+              {
+                "description": "User ID of the user who created this trigger",
+                "nullable": true
+              }
+            ]
           },
           "cronExpression": {
             "maxLength": 256,
@@ -6150,9 +6156,15 @@
             "type": "number"
           },
           "runAsUserId": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserId"
+              },
+              {
+                "description": "User ID of the user who this trigger is running as",
+                "nullable": true
+              }
+            ]
           },
           "runAt": {
             "nullable": true,
@@ -6193,6 +6205,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -6283,6 +6296,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -6513,6 +6527,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9091,6 +9106,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9177,6 +9193,7 @@
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9244,6 +9261,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9284,6 +9302,7 @@
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9622,6 +9641,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9665,6 +9685,7 @@
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9917,6 +9938,11 @@
             "type": "object"
           }
         ]
+      },
+      "UserId": {
+        "description": "User identifier",
+        "example": "user_123",
+        "type": "string"
       }
     },
     "securitySchemes": {

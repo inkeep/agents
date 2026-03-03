@@ -346,7 +346,8 @@ For services like GitHub that sign webhooks, you often don't need header authent
 By default, webhook triggers execute without a user identity — tools with user-scoped credentials will fail. Setting `runAsUserId` makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
 
 ```typescript
-trigger("github-pr-review", {
+trigger({
+  id: "github-pr-review",
   name: "GitHub PR Review",
   messageTemplate: "New PR opened: {{title}}",
   runAsUserId: "user_abc123",

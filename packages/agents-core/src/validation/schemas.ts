@@ -942,6 +942,9 @@ export const CronExpressionSchema = z
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  runAsUserId: UserIdSchema.nullable().describe(
+    'User ID of the user who this trigger is running as'
+  ),
   createdBy: UserIdSchema.nullable().describe('User ID of the user who created this trigger'),
 });
 

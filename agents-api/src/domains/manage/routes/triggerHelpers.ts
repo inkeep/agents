@@ -1,12 +1,15 @@
 import {
   canUseProjectStrict,
   createApiError,
-  getUserById,
+  getOrganizationMemberByUserId,
   type OrgRole,
   OrgRoles,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { isEntityChanged } from '../../../utils/entityDiff';
+
+const INVALID_RUN_AS_USER =
+  'Invalid runAsUserId: user not found or does not have permission on this project';
 
 export async function validateRunAsUserId(params: {
   runAsUserId: string;
@@ -24,14 +27,6 @@ export async function validateRunAsUserId(params: {
     });
   }
 
-  const targetUser = await getUserById(runDbClient)(runAsUserId);
-  if (!targetUser) {
-    throw createApiError({
-      code: 'bad_request',
-      message: `User ${runAsUserId} does not exist`,
-    });
-  }
-
   const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
 
   if (runAsUserId !== callerId && !isAdmin) {
@@ -39,6 +34,14 @@ export async function validateRunAsUserId(params: {
       code: 'forbidden',
       message:
         'Only org admins or owners can set runAsUserId to a different user. Regular users can only set runAsUserId to themselves.',
+    });
+  }
+
+  const targetMember = await getOrganizationMemberByUserId(runDbClient)(tenantId, runAsUserId);
+  if (!targetMember) {
+    throw createApiError({
+      code: 'bad_request',
+      message: INVALID_RUN_AS_USER,
     });
   }
 
@@ -51,7 +54,7 @@ export async function validateRunAsUserId(params: {
   if (!targetCanUse) {
     throw createApiError({
       code: 'bad_request',
-      message: `User ${runAsUserId} does not have 'use' permission on this project`,
+      message: INVALID_RUN_AS_USER,
     });
   }
 }

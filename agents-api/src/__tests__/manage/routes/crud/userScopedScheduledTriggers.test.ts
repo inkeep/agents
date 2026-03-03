@@ -22,15 +22,23 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     canUseProjectStrict: vi.fn(() => Promise.resolve(true)),
-    getUserById: vi.fn(() =>
-      vi.fn(() => Promise.resolve({ id: 'mock-user', name: 'Mock', email: 'mock@test.com' }))
+    getOrganizationMemberByUserId: vi.fn(() =>
+      vi.fn(() =>
+        Promise.resolve({
+          id: 'mock-user',
+          name: 'Mock',
+          email: 'mock@test.com',
+          role: 'member',
+          memberId: 'mock-member',
+        })
+      )
     ),
   };
 });
 
-const { canUseProjectStrict, getUserById } = await import('@inkeep/agents-core');
+const { canUseProjectStrict, getOrganizationMemberByUserId } = await import('@inkeep/agents-core');
 const canUseProjectStrictMock = vi.mocked(canUseProjectStrict);
-const getUserByIdMock = vi.mocked(getUserById);
+const getOrgMemberMock = vi.mocked(getOrganizationMemberByUserId);
 
 describe('User-Scoped Scheduled Triggers', () => {
   const createFullAgentData = (agentId: string) => {
@@ -160,7 +168,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       const tenantId = await createTestTenantWithOrg('us-no-exist');
       const { agentId, projectId } = await createTestAgent(tenantId);
       canUseProjectStrictMock.mockResolvedValue(true);
-      getUserByIdMock.mockReturnValueOnce(vi.fn(() => Promise.resolve(null)) as any);
+      getOrgMemberMock.mockReturnValueOnce(vi.fn(() => Promise.resolve(null)) as any);
 
       const res = await createTriggerWithUserId({
         tenantId,
@@ -171,7 +179,7 @@ describe('User-Scoped Scheduled Triggers', () => {
 
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error.message).toContain('does not exist');
+      expect(body.error.message).toContain('not found or does not have permission');
     });
 
     it('should normalize empty string runAsUserId to null (legacy behavior)', async () => {
