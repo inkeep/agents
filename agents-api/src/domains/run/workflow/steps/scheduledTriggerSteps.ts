@@ -31,7 +31,7 @@ import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { executeAgentAsync } from '../../services/TriggerService';
+import { buildScheduledTriggerHeaders, executeAgentAsync } from '../../services/TriggerService';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
 
@@ -555,11 +555,6 @@ export async function executeScheduledTriggerStep(params: {
       );
     });
 
-    const forwardedHeaders: Record<string, string> = {};
-    const effectiveTimezone = cronTimezone || 'UTC';
-    forwardedHeaders['x-inkeep-client-timezone'] = effectiveTimezone;
-    forwardedHeaders['x-inkeep-client-timestamp'] = new Date().toISOString();
-
     await Promise.race([
       executeAgentAsync({
         tenantId,
@@ -572,7 +567,7 @@ export async function executeScheduledTriggerStep(params: {
         messageParts,
         resolvedRef,
         runAsUserId: runAsUserId ?? undefined,
-        forwardedHeaders,
+        forwardedHeaders: buildScheduledTriggerHeaders(cronTimezone),
       }),
       timeoutPromise,
     ]);

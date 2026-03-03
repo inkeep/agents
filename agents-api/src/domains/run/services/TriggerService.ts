@@ -49,6 +49,13 @@ import { tracer } from '../utils/tracer';
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
 
+export function buildScheduledTriggerHeaders(cronTimezone?: string | null): Record<string, string> {
+  return {
+    'x-inkeep-client-timezone': cronTimezone || 'UTC',
+    'x-inkeep-client-timestamp': new Date().toISOString(),
+  };
+}
+
 // Credential cache with 5-minute TTL
 const credentialCache = new Map<string, { secret: string; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
