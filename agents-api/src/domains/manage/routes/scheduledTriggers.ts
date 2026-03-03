@@ -54,7 +54,7 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import { executeAgentAsync } from '../../run/services/TriggerService';
+import { buildScheduledTriggerHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 
 const logger = getLogger('scheduled-triggers');
 
@@ -1215,6 +1215,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
+              forwardedHeaders: buildScheduledTriggerHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);
@@ -1527,6 +1528,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
+              forwardedHeaders: buildScheduledTriggerHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);
