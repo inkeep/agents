@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-import { Label } from '@/components/ui/label';
 import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 
 interface ProfileFormProps {
@@ -15,7 +16,6 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
   const browserTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const [timezone, setTimezone] = useState(initialTimezone ?? browserTimezone);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const timezoneOptions = useMemo(
     () =>
@@ -32,13 +32,12 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setSaveStatus('idle');
 
     try {
       await updateUserProfileTimezone(userId, timezone);
-      setSaveStatus('success');
+      toast.success('Timezone saved');
     } catch {
-      setSaveStatus('error');
+      toast.error('Failed to save timezone. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -47,13 +46,13 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
   return (
     <div className="space-y-4 max-w-sm">
       <div className="space-y-2">
-        <Label>Timezone</Label>
+        <FieldLabel
+          label="Timezone"
+          tooltip="Agents use this to know your local time when responding."
+        />
         <Combobox
           options={timezoneOptions}
-          onSelect={(value) => {
-            setTimezone(value);
-            setSaveStatus('idle');
-          }}
+          onSelect={setTimezone}
           defaultValue={timezone}
           searchPlaceholder="Search timezones..."
           placeholder="Select a timezone"
@@ -61,17 +60,9 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
           triggerClassName="w-full"
         />
       </div>
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save'}
-        </Button>
-        {saveStatus === 'success' && (
-          <p className="text-sm text-emerald-600 dark:text-emerald-400">Saved</p>
-        )}
-        {saveStatus === 'error' && (
-          <p className="text-sm text-destructive">Failed to save. Please try again.</p>
-        )}
-      </div>
+      <Button onClick={handleSave} disabled={isSaving}>
+        {isSaving ? 'Saving...' : 'Save'}
+      </Button>
     </div>
   );
 }
