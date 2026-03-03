@@ -27,7 +27,8 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_INKEEP_AGENTS_API_URL } =
+    useRuntimeConfig();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
@@ -128,6 +129,8 @@ export default function AcceptInvitationPage({
     setIsSubmitting(true);
     setError(null);
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     try {
       // Step 1: Sign up with email/password
       const signupResult = await authClient.signUp.email({
@@ -140,6 +143,21 @@ export default function AcceptInvitationPage({
         setError(signupResult.error.message || 'Failed to create account');
         setIsSubmitting(false);
         return;
+      }
+
+      // Step 1b: Set timezone on the new user's profile
+      const newUserId = signupResult.data?.user?.id;
+      if (newUserId) {
+        try {
+          await fetch(`${PUBLIC_INKEEP_AGENTS_API_URL}/manage/api/users/${newUserId}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ timezone }),
+          });
+        } catch {
+          // Silently ignore — timezone update is best-effort
+        }
       }
 
       // Step 2: Accept the invitation (user is now signed in due to autoSignIn: true)
