@@ -279,6 +279,23 @@ describe('Chat Routes', () => {
       );
     });
 
+    it('should not set userId on conversation when no endUserId in auth metadata (backward compat)', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Legacy API key request' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      const innerFn = vi.mocked(createOrGetConversation).mock.results[0].value;
+      const callArgs = vi.mocked(innerFn).mock.calls[0][0];
+      expect(callArgs.userId).toBeUndefined();
+    });
+
     it('should validate required fields', async () => {
       const response = await makeRequest('/run/v1/chat/completions', {
         method: 'POST',
