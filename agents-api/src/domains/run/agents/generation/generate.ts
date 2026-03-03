@@ -271,13 +271,13 @@ export async function runGenerate(
 
         let rawResponse: Record<string, unknown>;
         if (shouldStream) {
-          rawResponse = (await handleStreamGeneration(
+          rawResponse = await handleStreamGeneration(
             ctx,
             streamText(generationConfig as Parameters<typeof streamText>[0]),
             sessionId,
             contextId,
             !!dataComponentsSchema
-          )) as unknown as Record<string, unknown>;
+          );
         } else {
           rawResponse = (await generateText(
             nonStreamingConfig as Parameters<typeof generateText>[0]

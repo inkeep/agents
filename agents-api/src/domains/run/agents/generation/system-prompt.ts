@@ -2,7 +2,10 @@ import type { Artifact, ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { TemplateEngine } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
-import { createDefaultConversationHistoryConfig } from '../../data/conversations';
+import {
+  createDefaultConversationHistoryConfig,
+  getConversationScopedArtifacts,
+} from '../../data/conversations';
 import type { AssembleResult } from '../../utils/token-estimator';
 import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { createLoadSkillTool } from '../tools/default-tools';
@@ -216,6 +219,8 @@ export async function buildSystemPrompt(
 
   const resolvedContext = conversationId ? await getResolvedContext(ctx, conversationId) : null;
 
+  // ctx.config.prompt is the SUB-AGENT's own instructions (becomes corePrompt / <core_instructions>).
+  // This is distinct from the overarching agent system's prompt fetched via getPrompt() below — not a duplicate.
   let processedPrompt = ctx.config.prompt || '';
   if (resolvedContext && ctx.config.prompt) {
     try {
@@ -291,7 +296,6 @@ export async function buildSystemPrompt(
     ),
   }));
 
-  const { getConversationScopedArtifacts } = await import('../../data/conversations');
   const historyConfig =
     ctx.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
 
@@ -305,6 +309,9 @@ export async function buildSystemPrompt(
 
   const componentDataComponents = excludeDataComponents ? [] : ctx.config.dataComponents || [];
 
+  // getPrompt() returns the OVERARCHING AGENT SYSTEM's prompt (project.agents[agentId].prompt),
+  // not the sub-agent's prompt. These are different sources: corePrompt above is the sub-agent's
+  // own instructions; this prompt is the agent system's broader context rendered into <agent_context>.
   let prompt = await getPrompt(ctx);
 
   if (prompt && resolvedContext) {

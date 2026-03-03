@@ -9,7 +9,7 @@ export async function handleStreamGeneration(
   sessionId: string,
   contextId: string,
   hasStructuredOutput: boolean
-): Promise<StreamTextResult<ToolSet, any>> {
+): Promise<Record<string, unknown>> {
   const parser = setupStreamParser(ctx, sessionId, contextId);
 
   if (hasStructuredOutput) {
@@ -23,21 +23,30 @@ export async function handleStreamGeneration(
   }
 
   await parser.finalize();
-  const response = await streamResult;
+
+  const [steps, text, finishReason, output] = await Promise.all([
+    streamResult.steps,
+    streamResult.text,
+    streamResult.finishReason,
+    (streamResult as any).output,
+  ]);
 
   const collectedParts = parser.getCollectedParts();
-  if (collectedParts.length > 0) {
-    (response as StreamTextResult<ToolSet, any> & { formattedContent?: unknown }).formattedContent =
-      {
+  return {
+    steps,
+    text,
+    finishReason,
+    output,
+    ...(collectedParts.length > 0 && {
+      formattedContent: {
         parts: collectedParts.map((part: any) => ({
           kind: part.kind,
           ...(part.kind === 'text' && { text: part.text }),
           ...(part.kind === 'data' && { data: part.data }),
         })),
-      };
-  }
-
-  return response;
+      },
+    }),
+  };
 }
 
 export async function processStreamEvents(

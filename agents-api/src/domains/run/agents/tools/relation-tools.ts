@@ -1,6 +1,6 @@
 import type { AgentRunContext } from '../agent-types';
 import { createDelegateToAgentTool, createTransferToAgentTool } from '../relationTools';
-import { wrapToolWithStreaming } from '../tools/tool-wrapper';
+import { wrapToolWithStreaming } from './tool-wrapper';
 
 function createRelationToolName(prefix: string, targetId: string): string {
   return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
