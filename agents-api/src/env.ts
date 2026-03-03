@@ -85,6 +85,15 @@ const envSchema = z
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
 
+    // Anonymous Session JWT
+    INKEEP_ANON_JWT_SECRET: z
+      .string()
+      .min(32, 'INKEEP_ANON_JWT_SECRET must be at least 32 characters')
+      .optional()
+      .describe(
+        'Secret key for signing anonymous session JWTs (HS256). Required in production. Min 32 characters.'
+      ),
+
     // JWT Keys (for Playground)
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z
       .string()
