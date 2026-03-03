@@ -249,13 +249,14 @@ export default function TracesOverview({
           variant="gray-outline"
           size="sm"
           onClick={() => setHasErrorsFilter(!hasErrors)}
+          aria-pressed={hasErrors}
           className={
             hasErrors
               ? 'border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive'
               : ''
           }
         >
-          <CircleAlert className="h-3.5 w-3.5" />
+          <CircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
           Errors only
         </Button>
         {/* Time Range Filter */}
