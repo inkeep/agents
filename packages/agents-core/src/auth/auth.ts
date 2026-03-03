@@ -205,7 +205,7 @@ async function registerSSOProvider(
   }
 }
 
-async function hasCredentialAccount(
+export async function hasCredentialAccount(
   dbClient: AgentsRunDatabaseClient,
   userId: string
 ): Promise<boolean> {
