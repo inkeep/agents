@@ -150,3 +150,43 @@ export function extractPublicId(key: string): string | null {
 export function maskApiKey(keyPrefix: string): string {
   return `${keyPrefix}...`;
 }
+
+// ── App Credential Utilities ──────────────────────────────────────────────────
+
+export type AppCredentialResult = {
+  id: string;
+  publicId: string;
+  appId: string;
+};
+
+export type AppSecretResult = {
+  secret: string;
+  keyHash: string;
+  keyPrefix: string;
+};
+
+export function generateAppCredential(): AppCredentialResult {
+  const publicId = generatePublicId();
+  const id = generateId();
+  const appId = `app_${publicId}`;
+  return { id, publicId, appId };
+}
+
+export async function generateAppSecret(publicId: string): Promise<AppSecretResult> {
+  const secretBytes = randomBytes(API_KEY_LENGTH);
+  const secret = `as_${publicId}.${secretBytes.toString('base64url')}`;
+  const keyHash = await hashApiKey(secret);
+  const keyPrefix = secret.substring(0, 12);
+  return { secret, keyHash, keyPrefix };
+}
+
+export function extractAppPublicId(appId: string): string | null {
+  if (!appId.startsWith('app_')) {
+    return null;
+  }
+  const publicId = appId.slice(4);
+  if (publicId.length !== PUBLIC_ID_LENGTH) {
+    return null;
+  }
+  return publicId;
+}
