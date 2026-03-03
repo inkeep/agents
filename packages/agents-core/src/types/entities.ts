@@ -10,6 +10,7 @@ import type {
   AgentWithinContextOfProjectSelectSchema,
   AgentWithinContextOfProjectSelectSchemaWithRelationIds,
   AllAgentSchema,
+  AnonymousSessionResponseSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
   ApiKeyApiSelectSchema,
@@ -544,6 +545,8 @@ export type AppApiSelect = z.infer<typeof AppApiSelectSchema>;
 export type AppApiInsert = z.infer<typeof AppApiInsertSchema>;
 export type AppApiUpdate = z.infer<typeof AppApiUpdateSchema>;
 export type AppApiCreationResponse = z.infer<typeof AppApiCreationResponseSchema>;
+
+export type AnonymousSessionResponse = z.infer<typeof AnonymousSessionResponseSchema>;
 
 export type CredentialReferenceSelect = z.infer<typeof CredentialReferenceSelectSchema>;
 export type CredentialReferenceInsert = z.infer<typeof CredentialReferenceInsertSchema>;

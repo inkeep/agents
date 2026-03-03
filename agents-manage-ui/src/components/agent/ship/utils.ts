@@ -23,3 +23,17 @@ export const indentJson = (json: string, spaces: number): string => {
     .map((line, index) => (index === 0 ? line : `${indent}${line}`))
     .join('\n');
 };
+
+export const serializeExtraSettings = (
+  settings: Record<string, unknown>,
+  indentSpaces: number
+): string => {
+  const indent = ' '.repeat(indentSpaces);
+  const entries = Object.entries(settings).filter(
+    ([, value]) => value !== undefined && value !== null && value !== ''
+  );
+  if (entries.length === 0) return '';
+  return entries
+    .map(([key, value]) => `${indent}${JSON.stringify(key)}: ${JSON.stringify(value)}`)
+    .join(',\n');
+};
