@@ -3,6 +3,7 @@ export * from './auth-detection';
 export * from './conversations';
 export * from './credential-store-utils';
 export * from './date';
+export * from './domain-validation';
 export * from './error';
 export * from './format-messages';
 export * from './in-process-fetch';
