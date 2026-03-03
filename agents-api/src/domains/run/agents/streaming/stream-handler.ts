@@ -1,6 +1,7 @@
 import type { StreamTextResult, ToolSet } from 'ai';
 import type { IncrementalStreamParser } from '../../stream/IncrementalStreamParser';
-import type { AgentRunContext } from '../agent-types';
+import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
+import { resolveGenerationResponse } from '../agent-types';
 import { setupStreamParser } from './stream-parser';
 
 export async function handleStreamGeneration(
@@ -9,7 +10,7 @@ export async function handleStreamGeneration(
   sessionId: string,
   contextId: string,
   hasStructuredOutput: boolean
-): Promise<Record<string, unknown>> {
+): Promise<ResolvedGenerationResponse> {
   const parser = setupStreamParser(ctx, sessionId, contextId);
 
   if (hasStructuredOutput) {
@@ -24,22 +25,16 @@ export async function handleStreamGeneration(
 
   await parser.finalize();
 
-  const [steps, text, finishReason, output] = await Promise.all([
-    streamResult.steps,
-    streamResult.text,
-    streamResult.finishReason,
-    (streamResult as any).output,
-  ]);
+  const resolved = await resolveGenerationResponse(
+    streamResult as unknown as Record<string, unknown>
+  );
 
   const collectedParts = parser.getCollectedParts();
   return {
-    steps,
-    text,
-    finishReason,
-    output,
+    ...resolved,
     ...(collectedParts.length > 0 && {
       formattedContent: {
-        parts: collectedParts.map((part: any) => ({
+        parts: collectedParts.map((part) => ({
           kind: part.kind,
           ...(part.kind === 'text' && { text: part.text }),
           ...(part.kind === 'data' && { data: part.data }),

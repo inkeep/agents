@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi';
 import type { DataPart, FilePart, Part } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
+import type { ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -11,6 +12,7 @@ import { extractTextFromParts } from '../../utils/message-parts';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
+import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import {
@@ -61,22 +63,22 @@ export function setupGenerationContext(
 
 export function buildBaseGenerationConfig(
   ctx: AgentRunContext,
-  modelSettings: any,
-  messages: any[],
-  sanitizedTools: any,
-  compressor: any,
+  modelSettings: Record<string, unknown>,
+  messages: unknown[],
+  sanitizedTools: ToolSet,
+  compressor: MidGenerationCompressor | null,
   originalMessageCount: number,
   timeoutMs: number,
   toolChoice: 'auto' | 'required' = 'auto',
   phase?: string,
   fullContextSize?: number
-): object {
+): Record<string, unknown> {
   return {
     ...modelSettings,
     toolChoice,
     messages,
     tools: sanitizedTools,
-    prepareStep: async ({ messages: stepMessages }: { messages: any[] }) => {
+    prepareStep: async ({ messages: stepMessages }: { messages: unknown[] }) => {
       return await handlePrepareStepCompression(
         stepMessages,
         compressor,
@@ -84,7 +86,7 @@ export function buildBaseGenerationConfig(
         fullContextSize
       );
     },
-    stopWhen: async ({ steps }: { steps: any[] }) => {
+    stopWhen: async ({ steps }: { steps: unknown[] }) => {
       return await handleStopWhenConditions(ctx, steps);
     },
     experimental_telemetry: buildTelemetryConfig(ctx, phase),
@@ -269,7 +271,7 @@ export async function runGenerate(
           'Starting generation'
         );
 
-        let rawResponse: Record<string, unknown>;
+        let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
           rawResponse = await handleStreamGeneration(
             ctx,
@@ -296,7 +298,7 @@ export async function runGenerate(
           'Generation completed'
         );
 
-        response = await resolveGenerationResponse(rawResponse);
+        response = await resolveGenerationResponse(rawResponse as Record<string, unknown>);
 
         if (hasStructuredOutput && response.output) {
           response.object = response.output;
