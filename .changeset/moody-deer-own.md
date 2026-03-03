@@ -3,4 +3,4 @@
 "@inkeep/agents-api": patch
 ---
 
-trace improvements
+Add hasErrors filter to traces page and fix agent.name span attribute
