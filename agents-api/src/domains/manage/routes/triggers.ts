@@ -14,7 +14,6 @@ import {
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
   type OrgRole,
-  OrgRoles,
   PaginationQueryParamsSchema,
   PartSchema,
   TenantProjectAgentIdParamsSchema,
@@ -219,7 +218,13 @@ app.openapi(
     const body = c.req.valid('json');
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     const id = body.id || generateId();
 
@@ -360,7 +365,13 @@ app.openapi(
     const body = c.req.valid('json');
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     // Fetch existing trigger first for authorization check
     const existingForAuth = await getTriggerById(db)({
@@ -570,7 +581,14 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
 
@@ -795,7 +813,13 @@ app.openapi(
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
 

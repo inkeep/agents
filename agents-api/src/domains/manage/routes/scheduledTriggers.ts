@@ -339,7 +339,14 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     const id = body.id || generateId();
 
@@ -445,7 +452,13 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     // Check if any update fields were actually provided
     const hasUpdateFields =
@@ -631,7 +644,13 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -964,7 +983,13 @@ app.openapi(
       invocationId,
     } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
@@ -1297,7 +1322,13 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId },

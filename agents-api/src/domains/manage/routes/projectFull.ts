@@ -22,7 +22,6 @@ import {
   listScheduledTriggers,
   listTriggers,
   type OrgRole,
-  OrgRoles,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   type ScheduledTrigger,
@@ -436,7 +435,14 @@ app.openapi(
       }
 
       const callerId = userId ?? '';
-      const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+      const tenantRole = c.get('tenantRole') as OrgRole;
+
+      if (!tenantRole) {
+        throw createApiError({
+          code: 'unauthorized',
+          message: 'Missing tenant role',
+        });
+      }
 
       for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
         if (!agentData.scheduledTriggers) continue;
