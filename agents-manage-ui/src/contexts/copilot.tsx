@@ -7,6 +7,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 interface CopilotContextHeaders {
   messageId?: string;
   conversationId?: string;
+  targetRef?: string;
 }
 
 interface CopilotContextValue {

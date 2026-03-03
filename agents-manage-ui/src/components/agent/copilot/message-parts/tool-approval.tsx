@@ -1,5 +1,5 @@
 import type { ToolUIPart } from 'ai';
-import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
+import { CheckIcon, GitMergeIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
@@ -114,6 +114,53 @@ const ApprovalButtons = ({
     </div>
   );
 
+const MergeBranchApproval = ({
+  tool,
+  approve,
+}: ToolApprovalProps) => {
+  const { input } = tool;
+  const req = (input as Record<string, any>).request || input;
+  const branchName = req.branchName || 'unknown';
+
+  return (
+    <ApprovalWrapper entityType="Branch" operationType="merge" icon={GitMergeIcon}>
+      <div className="flex flex-col gap-2">
+        <div className="text-sm text-muted-foreground">
+          Merge <Badge variant="code">{branchName}</Badge> into <Badge variant="code">main</Badge>?
+        </div>
+        {req.body?.message && (
+          <div className="text-xs text-muted-foreground italic">{req.body.message}</div>
+        )}
+      </div>
+      <ApprovalButtons
+        state={tool.state}
+        approve={approve}
+        approveLabel="Merge"
+        approveVariant="default"
+        approveIcon={<GitMergeIcon className="size-3" />}
+      />
+    </ApprovalWrapper>
+  );
+};
+
+const CreateBranchApproval = ({
+  tool,
+  approve,
+}: ToolApprovalProps) => {
+  const { input } = tool;
+  const req = (input as Record<string, any>).request || input;
+  const branchName = req.body?.name || req.name || req.baseName || req.branchName || 'unknown';
+
+  return (
+    <ApprovalWrapper entityType="Branch" operationType="create">
+      <div className="text-sm text-muted-foreground">
+        Create branch <Badge variant="code">{branchName}</Badge>?
+      </div>
+      <ApprovalButtons state={tool.state} approve={approve} />
+    </ApprovalWrapper>
+  );
+};
+
 export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [entityData, setEntityData] = useState<EntityData | null>(null);
@@ -126,6 +173,16 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const { displayName: entityType, operationType, icon } = parseToolNameForDisplay(toolName);
   const { projectId, tenantId } = (input as Record<string, any>).request || input;
   const isDeleteOperation = toolName.includes('delete');
+  const isMergeOperation = toolName === 'branches-merge-branch';
+  const isCreateBranch = toolName === 'branches-create-branch';
+
+  if (isMergeOperation) {
+    return <MergeBranchApproval tool={tool} approve={approve} />;
+  }
+
+  if (isCreateBranch) {
+    return <CreateBranchApproval tool={tool} approve={approve} />;
+  }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates
   useEffect(() => {

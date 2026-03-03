@@ -79,6 +79,7 @@ export interface McpClientOptions {
   server: McpServerConfig;
   capabilities?: ClientCapabilities;
   timeout?: number;
+  dynamicHeaders?: Record<string, string>;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -90,11 +91,13 @@ export class McpClient {
   private transport?: Transport;
   private serverConfig: McpServerConfig;
   private connected = false;
+  private dynamicHeaders?: Record<string, string>;
 
   constructor(opts: McpClientOptions) {
     this.name = opts.name;
     this.timeout = opts.timeout || DEFAULT_REQUEST_TIMEOUT_MSEC;
     this.serverConfig = opts.server;
+    this.dynamicHeaders = opts.dynamicHeaders;
 
     this.client = new Client(
       { name: opts.name, version: opts.version || '1.0.0' },
@@ -183,10 +186,22 @@ export class McpClient {
 
     const urlString = typeof url === 'string' ? url : url.toString();
 
-    // See note above — Node WHATWG `URL` vs DOM `URL` typing mismatch.
-    // biome-ignore lint: Intentional TS suppression at SDK boundary
-    // @ts-ignore: Suppress DOM vs Node URL type mismatch at this boundary
-    this.transport = new StreamableHTTPClientTransport(new URL(urlString), {
+    const dynamicHeadersRef = this.dynamicHeaders;
+    const customFetch = dynamicHeadersRef
+      ? (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+          const extraHeaders: Record<string, string> = {};
+          for (const [k, v] of Object.entries(dynamicHeadersRef)) {
+            if (v) extraHeaders[k] = v;
+          }
+          if (Object.keys(extraHeaders).length > 0) {
+            const existingHeaders = normalizeHeaders(init?.headers);
+            init = { ...init, headers: { ...existingHeaders, ...extraHeaders } };
+          }
+          return globalThis.fetch(input, init);
+        }
+      : undefined;
+
+    const transportOpts: StreamableHTTPClientTransportOptions = {
       requestInit: mergedRequestInit,
       reconnectionOptions: {
         maxRetries: MCP_TOOL_MAX_RETRIES,
@@ -196,7 +211,15 @@ export class McpClient {
         ...config.reconnectionOptions,
       },
       sessionId: config.sessionId,
-    });
+    };
+    if (customFetch) {
+      (transportOpts as any).fetch = customFetch;
+    }
+
+    // See note above — Node WHATWG `URL` vs DOM `URL` typing mismatch.
+    // biome-ignore lint: Intentional TS suppression at SDK boundary
+    // @ts-ignore: Suppress DOM vs Node URL type mismatch at this boundary
+    this.transport = new StreamableHTTPClientTransport(new URL(urlString), transportOpts);
     await this.client.connect(this.transport, { timeout: MCP_TOOL_CONNECTION_TIMEOUT_MS });
   }
 

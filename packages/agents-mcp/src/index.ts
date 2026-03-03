@@ -5,6 +5,7 @@
 import './zod-int.js';
 export { InkeepAgentsCore } from './core.js';
 export { HeaderForwardingHook } from './hooks/header-forwarding-hook.js';
+export { RefQueryParamHook } from './hooks/ref-query-param-hook.js';
 export { SDKHooks } from './hooks/hooks.js';
 export type {
   BeforeCreateRequestContext,

@@ -1915,6 +1915,15 @@ Make the name extremely specific to what this tool call actually returned, not g
  */
 export class AgentSessionManager {
   private sessions = new Map<string, AgentSession>();
+  private targetRefs = new Map<string, string>();
+
+  setTargetRef(sessionId: string, ref: string): void {
+    this.targetRefs.set(sessionId, ref);
+  }
+
+  getTargetRef(sessionId: string): string | undefined {
+    return this.targetRefs.get(sessionId);
+  }
 
   /**
    * Create a new session for a message
@@ -2030,6 +2039,7 @@ export class AgentSessionManager {
     await session.cleanup();
 
     this.sessions.delete(sessionId);
+    this.targetRefs.delete(sessionId);
 
     return events;
   }

@@ -247,6 +247,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     }
 
+    const targetRef = c.req.header('x-target-ref');
+    if (targetRef) {
+      forwardedHeaders['x-target-ref'] = targetRef;
+    }
+
     // Add conversation ID to parent span
     const conversationId = body.conversationId ?? getConversationId();
     const activeSpan = trace.getActiveSpan();

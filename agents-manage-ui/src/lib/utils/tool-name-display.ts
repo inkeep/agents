@@ -2,6 +2,7 @@ import {
   BotIcon,
   CodeIcon,
   ComponentIcon,
+  GitBranchIcon,
   GlobeIcon,
   HammerIcon,
   LayersIcon,
@@ -23,6 +24,7 @@ type OperationType =
   | 'associate'
   | 'remove'
   | 'check'
+  | 'merge'
   | 'unknown';
 
 interface ParsedToolName {
@@ -41,6 +43,7 @@ const OPERATIONS = [
   'associate',
   'remove',
   'check',
+  'merge',
 ] as const;
 
 const ENTITY_DISPLAY_CONFIG: Record<string, { displayName: string; icon: LucideIcon }> = {
@@ -72,6 +75,7 @@ const ENTITY_DISPLAY_CONFIG: Record<string, { displayName: string; icon: LucideI
   functions: { displayName: 'Function', icon: CodeIcon },
   tools: { displayName: 'Tool', icon: HammerIcon },
   tool: { displayName: 'Tool', icon: HammerIcon },
+  branches: { displayName: 'Branch', icon: GitBranchIcon },
 };
 
 const formatDisplayName = (resource: string): string => {

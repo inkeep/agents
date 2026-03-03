@@ -10,12 +10,16 @@ export type TriggerDatasetRun = {
   items: Array<DatasetRunItem>;
   evaluatorIds?: Array<string> | undefined;
   evaluationRunId?: string | undefined;
+  datasetId?: string | undefined;
+  evaluationRunConfigId?: string | undefined;
 };
 
 export const TriggerDatasetRun$zodSchema: z.ZodType<TriggerDatasetRun> = z
   .object({
     datasetRunId: z.string(),
+    datasetId: z.string().optional(),
     evaluationRunId: z.string().optional(),
+    evaluationRunConfigId: z.string().optional(),
     evaluatorIds: z.array(z.string()).optional(),
     items: z.array(DatasetRunItem$zodSchema),
   });

@@ -338,6 +338,7 @@ export class Agent {
 
     this.config = {
       ...config,
+      forwardedHeaders: config.forwardedHeaders ?? {},
       dataComponents: processedDataComponents,
       conversationHistoryConfig:
         config.conversationHistoryConfig || createDefaultConversationHistoryConfig(),
@@ -682,6 +683,8 @@ export class Agent {
           const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
+          this.detectAndSetBranchRef(toolName, result);
+
           // Store tool result in conversation history
           const toolResultConversationId = this.getToolResultConversationId();
 
@@ -825,6 +828,7 @@ export class Agent {
               },
               sessionId,
               credentialStoreRegistry: this.credentialStoreRegistry,
+              forwardedHeaders: this.config.forwardedHeaders,
             }),
             runtimeContext?.metadata?.streamRequestId,
             'delegation'
@@ -1986,6 +1990,59 @@ export class Agent {
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  private detectAndSetBranchRef(toolName: string, result: unknown): void {
+    if (this.config.forwardedHeaders?.['x-target-ref']) return;
+    if (!toolName.includes('branches-create-branch')) return;
+
+    try {
+      const branchName = this.extractBranchName(result);
+      if (branchName) {
+        if (!this.config.forwardedHeaders) {
+          this.config.forwardedHeaders = {};
+        }
+        this.config.forwardedHeaders['x-target-ref'] = branchName;
+
+        const streamRequestId = this.getStreamRequestId();
+        if (streamRequestId) {
+          agentSessionManager.setTargetRef(streamRequestId, branchName);
+        }
+        logger.info({ branchName, streamRequestId }, 'Auto-set x-target-ref from branch creation');
+      }
+    } catch {
+      // parse failure — ignore
+    }
+  }
+
+  private extractBranchName(result: unknown): string | undefined {
+    if (!result || typeof result !== 'object') return undefined;
+    const obj = result as any;
+
+    const content = obj.content;
+    if (Array.isArray(content)) {
+      for (const item of content) {
+        if (item?.type === 'text') {
+          const textVal = item.text;
+          const payload = typeof textVal === 'string' ? JSON.parse(textVal) : textVal;
+          const name =
+            payload?.BranchResponse?.data?.baseName ||
+            payload?.data?.baseName ||
+            payload?.baseName;
+          if (name) return name;
+        }
+      }
+    }
+
+    const direct =
+      obj.BranchResponse?.data?.baseName ||
+      obj.data?.baseName ||
+      obj.baseName;
+    if (direct) return direct;
+
+    const asStr = JSON.stringify(result);
+    const match = asStr.match(/"baseName"\s*:\s*"([^"]+)"/);
+    return match?.[1];
   }
 
   /**

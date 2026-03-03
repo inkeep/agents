@@ -275,6 +275,8 @@ export function ChatWidget({
         <FeedbackDialog
           isOpen={isFeedbackDialogOpen}
           onOpenChange={setIsFeedbackDialogOpen}
+          tenantId={tenantId}
+          projectId={projectId}
           conversationId={conversationId}
           messageId={messageId}
           setShowTraces={setShowTraces}

@@ -45,6 +45,7 @@ import { tool$branchesDeleteBranch } from "./tools/branchesDeleteBranch.js";
 import { tool$branchesGetBranch } from "./tools/branchesGetBranch.js";
 import { tool$branchesListBranches } from "./tools/branchesListBranches.js";
 import { tool$branchesListBranchesForAgent } from "./tools/branchesListBranchesForAgent.js";
+import { tool$branchesMergeBranch } from "./tools/branchesMergeBranch.js";
 import { tool$capabilities } from "./tools/capabilities.js";
 import { tool$cliGetManageApiCliMe } from "./tools/cliGetManageApiCliMe.js";
 import { tool$contextConfigCreateContextConfig } from "./tools/contextConfigCreateContextConfig.js";
@@ -276,6 +277,7 @@ export function createMCPServer(deps: {
   tool(tool$branchesCreateBranch);
   tool(tool$branchesGetBranch);
   tool(tool$branchesDeleteBranch);
+  tool(tool$branchesMergeBranch);
   tool(tool$branchesListBranchesForAgent);
   tool(tool$refsResolveRef);
   tool(tool$projectMembersListProjectMembers);

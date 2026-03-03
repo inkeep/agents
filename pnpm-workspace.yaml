@@ -5,6 +5,7 @@ packages:
   - agents-ui
   - agents-docs
   - agents-cookbook
+  - chat-to-edit
   - test-agents
   - "packages/*"
 

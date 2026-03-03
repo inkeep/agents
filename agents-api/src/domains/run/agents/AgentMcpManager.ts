@@ -277,6 +277,7 @@ export class AgentMcpManager {
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
+      dynamicHeaders: this.config.forwardedHeaders,
     });
 
     try {

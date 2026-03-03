@@ -17,8 +17,9 @@ export async function queueDatasetRunItems(params: {
   items: DatasetRunQueueItem[];
   evaluatorIds?: string[];
   evaluationRunId?: string;
+  ref?: string;
 }): Promise<{ queued: number; failed: number }> {
-  const { tenantId, projectId, datasetRunId, items, evaluatorIds, evaluationRunId } = params;
+  const { tenantId, projectId, datasetRunId, items, evaluatorIds, evaluationRunId, ref } = params;
   const logger = getLogger('workflow-triggers');
 
   const results = await Promise.allSettled(
@@ -37,11 +38,11 @@ export async function queueDatasetRunItems(params: {
           datasetItemId: item.id ?? '',
           datasetItemInput: item.input as DatasetItemInput,
           datasetItemExpectedOutput: item.expectedOutput,
-          datasetItemSimulationAgent: item.simulationAgent as any,
           datasetRunId,
           scheduledTriggerInvocationId: item.scheduledTriggerInvocationId,
           evaluatorIds,
           evaluationRunId,
+          ref,
         },
       ]);
     })

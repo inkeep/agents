@@ -289,6 +289,11 @@ export class ExecutionHandler {
             ? initiatedBy.id
             : undefined;
 
+        const sessionTargetRef = agentSessionManager.getTargetRef(requestId);
+        const effectiveForwardedHeaders = sessionTargetRef
+          ? { ...(forwardedHeaders || {}), 'x-target-ref': sessionTargetRef }
+          : forwardedHeaders;
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -296,8 +301,9 @@ export class ExecutionHandler {
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
+            ...(resolvedRef ? { 'x-inkeep-ref': resolvedRef.name } : {}),
             ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-            ...(forwardedHeaders || {}),
+            ...(effectiveForwardedHeaders || {}),
           },
           fetchFn: getInProcessFetch(),
         });
@@ -305,9 +311,8 @@ export class ExecutionHandler {
         let messageResponse: SendMessageResponse | null = null;
 
         const messageMetadata: any = {
-          stream_request_id: requestId, // This also serves as the AgentSession ID
-          // Pass forwardedHeaders so the task handler can extract them
-          forwardedHeaders: forwardedHeaders,
+          stream_request_id: requestId,
+          forwardedHeaders: effectiveForwardedHeaders,
         };
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;

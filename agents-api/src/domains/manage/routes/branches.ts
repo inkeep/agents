@@ -1,4 +1,4 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   BranchListResponseSchema,
   BranchNameParamsSchema,
@@ -9,8 +9,10 @@ import {
   createApiError,
   createBranch,
   deleteBranch,
+  doltMerge,
   ErrorResponseSchema,
   getBranch,
+  getProjectScopedRef,
   listBranches,
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
@@ -19,8 +21,11 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+
+const logger = getLogger('branches');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -259,6 +264,124 @@ app.openapi(
       }
 
       if (message.includes('not found')) {
+        throw createApiError({
+          code: 'not_found',
+          message: `Branch '${branchName}' not found`,
+        });
+      }
+
+      throw error;
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{branchName}/merge',
+    summary: 'Merge Branch',
+    description: 'Merge a branch into the project main branch.',
+    operationId: 'merge-branch',
+    tags: ['Branches'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: BranchNameParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              message: z
+                .string()
+                .optional()
+                .describe('Optional commit message for the merge'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Branch merged successfully',
+        content: {
+          'application/json': {
+            schema: z
+              .object({
+                data: z.object({
+                  status: z.enum(['success', 'conflicts']),
+                  from: z.string(),
+                  to: z.string(),
+                  hasConflicts: z.boolean(),
+                }),
+              })
+              .openapi('MergeBranchResponse'),
+          },
+        },
+      },
+      409: {
+        description: 'Merge has conflicts',
+        content: {
+          'application/json': {
+            schema: z
+              .object({
+                data: z.object({
+                  status: z.literal('conflicts'),
+                  from: z.string(),
+                  to: z.string(),
+                  hasConflicts: z.literal(true),
+                  toHead: z.string().optional(),
+                }),
+              })
+              .openapi('MergeBranchConflictResponse'),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, branchName } = c.req.valid('param');
+    const { message } = c.req.valid('json');
+    const userId = c.get('userId') as string | undefined;
+    const userEmail = c.get('userEmail') as string | undefined;
+
+    if (branchName === 'main') {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Cannot merge main into itself',
+      });
+    }
+
+    const fullBranchName = getProjectScopedRef(tenantId, projectId, branchName);
+    const projectMain = getProjectScopedRef(tenantId, projectId, 'main');
+
+    try {
+      const result = await doltMerge(db)({
+        fromBranch: fullBranchName,
+        toBranch: projectMain,
+        message: message || `Merge branch '${branchName}' into main`,
+        author: userId
+          ? { name: userId, email: userEmail || 'api@inkeep.com' }
+          : undefined,
+      });
+
+      if (result.hasConflicts) {
+        logger.warn(
+          { tenantId, projectId, branchName, result },
+          'Branch merge resulted in conflicts'
+        );
+        return c.json({ data: result }, 409) as any;
+      }
+
+      logger.info(
+        { tenantId, projectId, branchName, result },
+        'Branch merged successfully'
+      );
+      return c.json({ data: result }) as any;
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error';
+
+      if (errorMessage.includes('not found')) {
         throw createApiError({
           code: 'not_found',
           message: `Branch '${branchName}' not found`,

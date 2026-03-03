@@ -22,6 +22,7 @@ export const STATIC_LABELS = Object.freeze({
   artifacts: 'Artifacts',
   settings: 'Settings',
   traces: 'Traces',
+  feedback: 'Feedback',
   credentials: 'Credentials',
   components: 'Components',
   'external-agents': 'External Agents',
@@ -48,4 +49,5 @@ export const STATIC_LABELS = Object.freeze({
   github: 'GitHub',
   'no-organization-found': 'No organization found',
   skills: 'Skills',
+  branches: 'Branches',
 });

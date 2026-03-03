@@ -865,6 +865,25 @@ importers:
         specifier: ^7.1.11
         version: 7.3.1(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  chat-to-edit:
+    dependencies:
+      '@inkeep/agents-core':
+        specifier: workspace:*
+        version: link:../packages/agents-core
+      '@inkeep/agents-sdk':
+        specifier: workspace:*
+        version: link:../packages/agents-sdk
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@types/node':
+        specifier: ^22.18.12
+        version: 22.19.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/agents-core:
     dependencies:
       '@ai-sdk/anthropic':
@@ -8690,7 +8709,6 @@ packages:
 
   bun@1.3.5:
     resolution: {integrity: sha512-c1YHIGUfgvYPJmLug5QiLzNWlX2Dg7X/67JWu1Va+AmMXNXzC/KQn2lgQ7rD+n1u1UqDpJMowVGGxTNpbPydNw==}
-    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 

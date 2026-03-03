@@ -13,7 +13,7 @@ import {
   FeedbackResponse,
   generateId,
   getFeedbackById,
-  listFeedbackByConversation,
+  listFeedback,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
@@ -30,14 +30,14 @@ app.openapi(
     method: 'get',
     path: '/',
     summary: 'List Feedback',
-    description: 'List feedback for a conversation, optionally filtered by message',
+    description: 'List feedback for a project, optionally filtered by conversation or message',
     operationId: 'list-feedback',
     tags: ['Feedback'],
     permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        conversationId: z.string().describe('Filter by conversation ID'),
+        conversationId: z.string().optional().describe('Optionally filter by conversation ID'),
         messageId: z.string().optional().describe('Optionally filter by message ID'),
       }),
     },
@@ -57,7 +57,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const { conversationId, messageId, page = 1, limit = 10 } = c.req.valid('query');
 
-    const result = await listFeedbackByConversation(runDbClient)({
+    const result = await listFeedback(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       messageId,

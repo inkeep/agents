@@ -460,6 +460,7 @@ export async function executeScheduledTriggerStep(params: {
   runAsUserId?: string | null;
   messages?: Array<{ role: string; content: unknown }> | null;
   datasetRunId?: string;
+  ref?: string;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -516,8 +517,7 @@ export async function executeScheduledTriggerStep(params: {
   const conversationId = generateId();
 
   try {
-    // Resolve the project ref
-    const ref = getProjectScopedRef(tenantId, projectId, 'main');
+    const ref = getProjectScopedRef(tenantId, projectId, params.ref || 'main');
     const resolvedRef = await resolveRef(manageDbClient)(ref);
 
     if (!resolvedRef) {

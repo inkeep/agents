@@ -261,6 +261,7 @@ export function createDelegateToAgentTool({
   metadata,
   sessionId,
   credentialStoreRegistry,
+  forwardedHeaders,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
@@ -275,6 +276,7 @@ export function createDelegateToAgentTool({
   };
   sessionId?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
+  forwardedHeaders?: Record<string, string>;
 }) {
   const { tenantId, projectId, agentId, project } = executionContext;
 
@@ -384,8 +386,14 @@ export function createDelegateToAgentTool({
         };
       }
 
+      const effectiveHeaders = {
+        ...resolvedHeaders,
+        ...(executionContext.resolvedRef ? { 'x-inkeep-ref': executionContext.resolvedRef.name } : {}),
+        ...(forwardedHeaders || {}),
+      };
+
       const a2aClient = new A2AClient(delegateConfig.config.baseUrl, {
-        headers: resolvedHeaders,
+        headers: effectiveHeaders,
         retryConfig: {
           strategy: 'backoff',
           retryConnectionErrors: true,
@@ -413,6 +421,7 @@ export function createDelegateToAgentTool({
           ...(isInternal
             ? { fromSubAgentId: callingAgentId }
             : { fromExternalAgentId: callingAgentId }),
+          ...(forwardedHeaders ? { forwardedHeaders } : {}),
         },
       };
       logger.info({ messageToSend }, 'messageToSend');

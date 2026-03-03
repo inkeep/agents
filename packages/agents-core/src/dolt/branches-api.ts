@@ -9,6 +9,7 @@ import {
   doltGetBranchNamespace,
   doltListBranches,
 } from './branch';
+import { getProjectScopedRef } from './ref-helpers';
 import {
   ensureSchemaSync,
   getSchemaDiff,
@@ -179,7 +180,8 @@ export const createBranch =
       throw new Error(`Branch '${name}' already exists`);
     }
 
-    // Determine source branch
+    // Determine source branch — default to the project's main branch so the new
+    // branch inherits project-scoped data (projects row, agents, tools, etc.)
     let fromFullBranchName: string;
     if (from && from !== MAIN_BRANCH_SUFFIX) {
       fromFullBranchName = doltGetBranchNamespace({
@@ -188,7 +190,7 @@ export const createBranch =
         branchName: from,
       })();
     } else {
-      fromFullBranchName = getTenantMainBranch(tenantId);
+      fromFullBranchName = getProjectScopedRef(tenantId, projectId, MAIN_BRANCH_SUFFIX);
     }
 
     // Sync schema on source branch if requested and source is not the schema source branch

@@ -1250,7 +1250,7 @@ export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
   conversationId: ResourceIdSchema,
   messageId: ResourceIdSchema.optional(),
   type: z.enum(['positive', 'negative']),
-  userType: z.enum(['user', 'api_key']).optional(),
+  details: z.string().nullable().optional(),
 });
 export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
 
@@ -1549,9 +1549,11 @@ export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
 export const TriggerDatasetRunSchema = z
   .object({
     datasetRunId: z.string(),
+    datasetId: z.string().optional(),
     items: z.array(DatasetRunItemSchema),
     evaluatorIds: z.array(z.string()).optional(),
     evaluationRunId: z.string().optional(),
+    evaluationRunConfigId: z.string().optional(),
   })
   .openapi('TriggerDatasetRun');
 

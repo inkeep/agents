@@ -63,6 +63,43 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
       // we need to check if the conversationId is the same as the one in the event because this event is also triggered by the 'try now' chat.
       if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
         refreshAgentGraph();
+
+        if (!dynamicHeaders.targetRef) {
+          try {
+            const toolName =
+              event.detail.toolName ||
+              event.detail.details?.data?.toolName ||
+              event.detail.label;
+            const isBranchCreate =
+              toolName?.includes('branches-create-branch') ||
+              toolName?.includes('Create Branch') ||
+              event.detail.label?.includes('branches-create-branch');
+
+            if (isBranchCreate) {
+              const raw =
+                event.detail.output ??
+                event.detail.details?.data?.output;
+              const text =
+                typeof raw === 'string'
+                  ? raw
+                  : Array.isArray(raw)
+                    ? raw.find((c: any) => c.type === 'text')?.text
+                    : typeof raw?.text === 'string'
+                      ? raw.text
+                      : JSON.stringify(raw);
+              const parsed = text ? JSON.parse(text) : null;
+              const branchName =
+                parsed?.BranchResponse?.data?.baseName ||
+                parsed?.data?.baseName ||
+                parsed?.baseName;
+              if (branchName) {
+                setDynamicHeaders({ ...dynamicHeaders, targetRef: branchName });
+              }
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
       }
       if (event.detail.type === 'error' && event.detail.conversationId === conversationId) {
         sentry.captureException(new Error('Copilot data operation error'), {
@@ -75,7 +112,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     return () => {
       document.removeEventListener('ikp-data-operation', updateAgentGraph);
     };
-  }, [conversationId, refreshAgentGraph]);
+  }, [conversationId, refreshAgentGraph, dynamicHeaders, setDynamicHeaders]);
 
   const {
     PUBLIC_INKEEP_AGENTS_API_URL,
@@ -241,6 +278,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                 : {}),
               ...(dynamicHeaders?.messageId
                 ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
+                : {}),
+              ...(dynamicHeaders?.targetRef
+                ? { 'x-target-ref': dynamicHeaders.targetRef }
                 : {}),
               // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
               ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),

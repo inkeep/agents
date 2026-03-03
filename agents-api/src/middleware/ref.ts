@@ -129,7 +129,7 @@ export const createRefMiddleware = (
   } = options;
 
   return async (c: Context, next: Next) => {
-    const ref = c.req.query('ref');
+    const ref = c.req.query('ref') || c.req.header('x-inkeep-ref') || undefined;
     const path = c.req.path;
     const pathSplit = path.split('/');
 

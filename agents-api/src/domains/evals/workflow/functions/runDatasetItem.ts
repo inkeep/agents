@@ -19,6 +19,7 @@ import {
   markScheduledTriggerInvocationRunning,
   resolveRef,
   updateEvaluationResult,
+  updateTriggerInvocationStatus,
   withRef,
 } from '@inkeep/agents-core';
 import { manageDbClient } from '../../../../data/db';
@@ -42,6 +43,7 @@ type RunDatasetItemPayload = {
   evaluatorIds?: string[];
   evaluationRunId?: string;
   timeoutSeconds?: number;
+  ref?: string;
 };
 
 /**
@@ -69,6 +71,7 @@ async function executeDatasetItemStep(payload: RunDatasetItemPayload) {
     timeoutSeconds: timeoutSeconds ?? 300,
     messages: datasetItemInput.messages,
     datasetRunId,
+    ref: payload.ref,
   });
 }
 
@@ -126,15 +129,27 @@ async function markCompletedStep(params: {
 }) {
   'use step';
 
-  await markScheduledTriggerInvocationCompleted(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.datasetRunId,
-    invocationId: params.scheduledTriggerInvocationId,
-  });
+  await Promise.all([
+    markScheduledTriggerInvocationCompleted(runDbClient)({
+      scopes: {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+      },
+      scheduledTriggerId: params.datasetRunId,
+      invocationId: params.scheduledTriggerInvocationId,
+    }),
+    updateTriggerInvocationStatus(runDbClient)({
+      scopes: {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+      },
+      triggerId: params.datasetRunId,
+      invocationId: params.scheduledTriggerInvocationId,
+      data: { status: 'success' },
+    }).catch(() => {}),
+  ]);
 }
 
 /**
@@ -149,15 +164,27 @@ async function markFailedStep(params: {
 }) {
   'use step';
 
-  await markScheduledTriggerInvocationFailed(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.datasetRunId,
-    invocationId: params.scheduledTriggerInvocationId,
-  });
+  await Promise.all([
+    markScheduledTriggerInvocationFailed(runDbClient)({
+      scopes: {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+      },
+      scheduledTriggerId: params.datasetRunId,
+      invocationId: params.scheduledTriggerInvocationId,
+    }),
+    updateTriggerInvocationStatus(runDbClient)({
+      scopes: {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+      },
+      triggerId: params.datasetRunId,
+      invocationId: params.scheduledTriggerInvocationId,
+      data: { status: 'failed' },
+    }).catch(() => {}),
+  ]);
 }
 
 /**
@@ -192,11 +219,12 @@ async function executeEvaluatorStep(
   conversationId: string,
   evaluatorId: string,
   evaluationRunId: string,
-  expectedOutput?: unknown
+  expectedOutput?: unknown,
+  branchRef?: string
 ) {
   'use step';
 
-  const ref = getProjectScopedRef(tenantId, projectId, 'main');
+  const ref = getProjectScopedRef(tenantId, projectId, branchRef || 'main');
   const resolvedRef = await resolveRef(manageDbClient)(ref);
 
   if (!resolvedRef) {
@@ -338,7 +366,8 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
           result.conversationId,
           evaluatorId,
           evaluationRunId,
-          payload.datasetItemExpectedOutput
+          payload.datasetItemExpectedOutput,
+          payload.ref
         );
       }
     }

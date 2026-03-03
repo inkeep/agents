@@ -28,6 +28,22 @@ export const listFeedbackByConversation =
     messageId?: string;
     pagination?: PaginationConfig;
   }) => {
+    return listFeedback(db)({
+      scopes: params.scopes,
+      conversationId: params.conversationId,
+      messageId: params.messageId,
+      pagination: params.pagination,
+    });
+  };
+
+export const listFeedback =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId?: string;
+    messageId?: string;
+    pagination?: PaginationConfig;
+  }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -35,8 +51,11 @@ export const listFeedbackByConversation =
     const conditions = [
       eq(feedback.tenantId, params.scopes.tenantId),
       eq(feedback.projectId, params.scopes.projectId),
-      eq(feedback.conversationId, params.conversationId),
     ];
+
+    if (params.conversationId) {
+      conditions.push(eq(feedback.conversationId, params.conversationId));
+    }
 
     if (params.messageId) {
       conditions.push(eq(feedback.messageId, params.messageId));

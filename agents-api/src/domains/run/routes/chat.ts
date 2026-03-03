@@ -475,6 +475,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
             );
           }
 
+          const targetRef = c.req.header('x-target-ref');
+          if (targetRef) {
+            forwardedHeaders['x-target-ref'] = targetRef;
+          }
+
           const executionHandler = new ExecutionHandler();
           const result = await executionHandler.execute({
             executionContext,

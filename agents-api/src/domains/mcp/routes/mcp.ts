@@ -4,6 +4,7 @@ import {
   createMCPServer,
   HeaderForwardingHook,
   InkeepAgentsCore,
+  RefQueryParamHook,
   SDKHooks,
 } from '@inkeep/agents-mcp';
 import { Hono } from 'hono';
@@ -34,9 +35,15 @@ app.all('/', async (c) => {
     headersToForward.cookie = headersToForward['x-forwarded-cookie'];
   }
 
+  const targetRef = c.req.header('x-target-ref');
+
   const createSDKWithHeaders = () => {
     const hooks = new SDKHooks();
     hooks.registerBeforeRequestHook(new HeaderForwardingHook(headersToForward));
+
+    if (targetRef && targetRef !== 'main') {
+      hooks.registerBeforeRequestHook(new RefQueryParamHook(targetRef));
+    }
 
     return new InkeepAgentsCore({
       serverURL: env.INKEEP_AGENTS_API_URL,

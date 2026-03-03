@@ -6,12 +6,14 @@ import {
   Blocks,
   Component,
   Database,
+  GitBranch,
   Globe,
   Key,
   Layers,
   Library,
   Lock,
   LucideHexagon,
+  MessageSquare,
   Settings,
   Users,
   Workflow,
@@ -103,6 +105,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Key,
         },
         {
+          title: STATIC_LABELS.branches,
+          url: `/${tenantId}/projects/${projectId}/branches`,
+          icon: GitBranch,
+        },
+        {
           title: STATIC_LABELS.settings,
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
@@ -156,6 +163,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.traces,
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
+        },
+        {
+          title: STATIC_LABELS.feedback,
+          url: `/${tenantId}/projects/${projectId}/feedback`,
+          icon: MessageSquare,
         },
         {
           title: STATIC_LABELS.datasets,
