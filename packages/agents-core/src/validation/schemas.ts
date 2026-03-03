@@ -3140,8 +3140,8 @@ export const UserProfileInsertSchema = createInsertSchema(userProfile)
 export const UserProfileUpdateSchema = UserProfileInsertSchema.partial().extend({
   timezone: timezoneSchema,
 });
-export const UserProfileApiSelectSchema = UserProfileSelectSchema;
 export const UserProfileApiInsertSchema = omitGeneratedFields(UserProfileInsertSchema);
-export const UserProfileApiUpdateSchema = omitGeneratedFields(UserProfileUpdateSchema).omit({
+export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
+  id: true,
   userId: true,
 });

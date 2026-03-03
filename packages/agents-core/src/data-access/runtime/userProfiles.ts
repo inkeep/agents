@@ -67,5 +67,9 @@ export const upsertUserProfile =
       })
       .returning();
 
+    if (!result[0]) {
+      throw new Error(`Failed to upsert user profile for userId: ${userId}`);
+    }
+
     return result[0];
   };
