@@ -32,6 +32,7 @@ export interface InvitationVerification {
   organizationId: string;
   role: string;
   expiresAt: string;
+  authMethod: string | null;
 }
 
 interface InvitationVerificationError {

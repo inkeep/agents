@@ -1,6 +1,6 @@
 'use client';
 
-import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
+import type { OrgRole } from '@inkeep/agents-core/client-exports';
 import { ChevronDown } from 'lucide-react';
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,19 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const ORG_ROLES: { value: OrgRole; label: string; description: string }[] = [
-  {
-    value: OrgRoles.ADMIN,
-    label: 'Admin',
-    description: 'Full access to manage organization settings and members',
-  },
-  {
-    value: OrgRoles.MEMBER,
-    label: 'Member',
-    description: 'Must be added to projects individually with a project role',
-  },
-];
+import { ROLE_OPTIONS } from './types';
 
 interface OrgRoleSelectorProps {
   value: OrgRole;
@@ -37,7 +25,7 @@ export const OrgRoleSelector: FC<OrgRoleSelectorProps> = ({
   disabled = false,
   triggerClassName,
 }) => {
-  const currentLabel = ORG_ROLES.find((r) => r.value === value)?.label || value;
+  const currentLabel = ROLE_OPTIONS.find((r) => r.value === value)?.label || value;
 
   return (
     <DropdownMenu>
@@ -53,7 +41,7 @@ export const OrgRoleSelector: FC<OrgRoleSelectorProps> = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[300px]">
-        {ORG_ROLES.map((role) => (
+        {ROLE_OPTIONS.map((role) => (
           <DropdownMenuItem
             key={role.value}
             onClick={() => onChange(role.value)}
