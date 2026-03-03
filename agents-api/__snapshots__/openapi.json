@@ -41337,6 +41337,14 @@
       "name": "Agents"
     },
     {
+      "description": "Operations for managing app credentials",
+      "name": "Apps"
+    },
+    {
+      "description": "Authentication endpoints for app credentials",
+      "name": "Auth"
+    },
+    {
       "description": "Operations for managing artifact components",
       "name": "Artifact Components"
     },

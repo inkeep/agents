@@ -18,6 +18,8 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   A2A: 'LuNetwork',
   'API Keys': 'LuKeyRound',
   Agents: 'LuUser',
+  Apps: 'LuAppWindow',
+  Auth: 'LuShieldCheck',
   'Artifact Components': 'TbInputSpark',
   Branches: 'LuGitBranch',
   Channels: 'LuHash',
