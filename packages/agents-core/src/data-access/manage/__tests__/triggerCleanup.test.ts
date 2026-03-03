@@ -1,35 +1,39 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanupUserScheduledTriggers } from '../cleanup';
+import { cleanupUserTriggers } from '../triggerCleanup';
 
-vi.mock('../../data-access/runtime/projects', () => ({
+vi.mock('../../runtime/projects', () => ({
   listProjectsMetadata: vi.fn(),
 }));
 
-vi.mock('../../dolt/ref-helpers', () => ({
+vi.mock('../../../dolt/ref-helpers', () => ({
   resolveProjectMainRefs: vi.fn(),
 }));
 
-vi.mock('../../dolt/ref-scope', () => ({
+vi.mock('../../../dolt/ref-scope', () => ({
   withRef: vi.fn(),
 }));
 
-vi.mock('../../data-access/manage/scheduledTriggers', () => ({
+vi.mock('../scheduledTriggers', () => ({
   deleteScheduledTriggersByRunAsUserId: vi.fn(),
 }));
 
-const { listProjectsMetadata } = await import('../../data-access/runtime/projects');
-const { resolveProjectMainRefs } = await import('../../dolt/ref-helpers');
-const { withRef } = await import('../../dolt/ref-scope');
-const { deleteScheduledTriggersByRunAsUserId } = await import(
-  '../../data-access/manage/scheduledTriggers'
-);
+vi.mock('../triggers', () => ({
+  deleteTriggersByRunAsUserId: vi.fn(),
+}));
+
+const { listProjectsMetadata } = await import('../../runtime/projects');
+const { resolveProjectMainRefs } = await import('../../../dolt/ref-helpers');
+const { withRef } = await import('../../../dolt/ref-scope');
+const { deleteScheduledTriggersByRunAsUserId } = await import('../scheduledTriggers');
+const { deleteTriggersByRunAsUserId } = await import('../triggers');
 
 const listProjectsMetadataMock = vi.mocked(listProjectsMetadata);
 const resolveProjectMainRefsMock = vi.mocked(resolveProjectMainRefs);
 const withRefMock = vi.mocked(withRef);
-const deleteByUserMock = vi.mocked(deleteScheduledTriggersByRunAsUserId);
+const deleteScheduledByUserMock = vi.mocked(deleteScheduledTriggersByRunAsUserId);
+const deleteWebhookByUserMock = vi.mocked(deleteTriggersByRunAsUserId);
 
-describe('cleanupUserScheduledTriggers', () => {
+describe('cleanupUserTriggers', () => {
   const mockRunDb = {} as any;
   const mockPool = {
     connect: vi.fn(),
@@ -41,13 +45,14 @@ describe('cleanupUserScheduledTriggers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPool.connect.mockResolvedValue(mockConnection);
-    deleteByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
+    deleteScheduledByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
+    deleteWebhookByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
   });
 
   it('should be a no-op when tenant has no projects', async () => {
     listProjectsMetadataMock.mockReturnValue(vi.fn().mockResolvedValue([]));
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -79,7 +84,7 @@ describe('cleanupUserScheduledTriggers', () => {
       return fn({} as any);
     });
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -91,11 +96,11 @@ describe('cleanupUserScheduledTriggers', () => {
     expect(withRefMock).toHaveBeenCalledTimes(2);
     expect(withRefMock).toHaveBeenCalledWith(mockPool, ref1, expect.any(Function), {
       commit: true,
-      commitMessage: 'Remove scheduled triggers for departing user user-1',
+      commitMessage: 'Remove triggers for departing user user-1',
     });
     expect(withRefMock).toHaveBeenCalledWith(mockPool, ref2, expect.any(Function), {
       commit: true,
-      commitMessage: 'Remove scheduled triggers for departing user user-1',
+      commitMessage: 'Remove triggers for departing user user-1',
     });
   });
 
@@ -115,7 +120,7 @@ describe('cleanupUserScheduledTriggers', () => {
       return fn({} as any);
     });
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -125,7 +130,7 @@ describe('cleanupUserScheduledTriggers', () => {
     expect(withRefMock).toHaveBeenCalledTimes(1);
     expect(withRefMock).toHaveBeenCalledWith(mockPool, goodRef, expect.any(Function), {
       commit: true,
-      commitMessage: 'Remove scheduled triggers for departing user user-1',
+      commitMessage: 'Remove triggers for departing user user-1',
     });
   });
 
@@ -152,7 +157,7 @@ describe('cleanupUserScheduledTriggers', () => {
       return fn({} as any);
     });
 
-    await cleanupUserScheduledTriggers({
+    await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
       runDb: mockRunDb,
@@ -160,6 +165,43 @@ describe('cleanupUserScheduledTriggers', () => {
     });
 
     expect(withRefMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should call both deleteScheduledTriggersByRunAsUserId and deleteTriggersByRunAsUserId in the same withRef callback', async () => {
+    const projects = [{ id: 'proj-1', tenantId: 'tenant-1' }];
+    listProjectsMetadataMock.mockReturnValue(vi.fn().mockResolvedValue(projects));
+
+    const ref1 = { type: 'branch' as const, name: 'tenant-1_proj-1_main', hash: 'abc' };
+    resolveProjectMainRefsMock.mockReturnValue(
+      vi.fn().mockResolvedValue([{ projectId: 'proj-1', ref: ref1 }])
+    );
+
+    withRefMock.mockImplementation(async (_pool, _ref, fn) => {
+      return fn({} as any);
+    });
+
+    const scheduledDeleteFn = vi.fn().mockResolvedValue(undefined);
+    const webhookDeleteFn = vi.fn().mockResolvedValue(undefined);
+    deleteScheduledByUserMock.mockReturnValue(scheduledDeleteFn);
+    deleteWebhookByUserMock.mockReturnValue(webhookDeleteFn);
+
+    await cleanupUserTriggers({
+      tenantId: 'tenant-1',
+      userId: 'user-1',
+      runDb: mockRunDb,
+      manageDbPool: mockPool,
+    });
+
+    expect(scheduledDeleteFn).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      projectId: 'proj-1',
+      runAsUserId: 'user-1',
+    });
+    expect(webhookDeleteFn).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      projectId: 'proj-1',
+      runAsUserId: 'user-1',
+    });
   });
 
   it('should always release the connection even if ref resolution fails', async () => {
@@ -171,7 +213,7 @@ describe('cleanupUserScheduledTriggers', () => {
     );
 
     await expect(
-      cleanupUserScheduledTriggers({
+      cleanupUserTriggers({
         tenantId: 'tenant-1',
         userId: 'user-1',
         runDb: mockRunDb,

@@ -715,7 +715,10 @@ const getFullAgentDefinitionInternal =
           id: agent.contextConfigId,
         });
       } catch (error) {
-        console.warn(`Failed to retrieve contextConfig ${agent.contextConfigId}:`, error);
+        agentsLogger.warn(
+          { error, contextConfigId: agent.contextConfigId },
+          'Failed to retrieve contextConfig'
+        );
       }
     }
 
@@ -734,7 +737,7 @@ const getFullAgentDefinitionInternal =
         },
       });
     } catch (error) {
-      console.warn('Failed to retrieve dataComponents:', error);
+      agentsLogger.warn({ error }, 'Failed to retrieve dataComponents');
     }
 
     try {
@@ -752,7 +755,7 @@ const getFullAgentDefinitionInternal =
         },
       });
     } catch (error) {
-      console.warn('Failed to retrieve artifactComponents:', error);
+      agentsLogger.warn({ error }, 'Failed to retrieve artifactComponents');
     }
 
     const result: any = {
@@ -853,7 +856,10 @@ const getFullAgentDefinitionInternal =
                       stopWhen: agent.stopWhen,
                     };
                   } catch (dbError) {
-                    console.warn(`Failed to persist stopWhen for agent ${subAgentId}:`, dbError);
+                    agentsLogger.warn(
+                      { error: dbError, subAgentId },
+                      'Failed to persist stopWhen for agent'
+                    );
                   }
                 }
               }
@@ -862,7 +868,7 @@ const getFullAgentDefinitionInternal =
         }
       }
     } catch (error) {
-      console.warn('Failed to apply agent stepCountIs inheritance:', error);
+      agentsLogger.warn({ error }, 'Failed to apply agent stepCountIs inheritance');
     }
 
     try {
@@ -945,7 +951,7 @@ const getFullAgentDefinitionInternal =
         result.functions = Object.fromEntries(functions);
       }
     } catch (error) {
-      console.warn('Failed to load tools/functions lookups:', error);
+      agentsLogger.warn({ error }, 'Failed to load tools/functions lookups');
     }
 
     // Fetch triggers (agent-scoped)
@@ -954,9 +960,7 @@ const getFullAgentDefinitionInternal =
         scopes: { tenantId, projectId, agentId },
       });
 
-      console.log(
-        `[getFullAgentDefinitionInternal] Fetched ${triggersList.length} triggers for agent ${agentId}`
-      );
+      agentsLogger.debug({ agentId, count: triggersList.length }, 'Fetched triggers for agent');
 
       if (triggersList.length > 0) {
         const triggersObject: Record<string, any> = {};
@@ -972,16 +976,18 @@ const getFullAgentDefinitionInternal =
             authentication: trigger.authentication,
             signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
             signatureVerification: trigger.signatureVerification,
+            runAsUserId: trigger.runAsUserId,
+            createdBy: trigger.createdBy,
           };
         }
         result.triggers = triggersObject;
-        console.log(
-          `[getFullAgentDefinitionInternal] Added triggers to result:`,
-          Object.keys(triggersObject)
+        agentsLogger.debug(
+          { agentId, triggerIds: Object.keys(triggersObject) },
+          'Added triggers to result'
         );
       }
     } catch (error) {
-      console.warn('Failed to load triggers:', error);
+      agentsLogger.warn({ error }, 'Failed to load triggers');
     }
 
     // Fetch scheduled triggers (agent-scoped)
@@ -1013,7 +1019,7 @@ const getFullAgentDefinitionInternal =
         result.scheduledTriggers = scheduledTriggersObject;
       }
     } catch (error) {
-      console.warn('Failed to load scheduled triggers:', error);
+      agentsLogger.warn({ error }, 'Failed to load scheduled triggers');
     }
 
     return result;
