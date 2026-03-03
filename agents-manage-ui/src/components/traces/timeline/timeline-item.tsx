@@ -82,7 +82,9 @@ function MessagePartsDisplay({
   if (!parts || !Array.isArray(parts) || parts.length === 0) {
     return messageContent ? (
       <Bubble>
-        <div className="line-clamp-2">{messageContent}</div>
+        <div className="line-clamp-2 whitespace-pre-wrap">
+          {messageContent?.replaceAll('\\n', '\n')}
+        </div>
       </Bubble>
     ) : null;
   }
