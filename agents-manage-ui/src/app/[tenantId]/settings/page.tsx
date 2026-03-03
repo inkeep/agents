@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/settings/members-table';
@@ -94,6 +95,14 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Link
+          href={`/${tenantId}/settings/profile`}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          Profile settings →
+        </Link>
+      </div>
       <div className="flex items-center gap-6 rounded-lg border p-4">
         <div className="flex flex-col gap-2 flex-1">
           <p className="text-sm font-medium">Organization name</p>
