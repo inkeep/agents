@@ -584,3 +584,28 @@ This repository uses symlinks so multiple AI tools (Claude Code, Cursor, Codex) 
 | `.cursor/skills/` | `.claude/skills/`, `.codex/skills/` |
 
 AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+
+## Cursor Cloud specific instructions
+
+### Prerequisites
+
+Docker must be running before `pnpm setup-dev` can start the database containers. The Cloud VM does not come with Docker pre-installed; the environment snapshot handles this.
+
+### Starting services
+
+1. **Start Docker daemon** (if not already running): `sudo dockerd &>/tmp/dockerd.log &` then `sudo chmod 666 /var/run/docker.sock`
+2. **Start databases**: `pnpm setup-dev` (idempotent — starts Doltgres on 5432, Postgres on 5433, SpiceDB on 50051; runs migrations; creates admin user). The optional "project push" step may fail; this is non-blocking.
+3. **Start dev servers**: `pnpm dev` (starts agents-api:3002, agents-manage-ui:3000, agents-docs:3010)
+
+### Verification commands
+
+See `AGENTS.md` "Essential Commands - Quick Reference" section. Key commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format`, `pnpm check`.
+
+### Known environment caveats
+
+- The `agents-docs` Next.js build has a pre-existing `useContext` error on the `/guides/mcp-servers/composio-mcp-servers` page that causes `pnpm build` to fail for that package. All other packages build successfully.
+- The `agents-manage-ui` production build may fail with a `useContext` null error on `/_global-error`. The dev server (`pnpm dev`) works fine.
+- 2 keychain integration tests (`keychain-store.integration.test.ts`) fail in container environments due to missing system keychain. This is expected.
+- The `test` turbo task depends on `build`, so test runs may trigger Next.js builds. Run package tests directly to avoid this: `pnpm --filter @inkeep/agents-core test` or `pnpm --filter @inkeep/agents-api test`.
+- Manage UI auto-login uses credentials from `.env` (`INKEEP_AGENTS_MANAGE_UI_USERNAME` / `INKEEP_AGENTS_MANAGE_UI_PASSWORD`). The password is generated randomly by `pnpm setup-dev` — check `.env` for the actual value.
+- The manage API bypass secret (`INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` in `.env`) must be passed as `Authorization: Bearer <secret>`, not as `x-api-key`.
