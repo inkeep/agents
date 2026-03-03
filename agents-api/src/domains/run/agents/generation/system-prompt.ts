@@ -6,6 +6,7 @@ import {
   createDefaultConversationHistoryConfig,
   getConversationScopedArtifacts,
 } from '../../data/conversations';
+import type { ToolSet } from 'ai';
 import type { AssembleResult } from '../../utils/token-estimator';
 import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { createLoadSkillTool } from '../tools/default-tools';
@@ -213,7 +214,12 @@ export async function buildSystemPrompt(
       streamBaseUrl?: string;
     };
   },
-  excludeDataComponents: boolean = false
+  excludeDataComponents: boolean = false,
+  preLoadedTools?: {
+    mcpResult: { tools: ToolSet; toolSets: any[] };
+    functionTools: ToolSet;
+    relationTools: ToolSet;
+  }
 ): Promise<AssembleResult> {
   const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
@@ -241,9 +247,9 @@ export async function buildSystemPrompt(
   }
 
   const streamRequestId = runtimeContext?.metadata?.streamRequestId;
-  const { tools: mcpTools, toolSets } = await getMcpTools(ctx, undefined, streamRequestId);
-  const functionTools = await getFunctionTools(ctx, streamRequestId || '');
-  const relationTools = getRelationTools(ctx, runtimeContext);
+  const { tools: mcpTools, toolSets } = preLoadedTools?.mcpResult ?? (await getMcpTools(ctx, undefined, streamRequestId));
+  const functionTools = preLoadedTools?.functionTools ?? (await getFunctionTools(ctx, streamRequestId || ''));
+  const relationTools = preLoadedTools?.relationTools ?? getRelationTools(ctx, runtimeContext);
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
   const skillTools = hasOnDemandSkills ? { load_skill: createLoadSkillTool(ctx) } : {};
   const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools } as Record<

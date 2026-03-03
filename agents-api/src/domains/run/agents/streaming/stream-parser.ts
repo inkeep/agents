@@ -9,7 +9,7 @@ export function setupStreamParser(
   sessionId: string,
   contextId: string
 ): IncrementalStreamParser {
-  const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
+  const streamHelper = ctx.streamHelper;
   if (!streamHelper) {
     throw new Error('Stream helper is unexpectedly undefined in streaming context');
   }

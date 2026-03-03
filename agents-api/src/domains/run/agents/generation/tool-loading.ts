@@ -26,7 +26,7 @@ export async function loadToolsAndPrompts(
     };
   }
 ): Promise<{ systemPrompt: string; sanitizedTools: ToolSet; contextBreakdown: ContextBreakdown }> {
-  const [mcpToolsResult, systemPromptResult, functionTools, relationTools, defaultTools] =
+  const [mcpToolsResult, functionTools, relationTools, defaultTools] =
     await tracer.startActiveSpan(
       'agent.load_tools',
       {
@@ -39,7 +39,6 @@ export async function loadToolsAndPrompts(
         try {
           const result = await Promise.all([
             getMcpTools(ctx, sessionId, streamRequestId),
-            buildSystemPrompt(ctx, runtimeContext, false),
             getFunctionTools(ctx, sessionId, streamRequestId),
             Promise.resolve(getRelationTools(ctx, runtimeContext, sessionId)),
             getDefaultTools(ctx, streamRequestId),
@@ -56,6 +55,12 @@ export async function loadToolsAndPrompts(
         }
       }
     );
+
+  const systemPromptResult = await buildSystemPrompt(ctx, runtimeContext, false, {
+    mcpResult: mcpToolsResult,
+    functionTools,
+    relationTools,
+  });
 
   const { tools: mcpTools } = mcpToolsResult;
 
