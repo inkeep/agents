@@ -92,7 +92,7 @@ const userScopedReport = scheduledTrigger({
 });
 ```
 
-When `runAsUserId` is set, agents automatically know your time based on your profile timezone. Note that `cronTimezone` is still used for schedule calculation, but the user's profile timezone takes precedence for the agent's time awareness during execution.
+When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses. Note that `cronTimezone` is still used for schedule calculation.
 
 See [Scheduled Triggers](/talk-to-your-agents/triggers/scheduled) for details on permissions, admin delegation, and runtime behavior.
 
