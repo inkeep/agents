@@ -107,6 +107,7 @@ export class Agent {
       artifactComponents,
       currentCompressor: null,
       functionToolRelationshipIdByName,
+      taskDenialRedirects: [],
     };
 
     ctx.mcpManager = new AgentMcpManager(
@@ -143,6 +144,10 @@ export class Agent {
 
   setDelegationId(delegationId: string | undefined) {
     this.ctx.delegationId = delegationId;
+  }
+
+  getTaskDenialRedirects(): Array<{ toolName: string; toolCallId: string; reason: string }> {
+    return this.ctx.taskDenialRedirects;
   }
 
   getStreamingHelper(): StreamHelper | undefined {

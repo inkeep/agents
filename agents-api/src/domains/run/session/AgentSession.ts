@@ -1121,10 +1121,10 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           if (!modelToUse) {
             throw new Error('No model configuration available');
           }
-          const model = ModelFactory.createModel(modelToUse);
+          const statusUpdateGenerationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
 
           const { output: object } = await generateText({
-            model,
+            ...statusUpdateGenerationConfig,
             prompt,
             output: Output.object({
               schema: selectionSchema,
@@ -1630,7 +1630,8 @@ GOOD Examples:
 
 Make the name extremely specific to what this tool call actually returned, not generic.`;
 
-            const model = ModelFactory.createModel(modelToUse);
+            const artifactMetadataGenerationConfig =
+              ModelFactory.prepareGenerationConfig(modelToUse);
 
             const schema = z.object({
               name: z.string().describe('Concise, descriptive name for the artifact'),
@@ -1663,7 +1664,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
                     const result = await generateText({
-                      model,
+                      ...artifactMetadataGenerationConfig,
                       prompt,
                       output: Output.object({
                         schema,

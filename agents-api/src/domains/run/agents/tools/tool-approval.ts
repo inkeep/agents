@@ -143,6 +143,19 @@ export async function waitForToolApproval(
   return { approved: true };
 }
 
+export function recordDenial(
+  ctx: AgentRunContext,
+  toolName: string,
+  toolCallId: string,
+  reason: string | undefined
+): void {
+  ctx.taskDenialRedirects.push({
+    toolName,
+    toolCallId,
+    reason: reason ?? 'Tool call was denied by the user.',
+  });
+}
+
 export async function parseAndCheckApproval<T>(
   ctx: AgentRunContext,
   toolName: string,
@@ -171,6 +184,8 @@ export async function parseAndCheckApproval<T>(
   if (needsApproval) {
     const approval = await waitForToolApproval(ctx, toolCallId, toolName, args, providerMetadata);
     if (!approval.approved) {
+      const deniedResult = approval.deniedResult as { reason?: string } | undefined;
+      recordDenial(ctx, toolName, toolCallId, deniedResult?.reason);
       return { args: processedArgs, denied: true, result: approval.deniedResult };
     }
   }

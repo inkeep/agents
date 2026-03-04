@@ -131,6 +131,7 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   relationId?: string;
   baseUrl: string;
   apiKey?: string;
@@ -235,4 +236,5 @@ export interface AgentRunContext {
   artifactComponents: ArtifactComponentApiInsert[];
   currentCompressor: MidGenerationCompressor | null;
   functionToolRelationshipIdByName: Map<string, string>;
+  taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
 }
