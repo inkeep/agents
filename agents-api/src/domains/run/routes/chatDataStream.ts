@@ -139,14 +139,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
     const body = c.req.valid('json');
 
-    const approvalPart = (body.messages || [])
+    const approvalParts = (body.messages || [])
       .flatMap((m: any) => m?.parts || [])
-      .find((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
+      .filter((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
 
-    const isApprovalResponse = !!approvalPart;
+    const isApprovalResponse = approvalParts.length > 0;
 
     // Fast-path: allow client to respond to tool approvals via the same /chat endpoint.
     // This should NOT start a new agent execution. The original stream continues separately.
+    // Supports both single and batch approval responses in one request.
     if (isApprovalResponse) {
       const conversationId = body.conversationId;
       if (!conversationId) {
@@ -159,10 +160,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
         );
       }
 
-      const toolCallId = approvalPart.toolCallId as string;
-      const approved = !!approvalPart.approval?.approved;
-      const reason = approvalPart.approval?.reason as string | undefined;
-
       // Validate that the conversation exists and belongs to this tenant/project
       const conversation = await getConversation(runDbClient)({
         scopes: { tenantId, projectId },
@@ -173,25 +170,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
-      // Resolve the pending approval (in-memory). Idempotent: if already processed, return 200.
-      const ok = approved
-        ? pendingToolApprovalManager.approveToolCall(toolCallId)
-        : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+      const results = approvalParts.map((approvalPart: any) => {
+        const toolCallId = approvalPart.toolCallId as string;
+        const approved = !!approvalPart.approval?.approved;
+        const reason = approvalPart.approval?.reason as string | undefined;
 
-      if (!ok) {
-        return c.json({
-          success: true,
-          toolCallId,
-          approved,
-          alreadyProcessed: true,
-        });
-      }
+        // Resolve the pending approval (in-memory). Idempotent: if already processed, returns false.
+        const ok = approved
+          ? pendingToolApprovalManager.approveToolCall(toolCallId)
+          : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
 
-      return c.json({
-        success: true,
-        toolCallId,
-        approved,
+        return { toolCallId, approved, alreadyProcessed: !ok };
       });
+
+      return c.json({ success: true, results });
     }
 
     // Extract target context headers (for copilot/chat-to-edit scenarios)
