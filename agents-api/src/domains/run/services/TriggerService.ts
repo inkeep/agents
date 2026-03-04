@@ -26,6 +26,7 @@ import {
   getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
+  getUserProfile,
   getWaitUntil,
   interpolateTemplate,
   JsonTransformer,
@@ -50,9 +51,9 @@ import { tracer } from '../utils/tracer';
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
 
-export function buildScheduledTriggerHeaders(cronTimezone?: string | null): Record<string, string> {
+export function buildTimezoneHeaders(timezone?: string | null): Record<string, string> {
   return {
-    'x-inkeep-client-timezone': cronTimezone || 'UTC',
+    'x-inkeep-client-timezone': timezone || 'UTC',
     'x-inkeep-client-timestamp': new Date().toISOString(),
   };
 }
@@ -762,6 +763,34 @@ export async function executeAgentAsync(params: {
     }
   }
 
+  let resolvedForwardedHeaders = forwardedHeaders;
+  if (runAsUserId) {
+    await tracer.startActiveSpan('trigger.resolve_user_timezone', async (span) => {
+      try {
+        span.setAttribute('user.id', runAsUserId);
+        const profile = await getUserProfile(runDbClient)(runAsUserId);
+        if (profile?.timezone) {
+          resolvedForwardedHeaders = {
+            ...forwardedHeaders,
+            ...buildTimezoneHeaders(profile.timezone),
+          };
+          span.setAttribute('user.timezone', profile.timezone);
+        }
+      } catch (err) {
+        logger.warn(
+          { runAsUserId, error: err instanceof Error ? err.message : String(err) },
+          'Failed to fetch user profile for timezone, proceeding with fallback'
+        );
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        span.end();
+      }
+    });
+  }
+
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
     .createBaggage()
@@ -902,7 +931,7 @@ export async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
-          forwardedHeaders,
+          forwardedHeaders: resolvedForwardedHeaders,
         });
 
         if (!result.success) {
