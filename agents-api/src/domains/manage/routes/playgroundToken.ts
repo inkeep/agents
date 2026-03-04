@@ -13,6 +13,7 @@ import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
+import { isCopilotAgent } from '../../../utils/copilot';
 
 const logger = getLogger('playgroundToken');
 
@@ -90,13 +91,7 @@ app.openapi(
     // Copilot bypass — skip SpiceDB check when targeting the copilot agent.
     // Any authenticated user can use the copilot; target-resource authz is
     // enforced by the copilot agent via forwarded session cookies.
-    const isCopilotRequest =
-      env.INKEEP_COPILOT_TENANT_ID &&
-      env.INKEEP_COPILOT_PROJECT_ID &&
-      env.INKEEP_COPILOT_AGENT_ID &&
-      tenantId === env.INKEEP_COPILOT_TENANT_ID &&
-      projectId === env.INKEEP_COPILOT_PROJECT_ID &&
-      agentId === env.INKEEP_COPILOT_AGENT_ID;
+    const isCopilotRequest = isCopilotAgent({ tenantId, projectId, agentId });
 
     if (isCopilotRequest) {
       logger.info(

@@ -14,6 +14,7 @@ import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
+import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('env-key-auth');
 
@@ -168,13 +169,11 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
     }
 
     // Copilot bypass — skip SpiceDB when the token targets the copilot agent.
-    const isCopilotToken =
-      env.INKEEP_COPILOT_TENANT_ID &&
-      env.INKEEP_COPILOT_PROJECT_ID &&
-      env.INKEEP_COPILOT_AGENT_ID &&
-      payload.tenantId === env.INKEEP_COPILOT_TENANT_ID &&
-      projectId === env.INKEEP_COPILOT_PROJECT_ID &&
-      agentId === env.INKEEP_COPILOT_AGENT_ID;
+    const isCopilotToken = isCopilotAgent({
+      tenantId: payload.tenantId,
+      projectId,
+      agentId,
+    });
 
     if (isCopilotToken) {
       logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
