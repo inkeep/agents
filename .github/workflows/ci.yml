@@ -98,6 +98,13 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add agents-api/__snapshots__/openapi.json
             git commit -m "chore: update OpenAPI snapshot"
+
+            PUSH_REF="${{ github.head_ref }}"
+            if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
+              echo "::notice::Remote branch '$PUSH_REF' no longer exists (PR likely merged/closed). Skipping push."
+              exit 0
+            fi
+
             git push
             echo "::notice::OpenAPI snapshot was auto-updated and committed. This CI run will continue with the updated snapshot."
           fi
