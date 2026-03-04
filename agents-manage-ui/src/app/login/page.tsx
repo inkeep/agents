@@ -1,8 +1,9 @@
 'use client';
 
 import { AlertCircleIcon, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,7 +23,8 @@ function LoginForm() {
   const invitationId = searchParams.get('invitation');
   const returnUrl = searchParams.get('returnUrl');
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
+    useRuntimeConfig();
   const posthog = usePostHog();
   const { isAuthenticated, isLoading: isSessionLoading } = useAuthSession();
 
@@ -50,7 +52,7 @@ function LoginForm() {
   // For OAuth, we need the full URL to redirect back to the UI
   // OAuth must callback to `/` (home page) which handles the auth completion
   // We pass returnUrl/invitation as query params for post-auth redirect
-  const getFullCallbackURL = () => {
+  const getFullCallbackURL = useCallback(() => {
     if (typeof window === 'undefined') return '/';
     const baseURL = window.location.origin;
 
@@ -58,13 +60,14 @@ function LoginForm() {
     const params = new URLSearchParams();
     if (invitationId) {
       params.set('invitation', invitationId);
-    } else if (returnUrl && isValidReturnUrl(returnUrl)) {
+    }
+    if (returnUrl && isValidReturnUrl(returnUrl)) {
       params.set('returnUrl', returnUrl);
     }
 
     const queryString = params.toString();
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
-  };
+  }, [invitationId, returnUrl]);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -208,6 +211,14 @@ function LoginForm() {
                 minLength={8}
               />
             </div>
+            {PUBLIC_IS_SMTP_CONFIGURED && (
+              <Link
+                href={`/forgot-password${formData.email ? `?email=${encodeURIComponent(formData.email)}` : ''}`}
+                className="block text-right text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors -mt-2"
+              >
+                Forgot password?
+              </Link>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
@@ -262,6 +273,11 @@ function LoginForm() {
               </div>
             </>
           )}
+
+          <div className="flex items-center justify-center gap-1 text-sm">
+            <p className="font-medium">Don&apos;t have an account?</p>
+            <p className="text-muted-foreground">Ask your administrator for an invite.</p>
+          </div>
         </CardContent>
       </Card>
     </div>

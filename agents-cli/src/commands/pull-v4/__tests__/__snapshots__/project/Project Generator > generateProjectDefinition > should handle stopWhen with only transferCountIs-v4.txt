@@ -1,0 +1,14 @@
+import { project } from '@inkeep/agents-sdk';
+
+export const transferOnlyProject = project({
+  id: 'transfer-only-project',
+  name: 'Transfer Only Project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini',
+    },
+  },
+  stopWhen: {
+    transferCountIs: 5,
+  },
+});

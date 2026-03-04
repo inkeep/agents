@@ -18,7 +18,7 @@ import {
   authCorsConfig,
   defaultCorsConfig,
   errorHandler,
-  manageApiKeyOrSessionAuth,
+  manageBearerOrSessionAuth,
   playgroundCorsConfig,
   requireTenantAccess,
   runApiKeyAuth,
@@ -99,8 +99,8 @@ function createAgentsHono(config: AppConfig) {
         const base64Sig = btoa(String.fromCharCode(...new Uint8Array(sig)));
         const encodedValue = encodeURIComponent(`${session.token}.${base64Sig}`);
 
-        const { name: cookieName, options } = ctx.authCookies.sessionToken;
-        const { path, httpOnly, secure, sameSite = 'lax' } = options;
+        const { name: cookieName, attributes } = ctx.authCookies.sessionToken;
+        const { path, httpOnly, secure, sameSite = 'lax' } = attributes;
         const maxAge = ctx.sessionConfig.expiresIn;
         const sameSiteValue = sameSite.charAt(0).toUpperCase() + sameSite.slice(1);
 
@@ -213,7 +213,7 @@ function createAgentsHono(config: AppConfig) {
   app.route('/', workflowProcessHandler);
 
   // Authentication middleware for protected manage routes
-  app.use('/manage/tenants/*', manageApiKeyOrSessionAuth());
+  app.use('/manage/tenants/*', manageBearerOrSessionAuth());
 
   // Tenant access check (test-mode bypass handled inside requireTenantAccess)
   app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
@@ -223,8 +223,6 @@ function createAgentsHono(config: AppConfig) {
     const waitUntil = await getWaitUntil();
     if (waitUntil) {
       waitUntil(flushBatchProcessor());
-    } else {
-      await flushBatchProcessor();
     }
   });
 

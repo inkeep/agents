@@ -170,6 +170,8 @@ const mySubAgent = subAgent({
 
 Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components).
 
+Use `preview()` to mark fields that should be **immediately available** in the agent's context — agents can reason about these fields directly. Fields without `preview()` are persisted in storage but kept out of context by default, keeping the context window lean. Agents can retrieve the complete artifact on demand when they need those fields.
+
 ```typescript
 import { z } from 'zod';
 import { preview } from '@inkeep/agents-core';
@@ -184,8 +186,8 @@ const mySubAgent = subAgent({
       name: "CustomerInfo",
       description: "Customer information display component",
       props: z.object({
-        name: preview(z.string().describe("Customer name")),
-        customer_info: z.string().describe("Customer information"),
+        name: preview(z.string().describe("Customer name")),  // available immediately in context
+        customer_info: z.string().describe("Customer information"),  // available on demand
       }),
     },
   ],

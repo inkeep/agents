@@ -5,13 +5,18 @@
  * Streams responses incrementally to Slack using chatStream API.
  */
 
-import { getInProcessFetch } from '@inkeep/agents-core';
+import { getInProcessFetch, retryWithBackoff } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import {
+  buildCitationsBlock,
+  buildDataArtifactBlocks,
+  buildDataComponentBlocks,
+  buildSummaryBreadcrumbBlock,
   buildToolApprovalBlocks,
   buildToolApprovalExpiredBlocks,
+  buildToolOutputErrorBlock,
   createContextBlock,
   type ToolApprovalButtonValue,
 } from '../blocks';
@@ -25,7 +30,7 @@ import {
 
 const logger = getLogger('slack-streaming');
 
-const STREAM_TIMEOUT_MS = 600_000;
+const STREAM_TIMEOUT_MS = 1800_000; // 30 minutes
 const CHATSTREAM_OP_TIMEOUT_MS = 20_000;
 /** Shorter timeout for best-effort cleanup in error paths to bound total error handling time. */
 const CLEANUP_TIMEOUT_MS = 3_000;
@@ -45,6 +50,54 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   }
 }
 
+/**
+ * Clean up the thinking acknowledgment message after streaming completes or fails.
+ * When the thinking message IS the thread anchor (slash commands at channel root),
+ * update it to show the user's question or invocation attribution instead of deleting,
+ * since deleting a thread anchor leaves "This message was deleted." as the root.
+ */
+async function cleanupThinkingMessage(params: {
+  slackClient: ReturnType<typeof getSlackClient>;
+  channel: string;
+  thinkingMessageTs: string;
+  threadTs?: string;
+  slackUserId: string;
+  agentName: string;
+  rawMessageText: string;
+}): Promise<void> {
+  const {
+    slackClient,
+    channel,
+    thinkingMessageTs,
+    threadTs,
+    slackUserId,
+    agentName,
+    rawMessageText,
+  } = params;
+
+  if (!thinkingMessageTs) return;
+
+  try {
+    if (thinkingMessageTs === threadTs) {
+      const text = rawMessageText
+        ? `<@${slackUserId}> to ${agentName}: "${rawMessageText}"`
+        : `<@${slackUserId}> invoked _${agentName}_`;
+      await slackClient.chat.update({
+        channel,
+        ts: thinkingMessageTs,
+        text,
+      });
+    } else {
+      await slackClient.chat.delete({
+        channel,
+        ts: thinkingMessageTs,
+      });
+    }
+  } catch (error) {
+    logger.warn({ error, channel, thinkingMessageTs }, 'Failed to clean up thinking message');
+  }
+}
+
 export interface StreamResult {
   success: boolean;
   errorType?: SlackErrorType;
@@ -54,7 +107,7 @@ export interface StreamResult {
 export async function streamAgentResponse(params: {
   slackClient: ReturnType<typeof getSlackClient>;
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   thinkingMessageTs: string;
   slackUserId: string;
   teamId: string;
@@ -62,8 +115,10 @@ export async function streamAgentResponse(params: {
   projectId: string;
   agentId: string;
   question: string;
+  rawMessageText?: string;
   agentName: string;
   conversationId: string;
+  entryPoint?: string;
 }): Promise<StreamResult> {
   return tracer.startActiveSpan(SLACK_SPAN_NAMES.STREAM_AGENT_RESPONSE, async (span) => {
     const {
@@ -77,9 +132,23 @@ export async function streamAgentResponse(params: {
       projectId,
       agentId,
       question,
+      rawMessageText: rawMessageTextParam,
       agentName,
       conversationId,
+      entryPoint,
     } = params;
+
+    const rawMessageText = rawMessageTextParam ?? question;
+    const threadParam = threadTs ? { thread_ts: threadTs } : {};
+    const cleanupParams = {
+      slackClient,
+      channel,
+      thinkingMessageTs,
+      threadTs,
+      slackUserId,
+      agentName,
+      rawMessageText,
+    };
 
     span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
     span.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
@@ -87,7 +156,7 @@ export async function streamAgentResponse(params: {
     span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, projectId);
     span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
     if (conversationId) span.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
-    span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, threadTs);
+    if (threadTs) span.setAttribute(SLACK_SPAN_KEYS.THREAD_TS, threadTs);
 
     const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
@@ -120,6 +189,8 @@ export async function streamAgentResponse(params: {
           Authorization: `Bearer ${jwtToken}`,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
+          'x-inkeep-invocation-type': 'slack',
+          ...(entryPoint && { 'x-inkeep-invocation-entry-point': entryPoint }),
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],
@@ -136,17 +207,11 @@ export async function streamAgentResponse(params: {
 
         await slackClient.chat.postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         });
 
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore delete errors
-          }
-        }
+        await cleanupThinkingMessage(cleanupParams);
 
         span.end();
         return { success: false, errorType, errorMessage };
@@ -157,18 +222,12 @@ export async function streamAgentResponse(params: {
       await slackClient.chat
         .postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         })
         .catch((e) => logger.warn({ error: e }, 'Failed to send fetch error notification'));
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       if (fetchError instanceof Error) setSpanWithError(span, fetchError);
       span.end();
@@ -188,17 +247,11 @@ export async function streamAgentResponse(params: {
 
       await slackClient.chat.postMessage({
         channel,
-        thread_ts: threadTs,
+        ...threadParam,
         text: errorMessage,
       });
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       span.end();
       return { success: false, errorType, errorMessage };
@@ -215,17 +268,11 @@ export async function streamAgentResponse(params: {
 
       await slackClient.chat.postMessage({
         channel,
-        thread_ts: threadTs,
+        ...threadParam,
         text: errorMessage,
       });
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-        } catch {
-          // Ignore delete errors
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       span.end();
       return { success: false, errorType, errorMessage };
@@ -236,14 +283,32 @@ export async function streamAgentResponse(params: {
     let buffer = '';
     let fullText = '';
 
-    const streamer = slackClient.chatStream({
+    const chatStreamArgs = {
       channel,
       recipient_team_id: teamId,
       recipient_user_id: slackUserId,
-      thread_ts: threadTs,
-    });
+      ...(threadTs ? { thread_ts: threadTs } : {}),
+    } as Parameters<typeof slackClient.chatStream>[0];
+    const streamer = slackClient.chatStream(chatStreamArgs);
+    /** Tracks whether `chat.startStream` was called (i.e. a Slack streaming message exists). */
+    let streamerStarted = false;
 
-    const pendingApprovalMessages: Array<{ messageTs: string; toolName: string }> = [];
+    const pendingApprovalMessages: Array<{
+      messageTs: string;
+      toolName: string;
+      toolCallId: string;
+    }> = [];
+    const toolCallIdToName = new Map<string, string>();
+    const toolCallIdToInput = new Map<string, Record<string, unknown>>();
+    const toolErrors: Array<{ toolName: string; errorText: string }> = [];
+    const successfulToolNames = new Set<string>();
+    const citations: Array<{ title?: string; url?: string }> = [];
+    const summaryLabels: string[] = [];
+    let richMessageCount = 0;
+    let richMessageCapWarned = false;
+    const MAX_RICH_MESSAGES = 20;
+
+    span.end();
 
     try {
       let agentCompleted = false;
@@ -273,9 +338,9 @@ export async function streamAgentResponse(params: {
             }
 
             if (data.type === 'tool-approval-request' && conversationId) {
-              const toolName: string = data.toolName || 'Tool';
               const toolCallId: string = data.toolCallId;
-              const input: Record<string, unknown> | undefined = data.input;
+              const toolName: string = toolCallIdToName.get(toolCallId) || 'Tool';
+              const input: Record<string, unknown> | undefined = toolCallIdToInput.get(toolCallId);
 
               const buttonValue: ToolApprovalButtonValue = {
                 toolCallId,
@@ -291,7 +356,7 @@ export async function streamAgentResponse(params: {
               const approvalPost = await slackClient.chat
                 .postMessage({
                   channel,
-                  thread_ts: threadTs,
+                  ...threadParam,
                   text: `Tool approval required: \`${toolName}\``,
                   blocks: buildToolApprovalBlocks({
                     toolName,
@@ -304,12 +369,151 @@ export async function streamAgentResponse(params: {
                   return null;
                 });
               if (approvalPost?.ts) {
-                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName });
+                pendingApprovalMessages.push({ messageTs: approvalPost.ts, toolName, toolCallId });
               }
               // Clear the stream timeout — we're now waiting for human approval which
               // can take minutes. The backend has its own APPROVAL_TIMEOUT_MS and will
               // close the stream when that expires, triggering the expiry path in catch.
               clearTimeout(timeoutId);
+              continue;
+            }
+
+            if (data.type === 'tool-input-available' && data.toolCallId && data.toolName) {
+              toolCallIdToName.set(String(data.toolCallId), String(data.toolName));
+              if (data.input && typeof data.input === 'object') {
+                toolCallIdToInput.set(
+                  String(data.toolCallId),
+                  data.input as Record<string, unknown>
+                );
+              }
+              continue;
+            }
+
+            if (data.type === 'tool-output-denied' && data.toolCallId) {
+              const idx = pendingApprovalMessages.findIndex(
+                (m) => m.toolCallId === data.toolCallId
+              );
+              if (idx !== -1) pendingApprovalMessages.splice(idx, 1);
+              continue;
+            }
+
+            if (data.type === 'tool-output-error' && data.toolCallId) {
+              const toolName = toolCallIdToName.get(String(data.toolCallId)) || 'Tool';
+              toolErrors.push({ toolName, errorText: String(data.errorText || 'Unknown error') });
+              continue;
+            }
+
+            if (data.type === 'tool-output-available' && data.toolCallId) {
+              const toolName = toolCallIdToName.get(String(data.toolCallId));
+              if (toolName) successfulToolNames.add(toolName);
+              continue;
+            }
+
+            if (data.type === 'data-component' && data.data && typeof data.data === 'object') {
+              if (richMessageCount < MAX_RICH_MESSAGES) {
+                const { blocks, overflowJson, componentType } = buildDataComponentBlocks({
+                  id: String(data.id || ''),
+                  data: data.data as Record<string, unknown>,
+                });
+                if (overflowJson) {
+                  const label = componentType || 'data-component';
+                  await retryWithBackoff(
+                    () =>
+                      slackClient.files.uploadV2({
+                        channel_id: channel,
+                        ...threadParam,
+                        filename: `${label}.json`,
+                        content: overflowJson,
+                        initial_comment: `📊 ${label}`,
+                      }),
+                    { label: 'slack-file-upload' }
+                  ).catch((e) =>
+                    logger.warn(
+                      { error: e, channel, threadTs, agentId, componentType: label },
+                      'Failed to upload data component file'
+                    )
+                  );
+                } else {
+                  await slackClient.chat
+                    .postMessage({
+                      channel,
+                      ...threadParam,
+                      text: '📊 Data component',
+                      blocks,
+                    })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to post data component'));
+                }
+                richMessageCount++;
+              } else if (!richMessageCapWarned) {
+                logger.warn(
+                  { channel, threadTs, agentId, eventType: 'data-component', MAX_RICH_MESSAGES },
+                  'MAX_RICH_MESSAGES cap reached — additional rich content will be dropped'
+                );
+                richMessageCapWarned = true;
+              }
+              continue;
+            }
+
+            if (data.type === 'data-artifact' && data.data && typeof data.data === 'object') {
+              const artifactData = data.data as Record<string, unknown>;
+              if (
+                typeof artifactData.type === 'string' &&
+                artifactData.type.toLowerCase() === 'citation'
+              ) {
+                const summary = artifactData.artifactSummary as
+                  | { title?: string; url?: string }
+                  | undefined;
+                if (summary?.url && !citations.some((c) => c.url === summary.url)) {
+                  citations.push({ title: summary.title, url: summary.url });
+                  const citationIndex = citations.length;
+                  if (fullText.length > 0) {
+                    await withTimeout(
+                      streamer.append({ markdown_text: `<${summary.url}|[${citationIndex}]>` }),
+                      CHATSTREAM_OP_TIMEOUT_MS,
+                      'streamer.append'
+                    ).catch((e) => logger.warn({ error: e }, 'Failed to append inline citation'));
+                  }
+                }
+              } else if (richMessageCount < MAX_RICH_MESSAGES) {
+                const { blocks, overflowContent, artifactName } = buildDataArtifactBlocks({
+                  data: artifactData,
+                });
+                if (overflowContent) {
+                  const label = artifactName || 'artifact';
+                  await retryWithBackoff(
+                    () =>
+                      slackClient.files.uploadV2({
+                        channel_id: channel,
+                        ...threadParam,
+                        filename: `${label}.md`,
+                        content: overflowContent,
+                        initial_comment: `📄 ${label}`,
+                      }),
+                    { label: 'slack-file-upload' }
+                  ).catch((e) =>
+                    logger.warn(
+                      { error: e, channel, threadTs, agentId, artifactName: label },
+                      'Failed to upload artifact file'
+                    )
+                  );
+                } else {
+                  await slackClient.chat
+                    .postMessage({ channel, ...threadParam, text: '📄 Data', blocks })
+                    .catch((e) => logger.warn({ error: e }, 'Failed to post data artifact'));
+                }
+                richMessageCount++;
+              } else if (!richMessageCapWarned) {
+                logger.warn(
+                  { channel, threadTs, agentId, eventType: 'data-artifact', MAX_RICH_MESSAGES },
+                  'MAX_RICH_MESSAGES cap reached — additional rich content will be dropped'
+                );
+                richMessageCapWarned = true;
+              }
+              continue;
+            }
+
+            if (data.type === 'data-summary' && data.data?.label) {
+              summaryLabels.push(String(data.data.label));
               continue;
             }
 
@@ -319,11 +523,12 @@ export async function streamAgentResponse(params: {
 
             if (data.type === 'text-delta' && data.delta) {
               fullText += data.delta;
-              await withTimeout(
+              const appendResult = await withTimeout(
                 streamer.append({ markdown_text: data.delta }),
                 CHATSTREAM_OP_TIMEOUT_MS,
                 'streamer.append'
               );
+              if (appendResult != null) streamerStarted = true;
             } else if (
               data.object === 'chat.completion.chunk' &&
               data.choices?.[0]?.delta?.content
@@ -338,11 +543,12 @@ export async function streamAgentResponse(params: {
                 // Not JSON, use as-is
               }
               fullText += content;
-              await withTimeout(
+              const appendResult = await withTimeout(
                 streamer.append({ markdown_text: content }),
                 CHATSTREAM_OP_TIMEOUT_MS,
                 'streamer.append'
               );
+              if (appendResult != null) streamerStarted = true;
             }
           } catch {
             // Skip invalid JSON
@@ -354,45 +560,66 @@ export async function streamAgentResponse(params: {
 
       clearTimeout(timeoutId);
 
-      const contextBlock = createContextBlock({ agentName });
+      const stopBlocks: any[] = [];
+      for (const { toolName, errorText } of toolErrors) {
+        if (successfulToolNames.has(toolName)) continue;
+        stopBlocks.push(buildToolOutputErrorBlock(toolName, errorText));
+      }
+      if (summaryLabels.length > 0) {
+        stopBlocks.push(buildSummaryBreadcrumbBlock(summaryLabels));
+      }
+      if (citations.length > 0) {
+        const citationBlocks = buildCitationsBlock(citations);
+        stopBlocks.push(...citationBlocks);
+      }
+      stopBlocks.push(createContextBlock({ agentName }));
+
       try {
         await withTimeout(
-          streamer.stop({ blocks: [contextBlock] }),
+          streamer.stop({ blocks: stopBlocks.slice(0, 50) }),
           CHATSTREAM_OP_TIMEOUT_MS,
           'streamer.stop'
         );
       } catch (stopError) {
-        // If content was already delivered to the user, a streamer.stop() timeout
-        // is a non-critical finalization error — log it but don't surface to user
-        span.setAttribute(SLACK_SPAN_KEYS.STREAM_FINALIZATION_FAILED, true);
         logger.warn(
           { stopError, channel, threadTs, responseLength: fullText.length },
           'Failed to finalize chatStream — content was already delivered'
         );
       }
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({
-            channel,
-            ts: thinkingMessageTs,
-          });
-        } catch (deleteError) {
-          logger.warn({ deleteError }, 'Failed to delete acknowledgement message');
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       logger.info(
-        { channel, threadTs, responseLength: fullText.length, agentId, conversationId },
+        {
+          channel,
+          threadTs,
+          responseLength: fullText.length,
+          agentId,
+          conversationId,
+          toolErrorCount: toolErrors.length,
+          citationCount: citations.length,
+          richMessageCount,
+        },
         'Streaming completed'
       );
 
-      span.end();
       return { success: true };
     } catch (streamError) {
       clearTimeout(timeoutId);
       reader?.cancel().catch(() => {});
-      if (streamError instanceof Error) setSpanWithError(span, streamError);
+
+      const contentAlreadyDelivered = fullText.length > 0;
+
+      tracer.startActiveSpan('slack.stream_error', (errorSpan) => {
+        if (streamError instanceof Error) setSpanWithError(errorSpan, streamError);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, teamId);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.CHANNEL_ID, channel);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, agentId);
+        if (conversationId) errorSpan.setAttribute(SLACK_SPAN_KEYS.CONVERSATION_ID, conversationId);
+        errorSpan.setAttribute(SLACK_SPAN_KEYS.CONTENT_ALREADY_DELIVERED, contentAlreadyDelivered);
+        errorSpan.setAttribute('pending_approval_count', pendingApprovalMessages.length);
+        errorSpan.end();
+      });
 
       for (const { messageTs, toolName } of pendingApprovalMessages) {
         await slackClient.chat
@@ -405,77 +632,46 @@ export async function streamAgentResponse(params: {
           .catch((e) => logger.warn({ error: e, messageTs }, 'Failed to expire approval message'));
       }
 
-      const contentAlreadyDelivered = fullText.length > 0;
-
       if (contentAlreadyDelivered) {
-        // Content was already streamed to the user — a late error (e.g. streamer.append
-        // timeout on the final chunk) should not surface as a user-facing error message.
-        span.setAttribute(SLACK_SPAN_KEYS.CONTENT_ALREADY_DELIVERED, true);
         logger.warn(
           { streamError, channel, threadTs, responseLength: fullText.length },
           'Error during Slack streaming after content was already delivered — suppressing user-facing error'
         );
-        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-        );
-
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore delete errors in error path
-          }
+        if (streamerStarted) {
+          await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
+            (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+          );
         }
 
-        span.end();
+        await cleanupThinkingMessage(cleanupParams);
+
         return { success: true };
       }
 
-      // Approval(s) expired — the stream ended while waiting for tool approval.
-      // The approval block is already updated to "Expired"; post a concise follow-up
-      // instead of the generic timeout error.
       if (pendingApprovalMessages.length > 0) {
         for (const { toolName } of pendingApprovalMessages) {
           await slackClient.chat
             .postMessage({
               channel,
-              thread_ts: threadTs,
+              ...threadParam,
               text: `Approval for \`${toolName}\` has expired.`,
             })
             .catch((e) =>
               logger.warn({ error: e }, 'Failed to send approval expired notification')
             );
         }
-        await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-          logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-        );
-        if (thinkingMessageTs) {
-          try {
-            await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
-          } catch {
-            // Ignore
-          }
+        if (streamerStarted) {
+          await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch(
+            (e) => logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
+          );
         }
-        span.end();
+        await cleanupThinkingMessage(cleanupParams);
         return { success: true };
       }
 
-      // No content was delivered — surface the error to the user
       logger.error({ streamError }, 'Error during Slack streaming');
-      await withTimeout(streamer.stop(), CLEANUP_TIMEOUT_MS, 'streamer.stop-cleanup').catch((e) =>
-        logger.warn({ error: e }, 'Failed to stop streamer during error cleanup')
-      );
 
-      if (thinkingMessageTs) {
-        try {
-          await slackClient.chat.delete({
-            channel,
-            ts: thinkingMessageTs,
-          });
-        } catch {
-          // Ignore delete errors in error path
-        }
-      }
+      await cleanupThinkingMessage(cleanupParams);
 
       const errorType = classifyError(streamError);
       const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
@@ -483,14 +679,13 @@ export async function streamAgentResponse(params: {
       try {
         await slackClient.chat.postMessage({
           channel,
-          thread_ts: threadTs,
+          ...threadParam,
           text: errorMessage,
         });
       } catch (notifyError) {
         logger.warn({ notifyError, channel, threadTs }, 'Failed to notify user of stream error');
       }
 
-      span.end();
       return { success: false, errorType, errorMessage };
     }
   });

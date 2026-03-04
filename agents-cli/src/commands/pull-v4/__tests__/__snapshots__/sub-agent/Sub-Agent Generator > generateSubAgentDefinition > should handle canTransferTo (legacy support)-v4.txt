@@ -1,0 +1,11 @@
+import { subAgent } from '@inkeep/agents-sdk';
+import { legacyAgent1 } from './legacyAgent1';
+import { legacyAgent2 } from './legacyAgent2';
+
+export const transferAgent = subAgent({
+  id: 'transfer-agent',
+  description: 'Agent with transfer capability',
+  prompt: 'I can transfer to legacy agents.',
+  name: 'Transfer Agent',
+  canTransferTo: () => [legacyAgent1, legacyAgent2],
+});

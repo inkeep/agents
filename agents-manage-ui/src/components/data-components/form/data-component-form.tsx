@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -129,7 +129,7 @@ export function DataComponentForm({
             isRequired={isRequired(schema, 'description')}
             disabled={readOnly}
           />
-          <JsonSchemaInput
+          <GenericJsonSchemaEditor
             control={form.control}
             name="props"
             label="Properties"

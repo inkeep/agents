@@ -15,6 +15,7 @@ import {
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -190,12 +191,7 @@ app.openapi(
     } catch (error: any) {
       const message = error?.message || 'Unknown error';
 
-      if (message.includes('already exists')) {
-        throw createApiError({
-          code: 'conflict',
-          message: `Branch '${name}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(error, `Branch '${name}' already exists`);
 
       if (message.includes('cannot be empty') || message.includes('invalid')) {
         throw createApiError({

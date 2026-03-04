@@ -19,6 +19,7 @@ interface BulkSelectAgentBarProps {
   selectedCount: number;
   agents: SlackAgentOption[];
   bulkSaving: boolean;
+  hasWorkspaceDefault: boolean;
   onBulkSetAgent: (agent: SlackAgentOption) => void;
   onBulkResetToDefault: () => void;
   onClearSelection: () => void;
@@ -28,6 +29,7 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
   selectedCount,
   agents,
   bulkSaving,
+  hasWorkspaceDefault,
   onBulkSetAgent,
   onBulkResetToDefault,
   onClearSelection,
@@ -70,14 +72,14 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
                     disabled={bulkSaving}
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Reset to workspace default
+                    Reset to workspace default{!hasWorkspaceDefault && ' (not set)'}
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
                 <CommandGroup>
                   {agents.map((agent) => (
                     <CommandItem
-                      key={agent.id}
+                      key={`${agent.id}-${agent.projectId}`}
                       value={`${agent.name} ${agent.projectName}`}
                       onSelect={() => {
                         onBulkSetAgent(agent);
@@ -85,7 +87,7 @@ export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
                       }}
                     >
                       <div className="flex flex-col">
-                        <span>{agent.name || agent.id}</span>
+                        <span className="font-medium">{agent.name}</span>
                         <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                       </div>
                     </CommandItem>

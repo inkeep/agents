@@ -5,18 +5,120 @@
  * Priority: Channel default > Workspace default (all admin-controlled)
  */
 
-import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
+import {
+  findWorkAppSlackChannelAgentConfig,
+  type WorkAppSlackAgentConfigRequest,
+} from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
-import { getWorkspaceDefaultAgentFromNango } from './nango';
+import { fetchAgentsForProject, fetchProjectsForTenant } from './events/utils';
+import { getWorkspaceDefaultAgent } from './nango';
 
 const logger = getLogger('slack-agent-resolution');
 
-/** Configuration for a resolved agent */
-export interface ResolvedAgentConfig {
-  projectId: string;
-  agentId: string;
+const AGENT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
+const AGENT_NAME_CACHE_MAX_SIZE = 500;
+const agentNameCache = new Map<string, { name: string | null; expiresAt: number }>();
+
+export async function lookupAgentName(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  options?: { skipCache?: boolean; throwOnError?: boolean }
+): Promise<string | undefined> {
+  const cacheKey = `${tenantId}:${projectId}:${agentId}`;
+  if (!options?.skipCache) {
+    const cached = agentNameCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.name || undefined;
+    }
+  }
+
+  const agents = await fetchAgentsForProject(tenantId, projectId, {
+    throwOnError: options?.throwOnError,
+  });
+
+  for (const agent of agents) {
+    const key = `${tenantId}:${projectId}:${agent.id}`;
+    agentNameCache.set(key, {
+      name: agent.name || null,
+      expiresAt: Date.now() + AGENT_NAME_CACHE_TTL_MS,
+    });
+  }
+
+  if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
+    const now = Date.now();
+    for (const [key, entry] of agentNameCache) {
+      if (entry.expiresAt <= now) {
+        agentNameCache.delete(key);
+      }
+    }
+    if (agentNameCache.size > AGENT_NAME_CACHE_MAX_SIZE) {
+      const excess = agentNameCache.size - AGENT_NAME_CACHE_MAX_SIZE;
+      const keys = agentNameCache.keys();
+      for (let i = 0; i < excess; i++) {
+        const { value } = keys.next();
+        if (value) agentNameCache.delete(value);
+      }
+    }
+  }
+
+  const found = agents.find((a) => a.id === agentId);
+  return found?.name || undefined;
+}
+
+const PROJECT_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
+const PROJECT_NAME_CACHE_MAX_SIZE = 200;
+const projectNameCache = new Map<string, { name: string | null; expiresAt: number }>();
+
+export async function lookupProjectName(
+  tenantId: string,
+  projectId: string,
+  options?: { skipCache?: boolean }
+): Promise<string | undefined> {
+  const cacheKey = `${tenantId}:${projectId}`;
+  if (!options?.skipCache) {
+    const cached = projectNameCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.name || undefined;
+    }
+  }
+
+  const projects = await fetchProjectsForTenant(tenantId);
+
+  for (const project of projects) {
+    const key = `${tenantId}:${project.id}`;
+    projectNameCache.set(key, {
+      name: project.name || null,
+      expiresAt: Date.now() + PROJECT_NAME_CACHE_TTL_MS,
+    });
+  }
+
+  if (projectNameCache.size > PROJECT_NAME_CACHE_MAX_SIZE) {
+    const now = Date.now();
+    for (const [key, entry] of projectNameCache) {
+      if (entry.expiresAt <= now) {
+        projectNameCache.delete(key);
+      }
+    }
+    if (projectNameCache.size > PROJECT_NAME_CACHE_MAX_SIZE) {
+      const excess = projectNameCache.size - PROJECT_NAME_CACHE_MAX_SIZE;
+      const keys = projectNameCache.keys();
+      for (let i = 0; i < excess; i++) {
+        const { value } = keys.next();
+        if (value) projectNameCache.delete(value);
+      }
+    }
+  }
+
+  const found = projects.find((p) => p.id === projectId);
+  return found?.name || undefined;
+}
+
+/** Configuration for a resolved agent — extends the canonical config with resolution metadata */
+export interface ResolvedAgentConfig extends WorkAppSlackAgentConfigRequest {
   agentName?: string;
+  projectName?: string;
   source: 'channel' | 'workspace' | 'none';
   grantAccessToMembers: boolean;
 }
@@ -42,6 +144,8 @@ export async function resolveEffectiveAgent(
 
   logger.debug({ tenantId, teamId, channelId }, 'Resolving effective agent');
 
+  let result: ResolvedAgentConfig | null = null;
+
   // Priority 1: Channel default (admin-configured)
   if (channelId) {
     const channelConfig = await findWorkAppSlackChannelAgentConfig(runDbClient)(
@@ -55,10 +159,9 @@ export async function resolveEffectiveAgent(
         { channelId, agentId: channelConfig.agentId, source: 'channel' },
         'Resolved agent from channel config'
       );
-      return {
+      result = {
         projectId: channelConfig.projectId,
         agentId: channelConfig.agentId,
-        agentName: channelConfig.agentName || undefined,
         source: 'channel',
         grantAccessToMembers: channelConfig.grantAccessToMembers,
       };
@@ -66,24 +169,43 @@ export async function resolveEffectiveAgent(
   }
 
   // Priority 2: Workspace default (admin-configured)
-  const workspaceConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+  if (!result) {
+    const workspaceConfig = await getWorkspaceDefaultAgent(teamId);
 
-  if (workspaceConfig?.agentId && workspaceConfig.projectId) {
-    logger.info(
-      { teamId, agentId: workspaceConfig.agentId, source: 'workspace' },
-      'Resolved agent from workspace config'
-    );
-    return {
-      projectId: workspaceConfig.projectId,
-      agentId: workspaceConfig.agentId,
-      agentName: workspaceConfig.agentName,
-      source: 'workspace',
-      grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
-    };
+    if (workspaceConfig?.agentId && workspaceConfig.projectId) {
+      logger.info(
+        { teamId, agentId: workspaceConfig.agentId, source: 'workspace' },
+        'Resolved agent from workspace config'
+      );
+      result = {
+        projectId: workspaceConfig.projectId,
+        agentId: workspaceConfig.agentId,
+        source: 'workspace',
+        grantAccessToMembers: workspaceConfig.grantAccessToMembers ?? true,
+      };
+    }
   }
 
-  logger.debug({ tenantId, teamId, channelId }, 'No agent configuration found');
-  return null;
+  // Always enrich agent name from manage API
+  if (result) {
+    const name = await lookupAgentName(tenantId, result.projectId, result.agentId);
+    if (name) {
+      result.agentName = name;
+    }
+  }
+
+  if (result) {
+    const projectName = await lookupProjectName(tenantId, result.projectId);
+    if (projectName) {
+      result.projectName = projectName;
+    }
+  }
+
+  if (!result) {
+    logger.debug({ tenantId, teamId, channelId }, 'No agent configuration found');
+  }
+
+  return result;
 }
 
 /**
@@ -112,29 +234,39 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
       channelConfig = {
         projectId: config.projectId,
         agentId: config.agentId,
-        agentName: config.agentName || undefined,
         source: 'channel',
         grantAccessToMembers: config.grantAccessToMembers,
       };
     }
   }
 
-  const wsConfig = await getWorkspaceDefaultAgentFromNango(teamId);
+  const wsConfig = await getWorkspaceDefaultAgent(teamId);
   if (wsConfig?.agentId && wsConfig.projectId) {
     workspaceConfig = {
       projectId: wsConfig.projectId,
       agentId: wsConfig.agentId,
-      agentName: wsConfig.agentName,
       source: 'workspace',
       grantAccessToMembers: wsConfig.grantAccessToMembers ?? true,
     };
   }
 
-  const effective = channelConfig || workspaceConfig;
+  const configsToEnrich = [channelConfig, workspaceConfig].filter(
+    (c): c is ResolvedAgentConfig => c !== null
+  );
+  await Promise.all(
+    configsToEnrich.map(async (config) => {
+      const [agentName, projectName] = await Promise.all([
+        lookupAgentName(tenantId, config.projectId, config.agentId),
+        lookupProjectName(tenantId, config.projectId),
+      ]);
+      if (agentName) config.agentName = agentName;
+      if (projectName) config.projectName = projectName;
+    })
+  );
 
   return {
     channelConfig,
     workspaceConfig,
-    effective,
+    effective: channelConfig || workspaceConfig,
   };
 }

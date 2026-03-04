@@ -54,7 +54,7 @@ export const fetchNangoProviders = cache($fetchNangoProviders);
 /**
  * Fetch a specific Nango integration
  */
-async function fetchNangoIntegration(
+export async function fetchNangoIntegration(
   uniqueKey: string
 ): Promise<(ApiPublicIntegration & { areCredentialsSet: boolean }) | null> {
   try {

@@ -1,7 +1,8 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useId, useState } from 'react';
+import { Editor } from '@/components/editors/editor';
 import { TEMPLATE_VARIABLE_REGEX } from '@/constants/theme';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
@@ -12,9 +13,15 @@ interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'u
   uri?: `${string}.${'template' | 'md'}`;
 }
 
-export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {
+export const PromptEditor: FC<PromptEditorProps> = ({
+  uri,
+  editorOptions,
+  onMount,
+  children,
+  ...props
+}) => {
+  'use memo';
   const id = useId();
-  uri ??= `${id}.template`;
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
@@ -68,17 +75,14 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
     return cleanupDisposables(disposables);
   }, [editor, monaco]);
 
-  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
-    (editorInstance) => {
-      setEditor(editorInstance);
-      onMount?.(editorInstance);
-    },
-    [onMount]
-  );
+  const handleOnMount: ComponentProps<typeof MonacoEditor>['onMount'] = (editorInstance) => {
+    setEditor(editorInstance);
+    onMount?.(editorInstance);
+  };
 
   return (
     <MonacoEditor
-      uri={uri}
+      uri={uri ?? `${id}.template`}
       onMount={handleOnMount}
       editorOptions={{
         autoClosingBrackets: 'never',
@@ -92,6 +96,11 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
         ...editorOptions,
       }}
       {...props}
-    />
+    >
+      <div className="absolute end-2 top-2 flex gap-2 z-1">
+        {children}
+        {!props.readOnly && <Editor.FormatAction disabled={!props.value?.trim()} />}
+      </div>
+    </MonacoEditor>
   );
 };

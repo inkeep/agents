@@ -11,6 +11,8 @@ description: |
 ## Overview
 This is a consolidated inventory of internal “surface areas”: subsystems, infrastructure, tooling, and shared code that developers/operators interact with, but which are not directly customer-facing contracts. Use it during planning or PR review to understand internal dependency chains (what breaks when X changes) and to avoid accidental workflow/build/test/deploy regressions.
 
+**Companion skills:** For *who* is affected and how changes propagate per audience, load `audience-impact`. For customer-facing surfaces, load `product-surface-areas`.
+
 ## Summary
 
 | Category | Count |

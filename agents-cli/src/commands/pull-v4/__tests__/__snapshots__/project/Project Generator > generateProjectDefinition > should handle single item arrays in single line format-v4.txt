@@ -1,0 +1,13 @@
+import { project } from '@inkeep/agents-sdk';
+import { onlyAgent } from './agents/onlyAgent';
+
+export const singleAgentProject = project({
+  id: 'single-agent-project',
+  name: 'Single Agent Project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini',
+    },
+  },
+  agents: () => [onlyAgent],
+});

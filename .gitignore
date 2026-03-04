@@ -27,6 +27,7 @@ coverage/
 *.pem
 *.db
 .setup-complete
+.blob-storage/
 
 # debug
 npm-debug.log*
@@ -83,6 +84,7 @@ agents-docs/skills-collections/.generated/
 # Ship spec files (local working artifacts)
 .claude/specs/
 .claude/ship-state.json
+.claude/worktrees/
 
 # Turborepo
 .turbo
@@ -96,12 +98,10 @@ agents-api/.workflow-data/
 # Node compile cache
 node-compile-cache/
 
-# inkeep pull temp folder
-.temp-validation-*/
-
 tmp
 .claude/specs
 specs
+reports
 tasks
 prd.json
 progress.txt

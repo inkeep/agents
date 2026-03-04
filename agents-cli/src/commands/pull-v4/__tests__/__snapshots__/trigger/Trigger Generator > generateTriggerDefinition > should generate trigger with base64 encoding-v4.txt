@@ -1,0 +1,26 @@
+import { Trigger } from '@inkeep/agents-sdk';
+import { githubWebhookSecret } from '../../credentials/github-webhook-secret';
+
+export const webhookBase64 = new Trigger({
+  id: 'webhook-base64',
+  name: 'GitHub Webhook with Signature',
+  messageTemplate: 'New push event from GitHub',
+  signatureVerification: {
+    algorithm: 'sha256',
+    encoding: 'base64',
+    signature: {
+      source: 'header',
+      key: 'x-hub-signature-256',
+      prefix: 'sha256=',
+    },
+    signedComponents: [{
+      source: 'body',
+      required: true,
+    }],
+    componentJoin: {
+      strategy: 'concatenate',
+      separator: '',
+    },
+  },
+  signingSecretCredentialReference: githubWebhookSecret,
+});

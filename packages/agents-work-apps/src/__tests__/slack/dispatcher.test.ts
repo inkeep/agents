@@ -43,11 +43,10 @@ vi.mock('../../env', () => ({
 
 vi.mock('../../slack/services/events', () => ({
   handleAppMention: vi.fn().mockResolvedValue(undefined),
-  handleFollowUpSubmission: vi.fn().mockResolvedValue(undefined),
+  handleDirectMessage: vi.fn().mockResolvedValue(undefined),
   handleMessageShortcut: vi.fn().mockResolvedValue(undefined),
   handleModalSubmission: vi.fn().mockResolvedValue(undefined),
   handleOpenAgentSelectorModal: vi.fn().mockResolvedValue(undefined),
-  handleOpenFollowUpModal: vi.fn().mockResolvedValue(undefined),
   handleToolApproval: vi.fn().mockResolvedValue(undefined),
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
@@ -80,6 +79,148 @@ describe('dispatchSlackEvent', () => {
     vi.clearAllMocks();
   });
 
+  describe('event deduplication', () => {
+    it('should process the first event with a given event_id', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          event_id: 'Ev_dedup_first',
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '100.001',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+    });
+
+    it('should ignore a duplicate event with the same event_id', async () => {
+      const span1 = createMockSpan();
+      const options1 = createMockOptions();
+
+      // First delivery
+      await dispatchSlackEvent(
+        'event_callback',
+        {
+          event_id: 'Ev_dedup_dup',
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '100.002',
+          },
+        },
+        options1,
+        span1
+      );
+
+      const span2 = createMockSpan();
+      const options2 = createMockOptions();
+
+      // Second delivery (duplicate)
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          event_id: 'Ev_dedup_dup',
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '100.002',
+          },
+        },
+        options2,
+        span2
+      );
+
+      expect(result.outcome).toBe('ignored_duplicate_event');
+      expect(options2.registerBackgroundWork).not.toHaveBeenCalled();
+    });
+
+    it('should not deduplicate events without an event_id', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '100.003',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+    });
+
+    it('should process different event_ids independently', async () => {
+      const span1 = createMockSpan();
+      const options1 = createMockOptions();
+
+      await dispatchSlackEvent(
+        'event_callback',
+        {
+          event_id: 'Ev_dedup_a',
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '100.004',
+          },
+        },
+        options1,
+        span1
+      );
+
+      const span2 = createMockSpan();
+      const options2 = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          event_id: 'Ev_dedup_b',
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> world',
+            ts: '100.005',
+          },
+        },
+        options2,
+        span2
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options2.registerBackgroundWork).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('event_callback', () => {
     it('should ignore bot messages', async () => {
       const span = createMockSpan();
@@ -96,6 +237,31 @@ describe('dispatchSlackEvent', () => {
       );
 
       expect(result.outcome).toBe('ignored_bot_message');
+      expect(options.registerBackgroundWork).not.toHaveBeenCalled();
+    });
+
+    it('should ignore edited messages', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'app_mention',
+            user: 'U123',
+            channel: 'C123',
+            text: '<@U456> hello',
+            ts: '123.456',
+            edited: { user: 'U123', ts: '123.789' },
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('ignored_edited_message');
       expect(options.registerBackgroundWork).not.toHaveBeenCalled();
     });
 
@@ -166,6 +332,98 @@ describe('dispatchSlackEvent', () => {
 
       expect(result.outcome).toBe('ignored_unknown_event');
     });
+
+    it('should handle message.im events (DM)', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'message',
+            channel_type: 'im',
+            user: 'U123',
+            channel: 'D123',
+            text: 'hello bot',
+            ts: '111.222',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
+      const { handleDirectMessage } = await import('../../slack/services/events');
+      expect(vi.mocked(handleDirectMessage)).toHaveBeenCalledWith({
+        slackUserId: 'U123',
+        channel: 'D123',
+        text: 'hello bot',
+        threadTs: undefined,
+        messageTs: '111.222',
+        teamId: 'T123',
+      });
+    });
+
+    it('should handle message.im events in a DM thread', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'message',
+            channel_type: 'im',
+            user: 'U123',
+            channel: 'D123',
+            text: 'follow up',
+            ts: '333.444',
+            thread_ts: '111.222',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('handled');
+      const { handleDirectMessage } = await import('../../slack/services/events');
+      expect(vi.mocked(handleDirectMessage)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          threadTs: '111.222',
+          messageTs: '333.444',
+        })
+      );
+    });
+
+    it('should ignore bot DM messages', async () => {
+      const span = createMockSpan();
+      const options = createMockOptions();
+
+      const result = await dispatchSlackEvent(
+        'event_callback',
+        {
+          team_id: 'T123',
+          event: {
+            type: 'message',
+            channel_type: 'im',
+            bot_id: 'B123',
+            user: 'U123',
+            channel: 'D123',
+            text: 'bot self-message',
+            ts: '111.222',
+          },
+        },
+        options,
+        span
+      );
+
+      expect(result.outcome).toBe('ignored_bot_message');
+      expect(options.registerBackgroundWork).not.toHaveBeenCalled();
+    });
   });
 
   describe('view_submission', () => {
@@ -218,27 +476,6 @@ describe('dispatchSlackEvent', () => {
                 },
               },
             },
-          },
-        },
-        options,
-        span
-      );
-
-      expect(result.outcome).toBe('handled');
-      expect(options.registerBackgroundWork).toHaveBeenCalledTimes(1);
-    });
-
-    it('should handle follow_up_modal submission', async () => {
-      const span = createMockSpan();
-      const options = createMockOptions();
-
-      const result = await dispatchSlackEvent(
-        'view_submission',
-        {
-          view: {
-            callback_id: 'follow_up_modal',
-            private_metadata: '{}',
-            state: { values: {} },
           },
         },
         options,

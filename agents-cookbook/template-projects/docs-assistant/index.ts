@@ -8,4 +8,7 @@ export const myProject = project({
   description: 'Docs assistant template',
   agents: () => [docsAssistantAgent],
   tools: () => [inkeepRagMcpTool],
+  models: {
+    base: { model: 'openai/gpt-4o-mini' },
+  },
 });

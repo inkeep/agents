@@ -127,6 +127,7 @@ export const QUERY_EXPRESSIONS = {
   TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'maxStepsReached',
+  STREAM_LIFETIME_EXCEEDED: 'streamLifetimeExceeded',
 } as const;
 
 /** Query Reduce Operations */

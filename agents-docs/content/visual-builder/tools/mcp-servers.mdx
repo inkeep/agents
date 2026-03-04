@@ -45,8 +45,8 @@ After creating an MCP server, you can view its details:
 <Image
   src="/images/mcp-server-healthy-status.png"
   alt="MCP server healthy status"
-  width="60%"
   style={{
+    width: "60%",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -89,8 +89,8 @@ For each enabled tool, you can configure overrides to customize how the tool app
 <Image
   src="/images/mcp-server-edit-form.png"
   alt="MCP server healthy status"
-  width="60%"
   style={{
+    width: "60%",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -111,8 +111,8 @@ If your MCP server requires authentication, you have two options: either use the
 <Image
   src="/images/mcp-server-click-to-login.png"
   alt="MCP server click to login"
-  width="60%"
   style={{
+    width: "60%",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -180,8 +180,8 @@ Once you have created an MCP server, you can add it to your agents:
 <Image
   src="/images/mcp-server-add-to-agent.png"
   alt="MCP server add to agent"
-  width="60%"
   style={{
+    width: "60%",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -189,3 +189,7 @@ Once you have created an MCP server, you can add it to your agents:
 />
 
 For detailed instructions on working with MCP servers in agents, see the [Sub Agents](/visual-builder/sub-agents#adding-tools) page.
+
+## Tool Output Pipelines
+
+MCP tool outputs can be passed directly as inputs to subsequent tools — including other MCP servers or function tools — without creating an artifact in between. Agents handle this automatically when tools are designed for sequential use. See [Function Tools — Tool Output Pipelines](/visual-builder/tools/function-tools#tool-output-pipelines) for more detail.

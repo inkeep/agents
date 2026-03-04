@@ -1,0 +1,3 @@
+import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+
+export const envSettings = createEnvironmentSettings({});

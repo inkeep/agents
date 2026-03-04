@@ -9,4 +9,7 @@ export const myProject = project({
   description: 'Customer support template',
   agents: () => [customerSupport],
   tools: () => [knowledgeBaseMcpTool, zendeskMcpTool],
+  models: {
+    base: { model: 'openai/gpt-4o-mini' },
+  },
 });

@@ -41,18 +41,13 @@ export type PaginationResult = {
   pages: number;
 };
 
-export type ProjectScopeConfig = {
-  tenantId: string;
-  projectId: string;
-};
-
-export type AgentScopeConfig = ProjectScopeConfig & {
-  agentId: string;
-};
-
-export type SubAgentScopeConfig = AgentScopeConfig & {
-  subAgentId: string;
-};
+// Scope config types are derived from SCOPE_KEYS in scope-definitions.ts.
+// Re-exported here to keep existing import paths working.
+export type {
+  AgentScopeConfig,
+  ProjectScopeConfig,
+  SubAgentScopeConfig,
+} from '../db/manage/scope-definitions';
 export interface ConversationScopeOptions {
   taskId?: string;
   subAgentId?: string;
@@ -200,9 +195,9 @@ export type ToolMcpConfig = {
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server
   activeTools?: string[];
-  // Tool overrides for schema simplification
+  // Tool overrides for individual tool schema/display customization
   toolOverrides?: Record<string, ToolSimplifyConfig>;
-  // Optional custom prompt/instructions for using this MCP server
+  // Custom prompt / instructions sent to the LLM about this MCP server
   prompt?: string;
 };
 
@@ -212,6 +207,8 @@ export type ToolServerCapabilities = {
   prompts?: boolean;
   logging?: boolean;
   streaming?: boolean;
+  // Default instructions from the MCP server's initialize response
+  serverInstructions?: string;
 };
 
 export type TaskMetadataConfig = {

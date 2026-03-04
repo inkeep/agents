@@ -15,6 +15,7 @@ import {
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
@@ -172,13 +173,7 @@ app.openapi(
 
       return c.json({ data: artifactComponent }, 201);
     } catch (error: any) {
-      // Handle duplicate artifact component (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
-        throw createApiError({
-          code: 'conflict',
-          message: `Artifact component with ID '${finalId}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(error, `Artifact component with ID '${finalId}' already exists`);
 
       // Re-throw other errors to be handled by the global error handler
       throw error;

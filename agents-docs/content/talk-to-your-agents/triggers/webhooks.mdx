@@ -4,7 +4,7 @@ description: Create webhook endpoints for external services to invoke your Agent
 icon: LuZap
 ---
 
-Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
+Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, Zendesk, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
 
 ## How Triggers Work
 
@@ -65,6 +65,7 @@ Each trigger is configured with:
 - **Output Transform**: Reshape payloads before interpolating the message template. Choose one approach:
   - **Object Transformation**: Simple field remapping (recommended for basic use cases)
   - **JMESPath**: Complex transformations like filtering arrays or restructuring nested data
+- **Run As User**: Execute the trigger on behalf of a specific user, enabling access to their connected credentials
 
 ## Authentication Options
 
@@ -101,6 +102,12 @@ POST https://<your-run-api>/tenants/{tenantId}/projects/{projectId}/agents/{agen
 
 You can find the complete webhook URL in the API response when creating or listing triggers.
 
+## User-Scoped Execution
+
+By default, webhook triggers execute without a user identity — tools with user-scoped credentials will fail. Setting `runAsUserId` makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
+
+Any user with `edit` permission on a project can set `runAsUserId` to themselves. Org admins and owners can set it to any user in their organization.
+
 ## Invocation Tracking
 
 Every webhook invocation is tracked with:
@@ -124,15 +131,12 @@ Here's a conceptual example of a trigger that responds to GitHub issues:
 // And starts a conversation with your support agent
 ```
 
-The Agent then processes this message like any other conversation, using its configured tools and sub-agents to respond.
+## Example: Zendesk Ticket
 
-## Next Steps
+Here's a conceptual example of a trigger that responds to Zendesk tickets:
 
-<Cards>
-  <Card title="Define Triggers in Code" icon="LuCode" href="/typescript-sdk/triggers/webhooks">
-    Learn how to create and configure webhook triggers using the TypeScript SDK.
-  </Card>
-  <Card title="Chat API" icon="LuNetwork" href="/talk-to-your-agents/chat-api">
-    For synchronous conversations, use the Chat API instead.
-  </Card>
-</Cards>
+```typescript
+// Create a webhook from Zendesk when a ticket is created or updated
+// The webhook triggers your Zendesk support ticket agent
+// The agent can draft a reply to the ticket, write summaries as internal notes, add tags & custom fields, etc
+```

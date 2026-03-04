@@ -60,7 +60,7 @@ function createMockAuth(overrides?: {
       authCookies: {
         sessionToken: {
           name: sessionTokenName,
-          options: sessionTokenOptions,
+          attributes: sessionTokenOptions,
         },
       },
       sessionConfig: { expiresIn },

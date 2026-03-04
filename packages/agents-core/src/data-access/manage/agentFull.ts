@@ -889,7 +889,7 @@ export const createFullAgentServerSide =
  * This function updates a complete agent with all agents, tools, and relationships.
  */
 export const updateFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger = defaultLogger) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition

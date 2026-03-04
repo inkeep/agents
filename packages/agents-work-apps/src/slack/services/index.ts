@@ -14,7 +14,7 @@
  *
  * Slack Web API:
  * - `getSlackClient` - WebClient wrapper
- * - `getSlackUserInfo`, `getSlackTeamInfo`, `getSlackChannels`
+ * - `getSlackUserInfo`, `getSlackTeamInfo`, `getSlackChannels`, `getBotMemberChannels`
  * - `postMessage`, `postMessageInThread`
  *
  * Commands:

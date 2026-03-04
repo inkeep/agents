@@ -64,11 +64,9 @@ vi.mock('../../slack/services/nango', () => ({
 
 vi.mock('../../slack/services/events', () => ({
   handleAppMention: vi.fn().mockResolvedValue(undefined),
-  handleFollowUpSubmission: vi.fn().mockResolvedValue(undefined),
   handleMessageShortcut: vi.fn().mockResolvedValue(undefined),
   handleModalSubmission: vi.fn().mockResolvedValue(undefined),
   handleOpenAgentSelectorModal: vi.fn().mockResolvedValue(undefined),
-  handleOpenFollowUpModal: vi.fn().mockResolvedValue(undefined),
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
 

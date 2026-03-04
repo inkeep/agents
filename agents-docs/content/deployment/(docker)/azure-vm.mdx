@@ -87,3 +87,23 @@ For a production deployment, you will want to restrict access to the VM and only
 ### Restrict VM Access
 - Modify the inbound security rules, for example, to only specific IPs. You will need this for building agents.
 - All external access should only use the gateway and front door.
+
+### Updating Inkeep Agent Platform
+
+To update the Inkeep Agent Platform to the latest version, run the following commands:
+
+```bash
+cd inkeep
+docker compose down
+wget -O docker-compose.yml https://raw.githubusercontent.com/inkeep/agents/main/docker-compose.yml
+docker compose pull
+docker compose up -d
+```
+
+These commands replace your Docker Compose file with the latest version, pull any newer image versions, and restart all the services. Existing database data is preserved, but there will be downtime while the services restart.
+
+To clean up old unused Docker images and free disk space:
+
+```bash
+docker image prune -a
+```

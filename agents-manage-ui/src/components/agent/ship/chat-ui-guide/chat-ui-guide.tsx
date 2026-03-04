@@ -35,7 +35,7 @@ export function ChatUIGuide() {
     },
   });
   const allValues = form.watch();
-  const component = (allValues.component ?? ChatUIComponent.EMBEDDED_CHAT) as ChatUIComponent;
+  const component = allValues.component ?? ChatUIComponent.EMBEDDED_CHAT;
   const baseSettings = allValues.baseSettings ?? { primaryBrandColor: INKEEP_BRAND_COLOR };
   const aiChatSettings = allValues.aiChatSettings ?? {
     agentUrl,

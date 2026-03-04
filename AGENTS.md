@@ -222,10 +222,11 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 | Skill | Scope | Load when |
 |---|---|---|
+| `audience-impact` | Who is affected and how fast does it reach them? Maps roles (Contributor, Builder, Platform User) × deployment modes (Cloud, Self-hosted) to impact propagation. | Start here — identifies which audiences a change affects and what deliverables are needed |
 | `product-surface-areas` | APIs, SDKs, CLI, UIs, Widgets, Event Streams, docs, protocols, templates, etc. | Change affects anything a customer (developer or no-code admin) uses or depends on |
 | `internal-surface-areas` | Build, CI/CD, DB, auth, runtime engine, test infra, internal AI tooling, etc. | Change affects infrastructure, tooling, or shared internals |
 
-**Tip**: Both skills include dependency graphs, breaking change impact matrices, and transitive chain tracing for systematically identifying relevant surfaces and code paths that may be affected by changes.
+**Tip**: Start with `audience-impact` to quickly identify who cares and how changes propagate, then load the catalog skills for detailed surface tracing. Both catalog skills include dependency graphs, breaking change impact matrices, and transitive chain tracing.
 
 ## Development Guidelines
 

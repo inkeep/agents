@@ -57,6 +57,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   }) => {
     const createData = {
       agentId: agentId,
+      name: 'Test API Key',
       ...(expiresAt && { expiresAt }),
     };
 
@@ -240,6 +241,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       const createData = {
         agentId: agentId,
+        name: 'Test API Key',
       };
 
       const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/api-keys`, {
@@ -288,6 +290,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const expiresAt = '2025-12-31 23:59:59';
       const createData = {
         agentId: agentId,
+        name: 'Test API Key',
         expiresAt,
       };
 
@@ -530,7 +533,10 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         `/manage/tenants/${tenantId}/projects/${projectId}/api-keys`,
         {
           method: 'POST',
-          body: JSON.stringify({ agentId: agentId }),
+          body: JSON.stringify({
+            agentId: agentId,
+            name: 'Test API Key',
+          }),
         }
       );
 
