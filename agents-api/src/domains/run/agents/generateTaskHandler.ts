@@ -504,6 +504,18 @@ export const createTaskHandler = (
         return { kind: 'text' as const, text: part.text };
       });
 
+      const denialRedirects = agent?.getTaskDenialRedirects() ?? [];
+      if (denialRedirects.length > 0) {
+        const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
+        const redirectNote = denialRedirects
+          .map((d) => `- ${d.toolName} (${d.toolCallId}): ${sanitize(d.reason)}`)
+          .join('\n');
+        parts.unshift({
+          kind: 'text' as const,
+          text: `[NOTE: Some tool calls were denied during task execution, which may have changed the original request:\n${redirectNote}\nThe result below reflects the actual execution.]\n\n`,
+        });
+      }
+
       return {
         status: { state: TaskState.Completed },
         artifacts: [
