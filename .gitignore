@@ -100,7 +100,6 @@ node-compile-cache/
 
 tmp
 .claude/specs
-specs
 reports
 tasks
 prd.json
