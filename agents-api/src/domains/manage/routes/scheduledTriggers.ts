@@ -52,7 +52,7 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
-import { buildScheduledTriggerHeaders, executeAgentAsync } from '../../run/services/TriggerService';
+import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 
 export { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
@@ -1145,7 +1145,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
-              forwardedHeaders: buildScheduledTriggerHeaders(trigger.cronTimezone),
+              forwardedHeaders: buildTimezoneHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);
@@ -1464,7 +1464,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
-              forwardedHeaders: buildScheduledTriggerHeaders(trigger.cronTimezone),
+              forwardedHeaders: buildTimezoneHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);
