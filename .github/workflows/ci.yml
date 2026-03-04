@@ -10,7 +10,7 @@ on:
   merge_group:
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,6 +79,28 @@ jobs:
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
+
+      # Auto-update OpenAPI snapshot on PRs and commit back if changed
+      - name: Update OpenAPI snapshot
+        if: github.event_name == 'pull_request'
+        run: pnpm --filter @inkeep/agents-api openapi:update-snapshot
+        env:
+          ENVIRONMENT: test
+          CI: true
+
+      - name: Commit OpenAPI snapshot if changed
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --quiet agents-api/__snapshots__/openapi.json 2>/dev/null; then
+            echo "OpenAPI snapshot is up to date"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add agents-api/__snapshots__/openapi.json
+            git commit -m "chore: update OpenAPI snapshot"
+            git push
+            echo "::notice::OpenAPI snapshot was auto-updated and committed. This CI run will continue with the updated snapshot."
+          fi
 
       - name: Install Playwright
         run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
