@@ -311,7 +311,7 @@ export class ModelFactory {
     model: LanguageModel;
     maxDuration?: number;
     providerOptions?: Record<string, JSONObject>;
-  } & Record<string, unknown> {
+  } {
     const modelString = modelSettings?.model?.trim();
 
     const model = ModelFactory.createModel({
