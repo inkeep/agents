@@ -260,8 +260,8 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="Message content">
-              <Bubble className="whitespace-pre-wrap break-words">
-                {a.messageContent?.replaceAll('\\n', '\n') || 'Message content not available'}
+              <Bubble className="break-words">
+                <Streamdown>{a.messageContent || 'Message content not available'}</Streamdown>
               </Bubble>
             </LabeledBlock>
             {targetTenantId && (
