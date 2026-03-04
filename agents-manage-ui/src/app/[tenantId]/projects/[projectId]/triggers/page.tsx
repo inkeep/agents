@@ -5,6 +5,7 @@ import { ScheduledTabContent } from '@/components/project-triggers/scheduled-tab
 import { TriggersTabs } from '@/components/project-triggers/triggers-tabs';
 import { WebhooksTabContent } from '@/components/project-triggers/webhooks-tab-content';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TabsContent } from '@/components/ui/tabs';
 import { STATIC_LABELS } from '@/constants/theme';
 
 export const metadata = {
@@ -30,22 +31,22 @@ function TabSkeleton() {
 
 async function TriggersPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/triggers'>) {
   const { tenantId, projectId } = await params;
-
   return (
     <>
       <PageHeader title={metadata.title} description={metadata.description} />
-      <TriggersTabs
-        scheduledContent={
+      <TriggersTabs>
+        <TabsContent value="scheduled" className="mt-6">
           <Suspense fallback={<TabSkeleton />}>
             <ScheduledTabContent tenantId={tenantId} projectId={projectId} />
           </Suspense>
-        }
-        webhooksContent={
+        </TabsContent>
+
+        <TabsContent value="webhooks" className="mt-6">
           <Suspense fallback={<TabSkeleton />}>
             <WebhooksTabContent tenantId={tenantId} projectId={projectId} />
           </Suspense>
-        }
-      />
+        </TabsContent>
+      </TriggersTabs>
     </>
   );
 }
