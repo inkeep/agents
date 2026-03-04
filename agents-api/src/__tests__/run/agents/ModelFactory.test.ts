@@ -897,11 +897,9 @@ describe('ModelFactory', () => {
       const config: ModelSettings = {
         model: 'custom/my-custom-model',
         providerOptions: {
-          custom: {
-            baseURL: 'https://api.example.com/v1',
-            headers: {
-              Authorization: 'Bearer custom-api-key',
-            },
+          baseURL: 'https://api.example.com/v1',
+          headers: {
+            Authorization: 'Bearer custom-api-key',
           },
         },
       };
@@ -917,7 +915,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+        'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
       );
     });
 

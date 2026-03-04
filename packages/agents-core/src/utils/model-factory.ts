@@ -4,6 +4,7 @@ import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import type { JSONObject } from '@ai-sdk/provider';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
 
@@ -147,17 +148,17 @@ export class ModelFactory {
    */
   static extractStreamProviderOptions(
     providerOptions?: Record<string, unknown>
-  ): Record<string, unknown> | undefined {
+  ): Record<string, JSONObject> | undefined {
     if (!providerOptions) {
       return undefined;
     }
 
     const constructorObjectKeys = new Set(['headers']);
-    const result: Record<string, unknown> = {};
+    const result: Record<string, JSONObject> = {};
 
     for (const [key, value] of Object.entries(providerOptions)) {
       if (value !== null && typeof value === 'object' && !constructorObjectKeys.has(key)) {
-        result[key] = value;
+        result[key] = value as JSONObject;
       }
     }
 
@@ -309,7 +310,7 @@ export class ModelFactory {
   static prepareGenerationConfig(modelSettings?: ModelSettings): {
     model: LanguageModel;
     maxDuration?: number;
-    providerOptions?: Record<string, unknown>;
+    providerOptions?: Record<string, JSONObject>;
   } & Record<string, unknown> {
     const modelString = modelSettings?.model?.trim();
 
@@ -328,7 +329,9 @@ export class ModelFactory {
       model,
       ...generationParams,
       ...(maxDuration !== undefined && { maxDuration }),
-      ...(streamProviderOptions !== undefined && { providerOptions: streamProviderOptions }),
+      ...(streamProviderOptions !== undefined && {
+        providerOptions: streamProviderOptions as Record<string, JSONObject>,
+      }),
     };
   }
 
