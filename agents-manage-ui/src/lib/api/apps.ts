@@ -31,20 +31,6 @@ export async function fetchApps(tenantId: string, projectId: string): Promise<Li
   } as ListResponse<App>;
 }
 
-export async function fetchApp(tenantId: string, projectId: string, appId: string): Promise<App> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<SingleResponse<AppApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/apps/${appId}`
-  );
-
-  return {
-    ...response.data,
-    lastUsedAt: response.data.lastUsedAt ?? undefined,
-  };
-}
-
 export async function createApp(
   tenantId: string,
   projectId: string,
