@@ -1,5 +1,6 @@
 services:
   inkeep-agents-manage-ui:
+    image: inkeep/agents-manage-ui:latest
     build:
       context: .
       dockerfile: Dockerfile.agents-manage-ui
@@ -21,6 +22,7 @@ services:
       inkeep-agents-api:
         condition: service_started
   inkeep-agents-api:
+    image: inkeep/agents-api:latest
     build:
       context: .
       dockerfile: Dockerfile.agents-api
@@ -60,6 +62,7 @@ services:
       inkeep-agents-spicedb:
         condition: service_started
   inkeep-agents-migrate:
+    image: inkeep/agents-migrate:latest
     build:
       context: .
       dockerfile: Dockerfile.agents-migrate
