@@ -1,5 +1,22 @@
 # @inkeep/agents-api
 
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 31b5e8b: Fix tool approval denial reason not propagating to LLM or parent agent
+- 95e2477: Fix provider-specific per-call options not being forwarded to AI SDK streamText calls
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+  - @inkeep/agents-work-apps@0.57.0
+  - @inkeep/agents-email@0.57.0
+  - @inkeep/agents-mcp@0.57.0
+
 ## 0.56.2
 
 ### Patch Changes

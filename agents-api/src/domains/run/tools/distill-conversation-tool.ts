@@ -77,7 +77,7 @@ export async function distillConversation(params: {
       'Starting distillation with context window limits'
     );
 
-    const model = ModelFactory.createModel(modelToUse);
+    const generationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
 
     const existingSummaryContext = currentSummary
       ? `**Current summary:**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\``
@@ -165,7 +165,7 @@ Return **only** valid JSON.`;
 
       try {
         const { output: summary } = await generateText({
-          model,
+          ...generationConfig,
           prompt,
           output: Output.object({ schema: ConversationSummarySchema }),
         });

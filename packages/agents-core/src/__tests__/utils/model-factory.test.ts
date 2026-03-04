@@ -197,15 +197,18 @@ describe('ModelFactory', () => {
   });
 
   describe('Generation Parameters', () => {
-    test('should extract generation parameters excluding provider config', () => {
+    test('should extract generation parameters excluding provider config and object values', () => {
       const providerOptions = {
-        resourceName: 'my-resource', // Provider config - should be excluded
-        apiVersion: '2024-10-21', // Provider config - should be excluded
-        baseURL: 'https://custom.com', // Provider config - should be excluded
-        headers: { Custom: 'value' }, // Provider config - should be excluded
-        temperature: 0.7, // Generation param - should be included
-        maxOutputTokens: 2048, // Generation param - should be included
-        topP: 0.9, // Generation param - should be included
+        resourceName: 'my-resource',
+        apiVersion: '2024-10-21',
+        baseURL: 'https://custom.com',
+        headers: { Custom: 'value' },
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } },
+        openai: { reasoningEffort: 'medium' },
+        gateway: { models: ['openai/gpt-4.1', 'anthropic/claude-sonnet-4-5'] },
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        topP: 0.9,
       };
 
       const params = ModelFactory.getGenerationParams(providerOptions);
@@ -219,11 +222,72 @@ describe('ModelFactory', () => {
       expect(params).not.toHaveProperty('apiVersion');
       expect(params).not.toHaveProperty('baseURL');
       expect(params).not.toHaveProperty('headers');
+      expect(params).not.toHaveProperty('anthropic');
+      expect(params).not.toHaveProperty('openai');
+      expect(params).not.toHaveProperty('gateway');
     });
 
     test('should return empty object for null provider options', () => {
       const params = ModelFactory.getGenerationParams(undefined);
       expect(params).toEqual({});
+    });
+  });
+
+  describe('extractStreamProviderOptions', () => {
+    test('should extract anthropic per-call options', () => {
+      const providerOptions = {
+        temperature: 0.7,
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } },
+      };
+      const result = ModelFactory.extractStreamProviderOptions(providerOptions);
+      expect(result).toEqual({ anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } } });
+    });
+
+    test('should extract openai per-call options', () => {
+      const providerOptions = {
+        maxOutputTokens: 4096,
+        openai: { reasoningEffort: 'medium' },
+      };
+      const result = ModelFactory.extractStreamProviderOptions(providerOptions);
+      expect(result).toEqual({ openai: { reasoningEffort: 'medium' } });
+    });
+
+    test('should extract gateway per-call options including arrays', () => {
+      const providerOptions = {
+        gateway: { models: ['openai/gpt-5-2', 'gemini-2.0-flash'] },
+      };
+      const result = ModelFactory.extractStreamProviderOptions(providerOptions);
+      expect(result).toEqual({ gateway: { models: ['openai/gpt-5-2', 'gemini-2.0-flash'] } });
+    });
+
+    test('should extract multiple provider options at once', () => {
+      const providerOptions = {
+        temperature: 0.7,
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+        gateway: { models: ['openai/gpt-4.1'] },
+      };
+      const result = ModelFactory.extractStreamProviderOptions(providerOptions);
+      expect(result).toEqual({
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+        gateway: { models: ['openai/gpt-4.1'] },
+      });
+    });
+
+    test('should not include headers in stream provider options', () => {
+      const providerOptions = {
+        headers: { Authorization: 'Bearer token' },
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } },
+      };
+      const result = ModelFactory.extractStreamProviderOptions(providerOptions);
+      expect(result).toEqual({ anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } } });
+      expect(result).not.toHaveProperty('headers');
+    });
+
+    test('should return undefined when no provider options present', () => {
+      expect(ModelFactory.extractStreamProviderOptions(undefined)).toBeUndefined();
+      expect(
+        ModelFactory.extractStreamProviderOptions({ temperature: 0.7, maxOutputTokens: 2048 })
+      ).toBeUndefined();
     });
   });
 
@@ -241,7 +305,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+        'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
       );
     });
 
@@ -371,6 +435,26 @@ describe('ModelFactory', () => {
         maxOutputTokens: 2048,
         maxDuration: 30,
       });
+    });
+
+    test('should include providerOptions in prepareGenerationConfig when provider-specific options present', () => {
+      process.env.AZURE_OPENAI_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'azure/my-deployment',
+        providerOptions: {
+          resourceName: 'my-resource',
+          temperature: 0.7,
+          anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } },
+        },
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result).toMatchObject({
+        temperature: 0.7,
+        providerOptions: { anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } } },
+      });
+      expect(result).not.toHaveProperty('anthropic');
     });
 
     test('should handle prepareGenerationConfig with Azure model and baseURL', () => {
