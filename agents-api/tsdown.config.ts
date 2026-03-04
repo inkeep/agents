@@ -26,5 +26,6 @@ export default defineConfig({
   ],
   unbundle: true,
   format: 'esm',
+  external: ['@sentry/node'],
   plugins: [rawQueryPlugin],
 });
