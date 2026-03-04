@@ -4,7 +4,7 @@ description: Create webhook endpoints for external services to invoke your Agent
 icon: LuZap
 ---
 
-Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
+Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, Zendesk, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
 
 ## How Triggers Work
 
@@ -131,15 +131,12 @@ Here's a conceptual example of a trigger that responds to GitHub issues:
 // And starts a conversation with your support agent
 ```
 
-The Agent then processes this message like any other conversation, using its configured tools and sub-agents to respond.
+## Example: Zendesk Ticket
 
-## Next Steps
+Here's a conceptual example of a trigger that responds to Zendesk tickets:
 
-<Cards>
-  <Card title="Define Triggers in Code" icon="LuCode" href="/typescript-sdk/triggers/webhooks">
-    Learn how to create and configure webhook triggers using the TypeScript SDK.
-  </Card>
-  <Card title="Chat API" icon="LuNetwork" href="/talk-to-your-agents/chat-api">
-    For synchronous conversations, use the Chat API instead.
-  </Card>
-</Cards>
+```typescript
+// Create a webhook from Zendesk when a ticket is created or updated
+// The webhook triggers your Zendesk support ticket agent
+// The agent can draft a reply to the ticket, write summaries as internal notes, add tags & custom fields, etc
+```

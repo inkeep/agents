@@ -149,6 +149,21 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
+const CRITICAL_ERROR_SPAN_NAMES = [
+  'execution_handler.execute',
+  'agent.load_tools',
+  'context.handle_context_resolution',
+  'context.resolve',
+  'agent.generate',
+  'context-resolver.resolve_single_fetch_definition',
+  'agent_session.generate_structured_update',
+  'agent_session.process_artifact',
+  'agent_session.generate_artifact_metadata',
+  'response.format_object_response',
+  'response.format_response',
+  'ai.toolCall',
+];
+
 class SigNozStatsAPI {
   private tenantId: string | null = null;
 
@@ -1107,21 +1122,6 @@ class SigNozStatsAPI {
       acc.toolsUsed.set(name, t);
     }
 
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
     for (const s of spansWithErrorsSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
@@ -1450,14 +1450,24 @@ class SigNozStatsAPI {
       }
 
       if (hasErrors) {
-        items.push({
-          key: {
-            key: SPAN_KEYS.HAS_ERROR,
-            ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+        items.push(
+          {
+            key: {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            op: OPERATORS.EQUALS,
+            value: true,
           },
-          op: OPERATORS.EQUALS,
-          value: true,
-        });
+          {
+            key: {
+              key: SPAN_KEYS.NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            op: OPERATORS.IN,
+            value: CRITICAL_ERROR_SPAN_NAMES,
+          }
+        );
       }
 
       return items;
