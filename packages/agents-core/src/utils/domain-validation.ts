@@ -16,7 +16,7 @@ export function validateOrigin(
 
   for (const domain of allowedDomains) {
     if (domain === '*') {
-      continue;
+      return true;
     }
 
     if (domain.startsWith('*.')) {

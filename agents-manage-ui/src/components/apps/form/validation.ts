@@ -38,7 +38,20 @@ export const AppCreateFormSchema = z.object({
   agentAccessMode: z.enum(AGENT_ACCESS_MODE_ENUM),
   allowedAgentIds: z.array(z.string()),
   defaultAgentId: z.string().optional(),
-  allowedDomains: z.string().optional(),
+  allowedDomains: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        const domains = val
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean);
+        return domains.length >= 1;
+      },
+      { message: 'At least one domain is required for web client apps' }
+    ),
   authMode: z.enum(AUTH_MODE_ENUM).optional(),
   captchaEnabled: z.boolean().optional(),
 });
@@ -50,7 +63,20 @@ export const AppUpdateFormSchema = z.object({
   allowedAgentIds: z.array(z.string()),
   defaultAgentId: z.string().optional(),
   enabled: z.boolean(),
-  allowedDomains: z.string().optional(),
+  allowedDomains: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        const domains = val
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean);
+        return domains.length >= 1;
+      },
+      { message: 'At least one domain is required for web client apps' }
+    ),
   authMode: z.enum(AUTH_MODE_ENUM).optional(),
   captchaEnabled: z.boolean().optional(),
 });

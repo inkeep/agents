@@ -219,10 +219,11 @@ function AgentMultiSelect({
                         {opt?.label ?? id}
                         <button
                           type="button"
+                          aria-label={`Remove ${opt?.label ?? id}`}
                           onClick={() => removeAgent(id)}
                           className="hover:text-destructive"
                         >
-                          <X className="size-3" />
+                          <X className="size-3" aria-hidden="true" />
                         </button>
                       </Badge>
                     );

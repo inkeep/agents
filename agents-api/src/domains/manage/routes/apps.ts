@@ -15,6 +15,7 @@ import {
   getAppById,
   listAppsPaginated,
   PaginationQueryParamsSchema,
+  sanitizeAppConfig,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateApp,
@@ -67,7 +68,9 @@ app.openapi(
       type,
     });
 
-    const sanitizedData = result.data.map(({ keyHash, tenantId, projectId, ...app }) => app);
+    const sanitizedData = result.data.map(({ keyHash, tenantId, projectId, ...rest }) =>
+      sanitizeAppConfig(rest)
+    );
 
     return c.json({
       data: sanitizedData,
@@ -116,7 +119,7 @@ app.openapi(
 
     const { keyHash: _, tenantId: __, projectId: ___, ...sanitized } = appRecord;
 
-    return c.json({ data: sanitized });
+    return c.json({ data: sanitizeAppConfig(sanitized) });
   }
 );
 
@@ -189,7 +192,7 @@ app.openapi(
     return c.json(
       {
         data: {
-          app: sanitized,
+          app: sanitizeAppConfig(sanitized),
           appSecret,
         },
       },
@@ -248,7 +251,7 @@ app.openapi(
 
     const { keyHash: _, tenantId: __, projectId: ___, ...sanitized } = updatedApp;
 
-    return c.json({ data: sanitized });
+    return c.json({ data: sanitizeAppConfig(sanitized) });
   }
 );
 
