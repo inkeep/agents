@@ -1,14 +1,17 @@
 import type { ToolUIPart } from 'ai';
-import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
+import { CheckIcon, ChevronDown, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { FieldDiff } from '@/lib/actions/tool-approval';
 import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
+import { cn } from '@/lib/utils';
 import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
 import { LoadingIndicator } from './loading';
+
+const PEEK_COUNT = 3;
 
 interface EntityData {
   id: string;
@@ -43,18 +46,33 @@ const DeleteEntityApproval = ({ entityData }: { entityData: EntityData }) => {
   );
 };
 
-const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
+const DiffApproval = ({
+  diffs,
+  expanded,
+  isCollapsible,
+}: {
+  diffs: FieldDiff[];
+  expanded: boolean;
+  isCollapsible: boolean;
+}) => {
+  const visibleDiffs = isCollapsible && !expanded ? diffs.slice(0, PEEK_COUNT) : diffs;
+
   return (
-    <div className="flex flex-col gap-5">
-      {diffs.map(({ field, oldValue, newValue, renderAsCode }) => (
-        <DiffField
-          key={field}
-          field={field}
-          originalValue={oldValue}
-          newValue={newValue}
-          renderAsCode={renderAsCode}
-        />
-      ))}
+    <div className="relative">
+      <div className="flex flex-col gap-5">
+        {visibleDiffs.map(({ field, oldValue, newValue, renderAsCode }) => (
+          <DiffField
+            key={field}
+            field={field}
+            originalValue={oldValue}
+            newValue={newValue}
+            renderAsCode={renderAsCode}
+          />
+        ))}
+      </div>
+      {isCollapsible && !expanded && (
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      )}
     </div>
   );
 };
@@ -103,7 +121,7 @@ const ApprovalButtons = ({
   approveIcon?: React.ReactNode;
 }) =>
   state === 'approval-requested' && (
-    <div className="flex gap-2 justify-end">
+    <div className="flex gap-2">
       <Button variant="outline" size="xs" type="button" onClick={() => approve(false)}>
         {rejectLabel}
       </Button>
@@ -119,6 +137,7 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const [entityData, setEntityData] = useState<EntityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const { toolCallId, input, type } = tool;
 
@@ -191,10 +210,29 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   }
 
   if (diffs.length > 0) {
+    const isCollapsible = diffs.length > PEEK_COUNT;
+    const hiddenCount = Math.max(0, diffs.length - PEEK_COUNT);
+
     return (
       <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
-        <DiffApproval diffs={diffs} />
-        <ApprovalButtons state={tool.state} approve={approve} />
+        <DiffApproval diffs={diffs} expanded={expanded} isCollapsible={isCollapsible} />
+        <div className={cn('flex items-center', isCollapsible ? 'justify-between' : 'justify-end')}>
+          {isCollapsible && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((prev) => !prev)}
+            >
+              <ChevronDown
+                className={cn('size-3 transition-transform duration-200', expanded && 'rotate-180')}
+              />
+              {expanded ? 'Show less' : `Show ${hiddenCount} more`}
+            </Button>
+          )}
+          <ApprovalButtons state={tool.state} approve={approve} />
+        </div>
       </ApprovalWrapper>
     );
   }
