@@ -2042,9 +2042,16 @@ export class Agent {
       };
     }
 
+    const meta: Record<string, unknown> = {};
+    if ('_toolCallId' in outputRecord) meta._toolCallId = outputRecord._toolCallId;
+    if ('_structureHints' in outputRecord) meta._structureHints = outputRecord._structureHints;
+
+    const metaPart: ToolResultContentPart | null =
+      Object.keys(meta).length > 0 ? { type: 'text', text: JSON.stringify(meta) } : null;
+
     return {
       type: 'content',
-      value: mappedContent,
+      value: metaPart ? [metaPart, ...mappedContent] : mappedContent,
     };
   }
 

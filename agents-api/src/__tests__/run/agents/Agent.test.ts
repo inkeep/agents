@@ -1596,6 +1596,28 @@ describe('Agent tool result persistence', () => {
     });
   });
 
+  test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
+    const agent = makeAgent();
+    const structureHints = { terminalPaths: ['result.foo[string]'] };
+
+    const output = (agent as any).buildToolModelOutput({
+      content: [{ type: 'text', text: 'some text' }],
+      _toolCallId: 'toolu_abc',
+      _structureHints: structureHints,
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'text',
+          text: JSON.stringify({ _toolCallId: 'toolu_abc', _structureHints: structureHints }),
+        },
+        { type: 'text', text: 'some text' },
+      ],
+    });
+  });
+
   test('preserves execution-denied tool result output type', () => {
     const agent = makeAgent();
 
