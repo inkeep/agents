@@ -54,13 +54,11 @@ app.openapi(
 
     const profile = await getUserProfile(runDbClient)(userId);
 
-    // If the profile does not exist then we should create it
     if (!profile) {
-      const newProfile = await upsertUserProfile(runDbClient)(userId, {
-        timezone: null,
-        attributes: {},
+      throw createApiError({
+        code: 'not_found',
+        message: 'User profile not found',
       });
-      return c.json(newProfile, 200);
     }
 
     return c.json(
