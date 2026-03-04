@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ProfileForm } from '@/components/user-profile/ProfileForm';
 import { useAuthSession } from '@/hooks/use-auth';
 import { getUserProfile, type UserProfile } from '@/lib/actions/user-profile';
@@ -20,7 +21,18 @@ export default function ProfileSettingsPage() {
   }, [user]);
 
   if (!user || isLoading) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Profile" description="Manage your personal preferences." />
+        <div className="space-y-4 max-w-sm">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <Skeleton className="h-10 w-16" />
+        </div>
+      </div>
+    );
   }
 
   return (
