@@ -67,21 +67,16 @@ describe('User Profile Route', () => {
       });
     });
 
-    describe('Auto-creation', () => {
-      it('should create a profile when none exists', async () => {
+    describe('Missing profile', () => {
+      it('should return 404 when no profile exists', async () => {
         getUserProfileMock.mockResolvedValue(null);
-        const newProfile = { ...mockProfile, timezone: null, attributes: {} };
-        upsertUserProfileMock.mockResolvedValue(newProfile);
 
         const res = await userProfileRoutes.request('/test-user-123/profile');
 
-        expect(res.status).toBe(200);
-        expect(upsertUserProfileMock).toHaveBeenCalledWith('test-user-123', {
-          timezone: null,
-          attributes: {},
-        });
+        expect(res.status).toBe(404);
         const body = await res.json();
-        expect(body.userId).toBe('test-user-123');
+        expect(body.error.message).toContain('User profile not found');
+        expect(upsertUserProfileMock).not.toHaveBeenCalled();
       });
     });
 
