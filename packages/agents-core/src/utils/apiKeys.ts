@@ -190,3 +190,15 @@ export function extractAppPublicId(appId: string): string | null {
   }
   return publicId;
 }
+
+export function sanitizeAppConfig<T extends { config: unknown }>(app: T): T {
+  const config = app.config as { type: string; webClient?: { hs256Secret?: string } };
+  if (config?.type === 'web_client' && config.webClient) {
+    const { hs256Secret: _, ...webClientSafe } = config.webClient;
+    return {
+      ...app,
+      config: { ...config, webClient: webClientSafe },
+    };
+  }
+  return app;
+}

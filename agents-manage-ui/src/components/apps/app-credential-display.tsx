@@ -31,7 +31,7 @@ export function AppCredentialDisplay({
         if (!isOpen) onClose();
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>
             {appSecret ? 'Save your app credentials' : 'Your App ID'}
