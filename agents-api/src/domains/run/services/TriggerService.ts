@@ -765,21 +765,30 @@ export async function executeAgentAsync(params: {
 
   let resolvedForwardedHeaders = forwardedHeaders;
   if (runAsUserId) {
-    try {
-      const profile = await getUserProfile(runDbClient)(runAsUserId);
-      if (profile?.timezone) {
-        resolvedForwardedHeaders = buildTimezoneHeaders(profile.timezone);
-        logger.debug(
-          { runAsUserId, timezone: profile.timezone },
-          'Resolved user timezone from profile'
+    await tracer.startActiveSpan('trigger.resolve_user_timezone', async (span) => {
+      try {
+        span.setAttribute('user.id', runAsUserId);
+        const profile = await getUserProfile(runDbClient)(runAsUserId);
+        if (profile?.timezone) {
+          resolvedForwardedHeaders = {
+            ...forwardedHeaders,
+            ...buildTimezoneHeaders(profile.timezone),
+          };
+          span.setAttribute('user.timezone', profile.timezone);
+        }
+      } catch (err) {
+        logger.warn(
+          { runAsUserId, error: err instanceof Error ? err.message : String(err) },
+          'Failed to fetch user profile for timezone, proceeding with fallback'
         );
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        span.end();
       }
-    } catch (err) {
-      logger.warn(
-        { runAsUserId, error: err instanceof Error ? err.message : String(err) },
-        'Failed to fetch user profile for timezone, proceeding with fallback'
-      );
-    }
+    });
   }
 
   // Create baggage with conversation/tenant/project/agent info for child spans
