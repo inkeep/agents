@@ -414,20 +414,42 @@ async function waitForDockerHealth(
 
 async function startDockerDatabases(composeFile: string, composeCmd: string) {
   logInfo('Starting database containers...');
+
+  const runCompose = async () => {
+    const { stdout, stderr } = await execAsync(`${composeCmd} -f ${composeFile} up -d`, {
+      timeout: 120000,
+    });
+    if (stdout?.trim()) logInfo(`docker compose stdout:\n${stdout.trim()}`);
+    if (stderr?.trim()) logInfo(`docker compose stderr:\n${stderr.trim()}`);
+    return { stdout, stderr };
+  };
+
   try {
-    await execAsync(`${composeCmd} -f ${composeFile} up -d`, { timeout: 120000 });
+    await runCompose();
     logSuccess('Database containers started');
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const stdout = (error as any)?.stdout || '';
     const stderr = (error as any)?.stderr || '';
     const combined = `${errorMessage}\n${stderr}`;
     const isTimeout = (error as any)?.killed === true;
+
+    if (stdout?.trim()) logInfo(`docker compose stdout:\n${stdout.trim()}`);
+    if (stderr?.trim()) logError(`docker compose stderr:\n${stderr.trim()}`);
 
     const isPortConflict =
       !isTimeout &&
       (combined.includes('port is already allocated') ||
         combined.includes('address already in use') ||
         combined.includes('Bind for 0.0.0.0'));
+
+    const isDockerPullFailure =
+      !isTimeout &&
+      (combined.includes('context deadline exceeded') ||
+        combined.includes('TLS handshake timeout') ||
+        combined.includes('toomanyrequests') ||
+        combined.includes('received unexpected HTTP status: 500') ||
+        combined.includes('net/http: request canceled'));
 
     if (isTimeout) {
       logWarning('docker compose up timed out — containers may still be starting');
@@ -436,6 +458,17 @@ async function startDockerDatabases(composeFile: string, composeCmd: string) {
       logWarning('Database port conflict during startup (databases might already be running)');
       logInfo('Continuing with setup...');
       return;
+    } else if (isDockerPullFailure) {
+      logWarning('Docker image pull failed (transient registry/network error) — retrying once...');
+      try {
+        await runCompose();
+        logSuccess('Database containers started on retry');
+      } catch (retryError: unknown) {
+        const retryStderr = (retryError as any)?.stderr || '';
+        if (retryStderr?.trim()) logError(`docker compose retry stderr:\n${retryStderr.trim()}`);
+        logError('Failed to start database containers after retry', retryError);
+        process.exit(1);
+      }
     } else {
       logError('Failed to start database containers', error);
       process.exit(1);
