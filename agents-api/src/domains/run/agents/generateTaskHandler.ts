@@ -197,6 +197,7 @@ export const createTaskHandler = (
           tenantId,
           projectId,
           agentId,
+          agentName: currentAgent.name,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           userId: config.userId,

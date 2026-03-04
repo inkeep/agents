@@ -243,7 +243,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     try {
       return await this.getConversationStatsPaginated(
@@ -253,7 +254,8 @@ class SigNozStatsAPI {
         projectId,
         pagination,
         searchQuery,
-        agentId
+        agentId,
+        hasErrors
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
@@ -348,7 +350,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -372,7 +375,8 @@ class SigNozStatsAPI {
         projectId,
         agentId,
         false,
-        pagination
+        pagination,
+        hasErrors
       );
 
       const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
@@ -440,7 +444,8 @@ class SigNozStatsAPI {
       projectId,
       pagination,
       searchQuery,
-      agentId
+      agentId,
+      hasErrors
     );
 
     if (conversationIds.length === 0) {
@@ -476,7 +481,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -488,7 +494,8 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      undefined
+      undefined,
+      hasErrors
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
@@ -1405,7 +1412,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     agentId: string | undefined,
     includeSearchData: boolean,
-    pagination?: { page: number; limit: number }
+    pagination?: { page: number; limit: number },
+    hasErrors?: boolean
   ) {
     const buildBaseFilters = (): any[] => {
       const items: any[] = [
@@ -1438,6 +1446,17 @@ class SigNozStatsAPI {
           },
           op: OPERATORS.EQUALS,
           value: projectId,
+        });
+      }
+
+      if (hasErrors) {
+        items.push({
+          key: {
+            key: SPAN_KEYS.HAS_ERROR,
+            ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+          },
+          op: OPERATORS.EQUALS,
+          value: true,
         });
       }
 
