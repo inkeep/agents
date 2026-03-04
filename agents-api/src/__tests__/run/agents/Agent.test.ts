@@ -7,6 +7,7 @@ import type {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
+import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -1474,7 +1475,7 @@ describe('Agent Image Support', () => {
 });
 
 describe('Agent tool result persistence', () => {
-  test('builds message content with uploaded image parts', async () => {
+  const makeAgent = () => {
     const config: AgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
@@ -1491,7 +1492,11 @@ describe('Agent tool result persistence', () => {
       dataComponents: [],
     };
     const executionContext = createMockExecutionContext() as any;
-    const agent = new Agent(config, executionContext);
+    return new Agent(config, executionContext);
+  };
+
+  test('builds message content with uploaded image parts', async () => {
+    const agent = makeAgent();
     buildPersistedMessageContentMock.mockResolvedValue({
       text: 'persisted text',
       parts: [
@@ -1556,5 +1561,51 @@ describe('Agent tool result persistence', () => {
         metadata: { mimeType: 'image/webp', type: 'image' },
       },
     ]);
+  });
+
+  test('maps image content to image tool result output parts', () => {
+    const agent = makeAgent();
+
+    const output = (agent as any).buildToolModelOutput({
+      content: [
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+        {
+          type: 'image',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'image-data',
+          data: 'base64-image-data',
+          mediaType: 'image/webp',
+        },
+        {
+          type: 'image-url',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+  });
+
+  test('preserves execution-denied tool result output type', () => {
+    const agent = makeAgent();
+
+    const output = (agent as any).buildToolModelOutput(
+      createDeniedToolResult('toolu_123', 'User denied this tool call')
+    );
+
+    expect(output).toEqual({
+      type: 'execution-denied',
+      reason: 'User denied this tool call',
+    });
   });
 });

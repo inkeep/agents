@@ -41,6 +41,7 @@ import {
 
 type ToolResultOutput = Awaited<ReturnType<NonNullable<Tool['toModelOutput']>>>;
 type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number];
+type ToolResultJsonValue = Extract<ToolResultOutput, { type: 'json' }>['value'];
 
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
@@ -2009,15 +2010,15 @@ export class Agent {
   private buildToolModelOutput(output: unknown): ToolResultOutput {
     if (isToolResultDenied(output)) {
       return {
-        type: 'error-text',
-        value: `Tool execution denied: ${(output as { reason: string }).reason}`,
+        type: 'execution-denied',
+        reason: output.reason,
       };
     }
 
     if (!output || typeof output !== 'object') {
       return {
         type: 'json',
-        value: output,
+        value: output as ToolResultJsonValue,
       };
     }
 
@@ -2026,7 +2027,7 @@ export class Agent {
     if (!Array.isArray(content)) {
       return {
         type: 'json',
-        value: output,
+        value: output as ToolResultJsonValue,
       };
     }
 
@@ -2037,7 +2038,7 @@ export class Agent {
     if (mappedContent.length === 0) {
       return {
         type: 'json',
-        value: output,
+        value: output as ToolResultJsonValue,
       };
     }
 
@@ -2076,7 +2077,7 @@ export class Agent {
     if (type === 'image') {
       if (typeof contentItem.data === 'string' && contentItem.data.trim() !== '') {
         return {
-          type: 'media',
+          type: 'image-data',
           data: contentItem.data as string,
           mediaType:
             typeof contentItem.mimeType === 'string' && contentItem.mimeType.trim() !== ''
@@ -2087,8 +2088,8 @@ export class Agent {
 
       if (typeof contentItem.url === 'string' && contentItem.url.trim() !== '') {
         return {
-          type: 'text',
-          text: contentItem.url as string,
+          type: 'image-url',
+          url: contentItem.url as string,
         };
       }
 
