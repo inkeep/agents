@@ -40352,6 +40352,10 @@
       "name": "User Project Memberships"
     },
     {
+      "description": "Operations for managing user profile",
+      "name": "User Profile"
+    },
+    {
       "description": "Operations for managing users",
       "name": "Users"
     },
