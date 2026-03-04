@@ -108,6 +108,8 @@ By default, webhook triggers execute without a user identity — tools with user
 
 Any user with `edit` permission on a project can set `runAsUserId` to themselves. Org admins and owners can set it to any user in their organization.
 
+When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses.
+
 ## Invocation Tracking
 
 Every webhook invocation is tracked with:
