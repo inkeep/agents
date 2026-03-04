@@ -40,6 +40,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inkeep/agents.git",
-    "directory": "agents-ui"
+    "directory": "agents-ui-demo"
   }
 }

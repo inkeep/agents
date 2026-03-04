@@ -2,7 +2,7 @@ packages:
   - agents-api
   - agents-manage-ui
   - agents-cli
-  - agents-ui
+  - agents-ui-demo
   - agents-docs
   - agents-cookbook
   - test-agents
