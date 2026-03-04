@@ -43,22 +43,22 @@ If you were delegated to by the Feedback Analyst as part of a feedback improveme
       selectedTools: [
         // Projects
         'projects-list-projects',
-        { name: 'projects-create-project'},
+        { name: 'projects-create-project' },
         'projects-get-project-by-id',
-        { name: 'projects-update-project'},
+        { name: 'projects-update-project' },
         { name: 'projects-delete-project' },
         // Sub-agents
         'sub-agent-list-subagents',
-        { name: 'sub-agent-create-subagent'},
+        { name: 'sub-agent-create-subagent' },
         'sub-agent-get-subagent-by-id',
-        { name: 'sub-agent-update-subagent'},
-        { name: 'sub-agent-delete-subagent'},
+        { name: 'sub-agent-update-subagent' },
+        { name: 'sub-agent-delete-subagent' },
         // Sub-agent relations
         'sub-agent-relations-list-sub-agent-relations',
-        { name: 'sub-agent-relations-create-sub-agent-relation'},
+        { name: 'sub-agent-relations-create-sub-agent-relation' },
         'sub-agent-relations-get-sub-agent-relation-by-id',
-        { name: 'sub-agent-relations-update-sub-agent-relation'},
-        { name: 'sub-agent-relations-delete-sub-agent-relation'},
+        { name: 'sub-agent-relations-update-sub-agent-relation' },
+        { name: 'sub-agent-relations-delete-sub-agent-relation' },
         // Sub-agent external agent relations
         'sub-agent-external-agent-relations-list-sub-agent-external-agent-relations',
         {
@@ -91,17 +91,17 @@ If you were delegated to by the Feedback Analyst as part of a feedback improveme
         },
         // Agents
         'agents-list-agents',
-        { name: 'agents-create-agent'},
+        { name: 'agents-create-agent' },
         'agents-get-agent',
-        { name: 'agents-update-agent'},
-        { name: 'agents-delete-agent'},
+        { name: 'agents-update-agent' },
+        { name: 'agents-delete-agent' },
         'agent-get-related-agent-infos',
         // Subagent tool relations
         'sub-agent-tool-relations-list-subagent-tool-relations',
-        { name: 'sub-agent-tool-relations-create-subagent-tool-relation'},
+        { name: 'sub-agent-tool-relations-create-subagent-tool-relation' },
         'sub-agent-tool-relations-get-subagent-tool-relation',
-        { name: 'sub-agent-tool-relations-update-subagent-tool-relation'},
-        { name: 'sub-agent-tool-relations-delete-subagent-tool-relation'},
+        { name: 'sub-agent-tool-relations-update-subagent-tool-relation' },
+        { name: 'sub-agent-tool-relations-delete-subagent-tool-relation' },
         'sub-agent-tool-relations-get-subagents-for-tool',
         // Artifact component relations
         'agent-artifact-component-relations-get-artifact-components-for-agent',
@@ -129,16 +129,16 @@ If you were delegated to by the Feedback Analyst as part of a feedback improveme
         'agent-data-component-relations-check-data-component-agent-association',
         // Artifact components
         'artifact-component-list-artifact-components',
-        { name: 'artifact-component-create-artifact-component'},
+        { name: 'artifact-component-create-artifact-component' },
         'artifact-component-get-artifact-component-by-id',
-        { name: 'artifact-component-update-artifact-component'},
-        { name: 'artifact-component-delete-artifact-component'},
+        { name: 'artifact-component-update-artifact-component' },
+        { name: 'artifact-component-delete-artifact-component' },
         // Context configs
         'context-config-list-context-configs',
-        { name: 'context-config-create-context-config'},
+        { name: 'context-config-create-context-config' },
         'context-config-get-context-config-by-id',
-        { name: 'context-config-update-context-config'},
-        { name: 'context-config-delete-context-config'},
+        { name: 'context-config-update-context-config' },
+        { name: 'context-config-delete-context-config' },
         // Credentials
         'credential-list-credentials',
         { name: 'credential-create-credential', needsApproval: true },
@@ -188,7 +188,7 @@ If you were delegated to by the Feedback Analyst as part of a feedback improveme
         'MCP-catalog-list-mcp-catalog',
         'third-party-MCP-servers-get-third-party-mcp-server',
         // OAuth
-        { name: 'O-auth-initiate-oauth-login-public'},
+        { name: 'O-auth-initiate-oauth-login-public' },
       ],
     }),
   ],
