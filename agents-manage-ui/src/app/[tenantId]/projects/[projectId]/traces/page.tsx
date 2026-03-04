@@ -145,14 +145,7 @@ export default function TracesOverview({
         setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId);
         const agentId = selectedAgent ? selectedAgent : undefined;
-        console.log('🔍 Fetching activity data:', {
-          startTime,
-          endTime,
-          agentId,
-          selectedAgent,
-        });
         const data = await client.getConversationsPerDay(startTime, endTime, agentId, projectId);
-        console.log('🔍 Activity data received:', data);
         setActivityData(data);
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
