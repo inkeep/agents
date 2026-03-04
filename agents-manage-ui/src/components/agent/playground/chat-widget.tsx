@@ -5,6 +5,7 @@ import { DynamicComponentRenderer } from '@/components/dynamic-component-rendere
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
+import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -92,6 +93,7 @@ export function ChatWidget({
   const stopPollingTimeoutRef = useRef<number | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  const posthog = usePostHog();
 
   // Helper function to reset the stop polling timeout
   function resetStopPollingTimeout() {
@@ -147,6 +149,13 @@ export function ChatWidget({
         <InkeepEmbeddedChat
           baseSettings={{
             async onEvent(event) {
+              posthog?.capture(event.eventName, {
+                ...event.properties,
+                source: 'playground_chat_widget',
+                tenantId,
+                projectId,
+                agentId,
+              });
               if (event.eventName === 'assistant_message_received') {
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
