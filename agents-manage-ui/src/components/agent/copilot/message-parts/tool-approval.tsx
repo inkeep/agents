@@ -197,14 +197,16 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
     return (
       <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
         <DeleteEntityApproval entityData={entityData} />
-        <ApprovalButtons
-          state={tool.state}
-          approve={approve}
-          approveLabel="Delete"
-          approveVariant="destructive"
-          rejectLabel="Cancel"
-          approveIcon={<Trash2Icon className="size-3" />}
-        />
+        <div className="flex items-center justify-end">
+          <ApprovalButtons
+            state={tool.state}
+            approve={approve}
+            approveLabel="Delete"
+            approveVariant="destructive"
+            rejectLabel="Cancel"
+            approveIcon={<Trash2Icon className="size-3" />}
+          />
+        </div>
       </ApprovalWrapper>
     );
   }
@@ -240,7 +242,9 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   return (
     <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
       <FallbackApproval toolName={toolName} />
-      <ApprovalButtons state={tool.state} approve={approve} />
+      <div className="flex items-center justify-end">
+        <ApprovalButtons state={tool.state} approve={approve} />
+      </div>
     </ApprovalWrapper>
   );
 };
