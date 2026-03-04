@@ -58,6 +58,14 @@
       "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
       "outputs": ["coverage/**"]
     },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "test:integration": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
     "@inkeep/agents-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
       "inputs": [
