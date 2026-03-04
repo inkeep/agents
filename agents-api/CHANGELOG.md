@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.56.1
+
+### Patch Changes
+
+- c620c02: Add copilot bypass for tenant/project access checks when INKEEP*COPILOT*\* env vars are configured
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+  - @inkeep/agents-core@0.56.1
+  - @inkeep/agents-email@0.56.1
+  - @inkeep/agents-mcp@0.56.1
+  - @inkeep/agents-work-apps@0.56.1
+
 ## 0.56.0
 
 ### Minor Changes

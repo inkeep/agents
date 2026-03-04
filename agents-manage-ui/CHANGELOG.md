@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.56.1
+
+### Patch Changes
+
+- 76defa3: Add PostHog analytics tracking to playground and copilot chat widgets
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+- 0d4a6ce: fix new lines for triggers
+  - @inkeep/agents-core@0.56.1
+
 ## 0.56.0
 
 ### Minor Changes
