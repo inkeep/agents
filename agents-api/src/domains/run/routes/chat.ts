@@ -317,11 +317,13 @@ app.openapi(chatCompletionsRoute, async (c) => {
       // Extract text content from parts
       const userMessage = extractTextFromParts(messageParts);
 
+      const agentName = agent.name;
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
         messageSpan.setAttributes({
           'message.content': userMessage,
           'message.timestamp': Date.now(),
+          'agent.name': agentName,
         });
         const invocationType = c.req.header('x-inkeep-invocation-type');
         if (invocationType) {

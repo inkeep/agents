@@ -82,7 +82,9 @@ function MessagePartsDisplay({
   if (!parts || !Array.isArray(parts) || parts.length === 0) {
     return messageContent ? (
       <Bubble>
-        <div className="line-clamp-2">{messageContent}</div>
+        <div className="max-h-[3em] overflow-hidden">
+          <Streamdown>{messageContent}</Streamdown>
+        </div>
       </Bubble>
     ) : null;
   }
@@ -93,7 +95,9 @@ function MessagePartsDisplay({
         if (part.kind === 'text' && part.text) {
           return (
             <Bubble key={`${activityId}-part-${index}`}>
-              <div className="line-clamp-2">{part.text}</div>
+              <div className="max-h-[3em] overflow-hidden">
+                <Streamdown>{part.text}</Streamdown>
+              </div>
             </Bubble>
           );
         }
