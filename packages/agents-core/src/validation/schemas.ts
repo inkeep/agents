@@ -1554,6 +1554,7 @@ export const TriggerDatasetRunSchema = z
     evaluatorIds: z.array(z.string()).optional(),
     evaluationRunId: z.string().optional(),
     evaluationRunConfigId: z.string().optional(),
+    evaluationJobConfigId: z.string().optional(),
   })
   .openapi('TriggerDatasetRun');
 

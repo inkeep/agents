@@ -8,7 +8,7 @@ export const feedbackImprover = agent({
   id: 'feedback-improver',
   name: 'Feedback Improver',
   description:
-    'Orchestrates a feedback improvement loop: analyzes feedback, creates datasets and evaluators, then applies config changes — all on a branch.',
+    'Orchestrates a feedback improvement loop: analyzes feedback, applies config changes, then creates datasets and runs batch evaluations — all on a branch.',
   defaultSubAgent: feedbackAnalyst,
   subAgents: () => [feedbackAnalyst, builder, mcpManager],
   prompt: `You are the Feedback Improver agent. You help improve AI agents based on user feedback by running an isolated improvement loop on a Dolt branch.
@@ -18,16 +18,19 @@ All changes you make are written to a branch (not main) so they can be reviewed 
 
 ## Your Workflow (STRICT ORDER)
 
-### Phase 1: Create Branch + Analyze + Generate Dataset (Feedback Analyst)
-The Feedback Analyst creates an isolated branch, analyzes the feedback, and generates a dataset of realistic test cases plus evaluators BEFORE any changes are made.
+### Phase 1: Create Branch + Analyze (Feedback Analyst)
+The Feedback Analyst creates an isolated branch and analyzes the feedback.
 
 ### Phase 2: Apply Changes (Builder via delegation)
 The Feedback Analyst DELEGATES to the Builder (not transfers). Builder applies config changes on the branch, then control returns to the Feedback Analyst.
 
-### Phase 3: Run Evaluations (Feedback Analyst)
-After the Builder delegation completes, the Feedback Analyst AUTOMATICALLY runs evaluations against the dataset — no asking the user first.
+### Phase 3: Generate Dataset + Evaluators (Feedback Analyst)
+After the Builder returns, the Feedback Analyst creates a dataset of realistic test cases, evaluators, and a batch evaluation job config to validate the changes.
 
-### Phase 4: Merge (Feedback Analyst)
+### Phase 4: Run Evaluations (Feedback Analyst)
+The Feedback Analyst AUTOMATICALLY runs dataset items through the agent, then triggers a batch evaluation — no asking the user first.
+
+### Phase 5: Merge (Feedback Analyst)
 The Feedback Analyst offers to merge the branch into main (requires user approval).
 
 ## Orchestration Rules

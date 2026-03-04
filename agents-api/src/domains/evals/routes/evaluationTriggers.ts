@@ -494,10 +494,15 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const { datasetRunId, datasetId, items, evaluatorIds, evaluationRunId } = body;
-    const evaluationRunConfigId = (body as Record<string, unknown>).evaluationRunConfigId as
-      | string
-      | undefined;
+    const {
+      datasetRunId,
+      datasetId,
+      items,
+      evaluatorIds,
+      evaluationRunId,
+      evaluationRunConfigId,
+      evaluationJobConfigId,
+    } = body;
 
     const ref = c.req.query('ref') || c.req.header('x-target-ref') || undefined;
 
@@ -520,6 +525,7 @@ app.openapi(
           tenantId,
           projectId,
           evaluationRunConfigId: evaluationRunConfigId ?? undefined,
+          evaluationJobConfigId: evaluationJobConfigId ?? undefined,
         });
       }
 

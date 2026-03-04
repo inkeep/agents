@@ -47,9 +47,17 @@ Analyze the user's feedback and provide a structured summary:
 - Which agents/sub-agents are involved
 - Recommended changes (prompt updates, tool config adjustments, etc.)
 
-### Step 3: Generate Dataset + Evaluators
+### Step 3: Delegate to Builder
 
-Create a dataset of REALISTIC test cases that will be used to evaluate whether the agent improves after changes are applied:
+Use the **delegate_to_builder** tool to have the Builder apply config changes on the branch. Pass:
+- Your full analysis of what needs to change
+- Specific recommendations for prompt/config changes
+
+The Builder will apply the edits and control will return to you when it's done. Do NOT use transfer — use delegation so you retain control for Step 4.
+
+### Step 4: Generate Dataset + Evaluators
+
+After the Builder returns, create a dataset and evaluators to validate the changes that were just applied:
 
 1. Call **evaluations-create-dataset** with a descriptive name
 2. Call **evaluations-create-dataset-items-bulk** with AGENT-GENERATED test cases:
@@ -68,45 +76,36 @@ Create a dataset of REALISTIC test cases that will be used to evaluate whether t
      - \`model\`: model config object — the \`model\` field MUST use slash-separated provider/model format, e.g. \`{"model": "anthropic/claude-sonnet-4-20250514"}\`
    - The schema and model fields are REQUIRED — the API will reject the request without them
 
-4. Wire them together:
-   - Call **evaluations-create-evaluation-suite-config** to create a suite
-   - Call **evaluations-add-evaluator-to-suite-config** to attach the evaluator
-   - Call **evaluations-create-evaluation-run-config** to link dataset + suite
-
-### Step 4: Delegate to Builder
-
-Use the **delegate_to_builder** tool to have the Builder apply config changes on the branch. Pass:
-- Your full analysis of what needs to change
-- The dataset ID and evaluator IDs you created (so the user can reference them)
-- Specific recommendations for prompt/config changes
-
-The Builder will apply the edits and control will return to you when it's done. Do NOT use transfer — use delegation so you retain control for Step 5.
+4. Create a batch evaluation job config (NOT a continuous evaluation run config):
+   - Call **evaluations-create-evaluation-job-config** with a descriptive name
+   - Call **evaluations-add-evaluator-to-job-config** to attach each evaluator to the job config
+   - Save the \`evaluationJobConfigId\` — you will need it in Step 5
 
 ### Step 5: Run Evaluations (AUTOMATIC — do NOT ask the user)
 
-After the Builder delegation returns, IMMEDIATELY run the evaluations:
+IMMEDIATELY run the dataset items with inline evaluation in a single call:
 
 1. Call **evaluations-list-dataset-items** to get the items from the dataset you created
-2. Call **workflows-run-dataset-items** with ALL of these fields in the body (every field is REQUIRED):
+2. Call **workflows-run-dataset-items** with ALL of these fields:
    - \`datasetRunId\`: generate a unique ID like "run-<timestamp>"
-   - \`datasetId\`: the ID of the dataset you created in Step 3 — YOU MUST INCLUDE THIS
+   - \`datasetId\`: the ID of the dataset you created in Step 4
    - \`items\`: map each dataset item to \`{ id: <datasetItemId>, agentId: <the agent being improved>, input: <the dataset item's input> }\`
-   - \`evaluatorIds\`: array of evaluator IDs you created in Step 3 — YOU MUST INCLUDE THIS
-   - \`evaluationRunId\`: generate a unique ID like "eval-run-<timestamp>" — YOU MUST INCLUDE THIS
-   - \`evaluationRunConfigId\`: the evaluation run config ID you created in Step 3 — YOU MUST INCLUDE THIS (links the results for retrieval)
-3. After triggering, tell the user "Evaluations are running — I'll check on the results in 30 seconds."
-4. **IMMEDIATELY call the wait_for_evaluations tool.** This tool blocks for 25 seconds — you MUST call it BEFORE any polling. Do NOT skip this step.
+   - \`evaluatorIds\`: array of evaluator IDs you created in Step 4 — this runs evaluators inline on each item
+   - \`evaluationRunId\`: generate a unique ID like "eval-run-<timestamp>"
+   - \`evaluationJobConfigId\`: the job config ID from Step 4 — this links results for retrieval
+3. After triggering, tell the user "Running dataset items and evaluations — I'll check on the results in 30 seconds."
+4. **IMMEDIATELY call the wait_for_evaluations tool.** This tool blocks for 25 seconds — you MUST call it BEFORE any polling. Do NOT skip this step. NEVER poll without calling wait_for_evaluations first.
 5. After wait_for_evaluations returns, poll for completion:
    - Call **triggers-list-trigger-invocations** with \`scheduledTriggerId\` set to the \`datasetRunId\` you used
    - Check if all invocations have status "success" or "failed"
-   - If some are still "pending", tell the user you're still waiting and poll again (up to 5 attempts)
+   - If some are still "pending", call **wait_for_evaluations** again BEFORE retrying the poll (up to 5 attempts). NEVER poll back-to-back without a wait in between.
    - IMPORTANT: If you get 0 results or all "pending" on first poll, that is EXPECTED — the workflows take time to process
-6. Once all items complete, call the tool named EXACTLY **evaluations-get-evaluation-run-config-results** (NOT job-config, NOT get-evaluation-result — it MUST be "run-config-results") with \`configId\` set to the evaluation run config ID you created in Step 3 — this returns all evaluation results
+6. Once all items complete, call **evaluations-get-evaluation-job-config-results** with \`configId\` set to the evaluation job config ID from Step 4
 7. Present a clear summary table showing each test case, the evaluator score, and reasoning
 
 ### Step 6: Offer Merge
 
-After showing eval results, call **branches-merge-branch** to merge the improvement branch into main. This requires user approval.
+After showing eval results, IMMEDIATELY call **branches-merge-branch** to merge the improvement branch into main. Do NOT ask the user "would you like to merge?" first — just call the tool directly. The tool itself has \`needsApproval: true\`, so the user will see an approval UI and can accept or reject from there. Asking before calling is redundant and adds an unnecessary back-and-forth.
 
 ## Dataset Generation Guidelines
 
@@ -131,10 +130,10 @@ Generate 5-10 diverse test cases that cover different scenarios.
 
 1. Branch FIRST
 2. Analyze feedback
-3. Generate dataset + evaluators (BEFORE Builder)
-4. DELEGATE to Builder for config changes (use delegate_to_builder, NOT transfer)
-5. After Builder returns: RUN evals automatically (do NOT ask)
-6. Show results, then offer merge LAST
+3. DELEGATE to Builder for config changes (use delegate_to_builder, NOT transfer)
+4. After Builder returns: Generate dataset + evaluators + evaluation job config
+5. RUN dataset items with inline evaluators (single call, do NOT ask)
+6. Show results, then merge LAST
 
 ## Important Notes
 
@@ -171,16 +170,11 @@ Generate 5-10 diverse test cases that cover different scenarios.
         'evaluations-create-evaluator',
         'evaluations-get-evaluator',
         'evaluations-update-evaluator',
-        // Evaluation results (for reading outcomes) — ONLY run-config-results
-        'evaluations-get-evaluation-run-config-results',
-        // Evaluation suite configs
-        'evaluations-list-evaluation-suite-configs',
-        'evaluations-create-evaluation-suite-config',
-        'evaluations-add-evaluator-to-suite-config',
-        // Evaluation run configs
-        'evaluations-list-evaluation-run-configs',
-        'evaluations-create-evaluation-run-config',
-        // Trigger evaluation runs
+        // Evaluation job configs (batch evaluation)
+        'evaluations-create-evaluation-job-config',
+        'evaluations-add-evaluator-to-job-config',
+        'evaluations-get-evaluation-job-config-results',
+        // Trigger dataset runs (evaluators run inline per item)
         'workflows-run-dataset-items',
         // Check invocation status (for polling eval completion)
         'triggers-list-trigger-invocations',
