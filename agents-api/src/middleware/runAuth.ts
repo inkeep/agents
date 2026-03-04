@@ -167,12 +167,18 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    // Copilot bypass — skip SpiceDB when the token targets the copilot project.
+    // Copilot bypass — skip SpiceDB when the token targets the copilot agent.
     const isCopilotToken =
       env.INKEEP_COPILOT_TENANT_ID &&
       env.INKEEP_COPILOT_PROJECT_ID &&
+      env.INKEEP_COPILOT_AGENT_ID &&
       payload.tenantId === env.INKEEP_COPILOT_TENANT_ID &&
-      projectId === env.INKEEP_COPILOT_PROJECT_ID;
+      projectId === env.INKEEP_COPILOT_PROJECT_ID &&
+      agentId === env.INKEEP_COPILOT_AGENT_ID;
+
+    if (isCopilotToken) {
+      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
+    }
 
     if (!isCopilotToken) {
       let canUse: boolean;

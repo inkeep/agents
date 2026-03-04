@@ -98,6 +98,13 @@ app.openapi(
       projectId === env.INKEEP_COPILOT_PROJECT_ID &&
       agentId === env.INKEEP_COPILOT_AGENT_ID;
 
+    if (isCopilotRequest) {
+      logger.info(
+        { userId, tenantId, projectId, agentId },
+        'Copilot bypass: skipping canUseProject check'
+      );
+    }
+
     if (!isCopilotRequest) {
       // Check SpiceDB 'use' permission for this project
       // This allows project_admin and project_member roles, but not project_viewer

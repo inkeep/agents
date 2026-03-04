@@ -3,6 +3,9 @@ import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
+import { getLogger } from '../logger';
+
+const logger = getLogger('tenantAccess');
 
 /**
  * Middleware to enforce tenant access control.
@@ -58,9 +61,18 @@ export const requireTenantAccess = () =>
       return;
     }
 
-    // Copilot tenant bypass — any authenticated user can access the copilot tenant.
-    // Target-resource authorization is enforced by the copilot agent via forwarded session cookies.
-    if (env.INKEEP_COPILOT_TENANT_ID && tenantId === env.INKEEP_COPILOT_TENANT_ID) {
+    // Copilot tenant bypass — scoped to the playground token endpoint only.
+    // Any authenticated user can obtain a copilot playground token without
+    // being a member of the copilot tenant. All three env vars must be set.
+    const isCopilotPlaygroundRequest =
+      c.req.path.includes('/playground/token') &&
+      env.INKEEP_COPILOT_TENANT_ID &&
+      env.INKEEP_COPILOT_PROJECT_ID &&
+      env.INKEEP_COPILOT_AGENT_ID &&
+      tenantId === env.INKEEP_COPILOT_TENANT_ID;
+
+    if (isCopilotPlaygroundRequest) {
+      logger.info({ userId, tenantId }, 'Copilot tenant bypass: granting MEMBER access');
       c.set('tenantId', tenantId);
       c.set('tenantRole', OrgRoles.MEMBER);
       await next();

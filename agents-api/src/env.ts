@@ -272,6 +272,25 @@ const envSchema = z
         message: 'BLOB_STORAGE_LOCAL_PATH must be set and non-empty. Default is .blob-storage.',
       });
     }
+
+    // Copilot env vars must be all-or-none to prevent partial bypass misconfiguration.
+    const copilotVars = [
+      { key: 'INKEEP_COPILOT_TENANT_ID', val: data.INKEEP_COPILOT_TENANT_ID },
+      { key: 'INKEEP_COPILOT_PROJECT_ID', val: data.INKEEP_COPILOT_PROJECT_ID },
+      { key: 'INKEEP_COPILOT_AGENT_ID', val: data.INKEEP_COPILOT_AGENT_ID },
+    ] as const;
+    const setCopilot = copilotVars.filter(({ val }) => val !== undefined && val.trim() !== '');
+    if (setCopilot.length > 0 && setCopilot.length < copilotVars.length) {
+      for (const { key, val } of copilotVars) {
+        if (val === undefined || val.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `All copilot env vars must be set together. ${key} is missing.`,
+          });
+        }
+      }
+    }
   });
 
 const parseEnv = () => {
