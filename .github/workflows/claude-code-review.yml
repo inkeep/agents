@@ -9,7 +9,7 @@ on:
 jobs:
   pr-review:
     if: |
-      (github.event_name == 'pull_request' && github.event.sender.type != 'Bot') ||
+      (github.event_name == 'pull_request' && (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]')) ||
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
@@ -729,6 +729,7 @@ jobs:
           allowed_bots: "claude[bot]"
           track_progress: true
           claude_args: |
+            --model opus
             --plugin-dir /tmp/team-skills/ci/pr-review
             --agent pr-review:pr-review
             --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'

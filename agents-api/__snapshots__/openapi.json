@@ -1546,6 +1546,29 @@
         },
         "type": "object"
       },
+      "ConversationBoundsResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "updatedAt"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "ConversationWithFormattedMessagesResponse": {
         "properties": {
           "data": {
@@ -5435,7 +5458,7 @@
             "type": "string"
           },
           "createdBy": {
-            "type": "string"
+            "$ref": "#/components/schemas/UserId"
           },
           "credentialReferenceId": {
             "maxLength": 256,
@@ -6076,9 +6099,15 @@
             "type": "string"
           },
           "createdBy": {
-            "description": "User ID of the user who created this trigger",
-            "nullable": true,
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserId"
+              },
+              {
+                "description": "User ID of the user who created this trigger",
+                "nullable": true
+              }
+            ]
           },
           "cronExpression": {
             "maxLength": 256,
@@ -6127,9 +6156,15 @@
             "type": "number"
           },
           "runAsUserId": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserId"
+              },
+              {
+                "description": "User ID of the user who this trigger is running as",
+                "nullable": true
+              }
+            ]
           },
           "runAt": {
             "nullable": true,
@@ -6170,6 +6205,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -6260,6 +6296,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -6490,6 +6527,7 @@
           },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
+            "example": "user_123",
             "nullable": true,
             "type": "string"
           },
@@ -9066,6 +9104,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -9146,6 +9190,12 @@
                 "nullable": true
               }
             ]
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
           },
           "signatureVerification": {
             "$ref": "#/components/schemas/SignatureVerificationConfig"
@@ -9209,6 +9259,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9243,6 +9299,12 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
           },
           "signatureVerification": {
             "description": "Configuration for webhook signature verification",
@@ -9577,6 +9639,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9613,6 +9681,12 @@
           },
           "projectId": {
             "maxLength": 256,
+            "type": "string"
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "example": "user_123",
+            "nullable": true,
             "type": "string"
           },
           "signatureVerification": {
@@ -9721,6 +9795,21 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "TriggerWithWebhookUrlWithWarningResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          },
+          "warning": {
+            "description": "Security warning when runAsUserId is set but no authentication or signature verification is configured",
+            "type": "string"
           }
         },
         "required": [
@@ -9849,6 +9938,11 @@
             "type": "object"
           }
         ]
+      },
+      "UserId": {
+        "description": "User identifier",
+        "example": "user_123",
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -10516,7 +10610,7 @@
         },
         "summary": "Get server capabilities",
         "x-authz": {
-          "description": "Requires session cookie or API key authentication",
+          "description": "Requires session cookie authentication",
           "permission": "member",
           "resource": "organization"
         }
@@ -10696,7 +10790,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -10861,7 +10955,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -10981,7 +11075,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11184,7 +11278,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11294,7 +11388,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11483,7 +11577,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11722,7 +11816,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11810,7 +11904,7 @@
           "API Keys"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -12475,7 +12569,7 @@
           "Projects"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         },
@@ -22581,7 +22675,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlWithWarningResponse"
                 }
               }
             },
@@ -22951,7 +23045,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlWithWarningResponse"
                 }
               }
             },
@@ -25644,6 +25738,121 @@
           }
         },
         "summary": "Get Conversation",
+        "tags": [
+          "Conversations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/conversations/{id}/bounds": {
+      "get": {
+        "operationId": "get-conversation-bounds",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationBoundsResponse"
+                }
+              }
+            },
+            "description": "Conversation time bounds for trace queries"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get conversation time bounds",
         "tags": [
           "Conversations"
         ],
@@ -36771,7 +36980,7 @@
           "User Project Memberships"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }

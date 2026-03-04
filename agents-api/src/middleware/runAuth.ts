@@ -14,6 +14,7 @@ import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
+import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('env-key-auth');
 
@@ -101,6 +102,27 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
   const agentId =
     authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
 
+  if (
+    !authResult.metadata?.teamDelegation &&
+    reqData.agentId &&
+    reqData.agentId !== authResult.agentId &&
+    authResult.apiKeyId &&
+    !authResult.apiKeyId.startsWith('temp-') &&
+    authResult.apiKeyId !== 'bypass' &&
+    authResult.apiKeyId !== 'slack-user-token' &&
+    authResult.apiKeyId !== 'team-agent-token' &&
+    authResult.apiKeyId !== 'test-key'
+  ) {
+    logger.warn(
+      {
+        requestedAgentId: reqData.agentId,
+        apiKeyAgentId: authResult.agentId,
+        apiKeyId: authResult.apiKeyId,
+      },
+      'API key agent scope mismatch: ignoring x-inkeep-agent-id header, using key-bound agent'
+    );
+  }
+
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
     tenantId: authResult.tenantId,
@@ -146,21 +168,34 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    let canUse: boolean;
-    try {
-      canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
-    } catch (error) {
-      logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-      throw new HTTPException(503, {
-        message: 'Authorization service temporarily unavailable',
-      });
+    // Copilot bypass — skip SpiceDB when the token targets the copilot agent.
+    const isCopilotToken = isCopilotAgent({
+      tenantId: payload.tenantId,
+      projectId,
+      agentId,
+    });
+
+    if (isCopilotToken) {
+      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
     }
 
-    if (!canUse) {
-      logger.warn({ userId, projectId }, 'User does not have use permission on project');
-      throw new HTTPException(403, {
-        message: 'Access denied: insufficient permissions',
-      });
+    if (!isCopilotToken) {
+      let canUse: boolean;
+      try {
+        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
+      } catch (error) {
+        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
+        throw new HTTPException(503, {
+          message: 'Authorization service temporarily unavailable',
+        });
+      }
+
+      if (!canUse) {
+        logger.warn({ userId, projectId }, 'User does not have use permission on project');
+        throw new HTTPException(403, {
+          message: 'Access denied: insufficient permissions',
+        });
+      }
     }
 
     logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');

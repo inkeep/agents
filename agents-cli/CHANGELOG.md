@@ -1,5 +1,80 @@
 # @inkeep/agents-cli
 
+## 0.56.2
+
+### Patch Changes
+
+- Updated dependencies [32e0d6e]
+  - @inkeep/agents-manage-ui@0.56.2
+  - @inkeep/agents-core@0.56.2
+  - @inkeep/agents-sdk@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- Updated dependencies [76defa3]
+- Updated dependencies [a175379]
+- Updated dependencies [0d4a6ce]
+  - @inkeep/agents-manage-ui@0.56.1
+  - @inkeep/agents-core@0.56.1
+  - @inkeep/agents-sdk@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+  - @inkeep/agents-manage-ui@0.56.0
+  - @inkeep/agents-sdk@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- Updated dependencies [e8f1549]
+  - @inkeep/agents-manage-ui@0.55.3
+  - @inkeep/agents-core@0.55.3
+  - @inkeep/agents-sdk@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+- Updated dependencies [6dec75f]
+  - @inkeep/agents-core@0.55.2
+  - @inkeep/agents-manage-ui@0.55.2
+  - @inkeep/agents-sdk@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- Updated dependencies [55eb8cb]
+- Updated dependencies [cde371e]
+  - @inkeep/agents-manage-ui@0.55.1
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-sdk@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- Updated dependencies [1093d69]
+- Updated dependencies [08d678d]
+- Updated dependencies [9ee889e]
+- Updated dependencies [08d678d]
+- Updated dependencies [1e0cfc5]
+  - @inkeep/agents-manage-ui@0.55.0
+  - @inkeep/agents-core@0.55.0
+  - @inkeep/agents-sdk@0.55.0
+
 ## 0.54.0
 
 ### Patch Changes

@@ -13,6 +13,7 @@ import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
+import { isCopilotAgent } from '../../../utils/copilot';
 
 const logger = getLogger('playgroundToken');
 
@@ -87,21 +88,38 @@ app.openapi(
       'Generating temporary JWT token for playground'
     );
 
-    // Check SpiceDB 'use' permission for this project
-    // This allows project_admin and project_member roles, but not project_viewer
-    const canUse = await canUseProject({
-      userId,
-      tenantId,
-      projectId,
-      orgRole: tenantRole,
-    });
+    // Copilot bypass — skip SpiceDB check when targeting the copilot agent.
+    // Any authenticated user can use the copilot; target-resource authz is
+    // enforced by the copilot agent via forwarded session cookies.
+    const isCopilotRequest = isCopilotAgent({ tenantId, projectId, agentId });
 
-    if (!canUse) {
-      logger.warn({ userId, tenantId, projectId }, 'User does not have use permission on project');
-      throw createApiError({
-        code: 'not_found',
-        message: 'Project not found',
+    if (isCopilotRequest) {
+      logger.info(
+        { userId, tenantId, projectId, agentId },
+        'Copilot bypass: skipping canUseProject check'
+      );
+    }
+
+    if (!isCopilotRequest) {
+      // Check SpiceDB 'use' permission for this project
+      // This allows project_admin and project_member roles, but not project_viewer
+      const canUse = await canUseProject({
+        userId,
+        tenantId,
+        projectId,
+        orgRole: tenantRole,
       });
+
+      if (!canUse) {
+        logger.warn(
+          { userId, tenantId, projectId },
+          'User does not have use permission on project'
+        );
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
     }
 
     // Verify project exists and belongs to the tenant

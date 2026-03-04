@@ -1,5 +1,31 @@
 # @inkeep/agents-core
 
+## 0.56.2
+
+## 0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+## 0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 4414e25: Add email integration for BetterAuth callbacks (invitation and password reset emails via SMTP)
+
+## 0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- 08d678d: Add serverInstructions to ToolServerCapabilities and expose getInstructions() on McpClient to surface MCP server default instructions
+
 ## 0.54.0
 
 ### Minor Changes

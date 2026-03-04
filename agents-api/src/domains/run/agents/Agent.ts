@@ -204,6 +204,7 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   relationId?: string;
   baseUrl: string;
   apiKey?: string;
@@ -294,6 +295,9 @@ export class Agent {
   private currentCompressor: MidGenerationCompressor | null = null;
   private executionContext: FullExecutionContext;
   private functionToolRelationshipIdByName: Map<string, string> = new Map();
+  // Populated during execution; consumed once by generateTaskHandler when assembling the delegation response.
+  // Agents are instantiated per-task so this array is never reused across delegations.
+  private taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }> = [];
 
   constructor(
     config: AgentConfig,
@@ -548,6 +552,18 @@ export class Agent {
     this.delegationId = delegationId;
   }
 
+  private recordDenial(toolName: string, toolCallId: string, reason: string | undefined): void {
+    this.taskDenialRedirects.push({
+      toolName,
+      toolCallId,
+      reason: reason ?? 'Tool call was denied by the user.',
+    });
+  }
+
+  getTaskDenialRedirects(): Array<{ toolName: string; toolCallId: string; reason: string }> {
+    return this.taskDenialRedirects;
+  }
+
   /**
    * Get streaming helper if this agent should stream to user
    * Returns undefined for delegated agents to prevent streaming data operations to user
@@ -742,6 +758,10 @@ export class Agent {
             } else {
               await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
             }
+          }
+
+          if (isDeniedResult) {
+            return result.reason ?? 'Tool call was denied by the user.';
           }
 
           return result;
@@ -1014,6 +1034,8 @@ export class Agent {
                       { toolName, toolCallId, reason: approvalResult.reason },
                       'Tool execution denied by user'
                     );
+
+                    this.recordDenial(toolName, toolCallId, approvalResult.reason);
 
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
@@ -1332,6 +1354,8 @@ export class Agent {
                       { toolName: functionToolDef.name, toolCallId, reason: approvalResult.reason },
                       'Function tool execution denied by user'
                     );
+
+                    this.recordDenial(functionToolDef.name, toolCallId, approvalResult.reason);
 
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
@@ -2408,7 +2432,7 @@ ${output}`;
           'tenant.id': this.config.tenantId,
           'project.id': this.config.projectId,
           'agent.id': this.config.agentId,
-          'agent.name': this.config.name,
+          'agent.name': this.config.agentName,
           ...(conversationIdForSpan ? { 'conversation.id': conversationIdForSpan } : {}),
         },
       },

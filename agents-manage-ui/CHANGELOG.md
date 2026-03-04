@@ -1,5 +1,66 @@
 # @inkeep/agents-manage-ui
 
+## 0.56.2
+
+### Patch Changes
+
+- 32e0d6e: fix for errors only in trace view
+  - @inkeep/agents-core@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- 76defa3: Add PostHog analytics tracking to playground and copilot chat widgets
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+- 0d4a6ce: fix new lines for triggers
+  - @inkeep/agents-core@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- e8f1549: Fix copilot chat token authentication for manage UI
+  - @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 6dec75f: Add new stepper component, design polish on the "use in your app" modal
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+- cde371e: Fix playground conversationId not resetting when playground closes or when navigating between agents
+  - @inkeep/agents-core@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- 1093d69: Fix trace filtering when same conversation ID exists across projects
+- 9ee889e: Use credential name instead of id in external agent and MCP server credential selectors and detail pages
+- 08d678d: Show MCP server default instructions as placeholder in edit form and as fallback in detail views when no custom prompt is set
+- 1e0cfc5: Hide create / edit buttons for skills if user doesn't have edit permissions
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
 ## 0.54.0
 
 ### Patch Changes
