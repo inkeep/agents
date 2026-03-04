@@ -4,6 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { and, eq } from 'drizzle-orm';
+import { createUserProfileIfNotExists } from '../data-access/runtime/userProfiles';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
@@ -419,6 +420,12 @@ export function createAuth(config: BetterAuthConfig) {
             } catch (error) {
               // Log error but don't fail the invitation acceptance
               console.error('❌ SpiceDB sync failed for new member:', error);
+            }
+
+            try {
+              await createUserProfileIfNotExists(config.dbClient)(user.id);
+            } catch (error) {
+              console.error('[auth] Failed to create user profile for user', user.id, error);
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
