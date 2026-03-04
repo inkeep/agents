@@ -47,7 +47,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                   Slack
                 </Badge>
               )}
-              {firstUserMessage || 'No user message'}
+              <span className="line-clamp-2">{firstUserMessage || 'No user message'}</span>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
