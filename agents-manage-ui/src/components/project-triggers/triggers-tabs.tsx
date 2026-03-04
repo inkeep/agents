@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode, FC } from 'react';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const VALID_TABS = ['scheduled', 'webhooks'] as const;
@@ -12,27 +12,19 @@ interface TriggersTabsProps {
   webhooksContent: ReactNode;
 }
 
-export function TriggersTabs({ scheduledContent, webhooksContent }: TriggersTabsProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const tabParam = searchParams.get('tab');
-  const initialTab: TabValue = VALID_TABS.includes(tabParam as TabValue)
-    ? (tabParam as TabValue)
-    : 'scheduled';
-
-  const [activeTab, setActiveTab] = useState<TabValue>(initialTab);
-
-  const handleTabChange = (tab: string) => {
-    const newTab = tab as TabValue;
-    setActiveTab(newTab);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', newTab);
-    window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
-  };
+export const TriggersTabs: FC<TriggersTabsProps> = ({ scheduledContent, webhooksContent }) => {
+  'use memo';
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(VALID_TABS).withDefault('scheduled')
+  );
 
   return (
-    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+    <Tabs
+      value={activeTab}
+      onValueChange={(newTab) => setActiveTab(newTab as TabValue)}
+      className="w-full"
+    >
       <div className="border-b">
         <TabsList className="h-10 w-full justify-start border-none bg-transparent p-0 rounded-none">
           <TabsTrigger value="scheduled" variant="underline" className="h-10">
@@ -53,4 +45,4 @@ export function TriggersTabs({ scheduledContent, webhooksContent }: TriggersTabs
       </TabsContent>
     </Tabs>
   );
-}
+};
