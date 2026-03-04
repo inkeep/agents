@@ -48,6 +48,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   Tools: 'LuHammer',
   Triggers: 'LuWebhook',
   'User Project Memberships': 'LuUserCheck',
+  'User Profile': 'LuUser',
   Users: 'LuUsers',
   Webhooks: 'LuWebhook',
   'Work Apps': 'LuPlug',
