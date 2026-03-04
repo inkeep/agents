@@ -278,17 +278,6 @@ export function createAuth(config: BetterAuthConfig) {
           },
         },
       },
-      user: {
-        create: {
-          after: async (user) => {
-            try {
-              await createUserProfileIfNotExists(config.dbClient)(user.id);
-            } catch (error) {
-              console.error('[auth] Failed to create user profile for user', user.id, error);
-            }
-          },
-        },
-      },
     },
     socialProviders: config.socialProviders?.google && {
       google: {
@@ -431,6 +420,12 @@ export function createAuth(config: BetterAuthConfig) {
             } catch (error) {
               // Log error but don't fail the invitation acceptance
               console.error('❌ SpiceDB sync failed for new member:', error);
+            }
+
+            try {
+              await createUserProfileIfNotExists(config.dbClient)(user.id);
+            } catch (error) {
+              console.error('[auth] Failed to create user profile for user', user.id, error);
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
