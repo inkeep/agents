@@ -47,29 +47,14 @@ export async function createApp(
     }
   );
 
-  const rawResponse = response.data as any;
-  if (rawResponse?.data?.app) {
-    const { app, appSecret } = rawResponse.data;
-    return {
-      app: {
-        ...app,
-        lastUsedAt: app.lastUsedAt ?? undefined,
-      },
-      appSecret,
-    };
-  }
-
-  if (rawResponse?.app) {
-    return {
-      app: {
-        ...rawResponse.app,
-        lastUsedAt: rawResponse.app.lastUsedAt ?? undefined,
-      },
-      appSecret: rawResponse.appSecret,
-    };
-  }
-
-  return rawResponse;
+  const { app, appSecret } = response.data.data;
+  return {
+    app: {
+      ...app,
+      lastUsedAt: app.lastUsedAt ?? undefined,
+    },
+    appSecret,
+  };
 }
 
 export async function updateApp(

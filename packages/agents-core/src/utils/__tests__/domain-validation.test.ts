@@ -36,9 +36,9 @@ describe('validateOrigin', () => {
     });
   });
 
-  describe('bare wildcard rejection', () => {
-    it('should reject bare * as allowed domain', () => {
-      expect(validateOrigin('https://anything.com', ['*'])).toBe(false);
+  describe('bare wildcard matching', () => {
+    it('should allow any origin with bare * as allowed domain', () => {
+      expect(validateOrigin('https://anything.com', ['*'])).toBe(true);
     });
   });
 

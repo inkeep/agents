@@ -59,6 +59,10 @@ vi.mock('@inkeep/agents-core', () => ({
 
 vi.mock('jose', () => ({
   jwtVerify: jwtVerifyMock,
+  errors: {
+    JWTExpired: class JWTExpired extends Error {},
+    JWSSignatureVerificationFailed: class JWSSignatureVerificationFailed extends Error {},
+  },
 }));
 
 vi.mock('../../../domains/run/routes/auth', () => ({
@@ -499,7 +503,7 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain("Agent 'not-allowed-agent' is not allowed");
+      expect(body).toContain('Requested agent is not available for this app');
     });
 
     it('should use defaultAgentId when no agent header in selected mode', async () => {
@@ -593,13 +597,15 @@ describe('App Credential Authentication', () => {
   });
 
   describe('lastUsedAt update', () => {
-    it('should fire-and-forget update lastUsedAt on successful auth', async () => {
+    it('should fire-and-forget update lastUsedAt on successful auth (sampled)', async () => {
       const updateFn = vi.fn().mockResolvedValue(undefined);
       updateAppLastUsedMock.mockReturnValue(updateFn);
 
       const appRecord = makeApiApp();
       getAppByPublicIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateApiKeyMock.mockResolvedValue(true);
+
+      const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.05);
 
       app.use('*', apiKeyAuth());
       app.get('/', (c) => c.text('OK'));
@@ -614,7 +620,13 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(200);
       expect(updateAppLastUsedMock).toHaveBeenCalled();
-      expect(updateFn).toHaveBeenCalledWith('app-id-2');
+      expect(updateFn).toHaveBeenCalledWith({
+        tenantId: 'tenant_1',
+        projectId: 'project_1',
+        id: 'app-id-2',
+      });
+
+      mathRandomSpy.mockRestore();
     });
   });
 });
