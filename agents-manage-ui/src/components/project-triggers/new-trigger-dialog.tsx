@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -27,17 +28,15 @@ export function NewTriggerDialog({
   type: 'webhook' | 'scheduled';
 }) {
   const [selectedAgent, setSelectedAgent] = useState('');
-  const [open, setOpen] = useState(false);
-
   const triggerLabel = type === 'webhook' ? 'webhook trigger' : 'scheduled trigger';
   const path = type === 'webhook' ? 'webhooks' : 'scheduled';
 
   return (
     <Dialog
-      open={open}
       onOpenChange={(isOpen) => {
-        if (!isOpen) setSelectedAgent('');
-        setOpen(isOpen);
+        if (!isOpen) {
+          setSelectedAgent('');
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -63,12 +62,12 @@ export function NewTriggerDialog({
             searchPlaceholder="Search agents..."
             notFoundMessage="No agents found."
             triggerClassName="w-full"
-            className="w-[var(--radix-popover-trigger-width)]"
+            className="w-(--radix-popover-trigger-width)"
           />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button asChild disabled={!selectedAgent}>
               <Link
                 href={`/${tenantId}/projects/${projectId}/triggers/${path}/${selectedAgent}/new`}
