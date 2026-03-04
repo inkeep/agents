@@ -9,6 +9,7 @@ import {
   createUniqueReferenceName,
   formatStringLiteral,
   formatTemplate,
+  getImportStem,
   isPlainObject,
   toCamelCase,
 } from '../utils';
@@ -149,7 +150,7 @@ export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
     if (namedImports.length > 0) {
       sourceFile.addImportDeclaration({
         namedImports,
-        moduleSpecifier: `../context-configs/${contextConfigId}`,
+        moduleSpecifier: `../context-configs/${getImportStem(contextConfigId)}`,
       });
     }
   }
@@ -403,7 +404,7 @@ function addSubAgentImports(
       namedImports: [
         importName === referenceName ? importName : { name: importName, alias: referenceName },
       ],
-      moduleSpecifier: `./sub-agents/${subAgentId}`,
+      moduleSpecifier: `./sub-agents/${getImportStem(subAgentId)}`,
     });
   }
 }
@@ -415,7 +416,7 @@ function addTriggerImports(sourceFile: SourceFile, referenceNames: ReferenceName
       namedImports: [
         importName === referenceName ? importName : { name: importName, alias: referenceName },
       ],
-      moduleSpecifier: `./triggers/${triggerId}`,
+      moduleSpecifier: `./triggers/${getImportStem(triggerId)}`,
     });
   }
 }
@@ -430,7 +431,7 @@ function addScheduledTriggerImports(
       namedImports: [
         importName === referenceName ? importName : { name: importName, alias: referenceName },
       ],
-      moduleSpecifier: `./scheduled-triggers/${scheduledTriggerId}`,
+      moduleSpecifier: `./scheduled-triggers/${getImportStem(scheduledTriggerId)}`,
     });
   }
 }
@@ -468,7 +469,7 @@ function addStatusComponentImports(sourceFile: SourceFile, referenceNames: Refer
       namedImports: [
         importName === referenceName ? importName : { name: importName, alias: referenceName },
       ],
-      moduleSpecifier: `../status-components/${statusComponentId}`,
+      moduleSpecifier: `../status-components/${getImportStem(statusComponentId)}`,
     });
   }
 }

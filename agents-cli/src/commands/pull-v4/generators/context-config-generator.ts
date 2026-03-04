@@ -8,6 +8,7 @@ import {
   convertNullToUndefined,
   createInMemoryProject,
   formatPropertyName,
+  getImportStem,
   isPlainObject,
   toCamelCase,
 } from '../utils';
@@ -109,7 +110,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   for (const [credentialId, credentialReferenceName] of credentialReferenceNames) {
     sourceFile.addImportDeclaration({
       namedImports: [credentialReferenceName],
-      moduleSpecifier: `../credentials/${credentialId}`,
+      moduleSpecifier: `../credentials/${getImportStem(credentialId)}`,
     });
   }
   if (shouldDefineHeadersInFile && headersReference && headersSchema) {
@@ -393,7 +394,7 @@ function generateStandaloneFetchDefinition(
     credentialReferenceNames.set(credentialReferenceId, credentialReferenceName);
     sourceFile.addImportDeclaration({
       namedImports: [credentialReferenceName],
-      moduleSpecifier: `../credentials/${credentialReferenceId}`,
+      moduleSpecifier: `../credentials/${getImportStem(credentialReferenceId)}`,
     });
   }
 
