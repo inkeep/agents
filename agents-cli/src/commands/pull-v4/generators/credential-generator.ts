@@ -1,7 +1,7 @@
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import { addValueToObject, createFactoryDefinition, toCredentialReferenceName } from '../utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.credentialReferences.unwrap().valueType.omit({
   id: true,
@@ -18,31 +18,23 @@ const CredentialSchema = z.strictObject({
 type CredentialInput = z.input<typeof CredentialSchema>;
 
 export function generateCredentialDefinition({
-  // @ts-expect-error
   tenantId,
-  // @ts-expect-error
   id,
-  // @ts-expect-error
   projectId,
-  // @ts-expect-error
   createdBy,
-  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
-  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
-  // @ts-expect-error
   toolId,
-  // @ts-expect-error
   userId,
   ...data
-}: CredentialInput): SourceFile {
+}: CredentialInput & Record<string, unknown>): SourceFile {
   const result = CredentialSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for credential:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;
-  const credentialVarName = toCamelCase(parsed.credentialId);
+  const credentialVarName = toCredentialReferenceName(parsed.name);
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'credential',
     variableName: credentialVarName,

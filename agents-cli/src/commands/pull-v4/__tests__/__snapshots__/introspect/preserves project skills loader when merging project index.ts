@@ -3,7 +3,7 @@ import { loadSkills, project } from '@inkeep/agents-sdk';
 import { supportAgent } from './agents/support-agent';
 import { customerProfile } from './data-components/customer-profile';
 import { ticketSummary } from './artifact-components/ticket-summary';
-import { apiCredentials } from './credentials/api-credentials';
+import { apiCredentials, apiCredentialsCredential } from './credentials/api-credentials';
 
 export const supportProject = project({
   id: 'support-project',
@@ -18,5 +18,5 @@ export const supportProject = project({
   },
   dataComponents: () => [customerProfile],
   artifactComponents: () => [ticketSummary],
-  credentialReferences: () => [apiCredentials]
+  credentialReferences: () => [apiCredentialsCredential]
 });

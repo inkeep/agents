@@ -1,7 +1,7 @@
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
-import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import { addValueToObject, createFactoryDefinition, toToolReferenceName } from '../utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.functions.unwrap().valueType.omit({
   id: true,
@@ -14,11 +14,16 @@ const MySchema2 = FullProjectDefinitionSchema.shape.functionTools.unwrap().value
 const FunctionToolSchema = z.strictObject({
   ...MySchema.shape,
   ...MySchema2.shape,
+  // Even empty description should exist, otherwise agent-sdk show type error
+  // dependencies: z.preprocess(
+  //   (v) => (v && Object.keys(v).length && v) || undefined,
+  //   MySchema.shape.dependencies
+  // ),
+  description: z.preprocess((v) => v || undefined, MySchema2.shape.description),
   functionToolId: z.string().nonempty(),
 });
 
 type FunctionToolInput = z.input<typeof FunctionToolSchema>;
-type FunctionToolOutput = z.output<typeof FunctionToolSchema>;
 
 export function generateFunctionToolDefinition(data: FunctionToolInput): SourceFile {
   const result = FunctionToolSchema.safeParse(data);
@@ -26,24 +31,13 @@ export function generateFunctionToolDefinition(data: FunctionToolInput): SourceF
     throw new Error(`Validation failed for function tool:\n${z.prettifyError(result.error)}`);
   }
 
-  const parsed = result.data;
+  const { functionToolId, executeCode, ...parsed } = result.data;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'functionTool',
-    variableName: toCamelCase(parsed.functionToolId),
+    variableName: toToolReferenceName(parsed.name || functionToolId),
   });
 
-  writeFunctionToolConfig(configObject, parsed);
-  return sourceFile;
-}
-
-function writeFunctionToolConfig(
-  configObject: ObjectLiteralExpression,
-  { functionToolId, executeCode, inputSchema, schema, ...rest }: FunctionToolOutput
-): void {
-  for (const [k, v] of Object.entries({
-    ...rest,
-    inputSchema: inputSchema ?? schema,
-  })) {
+  for (const [k, v] of Object.entries(parsed)) {
     addValueToObject(configObject, k, v);
   }
   if (executeCode) {
@@ -52,4 +46,5 @@ function writeFunctionToolConfig(
       initializer: executeCode,
     });
   }
+  return sourceFile;
 }

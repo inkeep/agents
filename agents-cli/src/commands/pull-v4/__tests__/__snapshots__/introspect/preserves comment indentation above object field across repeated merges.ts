@@ -2,7 +2,7 @@ import { project } from '@inkeep/agents-sdk';
 import { supportAgent } from './agents/support-agent';
 import { customerProfile } from './data-components/customer-profile';
 import { ticketSummary } from './artifact-components/ticket-summary';
-import { apiCredentials } from './credentials/api-credentials';
+import { apiCredentialsCredential } from './credentials/api-credentials';
 
 export const supportProject = project({
   id: 'support-project',
@@ -19,5 +19,5 @@ export const supportProject = project({
   description: 'Support project for introspect v4 tests',
   dataComponents: () => [customerProfile],
   artifactComponents: () => [ticketSummary],
-  credentialReferences: () => [apiCredentials]
+  credentialReferences: () => [apiCredentialsCredential]
 });

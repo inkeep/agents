@@ -11,25 +11,13 @@ import type { z } from 'zod';
 type FullProjectResponse = z.infer<typeof FullProjectSelectResponse>;
 
 abstract class BaseApiClient {
-  protected apiUrl: string;
-  protected tenantId: string | undefined;
-  protected projectId: string;
-  protected apiKey: string | undefined;
-  protected isCI: boolean;
-
   protected constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    this.apiUrl = apiUrl;
-    this.tenantId = tenantId;
-    this.projectId = projectId;
-    this.apiKey = apiKey;
-    this.isCI = isCI;
-  }
+    protected apiUrl: string,
+    protected tenantId: string | undefined,
+    protected projectId: string,
+    protected apiKey?: string,
+    protected isCI = false
+  ) {}
 
   protected checkTenantId(): string {
     if (!this.tenantId) {
@@ -45,7 +33,9 @@ abstract class BaseApiClient {
   protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     // Build headers with auth if API key is present
     const headers: Record<string, string> = {
-      ...((options.headers as Record<string, string>) || {}),
+      ...(options.headers as Record<string, string>),
+      // cookie:
+      //   'unify_visitor_id=26062925-607c-4ed2-ba41-f92cb750d7dd; IndrX2M0NVhQcmVaXzhwZ1VWUFlOQ0x1dlozZ1ZjQW5BNHRWSExHdzFaSEJzX3VuaWZ5X3Zpc2l0b3JfaWQi=IjI2MDYyOTI1LTYwN2MtNGVkMi1iYTQxLWY5MmNiNzUwZDdkZCI=; _gcl_au=1.1.1042220851.1767710965; unify_session_id=d60fc9f3-6bca-4026-a47b-9a96d8f4ccf8; IndrX2M0NVhQcmVaXzhwZ1VWUFlOQ0x1dlozZ1ZjQW5BNHRWSExHdzFaSEJzX3VuaWZ5X3Nlc3Npb25faWQi=ImQ2MGZjOWYzLTZiY2EtNDAyNi1hNDdiLTlhOTZkOGY0Y2NmOCI=; ph_phc_tmyI0UQGFnLiRkVseDcCpO2vJmB1fuq8UI8XB2tmCU4_posthog=%7B%22%24device_id%22%3A%22019995f3-ad01-7fcb-a899-2d46bd0e422d%22%2C%22distinct_id%22%3A%22019995f3-ad01-7fcb-a899-2d46bd0e422d%22%2C%22%24sesid%22%3A%5B1770398878166%2C%22019c33ff-09d5-7966-ac65-64104d6afb51%22%2C1770398878165%5D%2C%22%24epp%22%3Atrue%2C%22%24initial_person_info%22%3A%7B%22r%22%3A%22%24direct%22%2C%22u%22%3A%22https%3A%2F%2Finkeep.com%2F%22%7D%7D; __Secure-better-auth.session_token=iou4dbIEvjytcHyXATVBmh1LioKjwh1m.Q4U%2BKZGRZPA%2F8iv1Y5jBRma5F2tgsSIvQnB4qqrmI%2BY%3D; __Secure-better-auth.session_data=eyJzZXNzaW9uIjp7InNlc3Npb24iOnsiZXhwaXJlc0F0IjoiMjAyNi0wMy0wOVQyMToyNTozNy4xOTRaIiwidG9rZW4iOiJpb3U0ZGJJRXZqeXRjSHlYQVRWQm1oMUxpb0tqd2gxbSIsImNyZWF0ZWRBdCI6IjIwMjYtMDEtMjlUMTE6Mjc6MTkuNTQyWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDMtMDJUMjE6MjU6MzcuMTk0WiIsImlwQWRkcmVzcyI6IjE0LjI0MC4xNi4xMDgiLCJ1c2VyQWdlbnQiOiJNb3ppbGxhLzUuMCAoTWFjaW50b3NoOyBJbnRlbCBNYWMgT1MgWCAxMF8xNV83KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBDaHJvbWUvMTMzLjAuMC4wIFNhZmFyaS81MzcuMzYiLCJ1c2VySWQiOiJpQ3hRTGxGS0ZkMGpCdDJFbjF3Z2hUS3RjWGFWeXNoMSIsImFjdGl2ZU9yZ2FuaXphdGlvbklkIjoiZGVmYXVsdCIsImlkIjoic3BDOXIyYkhyM2E5ZXc5dTBiVVBXdlJaTU91c1lTamEifSwidXNlciI6eyJuYW1lIjoiRGltaXRyaSBQb3N0b2xvdiIsImVtYWlsIjoiZGltYUBpbmtlZXAuY29tIiwiZW1haWxWZXJpZmllZCI6dHJ1ZSwiaW1hZ2UiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NKdDk1RG9NWW9xUTh0UTdnZExJZkd6b19UaGd4UGlnSzc0bkNhc3kxWnFqV3N6bWc9czk2LWMiLCJjcmVhdGVkQXQiOiIyMDI1LTEyLTE4VDE2OjM3OjE0Ljc3NFoiLCJ1cGRhdGVkQXQiOiIyMDI1LTEyLTE4VDE2OjM3OjE0Ljc3NFoiLCJpZCI6ImlDeFFMbEZLRmQwakJ0MkVuMXdnaFRLdGNYYVZ5c2gxIn0sInVwZGF0ZWRBdCI6MTc3MjUyMzA1NTcxMiwidmVyc2lvbiI6IjEifSwiZXhwaXJlc0F0IjoxNzcyNTIzMDg1NzEyLCJzaWduYXR1cmUiOiJNQnFDd2ZGN0VHSzJnMjItbDJsdjJja1NPMGtUSXEtT01yMDdYNTNmV2RBIn0; ph_phc_iGjhUK9kbBnMSAQEKltsxhN35W3cKAxL1I7f9hYhGL7_posthog=%7B%22%24device_id%22%3A%22019b326b-768c-7d8a-86a3-2ba47fe06d14%22%2C%22distinct_id%22%3A%22iCxQLlFKFd0jBt2En1wghTKtcXaVysh1%22%2C%22%24sesid%22%3A%5B1772523062919%2C%22019cb279-5124-78a4-b633-39272aa85f84%22%2C1772520821026%5D%2C%22%24epp%22%3Atrue%2C%22%24initial_person_info%22%3A%7B%22r%22%3A%22%24direct%22%2C%22u%22%3A%22https%3A%2F%2Finkeep.com%2F%22%7D%7D',
     };
 
     // Add auth header based on mode
@@ -82,15 +72,17 @@ abstract class BaseApiClient {
   }
 }
 
+type ConstructorParams = [
+  apiUrl: string,
+  tenantId: string | undefined,
+  projectId: string,
+  apiKey?: string,
+  isCI?: boolean,
+];
+
 export class ManagementApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(
@@ -178,7 +170,7 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data;
   }
 
-  async getFullProject(projectId: string): Promise<FullProjectResponse> {
+  async getFullProject(projectId: string): Promise<FullProjectResponse['data']> {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
@@ -212,6 +204,8 @@ export class ManagementApiClient extends BaseApiClient {
     }
 
     const responseData = await response.json();
+    console.log();
+    console.dir(responseData.data, { depth: null });
     return responseData.data;
   }
 
@@ -395,14 +389,8 @@ export class ManagementApiClient extends BaseApiClient {
 }
 
 export class ExecutionApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(

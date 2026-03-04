@@ -1,8 +1,8 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
 import { weatherMcpTool } from '../tools/weather-mcp';
 import { supportContext } from '../context-configs/support-context';
-import { githubWebhook } from './triggers/github-webhook';
-import { toolSummary } from '../status-components/tool-summary';
+import { githubWebhookTrigger } from './triggers/git-hub-webhook';
+import { toolSummary } from '../status-components/tool_summary';
 
 const weatherForecasterCustom = subAgent({
   id: 'weather-forecaster',
@@ -16,7 +16,7 @@ export const supportAgent = agent({
   defaultSubAgent: weatherForecasterCustom,
   subAgents: () => [weatherForecasterCustom],
   contextConfig: supportContext,
-  triggers: () => [githubWebhook],
+  triggers: () => [githubWebhookTrigger],
   statusUpdates: {
     numEvents: 1,
     statusComponents: [toolSummary.config],

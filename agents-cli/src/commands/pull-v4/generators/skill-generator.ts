@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { stringify } from 'yaml';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 const MySchema = FullProjectDefinitionSchema.shape.skills.unwrap().valueType;
 
