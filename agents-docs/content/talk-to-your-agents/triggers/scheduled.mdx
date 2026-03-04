@@ -106,11 +106,30 @@ Scheduled triggers run agents automatically on a recurring schedule (cron) or at
 
 ## Manage scheduled triggers
 
-The **Scheduled** tab shows all triggers in your project with their agent, schedule, status, last run, and next run.
+The **Scheduled** tab shows all triggers in your project with their agent, schedule, status, last run, and next run. Each trigger has a dropdown menu with the following actions:
+
+| Action | Description |
+| --- | --- |
+| **Run Now** | Execute the trigger immediately, regardless of its schedule. Creates a new invocation and runs it with the trigger's configured payload, message template, and retry settings. |
+| **View Invocations** | See all past and pending executions for this trigger |
+| **Edit** | Update the trigger's name, schedule, template, payload, retry settings, or execution identity |
+| **Duplicate** | Create a new trigger pre-filled with the same configuration |
+| **Delete** | Permanently remove the trigger |
+
+You can also toggle the **Enabled** switch directly in the table to pause or resume a trigger without deleting it.
 
 ## Monitor invocations
 
- View invocations for a single trigger via **View Invocations** in the dropdown, or view all invocations across the project by clicking **All Invocations**.
+View invocations for a single trigger via **View Invocations** in the dropdown, or view all invocations across the project by clicking **All Invocations**.
+
+Each invocation shows its status, scheduled time, start time, duration, attempt number, and a link to the conversation trace.
+
+### Invocation actions
+
+| Action | Available when | Description |
+| --- | --- | --- |
+| **Cancel** | `pending` or `running` | Stop the invocation before it completes |
+| **Rerun** | `completed`, `failed`, or `cancelled` | Re-execute with the same trigger configuration. Creates a new invocation and runs it immediately. |
 
 ## Cron expression reference
 
