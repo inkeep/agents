@@ -139,10 +139,10 @@ export class ArtifactService {
 
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const { _toolCallId, _structureHints, isError, ...rest } = payload as Record<string, unknown>;
-      return rest;
+      return { result: rest };
     }
 
-    return payload;
+    return { result: payload };
   }
 
   /**

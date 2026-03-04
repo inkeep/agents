@@ -9,6 +9,15 @@ function coerceToString(value: unknown): string {
   if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
     return value.join('\n');
   }
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 1 &&
+    'result' in (value as object)
+  ) {
+    return coerceToString((value as { result: unknown }).result);
+  }
   return JSON.stringify(value, null, 2);
 }
 
