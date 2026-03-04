@@ -3,8 +3,12 @@ import {
   type AgentApiInsert,
   type AgentApiSelect,
   apiFetch,
+  type FullProjectSelectResponse,
   OPENAI_MODELS,
 } from '@inkeep/agents-core';
+import type { z } from 'zod';
+
+type FullProjectResponse = z.infer<typeof FullProjectSelectResponse>;
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -174,7 +178,7 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data;
   }
 
-  async getFullProject(projectId: string): Promise<any> {
+  async getFullProject(projectId: string): Promise<FullProjectResponse> {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(

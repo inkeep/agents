@@ -465,6 +465,10 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .extend({
     id: ResourceIdSchema,
   })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
   .openapi('AgentCreate');
 export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
 
@@ -890,6 +894,10 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
   .extend({
     id: ResourceIdSchema.optional(),
   })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
   .openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
 
@@ -974,6 +982,9 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
@@ -1186,48 +1197,53 @@ export const McpToolDefinitionSchema = z.object({
 
 export const ToolSelectSchema = createSelectSchema(tools);
 
-export const ToolInsertSchema = createInsertSchema(tools).extend({
-  id: ResourceIdSchema,
-  imageUrl: imageUrlSchema,
-  config: z.object({
-    type: z.literal('mcp'),
-    mcp: z.object({
-      server: z.object({
-        url: z.url(),
-      }),
-      transport: z
-        .object({
-          type: z.enum(MCPTransportType),
-          requestInit: z.record(z.string(), z.unknown()).optional(),
-          eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-          reconnectionOptions: z.any().optional().openapi({
-            type: 'object',
-            description: 'Reconnection options for streamable HTTP transport',
-          }),
-          sessionId: z.string().optional(),
-        })
-        .optional(),
-      activeTools: z.array(z.string()).optional(),
-      toolOverrides: z
-        .record(
-          z.string(),
-          z.object({
-            displayName: z.string().optional(),
-            description: z.string().optional(),
-            schema: z.any().optional(),
-            transformation: z
-              .union([
-                z.string(), // JMESPath expression
-                z.record(z.string(), z.string()), // object mapping
-              ])
-              .optional(),
+export const ToolInsertSchema = createInsertSchema(tools)
+  .extend({
+    id: ResourceIdSchema,
+    imageUrl: imageUrlSchema,
+    config: z.object({
+      type: z.literal('mcp'),
+      mcp: z.object({
+        server: z.object({
+          url: z.url(),
+        }),
+        transport: z
+          .object({
+            type: z.enum(MCPTransportType),
+            requestInit: z.record(z.string(), z.unknown()).optional(),
+            eventSourceInit: z.record(z.string(), z.unknown()).optional(),
+            reconnectionOptions: z.any().optional().openapi({
+              type: 'object',
+              description: 'Reconnection options for streamable HTTP transport',
+            }),
+            sessionId: z.string().optional(),
           })
-        )
-        .optional(),
-      prompt: z.string().optional(),
+          .optional(),
+        activeTools: z.array(z.string()).optional(),
+        toolOverrides: z
+          .record(
+            z.string(),
+            z.object({
+              displayName: z.string().optional(),
+              description: z.string().optional(),
+              schema: z.any().optional(),
+              transformation: z
+                .union([
+                  z.string(), // JMESPath expression
+                  z.record(z.string(), z.string()), // object mapping
+                ])
+                .optional(),
+            })
+          )
+          .optional(),
+        prompt: z.string().optional(),
+      }),
     }),
-  }),
-});
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
@@ -1664,9 +1680,14 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).ope
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
-export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
-  id: ResourceIdSchema,
-});
+export const DataComponentInsertSchema = createInsertSchema(dataComponents)
+  .extend({
+    id: ResourceIdSchema,
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
@@ -1775,13 +1796,18 @@ export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
 });
-export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
-  id: ResourceIdSchema,
-  name: NameSchema,
-  description: DescriptionSchema,
-  baseUrl: z.url(),
-  credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
-});
+export const ExternalAgentInsertSchema = createInsertSchema(externalAgents)
+  .extend({
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
+    baseUrl: z.url(),
+    credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
 export const ExternalAgentApiSelectSchema =
@@ -1841,12 +1867,17 @@ export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
-export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
-  id: ResourceIdSchema,
-  type: z.string(),
-  credentialStoreId: ResourceIdSchema,
-  retrievalParams: z.record(z.string(), z.unknown()).nullish(),
-});
+export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences)
+  .extend({
+    id: ResourceIdSchema,
+    type: z.string(),
+    credentialStoreId: ResourceIdSchema,
+    retrievalParams: z.record(z.string(), z.unknown()).nullish(),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const CredentialReferenceUpdateSchema = CredentialReferenceInsertSchema.partial();
 
@@ -1956,8 +1987,6 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   projectId: true,
   status: true,
   version: true,
-  createdAt: true,
-  updatedAt: true,
   credentialReferenceId: true,
 }).extend({
   tenantId: z.string().optional(),
@@ -1995,9 +2024,14 @@ export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema).opena
 
 export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 
-export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
-  id: ResourceIdSchema,
-});
+export const FunctionToolInsertSchema = createInsertSchema(functionTools)
+  .extend({
+    id: ResourceIdSchema,
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
@@ -2106,10 +2140,14 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
 };
 
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .openapi('FunctionCreate')
   .extend({
     executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  });
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .openapi('FunctionCreate');
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 

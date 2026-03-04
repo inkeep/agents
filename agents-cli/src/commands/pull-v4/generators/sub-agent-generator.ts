@@ -6,7 +6,6 @@ import {
   addStringProperty,
   addValueToObject,
   collectTemplateVariableNames,
-  convertNullToUndefined,
   createFactoryDefinition,
   formatInlineLiteral,
   formatTemplate,
@@ -32,14 +31,20 @@ const ContextTemplateReferenceSchema = z.object({
   local: z.boolean().optional(),
 });
 
-const SubAgentSchema = FullAgentAgentInsertSchema.pick({
+const MySchema = FullAgentAgentInsertSchema.pick({
   id: true,
-  description: true,
   prompt: true,
-}).extend({
-  name: z.string().optional(),
-  stopWhen: z.preprocess(convertNullToUndefined, FullAgentAgentInsertSchema.shape.stopWhen),
-  models: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
+  name: true,
+  description: true,
+  stopWhen: true,
+});
+
+const SubAgentSchema = z.strictObject({
+  ...MySchema.shape,
+  prompt: z.preprocess((v) => v || undefined, MySchema.shape.prompt),
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  stopWhen: z.preprocess((v) => v ?? undefined, MySchema.shape.stopWhen),
+  models: z.preprocess((v) => v ?? undefined, z.looseObject({}).optional()),
   skills: z.array(z.unknown()).optional(),
   canUse: z.array(z.unknown()).optional(),
   canDelegateTo: z.array(z.unknown()).optional(),
@@ -55,7 +60,11 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
 type SubAgentInput = z.input<typeof SubAgentSchema>;
 type SubAgentOutput = z.output<typeof SubAgentSchema>;
 
-export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
+export function generateSubAgentDefinition({
+  // @ts-expect-error
+  subAgentId,
+  ...data
+}: SubAgentInput): SourceFile {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);
