@@ -228,7 +228,11 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
               onClick={() => setExpanded((prev) => !prev)}
             >
               <ChevronDown
-                className={cn('size-3 transition-transform duration-200', expanded && 'rotate-180')}
+                aria-hidden="true"
+                className={cn(
+                  'size-3 motion-safe:transition-transform motion-safe:duration-200',
+                  expanded && 'rotate-180'
+                )}
               />
               {expanded ? 'Show less' : `Show ${hiddenCount} more`}
             </Button>
