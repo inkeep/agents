@@ -1,7 +1,7 @@
 'use client';
 
-import type { ReactNode, FC } from 'react';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
+import type { FC, ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const VALID_TABS = ['scheduled', 'webhooks'] as const;
