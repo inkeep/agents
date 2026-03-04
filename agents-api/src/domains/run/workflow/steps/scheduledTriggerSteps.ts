@@ -31,7 +31,7 @@ import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { buildScheduledTriggerHeaders, executeAgentAsync } from '../../services/TriggerService';
+import { buildTimezoneHeaders, executeAgentAsync } from '../../services/TriggerService';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
 
@@ -567,7 +567,7 @@ export async function executeScheduledTriggerStep(params: {
         messageParts,
         resolvedRef,
         runAsUserId: runAsUserId ?? undefined,
-        forwardedHeaders: buildScheduledTriggerHeaders(cronTimezone),
+        forwardedHeaders: buildTimezoneHeaders(cronTimezone),
       }),
       timeoutPromise,
     ]);

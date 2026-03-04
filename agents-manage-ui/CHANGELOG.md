@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 19e16cc: Improve trigger page performance by splitting tab content into separate RSC components with Suspense boundaries and using nuqs for client-side tab switching
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+
 ## 0.56.2
 
 ### Patch Changes

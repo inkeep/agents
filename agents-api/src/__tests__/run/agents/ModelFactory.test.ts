@@ -402,6 +402,25 @@ describe('ModelFactory', () => {
         // apiKey excluded as it's provider config
       });
     });
+
+    test('should exclude object-valued keys (provider-specific per-call options)', () => {
+      const providerOptions = {
+        temperature: 0.7,
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } },
+        openai: { reasoningEffort: 'medium' },
+        gateway: { models: ['openai/gpt-4.1', 'anthropic/claude-sonnet-4-5'] },
+        google: { thinkingConfig: { thinkingBudget: 8192 } },
+        topP: 0.9,
+      };
+
+      const params = ModelFactory.getGenerationParams(providerOptions);
+
+      expect(params).toEqual({ temperature: 0.7, topP: 0.9 });
+      expect(params).not.toHaveProperty('anthropic');
+      expect(params).not.toHaveProperty('openai');
+      expect(params).not.toHaveProperty('gateway');
+      expect(params).not.toHaveProperty('google');
+    });
   });
 
   describe('validateConfig', () => {
@@ -897,11 +916,9 @@ describe('ModelFactory', () => {
       const config: ModelSettings = {
         model: 'custom/my-custom-model',
         providerOptions: {
-          custom: {
-            baseURL: 'https://api.example.com/v1',
-            headers: {
-              Authorization: 'Bearer custom-api-key',
-            },
+          baseURL: 'https://api.example.com/v1',
+          headers: {
+            Authorization: 'Bearer custom-api-key',
           },
         },
       };
@@ -917,7 +934,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+        'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
       );
     });
 
