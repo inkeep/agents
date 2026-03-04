@@ -131,6 +131,15 @@ export const deleteApp =
 
 export const updateAppLastUsed =
   (db: AgentsRunDatabaseClient) =>
-  async (id: string): Promise<void> => {
-    await db.update(apps).set({ lastUsedAt: new Date().toISOString() }).where(eq(apps.id, id));
+  async (params: { tenantId: string; projectId: string; id: string }): Promise<void> => {
+    await db
+      .update(apps)
+      .set({ lastUsedAt: new Date().toISOString() })
+      .where(
+        and(
+          eq(apps.tenantId, params.tenantId),
+          eq(apps.projectId, params.projectId),
+          eq(apps.id, params.id)
+        )
+      );
   };

@@ -15,15 +15,19 @@ import { getLogger } from '../../../logger';
 
 const logger = getLogger('run-auth');
 
-const DEV_ANON_SECRET = 'insecure-anon-dev-secret-change-in-production-32c';
+const DEV_ANON_SECRET = crypto.randomUUID() + crypto.randomUUID();
 
 export function getAnonJwtSecret(): Uint8Array {
   const secret = env.INKEEP_ANON_JWT_SECRET;
 
   if (!secret) {
-    if (env.ENVIRONMENT === 'production') {
-      throw new Error('INKEEP_ANON_JWT_SECRET environment variable is required in production');
+    if (env.ENVIRONMENT !== 'development' && env.ENVIRONMENT !== 'test') {
+      throw new Error('INKEEP_ANON_JWT_SECRET environment variable is required');
     }
+    logger.warn(
+      {},
+      'Using random ephemeral secret for anonymous JWTs — set INKEEP_ANON_JWT_SECRET'
+    );
     return new TextEncoder().encode(DEV_ANON_SECRET);
   }
 

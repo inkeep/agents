@@ -19,6 +19,9 @@ const SESSION_URL = "{{SESSION_URL}}";
 
 async function getSessionToken() {
   const response = await fetch(SESSION_URL, { method: "POST" });
+  if (!response.ok) {
+    throw new Error("Session token request failed: " + response.status);
+  }
   const data = await response.json();
   return data.token;
 }

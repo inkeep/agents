@@ -15,7 +15,7 @@ import {
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { jwtVerify } from 'jose';
+import { errors, jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
 import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
@@ -543,8 +543,14 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
       endUserId = payload.sub;
       jwtVerified = true;
-    } catch {
-      // Anonymous JWT failed — try customer HS256
+    } catch (err) {
+      const errorType =
+        err instanceof errors.JWTExpired
+          ? 'expired'
+          : err instanceof errors.JWSSignatureVerificationFailed
+            ? 'signature_invalid'
+            : 'unknown';
+      logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
     }
 
     if (!jwtVerified && config.webClient.hs256Enabled && config.webClient.hs256Secret) {
@@ -559,10 +565,20 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           };
         }
 
+        if (payload.aud && payload.aud !== appIdHeader) {
+          return { authResult: null, failureMessage: 'JWT audience does not match app' };
+        }
+
         endUserId = payload.sub;
         jwtVerified = true;
-      } catch {
-        // Customer JWT also failed
+      } catch (err) {
+        const errorType =
+          err instanceof errors.JWTExpired
+            ? 'expired'
+            : err instanceof errors.JWSSignatureVerificationFailed
+              ? 'signature_invalid'
+              : 'unknown';
+        logger.debug({ errorType, appId: appIdHeader }, 'Customer HS256 JWT verification failed');
       }
     }
 
@@ -581,7 +597,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       return { authResult: null, failureMessage: 'Invalid app secret' };
     }
   } else {
-    return { authResult: null, failureMessage: `Unsupported app type: ${app.type}` };
+    return { authResult: null, failureMessage: 'Unsupported app configuration' };
   }
 
   const agentId = resolveAgentId(requestedAgentId, app);
@@ -589,14 +605,20 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
     return {
       authResult: null,
       failureMessage: requestedAgentId
-        ? `Agent '${requestedAgentId}' is not allowed for this app`
+        ? 'Requested agent is not available for this app'
         : 'No agent configured for this app',
     };
   }
 
-  updateAppLastUsed(runDbClient)(app.id).catch((err) => {
-    logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
-  });
+  if (Math.random() < 0.1) {
+    updateAppLastUsed(runDbClient)({
+      tenantId: app.tenantId,
+      projectId: app.projectId,
+      id: app.id,
+    }).catch((err) => {
+      logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+    });
+  }
 
   logger.info(
     { appId: app.id, appType: app.type, agentId, endUserId, authMethod },
