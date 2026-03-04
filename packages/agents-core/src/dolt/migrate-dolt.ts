@@ -39,8 +39,10 @@ const commitMigrations = async () => {
     console.error('❌ Error committing migrations, reverting:', error);
     try {
       await doltReset(db)({ hard: true });
-    } catch {
-      // Connection may already be dead — reset is best-effort
+      console.log('✓ Successfully reverted uncommitted changes.');
+    } catch (resetError) {
+      console.error('⚠️ Warning: Reset failed (connection may be dead):', resetError);
+      console.error('Manual cleanup may be required: run DOLT_RESET(\'--hard\') on the database.');
     }
     process.exit(1);
   }
