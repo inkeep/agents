@@ -167,21 +167,30 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    let canUse: boolean;
-    try {
-      canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
-    } catch (error) {
-      logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-      throw new HTTPException(503, {
-        message: 'Authorization service temporarily unavailable',
-      });
-    }
+    // Copilot bypass — skip SpiceDB when the token targets the copilot project.
+    const isCopilotToken =
+      env.INKEEP_COPILOT_TENANT_ID &&
+      env.INKEEP_COPILOT_PROJECT_ID &&
+      payload.tenantId === env.INKEEP_COPILOT_TENANT_ID &&
+      projectId === env.INKEEP_COPILOT_PROJECT_ID;
 
-    if (!canUse) {
-      logger.warn({ userId, projectId }, 'User does not have use permission on project');
-      throw new HTTPException(403, {
-        message: 'Access denied: insufficient permissions',
-      });
+    if (!isCopilotToken) {
+      let canUse: boolean;
+      try {
+        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
+      } catch (error) {
+        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
+        throw new HTTPException(503, {
+          message: 'Authorization service temporarily unavailable',
+        });
+      }
+
+      if (!canUse) {
+        logger.warn({ userId, projectId }, 'User does not have use permission on project');
+        throw new HTTPException(403, {
+          message: 'Access denied: insufficient permissions',
+        });
+      }
     }
 
     logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');

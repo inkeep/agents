@@ -188,6 +188,17 @@ const envSchema = z
       .optional()
       .describe('Number of concurrent workflow workers'),
 
+    // Copilot (chat-to-edit) — bypass tenant/project access checks for this agent
+    INKEEP_COPILOT_TENANT_ID: z
+      .string()
+      .optional()
+      .describe('Tenant ID that hosts the copilot agent'),
+    INKEEP_COPILOT_PROJECT_ID: z
+      .string()
+      .optional()
+      .describe('Project ID that hosts the copilot agent'),
+    INKEEP_COPILOT_AGENT_ID: z.string().optional().describe('Agent ID of the copilot agent'),
+
     // Blob Storage (local filesystem fallback, or inferred S3/Vercel)
     BLOB_STORAGE_LOCAL_PATH: z
       .string()

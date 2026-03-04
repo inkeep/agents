@@ -58,6 +58,15 @@ export const requireTenantAccess = () =>
       return;
     }
 
+    // Copilot tenant bypass — any authenticated user can access the copilot tenant.
+    // Target-resource authorization is enforced by the copilot agent via forwarded session cookies.
+    if (env.INKEEP_COPILOT_TENANT_ID && tenantId === env.INKEEP_COPILOT_TENANT_ID) {
+      c.set('tenantId', tenantId);
+      c.set('tenantRole', OrgRoles.MEMBER);
+      await next();
+      return;
+    }
+
     // API key authentication - validate tenant matches the key's tenant
     if (userId.startsWith('apikey:')) {
       const apiKeyTenantId = c.get('tenantId');
