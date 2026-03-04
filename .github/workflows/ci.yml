@@ -91,6 +91,8 @@ jobs:
         env:
           ENVIRONMENT: test
           CI: true
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Update OpenAPI snapshot
         if: |
@@ -100,6 +102,8 @@ jobs:
         env:
           ENVIRONMENT: test
           CI: true
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Commit OpenAPI snapshot if changed
         if: |
