@@ -6,6 +6,9 @@ import { z } from 'zod';
 function coerceToString(value: unknown): string {
   if (typeof value === 'string') return value;
   if (value === null || value === undefined) return '';
+  if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
+    return value.join('\n');
+  }
   return JSON.stringify(value, null, 2);
 }
 
