@@ -83,6 +83,15 @@ jobs:
           HUSKY: 0
 
       # Auto-update OpenAPI snapshot on PRs (skip fork PRs since GITHUB_TOKEN is read-only)
+      - name: Build dependencies for snapshot update
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: pnpm exec turbo build --filter=@inkeep/agents-api...
+        env:
+          ENVIRONMENT: test
+          CI: true
+
       - name: Update OpenAPI snapshot
         if: |
           github.event_name == 'pull_request' &&
@@ -111,9 +120,11 @@ jobs:
               exit 0
             fi
 
+            push_succeeded=false
             for i in 1 2 3; do
               if git push; then
                 echo "::notice::OpenAPI snapshot was auto-updated and committed."
+                push_succeeded=true
                 break
               fi
               echo "Push failed, attempting pull --rebase and retry ($i/3)"
@@ -124,6 +135,11 @@ jobs:
               git pull --rebase origin "$PUSH_REF" || exit 1
               sleep $((i * 2))
             done
+
+            if [ "$push_succeeded" != "true" ]; then
+              echo "::error::Failed to push OpenAPI snapshot update after 3 attempts."
+              exit 1
+            fi
           fi
 
       - name: Install Playwright
