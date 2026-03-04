@@ -1,13 +1,15 @@
+import { env } from './env';
+
 type SentryModule = typeof import('@sentry/node');
 
 let sentryModule: SentryModule | null = null;
 
-if (process.env.SENTRY_DSN) {
+if (env.SENTRY_DSN) {
   try {
     const Sentry = await import('@sentry/node');
     Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      environment: process.env.ENVIRONMENT || 'development',
+      dsn: env.SENTRY_DSN,
+      environment: env.ENVIRONMENT || 'development',
       skipOpenTelemetrySetup: true,
       tracesSampleRate: 0,
       sendDefaultPii: true,
