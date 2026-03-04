@@ -10,7 +10,7 @@ on:
   merge_group:
 
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 concurrency:
@@ -21,6 +21,8 @@ jobs:
   ci:
     runs-on: ubuntu-32gb
     timeout-minutes: 30
+    permissions:
+      contents: write
     env:
       TURBO_TELEMETRY_DISABLED: 1
       TURBO_CACHE_DIR: .turbo
@@ -80,16 +82,20 @@ jobs:
         env:
           HUSKY: 0
 
-      # Auto-update OpenAPI snapshot on PRs and commit back if changed
+      # Auto-update OpenAPI snapshot on PRs (skip fork PRs since GITHUB_TOKEN is read-only)
       - name: Update OpenAPI snapshot
-        if: github.event_name == 'pull_request'
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
         run: pnpm --filter @inkeep/agents-api openapi:update-snapshot
         env:
           ENVIRONMENT: test
           CI: true
 
       - name: Commit OpenAPI snapshot if changed
-        if: github.event_name == 'pull_request'
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
         run: |
           if git diff --quiet agents-api/__snapshots__/openapi.json 2>/dev/null; then
             echo "OpenAPI snapshot is up to date"
@@ -105,8 +111,19 @@ jobs:
               exit 0
             fi
 
-            git push
-            echo "::notice::OpenAPI snapshot was auto-updated and committed. This CI run will continue with the updated snapshot."
+            for i in 1 2 3; do
+              if git push; then
+                echo "::notice::OpenAPI snapshot was auto-updated and committed."
+                break
+              fi
+              echo "Push failed, attempting pull --rebase and retry ($i/3)"
+              if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
+                echo "::notice::Remote branch '$PUSH_REF' was deleted during retry. Skipping."
+                exit 0
+              fi
+              git pull --rebase origin "$PUSH_REF" || exit 1
+              sleep $((i * 2))
+            done
           fi
 
       - name: Install Playwright
