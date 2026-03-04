@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-Fix trigger page performance issues re: initial page load and tab switching
+Improve trigger page performance by splitting tab content into separate RSC components with Suspense boundaries and using nuqs for client-side tab switching

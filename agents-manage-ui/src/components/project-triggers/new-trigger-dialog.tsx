@@ -33,7 +33,13 @@ export function NewTriggerDialog({
   const path = type === 'webhook' ? 'webhooks' : 'scheduled';
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) setSelectedAgent('');
+        setOpen(isOpen);
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm">
           <Plus />
