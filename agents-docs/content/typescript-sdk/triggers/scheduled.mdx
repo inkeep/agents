@@ -92,7 +92,7 @@ const userScopedReport = scheduledTrigger({
 });
 ```
 
-When `runAsUserId` is set, the system resolves the user's profile timezone and uses it to populate the `x-inkeep-client-timezone` header during execution. This overrides the `cronTimezone` value for the execution context (the `cronTimezone` is still used for schedule calculation). This allows agents to receive the user's preferred timezone context during automated scheduled executions.
+When `runAsUserId` is set, agents automatically know your time based on your profile timezone. Note that `cronTimezone` is still used for schedule calculation, but the user's profile timezone takes precedence for the agent's time awareness during execution.
 
 See [Scheduled Triggers](/talk-to-your-agents/triggers/scheduled) for details on permissions, admin delegation, and runtime behavior.
 
