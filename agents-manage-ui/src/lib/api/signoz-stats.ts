@@ -149,6 +149,21 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
+const CRITICAL_ERROR_SPAN_NAMES = [
+  'execution_handler.execute',
+  'agent.load_tools',
+  'context.handle_context_resolution',
+  'context.resolve',
+  'agent.generate',
+  'context-resolver.resolve_single_fetch_definition',
+  'agent_session.generate_structured_update',
+  'agent_session.process_artifact',
+  'agent_session.generate_artifact_metadata',
+  'response.format_object_response',
+  'response.format_response',
+  'ai.toolCall',
+];
+
 class SigNozStatsAPI {
   private tenantId: string | null = null;
 
@@ -243,7 +258,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     try {
       return await this.getConversationStatsPaginated(
@@ -253,7 +269,8 @@ class SigNozStatsAPI {
         projectId,
         pagination,
         searchQuery,
-        agentId
+        agentId,
+        hasErrors
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
@@ -348,7 +365,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -372,7 +390,8 @@ class SigNozStatsAPI {
         projectId,
         agentId,
         false,
-        pagination
+        pagination,
+        hasErrors
       );
 
       const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
@@ -440,7 +459,8 @@ class SigNozStatsAPI {
       projectId,
       pagination,
       searchQuery,
-      agentId
+      agentId,
+      hasErrors
     );
 
     if (conversationIds.length === 0) {
@@ -476,7 +496,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -488,7 +509,8 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      undefined
+      undefined,
+      hasErrors
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
@@ -1100,21 +1122,6 @@ class SigNozStatsAPI {
       acc.toolsUsed.set(name, t);
     }
 
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
     for (const s of spansWithErrorsSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
@@ -1405,7 +1412,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     agentId: string | undefined,
     includeSearchData: boolean,
-    pagination?: { page: number; limit: number }
+    pagination?: { page: number; limit: number },
+    hasErrors?: boolean
   ) {
     const buildBaseFilters = (): any[] => {
       const items: any[] = [
@@ -1439,6 +1447,27 @@ class SigNozStatsAPI {
           op: OPERATORS.EQUALS,
           value: projectId,
         });
+      }
+
+      if (hasErrors) {
+        items.push(
+          {
+            key: {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            op: OPERATORS.EQUALS,
+            value: true,
+          },
+          {
+            key: {
+              key: SPAN_KEYS.NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            op: OPERATORS.IN,
+            value: CRITICAL_ERROR_SPAN_NAMES,
+          }
+        );
       }
 
       return items;

@@ -204,6 +204,7 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   relationId?: string;
   baseUrl: string;
   apiKey?: string;
@@ -2408,7 +2409,7 @@ ${output}`;
           'tenant.id': this.config.tenantId,
           'project.id': this.config.projectId,
           'agent.id': this.config.agentId,
-          'agent.name': this.config.name,
+          'agent.name': this.config.agentName,
           ...(conversationIdForSpan ? { 'conversation.id': conversationIdForSpan } : {}),
         },
       },

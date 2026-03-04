@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
+import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
@@ -14,6 +15,8 @@ import { sentry } from '@/lib/sentry';
 import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpTool } from './message-parts/message';
+
+const ANALYTICS_EXCLUDED_EVENTS = ['sidebar_chat_opened', 'sidebar_chat_closed'];
 
 interface CopilotChatProps {
   agentId?: string;
@@ -45,6 +48,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     isCopilotConfigured,
   } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
+  const posthog = usePostHog();
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -149,6 +153,15 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           position="left"
           baseSettings={{
             async onEvent(event) {
+              if (!ANALYTICS_EXCLUDED_EVENTS.includes(event.eventName)) {
+                posthog?.capture(event.eventName, {
+                  ...event.properties,
+                  source: 'copilot_chat',
+                  tenantId,
+                  projectId,
+                  agentId,
+                });
+              }
               if (event.eventName === 'user_message_submitted') {
                 setIsStreaming(true);
               }

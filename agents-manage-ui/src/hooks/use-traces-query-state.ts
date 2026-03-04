@@ -1,4 +1,10 @@
-import { parseAsJson, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
+import {
+  parseAsBoolean,
+  parseAsJson,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs';
 
 // Define the time range options as a const assertion for type safety
 const timeRanges = ['24h', '7d', '15d', '30d', 'custom'] as const;
@@ -47,6 +53,9 @@ export function useTracesQueryState() {
     // Agent filtering
     agentId: parseAsString.withDefault(''),
 
+    // Error filtering
+    hasErrors: parseAsBoolean.withDefault(false),
+
     // Span filtering
     spanName: parseAsString.withDefault(''),
     spanAttributes: parseAsJson((value: unknown): SpanAttribute[] => {
@@ -68,6 +77,7 @@ export function useTracesQueryState() {
     customStartDate: queryState.customStartDate,
     customEndDate: queryState.customEndDate,
     agentId: queryState.agentId || undefined,
+    hasErrors: queryState.hasErrors,
     spanName: queryState.spanName,
     spanAttributes: queryState.spanAttributes,
 
@@ -79,11 +89,13 @@ export function useTracesQueryState() {
     setCustomDateRange: (start: string, end: string) =>
       setQueryState({ customStartDate: start, customEndDate: end }),
     setAgentFilter: (agentId?: string) => setQueryState({ agentId: agentId ?? '' }),
+    setHasErrorsFilter: (hasErrors: boolean) => setQueryState({ hasErrors }),
     setSpanFilter: (name: string, attributes: SpanAttribute[] = []) =>
       setQueryState({ spanName: name, spanAttributes: attributes }),
     clearFilters: () =>
       setQueryState({
         agentId: '',
+        hasErrors: false,
         spanName: '',
         spanAttributes: [],
         timeRange: '30d',
