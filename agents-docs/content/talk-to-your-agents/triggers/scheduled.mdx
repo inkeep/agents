@@ -135,14 +135,6 @@ POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-
 
 Only org admins/owners can set `runAsUserId` to a different user. Regular users with `edit` permission can only set it to themselves.
 
-### Runtime Permission Checks
-
-The system verifies the target user's project access before every execution. If the user has lost access since the trigger was created, the invocation fails with a clear error rather than executing without proper authorization.
-
-### Legacy Behavior
-
-Triggers without `runAsUserId` (including all existing triggers) continue to work exactly as before — executing without a user identity. No migration or backfill is needed.
-
 ## Invocation Tracking
 
 Every scheduled execution creates an **invocation** record with full observability:
