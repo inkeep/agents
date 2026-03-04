@@ -157,7 +157,12 @@ export class ModelFactory {
     const result: Record<string, JSONObject> = {};
 
     for (const [key, value] of Object.entries(providerOptions)) {
-      if (value !== null && typeof value === 'object' && !constructorObjectKeys.has(key)) {
+      if (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        !constructorObjectKeys.has(key)
+      ) {
         result[key] = value as JSONObject;
       }
     }
