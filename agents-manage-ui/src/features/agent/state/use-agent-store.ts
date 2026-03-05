@@ -6,16 +6,10 @@ import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
-import {
-  type AnimatedNode,
-  mcpNodeHandleId,
-  NodeType,
-} from '@/components/agent/configuration/node-types';
+import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import { sentry } from '@/lib/sentry';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,

@@ -1,4 +1,9 @@
+import type { Edge, Node } from '@xyflow/react';
 import { useEffect } from 'react';
+import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
+import type { AnimatedNode } from '@/components/agent/configuration/node-types';
+import { agentStore } from '@/features/agent/state/use-agent-store';
+import { sentry } from '@/lib/sentry';
 
 export function useAnimateGraph(): void {
   useEffect(() => {
@@ -6,12 +11,12 @@ export function useAnimateGraph(): void {
       // @ts-expect-error -- improve types
       const data = event.detail;
 
-      const { playgroundConversationId } = get();
+      const { playgroundConversationId } = agentStore.getState();
       if (data.conversationId !== playgroundConversationId) {
         return;
       }
 
-      set((state) => {
+      agentStore.setState((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
 
         function updateNodeStatus(
