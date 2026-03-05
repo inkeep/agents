@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { firstNestedMessage } from '@/components/ui/form';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { useFormState } from 'react-hook-form';
 
 interface AgentErrorSummaryProps {
   onNavigateToNode?: (nodeId: string) => void;
@@ -204,9 +206,11 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     setShowErrors(true);
   }, [errorCount]);
 
+  const { control } = useFullAgentFormContext();
+  const { isSubmitted } = useFormState({ control });
   const isFocused = useWindowFocus();
 
-  if (!errorCount || !showErrors || isFocused) {
+  if (!errorCount || !showErrors || (!isSubmitted && isFocused)) {
     return;
   }
 
