@@ -131,6 +131,12 @@ const app = new Hono<{
   };
 }>();
 
+app.onError((err, c) => {
+  const message = err.message || 'Internal server error';
+  logger.error({ error: err }, 'Slack MCP error');
+  return c.json({ jsonrpc: '2.0', error: { code: -32603, message }, id: null }, 500);
+});
+
 app.use('/', slackMcpAuth());
 app.post('/', async (c) => {
   const toolId = c.get('toolId');
