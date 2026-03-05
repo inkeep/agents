@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi';
 import {
   getSlackMcpToolAccessConfig,
   listWorkAppSlackWorkspacesByTenant,
+  updateSlackMcpToolAccessChannelIds,
   workAppSlackMcpToolAccessConfig,
 } from '@inkeep/agents-core';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -59,7 +60,7 @@ async function resolveWorkspaceToken(toolId: string): Promise<string> {
   return botToken;
 }
 
-interface ChannelInfo {
+export interface ChannelInfo {
   id: string;
   name: string;
 }
@@ -97,11 +98,35 @@ function getAvailableChannelsString(channels: ChannelInfo[]): string {
   return `Available channels: ${channels.map((ch) => `#${ch.name} (${ch.id})`).join(', ')}`;
 }
 
+export function pruneStaleChannelIds(
+  toolId: string,
+  availableChannels: ChannelInfo[],
+  currentChannelIds: string[]
+): string[] {
+  const availableIds = new Set(availableChannels.map((ch) => ch.id));
+  const staleIds = currentChannelIds.filter((id) => !availableIds.has(id));
+  if (staleIds.length > 0) {
+    const prunedIds = currentChannelIds.filter((id) => availableIds.has(id));
+    logger.info(
+      { toolId, staleIds, prunedIds },
+      'Pruning stale channel IDs from MCP access config'
+    );
+    updateSlackMcpToolAccessChannelIds(runDbClient)(toolId, prunedIds).catch((error) => {
+      logger.warn({ error, toolId }, 'Failed to prune stale channel IDs');
+    });
+  }
+  return currentChannelIds;
+}
+
 const getServer = async (toolId: string) => {
   const botToken = await resolveWorkspaceToken(toolId);
   const config = await getSlackMcpToolAccessConfig(runDbClient)(toolId);
   const client = getSlackClient(botToken);
   const availableChannels = await getAvailableChannels(client, config);
+
+  if (config.channelAccessMode === 'selected') {
+    pruneStaleChannelIds(toolId, availableChannels, config.channelIds);
+  }
 
   const server = new McpServer(
     {

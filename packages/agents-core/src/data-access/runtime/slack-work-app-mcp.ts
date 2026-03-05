@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   workAppSlackMcpToolAccessConfig,
@@ -67,6 +67,18 @@ export const setSlackMcpToolAccessConfig =
           updatedAt: now,
         },
       });
+  };
+
+export const updateSlackMcpToolAccessChannelIds =
+  (db: AgentsRunDatabaseClient) =>
+  async (toolId: string, channelIds: string[]): Promise<void> => {
+    await db
+      .update(workAppSlackMcpToolAccessConfig)
+      .set({
+        channelIds,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(workAppSlackMcpToolAccessConfig.toolId, toolId));
   };
 
 export const deleteSlackMcpToolAccessConfig =
