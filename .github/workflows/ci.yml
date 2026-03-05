@@ -28,6 +28,8 @@ jobs:
       TURBO_CACHE_DIR: .turbo
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
 
     steps:
       - name: Checkout code
@@ -110,42 +112,7 @@ jobs:
         if: |
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if git diff --quiet agents-api/__snapshots__/openapi.json 2>/dev/null; then
-            echo "OpenAPI snapshot is up to date"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add agents-api/__snapshots__/openapi.json
-            git commit -m "chore: update OpenAPI snapshot"
-
-            PUSH_REF="${{ github.head_ref }}"
-            if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
-              echo "::notice::Remote branch '$PUSH_REF' no longer exists (PR likely merged/closed). Skipping push."
-              exit 0
-            fi
-
-            push_succeeded=false
-            for i in 1 2 3; do
-              if git push; then
-                echo "::notice::OpenAPI snapshot was auto-updated and committed."
-                push_succeeded=true
-                break
-              fi
-              echo "Push failed, attempting pull --rebase and retry ($i/3)"
-              if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
-                echo "::notice::Remote branch '$PUSH_REF' was deleted during retry. Skipping."
-                exit 0
-              fi
-              git pull --rebase origin "$PUSH_REF" || exit 1
-              sleep $((i * 2))
-            done
-
-            if [ "$push_succeeded" != "true" ]; then
-              echo "::error::Failed to push OpenAPI snapshot update after 3 attempts."
-              exit 1
-            fi
-          fi
+        run: scripts/ci-commit-and-push.sh agents-api/__snapshots__/openapi.json "chore: update OpenAPI snapshot" "${{ github.head_ref }}"
 
       - name: Install Playwright
         run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
