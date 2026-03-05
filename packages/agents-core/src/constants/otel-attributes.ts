@@ -143,6 +143,9 @@ export const SPAN_KEYS = {
   AGENT_STEPS_COMPLETED: 'agent.steps_completed',
   AGENT_MAX_STEPS: 'agent.max_steps',
 
+  // Generation timeout attributes
+  GENERATION_TIMEOUT_MS: 'generation.timeout_ms',
+
   // Stream lifetime attributes
   STREAM_CLEANUP_REASON: 'stream.cleanup.reason',
   STREAM_MAX_LIFETIME_MS: 'stream.max_lifetime_ms',
