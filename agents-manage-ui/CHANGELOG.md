@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.0
+
+### Patch Changes
+
+- e7e09df: Make diffs collapsible if there are more than 3 fields in the copilot tool approval
+- b6c8fba: Remove console.log debug output from production builds
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+
 ## 0.57.0
 
 ### Minor Changes

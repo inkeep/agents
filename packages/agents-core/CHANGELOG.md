@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.58.0
+
+### Patch Changes
+
+- 3d88636: Fix lastUsed field on apikeys not being updated
+
 ## 0.57.0
 
 ### Minor Changes
