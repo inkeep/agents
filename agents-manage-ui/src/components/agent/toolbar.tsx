@@ -11,9 +11,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useGroupedAgentErrors } from '@/hooks/use-grouped-agent-errors';
+import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { cn, isMacOs } from '@/lib/utils';
-import { ShipModal } from '../ship/ship-modal';
+import { ShipModal } from './ship/ship-modal';
 
 interface ToolbarProps {
   toggleSidePane: () => void;
