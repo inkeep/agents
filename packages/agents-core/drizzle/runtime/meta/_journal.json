@@ -141,6 +141,13 @@
       "when": 1772573733596,
       "tag": "0019_easy_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772726569798,
+      "tag": "0020_charming_mauler",
+      "breakpoints": true
     }
   ]
 }
