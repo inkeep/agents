@@ -4697,35 +4697,10 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
           },
           "updatedAt": {
             "type": "string"
@@ -4733,6 +4708,7 @@
         },
         "required": [
           "id",
+          "inputSchema",
           "executeCode"
         ],
         "type": "object"
@@ -4911,35 +4887,10 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
           },
           "updatedAt": {
             "type": "string"
@@ -5388,8 +5339,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "expiresAt": {
             "type": "string"
@@ -5411,8 +5361,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "projectId": {
             "maxLength": 256,
@@ -8271,19 +8220,18 @@
       "TeamAgent": {
         "properties": {
           "description": {
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           }
         },
         "required": [
           "id",
-          "name",
-          "description"
+          "name"
         ],
         "type": "object"
       },
@@ -8684,8 +8632,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "headers": {
             "$ref": "#/components/schemas/StringRecord"
@@ -8704,8 +8651,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
@@ -8872,8 +8818,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "headers": {
             "$ref": "#/components/schemas/StringRecord"
@@ -8892,8 +8837,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"

@@ -1193,6 +1193,8 @@ export const ToolSelectSchema = createSelectSchema(tools);
 
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
   imageUrl: imageUrlSchema,
   headers: StringRecordSchema.nullish(),
   config: z.object({
@@ -2435,9 +2437,9 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
   teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
 })
   .extend({
-    tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
     triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
     scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
   })

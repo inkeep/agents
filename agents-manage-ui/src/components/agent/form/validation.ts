@@ -2,7 +2,6 @@ import {
   type AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
   StringRecordSchema,
-  ToolInsertSchema,
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
@@ -23,6 +22,11 @@ const ExternalAgentSchema = AgentWithinContextOfProjectSchema.shape.externalAgen
     baseUrl: true,
   });
 const TeamAgentSchema = AgentWithinContextOfProjectSchema.shape.teamAgents.unwrap().valueType;
+const ToolSchema = AgentWithinContextOfProjectSchema.shape.tools.unwrap().valueType.pick({
+  id: true,
+  name: true,
+  config: true,
+});
 const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
   .unwrap()
   .valueType.pick({
@@ -156,9 +160,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   tools: z.record(
     z.string(),
     z.looseObject({
-      id: z.string().trim().nonempty(),
-      name: z.string().trim().nonempty(),
-      config: ToolInsertSchema.shape.config,
+      ...ToolSchema.shape,
       // TODO or tempHeaders
       headers: StringToStringRecordSchema,
     })
