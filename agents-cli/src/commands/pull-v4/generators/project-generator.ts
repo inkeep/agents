@@ -1,5 +1,4 @@
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
-import type { ProjectConfig } from '@inkeep/agents-sdk';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
