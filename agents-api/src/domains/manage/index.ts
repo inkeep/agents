@@ -13,14 +13,16 @@ import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
+import userProfileRoutes from './routes/userProfile';
 import userProjectMembershipsRoutes from './routes/userProjectMemberships';
 import usersRoutes from './routes/users';
 
 export function createManageRoutes() {
   const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-  // Mount users routes - organizations and providers endpoints
+  // Mount users routes - organizations, providers, and profile endpoints
   app.route('/api/users', usersRoutes);
+  app.route('/api/users', userProfileRoutes);
 
   // Mount CLI auth routes - for CLI login flow
   app.route('/api/cli', cliAuthRoutes);

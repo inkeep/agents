@@ -24,7 +24,7 @@ This package provides a customizable chat widget UI for interacting with agents 
 import { ChatWidget } from '@inkeep/agents-ui';
 
 // Basic usage
-<ChatWidget 
+<ChatWidget
   apiUrl="https://your-api-endpoint.com"
   subAgentId="your-agent-id"
 />

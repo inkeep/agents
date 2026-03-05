@@ -52,9 +52,7 @@ export function EvaluationRunConfigsList({
 
   const refreshRunConfigs = useCallback(async () => {
     try {
-      console.log('Fetching fresh run configs...');
       const response = await fetchEvaluationRunConfigs(tenantId, projectId);
-      console.log('Received run configs:', response.data.length, 'items');
       setRunConfigs(response.data);
     } catch (error) {
       console.error('Error refreshing run configs:', error);
@@ -63,9 +61,7 @@ export function EvaluationRunConfigsList({
 
   // Refresh when refreshKey changes (e.g., after creating a new config)
   useEffect(() => {
-    console.log('refreshKey changed to:', refreshKey);
     if (refreshKey !== undefined && typeof refreshKey === 'number' && refreshKey > 0) {
-      console.log('Calling refreshRunConfigs');
       refreshRunConfigs();
     }
   }, [refreshKey, refreshRunConfigs]);
