@@ -14,6 +14,14 @@ const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdate
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 const AgentStopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
 const SubAgentSchema = AgentWithinContextOfProjectSchema.shape.subAgents.valueType;
+const ExternalAgentSchema = AgentWithinContextOfProjectSchema.shape.externalAgents
+  .unwrap()
+  .valueType.pick({
+    name: true,
+    id: true,
+    description: true,
+    baseUrl: true,
+  });
 const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
   .unwrap()
   .valueType.pick({
@@ -131,10 +139,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   externalAgents: z.record(
     z.string(),
     z.looseObject({
-      id: z.string().trim(),
-      baseUrl: z.url(),
-      name: z.string().trim(),
-      description: z.string().trim().nullish(),
+      ...ExternalAgentSchema.shape,
       // TODO or tempHeaders
       headers: StringToStringRecordSchema,
     })
