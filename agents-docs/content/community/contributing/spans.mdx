@@ -59,6 +59,30 @@ span.setAttributes({
 });
 ```
 
+
+### Invocation Attributes
+
+Use invocation attributes to track how a conversation was initiated. The `invocation.type` attribute identifies the source platform (e.g., `slack`), while `invocation.entryPoint` captures the specific entry point within that platform.
+
+These attributes are typically set from incoming HTTP headers (`x-inkeep-invocation-type` and `x-inkeep-invocation-entry-point`):
+
+```typescript
+const invocationType = request.header('x-inkeep-invocation-type');
+if (invocationType) {
+  span.setAttribute('invocation.type', invocationType);
+}
+
+const invocationEntryPoint = request.header('x-inkeep-invocation-entry-point');
+if (invocationEntryPoint) {
+  span.setAttribute('invocation.entryPoint', invocationEntryPoint);
+}
+```
+
+| Attribute | Example values | Description |
+|-----------|---------------|-------------|
+| `invocation.type` | `slack` | The platform or integration that originated the request |
+| `invocation.entryPoint` | `app_mention`, `direct_message`, `slash_command`, `modal_submission`, `smart_link_resume` | The specific interaction type within the platform |
+
 ## Adding Events to Spans
 
 ### Recording Important Milestones
