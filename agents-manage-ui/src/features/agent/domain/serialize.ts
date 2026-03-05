@@ -79,9 +79,7 @@ function processModels(modelsData?: AgentModels): AgentModels | undefined {
   return undefined;
 }
 
-type SerializeAgentDataType = Pick<
-  FullAgentOutput, 'subAgents' | 'functions' | 'functionTools'
->;
+type SerializeAgentDataType = Pick<FullAgentOutput, 'subAgents' | 'functions' | 'functionTools'>;
 
 type PartialMCPRelation = Pick<
   z.output<typeof MCPRelationSchema>,

@@ -185,7 +185,9 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     };
   }, []);
 
-  if (!errorCount || !showErrors || hasEditableFocus) return null;
+  if (!errorCount || !showErrors || hasEditableFocus) {
+    return;
+  }
 
   return (
     <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl gap-2 py-4 max-h-[80vh] animate-in slide-in-from-bottom-2 duration-300">
