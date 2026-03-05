@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.58.1
+
+### Patch Changes
+
+- 9876f88: Add Sentry capability configuration to agents-api and modify create-agents template
+  - @inkeep/agents-core@0.58.1
+  - @inkeep/agents-email@0.58.1
+  - @inkeep/agents-mcp@0.58.1
+  - @inkeep/agents-work-apps@0.58.1
+
 ## 0.58.0
 
 ### Minor Changes
