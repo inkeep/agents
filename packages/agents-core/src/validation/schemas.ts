@@ -3155,7 +3155,7 @@ export const WorkAppSlackMcpToolAccessConfigApiInsertSchema = createApiInsertSch
   .extend({
     channelAccessMode: ChannelAccessModeSchema,
     dmEnabled: DmEnabledSchema,
-    channelIds: ChannelIdsSchema,
+    channelIds: ChannelIdsSchema.default([]),
   });
 
 const timezoneSchema = z

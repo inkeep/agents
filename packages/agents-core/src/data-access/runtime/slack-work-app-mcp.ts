@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   workAppSlackMcpToolAccessConfig,
@@ -67,6 +67,28 @@ export const setSlackMcpToolAccessConfig =
           updatedAt: now,
         },
       });
+  };
+
+export const deleteSlackMcpToolAccessConfig =
+  (db: AgentsRunDatabaseClient) =>
+  async (toolId: string): Promise<boolean> => {
+    const result = await db
+      .delete(workAppSlackMcpToolAccessConfig)
+      .where(eq(workAppSlackMcpToolAccessConfig.toolId, toolId))
+      .returning();
+
+    return result.length > 0;
+  };
+
+export const deleteAllSlackMcpToolAccessConfigsByTenant =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string): Promise<number> => {
+    const result = await db
+      .delete(workAppSlackMcpToolAccessConfig)
+      .where(eq(workAppSlackMcpToolAccessConfig.tenantId, tenantId))
+      .returning();
+
+    return result.length;
   };
 
 export const isSlackWorkAppTool = (tool: ToolSelect | McpTool) => {
