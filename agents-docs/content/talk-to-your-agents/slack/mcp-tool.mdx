@@ -1,0 +1,81 @@
+---
+title: Slack MCP Tool
+sidebarTitle: MCP Tool
+description: Give your agents the ability to post messages to Slack channels and DMs via the MCP protocol.
+---
+
+The Slack MCP tool lets your agents **post messages to Slack** — channels, threads, and DMs. Unlike the [Slack Work App](/talk-to-your-agents/slack/overview) (where users talk *to* agents in Slack), the MCP tool gives agents the ability to act *on* Slack as part of their workflows.
+
+<Note>
+The Slack MCP tool requires an installed Slack workspace. Follow the [installation guide](/talk-to-your-agents/slack/installation) first if you haven't set up the Slack app yet.
+</Note>
+
+## Create a Slack MCP tool
+
+<Steps>
+  <Step>
+    ### Open MCP Servers
+
+    Navigate to **MCP Servers** in the sidebar and click **New MCP server**.
+  </Step>
+  <Step>
+    ### Select Slack from Work Apps
+
+    Switch to the **Work Apps** tab and select the **Slack** card. If your organization has a Slack workspace installed, you'll see the channel configuration dialog.
+
+    If no workspace is installed, the dialog prompts you to [install the Slack app](/talk-to-your-agents/slack/installation) first.
+  </Step>
+  <Step>
+    ### Configure channel access
+
+    Choose how the agent can interact with Slack:
+
+    | Setting | Description |
+    |---------|-------------|
+    | **Channel access mode** | **All channels** — the agent can post to any channel where the bot is a member. **Selected channels** — restrict the agent to specific channels. |
+    | **DM enabled** | Whether the agent can send direct messages. Disabled by default. |
+    | **Selected channels** | When using "Selected channels" mode, pick from the list of channels where the Inkeep bot is a member. |
+
+    Channel access and DM access are independent — you can allow all channels but disable DMs, or allow selected channels and also enable DMs.
+  </Step>
+  <Step>
+    ### Create
+
+    Click **Create** to create the Slack MCP tool. It appears in your MCP servers list and can be added to any agent.
+  </Step>
+</Steps>
+
+## Available tools
+
+The Slack MCP server exposes the following tool:
+
+### `post-message`
+
+Posts a message to a Slack channel or DM.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `channel` | string | Yes | Channel ID (e.g., `C1234567890`), channel name with `#` prefix (e.g., `#general`), or DM channel ID (starts with `D`). |
+| `text` | string | Yes | Message text. Supports [Slack mrkdwn formatting](https://api.slack.com/reference/surfaces/formatting). |
+| `thread_ts` | string | No | Thread timestamp to reply in a thread. If omitted, posts as a new message. |
+
+When a channel name is provided (e.g., `#general`), it is automatically resolved to the channel ID via the Slack API.
+
+## Edit channel access
+
+To change channel access after creation:
+
+1. Open the Slack MCP tool from the **MCP Servers** list
+2. In the **Slack Channel Access** section, click **Edit**
+3. Update the channel access mode, DM toggle, or selected channels
+4. Click **Save**
+
+## Access control
+
+The MCP tool enforces access rules at runtime:
+
+- **Selected channels mode**: The agent can only post to channels in the allowed list. Attempts to post to other channels are rejected.
+- **DM disabled**: The agent cannot post to DM channels (channel IDs starting with `D`). Enable the DM toggle to allow DMs.
+- **All channels mode**: The agent can post to any channel where the bot is a member.
+
+Access configuration is per-tool — different agents can have different Slack MCP tools with different channel restrictions.
