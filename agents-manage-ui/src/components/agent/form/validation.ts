@@ -159,7 +159,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   ),
   tools: z.record(
     z.string(),
-    z.looseObject({
+    z.object({
       ...ToolSchema.shape,
       // TODO or tempHeaders
       headers: StringToStringRecordSchema,

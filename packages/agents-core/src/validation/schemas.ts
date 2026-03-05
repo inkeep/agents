@@ -2438,12 +2438,10 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
   teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-})
-  .extend({
-    triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-    scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
-  })
-  .openapi('AgentWithinContextOfProject');
+  //
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
+}).openapi('AgentWithinContextOfProject');
 
 export const PaginationSchema = z
   .object({

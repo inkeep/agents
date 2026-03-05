@@ -2,14 +2,14 @@
 
 import { AlertCircle, ChevronDown, ChevronRight, Lightbulb, X } from 'lucide-react';
 import { type ComponentProps, useEffect, useState } from 'react';
+import { useFormState } from 'react-hook-form';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { firstNestedMessage } from '@/components/ui/form';
-import { useSidePane } from '@/hooks/use-side-pane';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useFormState } from 'react-hook-form';
+import { useSidePane } from '@/hooks/use-side-pane';
 
 interface AgentErrorSummaryProps {
   onNavigateToNode?: (nodeId: string) => void;
