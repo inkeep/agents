@@ -5,6 +5,19 @@
 
 import { apiFetch, type FullProjectDefinition, getLogger } from '@inkeep/agents-core';
 
+export function getAuthError(error?: string): string {
+  let errorMessage = 'Authentication failed - check your API key configuration\n\n';
+  errorMessage += 'Common issues:\n';
+  errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
+  errorMessage += '  • API key does not have access to this tenant/project\n';
+  errorMessage +=
+    '  • For local development, ensure INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET is set\n';
+  if (error) {
+    errorMessage += `\nServer response: ${error}`;
+  }
+  return errorMessage;
+}
+
 const logger = getLogger('projectFullClient');
 
 /**
@@ -55,29 +68,17 @@ export async function createFullProjectViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ??
-      `Failed to create project: ${response.status} ${response.statusText}`;
+    const { status, statusText } = response;
+    const error =
+      parseError(errorText, status) ?? `Failed to create project: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to create project via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to create project via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
   const result = (await response.json()) as { data: FullProjectDefinition };
 
-  logger.info(
-    {
-      projectId: projectData.id,
-    },
-    'Successfully created project via API'
-  );
+  logger.info({ projectId: projectData.id }, 'Successfully created project via API');
 
   return result.data;
 }
@@ -131,29 +132,16 @@ export async function updateFullProjectViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ??
-      `Failed to update project: ${response.status} ${response.statusText}`;
-
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to update project via API'
-    );
-
-    throw new Error(errorMessage);
+    const { status, statusText } = response;
+    const error =
+      parseError(errorText, status) ?? `Failed to update project: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to update project via API');
+    throw new Error(error);
   }
 
   const result = (await response.json()) as { data: FullProjectDefinition };
 
-  logger.info(
-    {
-      projectId,
-    },
-    'Successfully updated project via API'
-  );
+  logger.info({ projectId }, 'Successfully updated project via API');
 
   return result.data;
 }
@@ -201,28 +189,16 @@ export async function getFullProjectViaAPI(
     }
 
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ?? `Failed to get project: ${response.status} ${response.statusText}`;
+    const { status, statusText } = response;
+    const error = parseError(errorText, status) ?? `Failed to get project: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to get project via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to get project via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
   const result = (await response.json()) as { data: FullProjectDefinition };
 
-  logger.info(
-    {
-      projectId,
-    },
-    'Successfully retrieved project via API'
-  );
+  logger.info({ projectId }, 'Successfully retrieved project via API');
 
   return result.data;
 }
@@ -259,43 +235,31 @@ export async function deleteFullProjectViaAPI(
   });
 
   if (!response.ok) {
+    const { status, statusText } = response;
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ??
-      `Failed to delete project: ${response.status} ${response.statusText}`;
+    const error =
+      parseError(errorText, status) ?? `Failed to delete project: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to delete project via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to delete project via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
-  logger.info(
-    {
-      projectId,
-    },
-    'Successfully deleted project via API'
-  );
+  logger.info({ projectId }, 'Successfully deleted project via API');
 }
 
-export function parseError(errorText: string): string | undefined {
+export function parseError(errorText: string, status: number): string | undefined {
   let result: string | undefined;
   try {
-    const errorJson = JSON.parse(errorText);
-    if (errorJson.error) {
-      const { error } = errorJson;
-      result = error?.message ?? error;
-    }
+    const { detail, error } = JSON.parse(errorText);
+    result = detail ?? error?.message ?? error;
   } catch {
     // Use the text as-is if not JSON
     if (errorText) {
       result = errorText;
     }
+  }
+  if (status === 401 || status === 403) {
+    result = getAuthError(result);
   }
   return result;
 }
