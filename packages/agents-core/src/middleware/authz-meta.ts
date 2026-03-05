@@ -1,8 +1,4 @@
-import type {
-  Env as HonoEnv,
-  Input as HonoInput,
-  MiddlewareHandler,
-} from 'hono';
+import type { Env as HonoEnv, Input as HonoInput, MiddlewareHandler } from 'hono';
 
 export type AuthzMeta = { resource?: string; permission?: string; description: string };
 
