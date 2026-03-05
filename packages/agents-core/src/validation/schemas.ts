@@ -455,15 +455,13 @@ export const AgentInsertSchema = createInsertSchema(agents, {
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    ResourceIdSchema.clone()
-      .nullish()
-      .openapi({
-        description:
-          'ID of the default sub-agent that handles initial user messages. ' +
-          'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
-          'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
-        example: 'my-default-subagent',
-      }),
+    ResourceIdSchema.clone().openapi({
+      description:
+        'ID of the default sub-agent that handles initial user messages. ' +
+        'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+        'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
+      example: 'my-default-subagent',
+    }),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -2430,9 +2428,9 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
       `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
     )
     .optional(),
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
 })
   .extend({
-    subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
     tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
     externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
     teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to

@@ -80,8 +80,7 @@ function processModels(modelsData?: AgentModels): AgentModels | undefined {
 }
 
 type SerializeAgentDataType = Pick<
-  FullAgentOutput,
-  'defaultSubAgentId' | 'subAgents' | 'functions' | 'functionTools'
+  FullAgentOutput, 'subAgents' | 'functions' | 'functionTools'
 >;
 
 type PartialMCPRelation = Pick<
@@ -120,7 +119,6 @@ export function serializeAgentData(
   // Note: Tools are now project-scoped and not included in agent serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
-  let defaultSubAgentId = '';
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
@@ -294,10 +292,6 @@ export function serializeAgentData(
         }),
         ...(stopWhen && { stopWhen }),
       };
-
-      if (node.data.isDefault) {
-        defaultSubAgentId = subAgentId;
-      }
 
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
@@ -562,7 +556,6 @@ export function serializeAgentData(
   }
 
   const result: SerializeAgentDataType = {
-    defaultSubAgentId,
     subAgents,
     functionTools,
     functions,
@@ -606,28 +599,10 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: Pick<FullAgentOutput, 'defaultSubAgentId' | 'subAgents'>,
+  data: Pick<FullAgentOutput, 'subAgents'>,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
-
-  if (!data.defaultSubAgentId) {
-    errors.push({
-      message: 'Default sub agent ID is required, please select a default sub agent.',
-      field: 'defaultSubAgentId',
-      code: 'required',
-      path: ['defaultSubAgentId'],
-    });
-  }
-
-  if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
-    errors.push({
-      message: `Default sub agent ID '${data.defaultSubAgentId}' not found in sub agents.`,
-      field: 'defaultSubAgentId',
-      code: 'invalid_reference',
-      path: ['defaultSubAgentId'],
-    });
-  }
 
   for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
     // All subAgents are internal agents (external agents are project-scoped)

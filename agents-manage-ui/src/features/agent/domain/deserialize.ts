@@ -119,14 +119,11 @@ export function deserializeAgentData(
   for (const subAgentId of subAgentIds) {
     const subAgent = data.subAgents[subAgentId];
     if (!subAgent) continue;
-    const isDefault = subAgentId === data.defaultSubAgentId;
-
     const nodeType = NodeType.SubAgent;
     const agentNodeData = (() => {
       return {
         id: subAgent.id,
         name: subAgent.name,
-        isDefault,
         prompt: subAgent.prompt,
         description: subAgent.description,
         dataComponents: subAgent.dataComponents,
@@ -187,7 +184,6 @@ export function deserializeAgentData(
       type: nodeType,
       position: { x: 0, y: 0 },
       data: agentNodeData,
-      deletable: !isDefault,
     };
     nodes.push(agentNode);
   }

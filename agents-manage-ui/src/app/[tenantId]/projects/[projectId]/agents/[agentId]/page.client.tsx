@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import type { z } from 'zod';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -76,7 +77,6 @@ import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import type { z } from 'zod';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -149,7 +149,7 @@ export const Agent: FC<AgentProps> = ({
     id: generateId(),
     type: NodeType.SubAgent,
     position: { x: 0, y: 0 },
-    data: { name: '', isDefault: true },
+    data: { name: '' },
     deletable: false,
   };
 

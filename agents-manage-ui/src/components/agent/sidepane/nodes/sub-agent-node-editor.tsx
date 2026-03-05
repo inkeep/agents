@@ -3,12 +3,20 @@ import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
-import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -67,15 +75,14 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 
   const path = <K extends string>(key: K) => `subAgents.${id}.${key}` as const;
 
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { canEdit } = useProjectPermissions();
   const selectedDataComponents = subAgent.dataComponents;
   const selectedArtifactComponents = subAgent.artifactComponents;
   const { project } = useProjectData();
   const models = useWatch({ control: form.control, name: 'models' });
+  const defaultSubAgentId = useWatch({ control: form.control, name: 'defaultSubAgentId' });
+  const isDefault = id === defaultSubAgentId;
 
   const { deleteNode } = useDeleteNode(selectedNode.id);
 
@@ -118,11 +125,32 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         label="Prompt"
         placeholder="You are a helpful assistant..."
       />
-      <GenericCheckbox
+      <FormField
         control={form.control}
-        name={path('isDefault')}
-        label="Is default sub agent"
-        description="The default sub agent is the initial entry point for conversations."
+        name="defaultSubAgentId"
+        render={({ field }) => (
+          <FormItem>
+            <div className="flex gap-2">
+              <FormControl>
+                <Checkbox
+                  checked={field.value === id}
+                  onCheckedChange={() => {
+                    const newDefaultId = field.value === id ? null : id;
+                    form.setValue('defaultSubAgentId', newDefaultId, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                />
+              </FormControl>
+              <FormLabel>Is default sub agent</FormLabel>
+            </div>
+            <FormDescription>
+              The default sub agent is the initial entry point for conversations.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <Separator />
       <ModelSection
@@ -197,7 +225,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         placeholder="Select artifacts..."
         commandInputPlaceholder="Search artifacts..."
       />
-      {!subAgent.isDefault && canEdit && (
+      {!isDefault && canEdit && (
         <>
           <Separator />
           <div className="flex justify-end">

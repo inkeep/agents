@@ -66,7 +66,7 @@ function Nodes() {
       {divider}
       <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
       {divider}
-      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true, skills: [] }} />
+      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', skills: [] }} />
       {divider}
       <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
     </ReactFlowProvider>

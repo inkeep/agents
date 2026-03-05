@@ -1,5 +1,6 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
+import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
@@ -19,15 +20,11 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-const ListSection = ({
-  title,
-  items,
-  Icon,
-}: {
+const ListSection: FC<{
   title: string;
   items: string[];
   Icon: LucideIcon;
-}) => {
+}> = ({ title, items, Icon }) => {
   return (
     <div className="flex flex-col gap-3 pt-2">
       <div className="flex items-center justify-start gap-2">
@@ -56,11 +53,12 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const {
     name,
     description,
-    isDefault,
     models,
     dataComponents: dataComponentIds = [],
     artifactComponents: artifactComponentIds = [],
   } = subAgent;
+  const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
+  const isDefault = id === defaultSubAgentId;
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({

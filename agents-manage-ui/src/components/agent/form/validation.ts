@@ -3,22 +3,18 @@ import {
   AgentWithinContextOfProjectSchema,
   FunctionApiInsertSchema,
   StringRecordSchema,
-  SubAgentStopWhenSchema,
   ToolInsertSchema,
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { serializeJson } from '@/lib/utils';
 
-// import { generateIdFromName } from '@/lib/utils/generate-id';
-
 const OriginalContextConfigSchema =
   AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
-const StopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
-// const SubAgentsSchema = AgentWithinContextOfProjectSchema.shape.subAgents;
-
+const AgentStopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
+const SubAgentSchema = AgentWithinContextOfProjectSchema.shape.subAgents.valueType;
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
 const ModelsSummarizerSchema = ModelsSchema.summarizer.unwrap();
@@ -88,42 +84,19 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
-  defaultSubAgentId: true,
 }).extend({
+  defaultSubAgentId: AgentWithinContextOfProjectSchema.shape.defaultSubAgentId.refine(
+    (val) => val,
+    'Default sub agent ID is required, please select a default sub agent.'
+  ),
   // nodes: z.array(z.any()).optional(),
-  // subAgents: SubAgentsSchema,
   subAgents: z.record(
-    // z.preprocess(
-    //   (value: any) => {
-    //     return {
-    //       id: generateIdFromName(value.name),
-    //       ...value,
-    //     };
-    //   },
     z.string(),
-    z.looseObject({
-      id: z.string().trim().nonempty(),
-      name: z.string().trim().nonempty(),
-      description: z.string().trim().nullish(),
-      skills: z
-        .array(
-          z.strictObject({
-            id: z.string().trim(),
-            index: z.int().positive(),
-            alwaysLoaded: z.boolean().optional(),
-            // description: z.string().trim(),
-          })
-        )
-        .optional(),
-      prompt: z.string().trim().optional(),
-      // TODO: use updateDefaultSubAgent logic
-      isDefault: z.boolean().optional(),
+    z.strictObject({
+      ...SubAgentSchema.shape,
+      type: SubAgentSchema.shape.type.default('internal'),
       models: MyModelsSchema.partial(),
-      stopWhen: SubAgentStopWhenSchema.optional(),
-      dataComponents: z.array(z.string()).optional(),
-      artifactComponents: z.array(z.string()).optional(),
     })
-    // )
   ),
   functionTools: z.record(
     z.string(),
@@ -172,8 +145,10 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     })
   ),
   mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
-  stopWhen: StopWhenSchema.extend({
-    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
+  stopWhen: AgentStopWhenSchema.extend({
+    transferCountIs: NullToUndefinedSchema.pipe(
+      AgentStopWhenSchema.shape.transferCountIs
+    ).optional(),
   }).optional(),
   contextConfig: ContextConfigSchema,
   statusUpdates: z.strictObject({
@@ -205,6 +180,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     externalAgents = {},
     teamAgents = {},
     tools = {},
+    defaultSubAgentId,
   } = data;
 
   function serializeModels(models: NonNullable<typeof data.models>) {
@@ -246,11 +222,14 @@ export function serializeAgentForm(data: FullAgentResponse) {
       transferCountIs: stopWhen?.transferCountIs ?? 10,
     },
     models: serializeModels(models),
+    defaultSubAgentId,
     subAgents: Object.fromEntries(
       Object.entries(subAgents).map(([key, value]) => [
         key,
         {
           ...value,
+          // `stopWhen` can be `null` from api response
+          stopWhen: value.stopWhen ?? undefined,
           models: serializeModels(value.models ?? {}),
         },
       ])
