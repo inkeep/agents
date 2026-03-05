@@ -173,7 +173,7 @@ export async function runGenerate(
         'tenant.id': ctx.config.tenantId,
         'project.id': ctx.config.projectId,
         'agent.id': ctx.config.agentId,
-        'agent.name': ctx.config.name,
+        'agent.name': ctx.config.agentName,
         ...(conversationIdForSpan ? { 'conversation.id': conversationIdForSpan } : {}),
       },
     },

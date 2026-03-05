@@ -232,6 +232,10 @@ export function wrapToolWithStreaming(
           }
         }
 
+        if (isDeniedResult) {
+          return result.reason ?? 'Tool call was denied by the user.';
+        }
+
         return result;
       } catch (error) {
         const duration = Date.now() - startTime;
