@@ -1,5 +1,81 @@
 # @inkeep/agents-api
 
+## 0.58.1
+
+### Patch Changes
+
+- 9876f88: Add Sentry capability configuration to agents-api and modify create-agents template
+  - @inkeep/agents-core@0.58.1
+  - @inkeep/agents-email@0.58.1
+  - @inkeep/agents-mcp@0.58.1
+  - @inkeep/agents-work-apps@0.58.1
+
+## 0.58.0
+
+### Minor Changes
+
+- 1abeeeb: Change tool approval response to support batch approvals (BREAKING: response shape changed from flat object to results array)
+
+### Patch Changes
+
+- 93f1265: Resolve user profile timezone for webhook and scheduled trigger executions
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+  - @inkeep/agents-work-apps@0.58.0
+  - @inkeep/agents-email@0.58.0
+  - @inkeep/agents-mcp@0.58.0
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 31b5e8b: Fix tool approval denial reason not propagating to LLM or parent agent
+- 95e2477: Fix provider-specific per-call options not being forwarded to AI SDK streamText calls
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+  - @inkeep/agents-work-apps@0.57.0
+  - @inkeep/agents-email@0.57.0
+  - @inkeep/agents-mcp@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.56.2
+- @inkeep/agents-email@0.56.2
+- @inkeep/agents-mcp@0.56.2
+- @inkeep/agents-work-apps@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- c620c02: Add copilot bypass for tenant/project access checks when INKEEP*COPILOT*\* env vars are configured
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+  - @inkeep/agents-core@0.56.1
+  - @inkeep/agents-email@0.56.1
+  - @inkeep/agents-mcp@0.56.1
+  - @inkeep/agents-work-apps@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+  - @inkeep/agents-work-apps@0.56.0
+  - @inkeep/agents-email@0.56.0
+  - @inkeep/agents-mcp@0.56.0
+
 ## 0.55.3
 
 ### Patch Changes

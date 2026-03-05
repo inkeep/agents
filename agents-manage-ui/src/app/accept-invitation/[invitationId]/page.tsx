@@ -15,6 +15,7 @@ import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
+import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 export default function AcceptInvitationPage({
@@ -128,6 +129,8 @@ export default function AcceptInvitationPage({
     setIsSubmitting(true);
     setError(null);
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     try {
       // Step 1: Sign up with email/password
       const signupResult = await authClient.signUp.email({
@@ -140,6 +143,16 @@ export default function AcceptInvitationPage({
         setError(signupResult.error.message || 'Failed to create account');
         setIsSubmitting(false);
         return;
+      }
+
+      // Step 1b: Set timezone on the new user's profile
+      const newUserId = signupResult.data?.user?.id;
+      if (newUserId) {
+        try {
+          await updateUserProfileTimezone(newUserId, timezone);
+        } catch {
+          // Silently ignore — timezone update is best-effort
+        }
       }
 
       // Step 2: Accept the invitation (user is now signed in due to autoSignIn: true)

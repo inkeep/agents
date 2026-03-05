@@ -20,12 +20,12 @@ import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
 import { ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -318,11 +318,13 @@ app.openapi(chatCompletionsRoute, async (c) => {
       // Extract text content from parts
       const userMessage = extractTextFromParts(messageParts);
 
+      const agentName = agent.name;
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
         messageSpan.setAttributes({
           'message.content': userMessage,
           'message.timestamp': Date.now(),
+          'agent.name': agentName,
         });
         const invocationType = c.req.header('x-inkeep-invocation-type');
         if (invocationType) {

@@ -92,7 +92,9 @@ const userScopedReport = scheduledTrigger({
 });
 ```
 
-See [User-Scoped Execution](/talk-to-your-agents/triggers/scheduled#user-scoped-execution) for details on permissions, admin delegation, and runtime behavior.
+When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses. Note that `cronTimezone` is still used for schedule calculation.
+
+See [Scheduled Triggers](/talk-to-your-agents/triggers/scheduled) for details on permissions, admin delegation, and runtime behavior.
 
 ## Complete Example
 

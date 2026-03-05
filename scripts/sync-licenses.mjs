@@ -15,7 +15,7 @@ const sourceSupplementalPath = join(rootDir, 'SUPPLEMENTAL_TERMS.md');
 const targetPackages = [
   './agents-cli',
   './agents-api',
-  './agents-ui',
+  './agents-ui-demo',
   './packages/agents-core',
   './packages/agents-sdk',
   './packages/create-agents',

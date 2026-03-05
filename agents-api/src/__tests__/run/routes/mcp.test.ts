@@ -170,7 +170,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 // Remove this - moved to the @inkeep/agents-core mock
 
-vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
   createMCPStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn(),
     writeContent: vi.fn(),

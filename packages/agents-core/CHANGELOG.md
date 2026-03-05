@@ -1,5 +1,33 @@
 # @inkeep/agents-core
 
+## 0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- 3d88636: Fix lastUsed field on apikeys not being updated
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 95e2477: Fix provider-specific per-call options not being forwarded to AI SDK streamText calls
+
+## 0.56.2
+
+## 0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
 ## 0.55.3
 
 ## 0.55.2

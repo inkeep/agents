@@ -395,8 +395,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         return;
       }
 
-      console.info('Data operation received:', data);
-
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
 
