@@ -11,6 +11,7 @@ import {
   workAppGitHubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
+import { deleteSlackMcpToolAccessConfig } from './slack-work-app-mcp';
 import {
   clearDevConfigWorkspaceDefaultsByAgent,
   clearDevConfigWorkspaceDefaultsByProject,
@@ -428,6 +429,7 @@ export const cascadeDeleteByContextConfig =
 export type ToolCascadeDeleteResult = {
   mcpToolRepositoryAccessDeleted: number;
   mcpToolAccessModeDeleted: boolean;
+  slackMcpToolAccessConfigDeleted: boolean;
 };
 
 /**
@@ -458,9 +460,13 @@ export const cascadeDeleteByTool =
       .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
       .returning();
 
+    // Delete Slack MCP tool access config entry
+    const slackMcpDeleted = await deleteSlackMcpToolAccessConfig(db)(toolId);
+
     return {
       mcpToolRepositoryAccessDeleted: repositoryAccessResult.length,
       mcpToolAccessModeDeleted: accessModeResult.length > 0,
+      slackMcpToolAccessConfigDeleted: slackMcpDeleted,
     };
   };
 

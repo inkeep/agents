@@ -593,7 +593,7 @@ export const deleteTool =
     const isWorkApp = deleted.isWorkApp;
     const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
 
-    if (isGithub) {
+    if (isGithub || isSlackWorkAppTool(deleted)) {
       try {
         // getActiveBranch uses Dolt-specific SQL (active_branch()) which isn't available in pglite/postgres
         const currentBranch = await getActiveBranch(db)();
