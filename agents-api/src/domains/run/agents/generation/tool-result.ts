@@ -1,64 +1,8 @@
 import { parseEmbeddedJson } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
-import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext } from '../agent-types';
 
 const logger = getLogger('Agent');
-
-export function formatToolResult(
-  toolName: string,
-  args: any,
-  result: any,
-  toolCallId: string
-): string {
-  const input = args ? JSON.stringify(args, null, 2) : 'No input';
-
-  if (isToolResultDenied(result)) {
-    return [
-      `## Tool: ${toolName}`,
-      '',
-      `### 🔧 TOOL_CALL_ID: ${toolCallId}`,
-      '',
-      `### Output`,
-      result.reason,
-    ].join('\n');
-  }
-
-  let parsedResult = result;
-  if (typeof result === 'string') {
-    try {
-      parsedResult = JSON.parse(result);
-    } catch (_e) {}
-  }
-
-  const cleanResult =
-    parsedResult && typeof parsedResult === 'object' && !Array.isArray(parsedResult)
-      ? {
-          ...parsedResult,
-          result:
-            parsedResult.result &&
-            typeof parsedResult.result === 'object' &&
-            !Array.isArray(parsedResult.result)
-              ? Object.fromEntries(
-                  Object.entries(parsedResult.result).filter(([key]) => key !== '_structureHints')
-                )
-              : parsedResult.result,
-        }
-      : parsedResult;
-
-  const output =
-    typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
-
-  return `## Tool: ${toolName}
-
-### 🔧 TOOL_CALL_ID: ${toolCallId}
-
-### Input
-${input}
-
-### Output
-${output}`;
-}
 
 export function getToolResultConversationId(ctx: AgentRunContext): string | undefined {
   return ctx.conversationId;

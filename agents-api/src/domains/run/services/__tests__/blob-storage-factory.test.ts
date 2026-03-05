@@ -17,9 +17,11 @@ describe('blob storage factory', () => {
 
   it('converts key to blob URI and back', async () => {
     const { toBlobUri, fromBlobUri } = await import('../blob-storage/index');
-    const key = 'tenant/project/conv/msg/hash.png';
+    const key = 'v1/t_tenant/media/p_project/conv/c_conv123/m_msg456/sha256-abcdef.png';
     const uri = toBlobUri(key);
-    expect(uri).toBe('blob://tenant/project/conv/msg/hash.png');
+    expect(uri).toBe(
+      'blob://v1/t_tenant/media/p_project/conv/c_conv123/m_msg456/sha256-abcdef.png'
+    );
     expect(fromBlobUri(uri)).toBe(key);
   });
 
