@@ -33,9 +33,9 @@ vi.mock('@inkeep/agents-core', () => ({
   })),
 }));
 
-vi.mock('../../../data/db/runDbClient', () => ({ default: 'mock-run-db-client' }));
+vi.mock('../../../../data/db/runDbClient', () => ({ default: 'mock-run-db-client' }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../../../logger', () => ({
   getLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
