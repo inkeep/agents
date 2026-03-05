@@ -690,6 +690,8 @@ export const Agent: FC<AgentProps> = ({
   const form = useFullAgentFormContext();
 
   const onSubmit = form.handleSubmit(async ({ mcpRelations, ...data }): Promise<void> => {
+    // TODO: next step will be to refactoring deserializeAgentData/serializeAgentData
+    const { nodes, edges } = deserializeAgentData(data);
     const serializedData = serializeAgentData(
       nodes,
       edges,
@@ -719,8 +721,8 @@ export const Agent: FC<AgentProps> = ({
     }
 
     const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-      ...serializedData,
       ...data,
+      ...serializedData,
     });
 
     if (res.success) {
@@ -888,6 +890,7 @@ export const Agent: FC<AgentProps> = ({
           onNodeDragStop={() => {
             setNodes(resolveCollisions);
           }}
+          deleteKeyCode={null}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
