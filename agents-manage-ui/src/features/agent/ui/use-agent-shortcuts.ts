@@ -13,7 +13,11 @@ export function useAgentShortcuts() {
     function deleteSelected() {
       agentStore.setState((state) => {
         const nodesToDelete = new Set(
-          state.nodes.filter((n) => n.selected && (n.deletable ?? true) && n.id !== defaultSubAgentIdRef.current).map((n) => n.id)
+          state.nodes
+            .filter(
+              (n) => n.selected && (n.deletable ?? true) && n.id !== defaultSubAgentIdRef.current
+            )
+            .map((n) => n.id)
         );
         const unDeletableNodes = state.nodes.filter(
           (n) => n.selected && n.id === defaultSubAgentIdRef.current

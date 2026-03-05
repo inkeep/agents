@@ -1,10 +1,10 @@
 import type { Edge, Node } from '@xyflow/react';
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
-import { MCPRelationSchema } from '@/components/agent/form/validation';
+import type { MCPRelationSchema } from '@/components/agent/form/validation';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
