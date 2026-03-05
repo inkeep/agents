@@ -3,25 +3,36 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, useEffect, useRef } from 'react';
 import { useFormState } from 'react-hook-form';
+import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
+import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { Button } from '@/components/ui/button';
+import { firstNestedMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
-import { ShipModal } from '../ship/ship-modal';
+import { ShipModal } from './ship/ship-modal';
 
 interface ToolbarProps {
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
 }
 
+const commonProps = {
+  className: 'backdrop-blur-3xl',
+  type: 'button',
+  variant: 'outline',
+} satisfies ComponentProps<typeof Button>;
+
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
-  const form = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const { control } = useFullAgentFormContext();
+  const { isDirty, isSubmitting } = useFormState({ control });
+  const { agentSettings } = useGroupedAgentErrors();
+
   const dirty = agentDirtyState || isDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -32,16 +43,10 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
 
-  const commonProps = {
-    className: 'backdrop-blur-3xl',
-    type: 'button',
-    variant: 'outline',
-  } satisfies ComponentProps<typeof Button>;
-
   const previewButton = (
     <Button
       {...commonProps}
-      disabled={dirty || hasOpenModelConfig}
+      disabled={isDirty || hasOpenModelConfig}
       onClick={() => setShowPlayground(true)}
     >
       <Play className="size-4 text-muted-foreground" />
@@ -64,6 +69,12 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
     };
   }, []);
 
+  const agentSettingsErrors = Object.entries(agentSettings).map(([key, value]) => ({
+    field: key,
+    message: firstNestedMessage(value),
+  }));
+  const hasErrors = agentSettingsErrors.length > 0;
+
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
       <Button {...commonProps} asChild>
@@ -75,7 +86,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       {canUse && (
         <>
           <ShipModal buttonClassName={commonProps.className} />
-          {dirty || hasOpenModelConfig ? (
+          {isDirty || hasOpenModelConfig ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 {/**
@@ -87,7 +98,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
               <TooltipContent>
                 {hasOpenModelConfig
                   ? 'Please complete model configuration before trying the agent.'
-                  : dirty
+                  : isDirty
                     ? 'Please save your changes before trying the agent.'
                     : 'Please save the agent to try it.'}
               </TooltipContent>
@@ -101,8 +112,8 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         <Button
           {...commonProps}
           type="submit"
-          variant={dirty ? 'default' : 'outline'}
-          disabled={isSubmitting || !dirty || hasOpenModelConfig}
+          variant={isDirty ? 'default' : 'outline'}
+          disabled={isSubmitting || !isDirty || hasOpenModelConfig}
           ref={saveButtonRef}
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />
@@ -110,9 +121,14 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         </Button>
       )}
       {canView && (
-        <Button {...commonProps} onClick={toggleSidePane}>
-          <Settings className="size-4" />
+        <Button
+          {...commonProps}
+          onClick={toggleSidePane}
+          className={cn(commonProps.className, hasErrors && 'ring-2 ring-red-300 border-red-300')}
+        >
+          <Settings className="size-4 text-muted-foreground" />
           Agent Settings
+          {hasErrors && <ErrorIndicator errors={agentSettingsErrors} />}
         </Button>
       )}
     </div>

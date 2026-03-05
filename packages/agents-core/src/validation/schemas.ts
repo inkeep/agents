@@ -353,6 +353,8 @@ export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
 export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
   models: ModelSchema.optional(),
 });
 
@@ -453,16 +455,13 @@ export const AgentInsertSchema = createInsertSchema(agents, {
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    ResourceIdSchema.clone()
-      .nullable()
-      .optional()
-      .openapi({
-        description:
-          'ID of the default sub-agent that handles initial user messages. ' +
-          'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
-          'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
-        example: 'my-default-subagent',
-      }),
+    ResourceIdSchema.clone().openapi({
+      description:
+        'ID of the default sub-agent that handles initial user messages. ' +
+        'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+        'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
+      example: 'my-default-subagent',
+    }),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -1194,7 +1193,10 @@ export const ToolSelectSchema = createSelectSchema(tools);
 
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
   imageUrl: imageUrlSchema,
+  headers: StringRecordSchema.nullish(),
   config: z.object({
     type: z.literal('mcp'),
     mcp: z.object({
@@ -2003,6 +2005,8 @@ export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 
 export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
 });
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
@@ -2044,12 +2048,15 @@ export const SubAgentFunctionToolRelationApiInsertSchema =
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: ResourceIdSchema,
+  dependencies: StringRecordSchema.nullish(),
+  executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
+  inputSchema: z.record(z.string(), z.unknown(), 'Input Schema is required'),
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
 
-const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
+function validateExecuteCode(val: string, ctx: z.RefinementCtx) {
   try {
     // Workaround for anonymous function because it’s not valid JavaScript grammar.
     // Babel (and every JS parser) rejects it.
@@ -2061,12 +2068,12 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     const { body } = ast.program;
     for (const node of body) {
       if (node.type === 'ExportDefaultDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export default declarations are not supported. Provide a single function instead.'
         );
       }
       if (node.type === 'ExportNamedDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export declarations are not supported. Provide a single function instead.'
         );
       }
@@ -2109,13 +2116,10 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
       input: val,
     });
   }
-};
+}
 
-export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .openapi('FunctionCreate')
-  .extend({
-    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  });
+export const FunctionApiInsertSchema =
+  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate');
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
@@ -2381,9 +2385,9 @@ export const canDelegateToTeamAgentSchema = z
 
 export const TeamAgentSchema = z
   .object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
   })
   .openapi('TeamAgent');
 
@@ -2428,18 +2432,16 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
       `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
     )
     .optional(),
-})
-  .extend({
-    subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-    tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-    externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-    teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-    functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-    functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-    triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-    scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
-  })
-  .openapi('AgentWithinContextOfProject');
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+  //
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
+}).openapi('AgentWithinContextOfProject');
 
 export const PaginationSchema = z
   .object({

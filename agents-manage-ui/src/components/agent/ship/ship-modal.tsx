@@ -87,7 +87,7 @@ export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) 
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" className={buttonClassName}>
-          <RocketIcon className="size-4" />
+          <RocketIcon className="size-4 text-muted-foreground" />
           Ship
         </Button>
       </DialogTrigger>

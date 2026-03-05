@@ -2,10 +2,14 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { Shield } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
+import { useWatch } from 'react-hook-form';
+import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { cn } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
@@ -63,6 +67,12 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   'use memo';
 
   const { data, selected } = props;
+  const { control } = useFullAgentFormContext();
+  const relationKey = data.relationshipId ?? props.id;
+  const mcpRelation = useWatch({
+    control,
+    name: `mcpRelations.${relationKey}`,
+  });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { toolLookup, agentToolConfigLookup } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
@@ -77,7 +87,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     tenantId,
     projectId,
     toolId: data.toolId,
-    enabled: !!data.toolId && !!tenantId && !!projectId,
+    enabled: !!data.toolId,
   });
 
   // Use live data if available, fall back to skeleton
@@ -91,8 +101,10 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
-  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
+  const selectedToolsFromLookup = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
+  const toolPoliciesFromLookup = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
+  const selectedTools = mcpRelation?.selectedTools ?? selectedToolsFromLookup;
+  const toolPolicies = mcpRelation?.toolPolicies ?? toolPoliciesFromLookup;
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;
@@ -151,7 +163,9 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
-  const hasErrors = data.status === 'error';
+  const processedErrors = useProcessedErrors('tools', data.toolId);
+  const hasErrors = processedErrors.length > 0;
+  const hasStatusErrors = data.status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
   const isTimeout = toolData?.status === 'unavailable';
 
@@ -161,13 +175,15 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         isConnecting && 'animate-pulse opacity-80',
-        hasErrors && 'ring-2 ring-red-300 border-red-300',
         (needsAuth || hasOrphanedTools) &&
           'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
-        isInvertedDelegating && 'node-delegating-inverted'
+        isInvertedDelegating && 'node-delegating-inverted',
+        // TODO doesn't work
+        (hasErrors || hasStatusErrors) && 'ring-2 ring-red-300 border-red-300'
       )}
     >
+      {hasErrors && <ErrorIndicator errors={processedErrors} />}
       <BaseNodeHeader className="flex items-center justify-between gap-2">
         <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
         <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>

@@ -10,7 +10,7 @@ import { cache } from 'react';
 import type {
   Agent,
   CreateAgentResponse,
-  FullAgentDefinition,
+  FullAgentOutput,
   GetAgentResponse,
   UpdateAgentResponse,
   UpdateFullAgentResponse,
@@ -95,7 +95,7 @@ export async function updateFullAgent(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: FullAgentDefinition
+  agentData: FullAgentOutput
 ): Promise<UpdateFullAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);

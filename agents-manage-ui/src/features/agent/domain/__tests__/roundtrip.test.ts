@@ -24,7 +24,6 @@ describe('agent serialize/deserialize', () => {
         data: {
           id: 'hello-agent',
           name: 'Hello Agent',
-          isDefault: true,
           prompt: 'Say hello',
         },
         deletable: false,
@@ -83,7 +82,7 @@ describe('agent serialize/deserialize', () => {
         id: 'a1',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: { id: 'a1', name: 'A1', isDefault: true, prompt: 'i' },
+        data: { id: 'a1', name: 'A1', prompt: 'i' },
         deletable: false,
       },
       {

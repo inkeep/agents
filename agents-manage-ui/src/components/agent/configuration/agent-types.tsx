@@ -1,5 +1,5 @@
 type ModelSettings = {
-  model: string;
+  model?: string;
   providerOptions?: string; // JSON string representation for form compatibility
 };
 

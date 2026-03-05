@@ -1,14 +1,16 @@
 import type { Edge, Node } from '@xyflow/react';
+import type { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
+import type { MCPRelationSchema } from '@/components/agent/form/validation';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
+  FullAgentOutput,
   InternalAgentDefinition,
-  PartialFullAgentDefinition,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
@@ -28,7 +30,7 @@ type ExtendedAgent = InternalAgentDefinition & {
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
  */
 function safeJsonParse(value: string | object | undefined | null): any {
-  if (!value) return undefined;
+  if (!value) return;
 
   // If it's already an object, return it as-is
   if (typeof value === 'object') return value;
@@ -39,11 +41,11 @@ function safeJsonParse(value: string | object | undefined | null): any {
       return JSON.parse(value);
     } catch (error) {
       console.warn('Error parsing JSON:', error);
-      return undefined;
+      return;
     }
   }
 
-  return undefined;
+  return;
 }
 function processModels(modelsData?: AgentModels): AgentModels | undefined {
   if (modelsData && typeof modelsData === 'object') {
@@ -76,6 +78,15 @@ function processModels(modelsData?: AgentModels): AgentModels | undefined {
   }
   return undefined;
 }
+
+type SerializeAgentDataType = Pick<FullAgentOutput, 'subAgents' | 'functions' | 'functionTools'>;
+
+type PartialMCPRelation = Pick<
+  z.output<typeof MCPRelationSchema>,
+  'selectedTools' | 'headers' | 'toolPolicies'
+>;
+type MCPRelationFormData = Record<string, PartialMCPRelation>;
+
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
@@ -86,17 +97,26 @@ export function serializeAgentData(
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
-): PartialFullAgentDefinition {
+  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
+  mcpRelations?: MCPRelationFormData,
+  functionToolFormData?: FullAgentOutput['functionTools'],
+  externalAgentFormData?: FullAgentOutput['externalAgents'],
+  teamAgentFormData?: FullAgentOutput['teamAgents']
+): SerializeAgentDataType {
   const subAgents: Record<string, ExtendedAgent> = {};
-  const externalAgents: Record<string, ExternalAgent> = {};
-  const teamAgents: Record<string, TeamAgent> = {};
+  const externalAgents: Record<
+    string,
+    ExternalAgent & { relationshipId: string | null; headers?: Record<string, string> }
+  > = {};
+  const teamAgents: Record<
+    string,
+    TeamAgent & { relationshipId: string | null; headers?: Record<string, string> }
+  > = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
   // Note: Tools are now project-scoped and not included in agent serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
-  let defaultSubAgentId = '';
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
@@ -121,7 +141,8 @@ export function serializeAgentData(
       const canUse: Array<{
         toolId: string;
         toolSelection?: string[] | null;
-        headers?: Record<string, string> | null;
+        headers?: PartialMCPRelation['headers'];
+        toolPolicies?: PartialMCPRelation['toolPolicies'];
         agentToolRelationId?: string;
       }> = [];
 
@@ -139,11 +160,11 @@ export function serializeAgentData(
           const toolId = (mcpNode.data as any).toolId;
 
           if (toolId) {
-            const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
-            let toolSelection: string[] | null = null;
-
             const relationshipId = (mcpNode.data as any).relationshipId;
-
+            const relationKey = relationshipId ?? mcpNode.id;
+            const relationFormData = mcpRelations?.[relationKey];
+            const tempSelectedTools = relationFormData?.selectedTools;
+            let toolSelection: string[] | null = null;
             if (tempSelectedTools !== undefined) {
               // User has made changes to tool selection in the UI
               if (Array.isArray(tempSelectedTools)) {
@@ -164,18 +185,9 @@ export function serializeAgentData(
               }
             }
 
-            const tempHeaders = (mcpNode.data as any).tempHeaders;
-            let toolHeaders: Record<string, string> | null = null;
+            let toolHeaders = relationFormData?.headers ?? null;
 
-            if (tempHeaders !== undefined) {
-              if (
-                typeof tempHeaders === 'object' &&
-                tempHeaders !== null &&
-                !Array.isArray(tempHeaders)
-              ) {
-                toolHeaders = tempHeaders;
-              }
-            } else {
+            if (toolHeaders === undefined) {
               // No changes made to headers - preserve existing headers
               const existingConfig = relationshipId
                 ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
@@ -184,19 +196,9 @@ export function serializeAgentData(
                 toolHeaders = existingConfig.headers;
               }
             }
+            let toolPolicies = relationFormData?.toolPolicies ?? null;
 
-            const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
-            let toolPolicies: Record<string, { needsApproval?: boolean }> | null = null;
-
-            if (tempToolPolicies !== undefined) {
-              if (
-                typeof tempToolPolicies === 'object' &&
-                tempToolPolicies !== null &&
-                !Array.isArray(tempToolPolicies)
-              ) {
-                toolPolicies = tempToolPolicies;
-              }
-            } else {
+            if (toolPolicies === undefined) {
               // No changes made to tool policies - preserve existing policies
               const existingConfig = relationshipId
                 ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
@@ -235,7 +237,7 @@ export function serializeAgentData(
 
           const functionId = nodeData.functionId || functionToolId;
 
-          const functionToolData = {
+          functionTools[functionToolId] = {
             id: functionToolId,
             name: nodeData.name || '',
             description: nodeData.description || '',
@@ -243,7 +245,7 @@ export function serializeAgentData(
           };
 
           // Always create function entry to ensure it exists
-          const functionData = {
+          functions[functionId] = {
             id: functionId,
             name: nodeData.name || '',
             description: nodeData.description || '',
@@ -251,17 +253,14 @@ export function serializeAgentData(
             inputSchema: nodeData.inputSchema || {},
             dependencies: nodeData.dependencies || {},
           };
-          functions[functionId] = functionData;
 
-          functionTools[functionToolId] = functionToolData;
-
-          const tempToolPolicies = nodeData.tempToolPolicies;
+          const toolPolicies = functionToolFormData?.[functionToolId]?.tempToolPolicies;
 
           canUse.push({
             toolId: functionToolId,
             toolSelection: null,
             headers: null,
-            ...(tempToolPolicies !== undefined ? { toolPolicies: tempToolPolicies } : {}),
+            ...(toolPolicies && { toolPolicies }),
             ...(relationshipId && { agentToolRelationId: relationshipId }),
           });
         }
@@ -289,16 +288,13 @@ export function serializeAgentData(
         ...(stopWhen && { stopWhen }),
       };
 
-      if (node.data.isDefault) {
-        defaultSubAgentId = subAgentId;
-      }
-
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const externalAgentId = (node.data.id as string) || node.id;
+      const headers = externalAgentFormData?.[externalAgentId]?.headers;
 
       const externalAgent: ExternalAgent & {
-        tempHeaders: Record<string, string> | null;
+        headers?: Record<string, string>;
         relationshipId: string | null;
       } = {
         id: externalAgentId,
@@ -308,21 +304,22 @@ export function serializeAgentData(
         createdAt: node.data.createdAt as string,
         updatedAt: node.data.updatedAt as string,
         credentialReferenceId: (node.data.credentialReferenceId as string) || null,
-        tempHeaders: (node.data as any).tempHeaders || null,
+        headers,
         relationshipId: (node.data.relationshipId as string) || null,
       };
 
       externalAgents[externalAgentId] = externalAgent;
     } else if (node.type === NodeType.TeamAgent) {
       const teamAgentId = (node.data.id as string) || node.id;
+      const headers = teamAgentFormData?.[teamAgentId]?.headers;
       const teamAgent: TeamAgent & {
         relationshipId: string | null;
-        tempHeaders: Record<string, string> | null;
+        headers?: Record<string, string>;
       } = {
         id: teamAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
-        tempHeaders: (node.data as any).tempHeaders || null,
+        headers,
         relationshipId: (node.data.relationshipId as string) || null,
       };
       teamAgents[teamAgentId] = teamAgent;
@@ -342,18 +339,14 @@ export function serializeAgentData(
         if (typeof delegate === 'object') {
           if ('externalAgentId' in delegate) {
             // External agent delegation
-            if (!subAgentExternalDelegateMap[subAgentId]) {
-              subAgentExternalDelegateMap[subAgentId] = {};
-            }
+            subAgentExternalDelegateMap[subAgentId] ??= {};
             if (delegate.subAgentExternalAgentRelationId) {
               subAgentExternalDelegateMap[subAgentId][delegate.subAgentExternalAgentRelationId] =
                 delegate;
             }
           } else if ('agentId' in delegate) {
             // Team agent delegation
-            if (!subAgentTeamDelegateMap[subAgentId]) {
-              subAgentTeamDelegateMap[subAgentId] = {};
-            }
+            subAgentTeamDelegateMap[subAgentId] ??= {};
             if (delegate.subAgentTeamAgentRelationId) {
               subAgentTeamDelegateMap[subAgentId][delegate.subAgentTeamAgentRelationId] = delegate;
             }
@@ -400,9 +393,7 @@ export function serializeAgentData(
         relationshipId?: string
       ) => {
         if (relationshipType === 'canDelegateTo') {
-          if (!agent.canDelegateTo) {
-            agent.canDelegateTo = [];
-          }
+          agent.canDelegateTo ??= [];
 
           // External agents always use object format
           if (isExternal) {
@@ -418,14 +409,10 @@ export function serializeAgentData(
 
             // Store relationship in map - we'll rebuild canDelegateTo arrays at the end
             if (relationshipId) {
-              if (!subAgentExternalDelegateMap[agent.id]) {
-                subAgentExternalDelegateMap[agent.id] = {};
-              }
+              subAgentExternalDelegateMap[agent.id] ??= {};
               subAgentExternalDelegateMap[agent.id][relationshipId] = relationshipData;
             } else {
-              if (!newSubAgentExternalDelegateMap[agent.id]) {
-                newSubAgentExternalDelegateMap[agent.id] = {};
-              }
+              newSubAgentExternalDelegateMap[agent.id] ??= {};
               newSubAgentExternalDelegateMap[agent.id] = relationshipData;
             }
           } else if (isTeamAgent) {
@@ -442,14 +429,10 @@ export function serializeAgentData(
 
             // Store relationship in map - we'll rebuild canDelegateTo arrays at the end
             if (relationshipId) {
-              if (!subAgentTeamDelegateMap[agent.id]) {
-                subAgentTeamDelegateMap[agent.id] = {};
-              }
+              subAgentTeamDelegateMap[agent.id] ??= {};
               subAgentTeamDelegateMap[agent.id][relationshipId] = relationshipData;
             } else {
-              if (!newSubAgentTeamDelegateMap[agent.id]) {
-                newSubAgentTeamDelegateMap[agent.id] = {};
-              }
+              newSubAgentTeamDelegateMap[agent.id] ??= {};
               newSubAgentTeamDelegateMap[agent.id] = relationshipData;
             }
           } else {
@@ -459,7 +442,7 @@ export function serializeAgentData(
             }
           }
         } else {
-          if (!agent.canTransferTo) agent.canTransferTo = [];
+          agent.canTransferTo ??= [];
           if (!agent.canTransferTo.includes(targetId)) {
             agent.canTransferTo.push(targetId);
           }
@@ -469,19 +452,12 @@ export function serializeAgentData(
       // Handle edges to external agents (only delegation is allowed)
       if (isTargetExternal) {
         if (relationships.delegateSourceToTarget) {
-          const tempHeaders = (targetExternalAgent as any).tempHeaders;
-          let externalAgentHeaders: Record<string, string> | undefined;
-          const relationshipId = (targetExternalAgent as any).relationshipId;
+          const relationshipId = (targetExternalAgent as any).relationshipId as string | undefined;
+          let externalAgentHeaders = (targetExternalAgent as any).headers as
+            | Record<string, string>
+            | undefined;
 
-          if (tempHeaders !== undefined) {
-            if (
-              typeof tempHeaders === 'object' &&
-              tempHeaders !== null &&
-              !Array.isArray(tempHeaders)
-            ) {
-              externalAgentHeaders = tempHeaders;
-            }
-          } else {
+          if (externalAgentHeaders === undefined) {
             const existingConfig = relationshipId
               ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
               : null;
@@ -506,19 +482,12 @@ export function serializeAgentData(
       // Handle edges to team agents (only delegation is allowed)
       if (isTargetTeamAgent) {
         if (relationships.delegateSourceToTarget) {
-          const tempHeaders = (targetAgentNode as any).data?.tempHeaders;
-          let teamAgentHeaders: Record<string, string> | undefined;
-          const relationshipId = (targetAgentNode as any).data?.relationshipId;
+          const relationshipId = (targetTeamAgent as any).relationshipId as string | undefined;
+          let teamAgentHeaders = (targetTeamAgent as any).headers as
+            | Record<string, string>
+            | undefined;
 
-          if (tempHeaders !== undefined) {
-            if (
-              typeof tempHeaders === 'object' &&
-              tempHeaders !== null &&
-              !Array.isArray(tempHeaders)
-            ) {
-              teamAgentHeaders = tempHeaders;
-            }
-          } else {
+          if (teamAgentHeaders === undefined) {
             const existingConfig = relationshipId
               ? subAgentTeamAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
               : null;
@@ -581,14 +550,10 @@ export function serializeAgentData(
     });
   }
 
-  const result: PartialFullAgentDefinition = {
-    defaultSubAgentId,
-    subAgents: subAgents,
-    ...(Object.keys(functionTools).length > 0 && { functionTools }),
-    ...(Object.keys(functions).length > 0 && { functions }),
-    // Note: Tools are now project-scoped and not included in FullAgentDefinition
-    // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
-    // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
+  const result: SerializeAgentDataType = {
+    subAgents,
+    functionTools,
+    functions,
   };
 
   // Rebuild canDelegateTo arrays from delegate maps to ensure consistency
@@ -629,28 +594,10 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: PartialFullAgentDefinition,
+  data: Pick<FullAgentOutput, 'subAgents'>,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
-
-  if (!data.defaultSubAgentId) {
-    errors.push({
-      message: 'Default sub agent ID is required, please select a default sub agent.',
-      field: 'defaultSubAgentId',
-      code: 'required',
-      path: ['defaultSubAgentId'],
-    });
-  }
-
-  if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
-    errors.push({
-      message: `Default sub agent ID '${data.defaultSubAgentId}' not found in sub agents.`,
-      field: 'defaultSubAgentId',
-      code: 'invalid_reference',
-      path: ['defaultSubAgentId'],
-    });
-  }
 
   for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
     // All subAgents are internal agents (external agents are project-scoped)

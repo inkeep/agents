@@ -1,23 +1,25 @@
-import { type Node, useReactFlow } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink } from '@/components/ui/external-link';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
@@ -29,7 +31,6 @@ import {
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
-import { FieldLabel } from '../form-components/label';
 import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
@@ -41,17 +42,23 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
-  const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
+  'use memo';
+  const form = useFullAgentFormContext();
+  const id = selectedNode.data.toolId;
+  const relationKey = selectedNode.data.relationshipId ?? selectedNode.id;
+  const tool = useWatch({ control: form.control, name: `tools.${id}` });
+  const mcpRelation = useWatch({
+    control: form.control,
+    name: `mcpRelations.${relationKey}`,
   });
-  const { updateNodeData } = useReactFlow();
 
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-  const { markUnsaved } = useAgentActions();
+  const path = <K extends string>(key: K) => `tools.${id}.${key}` as const;
+  const relationPath = <K extends string>(key: K) => `mcpRelations.${relationKey}.${key}` as const;
+
+  const { canEdit } = useProjectPermissions();
+  const { deleteNode } = useDeleteNode(selectedNode.id);
+
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   // Get skeleton data from store
   const toolLookup = useAgentStore((state) => state.toolLookup);
@@ -61,25 +68,44 @@ export function MCPServerNodeEditor({
     tenantId,
     projectId,
     toolId: selectedNode.data.toolId,
-    enabled: !!selectedNode.data.toolId && !!tenantId && !!projectId,
+    enabled: !!selectedNode.data.toolId,
   });
 
   // Use live data if available, fall back to skeleton from store
   const skeletonToolData = toolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
-  }, [selectedNode, agentToolConfigLookup]);
+  const selectedToolsFromLookup = getCurrentSelectedToolsForNode(
+    selectedNode,
+    agentToolConfigLookup
+  );
+  const currentToolPoliciesFromLookup = getCurrentToolPoliciesForNode(
+    selectedNode,
+    agentToolConfigLookup
+  );
+  const selectedTools = mcpRelation?.selectedTools ?? selectedToolsFromLookup;
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? currentToolPoliciesFromLookup;
 
-  // Local state for headers input (allows invalid JSON while typing)
-  const [headersInputValue, setHeadersInputValue] = useState('{}');
-
-  // Sync input value when node changes (but not on every data change)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
   useEffect(() => {
-    const newHeaders = getCurrentHeaders();
-    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+    const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
+    if (existingRelation) {
+      return;
+    }
+
+    const newHeaders = getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
+    form.setValue(
+      `mcpRelations.${relationKey}`,
+      {
+        toolId: selectedNode.data.toolId,
+        relationshipId: selectedNode.data.relationshipId ?? undefined,
+        subAgentId: selectedNode.data.subAgentId ?? undefined,
+        selectedTools: selectedToolsFromLookup,
+        headers: JSON.stringify(newHeaders, null, 2),
+        toolPolicies: currentToolPoliciesFromLookup,
+      },
+      { shouldDirty: false }
+    );
   }, [selectedNode.id]);
 
   const availableTools = toolData?.availableTools;
@@ -95,9 +121,6 @@ export function MCPServerNodeEditor({
         ? toolData.config.mcp.activeTools
         : undefined,
   });
-
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode, agentToolConfigLookup);
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
   // Track if we've already shown the warning for this node to avoid repeated toasts
@@ -120,7 +143,9 @@ export function MCPServerNodeEditor({
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
-
+  if (!tool) {
+    return;
+  }
   // Handle missing tool data
   if (!toolData) {
     return (
@@ -158,13 +183,8 @@ export function MCPServerNodeEditor({
       delete updatedPolicies[toolName];
     }
 
-    // For now, store in node data - we'll need to properly save to agent relations later
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempSelectedTools: finalSelection,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
+    form.setValue(relationPath('selectedTools'), finalSelection, { shouldDirty: true });
+    form.setValue(relationPath('toolPolicies'), updatedPolicies, { shouldDirty: true });
   };
 
   const toggleToolApproval = (toolName: string) => {
@@ -178,11 +198,7 @@ export function MCPServerNodeEditor({
       updatedPolicies[toolName] = { needsApproval: true };
     }
 
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
+    form.setValue(relationPath('toolPolicies'), updatedPolicies, { shouldDirty: true });
   };
 
   const toggleAllApprovalsForEnabledTools = () => {
@@ -213,45 +229,7 @@ export function MCPServerNodeEditor({
       }
     }
 
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (selectedNode) {
-      updateNodeData(selectedNode.id, { [name]: value });
-      markUnsaved();
-    }
-  };
-
-  const handleHeadersChange = (value: string) => {
-    // Always update the input state (allows user to type invalid JSON)
-    setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
-    } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
-    }
+    form.setValue(relationPath('toolPolicies'), updatedPolicies, { shouldDirty: true });
   };
 
   return (
@@ -287,36 +265,24 @@ export function MCPServerNodeEditor({
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="node-id">Id</Label>
-        <Input id="node-id" value={selectedNode.data.toolId} disabled />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          name="name"
-          value={toolData?.name || ''}
-          onChange={handleInputChange}
-          placeholder="MCP server"
-          className="w-full"
-          disabled
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="url">URL</Label>
-        <Input
-          id="url"
-          name="url"
-          value={
-            toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.server.url : ''
-          }
-          onChange={handleInputChange}
-          placeholder="https://mcp.inkeep.com"
-          disabled
-          className="w-full"
-        />
-      </div>
+      <GenericInput control={form.control} name={path('id')} label="Id" disabled isRequired />
+
+      <GenericInput
+        control={form.control}
+        name={path('name')}
+        label="Name"
+        placeholder="MCP server"
+        disabled
+        isRequired
+      />
+
+      <GenericInput
+        control={form.control}
+        name={path('config.mcp.server.url')}
+        label="URL"
+        placeholder="https://mcp.inkeep.com"
+        disabled
+      />
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -343,12 +309,8 @@ export function MCPServerNodeEditor({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        updateNodeData(selectedNode.id, {
-                          ...selectedNode.data,
-                          tempSelectedTools: [],
-                          tempToolPolicies: {}, // Clear all approval policies
-                        });
-                        markUnsaved();
+                        form.setValue(relationPath('selectedTools'), [], { shouldDirty: true });
+                        form.setValue(relationPath('toolPolicies'), {}, { shouldDirty: true });
                       }}
                     >
                       <X className="w-4 h-4 text-muted-foreground" />
@@ -360,11 +322,7 @@ export function MCPServerNodeEditor({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        updateNodeData(selectedNode.id, {
-                          ...selectedNode.data,
-                          tempSelectedTools: null, // null means all tools selected
-                        });
-                        markUnsaved();
+                        form.setValue(relationPath('selectedTools'), null, { shouldDirty: true });
                       }}
                     >
                       <Check className="w-4 h-4 text-muted-foreground" />
@@ -502,10 +460,7 @@ export function MCPServerNodeEditor({
                   className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 bg-amber-50 dark:bg-amber-950/20 border-b last:border-b-0 border-amber-200 dark:border-amber-800"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <Checkbox
-                      checked={true}
-                      onCheckedChange={() => toggleToolSelection(toolName)}
-                    />
+                    <Checkbox checked onCheckedChange={() => toggleToolSelection(toolName)} />
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -544,16 +499,13 @@ export function MCPServerNodeEditor({
         )}
       </div>
 
-      <div className="space-y-2">
-        <FieldLabel id="headers" label="Headers" />
-        <StandaloneJsonEditor
-          name="headers"
-          value={headersInputValue}
-          onChange={handleHeadersChange}
-          placeholder={headersTemplate}
-          customTemplate={headersTemplate}
-        />
-      </div>
+      <GenericJsonEditor
+        control={form.control}
+        name={path('headers')}
+        label="Headers"
+        placeholder={headersTemplate}
+        customTemplate={headersTemplate}
+      />
 
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}

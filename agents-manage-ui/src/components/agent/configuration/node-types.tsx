@@ -29,7 +29,6 @@ export type PlaceholderType =
 
 interface NodeData extends Record<string, unknown> {
   name: string;
-  isDefault?: boolean;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
   type?: PlaceholderType; // Optional for placeholder nodes
@@ -59,7 +58,6 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   skills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
-  isDefault?: boolean;
 }
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
