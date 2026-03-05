@@ -68,7 +68,10 @@ export async function processStreamEvents(
         if (event.error instanceof Error) {
           throw event.error;
         }
-        const errorMessage = (event.error as { error?: { message?: string } })?.error?.message;
+        const errorMessage =
+          (event.error as { error?: { message?: string } })?.error?.message ??
+          JSON.stringify(event.error) ??
+          'Unknown streaming error';
         throw new Error(errorMessage);
       }
     }

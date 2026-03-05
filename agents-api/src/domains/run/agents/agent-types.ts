@@ -194,10 +194,10 @@ export type DelegateRelation =
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
-export function isValidTool(tool: any): tool is {
+export function isValidTool(tool: unknown): tool is {
   description: string;
-  inputSchema: any;
-  execute: (args: any, context?: any) => Promise<any>;
+  inputSchema: Record<string, unknown>;
+  execute: (args: unknown, context?: unknown) => Promise<unknown>;
 } {
   return (
     tool &&

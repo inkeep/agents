@@ -18,8 +18,8 @@ import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import {
   handlePrepareStepCompression,
   handleStopWhenConditions,
-  setupCompression,
-} from './compression';
+} from './ai-sdk-callbacks';
+import { setupCompression } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
 import { configureModelSettings } from './model-config';
 import { formatFinalResponse } from './response-formatting';

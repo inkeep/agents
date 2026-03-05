@@ -37,4 +37,13 @@ export function getRelationshipIdForTool(
 
     return relation?.config.relationId;
   }
+
+  if (toolType === 'transfer') {
+    const relation = ctx.config.transferRelations.find(
+      (relation) =>
+        `transfer_to_${relation.id.toLowerCase().replace(/\s+/g, '_')}` === toolName
+    );
+
+    return relation?.relationId;
+  }
 }

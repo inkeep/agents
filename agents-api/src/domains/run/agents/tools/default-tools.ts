@@ -122,16 +122,13 @@ export async function getDefaultTools(
 
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
   if (hasOnDemandSkills) {
-    const loadSkillTool = createLoadSkillTool(ctx);
-    if (loadSkillTool) {
-      defaultTools.load_skill = wrapToolWithStreaming(
-        ctx,
-        'load_skill',
-        loadSkillTool,
-        streamRequestId,
-        'tool'
-      );
-    }
+    defaultTools.load_skill = wrapToolWithStreaming(
+      ctx,
+      'load_skill',
+      createLoadSkillTool(ctx),
+      streamRequestId,
+      'tool'
+    );
   }
 
   logger.info(
