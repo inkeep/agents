@@ -62,13 +62,13 @@ vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: agentSessionManagerMock,
 }));
 
-// Mock runDbClient to prevent it from loading @inkeep/agents-core
-vi.mock('../../../data/db/runDbClient', () => ({
+// Mock runDbClient to prevent it from loading @inkeep/agents-core (path from test file to src/data/db)
+vi.mock('../../../../data/db/runDbClient', () => ({
   default: 'mock-run-db-client',
 }));
 
-// Mock logger to prevent transitive @inkeep/agents-core imports
-vi.mock('../../../logger', () => ({
+// Mock logger to prevent transitive @inkeep/agents-core imports (path from test file to src)
+vi.mock('../../../../logger', () => ({
   getLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -101,6 +101,10 @@ describe('ArtifactService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    toolSessionManagerMock.getToolResult.mockReturnValue(undefined);
+    agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+    agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
+    agentSessionManagerMock.setArtifactCache.mockResolvedValue(undefined);
 
     mockContext = {
       executionContext: {
