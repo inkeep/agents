@@ -2383,9 +2383,9 @@ export const canDelegateToTeamAgentSchema = z
 
 export const TeamAgentSchema = z
   .object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
   })
   .openapi('TeamAgent');
 
@@ -2434,10 +2434,10 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
 })
   .extend({
     tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-    teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
     triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
     scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
   })

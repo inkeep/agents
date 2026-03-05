@@ -22,6 +22,7 @@ const ExternalAgentSchema = AgentWithinContextOfProjectSchema.shape.externalAgen
     description: true,
     baseUrl: true,
   });
+const TeamAgentSchema = AgentWithinContextOfProjectSchema.shape.teamAgents.unwrap().valueType;
 const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
   .unwrap()
   .valueType.pick({
@@ -126,7 +127,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   ),
   functions: z.record(
     z.string(),
-    z.looseObject({
+    z.object({
       ...FunctionSchema.shape,
       dependencies: StringToStringRecordSchema,
       inputSchema: z
@@ -138,7 +139,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   ),
   externalAgents: z.record(
     z.string(),
-    z.looseObject({
+    z.object({
       ...ExternalAgentSchema.shape,
       // TODO or tempHeaders
       headers: StringToStringRecordSchema,
@@ -146,10 +147,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   ),
   teamAgents: z.record(
     z.string(),
-    z.looseObject({
-      name: z.string().trim().nonempty(),
-      id: z.string().trim().nonempty(),
-      description: z.string().trim(),
+    z.object({
+      ...TeamAgentSchema.shape,
       // TODO or tempHeaders
       headers: StringToStringRecordSchema,
     })
