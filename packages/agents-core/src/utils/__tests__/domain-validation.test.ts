@@ -80,8 +80,30 @@ describe('validateOrigin', () => {
       expect(validateOrigin('https://help.customer.com', ['help.customer.com'])).toBe(true);
     });
 
-    it('should ignore port in origin', () => {
+    it('should ignore port in origin when allowed domain has no port', () => {
       expect(validateOrigin('https://help.customer.com:8443', ['help.customer.com'])).toBe(true);
+    });
+  });
+
+  describe('port matching', () => {
+    it('should match when allowed domain includes a port', () => {
+      expect(validateOrigin('http://localhost:6000', ['localhost:6000'])).toBe(true);
+    });
+
+    it('should reject when port does not match', () => {
+      expect(validateOrigin('http://localhost:3000', ['localhost:6000'])).toBe(false);
+    });
+
+    it('should match domain with port on non-localhost', () => {
+      expect(validateOrigin('https://app.example.com:8443', ['app.example.com:8443'])).toBe(true);
+    });
+
+    it('should reject when origin has no port but allowed domain requires one', () => {
+      expect(validateOrigin('http://localhost', ['localhost:6000'])).toBe(false);
+    });
+
+    it('should match localhost without port when allowed domain has no port', () => {
+      expect(validateOrigin('http://localhost:3000', ['localhost'])).toBe(true);
     });
   });
 });
