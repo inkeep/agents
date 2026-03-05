@@ -37253,6 +37253,7 @@
                       "type": "string"
                     },
                     "channelIds": {
+                      "default": [],
                       "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
                       "items": {
                         "type": "string"
@@ -37266,8 +37267,7 @@
                   },
                   "required": [
                     "channelAccessMode",
-                    "dmEnabled",
-                    "channelIds"
+                    "dmEnabled"
                   ],
                   "type": "object"
                 }
@@ -37394,7 +37394,8 @@
                     "type": "string"
                   },
                   "channelIds": {
-                    "description": "List of allowed channel IDs (required when channelAccessMode is \"selected\")",
+                    "default": [],
+                    "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
                     "items": {
                       "type": "string"
                     },
@@ -37428,9 +37429,13 @@
                       ],
                       "type": "string"
                     },
-                    "channelCount": {
-                      "description": "Number of channels the tool has access to (0 when mode is \"all\")",
-                      "type": "number"
+                    "channelIds": {
+                      "default": [],
+                      "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
                     },
                     "dmEnabled": {
                       "description": "Whether DM access is enabled for this tool",
@@ -37439,8 +37444,7 @@
                   },
                   "required": [
                     "channelAccessMode",
-                    "dmEnabled",
-                    "channelCount"
+                    "dmEnabled"
                   ],
                   "type": "object"
                 }
