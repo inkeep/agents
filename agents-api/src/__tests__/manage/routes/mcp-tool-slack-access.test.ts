@@ -194,7 +194,7 @@ describe('MCP Tool Slack Access Routes', () => {
 
       expect(body.channelAccessMode).toBe('all');
       expect(body.dmEnabled).toBe(true);
-      expect(body.channelCount).toBe(0);
+      expect(body.channelIds).toEqual([]);
       expect(setSlackMcpToolAccessConfigMock).toHaveBeenCalledWith({
         toolId: TEST_TOOL_ID,
         tenantId: TEST_TENANT_ID,
@@ -226,7 +226,7 @@ describe('MCP Tool Slack Access Routes', () => {
 
       expect(body.channelAccessMode).toBe('selected');
       expect(body.dmEnabled).toBe(false);
-      expect(body.channelCount).toBe(3);
+      expect(body.channelIds).toEqual(['C123', 'C456', 'C789']);
       expect(setSlackMcpToolAccessConfigMock).toHaveBeenCalledWith({
         toolId: TEST_TOOL_ID,
         tenantId: TEST_TENANT_ID,

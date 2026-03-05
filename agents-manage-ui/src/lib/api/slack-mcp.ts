@@ -19,12 +19,6 @@ export interface SlackChannel {
   memberCount?: number;
 }
 
-interface SetSlackMcpAccessResponse {
-  channelAccessMode: SlackMcpChannelAccessMode;
-  dmEnabled: boolean;
-  channelCount: number;
-}
-
 async function $getSlackMcpToolAccess(
   tenantId: string,
   projectId: string,
@@ -47,17 +41,17 @@ export async function setSlackMcpToolAccess(
     dmEnabled: boolean;
     channelIds?: string[];
   }
-): Promise<SetSlackMcpAccessResponse> {
+): Promise<SlackMcpAccessConfig> {
   validateTenantId(tenantId);
 
-  return makeManagementApiRequest<SetSlackMcpAccessResponse>(
+  return makeManagementApiRequest<SlackMcpAccessConfig>(
     `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/slack-access`,
     {
       method: 'PUT',
       body: JSON.stringify({
         channelAccessMode: config.channelAccessMode,
         dmEnabled: config.dmEnabled,
-        channelIds: config.channelAccessMode === 'selected' ? config.channelIds : undefined,
+        channelIds: config.channelAccessMode === 'selected' ? (config.channelIds ?? []) : [],
       }),
     }
   );
