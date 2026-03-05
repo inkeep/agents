@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import type { DataPart, FilePart, Part } from '@inkeep/agents-core';
+import { type DataPart, type FilePart, type Part, SPAN_KEYS } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
@@ -315,7 +315,28 @@ export async function runGenerate(
           textResponse = response.text || '';
         }
 
-        span.setStatus({ code: SpanStatusCode.OK });
+        const isTimeoutAbort = response.finishReason === 'other';
+
+        if (isTimeoutAbort) {
+          const timeoutError = new Error(`Generation terminated by timeout/abort signal`);
+
+          logger.warn(
+            {
+              agentId: ctx.config.id,
+              finishReason: response.finishReason,
+              conversationId: conversationIdForSpan,
+            },
+            'Generation terminated by timeout/abort signal'
+          );
+
+          span.setAttributes({
+            [SPAN_KEYS.GENERATION_TIMEOUT_MS]: timeoutMs,
+          });
+          setSpanWithError(span, timeoutError);
+        } else {
+          span.setStatus({ code: SpanStatusCode.OK });
+        }
+
         span.end();
 
         const formattedResponse = await formatFinalResponse(
