@@ -492,4 +492,233 @@ describe('ModelFactory', () => {
       });
     });
   });
+
+  describe('classifyProviderOptions', () => {
+    test('should separate anthropic thinking into providerSpecificOptions', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        temperature: 0.7,
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 10000 } },
+      });
+      expect(result.generationParams).toEqual({ temperature: 0.7 });
+      expect(result.providerSpecificOptions).toEqual({
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 10000 } },
+      });
+    });
+
+    test('should separate openai reasoningEffort into providerSpecificOptions', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        openai: { reasoningEffort: 'high' },
+      });
+      expect(result.providerSpecificOptions).toEqual({
+        openai: { reasoningEffort: 'high' },
+      });
+      expect(result.generationParams).toEqual({});
+    });
+
+    test('should separate google thinkingConfig into providerSpecificOptions', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        google: { thinkingConfig: { thinkingBudget: 5000 } },
+      });
+      expect(result.providerSpecificOptions).toEqual({
+        google: { thinkingConfig: { thinkingBudget: 5000 } },
+      });
+    });
+
+    test('should handle azure provider options (uses openai namespace)', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        azure: { someOption: 'value' },
+      });
+      expect(result.providerSpecificOptions).toEqual({
+        azure: { someOption: 'value' },
+      });
+    });
+
+    test('should skip gateway options (constructor config, like nim/custom)', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        gateway: { order: ['anthropic', 'openai'], models: ['claude-sonnet-4-0'] },
+      });
+      expect(result.providerSpecificOptions).toEqual({});
+      expect(result.generationParams).toEqual({});
+    });
+
+    test('should handle openrouter provider options', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        openrouter: { reasoning: { effort: 'high' } },
+      });
+      expect(result.providerSpecificOptions).toEqual({
+        openrouter: { reasoning: { effort: 'high' } },
+      });
+    });
+
+    test('should handle multiple providers simultaneously', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        temperature: 0.7,
+        maxTokens: 4096,
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } },
+        openai: { reasoningEffort: 'high' },
+      });
+      expect(result.generationParams).toEqual({ temperature: 0.7, maxTokens: 4096 });
+      expect(result.providerSpecificOptions).toEqual({
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } },
+        openai: { reasoningEffort: 'high' },
+      });
+    });
+
+    test('should skip constructor keys', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        baseURL: 'https://example.com',
+        headers: { 'X-Custom': 'value' },
+        apiKey: 'secret',
+        resourceName: 'my-resource',
+        apiVersion: '2024-10-21',
+        temperature: 0.5,
+      });
+      expect(result.generationParams).toEqual({ temperature: 0.5 });
+      expect(result.providerSpecificOptions).toEqual({});
+    });
+
+    test('should extract maxDuration', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        maxDuration: 300,
+        temperature: 0.7,
+      });
+      expect(result.maxDuration).toBe(300);
+      expect(result.generationParams).toEqual({ temperature: 0.7 });
+    });
+
+    test('should skip contextWindowSize (meta key)', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        contextWindowSize: 128000,
+        temperature: 0.7,
+      });
+      expect(result.generationParams).toEqual({ temperature: 0.7 });
+      expect(result.providerSpecificOptions).toEqual({});
+    });
+
+    test('should treat unknown keys as generation params (backward compat)', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        temperature: 0.7,
+        someCustomKey: 'value',
+      });
+      expect(result.generationParams).toEqual({ temperature: 0.7, someCustomKey: 'value' });
+    });
+
+    test('should return empty buckets for undefined input', () => {
+      const result = ModelFactory.classifyProviderOptions(undefined);
+      expect(result.generationParams).toEqual({});
+      expect(result.providerSpecificOptions).toEqual({});
+      expect(result.maxDuration).toBeUndefined();
+    });
+
+    test('should skip nim, custom, and gateway constructor config keys', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        nim: { baseURL: 'https://nim.example.com' },
+        custom: { baseURL: 'https://custom.example.com' },
+        gateway: { order: ['anthropic'] },
+      });
+      expect(result.generationParams).toEqual({});
+      expect(result.providerSpecificOptions).toEqual({});
+    });
+
+    test('should not treat arrays as provider-specific options', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        anthropic: ['a', 'b'],
+      });
+      expect(result.providerSpecificOptions).toEqual({});
+      expect(result.generationParams).toEqual({ anthropic: ['a', 'b'] });
+    });
+
+    test('should skip undefined values', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        temperature: 0.7,
+        topP: undefined,
+      });
+      expect(result.generationParams).toEqual({ temperature: 0.7 });
+    });
+
+    test('should not treat provider name as provider-specific when value is not an object', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        anthropic: 'not-an-object',
+      });
+      expect(result.providerSpecificOptions).toEqual({});
+      expect(result.generationParams).toEqual({ anthropic: 'not-an-object' });
+    });
+
+    test('should not treat provider name as provider-specific when value is null', () => {
+      const result = ModelFactory.classifyProviderOptions({
+        anthropic: null,
+      });
+      expect(result.providerSpecificOptions).toEqual({});
+      expect(result.generationParams).toEqual({ anthropic: null });
+    });
+  });
+
+  describe('prepareGenerationConfig - providerOptions forwarding', () => {
+    test('should nest anthropic options under providerOptions key', () => {
+      process.env.AZURE_OPENAI_API_KEY = 'test-key';
+
+      const result = ModelFactory.prepareGenerationConfig({
+        model: 'mock/test',
+        providerOptions: {
+          temperature: 0.7,
+          anthropic: { thinking: { type: 'enabled', budgetTokens: 10000 } },
+        },
+      });
+      expect(result.providerOptions).toEqual({
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 10000 } },
+      });
+      expect(result.temperature).toBe(0.7);
+      expect(result).not.toHaveProperty('anthropic');
+    });
+
+    test('should not include providerOptions key when no provider-specific options', () => {
+      const result = ModelFactory.prepareGenerationConfig({
+        model: 'mock/test',
+        providerOptions: { temperature: 0.7 },
+      });
+      expect(result).not.toHaveProperty('providerOptions');
+      expect(result.temperature).toBe(0.7);
+    });
+
+    test('should handle multiple provider options together', () => {
+      const result = ModelFactory.prepareGenerationConfig({
+        model: 'mock/test',
+        providerOptions: {
+          temperature: 0.5,
+          anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } },
+          openai: { reasoningEffort: 'high' },
+        },
+      });
+      expect(result.providerOptions).toEqual({
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } },
+        openai: { reasoningEffort: 'high' },
+      });
+      expect(result.temperature).toBe(0.5);
+    });
+
+    test('should include maxDuration when specified', () => {
+      const result = ModelFactory.prepareGenerationConfig({
+        model: 'mock/test',
+        providerOptions: {
+          temperature: 0.7,
+          maxDuration: 60,
+        },
+      });
+      expect(result.maxDuration).toBe(60);
+      expect(result.temperature).toBe(0.7);
+    });
+  });
+
+  describe('getGenerationParams (deprecated passthrough)', () => {
+    test('should return generation params via classifyProviderOptions', () => {
+      const result = ModelFactory.getGenerationParams({
+        temperature: 0.7,
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 10000 } },
+        baseURL: 'https://example.com',
+      });
+      expect(result).toEqual({ temperature: 0.7 });
+      expect(result).not.toHaveProperty('anthropic');
+      expect(result).not.toHaveProperty('baseURL');
+    });
+  });
 });

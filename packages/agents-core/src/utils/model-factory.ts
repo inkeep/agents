@@ -145,6 +145,7 @@ export class ModelFactory {
    * Extract per-call provider options to pass as providerOptions in streamText/generateText.
    * Any object-valued key (except constructor config keys like headers) is treated as
    * a provider-specific per-call option, e.g. anthropic.thinking, gateway.models.
+   * @deprecated Use classifyProviderOptions().providerSpecificOptions instead
    */
   static extractStreamProviderOptions(
     providerOptions?: Record<string, unknown>
@@ -236,6 +237,35 @@ export class ModelFactory {
   }
 
   /**
+   * Keys that belong to provider constructor config (handled by extractProviderConfig)
+   */
+  private static readonly CONSTRUCTOR_KEYS = new Set([
+    'apiKey',
+    'baseURL',
+    'baseUrl',
+    'headers',
+    'resourceName',
+    'apiVersion',
+  ]);
+
+  /**
+   * Keys that are extracted but not forwarded as generation params
+   */
+  private static readonly META_KEYS = new Set(['contextWindowSize']);
+
+  /**
+   * Known AI SDK provider namespaces — when a key matches one of these
+   * and the value is an object, it goes into providerOptions
+   */
+  private static readonly PROVIDER_NAMES = new Set([
+    'anthropic',
+    'openai',
+    'google',
+    'azure',
+    'openrouter',
+  ]);
+
+  /**
    * Built-in providers that have special handling
    */
   private static readonly BUILT_IN_PROVIDERS = [
@@ -279,44 +309,70 @@ export class ModelFactory {
   }
 
   /**
-   * Get generation parameters from provider options
-   * These are parameters that get passed to generateText/streamText calls
+   * Classify flat providerOptions into three buckets:
+   * 1. generationParams — top-level AI SDK params (temperature, topP, etc.)
+   * 2. providerSpecificOptions — nested under providerOptions on AI SDK calls
+   * 3. maxDuration — extracted separately
+   *
+   * Constructor config keys (baseURL, headers, etc.) are skipped — they are
+   * handled by extractProviderConfig().
    */
-  static getGenerationParams(providerOptions?: Record<string, unknown>): Record<string, unknown> {
+  static classifyProviderOptions(providerOptions?: Record<string, unknown>): {
+    generationParams: Record<string, unknown>;
+    providerSpecificOptions: Record<string, Record<string, unknown>>;
+    maxDuration: number | undefined;
+  } {
+    const generationParams: Record<string, unknown> = {};
+    const providerSpecificOptions: Record<string, Record<string, unknown>> = {};
+    let maxDuration: number | undefined;
+
     if (!providerOptions) {
-      return {};
+      return { generationParams, providerSpecificOptions, maxDuration };
     }
 
-    const excludedKeys = new Set([
-      'apiKey',
-      'baseURL',
-      'baseUrl',
-      'resourceName',
-      'apiVersion',
-      'maxDuration',
-      'headers',
-    ]);
-
-    const params: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(providerOptions)) {
-      if (!excludedKeys.has(key) && value !== undefined && typeof value !== 'object') {
-        params[key] = value;
+      if (value === undefined) continue;
+
+      if (ModelFactory.CONSTRUCTOR_KEYS.has(key)) {
+        // Skip — handled by extractProviderConfig()
+      } else if (key === 'maxDuration') {
+        maxDuration = value as number;
+      } else if (ModelFactory.META_KEYS.has(key)) {
+        // Skip — extracted but not forwarded (e.g., contextWindowSize)
+      } else if (
+        ModelFactory.PROVIDER_NAMES.has(key) &&
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
+        providerSpecificOptions[key] = value as Record<string, unknown>;
+      } else if (key === 'nim' || key === 'custom' || key === 'gateway') {
+        // Skip — these are constructor config for their respective providers
+        // Already handled by extractProviderConfig()
+      } else {
+        generationParams[key] = value;
       }
     }
 
-    return params;
+    return { generationParams, providerSpecificOptions, maxDuration };
+  }
+
+  /** @deprecated Use classifyProviderOptions() instead */
+  static getGenerationParams(providerOptions?: Record<string, unknown>): Record<string, unknown> {
+    return ModelFactory.classifyProviderOptions(providerOptions).generationParams;
   }
 
   /**
    * Prepare complete generation configuration from model settings
    * Returns model instance and generation parameters ready to spread into generateText/streamText
-   * Includes maxDuration if specified in provider options (in seconds, following Vercel standard)
+   * Provider-specific options (anthropic.thinking, openai.reasoningEffort, etc.) are correctly
+   * nested under the providerOptions key as required by the AI SDK.
    */
   static prepareGenerationConfig(modelSettings?: ModelSettings): {
     model: LanguageModel;
+    providerOptions?: Record<string, Record<string, unknown>>;
     maxDuration?: number;
-    providerOptions?: Record<string, JSONObject>;
-  } {
+  } & Record<string, unknown> {
     const modelString = modelSettings?.model?.trim();
 
     const model = ModelFactory.createModel({
@@ -324,19 +380,16 @@ export class ModelFactory {
       providerOptions: modelSettings?.providerOptions,
     });
 
-    const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);
-    const streamProviderOptions = ModelFactory.extractStreamProviderOptions(
-      modelSettings?.providerOptions
-    );
-    const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
+    const { generationParams, providerSpecificOptions, maxDuration } =
+      ModelFactory.classifyProviderOptions(modelSettings?.providerOptions);
 
     return {
       model,
       ...generationParams,
-      ...(maxDuration !== undefined && { maxDuration }),
-      ...(streamProviderOptions !== undefined && {
-        providerOptions: streamProviderOptions as Record<string, JSONObject>,
+      ...(Object.keys(providerSpecificOptions).length > 0 && {
+        providerOptions: providerSpecificOptions,
       }),
+      ...(maxDuration !== undefined && { maxDuration }),
     };
   }
 
