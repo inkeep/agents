@@ -97,6 +97,9 @@ NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
 
 INKEEP_AGENTS_JWT_SIGNING_SECRET=
+
+# Sentry (optional)
+SENTRY_DSN=
 ```
 
 | Environment Variable                  | Value                                                                                                                                                                                                                                      |
@@ -112,6 +115,7 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 | `OTEL_EXPORTER_OTLP_TRACES_HEADERS`   | `signoz-ingestion-key=<your-ingestion-key>`. Use the instructions from [SigNoz Cloud Setup](/get-started/traces#option-1-signoz-cloud-setup) to configure your ingestion key. Note: Local SigNoz setup won't work with Vercel deployments. |
 | `NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                                                                    |
 | `INKEEP_AGENTS_JWT_SIGNING_SECRET`    | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_JWT_SIGNING_SECRET` in Step 7.                                                                                                      |
+| `SENTRY_DSN`                          | (Optional) Your Sentry DSN for error monitoring. Get this from your [Sentry project settings](https://sentry.io/). When not set, Sentry is disabled.                                                                                       |
 
 ### Step 8: Create a Vercel project for Manage UI
 
