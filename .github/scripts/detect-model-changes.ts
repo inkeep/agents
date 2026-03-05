@@ -188,6 +188,7 @@ Please update the following 3 files to include these models:
    - Do NOT modify any default values
 
 2. \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
+   - Only add models consistent with the existing list — skip specialized variants (realtime, audio, embedding, search-augmented, instruct, fine-tuning base models)
    - Add a label entry in the appropriate provider's array in the modelOptions object
    - Use a human-readable label matching existing entries (e.g., 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash')
    - Ordering: newest version first, then by tier (Pro/Opus > Sonnet/Flash > Haiku/Flash Lite/Nano/Mini)
