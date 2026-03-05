@@ -74,9 +74,9 @@ import type {
 import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
-import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
+import type { z } from 'zod';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -782,17 +782,20 @@ export const Agent: FC<AgentProps> = ({
       });
       return;
     }
-    // Workaround for a React Compiler limitation.
-    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    function parseErrors(error: string) {
-      const errorSummary = parseAgentValidationErrors(error);
-      const summaryMessage = getErrorSummaryMessage(errorSummary);
-      toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
-    }
 
     // Handle validation errors (422 status - unprocessable_entity)
     try {
-      parseErrors(res.error);
+      const issues: z.ZodIssue[] = JSON.parse(res.error);
+      issues.forEach((issue) => {
+        form.setError(
+          // @ts-expect-error
+          issue.path.join('.'),
+          {
+            type: issue.code,
+            message: issue.message,
+          }
+        );
+      });
     } catch (parseError) {
       // Fallback for unparseable errors
       console.error('Failed to parse validation errors:', parseError);
