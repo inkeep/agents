@@ -97,8 +97,11 @@ export async function getMcpTools(
           try {
             const rawResult = await originalTool.execute(finalArgs, { toolCallId });
 
-            if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
-              const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
+            const result = rawResult as Record<string, unknown>;
+            if (result.isError) {
+              const errorMessage =
+                (result.content as Array<{ text?: string }>)?.[0]?.text ||
+                'MCP tool returned an error';
               logger.error(
                 { toolName, toolCallId, errorMessage, rawResult },
                 'MCP tool returned error status'

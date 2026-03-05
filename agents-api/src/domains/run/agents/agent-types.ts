@@ -196,15 +196,15 @@ export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 export function isValidTool(tool: unknown): tool is {
   description: string;
-  inputSchema: Record<string, unknown>;
+  inputSchema: NonNullable<ToolSet[string]['inputSchema']>;
   execute: (args: unknown, context?: unknown) => Promise<unknown>;
 } {
+  if (!tool || typeof tool !== 'object') return false;
+  const t = tool as Record<string, unknown>;
   return (
-    tool &&
-    typeof tool === 'object' &&
-    typeof tool.description === 'string' &&
-    tool.inputSchema &&
-    typeof tool.execute === 'function'
+    typeof t.description === 'string' &&
+    t.inputSchema != null &&
+    typeof t.execute === 'function'
   );
 }
 

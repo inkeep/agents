@@ -40,8 +40,7 @@ export function getRelationshipIdForTool(
 
   if (toolType === 'transfer') {
     const relation = ctx.config.transferRelations.find(
-      (relation) =>
-        `transfer_to_${relation.id.toLowerCase().replace(/\s+/g, '_')}` === toolName
+      (relation) => `transfer_to_${relation.id.toLowerCase().replace(/\s+/g, '_')}` === toolName
     );
 
     return relation?.relationId;
