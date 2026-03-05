@@ -20,7 +20,6 @@ const logger = getLogger('mcp-tool-slack-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-
 async function validateSlackWorkappTool(
   db: AgentsManageDatabaseClient,
   tenantId: string,
