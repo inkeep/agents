@@ -332,6 +332,26 @@ export async function checkUserIsChannelMember(
 }
 
 /**
+ * Open (or resume) a direct message conversation with a Slack user.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param userId - Slack user ID to DM (e.g., U0ABC123)
+ * @returns The DM channel ID
+ */
+export async function openDmConversation(client: WebClient, userId: string): Promise<string> {
+  const result = await client.conversations.open({
+    users: userId,
+  } as Parameters<typeof client.conversations.open>[0]);
+
+  const channelId = result.channel?.id;
+  if (!channelId) {
+    throw new Error(`Failed to open DM conversation with user ${userId}`);
+  }
+
+  return channelId;
+}
+
+/**
  * Revoke a Slack bot token.
  *
  * This should be called when uninstalling a workspace to ensure

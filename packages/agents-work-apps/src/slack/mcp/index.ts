@@ -11,7 +11,13 @@ import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { Hono } from 'hono';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
-import { getBotMemberChannels, getSlackClient } from '../services/client';
+import {
+  getBotMemberChannels,
+  getSlackClient,
+  openDmConversation,
+  postMessage,
+  postMessageInThread,
+} from '../services/client';
 import { isSlackDevMode, loadSlackDevConfig } from '../services/dev-config';
 import { getConnectionAccessToken } from '../services/nango';
 import { slackMcpAuth } from './auth';
@@ -103,7 +109,7 @@ const getServer = async (toolId: string) => {
       version: '1.0.0',
       description:
         'A Slack MCP server for posting messages to channels' +
-        (config.dmEnabled ? ' and DMs' : '') +
+        (config.dmEnabled ? ' and sending direct messages to users' : '') +
         '.\n' +
         availableChannels.map((ch) => `• #${ch.name} (${ch.id})`).join('\n'),
     },
@@ -111,13 +117,13 @@ const getServer = async (toolId: string) => {
   );
 
   server.tool(
-    'post-message',
-    `Post a message to a Slack channel${config.dmEnabled ? ' or DM' : ''}. Supports mrkdwn formatting and thread replies. ${getAvailableChannelsString(availableChannels)}`,
+    'post-channel-message',
+    `Post a message to a Slack channel. Supports mrkdwn formatting and thread replies. ${getAvailableChannelsString(availableChannels)}`,
     {
       channel: z
         .string()
         .describe(
-          'Channel ID (e.g., C1234567890) or channel name prefixed with # (e.g., #general). For DMs, use the DM channel ID (starts with D).'
+          'Channel ID (e.g., C1234567890) or channel name prefixed with # (e.g., #general).'
         ),
       text: z.string().describe('Message text. Supports Slack mrkdwn formatting.'),
       thread_ts: z
@@ -137,19 +143,9 @@ const getServer = async (toolId: string) => {
           };
         }
 
-        const args: {
-          channel: string;
-          text: string;
-          thread_ts?: string;
-        } = { channel: channelId, text };
-
-        if (thread_ts) {
-          args.thread_ts = thread_ts;
-        }
-
-        const result = await client.chat.postMessage(
-          args as Parameters<typeof client.chat.postMessage>[0]
-        );
+        const result = thread_ts
+          ? await postMessageInThread(client, channelId, thread_ts, text)
+          : await postMessage(client, channelId, text);
 
         return {
           content: [
@@ -173,6 +169,51 @@ const getServer = async (toolId: string) => {
       }
     }
   );
+
+  if (config.dmEnabled) {
+    server.tool(
+      'post-direct-message',
+      'Send a direct message to a Slack user. Opens or continues an existing DM conversation with the user.',
+      {
+        user_id: z.string().describe('The Slack user ID to DM (e.g., U1234567890).'),
+        text: z.string().describe('Message text. Supports Slack mrkdwn formatting.'),
+        thread_ts: z
+          .string()
+          .optional()
+          .describe('Thread timestamp to reply in a thread. If omitted, posts as a new message.'),
+      },
+      async ({ user_id, text, thread_ts }) => {
+        try {
+          const dmChannelId = await openDmConversation(client, user_id);
+
+          const result = thread_ts
+            ? await postMessageInThread(client, dmChannelId, thread_ts, text)
+            : await postMessage(client, dmChannelId, text);
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify({
+                  ok: result.ok,
+                  ts: result.ts,
+                  channel: result.channel,
+                  user_id,
+                }),
+              },
+            ],
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          logger.error({ error, toolId, user_id }, 'Failed to send Slack DM via MCP');
+          return {
+            content: [{ type: 'text' as const, text: `Error sending DM: ${message}` }],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
 
   return server;
 };

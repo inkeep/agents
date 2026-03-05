@@ -180,7 +180,7 @@ interface ReadyStateProps {
 function ReadyState({ tenantId, projectId, channels, onOpenChange, onSuccess }: ReadyStateProps) {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [mode, setMode] = useState<SlackMcpChannelAccessMode>('all');
-  const [dmEnabled, setDmEnabled] = useState(false);
+  const [dmEnabled, setDmEnabled] = useState(true);
   const [selectedChannelIds, setSelectedChannelIds] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
