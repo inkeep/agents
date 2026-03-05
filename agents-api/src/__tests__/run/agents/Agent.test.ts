@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { buildSystemPrompt } from '../../../domains/run/agents/generation/system-prompt';
+import { buildToolResultForConversationHistory } from '../../../domains/run/agents/generation/tool-result-for-conversation-history';
+import { buildToolResultForModelInput } from '../../../domains/run/agents/generation/tool-result-for-model-input';
 import { getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
 import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
 
@@ -1535,8 +1537,12 @@ describe('Agent tool result persistence', () => {
     return new Agent(config, executionContext);
   };
 
+  const makeRunContext = () => {
+    const agent = makeAgent() as any;
+    return agent.ctx;
+  };
+
   test('builds message content with uploaded image parts', async () => {
-    const agent = makeAgent();
     buildPersistedMessageContentMock.mockResolvedValue({
       text: 'persisted text',
       parts: [
@@ -1564,7 +1570,8 @@ describe('Agent tool result persistence', () => {
       isError: false,
     };
 
-    const content = await (agent as any).buildToolResultMessageContent(
+    const content = await buildToolResultForConversationHistory(
+      makeRunContext(),
       'get_ticket_attachments',
       { ticket_id: 6662 },
       result,
@@ -1604,9 +1611,7 @@ describe('Agent tool result persistence', () => {
   });
 
   test('maps image content to image tool result output parts', () => {
-    const agent = makeAgent();
-
-    const output = (agent as any).buildToolModelOutput({
+    const output = buildToolResultForModelInput({
       content: [
         {
           type: 'image',
@@ -1637,10 +1642,9 @@ describe('Agent tool result persistence', () => {
   });
 
   test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
-    const agent = makeAgent();
     const structureHints = { terminalPaths: ['result.foo[string]'] };
 
-    const output = (agent as any).buildToolModelOutput({
+    const output = buildToolResultForModelInput({
       content: [{ type: 'text', text: 'some text' }],
       _toolCallId: 'toolu_abc',
       _structureHints: structureHints,
@@ -1659,9 +1663,7 @@ describe('Agent tool result persistence', () => {
   });
 
   test('preserves execution-denied tool result output type', () => {
-    const agent = makeAgent();
-
-    const output = (agent as any).buildToolModelOutput(
+    const output = buildToolResultForModelInput(
       createDeniedToolResult('toolu_123', 'User denied this tool call')
     );
 
