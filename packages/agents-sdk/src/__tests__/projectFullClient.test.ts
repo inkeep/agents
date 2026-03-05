@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createFullProjectViaAPI,
   deleteFullProjectViaAPI,
+  getAuthError,
   getFullProjectViaAPI,
   updateFullProjectViaAPI,
 } from '../projectFullClient';
@@ -117,6 +118,19 @@ describe('projectFullClient', () => {
       await expect(
         updateFullProjectViaAPI(tenantId, apiUrl, projectId, mockProjectData)
       ).rejects.toThrow('Server error');
+    });
+
+    it('should return a login hint when request is unauthenticated', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: () => '',
+      });
+
+      await expect(
+        updateFullProjectViaAPI(tenantId, apiUrl, projectId, mockProjectData)
+      ).rejects.toThrow(getAuthError());
     });
   });
 

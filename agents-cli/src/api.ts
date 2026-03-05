@@ -5,6 +5,7 @@ import {
   apiFetch,
   OPENAI_MODELS,
 } from '@inkeep/agents-core';
+import { getAuthError } from '@inkeep/agents-sdk';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -190,16 +191,7 @@ export class ManagementApiClient extends BaseApiClient {
       }
       if (response.status === 401 || response.status === 403) {
         const errorText = await response.text().catch(() => '');
-        let errorMessage = 'Authentication failed - check your API key configuration\n\n';
-        errorMessage += 'Common issues:\n';
-        errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
-        errorMessage += '  • API key does not have access to this tenant/project\n';
-        errorMessage +=
-          '  • For local development, ensure INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET is set\n';
-        if (errorText) {
-          errorMessage += `\nServer response: ${errorText}`;
-        }
-        throw new Error(errorMessage);
+        throw new Error(getAuthError(errorText));
       }
       const errorText = await response.text().catch(() => '');
       throw new Error(
@@ -233,14 +225,7 @@ export class ManagementApiClient extends BaseApiClient {
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         const errorText = await response.text().catch(() => '');
-        let errorMessage = 'Authentication failed - check your API key configuration\n\n';
-        errorMessage += 'Common issues:\n';
-        errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
-        errorMessage += '  • API key does not have access to this tenant\n';
-        if (errorText) {
-          errorMessage += `\nServer response: ${errorText}`;
-        }
-        throw new Error(errorMessage);
+        throw new Error(getAuthError(errorText));
       }
       const errorText = await response.text().catch(() => '');
       throw new Error(

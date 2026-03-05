@@ -59,6 +59,7 @@ export { Project, type ProjectConfig } from './project';
 export {
   createFullProjectViaAPI,
   deleteFullProjectViaAPI,
+  getAuthError,
   getFullProjectViaAPI,
   updateFullProjectViaAPI,
 } from './projectFullClient';
