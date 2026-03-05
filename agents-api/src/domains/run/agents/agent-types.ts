@@ -202,9 +202,7 @@ export function isValidTool(tool: unknown): tool is {
   if (!tool || typeof tool !== 'object') return false;
   const t = tool as Record<string, unknown>;
   return (
-    typeof t.description === 'string' &&
-    t.inputSchema != null &&
-    typeof t.execute === 'function'
+    typeof t.description === 'string' && t.inputSchema != null && typeof t.execute === 'function'
   );
 }
 
