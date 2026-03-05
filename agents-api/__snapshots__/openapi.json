@@ -50,6 +50,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -86,6 +89,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -114,6 +120,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -186,6 +195,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -221,6 +233,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -249,6 +264,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -357,6 +375,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -392,6 +413,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -420,6 +444,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -829,6 +856,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -857,6 +887,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -928,6 +961,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           }
@@ -1009,6 +1045,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -1037,6 +1076,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -1410,6 +1452,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -1727,6 +1772,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -1763,6 +1811,9 @@
                         "nullable": true
                       },
                       "type": "array"
+                    },
+                    {
+                      "nullable": true
                     }
                   ]
                 },
@@ -1791,6 +1842,9 @@
                         "nullable": true
                       },
                       "type": "array"
+                    },
+                    {
+                      "nullable": true
                     }
                   ]
                 },
@@ -1835,6 +1889,9 @@
                         "nullable": true
                       },
                       "type": "array"
+                    },
+                    {
+                      "nullable": true
                     }
                   ]
                 },
@@ -2153,6 +2210,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2181,6 +2241,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2255,6 +2318,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2340,6 +2406,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2457,6 +2526,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2489,6 +2561,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2517,6 +2592,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2565,6 +2643,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2593,6 +2674,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2621,6 +2705,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2663,6 +2750,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2691,6 +2781,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2719,6 +2812,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2758,6 +2854,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2790,6 +2889,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2818,6 +2920,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           }
@@ -2898,6 +3003,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -2950,6 +3058,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3039,6 +3150,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3097,6 +3211,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3150,6 +3267,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3305,6 +3425,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3368,6 +3491,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3422,6 +3548,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3475,6 +3604,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3507,6 +3639,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3538,6 +3673,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3592,6 +3730,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3624,6 +3765,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3655,6 +3799,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3704,6 +3851,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3736,6 +3886,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -3767,6 +3920,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -4487,6 +4643,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -4522,6 +4681,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -4569,6 +4731,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -4603,6 +4768,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -4808,6 +4976,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -4842,6 +5013,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -5162,6 +5336,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -5320,6 +5497,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -6232,6 +6412,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -6452,8 +6635,7 @@
                 "description": "Status of the last run",
                 "enum": [
                   "completed",
-                  "failed",
-                  null
+                  "failed"
                 ],
                 "nullable": true,
                 "type": "string"
@@ -6677,7 +6859,14 @@
             "type": "string"
           },
           "metadata": {
-            "$ref": "#/components/schemas/StringRecord"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StringRecord"
+              },
+              {
+                "default": null
+              }
+            ]
           },
           "name": {
             "maxLength": 64,
@@ -6734,7 +6923,14 @@
             "type": "string"
           },
           "metadata": {
-            "$ref": "#/components/schemas/StringRecord"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StringRecord"
+              },
+              {
+                "default": null
+              }
+            ]
           }
         },
         "type": "object"
@@ -6860,6 +7056,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -6899,6 +7098,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -6935,6 +7137,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7016,6 +7221,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7065,6 +7273,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7146,6 +7357,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7293,6 +7507,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7343,6 +7560,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           }
@@ -7700,6 +7920,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7839,6 +8062,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7871,6 +8097,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -7907,6 +8136,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8079,6 +8311,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8128,6 +8363,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8275,6 +8513,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8303,6 +8544,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8347,6 +8591,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8417,6 +8664,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8569,6 +8819,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8627,6 +8880,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8779,6 +9035,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8832,6 +9091,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8880,6 +9142,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -8916,6 +9181,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -9189,6 +9457,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -9221,6 +9492,9 @@
                   "nullable": true
                 },
                 "type": "array"
+              },
+              {
+                "nullable": true
               }
             ]
           },
@@ -10297,6 +10571,9 @@
                             "nullable": true
                           },
                           "type": "array"
+                        },
+                        {
+                          "nullable": true
                         }
                       ]
                     },
@@ -10446,6 +10723,9 @@
                           "nullable": true
                         },
                         "type": "array"
+                      },
+                      {
+                        "nullable": true
                       }
                     ]
                   },
@@ -10490,6 +10770,9 @@
                             "nullable": true
                           },
                           "type": "array"
+                        },
+                        {
+                          "nullable": true
                         }
                       ]
                     },
