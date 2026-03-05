@@ -2047,12 +2047,13 @@ export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: ResourceIdSchema,
   dependencies: StringRecordSchema.nullish(),
+  executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
 
-const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
+function validateExecuteCode(val: string, ctx: z.RefinementCtx) {
   try {
     // Workaround for anonymous function because it’s not valid JavaScript grammar.
     // Babel (and every JS parser) rejects it.
@@ -2064,12 +2065,12 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     const { body } = ast.program;
     for (const node of body) {
       if (node.type === 'ExportDefaultDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export default declarations are not supported. Provide a single function instead.'
         );
       }
       if (node.type === 'ExportNamedDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export declarations are not supported. Provide a single function instead.'
         );
       }
@@ -2112,13 +2113,10 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
       input: val,
     });
   }
-};
+}
 
-export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .openapi('FunctionCreate')
-  .extend({
-    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  });
+export const FunctionApiInsertSchema =
+  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate');
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
