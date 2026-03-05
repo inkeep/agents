@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { agentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
 import { toast } from 'sonner';
+import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 
 export function useAgentShortcuts() {
   const { undo, redo } = useAgentActions();
+  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
 
   useEffect(() => {
     function deleteSelected() {
@@ -12,7 +14,9 @@ export function useAgentShortcuts() {
           state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
         );
 
-        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
+        const unDeletableNodes = state.nodes.filter(
+          (n) => n.selected && n.id !== defaultSubAgentIdRef.current
+        );
         if (unDeletableNodes.length) {
           const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
           toast.error(

@@ -1,20 +1,13 @@
 import type { Edge, Node } from '@xyflow/react';
-import { useEffect, useRef } from 'react';
-import { useWatch } from 'react-hook-form';
+import { useEffect } from 'react';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import type { AnimatedNode } from '@/components/agent/configuration/node-types';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { sentry } from '@/lib/sentry';
+import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 
 export function useAnimateGraph(): void {
-  const { control } = useFullAgentFormContext();
-  const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
-  const defaultSubAgentIdRef = useRef(defaultSubAgentId);
-
-  useEffect(() => {
-    defaultSubAgentIdRef.current = defaultSubAgentId;
-  }, [defaultSubAgentId]);
+  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
 
   useEffect(() => {
     const animateGraph: EventListenerOrEventListenerObject = (event) => {
