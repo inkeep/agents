@@ -1,6 +1,7 @@
 {
-  "name": "@inkeep/agents-ui",
+  "name": "@inkeep/agents-ui-demo",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
@@ -27,19 +28,9 @@
     "typescript": "~5.9.2",
     "vite": "^7.1.11"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE.md",
-    "SUPPLEMENTAL_TERMS.md"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inkeep/agents.git",
-    "directory": "agents-ui"
+    "directory": "agents-ui-demo"
   }
 }
