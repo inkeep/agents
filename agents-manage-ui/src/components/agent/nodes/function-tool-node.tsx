@@ -12,12 +12,16 @@ import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
+  'use memo';
   const { control } = useFullAgentFormContext();
   const toolId = data.toolId ?? '';
   const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
   const { name = 'Function Tool', description, tempToolPolicies: toolPolicies } = functionTool;
 
-  const processedErrors = useProcessedErrors('functionTools', toolId);
+  const processedErrors = [
+    ...useProcessedErrors('functionTools', toolId),
+    ...useProcessedErrors('functions', toolId),
+  ];
   const hasErrors = processedErrors.length > 0;
 
   const isDelegating = data.status === 'delegating';

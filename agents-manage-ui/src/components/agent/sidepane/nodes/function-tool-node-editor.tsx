@@ -43,6 +43,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   });
 
   const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
+  const path$ = <K extends string>(key: K) => `functions.${id}.${key}` as const;
 
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
@@ -80,7 +81,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
       />
       <GenericCodeEditor
         control={form.control}
-        name={path('executeCode')}
+        name={path$('executeCode')}
         label="Code"
         placeholder={`async function execute({ param1, param2 }) {
   // Your function logic here
@@ -144,7 +145,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
       </Dialog>
       <GenericJsonSchemaEditor
         control={form.control}
-        name={path('inputSchema')}
+        name={path$('inputSchema')}
         label="Input Schema"
         placeholder={`{
   "type": "object",
@@ -165,7 +166,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
       />
       <GenericJsonEditor
         control={form.control}
-        name={path('dependencies')}
+        name={path$('dependencies')}
         label="Dependencies"
         placeholder={`{
   "axios": "^1.6.0",

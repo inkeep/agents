@@ -103,6 +103,12 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     z.looseObject({
       name: z.string().trim().nonempty(),
       description: z.string().trim().optional(),
+      tempToolPolicies: ToolPoliciesSchema,
+    })
+  ),
+  functions: z.record(
+    z.string(),
+    z.looseObject({
       executeCode: FunctionApiInsertSchema.shape.executeCode,
       inputSchema: z
         .string()
@@ -110,7 +116,6 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
         .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
         .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
       dependencies: StringToStringRecordSchema,
-      tempToolPolicies: ToolPoliciesSchema,
     })
   ),
   externalAgents: z.record(
