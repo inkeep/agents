@@ -1815,6 +1815,7 @@ export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({
   keyHash: true,
   keyPrefix: true,
   createdAt: true,
+  lastUsedAt: true,
 });
 
 export const ApiKeyApiSelectSchema = ApiKeySelectSchema.omit({
