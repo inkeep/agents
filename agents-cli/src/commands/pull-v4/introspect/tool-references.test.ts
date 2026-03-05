@@ -537,6 +537,7 @@ import { loadSkills, project } from '@inkeep/agents-sdk';
 import { supportAgent } from './agents/support-agent';
 import { customerProfile } from './data-components/customer-profile';
 import { ticketSummary } from './artifact-components/ticket-summary';
+// biome-ignore lint/correctness/noUnusedImports: ignore in snapshot
 import { apiCredentials } from './credentials/api-credentials';
 
 export const supportProject = project({
