@@ -1,48 +1,26 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
 
-interface FunctionToolDefinitionData {
-  functionToolId: string;
-  name: string;
-  description?: string;
-  inputSchema?: unknown;
-  schema?: unknown;
-  executeCode?: string;
-  execute?: string;
-}
+const MySchema = FullProjectDefinitionSchema.shape.functions.unwrap().valueType.omit({
+  id: true,
+});
+const MySchema2 = FullProjectDefinitionSchema.shape.functionTools.unwrap().valueType.omit({
+  id: true,
+  functionId: true,
+});
 
-const FunctionToolSchema = z
-  .looseObject({
-    functionToolId: z.string().nonempty(),
-    name: z.string().nonempty(),
-    description: z.string().optional(),
-    inputSchema: z.unknown().optional(),
-    schema: z.unknown().optional(),
-    executeCode: z.string().optional(),
-    execute: z.string().optional(),
-  })
-  .superRefine((value, context) => {
-    if (value.inputSchema === undefined && value.schema === undefined) {
-      context.addIssue({
-        code: 'custom',
-        message: 'inputSchema is required',
-        path: ['inputSchema'],
-      });
-    }
+const FunctionToolSchema = z.strictObject({
+  ...MySchema.shape,
+  ...MySchema2.shape,
+  functionToolId: z.string().nonempty(),
+});
 
-    if (value.executeCode === undefined && value.execute === undefined) {
-      context.addIssue({
-        code: 'custom',
-        message: 'executeCode is required',
-        path: ['executeCode'],
-      });
-    }
-  });
+type FunctionToolInput = z.input<typeof FunctionToolSchema>;
+type FunctionToolOutput = z.output<typeof FunctionToolSchema>;
 
-type ParsedFunctionToolDefinitionData = z.infer<typeof FunctionToolSchema>;
-
-export function generateFunctionToolDefinition(data: FunctionToolDefinitionData): SourceFile {
+export function generateFunctionToolDefinition(data: FunctionToolInput): SourceFile {
   const result = FunctionToolSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for function tool:\n${z.prettifyError(result.error)}`);
@@ -60,7 +38,7 @@ export function generateFunctionToolDefinition(data: FunctionToolDefinitionData)
 
 function writeFunctionToolConfig(
   configObject: ObjectLiteralExpression,
-  { functionToolId, executeCode, inputSchema, schema, ...rest }: ParsedFunctionToolDefinitionData
+  { functionToolId, executeCode, inputSchema, schema, ...rest }: FunctionToolOutput
 ): void {
   for (const [k, v] of Object.entries({
     ...rest,

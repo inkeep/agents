@@ -1,9 +1,9 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
-  convertNullToUndefined,
   createFactoryDefinition,
   formatPropertyName,
   formatStringLiteral,
@@ -11,42 +11,35 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface ArtifactComponentDefinitionData {
-  artifactComponentId: string;
-  name: string;
-  description?: string;
-  props: Record<string, unknown>;
-  schema?: Record<string, unknown>;
-  template?: string;
-  contentType?: string;
-  render?: {
-    component?: string;
-    mockData?: Record<string, unknown>;
-  };
-}
-
-const ArtifactComponentSchema = z.object({
-  artifactComponentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().optional(),
-  props: z.looseObject({}),
-  schema: z.looseObject({}).optional(),
-  template: z.string().optional(),
-  contentType: z.string().optional(),
-  render: z.preprocess(
-    convertNullToUndefined,
-    z
-      .looseObject({
-        component: z.string().optional(),
-        mockData: z.looseObject({}).optional(),
-      })
-      .optional()
-  ),
+const MySchema = FullProjectDefinitionSchema.shape.artifactComponents.unwrap().valueType.omit({
+  id: true,
 });
 
-export function generateArtifactComponentDefinition(
-  data: ArtifactComponentDefinitionData
-): SourceFile {
+const ArtifactComponentSchema = z.strictObject({
+  artifactComponentId: z.string().nonempty(),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  render: z.preprocess((v) => v ?? undefined, MySchema.shape.render),
+  // Invalid input
+  props: z.unknown(),
+});
+
+type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
+type ArtifactComponentOutput = z.output<typeof ArtifactComponentSchema>;
+
+export function generateArtifactComponentDefinition({
+  // @ts-expect-error
+  tenantId,
+  // @ts-expect-error
+  id,
+  // @ts-expect-error
+  projectId,
+  // @ts-expect-error -- TODO: remove it after new deploy
+  createdAt,
+  // @ts-expect-error -- TODO: remove it after new deploy
+  updatedAt,
+  ...data
+}: ArtifactComponentInput): SourceFile {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
@@ -66,10 +59,7 @@ export function generateArtifactComponentDefinition(
     });
   }
   if (schema) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['z'],
-      moduleSpecifier: 'zod',
-    });
+    sourceFile.addImportDeclaration({ namedImports: ['z'], moduleSpecifier: 'zod' });
   }
 
   const { artifactComponentId, schema: _, props: _2, ...rest } = parsed;

@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -8,36 +9,34 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface DataComponentDefinitionData {
-  dataComponentId: string;
-  name: string;
-  description?: string | null;
-  props?: unknown;
-  schema?: unknown;
-  render?: {
-    component?: string;
-    mockData?: Record<string, unknown>;
-  } | null;
-}
-
-const DataComponentSchema = z.object({
-  dataComponentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional(),
-  props: z.unknown().optional(),
-  schema: z.unknown().optional(),
-  render: z
-    .looseObject({
-      component: z.string().optional(),
-      mockData: z.looseObject({}).optional(),
-    })
-    .nullable()
-    .optional(),
+const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().valueType.omit({
+  id: true,
 });
 
-type ParsedDataComponentDefinitionData = z.infer<typeof DataComponentSchema>;
+const DataComponentSchema = z.strictObject({
+  dataComponentId: z.string().nonempty(),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  // Each property must have a "description" for LLM compatibility
+  props: z.unknown(),
+});
 
-export function generateDataComponentDefinition(data: DataComponentDefinitionData): SourceFile {
+type DataComponentInput = z.input<typeof DataComponentSchema>;
+type DataComponentOutput = z.output<typeof DataComponentSchema>;
+
+export function generateDataComponentDefinition({
+  // @ts-expect-error
+  tenantId,
+  // @ts-expect-error
+  id,
+  // @ts-expect-error
+  projectId,
+  // @ts-expect-error -- TODO: remove it after new deploy
+  createdAt,
+  // @ts-expect-error -- TODO: remove it after new deploy
+  updatedAt,
+  ...data
+}: DataComponentInput): SourceFile {
   const result = DataComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);
@@ -64,7 +63,7 @@ export function generateDataComponentDefinition(data: DataComponentDefinitionDat
 
 function writeDataComponentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedDataComponentDefinitionData,
+  data: DataComponentOutput,
   props: unknown
 ): void {
   addStringProperty(configObject, 'id', data.dataComponentId);
@@ -88,7 +87,7 @@ function writeDataComponentConfig(
 
 function addRenderProperty(
   configObject: ObjectLiteralExpression,
-  render: NonNullable<ParsedDataComponentDefinitionData['render']>
+  render: NonNullable<DataComponentOutput['render']>
 ): void {
   if (render.component) {
     addValueToObject(configObject, 'render', {
