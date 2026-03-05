@@ -315,8 +315,7 @@ export async function runGenerate(
           textResponse = response.text || '';
         }
 
-        const isTimeoutAbort =
-          response.finishReason === 'other' || response.finishReason === 'error';
+        const isTimeoutAbort = response.finishReason === 'other';
 
         if (isTimeoutAbort) {
           const timeoutError = new Error(`Generation terminated by timeout/abort signal`);
