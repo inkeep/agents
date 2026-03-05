@@ -70,7 +70,7 @@ vi.mock('../../data/db/dbClient.js', () => {
   };
 });
 
-vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),
@@ -84,7 +84,7 @@ vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
   }),
 }));
 
-vi.mock('../../../domains/run/utils/stream-helpers', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),

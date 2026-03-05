@@ -87,7 +87,6 @@ export function DatasetTabs({
               isOpen={isCreateRunOpen}
               onOpenChange={setIsCreateRunOpen}
               onSuccess={() => {
-                console.log('Dataset run config created, triggering refresh');
                 setRefreshKey((prev) => prev + 1);
                 router.refresh();
               }}

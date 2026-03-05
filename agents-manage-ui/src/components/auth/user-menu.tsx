@@ -1,6 +1,8 @@
 'use client';
 
-import { LogOut, User } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { ThemeToggleTabs } from '@/components/theme-toggle-tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +19,7 @@ import { useSignOut } from '@/hooks/use-sign-out';
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
   const handleSignOut = useSignOut();
+  const { tenantId } = useParams<{ tenantId?: string }>();
 
   if (isLoading || !user) {
     return null;
@@ -44,6 +47,14 @@ export function UserMenu() {
           <ThemeToggleTabs />
         </div>
         <DropdownMenuSeparator />
+        {tenantId && (
+          <DropdownMenuItem asChild>
+            <Link href={`/${tenantId}/profile`} className="gap-2">
+              <Settings className="h-4 w-4" aria-hidden="true" />
+              Profile settings
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleSignOut} className="gap-2">
           <LogOut className="h-4 w-4" aria-hidden="true" />
           Log out

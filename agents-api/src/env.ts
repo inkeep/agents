@@ -119,6 +119,12 @@ const envSchema = z
       .default(64)
       .describe('OpenTelemetry batch span processor max export batch size'),
 
+    // Sentry (Error Monitoring)
+    SENTRY_DSN: z
+      .string()
+      .optional()
+      .describe('Sentry DSN for error monitoring (optional, no-ops when not set)'),
+
     // Tenant Configuration
     TENANT_ID: z
       .string()

@@ -119,6 +119,28 @@ models: {
 
 Inkeep Agents supports all [Vercel AI SDK provider options](https://ai-sdk.dev/providers/ai-sdk-providers/).
 
+### How providerOptions works
+
+`providerOptions` accepts two types of values:
+
+- **Scalars** (`temperature`, `topP`, `maxOutputTokens`, `seed`, `maxDuration`) — standard generation parameters applied to every call
+- **Objects** (`anthropic: {}`, `openai: {}`, `gateway: {}`, etc.) — provider-specific options for that provider
+
+This means you can mix them freely:
+
+```typescript
+providerOptions: {
+  temperature: 0.7,            // generation param
+  anthropic: {                 // Anthropic-specific options
+    thinking: { type: 'enabled', budgetTokens: 8000 }
+  }
+}
+```
+
+<Note>
+Constructor-level config (`baseURL`, `headers`, `resourceName`, `apiVersion`) is always specified at the top level of `providerOptions`, not nested under a provider key.
+</Note>
+
 ### Complete Examples
 
 **Basic configuration:**
@@ -189,9 +211,9 @@ models: {
     model: "anthropic/claude-sonnet-4-5",
     providerOptions: {
       anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 8000 },
-        temperature: 0.5
-      }
+        thinking: { type: 'enabled', budgetTokens: 8000 }
+      },
+      temperature: 0.5
     }
   }
 }
@@ -238,6 +260,40 @@ models: {
 ```
 </Tab>
 </Tabs>
+
+**Vercel AI Gateway with model routing:**
+
+The Gateway provider supports routing requests across multiple models with automatic fallback. If the primary model fails or is unavailable, the gateway tries the next model in the list.
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "gateway/openai/gpt-4.1",
+    providerOptions: {
+      gateway: {
+        models: ["openai/gpt-4.1", "anthropic/claude-sonnet-4-5", "google/gemini-3.1-flash-lite-preview"],  // Try in order
+      }
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "gateway": {
+    "models": ["openai/gpt-4.1", "anthropic/claude-sonnet-4-5", "google/gemini-3.1-flash-lite-preview"]
+  }
+}
+```
+</Tab>
+</Tabs>
+
+<Note>
+All models in the `models` array must be valid [Vercel AI Gateway model IDs](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway). The gateway falls through to the next model on failure — if all models fail, the request errors. Set `AI_GATEWAY_API_KEY` in your environment for authentication.
+</Note>
 
 **Azure OpenAI:**
 

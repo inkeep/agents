@@ -244,6 +244,11 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
+  UserProfileApiInsertSchema,
+  UserProfileApiUpdateSchema,
+  UserProfileInsertSchema,
+  UserProfileSelectSchema,
+  UserProfileUpdateSchema,
   WorkAppGitHubInstallationInsertSchema,
   WorkAppGitHubInstallationSelectSchema,
   WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
@@ -650,3 +655,9 @@ export interface SummaryEvent {
     [key: string]: any; // Structured data from agent session
   };
 }
+
+export type UserProfileSelect = z.infer<typeof UserProfileSelectSchema>;
+export type UserProfileInsert = z.infer<typeof UserProfileInsertSchema>;
+export type UserProfileApiInsert = z.infer<typeof UserProfileApiInsertSchema>;
+export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
+export type UserProfileApiUpdate = z.infer<typeof UserProfileApiUpdateSchema>;
