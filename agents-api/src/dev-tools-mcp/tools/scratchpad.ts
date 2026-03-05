@@ -70,7 +70,7 @@ export function registerScratchpadTools(server: McpServer, pad: ScratchpadStore)
     async (): Promise<CallToolResult> => {
       const keys = [...pad.keys()];
       if (keys.length === 0) return { content: [{ type: 'text', text: 'Scratchpad is empty.' }] };
-      const summary = keys.map((k) => `- ${k} (${pad.get(k)!.length} chars)`).join('\n');
+      const summary = keys.map((k) => `- ${k} (${pad.get(k)?.length} chars)`).join('\n');
       return { content: [{ type: 'text', text: summary }] };
     }
   );

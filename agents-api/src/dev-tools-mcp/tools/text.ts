@@ -300,7 +300,7 @@ export function registerTextTools(server: McpServer): void {
         if (lines.length <= args.maxLength) return { content: [{ type: 'text', text: content }] };
         return {
           content: [
-            { type: 'text', text: lines.slice(0, args.maxLength).join('\n') + `\n${ellipsis}` },
+            { type: 'text', text: `${lines.slice(0, args.maxLength).join('\n')}\n${ellipsis}` },
           ],
         };
       }
