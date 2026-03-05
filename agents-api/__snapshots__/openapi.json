@@ -40241,6 +40241,5 @@
       "description": "Operations for managing Slack workspaces",
       "name": "Workspaces"
     }
-  ],
-  "x-test-stale-v2": "testing path-gated auto-update"
+  ]
 }
