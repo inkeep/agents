@@ -60,7 +60,7 @@ export const main = async () => {
       console.log(format.ok('[OK]'));
 
       process.stdout.write(`${format.dim('Action ')}  sync schema… `);
-      const result = await syncSchemaFromMain(db)();
+      const result = await syncSchemaFromMain(db)({ autoCommitPending: true });
 
       if (result.synced) {
         syncedCount += 1;
@@ -75,6 +75,7 @@ export const main = async () => {
           `${format.dim('Result ')}  ${format.err('Error')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`
         );
         console.log(`${format.dim('Details')}  ${result.error}`);
+        break;
       } else {
         upToDateCount += 1;
         console.log(format.warn('[NOOP]'));
@@ -90,6 +91,7 @@ export const main = async () => {
         `${format.dim('Result ')}  ${format.err('Error')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`
       );
       console.log(`${format.dim('Details')}  ${message}`);
+      break;
     }
     console.log('');
   }
@@ -102,6 +104,10 @@ export const main = async () => {
       `${errorCount > 0 ? format.err(`${errorCount} failed`) : format.ok('0 failed')}`
   );
   console.log(format.dim(`Total: ${ms(startedAt, Date.now())}`));
+
+  if (errorCount > 0) {
+    process.exit(1);
+  }
 };
 
 main();
