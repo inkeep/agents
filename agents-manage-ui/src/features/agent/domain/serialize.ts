@@ -237,7 +237,7 @@ export function serializeAgentData(
 
           const functionId = nodeData.functionId || functionToolId;
 
-          const functionToolData = {
+          functionTools[functionToolId] = {
             id: functionToolId,
             name: nodeData.name || '',
             description: nodeData.description || '',
@@ -245,7 +245,7 @@ export function serializeAgentData(
           };
 
           // Always create function entry to ensure it exists
-          const functionData = {
+          functions[functionId] = {
             id: functionId,
             name: nodeData.name || '',
             description: nodeData.description || '',
@@ -253,9 +253,6 @@ export function serializeAgentData(
             inputSchema: nodeData.inputSchema || {},
             dependencies: nodeData.dependencies || {},
           };
-          functions[functionId] = functionData;
-
-          functionTools[functionToolId] = functionToolData;
 
           const toolPolicies = functionToolFormData?.[functionToolId]?.tempToolPolicies;
 

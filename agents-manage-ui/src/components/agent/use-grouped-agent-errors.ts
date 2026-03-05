@@ -8,7 +8,8 @@ export function useGroupedAgentErrors() {
   const { errors } = useFormState({ control });
   const {
     subAgents = EMPTY_OBJ,
-    functionTools = EMPTY_OBJ,
+    functionTools,
+    functions,
     externalAgents = EMPTY_OBJ,
     teamAgents = EMPTY_OBJ,
     tools = EMPTY_OBJ,
@@ -18,7 +19,10 @@ export function useGroupedAgentErrors() {
 
   return {
     subAgents,
-    functionTools,
+    functionTools: {
+      ...functionTools,
+      ...functions,
+    },
     externalAgents,
     teamAgents,
     tools,

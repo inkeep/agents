@@ -86,19 +86,56 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
 }
 
 function processMessagesWithNodeId(obj: Record<string, undefined | Record<string, unknown>>) {
-  return Object.entries(obj).flatMap(([nodeId, groupValue = {}]) =>
-    Object.entries(groupValue).map(([field, value]) => ({
+  return Object.entries(obj).flatMap(([nodeId, groupValue = {}]) => {
+    // edge case when groupValue doesn't contain field names, e.g.
+    // y74w91v3v5fxxfy9yb2gm: {message: 'Unrecognized keys: "id", "functionId"', type: 'unrecognized_keys', ref: undefined}
+    if (groupValue.message && groupValue.type && 'ref' in groupValue) {
+      return {
+        nodeId,
+        field: 'global',
+        message: firstNestedMessage(groupValue),
+      };
+    }
+
+    return Object.entries(groupValue).map(([field, value]) => ({
       nodeId,
       field,
       message: firstNestedMessage(value),
-    }))
-  );
+    }));
+  });
+}
+
+export function useWindowFocus(): boolean {
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    const editableFocusSelector = [
+      //
+      'input:not([type="hidden"])',
+      'textarea',
+      'select',
+    ].join();
+    function handler(_event: FocusEvent) {
+      const el = document.activeElement;
+
+      setIsFocused(el?.matches(editableFocusSelector) ?? false);
+    }
+
+    window.addEventListener('focusin', handler);
+    window.addEventListener('focusout', handler);
+
+    return () => {
+      window.removeEventListener('focusin', handler);
+      window.removeEventListener('focusout', handler);
+    };
+  }, []);
+
+  return isFocused;
 }
 
 export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) {
   'use memo';
   const { setQueryState } = useSidePane();
-  const [hasEditableFocus, setHasEditableFocus] = useState(false);
 
   function handleNavigateToNode(nodeId: string) {
     setQueryState({ pane: 'node', nodeId, edgeId: null });
@@ -167,24 +204,9 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     setShowErrors(true);
   }, [errorCount]);
 
-  useEffect(() => {
-    function updateFocusState() {
-      const editableFocusSelector = ['input:not([type="hidden"])', 'textarea', 'select'].join();
+  const isFocused = useWindowFocus();
 
-      setHasEditableFocus(document.activeElement?.matches(editableFocusSelector) ?? false);
-    }
-
-    updateFocusState();
-    document.addEventListener('focusin', updateFocusState);
-    document.addEventListener('focusout', updateFocusState);
-
-    return () => {
-      document.removeEventListener('focusin', updateFocusState);
-      document.removeEventListener('focusout', updateFocusState);
-    };
-  }, []);
-
-  if (!errorCount || !showErrors || hasEditableFocus) {
+  if (!errorCount || !showErrors || isFocused) {
     return;
   }
 

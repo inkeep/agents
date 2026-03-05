@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useWatch } from 'react-hook-form';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
 import { GenericInput } from '@/components/form/generic-input';
@@ -37,11 +36,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;
-  const functionTool = useWatch({
-    control: form.control,
-    name: `functionTools.${id}`,
-  });
-
   const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
   const path$ = <K extends string>(key: K) => `functions.${id}.${key}` as const;
 
@@ -50,7 +44,8 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   const handleWriteWithAISubmit = () => {
     if (!chatFunctionsRef?.current) return;
-    const baseMessage = `I want to update the code for the function tool "${functionTool.name || 'this function tool'}".`;
+    const name = form.getValues(`functionTools.${id}.name`);
+    const baseMessage = `I want to update the code for the function tool "${name}".`;
     const message = writeWithAIInstructions.trim()
       ? `${baseMessage}\n\n${writeWithAIInstructions.trim()}`
       : baseMessage;

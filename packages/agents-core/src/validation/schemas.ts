@@ -2003,6 +2003,8 @@ export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 
 export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
 });
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
@@ -2044,6 +2046,7 @@ export const SubAgentFunctionToolRelationApiInsertSchema =
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: ResourceIdSchema,
+  dependencies: StringRecordSchema.nullish(),
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
@@ -2429,13 +2432,13 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
     )
     .optional(),
   subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
 })
   .extend({
     tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
     externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
     teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-    functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-    functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
     triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
     scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
   })
