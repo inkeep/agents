@@ -776,10 +776,6 @@
             "nullable": true,
             "type": "string"
           },
-          "lastUsedAt": {
-            "nullable": true,
-            "type": "string"
-          },
           "name": {
             "maxLength": 256,
             "minLength": 1,
