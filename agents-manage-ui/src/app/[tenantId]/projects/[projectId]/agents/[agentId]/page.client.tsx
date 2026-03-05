@@ -39,6 +39,7 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -294,8 +295,8 @@ export const Agent: FC<AgentProps> = ({
     clearSelection,
     markUnsaved,
     reset,
-    animateGraph,
   } = useAgentActions();
+  useAnimateGraph();
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
   // Always use enriched nodes for ReactFlow
@@ -803,24 +804,6 @@ export const Agent: FC<AgentProps> = ({
     }
     return;
   });
-
-  useEffect(() => {
-    const onCompletion = () => {
-      // @ts-expect-error
-      animateGraph({
-        detail: {
-          type: 'completion',
-        },
-      });
-    };
-
-    document.addEventListener('ikp-data-operation', animateGraph);
-    document.addEventListener('ikp-aborted', onCompletion);
-    return () => {
-      document.removeEventListener('ikp-data-operation', animateGraph);
-      document.removeEventListener('ikp-aborted', onCompletion);
-    };
-  }, []);
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
     if (isOpen) {

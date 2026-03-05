@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { type ComponentProps, useEffect, useRef } from 'react';
 import { useFormState } from 'react-hook-form';
 import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
+import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { Button } from '@/components/ui/button';
 import { firstNestedMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
@@ -11,7 +12,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from './ship/ship-modal';
 
