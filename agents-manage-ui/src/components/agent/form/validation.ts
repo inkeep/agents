@@ -1,7 +1,6 @@
 import {
   type AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
-  FunctionApiInsertSchema,
   StringRecordSchema,
   ToolInsertSchema,
   transformToJson,
@@ -15,7 +14,18 @@ const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdate
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 const AgentStopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
 const SubAgentSchema = AgentWithinContextOfProjectSchema.shape.subAgents.valueType;
-const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools.unwrap().valueType;
+const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
+  .unwrap()
+  .valueType.pick({
+    name: true,
+    description: true,
+    functionId: true,
+  });
+const FunctionSchema = AgentWithinContextOfProjectSchema.shape.functions.unwrap().valueType.pick({
+  inputSchema: true,
+  dependencies: true,
+  executeCode: true,
+});
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
 const ModelsSummarizerSchema = ModelsSchema.summarizer.unwrap();
@@ -102,18 +112,14 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   functionTools: z.record(
     z.string(),
     z.object({
-      ...FunctionToolSchema.pick({
-        name: true,
-        description: true,
-        functionId: true,
-      }).shape,
+      ...FunctionToolSchema.shape,
       tempToolPolicies: ToolPoliciesSchema,
     })
   ),
   functions: z.record(
     z.string(),
     z.looseObject({
-      executeCode: FunctionApiInsertSchema.shape.executeCode,
+      executeCode: FunctionSchema.shape.executeCode,
       inputSchema: z
         .string()
         .trim()
