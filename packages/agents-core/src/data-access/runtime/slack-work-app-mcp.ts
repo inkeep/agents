@@ -1,6 +1,9 @@
 import { eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { workAppSlackMcpToolAccessConfig, workAppSlackUserMappings } from '../../db/runtime/runtime-schema';
+import {
+  workAppSlackMcpToolAccessConfig,
+  workAppSlackUserMappings,
+} from '../../db/runtime/runtime-schema';
 import type { McpTool, ToolSelect } from '../../types/entities';
 
 export type SlackMcpToolAccessConfig = {

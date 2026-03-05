@@ -6,13 +6,13 @@ import {
   isGithubWorkAppTool,
   isSlackWorkAppTool,
   JsonTransformer,
-  resolveSlackUserContext,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
   McpClient,
   type McpServerConfig,
   type McpTool,
+  resolveSlackUserContext,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -210,7 +210,8 @@ export class AgentMcpManager {
       try {
         const slackUserContext = await resolveSlackUserContext(runDbClient)(this.config.userId);
         if (slackUserContext) {
-          serverInstructions = (serverInstructions ? `${serverInstructions}\n` : '') + slackUserContext;
+          serverInstructions =
+            (serverInstructions ? `${serverInstructions}\n` : '') + slackUserContext;
         }
       } catch (error) {
         logger.warn({ error, userId: this.config.userId }, 'Failed to resolve Slack user context');
