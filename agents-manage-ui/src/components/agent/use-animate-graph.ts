@@ -2,9 +2,9 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEffect } from 'react';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import type { AnimatedNode } from '@/components/agent/configuration/node-types';
+import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { sentry } from '@/lib/sentry';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 
 export function useAnimateGraph(): void {
   const defaultSubAgentIdRef = useDefaultSubAgentIdRef();

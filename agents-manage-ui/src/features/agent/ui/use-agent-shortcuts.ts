@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { agentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
 import { toast } from 'sonner';
 import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
+import { agentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {
   const { undo, redo } = useAgentActions();
