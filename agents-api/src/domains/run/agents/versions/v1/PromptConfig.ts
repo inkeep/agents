@@ -349,18 +349,18 @@ CRITICAL: ALWAYS SELECT SINGLE ITEMS, NEVER ARRAYS
 
 SELECTOR REQUIREMENTS:
 - MUST select ONE specific item, never an array  
-- Use filtering: result.items[?title=='API Guide']
-- Use exact matching: result.documents[?name=='Setup Instructions'] 
-- Target specific fields: result.content[?section=='authentication']
+- Use filtering: items[?title=='API Guide']
+- Use exact matching: documents[?name=='Setup Instructions']
+- Target specific fields: content[?section=='authentication']
 
 CRITICAL: SELECTOR HIERARCHY
 - base_selector: Points to ONE specific item in the tool result
 - details_selector: Contains JMESPath selectors RELATIVE to the base selector
-- Example: If base="result.documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
+- Example: If base="documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
 
 COMMON FAILURE POINTS (AVOID THESE):
-1. **Array Selection**: result.items (returns array) ❌
-   → Fix: result.items[?type=='guide'] (returns single item) ✅
+1. **Array Selection**: items (returns array) ❌
+   → Fix: items[?type=='guide'] (returns single item) ✅
 
 2. **Similar Key Names**: "title" vs "name" vs "heading"
    → Always check the actual field names in tool results
@@ -439,7 +439,7 @@ THE details PROPERTY IN ${ARTIFACT_TAG.CREATE} MUST CONTAIN JMESPATH SELECTORS T
 ❌ NEVER: [?field=="value"] (double quotes in filters)
 ❌ NEVER: [?field=='value'] (escaped quotes in filters)
 ❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
-❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
+❌ NEVER: items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
 ✅ [?contains(title, 'text')] (contains function)
@@ -477,19 +477,19 @@ STEP 3: MATCH ACTUAL VALUES, NOT ASSUMPTIONS
 
 STEP 4: VALIDATE YOUR SELECTORS AGAINST THE DATA
 - Your base selector must match actual documents in the result
-- Test your logic: does result.structuredContent.content contain items with your target values?
+- Test your logic: does structuredContent.content contain items with your target values?
 - Use compound conditions when needed: [?title=='Inkeep' && record_type=='site']
 
 EXAMPLE PATTERNS FOR BASE SELECTORS:
-❌ WRONG: result.items[?contains(title, "guide")] (assumes field values + wrong quotes)
-❌ WRONG: result.data[?type=="document"] (double quotes invalid in JMESPath)
-✅ CORRECT: result.structuredContent.content[0] (select first item)
-✅ CORRECT: result.items[?type=='document'][0] (filter by type, single quotes!)
-✅ CORRECT: result.data[?category=='api'][0] (filter by category)
-✅ CORRECT: result.documents[?status=='published'][0] (filter by status)
+❌ WRONG: items[?contains(title, "guide")] (assumes field values + wrong quotes)
+❌ WRONG: data[?type=="document"] (double quotes invalid in JMESPath)
+✅ CORRECT: structuredContent.content[0] (select first item)
+✅ CORRECT: items[?type=='document'][0] (filter by type, single quotes!)
+✅ CORRECT: data[?category=='api'][0] (filter by category)
+✅ CORRECT: documents[?status=='published'][0] (filter by status)
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <${ARTIFACT_TAG.REF} id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
@@ -673,6 +673,8 @@ ${creationInstructions}
 
     return `<available_artifacts description="These are the artifacts available for you to use in generating responses.
 
+🚨 REFERENCE RULE: For any artifact listed below, you MUST pass it to tools using { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" } — never read its data and copy it inline into a tool argument.
+
 ${rules}
 
 ${creationInstructions}
@@ -724,7 +726,19 @@ ${creationInstructions}
   }
 
   private getToolChainingGuidance(): string {
-    return `TOOL RESULT CHAINING:
+    return `🚨 PRE-INVOCATION GATE — check EVERY parameter of EVERY tool call before you fill it in:
+
+  □ Does this value come from a previous tool result?
+    → MUST use { "${SENTINEL_KEY.TOOL}": "call_id" } — never copy the value inline
+
+  □ Does this value come from an existing artifact?
+    → MUST use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } — never resolve and copy it inline
+
+  □ Only if neither applies: provide a literal value.
+
+Literals are only permitted when there is no reference available. This gate applies to every tool, every parameter, every invocation — no exceptions.
+
+TOOL RESULT CHAINING:
 Any tool argument can reference the raw output of a previous tool call using { "${SENTINEL_KEY.TOOL}": "tool_call_id" }.
 The system resolves this to the complete raw output of that tool call before executing the next tool.
 
@@ -771,6 +785,16 @@ use an intermediate extraction step — never read the value and copy it inline.
   tool_a(...)  (call_id: "call_a")
   extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  (call_id: "call_b")
   tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })
+
+ARTIFACT REFERENCES — the same rule applies:
+When an artifact exists for data you need, you MUST pass a reference — never resolve and copy its data.
+
+❌ WRONG — resolving artifact data and copying it inline:
+  Artifact "results-1" (tool_call_id: "toolu_abc") exists
+  tool_b({ "data": { "items": [ ...all the artifact data copied here... ] } })  ← resolved and copied
+
+✅ CORRECT — passing the artifact reference:
+  tool_b({ "data": { "${SENTINEL_KEY.ARTIFACT}": "results-1", "${SENTINEL_KEY.TOOL}": "toolu_abc" } })  ← system resolves it
 
 This is different from artifact passing:
 - { "${SENTINEL_KEY.TOOL}": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user

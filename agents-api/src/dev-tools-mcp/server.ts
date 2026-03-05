@@ -69,8 +69,8 @@ Reference syntax:
 
 **References work across ALL MCP servers — not just Dev Tools.**
 If a tool from another server returned a complex object and you need a specific field, use \`json_query\` to extract it first, then pipe that result:
-- \`other_tool\` returns \`{ "results": [...], "text": "..." }\`  (call_id: "call_a")
-- \`json_query({ "data": {"$tool": "call_a"}, "query": "result.text" })\`  (call_id: "call_b")
+- \`other_tool\` returns \`{ "results": [{"title": "...", "url": "..."}, ...], "total": 5 }\`  (call_id: "call_a")
+- \`json_query({ "data": {"$tool": "call_a"}, "query": "results[0].title" })\`  (call_id: "call_b")
 - \`text_search({ "content": {"$tool": "call_b"}, "pattern": "..." })\`  ← receives just the extracted string
 
 Never extract a value by reading it and copying it inline — always chain through \`json_query\`.

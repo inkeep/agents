@@ -100,7 +100,7 @@ export function enhanceToolResultWithStructureHints(
     return result;
   }
 
-  const findAllPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+  const findAllPaths = (obj: any, prefix = '', depth = 0): string[] => {
     if (depth > 8) return [];
 
     const paths: string[] = [];
@@ -127,7 +127,7 @@ export function enhanceToolResultWithStructureHints(
       }
     } else if (obj && typeof obj === 'object') {
       Object.entries(obj).forEach(([key, value]) => {
-        const currentPath = `${prefix}.${key}`;
+        const currentPath = prefix ? `${prefix}.${key}` : key;
 
         if (value && typeof value === 'object') {
           if (Array.isArray(value)) {
@@ -170,7 +170,7 @@ export function enhanceToolResultWithStructureHints(
     return fields;
   };
 
-  const findUsefulSelectors = (obj: any, prefix = 'result', depth = 0): string[] => {
+  const findUsefulSelectors = (obj: any, prefix = '', depth = 0): string[] => {
     if (depth > 5) return [];
 
     const selectors: string[] = [];
@@ -204,7 +204,7 @@ export function enhanceToolResultWithStructureHints(
     } else if (obj && typeof obj === 'object') {
       Object.entries(obj).forEach(([key, value]) => {
         if (typeof value === 'object' && value !== null) {
-          selectors.push(...findUsefulSelectors(value, `${prefix}.${key}`, depth + 1));
+          selectors.push(...findUsefulSelectors(value, prefix ? `${prefix}.${key}` : key, depth + 1));
         }
       });
     }
@@ -212,14 +212,14 @@ export function enhanceToolResultWithStructureHints(
     return selectors;
   };
 
-  const findNestedContentPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+  const findNestedContentPaths = (obj: any, prefix = '', depth = 0): string[] => {
     if (depth > 6) return [];
 
     const paths: string[] = [];
 
     if (obj && typeof obj === 'object') {
       Object.entries(obj).forEach(([key, value]) => {
-        const currentPath = `${prefix}.${key}`;
+        const currentPath = prefix ? `${prefix}.${key}` : key;
 
         if (Array.isArray(value) && value.length > 0) {
           const firstItem = value[0];
@@ -283,7 +283,7 @@ export function enhanceToolResultWithStructureHints(
           creationFirst:
             '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
           baseSelector:
-            "🎯 CRITICAL: Use base_selector to navigate to ONE specific item. For deeply nested structures with repeated keys, use full paths with specific filtering (e.g., \"result.data.content.items[?type=='guide' && status=='active']\")",
+            "🎯 CRITICAL: Use base_selector to navigate to ONE specific item. For deeply nested structures with repeated keys, use full paths with specific filtering (e.g., \"data.content.items[?type=='guide' && status=='active']\")",
           detailsSelector:
             '📝 Use relative selectors for specific fields (e.g., "title", "metadata.category", "properties.status", "content.details")',
           avoidLiterals:
@@ -291,7 +291,7 @@ export function enhanceToolResultWithStructureHints(
           avoidArrays:
             '✨ ALWAYS filter arrays to single items using [?condition] - NEVER use [*] notation which returns arrays',
           nestedKeys:
-            '🔑 For structures with repeated keys (like result.content.data.content.items.content), use full paths with filtering at each level',
+            '🔑 For structures with repeated keys (like content.data.content.items.content), use full paths with filtering at each level',
           filterTips:
             "💡 Use compound filters for precision: [?type=='document' && category=='api']",
           forbiddenSyntax:
@@ -303,7 +303,7 @@ export function enhanceToolResultWithStructureHints(
             "❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)\n" +
             "❌ NEVER: contains(@, 'text') (@ operator usage)\n" +
             '❌ NEVER: [?field=="value"] (double quotes in filters)\n' +
-            "❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)\n" +
+            "❌ NEVER: items[?type=='doc'][?status=='active'] (chained filters)\n" +
             '✅ USE INSTEAD:\n' +
             "✅ [?contains(title, 'text')] (contains function)\n" +
             "✅ [?title=='exact match'] (exact string matching)\n" +

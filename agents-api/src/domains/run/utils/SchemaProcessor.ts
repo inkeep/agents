@@ -290,7 +290,7 @@ export class SchemaProcessor {
 
         return {
           type: 'string',
-          description: `🎯 ARRAY SELECTOR: Provide JMESPath selector for ${arrayDescription}. RELATIVE to base selector - this will be applied to the item selected by base_selector. Example: "content.blocks" or "items" (NOT absolute paths like "result.content.blocks")`,
+          description: `🎯 ARRAY SELECTOR: Provide JMESPath selector for ${arrayDescription}. RELATIVE to base selector - this will be applied to the item selected by base_selector. Example: if base_selector="documents[0]", use "content.blocks" or "items" (NOT absolute paths like "documents[0].content.blocks" which re-navigates from the root)`,
         };
       }
 

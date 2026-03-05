@@ -72,7 +72,7 @@ describe('ArtifactParser', () => {
 
   describe('hasArtifactMarkers', () => {
     it('detects a standard artifact:create self-closing tag', () => {
-      const text = `<artifact:create id='a1' tool='t1' type='citation' base='result.docs[0]' />`;
+      const text = `<artifact:create id='a1' tool='t1' type='citation' base='docs[0]' />`;
       expect(parser.hasArtifactMarkers(text)).toBe(true);
     });
 
@@ -129,7 +129,7 @@ describe('ArtifactParser', () => {
     });
 
     it('returns false for a complete self-closing tag', () => {
-      const text = `<artifact:create id='a1' tool='t1' type='citation' base='result.docs[0]' />`;
+      const text = `<artifact:create id='a1' tool='t1' type='citation' base='docs[0]' />`;
       expect(parser.hasIncompleteArtifact(text)).toBe(false);
     });
 
@@ -188,7 +188,7 @@ describe('ArtifactParser', () => {
 
     it('parses a standard artifact:create tag into a data part', async () => {
       mockArtifactService.createArtifact.mockResolvedValue(mockArtifactData);
-      const text = `<artifact:create id='a1' tool='t1' type='citation' base='result.docs[0]' />`;
+      const text = `<artifact:create id='a1' tool='t1' type='citation' base='docs[0]' />`;
       const parts = await parser.parseText(text);
       expect(parts).toHaveLength(1);
       expect(parts[0].kind).toBe('data');

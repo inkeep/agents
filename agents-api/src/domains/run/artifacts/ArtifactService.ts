@@ -97,8 +97,8 @@ export class ArtifactService {
   /**
    * Get raw tool result by toolCallId from the current session.
    * Unwraps MCP-style content arrays and AI SDK text output, then returns
-   * { result: <data> } so paths like result.structuredContent.content[?...]
-   * work consistently with _structureHints exampleSelectors shown to the agent.
+   * the data directly so paths like structuredContent.content[?...] work
+   * consistently with _structureHints exampleSelectors shown to the agent.
    * Strips system-added fields (_toolCallId, _structureHints, isError).
    */
   getToolResultRaw(toolCallId: string): unknown {
@@ -139,10 +139,10 @@ export class ArtifactService {
 
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const { _toolCallId, _structureHints, isError, ...rest } = payload as Record<string, unknown>;
-      return { result: rest };
+      return rest;
     }
 
-    return { result: payload };
+    return payload;
   }
 
   /**
@@ -225,12 +225,7 @@ export class ArtifactService {
             )
           : toolResult;
 
-      let sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
-
-      // Strip 'result.' prefix if it exists (tool results don't have this wrapper)
-      if (sanitizedBaseSelector.startsWith('result.')) {
-        sanitizedBaseSelector = sanitizedBaseSelector.slice('result.'.length);
-      }
+      const sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
 
       let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
 

@@ -2924,12 +2924,6 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/node-server@1.19.8':
-    resolution: {integrity: sha512-0/g2lIOPzX8f3vzW1ggQgvG5mjtFBDBHFAzI5SFAi2DzSqS9luJwqg9T6O/gKYLi+inS7eNxBeIFkkghIPvrMA==}
-    engines: {node: '>=18.14.1'}
-    peerDependencies:
-      hono: ^4
-
   '@hono/node-server@1.19.9':
     resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
     engines: {node: '>=18.14.1'}
@@ -17574,10 +17568,6 @@ snapshots:
     dependencies:
       hono: 4.12.5
 
-  '@hono/node-server@1.19.8(hono@4.12.5)':
-    dependencies:
-      hono: 4.12.5
-
   '@hono/node-server@1.19.9(hono@4.12.5)':
     dependencies:
       hono: 4.12.5
@@ -18501,9 +18491,9 @@ snapshots:
 
   '@mixmark-io/domino@2.2.0': {}
 
-  '@modelcontextprotocol/sdk@1.25.2(hono@4.11.8)(zod@4.3.6)':
+  '@modelcontextprotocol/sdk@1.25.2(hono@4.12.5)(zod@4.3.6)':
     dependencies:
-      '@hono/node-server': 1.19.8(hono@4.12.5)
+      '@hono/node-server': 1.19.9(hono@4.12.5)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -18518,7 +18508,7 @@ snapshots:
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
       zod: 4.3.6
-      zod-to-json-schema: 3.25.0(zod@4.3.6)
+      zod-to-json-schema: 3.25.1(zod@4.3.6)
     transitivePeerDependencies:
       - hono
       - supports-color

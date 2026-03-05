@@ -97,8 +97,8 @@ PREFER FILTERS OVER POSITIONAL INDEXES:
 
 DEBUGGING — if the result is null:
   The path is wrong. Do NOT copy the value inline as a workaround.
-  Debug step by step: run json_query with progressively deeper paths (e.g. start with "result",
-  then "result.data", then "result.data.items") until you find where the path breaks.
+  Debug step by step: run json_query with progressively deeper paths (e.g. start with top-level fields like "data",
+  then "data.items") until you find where the path breaks.
   Use json_format on the full object first if the structure is unknown.
 
   After a filter like items[?x=='val'], you get an array — always pipe to | [0] to get one item:
