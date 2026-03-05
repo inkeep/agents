@@ -4,6 +4,7 @@ import {
   configureComposioMCPServer,
   type FullExecutionContext,
   isGithubWorkAppTool,
+  isSlackWorkAppTool,
   JsonTransformer,
   MCPServerType,
   type MCPToolConfig,
@@ -124,6 +125,14 @@ export class AgentMcpManager {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
         Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
+    }
+
+    if (isSlackWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }
 

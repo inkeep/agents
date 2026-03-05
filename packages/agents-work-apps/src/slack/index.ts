@@ -10,12 +10,14 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
+import mcpRoutes from './mcp/index';
 import slackRouter from './routes/index';
 import type { WorkAppsVariables } from './types';
 
 export function createSlackRoutes() {
   const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
   app.route('/', slackRouter);
+  app.route('/mcp', mcpRoutes);
   return app;
 }
 
