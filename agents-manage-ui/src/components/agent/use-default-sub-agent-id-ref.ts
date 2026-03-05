@@ -1,15 +1,25 @@
 import { useEffect, useRef } from 'react';
-import { useWatch } from 'react-hook-form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 
 export function useDefaultSubAgentIdRef() {
-  const { control } = useFullAgentFormContext();
-  const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
-  const defaultSubAgentIdRef = useRef(defaultSubAgentId);
+  'use memo';
 
+  const form = useFullAgentFormContext();
+  const defaultSubAgentIdRef = useRef<string | undefined>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    defaultSubAgentIdRef.current = defaultSubAgentId;
-  }, [defaultSubAgentId]);
+    defaultSubAgentIdRef.current = form.getValues('defaultSubAgentId');
+
+    // make sure to unsubscribe;
+    return form.subscribe({
+      name: ['defaultSubAgentId'],
+      formState: { values: true },
+      callback(data) {
+        defaultSubAgentIdRef.current = data.values.defaultSubAgentId;
+      },
+    });
+  }, []);
 
   return defaultSubAgentIdRef;
 }

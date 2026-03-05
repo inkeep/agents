@@ -4,6 +4,8 @@ import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agen
 import { agentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {
+  'use memo';
+
   const { undo, redo } = useAgentActions();
   const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
 
@@ -11,12 +13,12 @@ export function useAgentShortcuts() {
     function deleteSelected() {
       agentStore.setState((state) => {
         const nodesToDelete = new Set(
-          state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
+          state.nodes.filter((n) => n.selected && (n.deletable ?? true) && n.id !== defaultSubAgentIdRef.current).map((n) => n.id)
+        );
+        const unDeletableNodes = state.nodes.filter(
+          (n) => n.selected && n.id === defaultSubAgentIdRef.current
         );
 
-        const unDeletableNodes = state.nodes.filter(
-          (n) => n.selected && n.id !== defaultSubAgentIdRef.current
-        );
         if (unDeletableNodes.length) {
           const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
           toast.error(
