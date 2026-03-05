@@ -15,10 +15,7 @@ import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
-import {
-  handlePrepareStepCompression,
-  handleStopWhenConditions,
-} from './ai-sdk-callbacks';
+import { handlePrepareStepCompression, handleStopWhenConditions } from './ai-sdk-callbacks';
 import { setupCompression } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
 import { configureModelSettings } from './model-config';
