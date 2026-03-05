@@ -24,6 +24,11 @@ async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Res
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${FETCH_TIMEOUT_MS / 1000}s: ${url}`);
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -52,6 +57,9 @@ async function fetchAnthropicModels(apiKey: string): Promise<string[]> {
       has_more: boolean;
       last_id?: string;
     };
+    if (!Array.isArray(data.data)) {
+      throw new Error(`Anthropic API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`);
+    }
     allModels.push(...data.data);
     if (data.has_more && !data.last_id) {
       throw new Error('Anthropic API returned has_more=true but no last_id for pagination');
@@ -71,6 +79,9 @@ async function fetchOpenAIModels(apiKey: string): Promise<string[]> {
   const data = (await res.json()) as {
     data: Array<{ id: string; owned_by: string; created: number }>;
   };
+  if (!Array.isArray(data.data)) {
+    throw new Error(`OpenAI API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`);
+  }
 
   const NON_CHAT_PATTERNS = [
     /embed/i,
@@ -136,8 +147,11 @@ async function fetchGoogleModels(apiKey: string): Promise<string[]> {
       models: Array<{ name: string; supportedGenerationMethods?: string[] }>;
       nextPageToken?: string;
     };
+    if (!Array.isArray(data.models)) {
+      throw new Error(`Google API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`);
+    }
 
-    const chatModels = (data.models || [])
+    const chatModels = data.models
       .filter((m) => {
         if (!(m.supportedGenerationMethods ?? []).includes('generateContent')) return false;
         const id = m.name.replace('models/', '');
