@@ -259,6 +259,7 @@ Our CI pipeline runs on all pull requests and includes:
 
 - `pnpm check` (lint, typecheck, tests, format verification, env-description validation, knip)
 - Create Agents E2E tests (separate job)
+- OpenAPI snapshot auto-update — if the snapshot is out of date, CI regenerates it and commits the fix back to your PR branch
 
 These checks must pass before a PR can be merged. Pre-commit uses lint-staged, pre-push runs `pnpm format`, and CI is the source of truth.
 
