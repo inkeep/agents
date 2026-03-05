@@ -2048,6 +2048,7 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: ResourceIdSchema,
   dependencies: StringRecordSchema.nullish(),
   executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
+  inputSchema: z.record(z.string(), z.unknown(), 'Input Schema is required'),
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 

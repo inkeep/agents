@@ -22,9 +22,9 @@ const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
     functionId: true,
   });
 const FunctionSchema = AgentWithinContextOfProjectSchema.shape.functions.unwrap().valueType.pick({
-  inputSchema: true,
-  dependencies: true,
   executeCode: true,
+  dependencies: true,
+  inputSchema: true,
 });
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
@@ -119,13 +119,13 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   functions: z.record(
     z.string(),
     z.looseObject({
-      executeCode: FunctionSchema.shape.executeCode,
+      ...FunctionSchema.shape,
+      dependencies: StringToStringRecordSchema,
       inputSchema: z
         .string()
         .trim()
         .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-        .pipe(z.record(z.string(), z.unknown(), 'Input Schema is required')),
-      dependencies: StringToStringRecordSchema,
+        .pipe(FunctionSchema.shape.inputSchema),
     })
   ),
   externalAgents: z.record(
