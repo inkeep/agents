@@ -11,7 +11,8 @@ import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { Hono } from 'hono';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
-import { getSlackClient } from '../services/client';
+import { getBotMemberChannels, getSlackClient } from '../services/client';
+import { isSlackDevMode, loadSlackDevConfig } from '../services/dev-config';
 import { getConnectionAccessToken } from '../services/nango';
 import { slackMcpAuth } from './auth';
 import { resolveChannelId, validateChannelAccess } from './utils';
@@ -19,6 +20,14 @@ import { resolveChannelId, validateChannelAccess } from './utils';
 const logger = getLogger('slack-mcp');
 
 async function resolveWorkspaceToken(toolId: string): Promise<string> {
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    if (devConfig?.botToken) {
+      return devConfig.botToken;
+    }
+    throw new Error('Slack dev mode enabled but no botToken found in .slack-dev.json');
+  }
+
   const accessRow = await runDbClient
     .select({ tenantId: workAppSlackMcpToolAccessConfig.tenantId })
     .from(workAppSlackMcpToolAccessConfig)
@@ -44,23 +53,66 @@ async function resolveWorkspaceToken(toolId: string): Promise<string> {
   return botToken;
 }
 
+interface ChannelInfo {
+  id: string;
+  name: string;
+}
+
+async function getAvailableChannels(
+  client: ReturnType<typeof getSlackClient>,
+  config: Awaited<ReturnType<ReturnType<typeof getSlackMcpToolAccessConfig>>>
+): Promise<ChannelInfo[]> {
+  try {
+    const botChannels = await getBotMemberChannels(client);
+
+    if (config.channelAccessMode === 'all') {
+      return botChannels
+        .filter((ch): ch is typeof ch & { id: string; name: string } => !!ch.id && !!ch.name)
+        .map((ch) => ({ id: ch.id, name: ch.name }));
+    }
+
+    const allowedIds = new Set(config.channelIds);
+    return botChannels
+      .filter(
+        (ch): ch is typeof ch & { id: string; name: string } =>
+          !!ch.id && !!ch.name && allowedIds.has(ch.id)
+      )
+      .map((ch) => ({ id: ch.id, name: ch.name }));
+  } catch (error) {
+    logger.warn({ error }, 'Failed to fetch available channels for tool description');
+    return [];
+  }
+}
+
+function getAvailableChannelsString(channels: ChannelInfo[]): string {
+  if (channels.length === 0) {
+    return 'No channels available';
+  }
+  return `Available channels: ${channels.map((ch) => `#${ch.name} (${ch.id})`).join(', ')}`;
+}
+
 const getServer = async (toolId: string) => {
   const botToken = await resolveWorkspaceToken(toolId);
   const config = await getSlackMcpToolAccessConfig(runDbClient)(toolId);
   const client = getSlackClient(botToken);
+  const availableChannels = await getAvailableChannels(client, config);
 
   const server = new McpServer(
     {
       name: 'inkeep-slack-mcp-server',
       version: '1.0.0',
-      description: 'A Slack MCP server for posting messages to channels and DMs.',
+      description:
+        'A Slack MCP server for posting messages to channels' +
+        (config.dmEnabled ? ' and DMs' : '') +
+        '.\n' +
+        availableChannels.map((ch) => `• #${ch.name} (${ch.id})`).join('\n'),
     },
     { capabilities: { logging: {} } }
   );
 
   server.tool(
     'post-message',
-    'Post a message to a Slack channel or DM. Supports mrkdwn formatting and thread replies.',
+    `Post a message to a Slack channel${config.dmEnabled ? ' or DM' : ''}. Supports mrkdwn formatting and thread replies. ${getAvailableChannelsString(availableChannels)}`,
     {
       channel: z
         .string()

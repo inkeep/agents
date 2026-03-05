@@ -1,10 +1,11 @@
 'use client';
 
-import { Hash, MessageSquare, Settings } from 'lucide-react';
+import { Hash, MessageSquare, Settings, Slack } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { slackApi } from '@/features/work-apps/slack/api/slack-api';
 import { getSlackMcpToolAccess, type SlackMcpAccessConfig } from '@/lib/api/slack-mcp';
 import type { MCPTool } from '@/lib/types/tools';
 import { ItemLabel } from './view-mcp-server-details-shared';
@@ -24,6 +25,7 @@ export function WorkAppSlackAccessSection({
   canEdit,
 }: WorkAppSlackAccessSectionProps) {
   const [accessConfig, setAccessConfig] = useState<SlackMcpAccessConfig | null>(null);
+  const [channelNameMap, setChannelNameMap] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -32,8 +34,25 @@ export function WorkAppSlackAccessSection({
     try {
       setIsLoading(true);
       setError(null);
-      const config = await getSlackMcpToolAccess(tenantId, projectId, tool.id);
+      const [config, workspaces] = await Promise.all([
+        getSlackMcpToolAccess(tenantId, projectId, tool.id),
+        slackApi.listWorkspaceInstallations(),
+      ]);
       setAccessConfig(config);
+
+      if (
+        config.channelAccessMode === 'selected' &&
+        config.channelIds.length > 0 &&
+        workspaces.workspaces.length > 0
+      ) {
+        const workspace = workspaces.workspaces[0];
+        const channelData = await slackApi.listChannels(workspace.teamId);
+        const nameMap = new Map<string, string>();
+        for (const ch of channelData.channels) {
+          nameMap.set(ch.id, ch.name);
+        }
+        setChannelNameMap(nameMap);
+      }
     } catch (err) {
       console.error('Failed to load Slack access config:', err);
       setError('Failed to load Slack access configuration');
@@ -55,7 +74,7 @@ export function WorkAppSlackAccessSection({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Hash className="size-4" />
+            <Slack className="size-4" />
             <span className="font-medium">Slack Access</span>
           </div>
         </div>
@@ -69,7 +88,7 @@ export function WorkAppSlackAccessSection({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Hash className="size-4" />
+            <Slack className="size-4" />
             <span className="font-medium">Slack Access</span>
           </div>
         </div>
@@ -87,7 +106,7 @@ export function WorkAppSlackAccessSection({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Hash className="size-4" />
+            <Slack className="size-4" />
             <span className="font-medium">Slack Access</span>
           </div>
           {canEdit && (
@@ -125,7 +144,7 @@ export function WorkAppSlackAccessSection({
                 {accessConfig.channelIds.map((channelId) => (
                   <div key={channelId} className="flex items-center px-3 py-2">
                     <Hash className="size-3 mr-2 text-muted-foreground" />
-                    <span className="text-sm font-mono">{channelId}</span>
+                    <span className="text-sm">{channelNameMap.get(channelId) ?? channelId}</span>
                   </div>
                 ))}
               </div>

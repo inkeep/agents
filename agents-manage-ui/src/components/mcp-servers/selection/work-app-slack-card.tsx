@@ -1,6 +1,6 @@
 'use client';
 
-import { Hash } from 'lucide-react';
+import { Slack } from 'lucide-react';
 import {
   ItemCardContent,
   ItemCardHeader,
@@ -36,7 +36,7 @@ export function WorkAppSlackCard({
     >
       <ItemCardHeader>
         <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
-          <Hash className="h-6 w-6 flex-shrink-0" />
+          <Slack className="h-6 w-6 flex-shrink-0" />
           <span className="flex-1 min-w-0 text-base font-medium truncate">Slack</span>
         </ItemCardTitle>
       </ItemCardHeader>
