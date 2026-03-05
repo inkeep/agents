@@ -99,6 +99,7 @@ function processMessagesWithNodeId(obj: Record<string, undefined | Record<string
 export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) {
   'use memo';
   const { setQueryState } = useSidePane();
+  const [hasEditableFocus, setHasEditableFocus] = useState(false);
 
   function handleNavigateToNode(nodeId: string) {
     setQueryState({ pane: 'node', nodeId, edgeId: null });
@@ -166,13 +167,29 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
 
   const errorCount = data.reduce((acc, curr) => acc + curr.errors.length, 0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset showErrors state when errors were changed
   useEffect(() => {
     setShowErrors(true);
   }, [errorCount]);
 
-  if (!errorCount || !showErrors) {
-    return;
-  }
+  useEffect(() => {
+    function updateFocusState() {
+      const editableFocusSelector = ['input:not([type="hidden"])', 'textarea', 'select'].join();
+
+      setHasEditableFocus(document.activeElement?.matches(editableFocusSelector) ?? false);
+    }
+
+    updateFocusState();
+    document.addEventListener('focusin', updateFocusState);
+    document.addEventListener('focusout', updateFocusState);
+
+    return () => {
+      document.removeEventListener('focusin', updateFocusState);
+      document.removeEventListener('focusout', updateFocusState);
+    };
+  }, []);
+
+  if (!errorCount || !showErrors || hasEditableFocus) return null;
 
   return (
     <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl gap-2 py-4 max-h-[80vh] animate-in slide-in-from-bottom-2 duration-300">
