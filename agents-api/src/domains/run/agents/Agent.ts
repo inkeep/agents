@@ -38,6 +38,11 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
+
+type ToolResultOutput = Awaited<ReturnType<NonNullable<Tool['toModelOutput']>>>;
+type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number];
+type ToolResultJsonValue = Extract<ToolResultOutput, { type: 'json' }>['value'];
+
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -55,6 +60,8 @@ import {
 } from '../data/conversations';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
+import { makeMessageContentParts } from '../services/blob-storage/image-upload';
+import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
@@ -688,15 +695,21 @@ export class Agent {
           if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
             try {
               const messageId = generateId();
+              const messageContent = await this.buildToolResultMessageContent(
+                toolName,
+                args,
+                result,
+                toolCallId,
+                toolResultConversationId,
+                messageId
+              );
               const messagePayload = {
                 id: messageId,
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
                 conversationId: toolResultConversationId,
                 role: 'assistant',
-                content: {
-                  text: this.formatToolResult(toolName, args, result, toolCallId),
-                },
+                content: messageContent,
                 visibility: 'internal',
                 messageType: 'tool-result',
                 fromSubAgentId: this.config.id,
@@ -894,6 +907,9 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
+          toModelOutput: ({ output }) => {
+            return this.buildToolModelOutput(output);
+          },
           execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
@@ -1991,6 +2007,199 @@ export class Agent {
   /**
    * Format tool result for storage in conversation history
    */
+  private buildToolModelOutput(output: unknown): ToolResultOutput {
+    if (isToolResultDenied(output)) {
+      return {
+        type: 'execution-denied',
+        reason: output.reason,
+      };
+    }
+
+    if (!output || typeof output !== 'object') {
+      return {
+        type: 'json',
+        value: output as ToolResultJsonValue,
+      };
+    }
+
+    const outputRecord = output as Record<string, unknown>;
+    const content = outputRecord.content;
+    if (!Array.isArray(content)) {
+      return {
+        type: 'json',
+        value: output as ToolResultJsonValue,
+      };
+    }
+
+    const mappedContent = content
+      .map((item) => this.mapMcpContentItemToToolResultContentPart(item))
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    if (mappedContent.length === 0) {
+      return {
+        type: 'json',
+        value: output as ToolResultJsonValue,
+      };
+    }
+
+    const meta: Record<string, unknown> = {};
+    if ('_toolCallId' in outputRecord) meta._toolCallId = outputRecord._toolCallId;
+    if ('_structureHints' in outputRecord) meta._structureHints = outputRecord._structureHints;
+
+    const metaPart: ToolResultContentPart | null =
+      Object.keys(meta).length > 0 ? { type: 'text', text: JSON.stringify(meta) } : null;
+
+    return {
+      type: 'content',
+      value: metaPart ? [metaPart, ...mappedContent] : mappedContent,
+    };
+  }
+
+  private mapMcpContentItemToToolResultContentPart(item: unknown): ToolResultContentPart | null {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+
+    const contentItem = item as Record<string, unknown>;
+    const type = contentItem.type;
+
+    if (type === 'text') {
+      if (typeof contentItem.text === 'string') {
+        return {
+          type: 'text',
+          text: contentItem.text,
+        };
+      }
+
+      if (contentItem.text !== undefined) {
+        return {
+          type: 'text',
+          text: JSON.stringify(contentItem.text, null, 2),
+        };
+      }
+
+      return null;
+    }
+
+    if (type === 'image') {
+      if (typeof contentItem.data === 'string' && contentItem.data.trim() !== '') {
+        return {
+          type: 'image-data',
+          data: contentItem.data as string,
+          mediaType:
+            typeof contentItem.mimeType === 'string' && contentItem.mimeType.trim() !== ''
+              ? contentItem.mimeType
+              : 'image/*',
+        };
+      }
+
+      if (typeof contentItem.url === 'string' && contentItem.url.trim() !== '') {
+        return {
+          type: 'image-url',
+          url: contentItem.url as string,
+        };
+      }
+
+      return null;
+    }
+
+    // Other MCP content types (e.g. 'resource', 'audio') serialize as text for now
+    return {
+      type: 'text',
+      text: JSON.stringify(contentItem, null, 2),
+    };
+  }
+
+  private async buildToolResultMessageContent(
+    toolName: string,
+    args: any,
+    result: any,
+    toolCallId: string,
+    conversationId: string,
+    messageId: string
+  ): Promise<MessageContent> {
+    const text = this.formatToolResult(toolName, args, result, toolCallId);
+    const parts = this.getStructuredToolResultParts(result);
+
+    if (!parts || parts.length === 0) {
+      return { text };
+    }
+
+    const hasFileParts = parts.some((part) => part.kind === 'file');
+    if (!hasFileParts) {
+      return { text, parts: makeMessageContentParts(parts) };
+    }
+
+    return buildPersistedMessageContent(text, parts, {
+      tenantId: this.config.tenantId,
+      projectId: this.config.projectId,
+      conversationId,
+      messageId,
+    });
+  }
+
+  private getStructuredToolResultParts(result: any): Array<Part> | undefined {
+    if (!result || typeof result !== 'object' || !Array.isArray(result.content)) {
+      return undefined;
+    }
+
+    const parts = result.content
+      .map((item: any) => this.mapMcpContentItemToMessagePart(item))
+      .filter(
+        (part: ReturnType<Agent['mapMcpContentItemToMessagePart']>): part is Part => part !== null
+      );
+
+    return parts.length > 0 ? parts : undefined;
+  }
+
+  private mapMcpContentItemToMessagePart(item: any): Part | null {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+
+    if (item.type === 'text') {
+      if (typeof item.text === 'string') {
+        return { kind: 'text', text: item.text };
+      }
+      if (item.text !== undefined) {
+        return { kind: 'text', text: JSON.stringify(item.text, null, 2) };
+      }
+      return null;
+    }
+
+    if (item.type === 'image' && typeof item.data === 'string') {
+      return {
+        kind: 'file',
+        file: {
+          bytes: item.data,
+          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+        },
+        metadata: {
+          type: 'image',
+        },
+      };
+    }
+
+    if (item.type === 'image' && typeof item.url === 'string') {
+      return {
+        kind: 'file',
+        file: {
+          uri: item.url,
+          ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+        },
+        metadata: {
+          type: 'image',
+        },
+      };
+    }
+
+    // Other MCP content types (e.g. 'resource', 'audio') fall through to generic data for now
+    return {
+      kind: 'data',
+      data: item as Record<string, unknown>,
+    };
+  }
+
   private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
     const input = args ? JSON.stringify(args, null, 2) : 'No input';
 
@@ -2032,8 +2241,9 @@ export class Agent {
           }
         : parsedResult;
 
+    const textOnlyResult = this.filterNonTextToolResultContent(cleanResult);
     const output =
-      typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
+      typeof textOnlyResult === 'string' ? textOnlyResult : JSON.stringify(textOnlyResult, null, 2);
 
     return `## Tool: ${toolName}
 
@@ -2044,6 +2254,25 @@ ${input}
 
 ### Output
 ${output}`;
+  }
+
+  private filterNonTextToolResultContent(result: any): any {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      return result;
+    }
+
+    if (!Array.isArray(result.content)) {
+      return result;
+    }
+
+    const textContent = result.content.filter(
+      (item: any) => item?.type === 'text' && 'text' in item
+    );
+
+    return {
+      ...result,
+      content: textContent,
+    };
   }
 
   /**
