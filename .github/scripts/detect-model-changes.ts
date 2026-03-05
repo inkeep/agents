@@ -1,9 +1,9 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node --experimental-strip-types
 /**
  * Detects new AI models from provider APIs and compares against the static model list.
  * Sets GitHub Actions outputs: has_changes (true/false) and prompt (Claude Code prompt).
  *
- * Run with: pnpm exec tsx .github/scripts/detect-model-changes.ts
+ * Run with: node --experimental-strip-types .github/scripts/detect-model-changes.ts
  */
 
 import { appendFileSync } from 'node:fs';
@@ -16,22 +16,52 @@ import {
 // --- Provider API fetchers ---
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 30_000;
+const MAX_PAGES = 20;
+
+async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 async function fetchAnthropicModels(apiKey: string): Promise<string[]> {
-  const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-  });
-  if (!res.ok) throw new Error(`Anthropic API error: ${res.status} ${res.statusText}`);
-  const data = (await res.json()) as { data: Array<{ id: string; created_at: string }> };
+  const allModels: Array<{ id: string; created_at: string }> = [];
+  let afterId: string | undefined;
+
+  let pages = 0;
+  do {
+    pages++;
+    const url = new URL('https://api.anthropic.com/v1/models');
+    url.searchParams.set('limit', '100');
+    if (afterId) url.searchParams.set('after_id', afterId);
+
+    const res = await fetchWithTimeout(url.toString(), {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+    });
+    if (!res.ok) throw new Error(`Anthropic API error: ${res.status} ${res.statusText}`);
+    const data = (await res.json()) as {
+      data: Array<{ id: string; created_at: string }>;
+      has_more: boolean;
+      last_id?: string;
+    };
+    allModels.push(...data.data);
+    afterId = data.has_more ? data.last_id : undefined;
+  } while (afterId && pages < MAX_PAGES);
+
   const cutoff = Date.now() - NINETY_DAYS_MS;
-  return data.data.filter((m) => new Date(m.created_at).getTime() >= cutoff).map((m) => m.id);
+  return allModels.filter((m) => new Date(m.created_at).getTime() >= cutoff).map((m) => m.id);
 }
 
 async function fetchOpenAIModels(apiKey: string): Promise<string[]> {
-  const res = await fetch('https://api.openai.com/v1/models', {
+  const res = await fetchWithTimeout('https://api.openai.com/v1/models', {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (!res.ok) throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
@@ -89,13 +119,15 @@ async function fetchGoogleModels(apiKey: string): Promise<string[]> {
     /customtools/i, // internal variants
   ];
 
+  let pages = 0;
   do {
+    pages++;
     const url = new URL('https://generativelanguage.googleapis.com/v1beta/models');
     url.searchParams.set('key', apiKey);
     url.searchParams.set('pageSize', '100');
     if (pageToken) url.searchParams.set('pageToken', pageToken);
 
-    const res = await fetch(url.toString());
+    const res = await fetchWithTimeout(url.toString());
     if (!res.ok) throw new Error(`Google API error: ${res.status} ${res.statusText}`);
     const data = (await res.json()) as {
       models: Array<{ name: string; supportedGenerationMethods?: string[] }>;
@@ -114,7 +146,7 @@ async function fetchGoogleModels(apiKey: string): Promise<string[]> {
 
     allModels.push(...chatModels);
     pageToken = data.nextPageToken;
-  } while (pageToken);
+  } while (pageToken && pages < MAX_PAGES);
 
   return allModels;
 }
@@ -128,23 +160,22 @@ function currentModelIds(models: Record<string, string>): Set<string> {
 // --- GitHub API: idempotency check ---
 
 async function hasOpenSyncPR(token: string, repo: string): Promise<boolean> {
-  const res = await fetch(`https://api.github.com/repos/${repo}/pulls?state=open&per_page=50`, {
+  const q = encodeURIComponent(`repo:${repo} is:pr is:open label:model-sync`);
+  const res = await fetchWithTimeout(`https://api.github.com/search/issues?q=${q}&per_page=1`, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github.v3+json',
     },
   });
   if (!res.ok) {
-    console.warn(`GitHub API warning: could not check existing PRs (${res.status})`);
-    return false;
+    // Fail-safe: assume a PR exists to avoid creating duplicates when we can't verify
+    console.warn(
+      `::warning::GitHub API error checking for existing PRs (${res.status}). Skipping to avoid duplicates.`
+    );
+    return true;
   }
-  const prs = (await res.json()) as Array<{
-    title: string;
-    labels: Array<{ name: string }>;
-  }>;
-  return prs.some(
-    (pr) => pr.title.includes('[model-sync]') || pr.labels.some((l) => l.name === 'model-sync')
-  );
+  const data = (await res.json()) as { total_count: number };
+  return data.total_count > 0;
 }
 
 // --- GitHub Actions output helpers ---
@@ -177,6 +208,7 @@ async function main(): Promise<void> {
   const currentGoogle = currentModelIds(GOOGLE_MODELS);
 
   const newModels: NewModel[] = [];
+  const failures: string[] = [];
 
   if (anthropicKey) {
     try {
@@ -187,6 +219,7 @@ async function main(): Promise<void> {
       }
     } catch (err) {
       console.error('Failed to fetch Anthropic models:', err);
+      failures.push('anthropic');
     }
   } else {
     console.warn('ANTHROPIC_API_KEY not set — skipping Anthropic');
@@ -201,6 +234,7 @@ async function main(): Promise<void> {
       }
     } catch (err) {
       console.error('Failed to fetch OpenAI models:', err);
+      failures.push('openai');
     }
   } else {
     console.warn('OPENAI_API_KEY not set — skipping OpenAI');
@@ -215,9 +249,22 @@ async function main(): Promise<void> {
       }
     } catch (err) {
       console.error('Failed to fetch Google models:', err);
+      failures.push('google');
     }
   } else {
     console.warn('GOOGLE_GENERATIVE_AI_API_KEY not set — skipping Google');
+  }
+
+  if (failures.length > 0) {
+    console.warn(
+      `::warning::model-sync: failed to fetch from ${failures.join(', ')}. Results may be incomplete.`
+    );
+  }
+
+  const configuredProviders = [anthropicKey, openaiKey, googleKey].filter(Boolean).length;
+  if (failures.length === configuredProviders && newModels.length === 0) {
+    console.error('All configured providers failed. Cannot determine if new models exist.');
+    process.exit(1);
   }
 
   if (newModels.length === 0) {
