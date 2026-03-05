@@ -1,0 +1,56 @@
+name: Model Sync
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Daily at 9am UTC
+  workflow_dispatch: # Allow manual trigger
+
+concurrency:
+  group: model-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 1
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+
+      - name: Detect model changes
+        id: detect
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node --experimental-strip-types .github/scripts/detect-model-changes.ts
+
+      - name: Update model list via Claude Code
+        if: steps.detect.outputs.has_changes == 'true'
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631 # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          claude_args: '--model opus'
+          prompt: ${{ steps.detect.outputs.prompt }}
