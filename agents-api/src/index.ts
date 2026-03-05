@@ -1,4 +1,5 @@
 import { env } from './env';
+import './sentry';
 import { defaultSDK } from './instrumentation';
 
 defaultSDK.start();
