@@ -204,7 +204,9 @@ export function enhanceToolResultWithStructureHints(
     } else if (obj && typeof obj === 'object') {
       Object.entries(obj).forEach(([key, value]) => {
         if (typeof value === 'object' && value !== null) {
-          selectors.push(...findUsefulSelectors(value, prefix ? `${prefix}.${key}` : key, depth + 1));
+          selectors.push(
+            ...findUsefulSelectors(value, prefix ? `${prefix}.${key}` : key, depth + 1)
+          );
         }
       });
     }

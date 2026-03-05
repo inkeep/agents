@@ -595,7 +595,10 @@ describe('ArtifactService', () => {
         result: { ...successResult, failed: false },
         timestamp: Date.now(),
       });
-      expect(artifactService.getToolResultRaw('call-ok')).toEqual({ ...successResult, failed: false });
+      expect(artifactService.getToolResultRaw('call-ok')).toEqual({
+        ...successResult,
+        failed: false,
+      });
     });
   });
 
