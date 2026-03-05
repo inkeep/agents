@@ -235,11 +235,13 @@ export function serializeAgentForm(data: FullAgentResponse) {
       ])
     ),
     functionTools: Object.fromEntries(
-      Object.values(functions).map((tool) => [
+      Object.values(functionTools).map(({ createdAt, updatedAt, ...tool }) => [tool.id, tool])
+    ),
+    functions: Object.fromEntries(
+      Object.values(functions).map(({ createdAt, updatedAt, ...tool }) => [
         tool.id,
         {
           ...tool,
-          name: functionTools[tool.id].name,
           inputSchema: serializeJson(tool.inputSchema),
           dependencies: serializeJson(tool.dependencies),
         },
@@ -270,6 +272,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
         o.id,
         {
           ...o,
+          imageUrl: o.imageUrl ?? undefined,
           headers: serializeJson(o.headers),
         },
       ])
