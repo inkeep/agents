@@ -20,6 +20,7 @@ const FETCH_TIMEOUT_MS = 30_000;
 
 const rawDays = parseInt(process.env.DAYS ?? '2', 10);
 const DAYS = Number.isNaN(rawDays) || rawDays <= 0 ? 2 : rawDays;
+const GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 
 type GatewayModel = {
   id: string;
@@ -48,9 +49,10 @@ async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Res
 }
 
 async function fetchGatewayModels(): Promise<Array<{ provider: string; id: string }>> {
-  const res = await fetchWithTimeout(GATEWAY_ENDPOINT, {
-    headers: { accept: 'application/json' },
-  });
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (GATEWAY_API_KEY) headers['Authorization'] = `Bearer ${GATEWAY_API_KEY}`;
+
+  const res = await fetchWithTimeout(GATEWAY_ENDPOINT, { headers });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Vercel AI Gateway error: ${res.status} ${res.statusText}\n${body}`);

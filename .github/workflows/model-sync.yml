@@ -46,6 +46,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           DAYS: ${{ github.event.inputs.days || '2' }}
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
         run: node --experimental-strip-types .github/scripts/detect-model-changes.ts
 
       - name: Update model list via Claude Code
