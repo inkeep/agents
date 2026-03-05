@@ -268,11 +268,7 @@ export const validateAndGetApiKey = async (
     return null;
   }
 
-  await updateApiKey(db)({
-    scopes: { tenantId: apiKey.tenantId, projectId: apiKey.projectId },
-    id: apiKey.id,
-    data: { lastUsedAt: new Date().toISOString() },
-  });
+  await updateApiKeyLastUsed(db)(apiKey.id);
 
   return apiKey;
 };

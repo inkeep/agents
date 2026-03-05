@@ -92,7 +92,7 @@ export async function distillConversationHistory(params: {
       throw new Error('Summarizer model is required');
     }
 
-    const model = ModelFactory.createModel(summarizerModel);
+    const generationConfig = ModelFactory.prepareGenerationConfig(summarizerModel);
 
     const modelContextInfo = getModelContextWindow(summarizerModel);
     if (!modelContextInfo.contextWindow) {
@@ -218,7 +218,7 @@ Return **only** valid JSON.`;
 
       try {
         const { output: summary } = await generateText({
-          model,
+          ...generationConfig,
           prompt,
           output: Output.object({ schema: ConversationHistorySummarySchema }),
         });
