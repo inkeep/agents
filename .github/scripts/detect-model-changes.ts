@@ -4,7 +4,7 @@
  * Sets GitHub Actions outputs: has_changes (true/false) and prompt (Claude Code prompt).
  *
  * Run with: node --experimental-strip-types .github/scripts/detect-model-changes.ts
- * Override lookback: DAYS=30 node --experimental-strip-types .github/scripts/detect-model-changes.ts
+ * Override lookback: DAYS=90 node --experimental-strip-types .github/scripts/detect-model-changes.ts
  */
 
 import { appendFileSync } from 'node:fs';
@@ -18,8 +18,8 @@ const GATEWAY_ENDPOINT = 'https://ai-gateway.vercel.sh/v1/models';
 const TRACKED_PROVIDERS = new Set(['openai', 'anthropic', 'google']);
 const FETCH_TIMEOUT_MS = 30_000;
 
-const rawDays = parseInt(process.env.DAYS ?? '90', 10);
-const DAYS = Number.isNaN(rawDays) || rawDays <= 0 ? 90 : rawDays;
+const rawDays = parseInt(process.env.DAYS ?? '2', 10);
+const DAYS = Number.isNaN(rawDays) || rawDays <= 0 ? 2 : rawDays;
 
 type GatewayModel = {
   id: string;

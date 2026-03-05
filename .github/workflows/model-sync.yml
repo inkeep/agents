@@ -8,7 +8,7 @@ on:
       days:
         description: 'Lookback window in days for new model detection (default: 90)'
         required: false
-        default: '90'
+        default: '2'
 
 concurrency:
   group: model-sync
@@ -45,7 +45,7 @@ jobs:
         id: detect
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          DAYS: ${{ github.event.inputs.days || '90' }}
+          DAYS: ${{ github.event.inputs.days || '2' }}
         run: node --experimental-strip-types .github/scripts/detect-model-changes.ts
 
       - name: Update model list via Claude Code
