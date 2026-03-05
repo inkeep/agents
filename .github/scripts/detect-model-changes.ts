@@ -58,7 +58,9 @@ async function fetchAnthropicModels(apiKey: string): Promise<string[]> {
       last_id?: string;
     };
     if (!Array.isArray(data.data)) {
-      throw new Error(`Anthropic API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`);
+      throw new Error(
+        `Anthropic API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`
+      );
     }
     allModels.push(...data.data);
     if (data.has_more && !data.last_id) {
@@ -148,7 +150,9 @@ async function fetchGoogleModels(apiKey: string): Promise<string[]> {
       nextPageToken?: string;
     };
     if (!Array.isArray(data.models)) {
-      throw new Error(`Google API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`);
+      throw new Error(
+        `Google API returned unexpected format: ${JSON.stringify(data).slice(0, 200)}`
+      );
     }
 
     const chatModels = data.models
