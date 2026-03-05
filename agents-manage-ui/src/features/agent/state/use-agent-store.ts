@@ -88,7 +88,6 @@ interface AgentActions {
   markSaved(): void;
   markUnsaved(): void;
   clearSelection(): void;
-  deleteSelected(): void;
   /**
    * Setter for `jsonSchemaMode` field.
    */
@@ -290,32 +289,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         edges: state.edges.map((e) => ({ ...e, selected: false })),
         dirty: state.dirty,
       }));
-    },
-    deleteSelected() {
-      set((state) => {
-        const nodesToDelete = new Set(
-          state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
-        );
-
-        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
-        if (unDeletableNodes.length) {
-          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
-          toast.error(
-            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
-          );
-        }
-
-        const edgesRemaining = state.edges.filter(
-          (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
-        );
-        const nodesRemaining = state.nodes.filter((n) => !nodesToDelete.has(n.id));
-        return {
-          history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-          nodes: nodesRemaining,
-          edges: edgesRemaining,
-          dirty: true,
-        };
-      });
     },
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });
