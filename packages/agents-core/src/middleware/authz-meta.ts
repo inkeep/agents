@@ -1,13 +1,16 @@
-import type { MiddlewareHandler } from 'hono';
+import type {
+  Env as HonoEnv,
+  Input as HonoInput,
+  MiddlewareHandler,
+} from 'hono';
 
 export type AuthzMeta = { resource?: string; permission?: string; description: string };
 
 export type ProjectScopedMiddleware<
-  Env = any,
+  Env extends HonoEnv = HonoEnv,
   Path extends string = string,
-  Input = {},
-  Response = any,
-> = MiddlewareHandler<Env, Path, Input, Response> & { readonly __projectScoped: true };
+  Input extends HonoInput = HonoInput,
+> = MiddlewareHandler<Env, Path, Input> & { readonly __projectScoped: true };
 
 const authzMeta = new WeakMap<object, AuthzMeta>();
 
