@@ -10,7 +10,7 @@ vi.mock('../../session/AgentSession', () => ({
     getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
   },
 }));
-vi.mock('../../../logger', () => ({
+vi.mock('../../../../logger', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

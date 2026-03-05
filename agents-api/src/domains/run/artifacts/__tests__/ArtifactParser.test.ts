@@ -10,7 +10,7 @@ vi.mock('../ArtifactService', () => ({
   })),
 }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../../../logger', () => ({
   getLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
