@@ -37203,6 +37203,323 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/tools/{toolId}/slack-access": {
+      "get": {
+        "description": "Returns the current Slack channel access configuration for an MCP tool. If channelAccessMode is \"all\", the tool can post to any channel. If channelAccessMode is \"selected\", the tool is scoped to specific channels.",
+        "operationId": "get-mcp-tool-slack-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "channelAccessMode": {
+                      "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "channelIds": {
+                      "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dmEnabled": {
+                      "description": "Whether DM access is enabled for this tool",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "channelAccessMode",
+                    "dmEnabled",
+                    "channelIds"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Slack access configuration retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get MCP tool Slack channel access",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "put": {
+        "description": "Configures which Slack channels an MCP tool can post to. When channelAccessMode is \"all\", the tool can post to any channel. When channelAccessMode is \"selected\", the tool is scoped to specific channels (channelIds required).",
+        "operationId": "set-mcp-tool-slack-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelAccessMode": {
+                    "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "channelIds": {
+                    "description": "List of allowed channel IDs (required when channelAccessMode is \"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "dmEnabled": {
+                    "description": "Whether DM access is enabled for this tool",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "channelAccessMode",
+                  "dmEnabled"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "channelAccessMode": {
+                      "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "channelCount": {
+                      "description": "Number of channels the tool has access to (0 when mode is \"all\")",
+                      "type": "number"
+                    },
+                    "dmEnabled": {
+                      "description": "Whether DM access is enabled for this tool",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "channelAccessMode",
+                    "dmEnabled",
+                    "channelCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Slack access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool Slack channel access",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/users/{userId}/project-memberships": {
       "get": {
         "description": "List all projects a user has explicit access to and their role in each.",
