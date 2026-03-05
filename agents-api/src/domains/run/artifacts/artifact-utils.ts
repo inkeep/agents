@@ -1,5 +1,5 @@
 import { getLogger } from '../../../logger';
-import { estimateTokens } from './token-estimator';
+import { estimateTokens } from '../utils/token-estimator';
 
 const logger = getLogger('artifact-utils');
 

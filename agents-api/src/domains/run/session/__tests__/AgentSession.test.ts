@@ -5,7 +5,7 @@ import type {
   StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StreamHelper } from '../../utils/stream-helpers';
+import type { StreamHelper } from '../../stream/stream-helpers';
 import { AgentSession, agentSessionManager } from '../AgentSession';
 
 // Mock the AI SDK
@@ -51,7 +51,7 @@ vi.mock('../../agents/ModelFactory.js', () => ({
 }));
 
 // Mock stream registry
-vi.mock('../../utils/stream-registry.js', () => ({
+vi.mock('../../stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),

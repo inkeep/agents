@@ -1,9 +1,9 @@
 import { generateId } from '@inkeep/agents-core';
-import { getLogger } from '../../../logger';
+import { getLogger } from '../../../../logger';
 import {
   SESSION_CLEANUP_INTERVAL_MS,
   SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS,
-} from '../constants/execution-limits';
+} from '../../constants/execution-limits';
 
 const logger = getLogger('ToolSessionManager');
 

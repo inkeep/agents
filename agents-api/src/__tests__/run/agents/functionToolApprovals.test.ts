@@ -47,8 +47,8 @@ vi.mock('ai', () => ({
 
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { pendingToolApprovalManager } from '../../../domains/run/services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../../../domains/run/services/ToolApprovalUiBus';
+import { pendingToolApprovalManager } from '../../../domains/run/session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../../../domains/run/session/ToolApprovalUiBus';
 
 describe('Function tool approvals (toolPolicies)', () => {
   beforeEach(() => {

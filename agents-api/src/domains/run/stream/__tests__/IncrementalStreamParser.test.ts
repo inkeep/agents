@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StreamHelper } from '../../utils/stream-helpers';
-import { ArtifactParser } from '../ArtifactParser';
+import { ArtifactParser } from '../../artifacts/ArtifactParser';
 import { IncrementalStreamParser } from '../IncrementalStreamParser';
+import type { StreamHelper } from '../stream-helpers';
 
 // Mock dependencies
-vi.mock('../ArtifactParser');
-vi.mock('../AgentSession', () => ({
+vi.mock('../../artifacts/ArtifactParser');
+vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: {
     getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
   },

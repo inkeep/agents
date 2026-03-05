@@ -1,6 +1,6 @@
 import { MCPServerType, MCPTransportType, McpClient } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { AgentMcpManager } from '../../../domains/run/agents/AgentMcpManager';
+import { AgentMcpManager } from '../../../domains/run/agents/services/AgentMcpManager';
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -20,7 +20,7 @@ vi.mock('ai', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../domains/run/services/AgentSession', () => ({
+vi.mock('../../../domains/run/session/AgentSession', () => ({
   agentSessionManager: { recordEvent: vi.fn() },
 }));
 

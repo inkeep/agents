@@ -19,7 +19,9 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { generateText, Output } from 'ai';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import { toolSessionManager } from '../agents/ToolSessionManager';
+import { toolSessionManager } from '../agents/services/ToolSessionManager';
+import { ArtifactParser } from '../artifacts/ArtifactParser';
+import { ArtifactService } from '../artifacts/ArtifactService';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
   ARTIFACT_GENERATION_BACKOFF_MAX_MS,
@@ -30,13 +32,11 @@ import {
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
+import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
-import { getStreamHelper } from '../utils/stream-registry';
 import { estimateTokens } from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { ArtifactParser } from './ArtifactParser';
-import { ArtifactService } from './ArtifactService';
 
 const logger = getLogger('AgentSession');
 

@@ -54,11 +54,11 @@ vi.mock('@inkeep/agents-core', () => ({
   })),
 }));
 
-vi.mock('../../agents/ToolSessionManager', () => ({
+vi.mock('../../agents/services/ToolSessionManager', () => ({
   toolSessionManager: toolSessionManagerMock,
 }));
 
-vi.mock('../AgentSession', () => ({
+vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: agentSessionManagerMock,
 }));
 

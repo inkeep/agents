@@ -7,8 +7,8 @@ import {
   STREAM_MAX_LIFETIME_MS,
   STREAM_TEXT_GAP_THRESHOLD_MS,
 } from '../constants/execution-limits';
-import type { ErrorEvent, OperationEvent } from './agent-operations';
-import { setSpanWithError, tracer } from './tracer';
+import type { ErrorEvent, OperationEvent } from '../utils/agent-operations';
+import { setSpanWithError, tracer } from '../utils/tracer';
 
 export interface StreamHelper {
   writeRole(role?: string): Promise<void>;
