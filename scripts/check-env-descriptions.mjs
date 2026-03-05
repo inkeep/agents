@@ -83,7 +83,7 @@ function parseEnvFile(filePath) {
   const results = [];
 
   // Find z.object( and then extract the schema content
-  const schemaStartMatch = content.match(/z\.object\s*\(/);
+  const schemaStartMatch = content.match(/z\s*\.object\s*\(/);
   if (!schemaStartMatch) {
     return { error: 'Could not find z.object() schema', results: [] };
   }

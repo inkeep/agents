@@ -155,6 +155,24 @@ export const upsertScheduledTrigger =
   };
 
 /**
+ * Delete all scheduled triggers for a given runAsUserId within a tenant+project scope.
+ * Operates across all agents in the project (not agent-scoped).
+ */
+export const deleteScheduledTriggersByRunAsUserId =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { tenantId: string; projectId: string; runAsUserId: string }): Promise<void> => {
+    await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, params.tenantId),
+          eq(scheduledTriggers.projectId, params.projectId),
+          eq(scheduledTriggers.runAsUserId, params.runAsUserId)
+        )
+      );
+  };
+
+/**
  * List all scheduled triggers for an agent (non-paginated, used by agentFull)
  */
 export const listScheduledTriggers =

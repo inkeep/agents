@@ -13,6 +13,7 @@ import type {
   SignatureVerificationConfig,
 } from '@inkeep/agents-core';
 import {
+  canUseProjectStrict,
   createKeyChainStore,
   createMessage,
   createNangoCredentialStore,
@@ -25,6 +26,7 @@ import {
   getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
+  getUserProfile,
   getWaitUntil,
   interpolateTemplate,
   JsonTransformer,
@@ -48,6 +50,13 @@ import { tracer } from '../utils/tracer';
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
+
+export function buildTimezoneHeaders(timezone?: string | null): Record<string, string> {
+  return {
+    'x-inkeep-client-timezone': timezone || 'UTC',
+    'x-inkeep-client-timestamp': new Date().toISOString(),
+  };
+}
 
 // Credential cache with 5-minute TTL
 const credentialCache = new Map<string, { secret: string; expiresAt: number }>();
@@ -142,6 +151,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId: trigger.runAsUserId ?? undefined,
   });
 
   return { success: true, invocationId, conversationId };
@@ -494,6 +504,7 @@ export async function dispatchExecution(params: {
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
+  runAsUserId?: string;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -505,6 +516,7 @@ export async function dispatchExecution(params: {
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId,
   } = params;
 
   const conversationId = getConversationId();
@@ -543,6 +555,7 @@ export async function dispatchExecution(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    runAsUserId,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -610,6 +623,8 @@ export async function executeAgentAsync(params: {
   messageParts: Part[];
   resolvedRef: ResolvedRef;
   dispatchedAt?: number;
+  runAsUserId?: string;
+  forwardedHeaders?: Record<string, string>;
 }): Promise<void> {
   const {
     tenantId,
@@ -622,6 +637,8 @@ export async function executeAgentAsync(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    runAsUserId,
+    forwardedHeaders,
   } = params;
 
   const execStartedAt = Date.now();
@@ -688,6 +705,92 @@ export async function executeAgentAsync(params: {
 
   const agentName = agent.name;
 
+  // Permission check for user-scoped webhook triggers
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({ userId: runAsUserId, tenantId, projectId });
+      if (!canUse) {
+        logger.warn(
+          { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId },
+          'User no longer has access to project, failing invocation'
+        );
+        try {
+          await updateTriggerInvocationStatus(runDbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: {
+              status: 'failed',
+              errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
+            },
+          });
+        } catch (updateError) {
+          logger.error(
+            {
+              err: updateError instanceof Error ? updateError.message : String(updateError),
+              invocationId,
+            },
+            'Failed to update invocation status after permission denial'
+          );
+        }
+        return;
+      }
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId, error: err },
+        'Failed to check user project access'
+      );
+      try {
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId,
+          invocationId,
+          data: {
+            status: 'failed',
+            errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        });
+      } catch (updateError) {
+        logger.error(
+          {
+            err: updateError instanceof Error ? updateError.message : String(updateError),
+            invocationId,
+          },
+          'Failed to update invocation status after permission check error'
+        );
+      }
+      return;
+    }
+  }
+
+  let resolvedForwardedHeaders = forwardedHeaders;
+  if (runAsUserId) {
+    await tracer.startActiveSpan('trigger.resolve_user_timezone', async (span) => {
+      try {
+        span.setAttribute('user.id', runAsUserId);
+        const profile = await getUserProfile(runDbClient)(runAsUserId);
+        if (profile?.timezone) {
+          resolvedForwardedHeaders = {
+            ...forwardedHeaders,
+            ...buildTimezoneHeaders(profile.timezone),
+          };
+          span.setAttribute('user.timezone', profile.timezone);
+        }
+      } catch (err) {
+        logger.warn(
+          { runAsUserId, error: err instanceof Error ? err.message : String(err) },
+          'Failed to fetch user profile for timezone, proceeding with fallback'
+        );
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        span.end();
+      }
+    });
+  }
+
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
     .createBaggage()
@@ -717,6 +820,7 @@ export async function executeAgentAsync(params: {
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
         'invocation.type': 'trigger',
+        ...(runAsUserId && { 'user.id': runAsUserId, 'trigger.run_as_user_id': runAsUserId }),
       },
     },
     ctxWithBaggage,
@@ -797,10 +901,9 @@ export async function executeAgentAsync(params: {
           resolvedRef,
           project,
           metadata: {
-            initiatedBy: {
-              type: 'api_key',
-              id: triggerId,
-            },
+            initiatedBy: runAsUserId
+              ? { type: 'user', id: runAsUserId }
+              : { type: 'api_key', id: triggerId },
           },
         };
 
@@ -828,6 +931,7 @@ export async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
+          forwardedHeaders: resolvedForwardedHeaders,
         });
 
         if (!result.success) {

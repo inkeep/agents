@@ -1,0 +1,7 @@
+import { Trigger } from '@inkeep/agents-sdk';
+
+export const mixedNullable = new Trigger({
+  id: 'mixed-nullable',
+  name: 'Mixed Trigger',
+  messageTemplate: 'Event received: {{body.type}}',
+});

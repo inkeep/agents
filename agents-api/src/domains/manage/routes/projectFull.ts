@@ -20,16 +20,20 @@ import {
   getProjectMainBranchName,
   getProjectMetadata,
   listScheduledTriggers,
+  listTriggers,
+  type OrgRole,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   type ScheduledTrigger,
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
+  type TriggerSelect,
   throwIfUniqueConstraintError,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
+import { HTTPException } from 'hono/http-exception';
 import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
@@ -41,6 +45,7 @@ import {
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../run/services/ScheduledTriggerService';
+import { validateTriggerPermissions } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
 
@@ -398,15 +403,80 @@ app.openapi(
         });
       }
 
-      // fetch existing scheduled triggers for all agents
+      // fetch existing scheduled triggers and webhook triggers for all agents in parallel
       const existingTriggersByAgent = new Map<string, ScheduledTrigger[]>();
+      const existingWebhookTriggersByAgent = new Map<string, TriggerSelect[]>();
       if (!isCreate) {
         const agents = Object.keys(validatedProjectData.agents || {});
-        for (const agentId of agents) {
-          const existingTriggers = await listScheduledTriggers(configDb)({
-            scopes: { tenantId, projectId, agentId },
+        const [scheduledResults, webhookResults] = await Promise.all([
+          Promise.all(
+            agents.map(async (agentId) => ({
+              agentId,
+              triggers: await listScheduledTriggers(configDb)({
+                scopes: { tenantId, projectId, agentId },
+              }),
+            }))
+          ),
+          Promise.all(
+            agents.map(async (agentId) => ({
+              agentId,
+              triggers: await listTriggers(configDb)({
+                scopes: { tenantId, projectId, agentId },
+              }),
+            }))
+          ),
+        ]);
+        for (const { agentId, triggers } of scheduledResults) {
+          existingTriggersByAgent.set(agentId, triggers);
+        }
+        for (const { agentId, triggers } of webhookResults) {
+          existingWebhookTriggersByAgent.set(agentId, triggers);
+        }
+      }
+
+      const callerId = userId ?? '';
+      const tenantRole = c.get('tenantRole') as OrgRole;
+
+      if (!tenantRole) {
+        throw createApiError({
+          code: 'unauthorized',
+          message: 'Missing tenant role',
+        });
+      }
+
+      for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
+        if (!agentData.scheduledTriggers) continue;
+
+        const existingTriggers = existingTriggersByAgent.get(agentId) || [];
+        const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
+
+        for (const [triggerId, triggerData] of Object.entries(agentData.scheduledTriggers)) {
+          await validateTriggerPermissions({
+            triggerData,
+            existing: existingById.get(triggerId),
+            callerId,
+            tenantId,
+            projectId,
+            tenantRole,
           });
-          existingTriggersByAgent.set(agentId, existingTriggers);
+        }
+      }
+
+      for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
+        if (!agentData.triggers) continue;
+
+        const existingTriggers = existingWebhookTriggersByAgent.get(agentId) || [];
+        const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
+
+        for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
+          await validateTriggerPermissions({
+            triggerData,
+            existing: existingById.get(triggerId),
+            callerId,
+            tenantId,
+            projectId,
+            tenantRole,
+          });
         }
       }
 
@@ -620,6 +690,10 @@ app.openapi(
               'Failed to set up project authorization. No changes were made to the database.',
           });
         }
+      }
+
+      if (error instanceof HTTPException) {
+        throw error;
       }
 
       throw createApiError({

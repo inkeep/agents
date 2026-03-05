@@ -128,7 +128,13 @@ app.post('/query', async (c) => {
       }
     }
 
-    logger.error({ error }, 'SigNoz query failed');
+    logger.error(
+      {
+        error,
+        responseData: axios.isAxiosError(error) ? error.response?.data : undefined,
+      },
+      'SigNoz query failed'
+    );
     return c.json(
       {
         error: 'Internal Server Error',
@@ -255,7 +261,13 @@ app.post('/query-batch', async (c) => {
         return c.json({ error: 'Bad Request', message: 'Invalid query parameters' }, 400);
       }
     }
-    logger.error({ error }, 'SigNoz query-batch failed');
+    logger.error(
+      {
+        error,
+        responseData: axios.isAxiosError(error) ? error.response?.data : undefined,
+      },
+      'SigNoz query-batch failed'
+    );
     return c.json({ error: 'Internal Server Error', message: 'Failed to query SigNoz' }, 500);
   }
 });

@@ -259,10 +259,11 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Message content"
-              value={a.messageContent || 'Message content not available'}
-            />
+            <LabeledBlock label="Message content">
+              <Bubble className="break-words">
+                <Streamdown>{a.messageContent || 'Message content not available'}</Streamdown>
+              </Bubble>
+            </LabeledBlock>
             {targetTenantId && (
               <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}
@@ -793,6 +794,42 @@ export function renderPanelContent({
             <LabeledBlock label="Description">
               <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                 The sub-agent reached the maximum number of generation steps and stopped.
+              </Bubble>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'stream_lifetime_exceeded':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Lifetime limit"
+              value={
+                <Badge variant="code" className="font-mono">
+                  {a.streamMaxLifetimeMs ? `${Math.round(a.streamMaxLifetimeMs / 1000)}s` : 'N/A'}
+                </Badge>
+              }
+            />
+            {a.streamBufferSizeBytes !== undefined && (
+              <Info
+                label="Buffer size at cleanup"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.streamBufferSizeBytes / 1024).toFixed(1)} KB
+                  </Badge>
+                }
+              />
+            )}
+            {a.streamCleanupReason && <Info label="Reason" value={a.streamCleanupReason} />}
+            <LabeledBlock label="Description">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                The stream exceeded the maximum allowed lifetime and was forcibly closed.
               </Bubble>
             </LabeledBlock>
             <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />

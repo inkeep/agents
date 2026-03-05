@@ -3,12 +3,14 @@ import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { createUserProfileIfNotExists } from '../data-access/runtime/userProfiles';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { type OrgRole, OrgRoles } from './authz/types';
+import { setEmailSendStatus } from './email-send-status-store';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
@@ -80,16 +82,36 @@ export interface SSOProviderConfig {
   samlConfig?: SAMLProviderConfig;
 }
 
+export interface EmailServiceConfig {
+  sendInvitationEmail(data: {
+    to: string;
+    inviterName: string;
+    organizationName: string;
+    role: string;
+    invitationUrl: string;
+    authMethod?: string;
+    expiresInDays?: number;
+  }): Promise<{ emailSent: boolean; error?: string }>;
+  sendPasswordResetEmail(data: {
+    to: string;
+    resetUrl: string;
+    expiresInMinutes?: number;
+  }): Promise<{ emailSent: boolean; error?: string }>;
+  isConfigured: boolean;
+}
+
 export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
   dbClient: AgentsRunDatabaseClient;
+  manageDbPool?: import('pg').Pool;
   cookieDomain?: string;
   ssoProviders?: SSOProviderConfig[];
   socialProviders?: {
     google?: GoogleOptions;
   };
   advanced?: BetterAuthAdvancedOptions;
+  emailService?: EmailServiceConfig;
 }
 
 export interface UserAuthConfig {
@@ -184,6 +206,21 @@ async function registerSSOProvider(
   }
 }
 
+export async function hasCredentialAccount(
+  dbClient: AgentsRunDatabaseClient,
+  userId: string
+): Promise<boolean> {
+  const [row] = await dbClient
+    .select({ id: authSchema.account.id })
+    .from(authSchema.account)
+    .where(
+      and(eq(authSchema.account.userId, userId), eq(authSchema.account.providerId, 'credential'))
+    )
+    .limit(1);
+
+  return !!row;
+}
+
 export function createAuth(config: BetterAuthConfig) {
   const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
   const isSecure = config.baseURL.startsWith('https://');
@@ -202,7 +239,21 @@ export function createAuth(config: BetterAuthConfig) {
       autoSignIn: true,
       resetPasswordTokenExpiresIn: 60 * 30,
       sendResetPassword: async ({ user, url, token }) => {
+        if (!(await hasCredentialAccount(config.dbClient, user.id))) {
+          return;
+        }
+
         setPasswordResetLink({ email: user.email, url, token });
+        if (config.emailService?.isConfigured) {
+          try {
+            await config.emailService.sendPasswordResetEmail({
+              to: user.email,
+              resetUrl: url,
+            });
+          } catch (err) {
+            console.error('[email] Failed to send password reset email:', err);
+          }
+        }
       },
     },
     account: {
@@ -296,12 +347,37 @@ export function createAuth(config: BetterAuthConfig) {
             invitationId: data.id,
           });
 
-          // Note: The invitation link is displayed in the UI with a copy button.
-          // If you want to send actual emails, configure an email provider:
-          // - Resend: await resend.emails.send({ ... })
-          // - SendGrid: await sgMail.send({ ... })
-          // - AWS SES: await ses.sendEmail({ ... })
-          // - Postmark: await postmark.sendEmail({ ... })
+          if (config.emailService?.isConfigured) {
+            try {
+              const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+              const invitationUrl = `${manageUiUrl}/accept-invitation/${data.id}?email=${encodeURIComponent(data.email)}`;
+              const result = await config.emailService.sendInvitationEmail({
+                to: data.email,
+                inviterName: data.inviter.user.name || data.inviter.user.email,
+                organizationName: data.organization.name,
+                role: data.role,
+                invitationUrl,
+                authMethod: (data.invitation as Record<string, unknown> | undefined)?.authMethod as
+                  | string
+                  | undefined,
+              });
+              setEmailSendStatus(data.id, {
+                emailSent: result.emailSent,
+                error: result.error,
+                organizationId: data.organization.id,
+              });
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error(`[email] Failed to send invitation email to ${data.email}:`, message);
+              setEmailSendStatus(data.id, {
+                emailSent: false,
+                error: message,
+                organizationId: data.organization.id,
+              });
+            }
+          } else {
+            setEmailSendStatus(data.id, { emailSent: false, organizationId: data.organization.id });
+          }
         },
         schema: {
           invitation: {
@@ -345,6 +421,12 @@ export function createAuth(config: BetterAuthConfig) {
               // Log error but don't fail the invitation acceptance
               console.error('❌ SpiceDB sync failed for new member:', error);
             }
+
+            try {
+              await createUserProfileIfNotExists(config.dbClient)(user.id);
+            } catch (error) {
+              console.error('[auth] Failed to create user profile for user', user.id, error);
+            }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
             const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
@@ -379,23 +461,31 @@ export function createAuth(config: BetterAuthConfig) {
           },
           beforeRemoveMember: async ({ member, organization: org }) => {
             try {
-              const { revokeAllUserRelationships } = await import('./authz/sync');
+              if (config.manageDbPool) {
+                const { cleanupUserTriggers } = await import(
+                  '../data-access/manage/triggerCleanup'
+                );
+                await cleanupUserTriggers({
+                  tenantId: org.id,
+                  userId: member.userId,
+                  runDb: config.dbClient,
+                  manageDbPool: config.manageDbPool,
+                });
+              }
 
-              // Remove all SpiceDB relationships for this user within the organization
-              // This includes both organization-level and project-level relationships
+              const { revokeAllUserRelationships } = await import('./authz/sync');
               await revokeAllUserRelationships({
                 tenantId: org.id,
                 userId: member.userId,
               });
 
               console.log(
-                `🔐 SpiceDB: Preparing to remove member ${member.userId} - revoked all relationships in org ${org.name}`
+                `🔐 Preparing to remove member ${member.userId} - cleaned up triggers and revoked all relationships in org ${org.name}`
               );
             } catch (error) {
-              console.error('❌ SpiceDB cleanup failed before member removal:', error);
-              // Re-throw to prevent member removal if SpiceDB cleanup fails
+              console.error('❌ Cleanup failed before member removal:', error);
               throw new Error(
-                `Failed to clean up user permissions: ${error instanceof Error ? error.message : 'Unknown error'}`
+                `Failed to clean up user data: ${error instanceof Error ? error.message : 'Unknown error'}`
               );
             }
           },

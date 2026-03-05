@@ -197,6 +197,7 @@ export const createTaskHandler = (
           tenantId,
           projectId,
           agentId,
+          agentName: currentAgent.name,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           userId: config.userId,
@@ -377,9 +378,6 @@ export const createTaskHandler = (
         },
       });
 
-      // Perform full cleanup of compression state when agent task completes
-      agent.cleanupCompression();
-
       const stepContents =
         response.steps && Array.isArray(response.steps)
           ? response.steps.flatMap((step: any) => {
@@ -506,6 +504,18 @@ export const createTaskHandler = (
         return { kind: 'text' as const, text: part.text };
       });
 
+      const denialRedirects = agent?.getTaskDenialRedirects() ?? [];
+      if (denialRedirects.length > 0) {
+        const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
+        const redirectNote = denialRedirects
+          .map((d) => `- ${d.toolName} (${d.toolCallId}): ${sanitize(d.reason)}`)
+          .join('\n');
+        parts.unshift({
+          kind: 'text' as const,
+          text: `[NOTE: Some tool calls were denied during task execution, which may have changed the original request:\n${redirectNote}\nThe result below reflects the actual execution.]\n\n`,
+        });
+      }
+
       return {
         status: { state: TaskState.Completed },
         artifacts: [
@@ -518,15 +528,6 @@ export const createTaskHandler = (
       };
     } catch (error) {
       console.error('Task handler error:', error);
-
-      // Cleanup compression state on error (if agent was created)
-      try {
-        if (agent) {
-          agent.cleanupCompression();
-        }
-      } catch (cleanupError) {
-        logger.warn({ cleanupError }, 'Failed to cleanup agent compression on error');
-      }
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       const isConnectionRefused = errorMessage.includes(
@@ -541,6 +542,14 @@ export const createTaskHandler = (
         },
         artifacts: [],
       };
+    } finally {
+      try {
+        if (agent) {
+          await agent.cleanup();
+        }
+      } catch (cleanupError) {
+        logger.warn({ cleanupError }, 'Failed to cleanup agent on task completion');
+      }
     }
   };
 };

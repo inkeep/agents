@@ -54,10 +54,13 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
+  userProfile,
   workAppGitHubInstallations,
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
+  workAppSlackChannelAgentConfigs,
+  workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -92,6 +95,8 @@ const {
   VALIDATION_AGENT_PROMPT_MAX_CHARS,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
+
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
 
 export const StringRecordSchema = z
   .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
@@ -181,6 +186,11 @@ export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
 export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+
+export const UserIdSchema = z.string().openapi('UserId', {
+  description: 'User identifier',
+  example: 'user_123',
+});
 
 export const ResourceIdSchema = z
   .string()
@@ -438,20 +448,21 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 
 export const AgentSelectSchema = createSelectSchema(agents);
 
-const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
-  'ID of the default sub-agent that handles initial user messages. ' +
-  'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
-  'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.';
-
 export const AgentInsertSchema = createInsertSchema(agents, {
   id: () => ResourceIdSchema,
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    ResourceIdSchema.clone().nullable().optional().openapi({
-      description: DEFAULT_SUB_AGENT_ID_DESCRIPTION,
-      example: 'my-default-subagent',
-    }),
+    ResourceIdSchema.clone()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'ID of the default sub-agent that handles initial user messages. ' +
+          'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+          'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
+        example: 'my-default-subagent',
+      }),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -769,6 +780,10 @@ export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
     signingSecretCredentialReferenceId: z.string().nullable().optional(),
     signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
+    runAsUserId: UserIdSchema.nullable().optional().describe('User ID to run the webhook as'),
+    createdBy: UserIdSchema.nullable()
+      .optional()
+      .describe('User ID of the user who created this trigger'),
   })
 );
 
@@ -790,6 +805,9 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
   authentication: () => TriggerAuthenticationInputSchema.optional(),
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
+  runAsUserId: () => UserIdSchema.nullable().optional().describe('User ID to run the webhook as'),
+  createdBy: () =>
+    UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
   signatureVerification: () =>
     SignatureVerificationConfigSchema.nullish()
       .superRefine((config, ctx) => {
@@ -930,6 +948,10 @@ export const CronExpressionSchema = z
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  runAsUserId: UserIdSchema.nullable().describe(
+    'User ID of the user who this trigger is running as'
+  ),
+  createdBy: UserIdSchema.nullable().describe('User ID of the user who created this trigger'),
 });
 
 const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
@@ -956,6 +978,8 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   maxRetries: () => z.number().int().min(0).max(10).default(1),
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
+  createdBy: () =>
+    UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
@@ -1758,6 +1782,10 @@ export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).exte
 });
 export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
+  baseUrl: z.url(),
+  credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
@@ -1789,6 +1817,7 @@ export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({
   keyHash: true,
   keyPrefix: true,
   createdAt: true,
+  lastUsedAt: true,
 });
 
 export const ApiKeyApiSelectSchema = ApiKeySelectSchema.omit({
@@ -1923,7 +1952,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
   expiresAt: z.string().optional(),
-  createdBy: z.string().optional(),
+  createdBy: UserIdSchema.optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
@@ -2728,6 +2757,17 @@ export const TriggerWithWebhookUrlResponse = z
     data: TriggerWithWebhookUrlSchema,
   })
   .openapi('TriggerWithWebhookUrlResponse');
+export const TriggerWithWebhookUrlWithWarningResponse = z
+  .object({
+    data: TriggerWithWebhookUrlSchema,
+    warning: z
+      .string()
+      .optional()
+      .describe(
+        'Security warning when runAsUserId is set but no authentication or signature verification is configured'
+      ),
+  })
+  .openapi('TriggerWithWebhookUrlWithWarningResponse');
 export const TriggerWithWebhookUrlListResponse = z
   .object({
     data: z.array(TriggerWithWebhookUrlSchema),
@@ -2914,6 +2954,10 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+export const UserIdParamsSchema = z.object({
+  userId: UserIdSchema,
+});
+
 export const TenantParamsSchema = z.object({
   tenantId: TenantId,
 });
@@ -3067,4 +3111,57 @@ export const WorkAppGitHubAccessSetResponseSchema = z.object({
 export const WorkAppGitHubAccessGetResponseSchema = z.object({
   mode: WorkAppGitHubAccessModeSchema,
   repositories: z.array(WorkAppGitHubRepositorySelectSchema),
+});
+
+// Slack Schemas (Runtime DB - unversioned)
+export const WorkAppSlackChannelAgentConfigSelectSchema = createSelectSchema(
+  workAppSlackChannelAgentConfigs
+);
+export const WorkAppSlackWorkspaceSelectSchema = createSelectSchema(workAppSlackWorkspaces);
+
+// Shared Slack Agent Config API Schemas
+// Request: projectId + agentId derived from DB schema, grantAccessToMembers optional (defaults on write)
+export const WorkAppSlackAgentConfigRequestSchema = WorkAppSlackChannelAgentConfigSelectSchema.pick(
+  {
+    projectId: true,
+    agentId: true,
+  }
+).extend({
+  grantAccessToMembers: z.boolean().optional(),
+});
+
+// Response: extends request with resolved display names
+export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequestSchema.extend({
+  agentName: z.string(),
+  projectName: z.string().optional(),
+});
+
+export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
+export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;
+
+const timezoneSchema = z
+  .string()
+  .refine((tz) => VALID_TIMEZONES.has(tz), {
+    message: 'Invalid IANA timezone',
+  })
+  .nullable()
+  .optional();
+
+// User Profile Schemas (Runtime DB - unversioned)
+export const UserProfileSelectSchema = createSelectSchema(userProfile);
+export const UserProfileInsertSchema = createInsertSchema(userProfile)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    timezone: timezoneSchema,
+  });
+export const UserProfileUpdateSchema = UserProfileInsertSchema.partial().extend({
+  timezone: timezoneSchema,
+});
+export const UserProfileApiInsertSchema = omitGeneratedFields(UserProfileInsertSchema);
+export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
+  id: true,
+  userId: true,
 });

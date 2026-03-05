@@ -215,7 +215,7 @@ AI-generated status updates designed for end-user consumption. Structure:
 
 #### `data-artifact` Events
 
-Saved documents, files, or structured results from tool executions:
+Emitted when an agent saves an artifact from a tool result. The event carries the artifact's **preview fields** in `summary` — these are the fields marked `inPreview: true` in the artifact schema and are available immediately in the agent's context.
 
 ```json
 {
@@ -227,6 +227,8 @@ Saved documents, files, or structured results from tool executions:
   }
 }
 ```
+
+The complete artifact data (including non-preview fields) is persisted and can be fetched on demand. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) for details on preview vs. non-preview fields.
 
 #### `data-component` Events
 

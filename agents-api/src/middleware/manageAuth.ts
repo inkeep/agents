@@ -3,7 +3,6 @@ import {
   getLogger,
   isInternalServiceToken,
   isSlackUserToken,
-  validateAndGetApiKey,
   verifyInternalServiceAuthHeader,
   verifySlackUserToken,
 } from '@inkeep/agents-core';
@@ -11,7 +10,6 @@ import type { createAuth } from '@inkeep/agents-core/auth';
 import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { sessionAuth } from './sessionAuth';
 
@@ -21,10 +19,13 @@ const logger = getLogger('env-key-auth');
  * Authentication priority:
  * 1. Bypass secret (INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET)
  * 2. Better-auth session token (from device authorization flow)
- * 3. Database API key
+ * 3. Slack user JWT token (for Slack work app delegation)
  * 4. Internal service token
+ *
+ * NOTE: Database API keys are intentionally NOT accepted on manage endpoints.
+ * API keys are restricted to the run domain only (chat, agent execution).
  */
-export const manageApiKeyAuth = () =>
+export const manageBearerAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext: BaseExecutionContext;
@@ -94,27 +95,10 @@ export const manageApiKeyAuth = () =>
         return;
       }
     } catch (error) {
-      // Session validation failed, continue to API key validation
-      logger.debug({ error }, 'Better-auth session validation failed, trying API key');
+      logger.debug({ error }, 'Better-auth session validation failed, trying other auth methods');
     }
 
-    // 3. Validate against database API keys
-    const validatedKey = await validateAndGetApiKey(token, runDbClient);
-
-    if (validatedKey) {
-      logger.info({ keyId: validatedKey.id }, 'API key authenticated successfully');
-
-      // Set context from the validated API key
-      c.set('userId', `apikey:${validatedKey.id}`);
-      c.set('userEmail', `apikey-${validatedKey.id}@internal`);
-      // The tenantId from the API key can be used for access control
-      c.set('tenantId', validatedKey.tenantId);
-
-      await next();
-      return;
-    }
-
-    // 4. Validate as a Slack user JWT token (for Slack work app delegation)
+    // 3. Validate as a Slack user JWT token (for Slack work app delegation)
     if (isSlackUserToken(token)) {
       const result = await verifySlackUserToken(token);
 
@@ -144,7 +128,7 @@ export const manageApiKeyAuth = () =>
       return;
     }
 
-    // 5. Validate as an internal service token if not already authenticated
+    // 4. Validate as an internal service token if not already authenticated
     if (isInternalServiceToken(token)) {
       const result = await verifyInternalServiceAuthHeader(authHeader);
       if (!result.valid || !result.payload) {
@@ -183,9 +167,10 @@ export const manageApiKeyAuth = () =>
 
 /**
  * Middleware that gates a route with manage-domain authentication.
- * Uses Bearer token → API key auth, otherwise falls back to session auth.
+ * Uses Bearer token → manage bearer auth (bypass secret, session, Slack JWT, internal service),
+ * otherwise falls back to session auth.
  */
-export const manageApiKeyOrSessionAuth = () => {
+export const manageBearerOrSessionAuth = () => {
   const mw = createMiddleware(async (c, next) => {
     if (env.ENVIRONMENT === 'test') {
       await next();
@@ -194,7 +179,7 @@ export const manageApiKeyOrSessionAuth = () => {
 
     const authHeader = c.req.header('Authorization');
     if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
+      return manageBearerAuth()(c as any, next);
     }
 
     return sessionAuth()(c as any, next);
@@ -202,7 +187,7 @@ export const manageApiKeyOrSessionAuth = () => {
   registerAuthzMeta(mw, {
     resource: 'organization',
     permission: 'member',
-    description: 'Requires session cookie or API key authentication',
+    description: 'Requires session cookie authentication',
   });
   return mw;
 };

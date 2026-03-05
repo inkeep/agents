@@ -1,5 +1,169 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.0
+
+### Patch Changes
+
+- e7e09df: Make diffs collapsible if there are more than 3 fields in the copilot tool approval
+- b6c8fba: Remove console.log debug output from production builds
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 19e16cc: Improve trigger page performance by splitting tab content into separate RSC components with Suspense boundaries and using nuqs for client-side tab switching
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- 32e0d6e: fix for errors only in trace view
+  - @inkeep/agents-core@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- 76defa3: Add PostHog analytics tracking to playground and copilot chat widgets
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+- 0d4a6ce: fix new lines for triggers
+  - @inkeep/agents-core@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- e8f1549: Fix copilot chat token authentication for manage UI
+  - @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 6dec75f: Add new stepper component, design polish on the "use in your app" modal
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+- cde371e: Fix playground conversationId not resetting when playground closes or when navigating between agents
+  - @inkeep/agents-core@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- 1093d69: Fix trace filtering when same conversation ID exists across projects
+- 9ee889e: Use credential name instead of id in external agent and MCP server credential selectors and detail pages
+- 08d678d: Show MCP server default instructions as placeholder in edit form and as fallback in detail views when no custom prompt is set
+- 1e0cfc5: Hide create / edit buttons for skills if user doesn't have edit permissions
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
+## 0.54.0
+
+### Patch Changes
+
+- 781f15f: Add delete button to edit external agent page
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 0038a02: Update signout methods and remove logout route
+  - @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+- ff9e307: Fix broken logout on app.inkeep.com by using full page navigation for route handler and clearing cookies on all candidate domains
+- 901058e: extract aria-invalid classes into reused `inkeep-aria-invalid`, fixes form error state propagation for `Select` and `ComboBox` components
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale session cookie blocking dev auto-login after setup re-run
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 7e60710: Update @inkeep/agents-ui package to version 0.15.13
+- a879934: Fix Collapse All / Expand All on traces page to collapse and expand all tree hierarchy nodes in addition to AI message content
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
 ## 0.53.4
 
 ### Patch Changes

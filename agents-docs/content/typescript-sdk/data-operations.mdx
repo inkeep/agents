@@ -181,7 +181,6 @@ When a tool requires user approval, the `tool_call` event includes additional fi
 
 - `needsApproval: true` - Indicates this tool requires user approval before execution
 - `conversationId` - The conversation context for sending approval responses
-- Client should show approval UI and call `/api/tool-approvals` endpoint
 
 See [Tool approvals](/typescript-sdk/tools/tool-approvals) for complete configuration and integration details.
 
@@ -364,6 +363,13 @@ Emitted when an agent creates or saves an artifact (document, chart, file, etc.)
   }
 }
 ```
+
+**Field notes:**
+
+- `summaryData` — contains the artifact's **preview fields** (those marked `inPreview: true` in the schema). These are available immediately in the agent's context and streamed to clients.
+- `fullData` — contains all remaining non-preview fields. This data is persisted in storage and retrievable on demand.
+
+See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) for how to define preview and non-preview fields in your artifact schemas.
 
 ## System Events
 

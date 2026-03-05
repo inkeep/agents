@@ -2,12 +2,14 @@ import type { SlackLinkIntent } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resumeSmartLinkIntent } from '../../slack/services/resume-intent';
 
-const { mockSignSlackUserToken } = vi.hoisted(() => ({
+const { mockSignSlackUserToken, mockInProcessFetch } = vi.hoisted(() => ({
   mockSignSlackUserToken: vi.fn().mockResolvedValue('mock-slack-user-token'),
+  mockInProcessFetch: vi.fn(),
 }));
 
 vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: mockSignSlackUserToken,
+  getInProcessFetch: () => mockInProcessFetch,
 }));
 
 const mockPostMessage = vi.fn().mockResolvedValue({ ts: '1234567890.000001' });
@@ -20,6 +22,10 @@ vi.mock('../../slack/services/client', () => ({
       postEphemeral: mockPostEphemeral,
     },
   })),
+  getSlackChannelInfo: vi.fn().mockResolvedValue({ name: 'general' }),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
@@ -41,6 +47,12 @@ vi.mock('../../slack/services/events/execution', () => ({
 vi.mock('../../slack/services/events/utils', () => ({
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
   generateSlackConversationId: vi.fn().mockReturnValue('mock-conversation-id'),
+  escapeSlackMrkdwn: vi.fn((t: string) => t),
+  formatChannelContext: vi.fn().mockReturnValue('Slack'),
+  formatSlackQuery: vi.fn((opts: { text: string; threadContext?: string }) => {
+    if (opts.threadContext) return `${opts.threadContext}\n\n${opts.text}`;
+    return opts.text;
+  }),
 }));
 
 vi.mock('../../env', () => ({
@@ -135,6 +147,15 @@ describe('resumeSmartLinkIntent', () => {
         question: 'What is the API rate limit?',
       })
     );
+
+    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+    expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'What is the API rate limit?',
+        messageTs: '1234567890.123457',
+        senderTimezone: 'America/New_York',
+      })
+    );
   });
 
   it('should handle question_command entry point with channel auth', async () => {
@@ -146,14 +167,13 @@ describe('resumeSmartLinkIntent', () => {
       grantAccessToMembers: true,
     });
 
-    const mockFetch = vi.fn().mockResolvedValue({
+    mockInProcessFetch.mockResolvedValue({
       ok: true,
       json: () =>
         Promise.resolve({
           choices: [{ message: { content: 'The rate limit is 100 req/min.' } }],
         }),
     });
-    vi.stubGlobal('fetch', mockFetch);
 
     const intent: SlackLinkIntent = {
       entryPoint: 'question_command',
@@ -185,8 +205,6 @@ describe('resumeSmartLinkIntent', () => {
         text: 'The rate limit is 100 req/min.',
       })
     );
-
-    vi.unstubAllGlobals();
   });
 
   it('should not throw when bot token is missing', async () => {
@@ -250,14 +268,13 @@ describe('resumeSmartLinkIntent', () => {
       grantAccessToMembers: true,
     });
 
-    const mockFetch = vi.fn().mockResolvedValue({
+    mockInProcessFetch.mockResolvedValue({
       ok: true,
       json: () =>
         Promise.resolve({
           choices: [{ message: { content: 'Response text' } }],
         }),
     });
-    vi.stubGlobal('fetch', mockFetch);
 
     const { sendResponseUrlMessage: mockedSend } = await import(
       '../../slack/services/events/utils'
@@ -287,8 +304,6 @@ describe('resumeSmartLinkIntent', () => {
         text: 'Response text',
       })
     );
-
-    vi.unstubAllGlobals();
   });
 
   it('should handle run_command entry point with agent lookup and channel auth', async () => {
@@ -312,15 +327,16 @@ describe('resumeSmartLinkIntent', () => {
           Promise.resolve({
             data: [{ id: 'agent_found', name: 'My Custom Agent' }],
           }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            choices: [{ message: { content: 'Run command response' } }],
-          }),
       });
     vi.stubGlobal('fetch', mockFetch);
+
+    mockInProcessFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: 'Run command response' } }],
+        }),
+    });
 
     const intent: SlackLinkIntent = {
       entryPoint: 'run_command',

@@ -215,7 +215,6 @@ export function EvaluationRunConfigFormDialog({
       }
 
       if (result.success) {
-        console.log('Run config created/updated successfully');
         toast.success(`Continuous test ${runConfigId ? 'updated' : 'created'}`);
         form.reset();
         suiteConfigForm.reset();
@@ -227,10 +226,7 @@ export function EvaluationRunConfigFormDialog({
         }
         // Call success callback to refresh data
         if (onSuccess) {
-          console.log('Calling onSuccess callback');
           onSuccess();
-        } else {
-          console.log('No onSuccess callback provided');
         }
         // Also refresh router for server components
         router.refresh();

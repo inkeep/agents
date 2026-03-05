@@ -55,6 +55,9 @@ describe('executeAgentPublicly', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({
       channel: 'C123',
       thread_ts: '1111.2222',
+      blocks: [
+        { type: 'context', elements: [{ type: 'mrkdwn', text: '_Test Agent is thinking..._' }] },
+      ],
       text: '_Test Agent is thinking..._',
     });
 
@@ -85,6 +88,9 @@ describe('executeAgentPublicly', () => {
 
     expect(mockPostMessage).toHaveBeenCalledWith({
       channel: 'C123',
+      blocks: [
+        { type: 'context', elements: [{ type: 'mrkdwn', text: '_Test Agent is thinking..._' }] },
+      ],
       text: '_Test Agent is thinking..._',
     });
 

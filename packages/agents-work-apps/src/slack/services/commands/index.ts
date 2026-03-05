@@ -20,11 +20,13 @@ import {
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
-import { getSlackClient } from '../client';
+import { getSlackChannelInfo, getSlackClient, getSlackUserInfo } from '../client';
 import { executeAgentPublicly } from '../events/execution';
 import {
   fetchAgentsForProject,
   fetchProjectsForTenant,
+  formatChannelContext,
+  formatSlackQuery,
   generateSlackConversationId,
   getChannelAgentConfig,
 } from '../events/utils';
@@ -323,13 +325,18 @@ export async function handleQuestionCommand(
   }
 
   const userTenantId = existingLink.tenantId;
+  const slackClient = getSlackClient(botToken);
 
-  const resolvedAgent = await resolveEffectiveAgent({
-    tenantId: userTenantId,
-    teamId: payload.teamId,
-    channelId: payload.channelId,
-    userId: payload.userId,
-  });
+  const [resolvedAgent, channelInfo, userInfo] = await Promise.all([
+    resolveEffectiveAgent({
+      tenantId: userTenantId,
+      teamId: payload.teamId,
+      channelId: payload.channelId,
+      userId: payload.userId,
+    }),
+    getSlackChannelInfo(slackClient, payload.channelId),
+    getSlackUserInfo(slackClient, payload.userId),
+  ]);
 
   if (!resolvedAgent) {
     const message = createErrorMessage(
@@ -338,7 +345,19 @@ export async function handleQuestionCommand(
     return { response_type: 'ephemeral', ...message };
   }
 
-  const slackClient = getSlackClient(botToken);
+  const channelContext = formatChannelContext(channelInfo);
+  const userName = userInfo?.displayName || 'User';
+
+  const now = Date.now();
+  const messageTs = `${Math.floor(now / 1000)}.${String(now % 1000).padStart(3, '0')}000`;
+
+  const formattedQuestion = formatSlackQuery({
+    text: question,
+    channelContext,
+    userName,
+    messageTs,
+    senderTimezone: userInfo?.tz ?? undefined,
+  });
 
   const slackUserToken = await signSlackUserToken({
     inkeepUserId: existingLink.inkeepUserId,
@@ -351,9 +370,6 @@ export async function handleQuestionCommand(
     slackChannelId: payload.channelId,
     slackAuthorizedProjectId: resolvedAgent.projectId,
   });
-
-  const now = Date.now();
-  const messageTs = `${Math.floor(now / 1000)}.${String(now % 1000).padStart(3, '0')}000`;
 
   const conversationId = generateSlackConversationId({
     teamId: payload.teamId,
@@ -370,8 +386,10 @@ export async function handleQuestionCommand(
     projectId: resolvedAgent.projectId,
     agentId: resolvedAgent.agentId,
     agentName: resolvedAgent.agentName || resolvedAgent.agentId,
-    question,
+    question: formattedQuestion,
+    rawMessageText: question,
     conversationId,
+    entryPoint: 'slash_command',
   })
     .catch(async (error) => {
       logger.error({ error }, 'Background execution promise rejected');

@@ -19,10 +19,7 @@ import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
-export async function fetchAgents(
-  tenantId: string,
-  projectId: string
-): Promise<ListResponse<Agent>> {
+async function $fetchAgents(tenantId: string, projectId: string): Promise<ListResponse<Agent>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
@@ -30,6 +27,8 @@ export async function fetchAgents(
     `tenants/${tenantId}/projects/${projectId}/agents?limit=100`
   );
 }
+
+export const fetchAgents = cache($fetchAgents);
 
 export async function createAgent(
   tenantId: string,

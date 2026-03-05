@@ -1,10 +1,6 @@
 import type { OrgRole } from '@inkeep/agents-core/client-exports';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
-import type { useAuthClient } from '@/contexts/auth-client';
-
-type AuthClient = ReturnType<typeof useAuthClient>;
-type Member = AuthClient['$Infer']['Member'];
-type Invitation = AuthClient['$Infer']['Invitation'];
+import { getDisplayRole, type Invitation, type Member } from '../types';
 
 interface MemberConfirmationModalsProps {
   // Delete modal
@@ -32,12 +28,6 @@ interface MemberConfirmationModalsProps {
     onConfirm: () => Promise<void>;
   };
 }
-
-const getDisplayRole = (role: string | null): string => {
-  if (!role) return '';
-  if (role === 'owner') return 'Owner';
-  return role.charAt(0).toUpperCase() + role.slice(1);
-};
 
 export function MemberConfirmationModals({
   deleteModal,

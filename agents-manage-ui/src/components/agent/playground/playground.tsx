@@ -51,6 +51,12 @@ export const Playground = ({
     name: 'contextConfig.headersSchema',
   });
   const [isCustomHeadersModalOpen, setIsCustomHeadersModalOpen] = useState(false);
+
+  useEffect(() => {
+    // when the playground is closed the chat widget is unmounted so we need to reset the conversation id
+    return () => resetPlaygroundConversationId();
+  }, []);
+
   const resolver = useMemo(
     () =>
       zodResolver(
