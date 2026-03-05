@@ -130,3 +130,4 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
     })
   );
 }
+
