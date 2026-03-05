@@ -165,7 +165,8 @@ describe('Slack MCP Tool Access Config', () => {
     });
 
     it('should return 0 when no configs exist for tenant', async () => {
-      const deleted = await deleteAllSlackMcpToolAccessConfigsByTenant(dbClient)('nonexistent-tenant');
+      const deleted =
+        await deleteAllSlackMcpToolAccessConfigsByTenant(dbClient)('nonexistent-tenant');
       expect(deleted).toBe(0);
     });
 
