@@ -184,7 +184,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       // If we kept it, the sidebar on the agents page would collapse (from the temp state)
       // and then immediately re-expand due to the user’s persisted preference.
       const { isSidebarSessionOpen: _, ...state } = initialAgentState;
-      set(state);
+      set({ ...state, playgroundConversationId: generateId() });
     },
     setDataComponentLookup(dataComponentLookup) {
       set({ dataComponentLookup });
@@ -336,8 +336,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       if (data.conversationId !== playgroundConversationId) {
         return;
       }
-
-      console.info('Data operation received:', data);
 
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;

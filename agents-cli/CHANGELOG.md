@@ -1,5 +1,202 @@
 # @inkeep/agents-cli
 
+## 0.58.0
+
+### Patch Changes
+
+- Updated dependencies [e7e09df]
+- Updated dependencies [3d88636]
+- Updated dependencies [b6c8fba]
+  - @inkeep/agents-manage-ui@0.58.0
+  - @inkeep/agents-core@0.58.0
+  - @inkeep/agents-sdk@0.58.0
+
+## 0.57.0
+
+### Patch Changes
+
+- Updated dependencies [19e16cc]
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-manage-ui@0.57.0
+  - @inkeep/agents-core@0.57.0
+  - @inkeep/agents-sdk@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- Updated dependencies [32e0d6e]
+  - @inkeep/agents-manage-ui@0.56.2
+  - @inkeep/agents-core@0.56.2
+  - @inkeep/agents-sdk@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- Updated dependencies [76defa3]
+- Updated dependencies [a175379]
+- Updated dependencies [0d4a6ce]
+  - @inkeep/agents-manage-ui@0.56.1
+  - @inkeep/agents-core@0.56.1
+  - @inkeep/agents-sdk@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+  - @inkeep/agents-manage-ui@0.56.0
+  - @inkeep/agents-sdk@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- Updated dependencies [e8f1549]
+  - @inkeep/agents-manage-ui@0.55.3
+  - @inkeep/agents-core@0.55.3
+  - @inkeep/agents-sdk@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+- Updated dependencies [6dec75f]
+  - @inkeep/agents-core@0.55.2
+  - @inkeep/agents-manage-ui@0.55.2
+  - @inkeep/agents-sdk@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- Updated dependencies [55eb8cb]
+- Updated dependencies [cde371e]
+  - @inkeep/agents-manage-ui@0.55.1
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-sdk@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- Updated dependencies [1093d69]
+- Updated dependencies [08d678d]
+- Updated dependencies [9ee889e]
+- Updated dependencies [08d678d]
+- Updated dependencies [1e0cfc5]
+  - @inkeep/agents-manage-ui@0.55.0
+  - @inkeep/agents-core@0.55.0
+  - @inkeep/agents-sdk@0.55.0
+
+## 0.54.0
+
+### Patch Changes
+
+- Updated dependencies [781f15f]
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-manage-ui@0.54.0
+  - @inkeep/agents-core@0.54.0
+  - @inkeep/agents-sdk@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+  - @inkeep/agents-manage-ui@0.53.13
+  - @inkeep/agents-sdk@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 9f5204d: Use human readable file names when generating files with inkeep pull
+- Updated dependencies [0038a02]
+  - @inkeep/agents-manage-ui@0.53.12
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-sdk@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.53.11
+- @inkeep/agents-core@0.53.11
+- @inkeep/agents-sdk@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- b2f3879: Enable inkeep pull to handle nullable values in triggers.
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [ff9e307]
+- Updated dependencies [901058e]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-manage-ui@0.53.10
+  - @inkeep/agents-sdk@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [9a2d783]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+  - @inkeep/agents-manage-ui@0.53.9
+  - @inkeep/agents-sdk@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- Updated dependencies [7e60710]
+- Updated dependencies [a879934]
+  - @inkeep/agents-manage-ui@0.53.8
+  - @inkeep/agents-core@0.53.8
+  - @inkeep/agents-sdk@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+  - @inkeep/agents-manage-ui@0.53.7
+  - @inkeep/agents-sdk@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- Updated dependencies [946d729]
+  - @inkeep/agents-manage-ui@0.53.6
+  - @inkeep/agents-core@0.53.6
+  - @inkeep/agents-sdk@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.53.5
+- @inkeep/agents-core@0.53.5
+- @inkeep/agents-sdk@0.53.5
+
 ## 0.53.4
 
 ### Patch Changes

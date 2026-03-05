@@ -1,16 +1,139 @@
 ---
 title: Scheduled Triggers
-description: Run your Agents on a schedule using cron expressions or one-time execution
+description: Run your Agents automatically on a recurring schedule or at a specific future time
 icon: LuClock
 ---
 
-Scheduled triggers let you run agents automatically on a recurring schedule (cron) or at a specific future time (one-time). Scheduled triggers are driven by time and can be used for daily reports, hourly health checks, periodic data syncs, or deferred tasks.
+Scheduled triggers run agents automatically on a recurring schedule (cron) or at a specific future time (one-time). Use them for daily reports, hourly health checks, periodic data syncs, or deferred tasks.
 
-## Schedule Types
+<Snippet file="user-scoped-mcp-triggers-warning.mdx" />
 
-### Cron Expressions (Recurring)
+## Create a scheduled trigger
 
-Cron triggers use standard 5-field cron syntax to define recurring schedules:
+<Steps>
+  <Step>
+    ### Open the triggers page
+
+    Navigate to your project and select the **Triggers** tab on the left sidebar, then choose **Scheduled**.
+
+    Click **New scheduled trigger**. Select the agent you want to trigger, then click **Continue**.
+  </Step>
+  <Step>
+    ### Configure basic information
+
+    Fill in the required fields in the **Basic Information** section:
+
+    - **Name** — a human-readable identifier (e.g., "Daily Report Generator")
+    - **Description** — optional explanation of what the trigger does
+    - **Enabled** — toggle on to activate the trigger immediately after creation
+  </Step>
+  <Step>
+    ### Set the execution identity
+
+    In the **Execution Identity** section, choose which user identity the trigger runs as. This determines whose credentials and permissions are used during execution.
+
+    - **None** — the trigger runs without a user identity (tools requiring user-scoped credentials are skipped)
+    - **Specific user** — the trigger uses that user's connected credentials (e.g., OAuth tokens for GitHub, Slack, or Jira)
+
+    <Note>
+    Non-admin users can only assign triggers to themselves. Org admins can select any user in the organization — and when creating a trigger, admins can select multiple users to bulk-create one trigger per user.
+    </Note>
+  </Step>
+  <Step>
+    ### Choose a schedule
+
+    Select the **Schedule Type**:
+
+    <Tabs>
+      <Tab title="Recurring (Cron)">
+
+    The schedule builder provides preset frequencies:
+
+    | Frequency | You configure |
+    | --- | --- |
+    | **Every few minutes** | Interval (e.g., every 15 minutes) |
+    | **Every hour** | Minute past the hour |
+    | **Every day** | Time of day |
+    | **Specific days of the week** | Days + time of day |
+    | **Once a month** | Day of month + time of day |
+    | **Custom (advanced)** | Raw 5-field cron expression |
+
+    The builder shows a live preview of the schedule and auto-detects your browser's timezone.
+
+    <Image
+      src="/images/scheduled-trigger.png"
+      alt="Schedule configuration showing recurring cron with daily frequency, time picker, and timezone"
+    />
+
+      </Tab>
+      <Tab title="One-time">
+
+    Pick a future date and time using the date-time picker. The trigger fires once at the specified time and doesn't repeat.
+
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step>
+    ### Add a message template and payload (optional)
+
+    Define a text message sent to the agent when the trigger fires. 
+
+    When the trigger fires, the agent receives:
+    - A **text part** with the interpolated message
+    - A **data part** with the full payload object
+
+    If you leave both empty, the agent receives only `{}`.
+  </Step>
+  <Step>
+    ### Configure retry behavior
+
+    Set how the trigger handles failures:
+
+    | Setting | Range | Default | Description |
+    | --- | --- | --- | --- |
+    | **Max Retries** | 0–10 | 1 | Number of retry attempts on failure |
+    | **Retry Delay** | 10–3600 seconds | 60 | Seconds between retries |
+    | **Timeout** | 30–780 seconds | 780 | Execution timeout per attempt |
+
+    Each retry creates a new conversation with the agent. All conversation IDs are tracked on the invocation record.
+  </Step>
+  <Step>
+    ### Save
+
+    Click **Create Scheduled Trigger**. The trigger appears in the **Scheduled** tab and begins running on its configured schedule.
+  </Step>
+</Steps>
+
+## Manage scheduled triggers
+
+The **Scheduled** tab shows all triggers in your project with their agent, schedule, status, last run, and next run. Each trigger has a dropdown menu with the following actions:
+
+| Action | Description |
+| --- | --- |
+| **Run Now** | Execute the trigger immediately, regardless of its schedule. Creates a new invocation and runs it with the trigger's configured payload, message template, and retry settings. |
+| **View Invocations** | See all past and pending executions for this trigger |
+| **Edit** | Update the trigger's name, schedule, template, payload, retry settings, or execution identity |
+| **Duplicate** | Create a new trigger pre-filled with the same configuration |
+| **Delete** | Permanently remove the trigger |
+
+You can also toggle the **Enabled** switch directly in the table to pause or resume a trigger without deleting it.
+
+## Monitor invocations
+
+View invocations for a single trigger via **View Invocations** in the dropdown, or view all invocations across the project by clicking **All Invocations**.
+
+Each invocation shows its status, scheduled time, start time, duration, attempt number, and a link to the conversation trace.
+
+### Invocation actions
+
+| Action | Available when | Description |
+| --- | --- | --- |
+| **Cancel** | `pending` or `running` | Stop the invocation before it completes |
+| **Rerun** | `completed`, `failed`, or `cancelled` | Re-execute with the same trigger configuration. Creates a new invocation and runs it immediately. |
+
+## Cron expression reference
+
+Cron triggers use standard 5-field syntax:
 
 ```
 ┌───────────── minute (0–59)
@@ -31,137 +154,6 @@ Cron triggers use standard 5-field cron syntax to define recurring schedules:
 | `*/15 * * * *` | Every 15 minutes |
 | `0 */2 * * *` | Every 2 hours |
 | `0 0 1 * *` | First day of every month at midnight |
-
-
-
-
-## Trigger Configuration
-
-| Option | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `name` | `string` | Yes | — | Human-readable name |
-| `description` | `string` | No | — | Description of the trigger's purpose |
-| `enabled` | `boolean` | No | `true` | Whether the trigger is active |
-| `cronExpression` | `string` | One of `cronExpression` or `runAt` | — | 5-field cron expression for recurring execution |
-| `cronTimezone` | `string` | No | `UTC` | IANA timezone for cron evaluation |
-| `runAt` | `string` | One of `cronExpression` or `runAt` | — | ISO 8601 timestamp for one-time execution |
-| `messageTemplate` | `string` | No | — | Template with `{{placeholder}}` syntax |
-| `payload` | `object` | No | — | Static JSON payload passed to the agent |
-| `maxRetries` | `number` | No | `1` | Max retry attempts on failure (0–10) |
-| `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
-| `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
-
-<Note>
-You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.
-</Note>
-
-### Message Templates
-
-Message templates use `{{placeholder}}` syntax to interpolate values from the `payload`:
-
-```typescript
-const weeklyDigest = scheduledTrigger({
-  name: 'Weekly Digest',
-  cronExpression: '0 8 * * MON',
-  payload: {
-    reportType: 'weekly',
-    includeMetrics: true,
-  },
-  messageTemplate: 'Generate a {{reportType}} digest. Include metrics: {{includeMetrics}}',
-});
-```
-
-When the trigger fires, the agent receives:
-- A **text part** with the interpolated message: `"Generate a weekly digest. Include metrics: true"`
-- A **data part** with the full payload object
-
-If `messageTemplate` is omitted, the agent receives only the JSON-serialized payload.
-
-### Retry Configuration
-
-Failed executions are automatically retried based on your configuration:
-
-```typescript
-const resilientTask = scheduledTrigger({
-  name: 'Critical Data Sync',
-  cronExpression: '0 */4 * * *',
-  messageTemplate: 'Sync data from external source',
-  maxRetries: 5,           // Retry up to 5 times
-  retryDelaySeconds: 120,  // Wait 2 minutes between retries
-  timeoutSeconds: 600,     // Each attempt times out after 10 minutes
-});
-```
-
-Each retry creates a new conversation with the agent. All conversation IDs are tracked on the invocation record so you can review each attempt.
-
-## Invocation Tracking
-
-Every scheduled execution creates an **invocation** record with full observability:
-
-| Field | Description |
-| --- | --- |
-| **Status** | `pending` → `running` → `completed`, `failed`, or `cancelled` |
-| **Scheduled For** | The time the invocation was scheduled to run |
-| **Started At** | When execution actually began |
-| **Completed At** | When execution finished |
-| **Attempt Number** | Current attempt (1-based, increments on retry) |
-| **Conversation IDs** | All conversations created across attempts |
-| **Idempotency Key** | Ensures exactly-once execution |
-
-### Invocation Statuses
-
-```mermaid
-stateDiagram-v2
-    [*] --> pending: Scheduled
-    pending --> running: Claimed by worker
-    running --> completed: Success
-    running --> running: Retry (attempt N+1)
-    running --> failed: All retries exhausted
-    pending --> cancelled: Manually cancelled
-    running --> cancelled: Manually cancelled
-```
-
-## Manual Operations
-
-### Run Now
-
-Trigger an immediate execution of any scheduled trigger, regardless of its schedule:
-
-```bash
-POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/run
-```
-
-This creates a new invocation scheduled for the current time and executes it immediately with the trigger's configured payload, message template, and retry settings.
-
-### Rerun a Past Invocation
-
-Rerun any completed, failed, or cancelled invocation:
-
-```bash
-POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/rerun
-```
-
-This creates a new invocation using the same trigger configuration and executes it immediately.
-
-### Cancel an Invocation
-
-Cancel a pending or running invocation:
-
-```bash
-POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/cancel
-```
-
-<Note>
-Completed and failed invocations cannot be cancelled.
-</Note>
-
-### View Upcoming Runs
-
-See all pending and running invocations across all scheduled triggers for an agent:
-
-```bash
-GET /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/upcoming-runs
-```
 
 ## Next Steps
 

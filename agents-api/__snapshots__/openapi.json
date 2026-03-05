@@ -803,10 +803,6 @@
             "nullable": true,
             "type": "string"
           },
-          "lastUsedAt": {
-            "nullable": true,
-            "type": "string"
-          },
           "name": {
             "maxLength": 256,
             "minLength": 1,
@@ -1544,6 +1540,29 @@
             "$ref": "#/components/schemas/ResourceId"
           }
         },
+        "type": "object"
+      },
+      "ConversationBoundsResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "updatedAt"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ConversationWithFormattedMessagesResponse": {
@@ -3965,6 +3984,7 @@
       "ExternalAgentCreate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
@@ -3972,19 +3992,18 @@
           },
           "credentialReferenceId": {
             "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
@@ -4029,6 +4048,7 @@
       "ExternalAgentUpdate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
@@ -4036,19 +4056,18 @@
           },
           "credentialReferenceId": {
             "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "updatedAt": {
             "type": "string"
@@ -5435,7 +5454,7 @@
             "type": "string"
           },
           "createdBy": {
-            "type": "string"
+            "$ref": "#/components/schemas/UserId"
           },
           "credentialReferenceId": {
             "maxLength": 256,
@@ -6075,6 +6094,17 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserId"
+              },
+              {
+                "description": "User ID of the user who created this trigger",
+                "nullable": true
+              }
+            ]
+          },
           "cronExpression": {
             "maxLength": 256,
             "nullable": true,
@@ -6121,6 +6151,17 @@
             "minimum": -9007199254740991,
             "type": "number"
           },
+          "runAsUserId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserId"
+              },
+              {
+                "description": "User ID of the user who this trigger is running as",
+                "nullable": true
+              }
+            ]
+          },
           "runAt": {
             "nullable": true,
             "type": "string"
@@ -6146,6 +6187,8 @@
           "maxRetries",
           "retryDelaySeconds",
           "timeoutSeconds",
+          "runAsUserId",
+          "createdBy",
           "createdAt",
           "updatedAt"
         ],
@@ -6154,6 +6197,12 @@
       "ScheduledTriggerCreate": {
         "properties": {
           "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
             "type": "string"
           },
           "cronExpression": {
@@ -6209,6 +6258,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -6236,6 +6290,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "$ref": "#/components/schemas/CronExpression"
           },
@@ -6289,6 +6349,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -6456,6 +6521,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "cronExpression": {
             "$ref": "#/components/schemas/CronExpression"
           },
@@ -6512,6 +6583,11 @@
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
+          },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -9027,6 +9103,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -9107,6 +9189,12 @@
                 "nullable": true
               }
             ]
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
           },
           "signatureVerification": {
             "$ref": "#/components/schemas/SignatureVerificationConfig"
@@ -9170,6 +9258,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9204,6 +9298,12 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
           },
           "signatureVerification": {
             "description": "Configuration for webhook signature verification",
@@ -9538,6 +9638,12 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "description": "User ID of the user who created this trigger",
+            "example": "user_123",
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "description": "Trigger description",
             "nullable": true,
@@ -9574,6 +9680,12 @@
           },
           "projectId": {
             "maxLength": 256,
+            "type": "string"
+          },
+          "runAsUserId": {
+            "description": "User ID to run the webhook as",
+            "example": "user_123",
+            "nullable": true,
             "type": "string"
           },
           "signatureVerification": {
@@ -9682,6 +9794,21 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "TriggerWithWebhookUrlWithWarningResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          },
+          "warning": {
+            "description": "Security warning when runAsUserId is set but no authentication or signature verification is configured",
+            "type": "string"
           }
         },
         "required": [
@@ -9810,6 +9937,11 @@
             "type": "object"
           }
         ]
+      },
+      "UserId": {
+        "description": "User identifier",
+        "example": "user_123",
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -10396,6 +10528,360 @@
         }
       }
     },
+    "/manage/api/users/{userId}/profile": {
+      "get": {
+        "description": "Get the profile for a specific user. Users can only access their own profile.",
+        "operationId": "get-user-profile",
+        "parameters": [
+          {
+            "description": "User identifier",
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attributes": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "nullable": true
+                        },
+                        {
+                          "additionalProperties": {
+                            "nullable": true
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "items": {
+                            "nullable": true
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "timezone",
+                    "attributes",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User profile"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get User Profile",
+        "tags": [
+          "User Profile"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
+      },
+      "put": {
+        "description": "Create or update the profile for a specific user. Users can only update their own profile.",
+        "operationId": "upsert-user-profile",
+        "parameters": [
+          {
+            "description": "User identifier",
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "attributes": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "nullable": true
+                      },
+                      {
+                        "additionalProperties": {
+                          "nullable": true
+                        },
+                        "type": "object"
+                      },
+                      {
+                        "items": {
+                          "nullable": true
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "nullable": true
+                      }
+                    ]
+                  },
+                  "timezone": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attributes": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "nullable": true
+                        },
+                        {
+                          "additionalProperties": {
+                            "nullable": true
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "items": {
+                            "nullable": true
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "timezone",
+                    "attributes",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Updated user profile"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Upsert User Profile",
+        "tags": [
+          "User Profile"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
+      }
+    },
     "/manage/available-agents": {
       "get": {
         "description": "List all agents the user can invoke. Requires a valid JWT token.",
@@ -10477,7 +10963,7 @@
         },
         "summary": "Get server capabilities",
         "x-authz": {
-          "description": "Requires session cookie or API key authentication",
+          "description": "Requires session cookie authentication",
           "permission": "member",
           "resource": "organization"
         }
@@ -10657,7 +11143,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -10822,7 +11308,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -10942,7 +11428,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11145,7 +11631,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11255,7 +11741,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11444,7 +11930,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11683,7 +12169,7 @@
           "GitHub"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -11771,7 +12257,7 @@
           "API Keys"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -12436,7 +12922,7 @@
           "Projects"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         },
@@ -22542,7 +23028,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlWithWarningResponse"
                 }
               }
             },
@@ -22912,7 +23398,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlWithWarningResponse"
                 }
               }
             },
@@ -25605,6 +26091,121 @@
           }
         },
         "summary": "Get Conversation",
+        "tags": [
+          "Conversations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/conversations/{id}/bounds": {
+      "get": {
+        "operationId": "get-conversation-bounds",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationBoundsResponse"
+                }
+              }
+            },
+            "description": "Conversation time bounds for trace queries"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get conversation time bounds",
         "tags": [
           "Conversations"
         ],
@@ -36732,7 +37333,7 @@
           "User Project Memberships"
         ],
         "x-authz": {
-          "description": "Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.",
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
           "permission": "member",
           "resource": "organization"
         }
@@ -37171,136 +37772,6 @@
           }
         ],
         "summary": "Chat (Vercel Streaming Protocol)",
-        "tags": [
-          "Chat"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/tool-approvals": {
-      "post": {
-        "description": "Handle user approval/denial of tool execution requests during conversations",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "approved": {
-                    "description": "Whether the tool execution is approved",
-                    "type": "boolean"
-                  },
-                  "conversationId": {
-                    "description": "The conversation ID",
-                    "type": "string"
-                  },
-                  "reason": {
-                    "description": "Optional reason for the decision",
-                    "type": "string"
-                  },
-                  "toolCallId": {
-                    "description": "The tool call ID to respond to",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "conversationId",
-                  "toolCallId",
-                  "approved"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Tool approval response processed successfully"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Bad request - invalid tool call ID or conversation ID"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Tool call not found or already processed"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error",
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Internal server error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Approve or deny tool execution",
         "tags": [
           "Chat"
         ],
@@ -38382,6 +38853,9 @@
                           "hasDefaultAgent": {
                             "type": "boolean"
                           },
+                          "teamDomain": {
+                            "type": "string"
+                          },
                           "teamId": {
                             "type": "string"
                           },
@@ -38504,18 +38978,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -38613,18 +39083,14 @@
                           "agentConfig": {
                             "properties": {
                               "agentId": {
-                                "type": "string"
-                              },
-                              "agentName": {
+                                "maxLength": 256,
                                 "type": "string"
                               },
                               "grantAccessToMembers": {
                                 "type": "boolean"
                               },
                               "projectId": {
-                                "type": "string"
-                              },
-                              "projectName": {
+                                "maxLength": 256,
                                 "type": "string"
                               }
                             },
@@ -38784,18 +39250,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -38969,18 +39431,14 @@
                     "agentConfig": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39043,18 +39501,14 @@
                   "agentConfig": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39101,6 +39555,9 @@
               }
             },
             "description": "Channel settings updated"
+          },
+          "400": {
+            "description": "Agent not found"
           }
         },
         "summary": "Set Channel Default Agent",
@@ -39339,18 +39796,14 @@
                     "defaultAgent": {
                       "properties": {
                         "agentId": {
-                          "type": "string"
-                        },
-                        "agentName": {
+                          "maxLength": 256,
                           "type": "string"
                         },
                         "grantAccessToMembers": {
                           "type": "boolean"
                         },
                         "projectId": {
-                          "type": "string"
-                        },
-                        "projectName": {
+                          "maxLength": 256,
                           "type": "string"
                         }
                       },
@@ -39399,18 +39852,14 @@
                   "defaultAgent": {
                     "properties": {
                       "agentId": {
-                        "type": "string"
-                      },
-                      "agentName": {
+                        "maxLength": 256,
                         "type": "string"
                       },
                       "grantAccessToMembers": {
                         "type": "boolean"
                       },
                       "projectId": {
-                        "type": "string"
-                      },
-                      "projectName": {
+                        "maxLength": 256,
                         "type": "string"
                       }
                     },
@@ -39445,22 +39894,10 @@
             },
             "description": "Settings updated"
           },
+          "400": {
+            "description": "Agent not found"
+          },
           "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
             "description": "Failed to update settings"
           }
         },
@@ -39782,6 +40219,10 @@
     {
       "description": "Operations for managing user project memberships",
       "name": "User Project Memberships"
+    },
+    {
+      "description": "Operations for managing user profile",
+      "name": "User Profile"
     },
     {
       "description": "Operations for managing users",

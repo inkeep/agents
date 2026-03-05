@@ -144,6 +144,8 @@ export const triggers = pgTable(
     signatureVerification: jsonb('signature_verification')
       .$type<SignatureVerificationConfig | null>()
       .default(null),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    createdBy: varchar('created_by', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -175,6 +177,8 @@ export const scheduledTriggers = pgTable(
     maxRetries: numeric('max_retries', { mode: 'number' }).notNull().default(1),
     retryDelaySeconds: numeric('retry_delay_seconds', { mode: 'number' }).notNull().default(60),
     timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(780),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    createdBy: varchar('created_by', { length: 256 }),
     ...timestamps,
   },
   (table) => [

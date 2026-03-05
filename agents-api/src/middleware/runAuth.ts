@@ -14,6 +14,7 @@ import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
+import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('env-key-auth');
 
@@ -38,6 +39,7 @@ interface RequestData {
   subAgentId?: string;
   ref?: string;
   baseUrl: string;
+  runAsUserId?: string;
 }
 
 /**
@@ -63,6 +65,7 @@ function extractRequestData(c: { req: any }): RequestData {
   const projectId = c.req.header('x-inkeep-project-id');
   const agentId = c.req.header('x-inkeep-agent-id');
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
+  const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
   const host = fwdHost ?? c.req.header('host');
@@ -85,6 +88,7 @@ function extractRequestData(c: { req: any }): RequestData {
     subAgentId,
     ref,
     baseUrl,
+    runAsUserId,
   };
 }
 
@@ -97,6 +101,27 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
   // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
   const agentId =
     authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+
+  if (
+    !authResult.metadata?.teamDelegation &&
+    reqData.agentId &&
+    reqData.agentId !== authResult.agentId &&
+    authResult.apiKeyId &&
+    !authResult.apiKeyId.startsWith('temp-') &&
+    authResult.apiKeyId !== 'bypass' &&
+    authResult.apiKeyId !== 'slack-user-token' &&
+    authResult.apiKeyId !== 'team-agent-token' &&
+    authResult.apiKeyId !== 'test-key'
+  ) {
+    logger.warn(
+      {
+        requestedAgentId: reqData.agentId,
+        apiKeyAgentId: authResult.agentId,
+        apiKeyId: authResult.apiKeyId,
+      },
+      'API key agent scope mismatch: ignoring x-inkeep-agent-id header, using key-bound agent'
+    );
+  }
 
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
@@ -143,21 +168,34 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    let canUse: boolean;
-    try {
-      canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
-    } catch (error) {
-      logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-      throw new HTTPException(503, {
-        message: 'Authorization service temporarily unavailable',
-      });
+    // Copilot bypass — skip SpiceDB when the token targets the copilot agent.
+    const isCopilotToken = isCopilotAgent({
+      tenantId: payload.tenantId,
+      projectId,
+      agentId,
+    });
+
+    if (isCopilotToken) {
+      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
     }
 
-    if (!canUse) {
-      logger.warn({ userId, projectId }, 'User does not have use permission on project');
-      throw new HTTPException(403, {
-        message: 'Access denied: insufficient permissions',
-      });
+    if (!isCopilotToken) {
+      let canUse: boolean;
+      try {
+        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
+      } catch (error) {
+        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
+        throw new HTTPException(503, {
+          message: 'Authorization service temporarily unavailable',
+        });
+      }
+
+      if (!canUse) {
+        logger.warn({ userId, projectId }, 'User does not have use permission on project');
+        throw new HTTPException(403, {
+          message: 'Access denied: insufficient permissions',
+        });
+      }
     }
 
     logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
@@ -412,6 +450,9 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
     projectId: reqData.projectId,
     agentId: reqData.agentId,
     apiKeyId: 'bypass',
+    ...(reqData.runAsUserId
+      ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+      : {}),
   };
 }
 
@@ -419,12 +460,15 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
  * Create default development context
  */
 function createDevContext(reqData: RequestData): AuthResult {
-  const result = {
+  const result: AuthResult = {
     apiKey: 'development',
     tenantId: reqData.tenantId || 'test-tenant',
     projectId: reqData.projectId || 'test-project',
     agentId: reqData.agentId || 'test-agent',
     apiKeyId: 'test-key',
+    ...(reqData.runAsUserId
+      ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+      : {}),
   };
 
   // Log when falling back to test values to help debug auth issues
@@ -497,6 +541,12 @@ async function runApiKeyAuthHandler(
 
   const reqData = extractRequestData(c);
   const isDev = process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test';
+
+  if (reqData.runAsUserId === 'system' || reqData.runAsUserId?.startsWith('apikey:')) {
+    throw new HTTPException(400, {
+      message: 'x-inkeep-run-as-user-id cannot be a system identifier',
+    });
+  }
 
   // Development/test environment handling
   if (isDev) {

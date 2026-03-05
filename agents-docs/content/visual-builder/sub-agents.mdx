@@ -108,7 +108,7 @@ To create artifact components, see the [Artifact Components](/visual-builder/str
 
 Add the artifact component to your Sub Agent by clicking on the Sub Agent box in the Agent, then selecting which artifact components you want to add.
 
-When the Sub Agent uses tools or delegates to other Sub Agents, artifacts will be automatically created according to your defined schema, capturing the source and content of each interaction.
+When a Sub Agent uses a tool, it can choose to save the result as an artifact according to the defined schema. **Preview fields** (marked `inPreview: true` in the schema) are available immediately in the agent's context and streamed to clients. Non-preview fields are persisted in storage and can be retrieved on demand. Agents can also pass artifacts directly to tools, which receive the complete data including all non-preview fields. See [Artifact Components](/visual-builder/structured-outputs/artifact-components) for more details.
 
 ## Adding team agents
 

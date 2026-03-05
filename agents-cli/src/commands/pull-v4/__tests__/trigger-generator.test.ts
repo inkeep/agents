@@ -248,5 +248,53 @@ describe('Trigger Generator', () => {
         });
       }).toThrow('Registry is required for signingSecretCredentialReferenceId generation');
     });
+
+    it('should accept null fields and omit them from generated output', async () => {
+      const triggerId = 'nullable-fields';
+      const definition = generateTriggerDefinition({
+        triggerId,
+        name: 'Nullable Trigger',
+        description: null,
+        messageTemplate: null,
+        outputTransform: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        signingSecretCredentialReference: null,
+      });
+
+      expect(definition).toContain("id: 'nullable-fields',");
+      expect(definition).toContain("name: 'Nullable Trigger',");
+      expect(definition).not.toContain('description:');
+      expect(definition).not.toContain('messageTemplate:');
+      expect(definition).not.toContain('outputTransform:');
+      expect(definition).not.toContain('authentication:');
+      expect(definition).not.toContain('signatureVerification:');
+      expect(definition).not.toContain('signingSecretCredentialReference:');
+      await expectSnapshots(definition);
+    });
+
+    it('should accept a mix of null and defined fields', async () => {
+      const triggerId = 'mixed-nullable';
+      const definition = generateTriggerDefinition({
+        triggerId,
+        name: 'Mixed Trigger',
+        description: null,
+        messageTemplate: 'Event received: {{body.type}}',
+        outputTransform: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+      });
+
+      expect(definition).toContain("name: 'Mixed Trigger',");
+      expect(definition).toContain("messageTemplate: 'Event received: {{body.type}}'");
+      expect(definition).not.toContain('description:');
+      expect(definition).not.toContain('outputTransform:');
+      expect(definition).not.toContain('authentication:');
+      expect(definition).not.toContain('signatureVerification:');
+      expect(definition).not.toContain('signingSecretCredentialReference:');
+      await expectSnapshots(definition);
+    });
   });
 });

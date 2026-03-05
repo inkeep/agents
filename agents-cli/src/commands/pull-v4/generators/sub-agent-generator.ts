@@ -95,7 +95,7 @@ export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
   if (namedImports.length > 0 && parsed.contextConfigId) {
     sourceFile.addImportDeclaration({
       namedImports: [...new Set(namedImports)],
-      moduleSpecifier: `../context-configs/${parsed.contextConfigId}`,
+      moduleSpecifier: `../../context-configs/${parsed.contextConfigId}`,
     });
   }
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { LogOut, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { LogOut, Settings, User } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { ThemeToggleTabs } from '@/components/theme-toggle-tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,22 +13,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useSignOut } from '@/hooks/use-sign-out';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
-  const authClient = useAuthClient();
-  const router = useRouter();
+  const handleSignOut = useSignOut();
+  const { tenantId } = useParams<{ tenantId?: string }>();
 
   if (isLoading || !user) {
     return null;
   }
-
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
-  };
 
   return (
     <DropdownMenu>
@@ -51,8 +47,16 @@ export function UserMenu() {
           <ThemeToggleTabs />
         </div>
         <DropdownMenuSeparator />
+        {tenantId && (
+          <DropdownMenuItem asChild>
+            <Link href={`/${tenantId}/profile`} className="gap-2">
+              <Settings className="h-4 w-4" aria-hidden="true" />
+              Profile settings
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleSignOut} className="gap-2">
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4" aria-hidden="true" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

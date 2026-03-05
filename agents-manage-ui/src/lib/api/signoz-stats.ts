@@ -149,6 +149,21 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
+const CRITICAL_ERROR_SPAN_NAMES = [
+  'execution_handler.execute',
+  'agent.load_tools',
+  'context.handle_context_resolution',
+  'context.resolve',
+  'agent.generate',
+  'context-resolver.resolve_single_fetch_definition',
+  'agent_session.generate_structured_update',
+  'agent_session.process_artifact',
+  'agent_session.generate_artifact_metadata',
+  'response.format_object_response',
+  'response.format_response',
+  'ai.toolCall',
+];
+
 class SigNozStatsAPI {
   private tenantId: string | null = null;
 
@@ -243,7 +258,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     try {
       return await this.getConversationStatsPaginated(
@@ -253,7 +269,8 @@ class SigNozStatsAPI {
         projectId,
         pagination,
         searchQuery,
-        agentId
+        agentId,
+        hasErrors
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
@@ -348,7 +365,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -372,7 +390,8 @@ class SigNozStatsAPI {
         projectId,
         agentId,
         false,
-        pagination
+        pagination,
+        hasErrors
       );
 
       const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
@@ -440,7 +459,8 @@ class SigNozStatsAPI {
       projectId,
       pagination,
       searchQuery,
-      agentId
+      agentId,
+      hasErrors
     );
 
     if (conversationIds.length === 0) {
@@ -476,7 +496,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -488,7 +509,8 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      undefined
+      undefined,
+      hasErrors
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
@@ -1100,21 +1122,6 @@ class SigNozStatsAPI {
       acc.toolsUsed.set(name, t);
     }
 
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
     for (const s of spansWithErrorsSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
@@ -1405,7 +1412,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     agentId: string | undefined,
     includeSearchData: boolean,
-    pagination?: { page: number; limit: number }
+    pagination?: { page: number; limit: number },
+    hasErrors?: boolean
   ) {
     const buildBaseFilters = (): any[] => {
       const items: any[] = [
@@ -1439,6 +1447,27 @@ class SigNozStatsAPI {
           op: OPERATORS.EQUALS,
           value: projectId,
         });
+      }
+
+      if (hasErrors) {
+        items.push(
+          {
+            key: {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            op: OPERATORS.EQUALS,
+            value: true,
+          },
+          {
+            key: {
+              key: SPAN_KEYS.NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            op: OPERATORS.IN,
+            value: CRITICAL_ERROR_SPAN_NAMES,
+          }
+        );
       }
 
       return items;
@@ -2466,6 +2495,7 @@ class SigNozStatsAPI {
     avgUserMessagesPerConversation: number;
     totalUserMessages: number;
     totalTriggerInvocations: number;
+    totalSlackMessages: number;
     totalAICalls: number;
     totalMCPCalls: number;
   }> {
@@ -2478,6 +2508,7 @@ class SigNozStatsAPI {
       const totalConversationsSeries = this.extractSeries(resp, 'totalConversations');
       const totalUserMessagesSeries = this.extractSeries(resp, 'totalUserMessages');
       const totalTriggerInvocationsSeries = this.extractSeries(resp, 'totalTriggerInvocations');
+      const totalSlackMessagesSeries = this.extractSeries(resp, 'totalSlackMessages');
       const totalAICallsSeries = this.extractSeries(resp, 'totalAICalls');
       const totalMCPCallsSeries = this.extractSeries(resp, 'totalMCPCalls');
 
@@ -2490,6 +2521,9 @@ class SigNozStatsAPI {
       const totalTriggerInvocations = countFromSeries(
         totalTriggerInvocationsSeries[0] || { values: [{ value: '0' }] }
       );
+      const totalSlackMessages = countFromSeries(
+        totalSlackMessagesSeries[0] || { values: [{ value: '0' }] }
+      );
       const totalAICalls = countFromSeries(totalAICallsSeries[0] || { values: [{ value: '0' }] });
       const totalMCPCalls = countFromSeries(totalMCPCallsSeries[0] || { values: [{ value: '0' }] });
 
@@ -2501,6 +2535,7 @@ class SigNozStatsAPI {
         avgUserMessagesPerConversation,
         totalUserMessages,
         totalTriggerInvocations,
+        totalSlackMessages,
         totalAICalls,
         totalMCPCalls,
       };
@@ -2511,6 +2546,7 @@ class SigNozStatsAPI {
         avgUserMessagesPerConversation: 0,
         totalUserMessages: 0,
         totalTriggerInvocations: 0,
+        totalSlackMessages: 0,
         totalAICalls: 0,
         totalMCPCalls: 0,
       };
@@ -2765,6 +2801,48 @@ class SigNozStatsAPI {
             },
             groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
             expression: 'totalTriggerInvocations',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+
+          totalSlackMessages: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'totalSlackMessages',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: {
+              op: OPERATORS.AND,
+              items: [
+                tenantFilter,
+                ...projectFilters,
+                {
+                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EXISTS,
+                  value: '',
+                },
+                {
+                  key: { key: SPAN_KEYS.MESSAGE_CONTENT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EXISTS,
+                  value: '',
+                },
+                {
+                  key: { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+                  op: OPERATORS.EQUALS,
+                  value: 'slack',
+                },
+              ],
+            },
+            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
+            expression: 'totalSlackMessages',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [],

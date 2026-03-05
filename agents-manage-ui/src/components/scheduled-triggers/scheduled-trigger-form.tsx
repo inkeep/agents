@@ -1,7 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -10,8 +12,18 @@ import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import {
   Form,
   FormControl,
@@ -22,7 +34,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useAuthSession } from '@/hooks/use-auth';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
+import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   createScheduledTriggerAction,
   updateScheduledTriggerAction,
@@ -52,6 +75,7 @@ const scheduledTriggerFormSchema = z
     maxRetries: z.coerce.number().int().min(0).max(10).default(1),
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
+    runAsUserId: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -74,7 +98,10 @@ interface ScheduledTriggerFormProps {
   agentId: string;
   trigger?: ScheduledTrigger;
   mode: 'create' | 'edit';
+  defaultsFromParams?: Record<string, string>;
 }
+
+const NONE_VALUE = '__none__';
 
 export function ScheduledTriggerForm({
   tenantId,
@@ -82,28 +109,41 @@ export function ScheduledTriggerForm({
   agentId,
   trigger,
   mode,
+  defaultsFromParams,
 }: ScheduledTriggerFormProps) {
   const router = useRouter();
   const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=scheduled`;
+
+  const { user } = useAuthSession();
+  const { isAdmin, isLoading: isAdminLoading } = useIsOrgAdmin();
+  const { members: orgMembers, isLoading: isMembersLoading } = useOrgMembers(tenantId, projectId);
+
+  // Non-admins can only assign triggers to themselves
+  const selectableMembers = isAdmin ? orgMembers : orgMembers.filter((m) => m.id === user?.id);
+
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [multiUserOpen, setMultiUserOpen] = useState(false);
 
   const getDefaultValues = (): ScheduledTriggerFormData => {
     // Get browser's timezone for new triggers
     const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
     if (!trigger) {
+      const p = defaultsFromParams;
       return {
         enabled: true,
         name: '',
         description: '',
-        scheduleType: 'cron',
-        cronExpression: '',
-        cronTimezone: browserTimezone,
-        runAt: '',
-        payloadJson: '',
-        messageTemplate: '',
-        maxRetries: 1,
-        retryDelaySeconds: 60,
-        timeoutSeconds: 780,
+        scheduleType: (p?.scheduleType as 'cron' | 'one-time') || 'cron',
+        cronExpression: p?.cronExpression || '',
+        cronTimezone: p?.cronTimezone || browserTimezone,
+        runAt: p?.runAt || '',
+        payloadJson: p?.payloadJson || '',
+        messageTemplate: p?.messageTemplate || '',
+        maxRetries: p?.maxRetries ? Number(p.maxRetries) : 1,
+        retryDelaySeconds: p?.retryDelaySeconds ? Number(p.retryDelaySeconds) : 60,
+        timeoutSeconds: p?.timeoutSeconds ? Number(p.timeoutSeconds) : 780,
+        runAsUserId: undefined,
       };
     }
 
@@ -121,6 +161,7 @@ export function ScheduledTriggerForm({
       maxRetries: trigger.maxRetries ?? 1,
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
       timeoutSeconds: trigger.timeoutSeconds ?? 780,
+      runAsUserId: trigger.runAsUserId ?? undefined,
     };
   };
 
@@ -134,9 +175,18 @@ export function ScheduledTriggerForm({
   const { isSubmitting } = form.formState;
   const scheduleType = form.watch('scheduleType');
 
+  const resolveRunAsUserId = (value: string | undefined): string | null => {
+    if (!value || value === NONE_VALUE) return null;
+    return value;
+  };
+
+  const getMemberDisplayName = (userId: string): string => {
+    const member = orgMembers.find((m) => m.id === userId);
+    return member?.name || member?.email || userId;
+  };
+
   const onSubmit = async (data: ScheduledTriggerFormData) => {
     try {
-      // Parse JSON payload if provided
       let payload: Record<string, unknown> | null = null;
       if (data.payloadJson?.trim()) {
         try {
@@ -147,9 +197,8 @@ export function ScheduledTriggerForm({
         }
       }
 
-      const apiPayload = {
+      const basePayload = {
         id: data.id,
-        name: data.name,
         description: data.description || undefined,
         enabled: data.enabled,
         cronExpression: data.scheduleType === 'cron' ? data.cronExpression : null,
@@ -162,29 +211,76 @@ export function ScheduledTriggerForm({
         timeoutSeconds: data.timeoutSeconds,
       };
 
-      let result: { success: boolean; error?: string };
-      if (mode === 'create') {
-        result = await createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
-      } else if (trigger) {
-        result = await updateScheduledTriggerAction(
+      if (mode === 'edit') {
+        if (!trigger) {
+          toast.error('Scheduled trigger not found');
+          return;
+        }
+        const apiPayload = {
+          ...basePayload,
+          name: data.name,
+          runAsUserId: resolveRunAsUserId(data.runAsUserId),
+        };
+        const result = await updateScheduledTriggerAction(
           tenantId,
           projectId,
           agentId,
           trigger.id,
           apiPayload
         );
-      } else {
-        toast.error('Scheduled trigger not found');
+        if (result.success) {
+          toast.success('Scheduled trigger updated successfully');
+          router.push(redirectPath);
+        } else {
+          toast.error(result.error || 'Failed to update scheduled trigger');
+        }
         return;
       }
 
-      if (result.success) {
-        toast.success(
-          `Scheduled trigger ${mode === 'create' ? 'created' : 'updated'} successfully`
-        );
+      // Create mode — handle multi-user bulk creation
+      const usersToCreate =
+        selectedUserIds.length > 0 ? selectedUserIds : [data.runAsUserId || NONE_VALUE];
+
+      if (usersToCreate.length === 1) {
+        const apiPayload = {
+          ...basePayload,
+          name: data.name,
+          runAsUserId: resolveRunAsUserId(usersToCreate[0]),
+        };
+        const result = await createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
+        if (result.success) {
+          toast.success('Scheduled trigger created successfully');
+          router.push(redirectPath);
+        } else {
+          toast.error(result.error || 'Failed to create scheduled trigger');
+        }
+        return;
+      }
+
+      // Bulk create — one trigger per selected user
+      const results = await Promise.allSettled(
+        usersToCreate.map((userId) => {
+          const displayName = getMemberDisplayName(userId);
+          const apiPayload = {
+            ...basePayload,
+            name: `${data.name} (${displayName})`,
+            runAsUserId: resolveRunAsUserId(userId),
+          };
+          return createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
+        })
+      );
+
+      const succeeded = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+      const failed = results.length - succeeded;
+
+      if (failed === 0) {
+        toast.success(`Created ${succeeded} triggers successfully`);
+        router.push(redirectPath);
+      } else if (succeeded > 0) {
+        toast.warning(`Created ${succeeded}/${results.length} triggers. ${failed} failed.`);
         router.push(redirectPath);
       } else {
-        toast.error(result.error || `Failed to ${mode} scheduled trigger`);
+        toast.error('Failed to create triggers');
       }
     } catch (error) {
       console.error(`Failed to ${mode} scheduled trigger:`, error);
@@ -235,6 +331,131 @@ export function ScheduledTriggerForm({
                 </FormItem>
               )}
             />
+          </CardContent>
+        </Card>
+
+        {/* Execution Identity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Execution Identity</CardTitle>
+            <CardDescription>
+              Choose which user identity the trigger should run as. This determines whose
+              credentials and permissions are used during execution.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isAdminLoading || isMembersLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading users...
+              </div>
+            ) : mode === 'create' && isAdmin ? (
+              // Multi-user select for admins in create mode
+              <FormItem>
+                <FormLabel>Run as Users</FormLabel>
+                <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      role="combobox"
+                      aria-expanded={multiUserOpen}
+                    >
+                      <span className="truncate">
+                        {selectedUserIds.length === 0
+                          ? 'None'
+                          : selectedUserIds.length === 1
+                            ? getMemberDisplayName(selectedUserIds[0])
+                            : `${selectedUserIds.length} users selected`}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search users..." />
+                      <CommandList>
+                        <CommandEmpty>No users found.</CommandEmpty>
+                        <CommandGroup>
+                          {selectableMembers.map((member) => (
+                            <CommandItem
+                              key={member.id}
+                              value={`${member.name} ${member.email}`}
+                              onSelect={() => {
+                                setSelectedUserIds((prev) =>
+                                  prev.includes(member.id)
+                                    ? prev.filter((id) => id !== member.id)
+                                    : [...prev, member.id]
+                                );
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedUserIds.includes(member.id)}
+                                className="mr-2"
+                              />
+                              <div className="flex flex-col">
+                                <span>{member.name || member.email}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {member.email}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedUserIds.length > 1 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedUserIds.map((id) => (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="cursor-pointer"
+                        onClick={() =>
+                          setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
+                        }
+                      >
+                        {getMemberDisplayName(id)} &times;
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <FormDescription>
+                  Select multiple users to create one trigger per user.
+                </FormDescription>
+              </FormItem>
+            ) : (
+              // Single select for non-admins or edit mode
+              <FormField
+                control={form.control}
+                name="runAsUserId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Run as User</FormLabel>
+                    <Select value={field.value || NONE_VALUE} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>None</SelectItem>
+                        {selectableMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name || member.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Choose whose identity and credentials this trigger uses when running.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
         </Card>
 

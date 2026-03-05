@@ -1,7 +1,7 @@
 ---
 title: Tool approvals in Visual Builder
 sidebarTitle: Tool Approvals
-description: Require explicit user approval before running selected tools.
+description: Configure tool approval requirements in the Visual Builder to pause execution until a user approves the request.
 icon: LuShield
 keywords: tool approvals, user confirmation, tool safety, execution control, MCP tools, function tools, visual builder
 ---
@@ -104,7 +104,7 @@ When a tool with approval enabled is invoked:
 2. Your client UI displays the approval request to the user (tool name, inputs, etc.)
 3. The user approves or denies the request
 4. If approved, the tool executes and the agent continues
-5. If denied, the agent receives the denial and can respond accordingly
+5. If denied, the agent receives a human-readable denial reason string (or a default message if no reason was provided), allowing it to understand why the request was denied and adapt its behavior (for example, trying a different approach or asking a clarifying question)
 
 ## Best practices
 

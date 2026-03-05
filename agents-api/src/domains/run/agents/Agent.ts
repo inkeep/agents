@@ -3,7 +3,6 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  buildComposioMCPUrl,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
@@ -13,13 +12,6 @@ import {
   type FullExecutionContext,
   generateId,
   getFunctionToolsForSubAgent,
-  isGithubWorkAppTool,
-  JsonTransformer,
-  MCPServerType,
-  type MCPToolConfig,
-  MCPTransportType,
-  McpClient,
-  type McpServerConfig,
   type McpTool,
   type MessageContent,
   ModelFactory,
@@ -48,7 +40,6 @@ import {
 } from 'ai';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
-import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
@@ -88,6 +79,7 @@ import {
 } from '../utils/token-estimator';
 import { createDeniedToolResult, isToolResultDenied } from '../utils/tool-result';
 import { setSpanWithError, tracer } from '../utils/tracer';
+import { AgentMcpManager } from './AgentMcpManager';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
@@ -212,6 +204,7 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   relationId?: string;
   baseUrl: string;
   apiKey?: string;
@@ -298,11 +291,13 @@ export class Agent {
   private isDelegatedAgent: boolean = false;
   private contextResolver?: ContextResolver;
   private credentialStoreRegistry?: CredentialStoreRegistry;
-  private mcpClientCache: Map<string, McpClient> = new Map();
-  private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
+  private mcpManager!: AgentMcpManager;
   private currentCompressor: MidGenerationCompressor | null = null;
   private executionContext: FullExecutionContext;
   private functionToolRelationshipIdByName: Map<string, string> = new Map();
+  // Populated during execution; consumed once by generateTaskHandler when assembling the delegation response.
+  // Agents are instantiated per-task so this array is never reused across delegations.
+  private taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }> = [];
 
   constructor(
     config: AgentConfig,
@@ -358,6 +353,15 @@ export class Agent {
       this.contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
       this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry, this.contextResolver);
     }
+
+    this.mcpManager = new AgentMcpManager(
+      this.config,
+      this.executionContext,
+      this.credentialStuffer,
+      () => this.conversationId,
+      () => this.getStreamRequestId(),
+      (toolName, toolType) => this.#getRelationshipIdForTool(toolName, toolType as ToolType)
+    );
   }
 
   /**
@@ -548,6 +552,18 @@ export class Agent {
     this.delegationId = delegationId;
   }
 
+  private recordDenial(toolName: string, toolCallId: string, reason: string | undefined): void {
+    this.taskDenialRedirects.push({
+      toolName,
+      toolCallId,
+      reason: reason ?? 'Tool call was denied by the user.',
+    });
+  }
+
+  getTaskDenialRedirects(): Array<{ toolName: string; toolCallId: string; reason: string }> {
+    return this.taskDenialRedirects;
+  }
+
   /**
    * Get streaming helper if this agent should stream to user
    * Returns undefined for delegated agents to prevent streaming data operations to user
@@ -658,7 +674,28 @@ export class Agent {
         }
 
         try {
-          const result = await originalExecute(args, context);
+          const artifactParser = streamRequestId
+            ? agentSessionManager.getArtifactParser(streamRequestId)
+            : null;
+          const parsedArgsForResolution = artifactParser ? parseEmbeddedJson(args) : args;
+          const resolvedArgs = artifactParser
+            ? await artifactParser.resolveArgs(parsedArgsForResolution)
+            : args;
+
+          if (artifactParser && toolDefinition.parameters?.safeParse) {
+            const resolvedChanged =
+              JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+            if (resolvedChanged) {
+              const validation = toolDefinition.parameters.safeParse(resolvedArgs);
+              if (!validation.success) {
+                throw new Error(
+                  `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+                );
+              }
+            }
+          }
+
+          const result = await originalExecute(resolvedArgs, context);
           const duration = Date.now() - startTime;
 
           // Store tool result in conversation history
@@ -683,6 +720,8 @@ export class Agent {
                   a2a_metadata: {
                     toolName,
                     toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: this.delegationId,
                     isDelegated: this.isDelegatedAgent,
@@ -719,6 +758,10 @@ export class Agent {
             } else {
               await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
             }
+          }
+
+          if (isDeniedResult) {
+            return result.reason ?? 'Tool call was denied by the user.';
           }
 
           return result;
@@ -816,10 +859,12 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const toolSets =
+      (await Promise.all(mcpTools.map((tool) => this.mcpManager.getToolSet(tool)))) || [];
+
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
-      for (const toolSet of tools) {
+      for (const toolSet of toolSets) {
         for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
           // Find toolPolicies for this tool
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
@@ -842,11 +887,11 @@ export class Agent {
           );
         }
       }
-      return wrappedTools;
+      return { tools: wrappedTools, toolSets };
     }
 
     const wrappedTools: ToolSet = {};
-    for (const toolResult of tools) {
+    for (const toolResult of toolSets) {
       for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
@@ -990,6 +1035,8 @@ export class Agent {
                       'Tool execution denied by user'
                     );
 
+                    this.recordDenial(toolName, toolCallId, approvalResult.reason);
+
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
 
@@ -1092,7 +1139,7 @@ export class Agent {
                 toolCallId,
                 toolName,
                 args: finalArgs,
-                result: enhancedResult,
+                result: parsedResult,
                 timestamp: Date.now(),
               });
 
@@ -1122,317 +1169,7 @@ export class Agent {
       }
     }
 
-    return wrappedTools;
-  }
-
-  /**
-   * Convert database McpTool to builder MCPToolConfig format
-   */
-  private convertToMCPToolConfig(
-    tool: McpTool,
-    agentToolRelationHeaders?: Record<string, string>
-  ): MCPToolConfig {
-    if (tool.config.type !== 'mcp') {
-      throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
-    }
-
-    return {
-      id: tool.id,
-      name: tool.name,
-      description: tool.name, // Use name as description fallback
-      serverUrl: tool.config.mcp.server.url,
-      activeTools: tool.config.mcp.activeTools,
-      mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
-        ? MCPServerType.nango
-        : MCPServerType.generic,
-      transport: tool.config.mcp.transport,
-      headers: {
-        ...tool.headers,
-        ...agentToolRelationHeaders,
-      },
-      toolOverrides: tool.config.mcp.toolOverrides,
-    };
-  }
-
-  async getMcpTool(tool: McpTool) {
-    // Include forwarded headers hash in cache key to ensure user session-specific connections
-    // This prevents reusing a connection created without cookies for requests that have them
-    const forwardedHeadersHash = this.config.forwardedHeaders
-      ? Object.keys(this.config.forwardedHeaders).sort().join(',')
-      : 'no-fwd';
-    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
-
-    const project = this.executionContext.project;
-
-    const credentialReferenceId = tool.credentialReferenceId;
-
-    // Get tool relation from project context instead of database
-    const subAgent = project.agents[this.config.agentId]?.subAgents?.[this.config.id];
-    const toolRelation = subAgent?.canUse?.find((t) => t.toolId === tool.id);
-    const agentToolRelationHeaders = toolRelation?.headers || undefined;
-    const selectedTools = toolRelation?.toolSelection || undefined;
-    const toolPolicies = toolRelation?.toolPolicies || {};
-
-    let serverConfig: McpServerConfig;
-
-    // Check for user-scoped credential first (uses toolId + userId lookup)
-    const isUserScoped = tool.credentialScope === 'user';
-    const userId = this.config.userId;
-
-    if (isUserScoped && userId && this.credentialStuffer) {
-      // User-scoped: look up credential by (toolId, userId)
-      const userCredentialReference = project.credentialReferences
-        ? Object.values(project.credentialReferences).find(
-            (c) => c.toolId === tool.id && c.userId === userId
-          )
-        : undefined;
-
-      if (userCredentialReference) {
-        const storeReference = {
-          credentialStoreId: userCredentialReference.credentialStoreId,
-          retrievalParams: userCredentialReference.retrievalParams || {},
-        };
-
-        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-          {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-            contextConfigId: this.config.contextConfigId || undefined,
-            conversationId: this.conversationId || undefined,
-          },
-          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-          storeReference,
-          selectedTools
-        );
-      } else {
-        // User hasn't connected their credential yet - build config without auth
-        logger.warn(
-          { toolId: tool.id, userId },
-          'User-scoped tool has no credential connected for this user'
-        );
-        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-          {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-            contextConfigId: this.config.contextConfigId || undefined,
-            conversationId: this.conversationId || undefined,
-          },
-          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-          undefined,
-          selectedTools
-        );
-      }
-    } else if (credentialReferenceId && this.credentialStuffer) {
-      // Project-scoped: look up credential by credentialReferenceId
-
-      const credentialReference = project.credentialReferences?.[credentialReferenceId];
-
-      if (!credentialReference) {
-        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
-      }
-
-      const storeReference = {
-        credentialStoreId: credentialReference.credentialStoreId,
-        retrievalParams: credentialReference.retrievalParams || {},
-      };
-
-      serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-        {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          contextConfigId: this.config.contextConfigId || undefined,
-          conversationId: this.conversationId || undefined,
-        },
-        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-        storeReference,
-        selectedTools
-      );
-    } else if (this.credentialStuffer) {
-      serverConfig = await this.credentialStuffer.buildMcpServerConfig(
-        {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          contextConfigId: this.config.contextConfigId || undefined,
-          conversationId: this.conversationId || undefined,
-        },
-        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
-        undefined,
-        selectedTools
-      );
-    } else {
-      // Type guard - should only reach here for MCP tools
-      if (tool.config.type !== 'mcp') {
-        throw new Error(`Cannot build server config for non-MCP tool: ${tool.id}`);
-      }
-
-      serverConfig = {
-        type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
-        url: tool.config.mcp.server.url,
-        activeTools: tool.config.mcp.activeTools,
-        selectedTools,
-        headers: agentToolRelationHeaders,
-      };
-    }
-
-    // Inject github workapp tool id and authorization header if the tool is a github workapp
-    if (isGithubWorkAppTool(tool)) {
-      serverConfig.headers = {
-        ...serverConfig.headers,
-        'x-inkeep-tool-id': tool.id,
-        Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
-      };
-    }
-
-    // Inject user_id for Composio servers at runtime
-    if (serverConfig.url) {
-      serverConfig.url = buildComposioMCPUrl(
-        serverConfig.url.toString(),
-        this.config.tenantId,
-        this.config.projectId,
-        isUserScoped ? 'user' : 'project',
-        userId
-      );
-    }
-
-    // Merge forwarded headers (user session auth) into server config
-    if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
-      serverConfig.headers = {
-        ...serverConfig.headers,
-        ...this.config.forwardedHeaders,
-      };
-    }
-
-    logger.info(
-      {
-        toolName: tool.name,
-        credentialReferenceId,
-        transportType: serverConfig.type,
-        headers: tool.headers,
-        hasForwardedHeaders: !!this.config.forwardedHeaders,
-      },
-      'Built MCP server config with credentials'
-    );
-
-    let client = this.mcpClientCache.get(cacheKey);
-
-    if (client && !client.isConnected()) {
-      this.mcpClientCache.delete(cacheKey);
-      client = undefined;
-    }
-
-    if (!client) {
-      let connectionPromise = this.mcpConnectionLocks.get(cacheKey);
-
-      if (!connectionPromise) {
-        connectionPromise = this.createMcpConnection(tool, serverConfig);
-        this.mcpConnectionLocks.set(cacheKey, connectionPromise);
-      }
-
-      try {
-        client = await connectionPromise;
-        this.mcpClientCache.set(cacheKey, client);
-      } catch (error) {
-        this.mcpConnectionLocks.delete(cacheKey);
-        logger.error(
-          {
-            toolName: tool.name,
-            subAgentId: this.config.id,
-            cacheKey,
-            error: error instanceof Error ? error.message : String(error),
-          },
-          'MCP connection failed'
-        );
-        throw error;
-      }
-    }
-
-    const originalTools = await client.tools();
-
-    // Apply tool overrides if configured
-    const tools = await this.applyToolOverrides(originalTools, tool);
-
-    if (!tools || Object.keys(tools).length === 0) {
-      const streamRequestId = this.getStreamRequestId();
-      if (streamRequestId) {
-        tracer.startActiveSpan(
-          'ai.toolCall',
-          {
-            attributes: {
-              'ai.toolCall.name': tool.name,
-              'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
-              'ai.toolCall.result': JSON.stringify({
-                status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
-                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
-                originalToolName: tool.name,
-              }),
-              'ai.toolType': 'mcp',
-              'subAgent.name': this.config.name || 'unknown',
-              'subAgent.id': this.config.id || 'unknown',
-              'conversation.id': this.conversationId || 'unknown',
-              'agent.id': this.config.agentId || 'unknown',
-              'tenant.id': this.config.tenantId || 'unknown',
-              'project.id': this.config.projectId || 'unknown',
-            },
-          },
-          (span) => {
-            setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
-            const relationshipId = this.#getRelationshipIdForTool(tool.name, 'mcp');
-            agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
-              message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
-              code: 'no_tools_available',
-              severity: 'error',
-              context: {
-                toolName: tool.name,
-                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
-                operation: 'mcp_tool_discovery',
-              },
-              relationshipId,
-            });
-            span.end();
-          }
-        );
-      }
-    }
-
-    return { tools, toolPolicies, mcpServerId: tool.id, mcpServerName: tool.name };
-  }
-
-  private async createMcpConnection(
-    tool: McpTool,
-    serverConfig: McpServerConfig
-  ): Promise<McpClient> {
-    const client = new McpClient({
-      name: tool.name,
-      server: serverConfig,
-    });
-
-    try {
-      await client.connect();
-      return client;
-    } catch (error) {
-      logger.error(
-        {
-          toolName: tool.name,
-          subAgentId: this.config.id,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'Agent failed to connect to MCP server'
-      );
-      if (error instanceof Error) {
-        if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
-          const errorMessage = 'Connection refused. Please check if the MCP server is running.';
-          throw new Error(errorMessage);
-        }
-        if (error.message.includes('404')) {
-          const errorMessage = 'Error accessing endpoint (HTTP 404)';
-          throw new Error(errorMessage);
-        }
-        throw new Error(`MCP server connection failed: ${error.message}`);
-      }
-
-      throw error;
-    }
+    return { tools: wrappedTools, toolSets };
   }
 
   async getFunctionTools(sessionId?: string, streamRequestId?: string) {
@@ -1618,6 +1355,8 @@ export class Agent {
                       'Function tool execution denied by user'
                     );
 
+                    this.recordDenial(functionToolDef.name, toolCallId, approvalResult.reason);
+
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
 
@@ -1691,7 +1430,16 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return result;
+              // If a tool explicitly returns the AI SDK text format { type:"text", value:"..." },
+              // convert it to a neutral object so the full result (including _toolCallId) is
+              // preserved when the AI SDK serializes it for the Anthropic API. The content-array
+              // format { content: [{type:"text", text}] } is recognized by the AI SDK and only
+              // the content array is forwarded, dropping any extra metadata fields.
+              const r = result as any;
+              const resultForEnhancement =
+                r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
+
+              return this.enhanceToolResultWithStructureHints(resultForEnhancement, toolCallId);
             } catch (error) {
               logger.error(
                 {
@@ -1849,6 +1597,45 @@ export class Agent {
     }
   }
 
+  private collectProjectArtifactComponents(): ArtifactComponentApiInsert[] {
+    const project = this.executionContext.project;
+    try {
+      const agentDefinition = project.agents[this.config.agentId];
+      if (!agentDefinition) {
+        return this.artifactComponents;
+      }
+
+      const seen = new Set<string>();
+      const collected: ArtifactComponentApiInsert[] = [];
+
+      const addUnique = (components: ArtifactComponentApiInsert[]) => {
+        for (const ac of components) {
+          if (ac.name && !seen.has(ac.name)) {
+            seen.add(ac.name);
+            collected.push(ac);
+          }
+        }
+      };
+
+      addUnique(this.artifactComponents);
+
+      const projectArtifactComponents = project.artifactComponents || {};
+
+      for (const subAgent of Object.values(agentDefinition.subAgents)) {
+        if ('artifactComponents' in subAgent && subAgent.artifactComponents) {
+          const resolved = (subAgent.artifactComponents as string[])
+            .map((id) => projectArtifactComponents[id])
+            .filter(Boolean) as ArtifactComponentApiInsert[];
+          addUnique(resolved);
+        }
+      }
+
+      return collected;
+    } catch {
+      return this.artifactComponents;
+    }
+  }
+
   /**
    * Get the client's current time formatted in their timezone
    */
@@ -1924,7 +1711,7 @@ export class Agent {
     }
 
     const streamRequestId = runtimeContext?.metadata?.streamRequestId;
-    const mcpTools = await this.getMcpTools(undefined, streamRequestId);
+    const { tools: mcpTools, toolSets } = await this.getMcpTools(undefined, streamRequestId);
     const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
     const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
@@ -1948,16 +1735,30 @@ export class Agent {
       'Tools loaded for agent'
     );
 
-    const toolDefinitions = Object.entries(allTools).map(([name, tool]) => ({
-      name,
-      description: (tool as any).description || '',
-      inputSchema: (tool as any).inputSchema || (tool as any).parameters || {},
-      usageGuidelines:
-        name === 'load_skill'
-          ? 'Use this tool to load the full content of an on-demand skill by name.'
-          : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
-            ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
-            : 'Use this tool when appropriate for the task at hand.',
+    const mcpToolNames = new Set(Object.keys(mcpTools));
+
+    const toolDefinitions = Object.entries(allTools)
+      .filter(([name]) => !mcpToolNames.has(name))
+      .map(([name, tool]) => ({
+        name,
+        description: (tool as any).description || '',
+        inputSchema: (tool as any).inputSchema || (tool as any).parameters || {},
+        usageGuidelines:
+          name === 'load_skill'
+            ? 'Use this tool to load the full content of an on-demand skill by name.'
+            : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
+              ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
+              : 'Use this tool when appropriate for the task at hand.',
+      }));
+
+    const mcpServerGroups = toolSets.map((ts) => ({
+      serverName: ts.mcpServerName,
+      serverInstructions: ts.serverInstructions,
+      tools: Object.entries(ts.tools).map(([toolName, tool]) => ({
+        name: toolName,
+        description: (tool as any).description || '',
+        inputSchema: (tool as any).inputSchema || {},
+      })),
     }));
 
     const { getConversationScopedArtifacts } = await import('../data/conversations');
@@ -2021,22 +1822,24 @@ export class Agent {
       prompt,
       skills: this.config.skills || [],
       tools: toolDefinitions,
+      mcpServerGroups,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
       artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
+      allProjectArtifactComponents: this.collectProjectArtifactComponents(),
       hasAgentArtifactComponents,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
       includeDataComponents,
       clientCurrentTime,
     };
-    return await this.systemPromptBuilder.buildSystemPrompt(config);
+    return this.systemPromptBuilder.buildSystemPrompt(config);
   }
 
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Retrieves the complete data of an existing artifact. NOTE: To pass an artifact to a tool you do NOT need to call this — use the { "$artifact": "id", "$tool": "toolCallId" } sentinel and the system resolves the full data automatically. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
@@ -2209,276 +2012,6 @@ export class Agent {
     return this.streamRequestId || '';
   }
 
-  private async applyToolOverrides(originalTools: any, mcpTool: McpTool): Promise<any> {
-    // Check if this tool has overrides configured
-    const toolOverrides =
-      mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
-
-    if (!toolOverrides) {
-      logger.debug(
-        { mcpToolName: mcpTool.name },
-        'No tool overrides configured, using original tools'
-      );
-      return originalTools;
-    }
-
-    if (!originalTools || typeof originalTools !== 'object') {
-      logger.warn(
-        { mcpToolName: mcpTool.name, originalToolsType: typeof originalTools },
-        'Invalid original tools structure, skipping overrides'
-      );
-      return originalTools || {};
-    }
-
-    const processedTools: any = {};
-    const availableToolNames = Object.keys(originalTools);
-    const overrideNames = Object.keys(toolOverrides);
-
-    // Validate that override tool names exist in available tools
-    const invalidOverrides = overrideNames.filter((name) => !availableToolNames.includes(name));
-    if (invalidOverrides.length > 0) {
-      logger.warn(
-        {
-          mcpToolName: mcpTool.name,
-          invalidOverrides,
-          availableTools: availableToolNames,
-        },
-        'Tool override configured for non-existent tools'
-      );
-    }
-
-    logger.info(
-      {
-        mcpToolName: mcpTool.name,
-        totalTools: availableToolNames.length,
-        toolsWithOverrides: overrideNames.length,
-        availableTools: availableToolNames,
-        overrideTools: overrideNames,
-      },
-      'Starting tool override application'
-    );
-
-    for (const [toolName, toolDef] of Object.entries(originalTools)) {
-      // Validate tool definition structure
-      if (!toolDef || typeof toolDef !== 'object') {
-        logger.warn(
-          { mcpToolName: mcpTool.name, toolName, toolDefType: typeof toolDef },
-          'Invalid tool definition structure, skipping tool'
-        );
-        continue;
-      }
-
-      // Check if this tool has an override
-      const override = toolOverrides[toolName];
-
-      if (override && (override.schema || override.description || override.displayName)) {
-        // Apply overrides (schema, description, displayName, transformation)
-        try {
-          logger.debug(
-            {
-              mcpToolName: mcpTool.name,
-              toolName,
-              override: {
-                hasSchema: !!override.schema,
-                hasDescription: !!override.description,
-                hasDisplayName: !!override.displayName,
-                hasTransformation: !!override.transformation,
-                transformationType: typeof override.transformation,
-              },
-            },
-            'Processing tool override'
-          );
-
-          // Use override schema if provided, otherwise use original
-          let inputSchema: any;
-          try {
-            inputSchema = override.schema
-              ? z.fromJSONSchema(override.schema)
-              : (toolDef as any).inputSchema;
-          } catch (schemaError) {
-            logger.error(
-              {
-                mcpToolName: mcpTool.name,
-                toolName,
-                schemaError:
-                  schemaError instanceof Error ? schemaError.message : String(schemaError),
-                overrideSchema: override.schema,
-              },
-              'Failed to convert override schema, using original'
-            );
-            inputSchema = (toolDef as any).inputSchema;
-          }
-
-          // Use display name or fall back to original tool name
-          const toolId = override.displayName || toolName;
-
-          // Use override description or fall back to original description
-          const toolDescription =
-            override.description || (toolDef as any).description || `Tool ${toolId}`;
-
-          const simplifiedTool = tool({
-            description: toolDescription,
-            inputSchema,
-            execute: async (simpleArgs: any) => {
-              // Only transform if transformation is provided
-              let complexArgs = simpleArgs;
-              if (override.transformation) {
-                try {
-                  const startTime = Date.now();
-
-                  if (typeof override.transformation === 'string') {
-                    // Use secure async transform with timeout and validation
-                    complexArgs = await JsonTransformer.transform(
-                      simpleArgs,
-                      override.transformation,
-                      { timeout: 10000 } // 10 second timeout for security
-                    );
-                  } else if (
-                    typeof override.transformation === 'object' &&
-                    override.transformation !== null
-                  ) {
-                    // Use transformWithConfig for object transformations
-                    complexArgs = await JsonTransformer.transformWithConfig(
-                      simpleArgs,
-                      {
-                        objectTransformation: override.transformation,
-                      },
-                      { timeout: 10000 }
-                    );
-                  } else {
-                    logger.warn(
-                      {
-                        mcpToolName: mcpTool.name,
-                        toolName,
-                        transformationType: typeof override.transformation,
-                      },
-                      'Invalid transformation type, skipping transformation'
-                    );
-                  }
-
-                  const duration = Date.now() - startTime;
-                  logger.debug(
-                    {
-                      mcpToolName: mcpTool.name,
-                      toolName,
-                      transformationDuration: duration,
-                      hasSimpleArgs: !!simpleArgs,
-                      hasComplexArgs: !!complexArgs,
-                      transformation:
-                        typeof override.transformation === 'string'
-                          ? `${override.transformation.substring(0, 100)}...`
-                          : 'object-transformation',
-                    },
-                    'Successfully transformed tool arguments'
-                  );
-                } catch (transformError) {
-                  const errorMessage =
-                    transformError instanceof Error
-                      ? transformError.message
-                      : String(transformError);
-                  logger.error(
-                    {
-                      mcpToolName: mcpTool.name,
-                      toolName,
-                      transformError: errorMessage,
-                      transformation: override.transformation,
-                      simpleArgs,
-                    },
-                    'Failed to transform tool arguments, using original arguments'
-                  );
-                  // Continue with original args if transformation fails
-                  complexArgs = simpleArgs;
-                }
-              }
-
-              // Validate that original tool has execute function
-              if (typeof (toolDef as any).execute !== 'function') {
-                throw new Error(`Original tool ${toolName} does not have a valid execute function`);
-              }
-
-              // Call original tool with error handling
-              try {
-                logger.debug(
-                  {
-                    mcpToolName: mcpTool.name,
-                    toolName,
-                    hasComplexArgs: !!complexArgs,
-                  },
-                  'Executing original tool with processed arguments'
-                );
-
-                return await (toolDef as any).execute(complexArgs);
-              } catch (executeError) {
-                const errorMessage =
-                  executeError instanceof Error ? executeError.message : String(executeError);
-                logger.error(
-                  {
-                    mcpToolName: mcpTool.name,
-                    toolName,
-                    executeError: errorMessage,
-                    complexArgs,
-                  },
-                  'Failed to execute original tool'
-                );
-                throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
-              }
-            },
-          });
-
-          // Replace original with overridden version using the display name if provided
-          const finalToolName = override.displayName || toolName;
-          processedTools[finalToolName] = simplifiedTool;
-
-          logger.info(
-            {
-              mcpToolName: mcpTool.name,
-              originalToolName: toolName,
-              finalToolName,
-              displayName: override.displayName,
-              hasSchemaOverride: !!override.schema,
-              hasDescriptionOverride: !!override.description,
-              hasTransformation: !!override.transformation,
-            },
-            'Successfully applied tool overrides'
-          );
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          logger.error(
-            {
-              mcpToolName: mcpTool.name,
-              toolName,
-              error: errorMessage,
-              override,
-            },
-            'Failed to apply tool overrides, using original tool'
-          );
-          // Fall back to original tool
-          processedTools[toolName] = toolDef;
-        }
-      } else {
-        // No override, use original
-        processedTools[toolName] = toolDef;
-        logger.debug(
-          { mcpToolName: mcpTool.name, toolName },
-          'No overrides configured for tool, using original'
-        );
-      }
-    }
-
-    const processedToolNames = Object.keys(processedTools);
-    logger.info(
-      {
-        mcpToolName: mcpTool.name,
-        originalToolCount: availableToolNames.length,
-        processedToolCount: processedToolNames.length,
-        processedTools: processedToolNames,
-      },
-      'Completed tool override application'
-    );
-
-    return processedTools;
-  }
-
   /**
    * Format tool result for storage in conversation history
    */
@@ -2547,16 +2080,32 @@ ${output}`;
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
-   * Also adds tool call ID to the result for easy reference
-   * Only adds hints when artifact components are available
+   * Also adds _toolCallId to every object result for LLM tool-chaining reference.
+   * Structure hints are only added when artifact components are available.
    */
   private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
-    if (!result) {
+    if (result === undefined) {
       return result;
     }
 
-    // Only add structure hints and tool call ID if artifact components are available
+    // Wrap primitive results (string, number, boolean, null) with _toolCallId so the LLM can
+    // reference them for tool chaining. The AI SDK serializes plain objects as JSON for the
+    // Anthropic API, so the LLM sees the full object including _toolCallId — unlike bare
+    // primitives which have no place to embed it. The raw value is stored separately in
+    // ToolSessionManager, so downstream tools still receive the bare primitive via {$tool}.
+    // Covers all primitives including falsy ones (false, 0, "", null).
+    if (typeof result !== 'object' || result === null) {
+      if (toolCallId) {
+        return { [typeof result === 'string' ? 'text' : 'value']: result, _toolCallId: toolCallId };
+      }
+      return result;
+    }
+
+    // Always inject _toolCallId into object results so the LLM can reference them for chaining
     if (!this.artifactComponents || this.artifactComponents.length === 0) {
+      if (toolCallId && typeof result === 'object') {
+        return { ...result, _toolCallId: toolCallId };
+      }
       return result;
     }
 
@@ -2883,7 +2432,7 @@ ${output}`;
           'tenant.id': this.config.tenantId,
           'project.id': this.config.projectId,
           'agent.id': this.config.agentId,
-          'agent.name': this.config.name,
+          'agent.name': this.config.agentName,
           ...(conversationIdForSpan ? { 'conversation.id': conversationIdForSpan } : {}),
         },
       },
@@ -3150,7 +2699,7 @@ ${output}`;
   ) {
     // Load all tools and system prompt in parallel
     // Note: getDefaultTools needs to be called after streamHelper is set above
-    const [mcpTools, systemPromptResult, functionTools, relationTools, defaultTools] =
+    const [mcpToolsResult, systemPromptResult, functionTools, relationTools, defaultTools] =
       await tracer.startActiveSpan(
         'agent.load_tools',
         {
@@ -3181,6 +2730,8 @@ ${output}`;
           }
         }
       );
+
+    const { tools: mcpTools } = mcpToolsResult;
 
     // Extract prompt and breakdown from results
     const systemPrompt = systemPromptResult.prompt;
@@ -3229,6 +2780,7 @@ ${output}`;
           options: historyConfig,
           filters,
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3246,6 +2798,7 @@ ${output}`;
             isDelegated: this.isDelegatedAgent,
           },
           summarizerModel: this.getSummarizerModel(),
+          baseModel: this.getPrimaryModel(),
           streamRequestId,
           fullContextSize: initialContextBreakdown.total,
         });
@@ -3786,6 +3339,11 @@ ${output}`;
       this.currentCompressor.fullCleanup();
       this.currentCompressor = null;
     }
+  }
+
+  public async cleanup(): Promise<void> {
+    await this.mcpManager.cleanup();
+    this.cleanupCompression();
   }
 
   private async handleStreamGeneration(

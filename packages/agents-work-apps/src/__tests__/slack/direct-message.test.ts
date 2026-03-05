@@ -58,10 +58,17 @@ vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     chat: { postMessage: mockPostMessage },
   })),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
 }));
 
 vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),
+}));
+
+vi.mock('../../slack/services/agent-resolution', () => ({
+  lookupAgentName: vi.fn().mockResolvedValue('Test Agent'),
 }));
 
 vi.mock('../../slack/services/events/execution', () => ({
@@ -145,7 +152,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -181,7 +188,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -203,9 +210,12 @@ describe('handleDirectMessage', () => {
         projectId: 'proj-1',
         agentId: 'agent-1',
         agentName: 'Test Agent',
-        question: 'hello bot',
+        question: expect.stringContaining('hello bot'),
       })
     );
+    const calledQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(calledQuestion).toContain('(sent ');
+    expect(calledQuestion).toMatch(/EST|ET/);
   });
 
   it('should sign JWT with slackAuthorized: false for DMs', async () => {
@@ -214,7 +224,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -242,7 +252,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -269,7 +279,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');
@@ -295,6 +305,8 @@ describe('handleDirectMessage', () => {
         question: expect.stringContaining('slack_thread_context'),
       })
     );
+    const threadQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(threadQuestion).toContain('(sent ');
   });
 
   it('should post error message on failure', async () => {
@@ -303,7 +315,7 @@ describe('handleDirectMessage', () => {
       botToken: 'xoxb-test',
       teamId: 'T123',
       tenantId: 'tenant-1',
-      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1', agentName: 'Test Agent' },
+      defaultAgent: { agentId: 'agent-1', projectId: 'proj-1' },
     } as any);
 
     const { findCachedUserMapping } = await import('../../slack/services/events/utils');

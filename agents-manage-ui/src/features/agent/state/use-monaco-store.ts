@@ -155,7 +155,6 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           // Check if we're inside a template variable (after {)
           const match = textUntilPosition.match(/\{([^}]*)$/);
           if (!match) {
-            console.log('No template variable match found');
             return { suggestions: [] };
           }
 

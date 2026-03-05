@@ -81,7 +81,6 @@ export function useTempApiKey({
     const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
 
     const timer = setTimeout(() => {
-      console.log('Auto-refreshing temporary API key before expiry...');
       fetchToken();
     }, refreshTime);
 

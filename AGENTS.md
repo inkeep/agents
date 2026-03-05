@@ -118,6 +118,26 @@ pnpm build           # Build documentation for production
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
 
+### pnpm-lock.yaml Resolution Strategy
+
+⚠️ **NEVER delete `pnpm-lock.yaml` and regenerate it from scratch.** Deleting the lockfile and running `pnpm install` allows the resolver to pick different (often lower) versions of transitive dependencies, causing silent downgrades that break tests or change runtime behavior.
+
+**Correct approach when the lockfile has merge conflicts or needs updating:**
+
+1. **Start from the base branch's lockfile** — check out the `pnpm-lock.yaml` from the target base (usually `main`):
+   ```bash
+   git checkout main -- pnpm-lock.yaml
+   ```
+2. **Re-install to layer your branch's dependency changes on top:**
+   ```bash
+   pnpm install
+   ```
+   This preserves all existing resolutions from `main` and only adds/updates what your branch's `package.json` changes require.
+
+3. **Commit the updated lockfile** with your other changes.
+
+**Why this matters:** The lockfile pins exact transitive dependency versions. Regenerating from scratch lets the resolver freely re-resolve the entire tree, which can silently pick different versions even when `package.json` ranges haven't changed. Starting from the base lockfile ensures only your intentional changes affect resolution.
+
 ## Architecture Overview
 
 This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.

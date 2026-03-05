@@ -296,8 +296,12 @@ export function MCPServerForm({
           <GenericTextarea
             control={form.control}
             name="config.mcp.prompt"
-            label="Custom Prompt (optional)"
-            placeholder="Instructions for how agents should use these tools..."
+            label="Prompt (optional)"
+            placeholder={
+              tool?.capabilities?.serverInstructions
+                ? `Leave empty to use server default: "${tool.capabilities.serverInstructions.slice(0, 100)}${tool.capabilities.serverInstructions.length > 100 ? '...' : ''}"`
+                : 'Override the instructions sent by the MCP server...'
+            }
           />
 
           {/* Hide credential options for workapp tools (they manage auth differently) */}
@@ -347,10 +351,19 @@ export function MCPServerForm({
                     options={[
                       { value: 'oauth', label: 'OAuth' },
                       { value: 'none', label: 'No Authentication' },
-                      ...credentials.map((credential) => ({
-                        value: credential.id,
-                        label: credential.name,
-                      })),
+                      ...credentials.map((credential) => {
+                        const displayName = credential.name || credential.id;
+                        const hasDuplicateName = credentials.some(
+                          (c) => c.id !== credential.id && c.name === credential.name
+                        );
+                        return {
+                          value: credential.id,
+                          label:
+                            hasDuplicateName || !credential.name
+                              ? `${displayName} (${credential.id.slice(0, 8)})`
+                              : credential.name,
+                        };
+                      }),
                     ]}
                   />
                   <InfoCard title="How this works">

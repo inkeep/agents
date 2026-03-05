@@ -8,6 +8,7 @@ import type { z } from '@hono/zod-openapi';
 import { MCPTransportType } from '../../types/utility';
 import type { PrebuiltMCPServerSchema } from '../../validation/schemas';
 import { getLogger } from '../logger';
+import type { McpServerConfig } from '../mcp-client';
 
 type PrebuiltMCPServer = z.infer<typeof PrebuiltMCPServerSchema>;
 
@@ -99,37 +100,42 @@ export function getComposioUserId(
 }
 
 /**
- * Build a Composio MCP URL with the appropriate user_id parameter
- * Consolidates user_id injection logic used across the codebase
+ * Configure a Composio MCP server config with the appropriate user_id and x-api-key.
+ * Mutates serverConfig in place:
+ *  - Injects user_id query param into the URL (scoped by tenant/project/user)
+ *  - Injects x-api-key header from COMPOSIO_API_KEY env var
  *
- * @param baseUrl - The base MCP server URL
- * @param tenantId - The tenant ID
- * @param projectId - The project ID
- * @param credentialScope - Whether credentials are 'project' or 'user' scoped
- * @param userId - Optional user ID (required for user-scoped credentials)
- * @returns The URL with user_id parameter set, or original URL if not a Composio URL
+ * No-op if the URL is not a composio.dev URL or already has a user_id.
  */
-export function buildComposioMCPUrl(
-  baseUrl: string,
+export function configureComposioMCPServer(
+  serverConfig: McpServerConfig,
   tenantId: string,
   projectId: string,
   credentialScope: CredentialScope,
   userId?: string
-): string {
-  if (!baseUrl.includes('composio.dev')) {
-    return baseUrl;
+): void {
+  const baseUrl = serverConfig.url?.toString();
+  if (!baseUrl?.includes('composio.dev')) {
+    return;
   }
 
   const urlObj = new URL(baseUrl);
 
   // Don't modify if already has user_id (external Composio URL)
-  if (urlObj.searchParams.has('user_id')) {
-    return baseUrl;
+  if (!urlObj.searchParams.has('user_id')) {
+    const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
+    urlObj.searchParams.set('user_id', composioUserId);
+    serverConfig.url = urlObj.toString();
   }
 
-  const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
-  urlObj.searchParams.set('user_id', composioUserId);
-  return urlObj.toString();
+  // Inject x-api-key header for Composio authentication
+  const composioApiKey = process.env.COMPOSIO_API_KEY;
+  if (composioApiKey) {
+    serverConfig.headers = {
+      ...serverConfig.headers,
+      'x-api-key': composioApiKey,
+    };
+  }
 }
 
 /**
