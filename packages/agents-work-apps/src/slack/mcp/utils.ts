@@ -1,9 +1,5 @@
 import type { SlackMcpToolAccessConfig } from '@inkeep/agents-core';
 import type { WebClient } from '@slack/web-api';
-import { getLogger } from '../../logger';
-
-const logger = getLogger('slack-mcp-utils');
-
 export async function resolveChannelId(client: WebClient, channelInput: string): Promise<string> {
   if (!channelInput.startsWith('#')) {
     return channelInput;
