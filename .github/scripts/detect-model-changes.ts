@@ -53,6 +53,9 @@ async function fetchAnthropicModels(apiKey: string): Promise<string[]> {
       last_id?: string;
     };
     allModels.push(...data.data);
+    if (data.has_more && !data.last_id) {
+      throw new Error('Anthropic API returned has_more=true but no last_id for pagination');
+    }
     afterId = data.has_more ? data.last_id : undefined;
   } while (afterId && pages < MAX_PAGES);
 
