@@ -43,6 +43,11 @@ async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Res
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${FETCH_TIMEOUT_MS}ms`);
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -59,9 +64,12 @@ async function fetchGatewayModels(): Promise<Array<{ provider: string; id: strin
   }
 
   const json = (await res.json()) as { data: GatewayModel[] };
+  if (!Array.isArray(json.data)) {
+    throw new Error(`Unexpected response format from Vercel AI Gateway: 'data' is not an array`);
+  }
   const cutoff = cutoffUnixSeconds(DAYS);
 
-  return (json.data ?? [])
+  return json.data
     .filter((m) => {
       const slashIndex = m.id.indexOf('/');
       if (slashIndex === -1) return false;
