@@ -202,8 +202,6 @@ export class ManagementApiClient extends BaseApiClient {
     }
 
     const responseData = await response.json();
-    console.log();
-    console.dir(responseData.data, { depth: null });
     return responseData.data;
   }
 
