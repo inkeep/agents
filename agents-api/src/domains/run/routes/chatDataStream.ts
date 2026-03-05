@@ -23,6 +23,7 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
+import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import { ImageUrlSchema } from '../types/chat';
@@ -363,13 +364,22 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
+      const userMessageId = generateId();
+
+      const messageContent = await buildPersistedMessageContent(userText, messageParts, {
+        tenantId,
+        projectId,
+        conversationId,
+        messageId: userMessageId,
+      });
+
       await createMessage(runDbClient)({
-        id: generateId(),
+        id: userMessageId,
         tenantId,
         projectId,
         conversationId,
         role: 'user',
-        content: { text: userText },
+        content: messageContent,
         visibility: 'user-facing',
         messageType: 'chat',
       });

@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { DATA_URI_IMAGE_BASE64_REGEX } from '../constants/allowed-image-formats';
+import { DATA_URI_IMAGE_BASE64_REGEX } from '@inkeep/agents-core/constants/allowed-image-formats';
 
 export type TextContentItem = {
   type: 'text';

@@ -1,9 +1,3 @@
-/**
- * Validates image bytes from untrusted sources (uploaded inline bytes or downloaded data).
- *
- * This prevents non-image payloads from being accepted when they are mislabeled as images.
- * Prefer byte-sniffed types over claimed MIME types whenever possible.
- */
 import { fileTypeFromBuffer } from 'file-type';
 import {
   ALLOWED_EXTERNAL_IMAGE_MIME_TYPES,

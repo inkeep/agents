@@ -128,19 +128,6 @@ describe('external-image-downloader', () => {
     );
   });
 
-  it('blocks response with non-image content-type', async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(
-      new Response('<html>not image</html>', {
-        status: 200,
-        headers: { 'content-type': 'text/html' },
-      })
-    );
-
-    await expect(downloadExternalImage('https://example.com/page')).rejects.toThrow(
-      /Blocked external image with non-image content-type/
-    );
-  });
-
   it('rejects response with image content-type but non-image bytes', async () => {
     const maliciousPayload = Buffer.from('not an image at all');
     vi.mocked(globalThis.fetch).mockResolvedValue(
@@ -259,5 +246,61 @@ describe('external-image-downloader', () => {
     await expect(
       downloadExternalImage('https://example.com/image.png?token=super-secret#hash')
     ).rejects.not.toThrow(/super-secret|#hash|\?/);
+  });
+
+  it('retries transient 5xx responses before failing', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      )
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      )
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
+      /Failed to download image/
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('succeeds after transient 5xx failure on retry', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('oops', { status: 503, statusText: 'Service Unavailable' })
+      )
+      .mockResolvedValueOnce(
+        new Response(VALID_PNG_BYTES, {
+          status: 200,
+          headers: {
+            'content-type': 'image/png',
+            'content-length': String(VALID_PNG_BYTES.length),
+          },
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await downloadExternalImage('https://example.com/image.png');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.mimeType).toBe('image/png');
+    expect(result.data).toBeInstanceOf(Uint8Array);
+    expect(result.data.length).toBe(VALID_PNG_BYTES.length);
+  });
+
+  it('does not retry client errors', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('nope', { status: 400, statusText: 'Bad Request' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
+      /Failed to download image/
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

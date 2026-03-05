@@ -1,8 +1,8 @@
 import { lookup as dnsLookup } from 'node:dns';
+import { retryWithBackoff } from '@inkeep/agents-core';
 import { Agent } from 'undici';
 import { resolveDownloadedImageMimeType } from './image-content-security';
 import {
-  ALLOWED_EXTERNAL_IMAGE_MIME_TYPES,
   EXTERNAL_FETCH_TIMEOUT_MS,
   MAX_EXTERNAL_IMAGE_BYTES,
   MAX_EXTERNAL_REDIRECTS,
@@ -11,7 +11,6 @@ import {
   BlockedConnectionToPrivateIpError,
   BlockedExternalImageExceedingError,
   BlockedExternalImageLargerThanError,
-  BlockedNonImageContentTypeError,
   ExternalImageResponseBodyEmptyError,
   FailedToDownloadError,
   ImageSecurityError,
@@ -63,6 +62,8 @@ const externalImageDispatcher = new Agent({
   },
 });
 
+const MAX_EXTERNAL_FETCH_ATTEMPTS = 3;
+
 export async function downloadExternalImage(
   url: string
 ): Promise<{ data: Uint8Array; mimeType: string }> {
@@ -70,7 +71,7 @@ export async function downloadExternalImage(
   await validateUrlResolvesToPublicIp(currentUrl);
 
   for (let redirectCount = 0; redirectCount <= MAX_EXTERNAL_REDIRECTS; redirectCount++) {
-    const response = await fetchWithConnectionIpValidation(currentUrl);
+    const response = await fetchWithRetry(currentUrl);
 
     if (isRedirectStatus(response.status)) {
       const location = response.headers.get('location');
@@ -98,9 +99,6 @@ export async function downloadExternalImage(
       .split(';')[0]
       .trim()
       .toLowerCase();
-    if (headerContentType && !ALLOWED_EXTERNAL_IMAGE_MIME_TYPES.has(headerContentType)) {
-      throw new BlockedNonImageContentTypeError(headerContentType);
-    }
 
     const contentLength = response.headers.get('content-length');
     if (
@@ -119,8 +117,42 @@ export async function downloadExternalImage(
   throw new UnexpectedRedirectStateError(toSanitizedUrl(url));
 }
 
+async function fetchWithRetry(url: URL): Promise<Response> {
+  return retryWithBackoff(
+    async () => {
+      let response: Response;
+      try {
+        response = await fetchWithConnectionIpValidation(url);
+      } catch (error) {
+        if (error instanceof TimedOutDownloadingError || error instanceof FailedToDownloadError) {
+          (error as unknown as { status: number }).status = 502;
+        }
+        throw error;
+      }
+      if (isRetryableStatus(response.status)) {
+        const err = new FailedToDownloadError(
+          toSanitizedUrl(url),
+          `${response.status} ${response.statusText}`
+        );
+        (err as unknown as { status: number }).status = response.status;
+        throw err;
+      }
+      return response;
+    },
+    {
+      maxAttempts: MAX_EXTERNAL_FETCH_ATTEMPTS,
+      maxDelayMs: 2_000,
+      label: `image-download ${toSanitizedUrl(url)}`,
+    }
+  );
+}
+
 function isRedirectStatus(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || (status >= 500 && status <= 599);
 }
 
 async function readResponseBytesWithLimit(
