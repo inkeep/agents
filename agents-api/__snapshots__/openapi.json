@@ -37341,8 +37341,8 @@
           "Tools"
         ],
         "x-authz": {
-          "description": "Requires project edit permission (project_admin, or org admin/owner)",
-          "permission": "edit",
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
           "resource": "project"
         }
       },

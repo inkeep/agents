@@ -100,7 +100,7 @@ app.openapi(
       'Returns the current Slack channel access configuration for an MCP tool. ' +
       'If channelAccessMode is "all", the tool can post to any channel. ' +
       'If channelAccessMode is "selected", the tool is scoped to specific channels.',
-    permission: requireProjectPermission('edit'),
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectToolParamsSchema,
     },
