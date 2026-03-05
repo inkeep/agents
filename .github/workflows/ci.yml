@@ -86,32 +86,39 @@ jobs:
           HUSKY: 0
 
       # Auto-update OpenAPI snapshot on PRs (skip fork PRs since GITHUB_TOKEN is read-only)
-      - name: Build dependencies for snapshot update
+      # Gate: only run when files that affect the OpenAPI spec changed.
+      # These paths mirror the pre-commit hook in package.json lint-staged config.
+      - name: Check for OpenAPI-affecting changes
+        id: openapi-changes
         if: |
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | \
+             grep -qE '^agents-api/src/(domains/.*/routes/|openapi\.|createApp\.)'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build dependencies for snapshot update
+        if: steps.openapi-changes.outputs.changed == 'true'
         run: pnpm exec turbo build --filter=@inkeep/agents-api...
         env:
           ENVIRONMENT: test
-          CI: true
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Update OpenAPI snapshot
-        if: |
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.openapi-changes.outputs.changed == 'true'
         run: pnpm --filter @inkeep/agents-api openapi:update-snapshot
         env:
           ENVIRONMENT: test
-          CI: true
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Commit OpenAPI snapshot if changed
-        if: |
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.openapi-changes.outputs.changed == 'true'
         run: |
           scripts/ci-commit-and-push.sh agents-api/__snapshots__/openapi.json "chore: update OpenAPI snapshot" "${{ github.head_ref }}"
 
