@@ -333,6 +333,20 @@ Please update the following 3 files to include these models:
 3. \`agents-cli/src/utils/model-config.ts\`
    - Same rules as file 2 — undated aliases only, same ordering
 
+4. \`.changeset/model-sync-update.md\`
+   - Create a changeset file with the following format:
+     \`\`\`
+     ---
+     "@inkeep/agents-core": patch
+     "@inkeep/agents-manage-ui": patch
+     "@inkeep/agents-cli": patch
+     ---
+
+     Add <list the new model names> to static model list
+     \`\`\`
+   - The message should be a single sentence listing the models that were added (e.g., "Add claude-sonnet-4-7, gpt-5.3 to static model list")
+   - All three packages get a patch bump since these are additive model list updates
+
 After making changes, open a pull request with:
 - Title: "chore: add new models from provider APIs [model-sync]"
 - Label: "model-sync" (create the label if it doesn't exist, using color #0075ca)
