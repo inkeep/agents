@@ -13,6 +13,7 @@ import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
+import { useGroupedAgentErrors } from '@/hooks/use-grouped-agent-errors';
 
 interface ToolbarProps {
   toggleSidePane: () => void;
@@ -29,8 +30,8 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const agentDirtyState = useAgentStore((state) => state.dirty);
   const { control } = useFullAgentFormContext();
-  const { errors: $errors, isDirty, isSubmitting } = useFormState({ control });
-  const { subAgents, functionTools, externalAgents, teamAgents, tools, ...errors } = $errors;
+  const { isDirty, isSubmitting } = useFormState({ control });
+  const { agentSettings } = useGroupedAgentErrors();
 
   const dirty = agentDirtyState || isDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
@@ -68,11 +69,11 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
     };
   }, []);
 
-  const agentErrors = Object.entries(errors).map(([key, value]) => ({
+  const agentSettingsErrors = Object.entries(agentSettings).map(([key, value]) => ({
     field: key,
     message: firstNestedMessage(value),
   }));
-  const hasErrors = agentErrors.length > 0;
+  const hasErrors = agentSettingsErrors.length > 0;
 
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
@@ -127,7 +128,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         >
           <Settings className="size-4 text-muted-foreground" />
           Agent Settings
-          {hasErrors && <ErrorIndicator errors={agentErrors} />}
+          {hasErrors && <ErrorIndicator errors={agentSettingsErrors} />}
         </Button>
       )}
     </div>

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { firstNestedMessage } from '@/components/ui/form';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { useGroupedAgentErrors } from '@/hooks/use-grouped-agent-errors';
 
 interface AgentErrorSummaryProps {
   onNavigateToNode?: (nodeId: string) => void;
@@ -118,16 +118,8 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   //   return `Connection (${error.edgeId})`;
   // };
   // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
-  const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control });
-  const {
-    subAgents = {},
-    functionTools = {},
-    externalAgents = {},
-    teamAgents = {},
-    tools = {},
-    ...rest
-  } = errors;
+  const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings, other } =
+    useGroupedAgentErrors();
 
   const [showErrors, setShowErrors] = useState(true);
   const data: ComponentProps<typeof ErrorGroup>[] = [
@@ -158,10 +150,14 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     },
     {
       title: 'Agent Settings',
-      errors: processMessagesWithNodeId({ '': rest }),
+      errors: processMessagesWithNodeId({ '': agentSettings }),
       onNavigate() {
         setQueryState({ pane: 'agent', nodeId: null, edgeId: null });
       },
+    },
+    {
+      title: 'Other',
+      errors: processMessagesWithNodeId({ '': other }),
     },
   ];
 
