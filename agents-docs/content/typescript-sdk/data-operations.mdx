@@ -186,7 +186,7 @@ See [Tool approvals](/typescript-sdk/tools/tool-approvals) for complete configur
 
 #### `tool_result`
 
-Emitted when a tool execution completes (success or failure).
+Emitted when a tool execution completes (success or failure). Tool results can include text, structured data, or multimedia content such as images.
 
 ```json
 {
@@ -235,6 +235,32 @@ Emitted when a tool execution completes (success or failure).
         "toolId": "tool_xyz789",
         "duration": 500,
         "error": "API rate limit exceeded"
+      }
+    }
+  }
+}
+```
+
+**Image Result Example:**
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_result",
+    "label": "Tool result: generate_chart",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "analysis-agent",
+      "data": {
+        "toolName": "generate_chart",
+        "result": {
+          "image": "blob:project_123/conv_456/media/chart_789.png",
+          "title": "Q4 Sales Performance"
+        },
+        "toolCallId": "call_xyz789",
+        "toolId": "tool_chart123",
+        "duration": 2100
       }
     }
   }
