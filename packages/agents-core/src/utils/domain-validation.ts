@@ -7,9 +7,11 @@ export function validateOrigin(
   }
 
   let hostname: string;
+  let host: string;
   try {
     const url = new URL(origin);
     hostname = url.hostname;
+    host = url.host;
   } catch {
     return false;
   }
@@ -19,12 +21,15 @@ export function validateOrigin(
       return true;
     }
 
+    const domainHasPort = domain.includes(':') && !domain.startsWith('*');
+    const target = domainHasPort ? host : hostname;
+
     if (domain.startsWith('*.')) {
       const suffix = domain.slice(2);
       if (hostname === suffix || hostname.endsWith(`.${suffix}`)) {
         return true;
       }
-    } else if (hostname === domain) {
+    } else if (target === domain) {
       return true;
     }
   }
