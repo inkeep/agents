@@ -334,9 +334,6 @@ export async function runGenerate(
           });
           setSpanWithError(span, timeoutError);
         } else {
-          span.setAttributes({
-            [SPAN_KEYS.GENERATION_FINISH_REASON]: response.finishReason ?? 'unknown',
-          });
           span.setStatus({ code: SpanStatusCode.OK });
         }
 
