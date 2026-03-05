@@ -6,6 +6,7 @@ import {
   isGithubWorkAppTool,
   isSlackWorkAppTool,
   JsonTransformer,
+  resolveSlackUserContext,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -14,6 +15,7 @@ import {
   type McpTool,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
+import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -202,13 +204,25 @@ export class AgentMcpManager {
       this.reportEmptyToolSet(tool, conversationId);
     }
 
+    let serverInstructions = tool.config.mcp.prompt ?? client.getInstructions();
+
+    if (isSlackWorkAppTool(tool) && this.config.userId) {
+      try {
+        const slackUserContext = await resolveSlackUserContext(runDbClient)(this.config.userId);
+        if (slackUserContext) {
+          serverInstructions = (serverInstructions ? `${serverInstructions}\n` : '') + slackUserContext;
+        }
+      } catch (error) {
+        logger.warn({ error, userId: this.config.userId }, 'Failed to resolve Slack user context');
+      }
+    }
+
     return {
       tools,
       toolPolicies,
       mcpServerId: tool.id,
       mcpServerName: tool.name,
-      // Config prompt overrides take precedence over values sent by the MCP server's initialize response
-      serverInstructions: tool.config.mcp.prompt ?? client.getInstructions(),
+      serverInstructions,
     };
   }
 

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { workAppSlackMcpToolAccessConfig } from '../../db/runtime/runtime-schema';
+import { workAppSlackMcpToolAccessConfig, workAppSlackUserMappings } from '../../db/runtime/runtime-schema';
 import type { McpTool, ToolSelect } from '../../types/entities';
 
 export type SlackMcpToolAccessConfig = {
@@ -69,3 +69,25 @@ export const setSlackMcpToolAccessConfig =
 export const isSlackWorkAppTool = (tool: ToolSelect | McpTool) => {
   return tool.isWorkApp && tool.config.mcp.server.url.includes('/slack/mcp');
 };
+
+export const resolveSlackUserContext =
+  (db: AgentsRunDatabaseClient) =>
+  async (inkeepUserId: string): Promise<string | undefined> => {
+    const mappings = await db
+      .select({
+        slackUserId: workAppSlackUserMappings.slackUserId,
+        slackUsername: workAppSlackUserMappings.slackUsername,
+      })
+      .from(workAppSlackUserMappings)
+      .where(eq(workAppSlackUserMappings.inkeepUserId, inkeepUserId))
+      .limit(1);
+
+    if (mappings.length === 0) return undefined;
+
+    const mapping = mappings[0];
+    const parts = [`The current user's Slack user ID is ${mapping.slackUserId}.`];
+    if (mapping.slackUsername) {
+      parts.push(`Their Slack username is @${mapping.slackUsername}.`);
+    }
+    return parts.join(' ');
+  };
