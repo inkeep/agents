@@ -1,4 +1,4 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   commonGetErrorResponses,
@@ -7,7 +7,8 @@ import {
   getSlackMcpToolAccessConfig,
   getToolById,
   setSlackMcpToolAccessConfig,
-  TenantProjectParamsSchema,
+  TenantProjectToolParamsSchema,
+  WorkAppSlackMcpToolAccessConfigApiInsertSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -19,41 +20,6 @@ const logger = getLogger('mcp-tool-slack-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const TenantProjectToolParamsSchema = TenantProjectParamsSchema.extend({
-  toolId: z.string().min(1).describe('The tool ID'),
-});
-
-const ChannelAccessModeSchema = z
-  .enum(['all', 'selected'])
-  .describe(
-    'Channel access mode: "all" means the MCP tool can post to any channel, ' +
-      '"selected" means the tool is scoped to specific channels'
-  );
-
-const GetSlackAccessResponseSchema = z.object({
-  channelAccessMode: ChannelAccessModeSchema,
-  dmEnabled: z.boolean().describe('Whether DM access is enabled for this tool'),
-  channelIds: z
-    .array(z.string())
-    .describe('List of allowed channel IDs (only used when channelAccessMode is "selected")'),
-});
-
-const SetSlackAccessRequestSchema = z.object({
-  channelAccessMode: ChannelAccessModeSchema,
-  dmEnabled: z.boolean().describe('Whether DM access is enabled for this tool'),
-  channelIds: z
-    .array(z.string())
-    .optional()
-    .describe('List of allowed channel IDs (required when channelAccessMode is "selected")'),
-});
-
-const SetSlackAccessResponseSchema = z.object({
-  channelAccessMode: ChannelAccessModeSchema,
-  dmEnabled: z.boolean().describe('Whether DM access is enabled for this tool'),
-  channelCount: z
-    .number()
-    .describe('Number of channels the tool has access to (0 when mode is "all")'),
-});
 
 async function validateSlackWorkappTool(
   db: AgentsManageDatabaseClient,
@@ -109,7 +75,7 @@ app.openapi(
         description: 'Slack access configuration retrieved successfully',
         content: {
           'application/json': {
-            schema: GetSlackAccessResponseSchema,
+            schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
           },
         },
       },
@@ -154,7 +120,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: SetSlackAccessRequestSchema,
+            schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
           },
         },
       },
@@ -164,7 +130,7 @@ app.openapi(
         description: 'Slack access configuration updated successfully',
         content: {
           'application/json': {
-            schema: SetSlackAccessResponseSchema,
+            schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
           },
         },
       },
@@ -209,7 +175,7 @@ app.openapi(
         {
           channelAccessMode: 'selected' as const,
           dmEnabled,
-          channelCount: channelIds.length,
+          channelIds,
         },
         200
       );
@@ -230,7 +196,7 @@ app.openapi(
       {
         channelAccessMode: 'all' as const,
         dmEnabled,
-        channelCount: 0,
+        channelIds: [],
       },
       200
     );

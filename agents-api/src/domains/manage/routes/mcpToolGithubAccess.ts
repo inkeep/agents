@@ -9,7 +9,7 @@ import {
   getToolById,
   setMcpToolAccessMode,
   setMcpToolRepositoryAccess,
-  TenantProjectParamsSchema,
+  TenantProjectToolParamsSchema,
   validateRepositoryOwnership,
   WorkAppGitHubAccessModeSchema,
   WorkAppGitHubAccessSetRequestSchema,
@@ -25,10 +25,6 @@ import type { ManageAppVariables } from '../../../types/app';
 const logger = getLogger('mcp-tool-github-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
-
-const TenantProjectToolParamsSchema = TenantProjectParamsSchema.extend({
-  toolId: z.string().min(1).describe('The tool ID'),
-});
 
 const McpToolGitHubAccessModeSchema = WorkAppGitHubAccessModeSchema.describe(
   'Access mode: "all" means the MCP tool has access to all project repositories, ' +

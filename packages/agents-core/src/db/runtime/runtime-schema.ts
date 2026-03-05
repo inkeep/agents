@@ -16,6 +16,8 @@ import {
 import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
+  ChannelAccessMode,
+  ChannelIds,
   ConversationMetadata,
   MessageContent,
   MessageMetadata,
@@ -925,10 +927,10 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
     tenantId: varchar('tenant_id', { length: 256 }).notNull(),
     projectId: varchar('project_id', { length: 256 }).notNull(),
     channelAccessMode: varchar('channel_access_mode', { length: 20 })
-      .$type<'all' | 'selected'>()
+      .$type<ChannelAccessMode>()
       .notNull(),
     dmEnabled: boolean('dm_enabled').notNull().default(false),
-    channelIds: jsonb('channel_ids').$type<string[]>().notNull().default([]),
+    channelIds: jsonb('channel_ids').$type<ChannelIds>().notNull().default([]),
     ...timestamps,
   },
   (table) => [
