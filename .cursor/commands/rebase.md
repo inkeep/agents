@@ -1,1 +1,0 @@
-Fetch the latest main, rebase the current branch onto it, resolve any merge conflicts and if there are any PRs attached to this work, update the PR with the rebased changes.

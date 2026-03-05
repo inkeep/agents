@@ -29,7 +29,7 @@ runCommand('pnpm update @inkeep/agents-api --latest', 'Upgrading agents-api pack
 });
 
 runCommand('pnpm update @inkeep/agents-ui --latest', 'Upgrading agents-ui package', {
-  cwd: './apps/agents-ui',
+  cwd: './apps/agents-ui-demo',
 });
 
 if (!skipMigrate) {

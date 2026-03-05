@@ -1,5 +1,20 @@
 # @inkeep/agents-api
 
+## 0.58.0
+
+### Minor Changes
+
+- 1abeeeb: Change tool approval response to support batch approvals (BREAKING: response shape changed from flat object to results array)
+
+### Patch Changes
+
+- 93f1265: Resolve user profile timezone for webhook and scheduled trigger executions
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+  - @inkeep/agents-work-apps@0.58.0
+  - @inkeep/agents-email@0.58.0
+  - @inkeep/agents-mcp@0.58.0
+
 ## 0.57.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.57.0",
+  "version": "0.58.0",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -107,6 +107,9 @@
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
+  },
+  "optionalDependencies": {
+    "@sentry/node": "^9.22.0"
   },
   "packageManager": "pnpm@10.11.0",
   "publishConfig": {

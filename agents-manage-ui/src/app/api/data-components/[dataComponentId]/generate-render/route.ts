@@ -29,14 +29,6 @@ export async function POST(
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
 
-    console.log('Generating component render', {
-      tenantId,
-      projectId,
-      dataComponentId,
-      hasInstructions: !!instructions,
-      hasExistingCode: !!existingCode,
-    });
-
     // Fetch data component from agents-api
     const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
 
