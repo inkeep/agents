@@ -133,12 +133,66 @@ Here's a conceptual example of a trigger that responds to GitHub issues:
 // And starts a conversation with your support agent
 ```
 
-## Example: Zendesk Ticket
+## Example: Zendesk Ticket Handler
 
-Here's a conceptual example of a trigger that responds to Zendesk tickets:
+This example shows how to use a trigger to automatically process new Zendesk tickets. Unlike the GitHub example above, this demonstrates a **bidirectional** workflow — the agent reads the incoming ticket and takes actions back in Zendesk.
+
+```mermaid
+sequenceDiagram
+    participant ZD as Zendesk
+    participant Webhook as Trigger Endpoint
+    participant Agent as Your Agent
+    participant Tools as Zendesk MCP Tools
+
+    ZD->>Webhook: POST (ticket created/updated)
+    Webhook->>Webhook: Validate & transform payload
+    Webhook-->>ZD: 202 Accepted
+    Webhook->>Agent: Start conversation (async)
+    Agent->>Agent: Analyze ticket content
+    Agent->>Tools: update_zendesk_ticket (add reply)
+    Agent->>Tools: update_zendesk_ticket (add internal note)
+    Agent->>Tools: update_zendesk_ticket (set tags, priority)
+```
+
+### Zendesk Webhook Setup
+
+1. In Zendesk Admin Center, go to **Apps and integrations → Webhooks** and create a new webhook pointing to your Inkeep trigger URL
+2. Create a **Zendesk trigger** (under **Objects and rules → Triggers**) that fires when a ticket is created or updated
+3. Set the trigger action to notify the webhook you created, sending the ticket payload as JSON
+
+### Agent Capabilities
+
+With [Zendesk MCP tools](/connect-tools/mcp-servers) connected, the agent can:
+
+- **Respond to tickets** with public comments
+- **Add internal notes** visible only to agents (using the `public: false` flag on comments)
+- **Update tags and custom fields** to categorize or route tickets
+- **Change ticket status and priority** (e.g., set to `pending` after replying)
+- **Assign tickets** to specific agents or groups
+
+### Conceptual Flow
 
 ```typescript
-// Create a webhook from Zendesk when a ticket is created or updated
-// The webhook triggers your Zendesk support ticket agent
-// The agent can draft a reply to the ticket, write summaries as internal notes, add tags & custom fields, etc
+// Zendesk sends a payload like:
+// {
+//   "ticket": {
+//     "id": 12345,
+//     "subject": "Cannot reset my password",
+//     "description": "I've tried the reset link but it expired...",
+//     "requester": { "name": "Jane Doe", "email": "jane@example.com" },
+//     "status": "new",
+//     "tags": ["login"]
+//   }
+// }
+//
+// The message template transforms this into:
+// "New Zendesk ticket #12345: Cannot reset my password
+//  Requester: Jane Doe (jane@example.com)
+//  Description: I've tried the reset link but it expired..."
+//
+// The agent then uses Zendesk MCP tools to:
+// 1. Draft a public reply with troubleshooting steps
+// 2. Add an internal note summarizing the issue
+// 3. Add relevant tags (e.g., "password-reset", "ai-handled")
+// 4. Set priority to "normal" and status to "pending"
 ```
