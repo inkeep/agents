@@ -8,7 +8,10 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { buildSystemPrompt } from '../../../domains/run/agents/generation/system-prompt';
+import { buildToolResultForConversationHistory } from '../../../domains/run/agents/generation/tool-result-for-conversation-history';
+import { buildToolResultForModelInput } from '../../../domains/run/agents/generation/tool-result-for-model-input';
 import { getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
+import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -133,6 +136,7 @@ const {
   agentHasArtifactComponentsMock,
   getToolsForAgentMock,
   getFunctionToolsForSubAgentMock,
+  buildPersistedMessageContentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -154,6 +158,7 @@ const {
     })
   );
   const getFunctionToolsForSubAgentMock = vi.fn().mockResolvedValue([]);
+  const buildPersistedMessageContentMock = vi.fn();
 
   return {
     getCredentialReferenceMock,
@@ -164,6 +169,7 @@ const {
     agentHasArtifactComponentsMock,
     getToolsForAgentMock,
     getFunctionToolsForSubAgentMock,
+    buildPersistedMessageContentMock,
   };
 });
 
@@ -254,6 +260,10 @@ vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     recordEvent: vi.fn(),
   },
+}));
+
+vi.mock('../../../domains/run/services/blob-storage/image-upload-helpers', () => ({
+  buildPersistedMessageContent: buildPersistedMessageContentMock,
 }));
 
 // Mock ResponseFormatter
@@ -1503,5 +1513,163 @@ describe('Agent Image Support', () => {
         ]),
       })
     );
+  });
+});
+
+describe('Agent tool result persistence', () => {
+  const makeAgent = () => {
+    const config: AgentConfig = {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      name: 'Test Agent',
+      description: 'Test agent',
+      prompt: 'Test instructions',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      tools: [],
+      dataComponents: [],
+    };
+    const executionContext = createMockExecutionContext() as any;
+    return new Agent(config, executionContext);
+  };
+
+  const makeRunContext = () => {
+    const agent = makeAgent() as any;
+    return agent.ctx;
+  };
+
+  test('builds message content with uploaded image parts', async () => {
+    buildPersistedMessageContentMock.mockResolvedValue({
+      text: 'persisted text',
+      parts: [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+          metadata: { mimeType: 'image/webp', type: 'image' },
+        },
+      ],
+    });
+
+    const result = {
+      content: [
+        {
+          type: 'text',
+          text: { success: true },
+        },
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+      ],
+      isError: false,
+    };
+
+    const content = await buildToolResultForConversationHistory(
+      makeRunContext(),
+      'get_ticket_attachments',
+      { ticket_id: 6662 },
+      result,
+      'toolu_123',
+      'conv-123',
+      'msg-123'
+    );
+
+    expect(buildPersistedMessageContentMock).toHaveBeenCalledWith(
+      expect.stringContaining('## Tool: get_ticket_attachments'),
+      [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          file: {
+            bytes: 'base64-image-data',
+            mimeType: 'image/webp',
+          },
+          metadata: { type: 'image' },
+        },
+      ],
+      {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        conversationId: 'conv-123',
+        messageId: 'msg-123',
+      }
+    );
+    expect(content.parts).toEqual([
+      { kind: 'text', text: '{\n  "success": true\n}' },
+      {
+        kind: 'file',
+        data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+        metadata: { mimeType: 'image/webp', type: 'image' },
+      },
+    ]);
+  });
+
+  test('maps image content to image tool result output parts', () => {
+    const output = buildToolResultForModelInput({
+      content: [
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+        {
+          type: 'image',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'image-data',
+          data: 'base64-image-data',
+          mediaType: 'image/webp',
+        },
+        {
+          type: 'image-url',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+  });
+
+  test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
+    const structureHints = { terminalPaths: ['result.foo[string]'] };
+
+    const output = buildToolResultForModelInput({
+      content: [{ type: 'text', text: 'some text' }],
+      _toolCallId: 'toolu_abc',
+      _structureHints: structureHints,
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'text',
+          text: JSON.stringify({ _toolCallId: 'toolu_abc', _structureHints: structureHints }),
+        },
+        { type: 'text', text: 'some text' },
+      ],
+    });
+  });
+
+  test('preserves execution-denied tool result output type', () => {
+    const output = buildToolResultForModelInput(
+      createDeniedToolResult('toolu_123', 'User denied this tool call')
+    );
+
+    expect(output).toEqual({
+      type: 'execution-denied',
+      reason: 'User denied this tool call',
+    });
   });
 });
