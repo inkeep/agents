@@ -35,6 +35,7 @@ import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
+import { isSlackWorkAppTool } from '../runtime/slack-work-app-mcp';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
@@ -228,6 +229,14 @@ const discoverToolsFromServer = async (
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
         Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
+    }
+
+    if (isSlackWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }
 

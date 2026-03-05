@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { createApiError } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { env } from '../../env';
@@ -51,7 +52,17 @@ export const slackMcpAuth = () =>
       });
     }
 
-    if (apiKey !== env.SLACK_MCP_API_KEY) {
+    if (!env.SLACK_MCP_API_KEY) {
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Slack MCP API key not configured',
+      });
+    }
+
+    const expectedKey = Buffer.from(env.SLACK_MCP_API_KEY);
+    const providedKey = Buffer.from(apiKey);
+
+    if (expectedKey.length !== providedKey.length || !timingSafeEqual(expectedKey, providedKey)) {
       throw createApiError({
         code: 'unauthorized',
         message: 'Invalid API key',

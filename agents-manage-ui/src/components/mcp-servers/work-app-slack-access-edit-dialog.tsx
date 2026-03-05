@@ -196,13 +196,19 @@ export function SlackAccessEditDialog({
                 <div className="flex items-center gap-3">
                   <MessageSquare className="size-5 text-muted-foreground" />
                   <div>
-                    <span className="font-medium">Direct Messages</span>
+                    <span id="dm-enabled-label" className="font-medium">
+                      Direct Messages
+                    </span>
                     <p className="text-sm text-muted-foreground mt-0.5">
                       Allow this MCP server to send direct messages
                     </p>
                   </div>
                 </div>
-                <Switch checked={dmEnabled} onCheckedChange={setDmEnabled} />
+                <Switch
+                  checked={dmEnabled}
+                  onCheckedChange={setDmEnabled}
+                  aria-labelledby="dm-enabled-label"
+                />
               </div>
 
               {mode === 'selected' && (

@@ -134,23 +134,29 @@ const app = new Hono<{
 app.use('/', slackMcpAuth());
 app.post('/', async (c) => {
   const toolId = c.get('toolId');
-  const body = await c.req.json();
-
-  const server = await getServer(toolId);
-
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
-
-  await server.connect(transport);
-
-  const { req, res } = toReqRes(c.req.raw);
+  let server: McpServer | undefined;
 
   try {
+    const body = await c.req.json();
+    server = await getServer(toolId);
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+
+    await server.connect(transport);
+
+    const { req, res } = toReqRes(c.req.raw);
     await transport.handleRequest(req, res, body);
     return toFetchResponse(res);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error({ error, toolId }, 'MCP request failed');
+    return c.json({ jsonrpc: '2.0', error: { code: -32603, message }, id: null }, 500);
   } finally {
-    await server.close();
+    if (server) {
+      await server.close().catch((e) => logger.warn({ error: e }, 'Failed to close MCP server'));
+    }
   }
 });
 

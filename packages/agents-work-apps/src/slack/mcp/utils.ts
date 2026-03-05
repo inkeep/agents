@@ -1,5 +1,8 @@
 import type { SlackMcpToolAccessConfig } from '@inkeep/agents-core';
 import type { WebClient } from '@slack/web-api';
+
+const MAX_PAGES = 10;
+
 export async function resolveChannelId(client: WebClient, channelInput: string): Promise<string> {
   if (!channelInput.startsWith('#')) {
     return channelInput;
@@ -8,7 +11,14 @@ export async function resolveChannelId(client: WebClient, channelInput: string):
   const channelName = channelInput.slice(1);
 
   let cursor: string | undefined;
+  let pageCount = 0;
   do {
+    if (pageCount >= MAX_PAGES) {
+      throw new Error(
+        `Channel not found within first ${MAX_PAGES * 200} channels: ${channelInput}`
+      );
+    }
+
     const result = await client.conversations.list({
       types: 'public_channel,private_channel',
       exclude_archived: true,
@@ -22,6 +32,7 @@ export async function resolveChannelId(client: WebClient, channelInput: string):
     }
 
     cursor = result.response_metadata?.next_cursor || undefined;
+    pageCount++;
   } while (cursor);
 
   throw new Error(`Channel not found: ${channelInput}`);
