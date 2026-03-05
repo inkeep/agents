@@ -7,20 +7,20 @@ import { component2 } from '../../data-components/component2';
 import { artifact1 } from '../../artifact-components/artifact1';
 import { agent1 } from './agent1';
 import { agent2 } from './agent2';
-import { legacyAgent } from './legacyAgent';
+import { legacyagent } from './legacyAgent';
 
-export const multiItemAgent = subAgent({
+export const advancedAssistant = subAgent({
   id: 'multi-item-agent',
-  description: 'An advanced AI assistant with complex capabilities and step limits.',
   prompt: `I am an advanced assistant ready to help you with complex tasks.
 I can handle multiple types of requests.`,
+  description: 'An advanced AI assistant with complex capabilities and step limits.',
   stopWhen: {
     stepCountIs: 20,
   },
   name: 'Advanced Assistant',
   canUse: () => [tool1, tool2, tool3],
   canDelegateTo: () => [agent1, agent2],
-  canTransferTo: () => [legacyAgent],
+  canTransferTo: () => [legacyagent],
   dataComponents: () => [component1, component2],
   artifactComponents: () => [artifact1],
 });

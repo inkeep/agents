@@ -19,32 +19,30 @@ const StatusComponentSchema = z.strictObject({
 
 type StatusComponentInput = z.input<typeof StatusComponentSchema>;
 
-export function generateStatusComponentDefinition(data: StatusComponentInput): SourceFile {
+export function generateStatusComponentDefinition({
+  id,
+  ...data
+}: StatusComponentInput & Record<string, unknown>): SourceFile {
   const result = StatusComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for status component:\n${z.prettifyError(result.error)}`);
   }
 
-  const parsed = result.data;
-  const detailsSchema = parsed.detailsSchema !== undefined ? parsed.detailsSchema : parsed.schema;
+  const { statusComponentId, detailsSchema, ...rest } = result.data;
+
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'statusComponent',
-    variableName: toCamelCase(parsed.statusComponentId),
+    variableName: toCamelCase(statusComponentId),
   });
-
-  if (detailsSchema !== undefined) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['z'],
-      moduleSpecifier: 'zod',
-    });
-  }
-
-  const { statusComponentId, id, detailsSchema: _, schema: _2, ...rest } = parsed;
 
   for (const [k, v] of Object.entries(rest)) {
     addValueToObject(configObject, k, v);
   }
   if (detailsSchema) {
+    sourceFile.addImportDeclaration({
+      namedImports: ['z'],
+      moduleSpecifier: 'zod',
+    });
     configObject.addPropertyAssignment({
       name: 'detailsSchema',
       initializer: convertJsonSchemaToZodSafe(detailsSchema),

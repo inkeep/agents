@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   addReferenceGetterProperty,
   addValueToObject,
+  buildComponentFileName,
   createFactoryDefinition,
   createUniqueReferenceName,
   formatStringLiteral,
@@ -23,11 +24,23 @@ const ReferenceOverridesSchema = z.object({
   credentialReferences: ReferenceNameByIdSchema.optional(),
 });
 
+const ReferencePathOverridesSchema = z.object({
+  agents: ReferenceNameByIdSchema.optional(),
+  tools: ReferenceNameByIdSchema.optional(),
+  externalAgents: ReferenceNameByIdSchema.optional(),
+  dataComponents: ReferenceNameByIdSchema.optional(),
+  artifactComponents: ReferenceNameByIdSchema.optional(),
+  credentialReferences: ReferenceNameByIdSchema.optional(),
+});
+
 interface ResolvedReference {
   id: string;
   importName: string;
   localName: string;
+  modulePath: string;
 }
+
+type CollisionStrategy = 'descriptive' | 'numeric' | 'numeric-for-duplicates';
 
 const MySchema = FullProjectDefinitionSchema.pick({
   name: true,
@@ -53,6 +66,7 @@ const ProjectSchema = z.strictObject({
   artifactComponents: z.array(z.string()).optional(),
   credentialReferences: z.array(z.string()).optional(),
   referenceOverrides: ReferenceOverridesSchema.optional(),
+  referencePathOverrides: ReferencePathOverridesSchema.optional(),
 });
 
 type ProjectInput = z.input<typeof ProjectSchema>;
@@ -89,8 +103,20 @@ ${z.prettifyError(result.error)}`);
     artifactComponents,
     credentialReferences,
     referenceOverrides,
+    referencePathOverrides,
     ...rest
   } = parsed;
+
+  const credentialReferenceResolved = hasReferences(credentialReferences)
+    ? createResolvedReferences(
+        credentialReferences,
+        referenceOverrides?.credentialReferences,
+        referencePathOverrides?.credentialReferences,
+        reservedReferenceNames,
+        'CredentialReference',
+        'numeric'
+      )
+    : undefined;
 
   for (const [key, value] of Object.entries({
     id: projectId,
@@ -110,6 +136,7 @@ ${z.prettifyError(result.error)}`);
     const resolvedReferences = createResolvedReferences(
       agents,
       referenceOverrides?.agents,
+      referencePathOverrides?.agents,
       reservedReferenceNames,
       'Agent'
     );
@@ -121,8 +148,10 @@ ${z.prettifyError(result.error)}`);
     const resolvedReferences = createResolvedReferences(
       tools,
       referenceOverrides?.tools,
+      referencePathOverrides?.tools,
       reservedReferenceNames,
-      'Tool'
+      'Tool',
+      'numeric-for-duplicates'
     );
     addReferenceImports(sourceFile, resolvedReferences, './tools');
     addReferenceGetterProperty(configObject, 'tools', toReferenceNames(resolvedReferences));
@@ -132,6 +161,7 @@ ${z.prettifyError(result.error)}`);
     const resolvedReferences = createResolvedReferences(
       externalAgents,
       referenceOverrides?.externalAgents,
+      referencePathOverrides?.externalAgents,
       reservedReferenceNames,
       'ExternalAgent'
     );
@@ -147,6 +177,7 @@ ${z.prettifyError(result.error)}`);
     const resolvedReferences = createResolvedReferences(
       dataComponents,
       referenceOverrides?.dataComponents,
+      referencePathOverrides?.dataComponents,
       reservedReferenceNames,
       'DataComponent'
     );
@@ -162,6 +193,7 @@ ${z.prettifyError(result.error)}`);
     const resolvedReferences = createResolvedReferences(
       artifactComponents,
       referenceOverrides?.artifactComponents,
+      referencePathOverrides?.artifactComponents,
       reservedReferenceNames,
       'ArtifactComponent'
     );
@@ -174,12 +206,7 @@ ${z.prettifyError(result.error)}`);
   }
 
   if (hasReferences(credentialReferences)) {
-    const resolvedReferences = createResolvedReferences(
-      credentialReferences,
-      referenceOverrides?.credentialReferences,
-      reservedReferenceNames,
-      'CredentialReference'
-    );
+    const resolvedReferences = credentialReferenceResolved ?? [];
     addReferenceImports(sourceFile, resolvedReferences, './credentials');
     addReferenceGetterProperty(
       configObject,
@@ -203,7 +230,7 @@ function addReferenceImports(
           ? reference.importName
           : { name: reference.importName, alias: reference.localName },
       ],
-      moduleSpecifier: `${basePath}/${reference.id}`,
+      moduleSpecifier: `${basePath}/${reference.modulePath}`,
     });
   }
 }
@@ -215,11 +242,17 @@ function toReferenceNames(references: ResolvedReference[]): string[] {
 function createResolvedReferences(
   references: string[],
   referenceOverrides: Record<string, string> | undefined,
+  referencePathOverrides: Record<string, string> | undefined,
   reservedReferenceNames: Set<string>,
-  suffix: string
+  suffix: string,
+  collisionStrategy: CollisionStrategy = 'descriptive'
 ): ResolvedReference[] {
   const seenIds = new Set<string>();
-  const resolvedReferences: ResolvedReference[] = [];
+  const normalizedReferences: Array<{
+    id: string;
+    importName: string;
+    modulePath: string;
+  }> = [];
 
   for (const referenceId of references) {
     if (seenIds.has(referenceId)) {
@@ -227,15 +260,64 @@ function createResolvedReferences(
     }
     seenIds.add(referenceId);
 
-    const importName = resolveReferenceName(referenceId, [referenceOverrides]);
-    const localName = createUniqueReferenceName(importName, reservedReferenceNames, suffix);
-
-    resolvedReferences.push({
+    normalizedReferences.push({
       id: referenceId,
-      importName,
-      localName,
+      importName: resolveReferenceName(referenceId, [referenceOverrides]),
+      modulePath: resolveReferenceModulePath(referenceId, referencePathOverrides?.[referenceId]),
     });
   }
 
-  return resolvedReferences;
+  const importNameCounts = new Map<string, number>();
+  for (const reference of normalizedReferences) {
+    importNameCounts.set(
+      reference.importName,
+      (importNameCounts.get(reference.importName) ?? 0) + 1
+    );
+  }
+
+  return normalizedReferences.map((reference) => {
+    const shouldUseNumeric =
+      collisionStrategy === 'numeric' ||
+      (collisionStrategy === 'numeric-for-duplicates' &&
+        (importNameCounts.get(reference.importName) ?? 0) > 1);
+
+    const localName = shouldUseNumeric
+      ? createNumericReferenceName(reference.importName, reservedReferenceNames)
+      : createUniqueReferenceName(reference.importName, reservedReferenceNames, suffix);
+
+    return {
+      id: reference.id,
+      importName: reference.importName,
+      localName,
+      modulePath: reference.modulePath,
+    };
+  });
+}
+
+function createNumericReferenceName(baseName: string, reservedNames: Set<string>): string {
+  if (!reservedNames.has(baseName)) {
+    reservedNames.add(baseName);
+    return baseName;
+  }
+
+  let index = 1;
+  while (reservedNames.has(`${baseName}${index}`)) {
+    index += 1;
+  }
+
+  const uniqueName = `${baseName}${index}`;
+  reservedNames.add(uniqueName);
+  return uniqueName;
+}
+
+function resolveReferenceModulePath(
+  referenceId: string,
+  referencePathOverride: string | undefined
+): string {
+  if (referencePathOverride && referencePathOverride.length > 0) {
+    return referencePathOverride.replace(/\.tsx?$/, '');
+  }
+
+  const fileName = buildComponentFileName(referenceId);
+  return fileName.replace(/\.tsx?$/, '');
 }

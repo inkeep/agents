@@ -1,3 +1,4 @@
+import type { WithTimestamps } from '@inkeep/agents-core/validation/extend-schemas';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
@@ -273,7 +274,7 @@ const discoverToolsFromServer = async (
 export const dbResultToMcpToolSkeleton = (
   dbResult: ToolSelect,
   relationshipId?: string
-): McpTool => {
+): WithTimestamps<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
   return {
@@ -297,7 +298,7 @@ export const dbResultToMcpTool = async (
   credentialStoreRegistry?: CredentialStoreRegistry,
   relationshipId?: string,
   userId?: string
-): Promise<McpTool> => {
+): Promise<WithTimestamps<McpTool>> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
   if (dbResult.config.type !== 'mcp') {
@@ -417,7 +418,7 @@ export const dbResultToMcpTool = async (
         capabilities: updatedCapabilities,
       },
     });
-  } catch (updateError: unknown) {
+  } catch (updateError) {
     // Check for serialization conflict (sqlstate 40001, errno 1213)
     const isSerializationConflict =
       updateError instanceof Error &&
@@ -540,7 +541,11 @@ export const createTool = (db: AgentsManageDatabaseClient) => async (params: Too
 
 export const updateTool =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; toolId: string; data: ToolUpdate }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    toolId: string;
+    data: WithTimestamps<ToolUpdate>;
+  }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
