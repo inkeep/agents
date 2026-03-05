@@ -3,7 +3,7 @@ title: How to call your AI Agent using the Chat API
 sidebarTitle: Chat API
 description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/run/api/chat` API endpoint.
 icon: LuMessagesSquare
-keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
+keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat, images, multi-part content
 ---
 
 ## Overview
@@ -44,8 +44,36 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — Can be a string or an object with `parts` for multi-part content
+- **`content`** — Can be a string or an array of content parts for multi-part content (text, images)
 - **`conversationId`** — Optional; server generates one if omitted
+
+
+### Sending Images
+
+Images can be included as part of multi-part message content. Supported formats are **PNG**, **JPEG**, and **WebP**.
+
+There are two ways to include images:
+
+- **Inline data URIs** — Base64-encoded images with the format `data:image/{png|jpeg|jpg|webp};base64,{data}`
+- **External URLs** — HTTP/HTTPS URLs pointing to hosted images
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "What's in this image?" },
+        { "type": "image", "image": "data:image/png;base64,iVBORw0KGgo..." }
+      ]
+    }
+  ]
+}
+```
+
+<Note>
+  Images are validated server-side: MIME types are verified against actual content via byte-sniffing, size limits are enforced, and external URLs must use HTTP/HTTPS with no embedded credentials. DNS checks block requests to private/internal IP addresses.
+</Note>
 
 ### Optional Headers
 
