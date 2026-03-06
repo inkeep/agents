@@ -31,6 +31,10 @@ export const modelOptions = {
       label: 'Claude Opus 4.1',
     },
     {
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4,
+      label: 'Claude Opus 4',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_6,
       label: 'Claude Sonnet 4.6',
     },
@@ -46,10 +50,6 @@ export const modelOptions = {
       value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5,
       label: 'Claude Haiku 4.5',
     },
-    {
-      value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU,
-      label: 'Claude Haiku 3.5',
-    },
   ],
   openai: [
     {
@@ -61,24 +61,24 @@ export const modelOptions = {
       label: 'GPT-5.4',
     },
     {
+      value: OPENAI_MODELS.GPT_5_3_CODEX,
+      label: 'GPT-5.3 Codex',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_2_PRO,
+      label: 'GPT-5.2 Pro',
+    },
+    {
       value: OPENAI_MODELS.GPT_5_2,
       label: 'GPT-5.2',
     },
     {
+      value: OPENAI_MODELS.GPT_5_1_THINKING,
+      label: 'GPT-5.1 Thinking',
+    },
+    {
       value: OPENAI_MODELS.GPT_5_1,
       label: 'GPT-5.1',
-    },
-    {
-      value: OPENAI_MODELS.GPT_4_1,
-      label: 'GPT-4.1',
-    },
-    {
-      value: OPENAI_MODELS.GPT_4_1_MINI,
-      label: 'GPT-4.1 Mini',
-    },
-    {
-      value: OPENAI_MODELS.GPT_4_1_NANO,
-      label: 'GPT-4.1 Nano',
     },
     {
       value: OPENAI_MODELS.GPT_5,
@@ -97,6 +97,10 @@ export const modelOptions = {
     {
       value: GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW,
       label: 'Gemini 3.1 Pro Preview',
+    },
+    {
+      value: GOOGLE_MODELS.GEMINI_3_FLASH,
+      label: 'Gemini 3 Flash',
     },
     {
       value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
