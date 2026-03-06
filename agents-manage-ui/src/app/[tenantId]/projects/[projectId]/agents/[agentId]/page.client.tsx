@@ -78,6 +78,7 @@ import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
+import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -825,6 +826,7 @@ export const Agent: FC<AgentProps> = ({
 
   const showEmptyState =
     nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
+  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
 
   return (
     <ResizablePanelGroup
@@ -890,7 +892,15 @@ export const Agent: FC<AgentProps> = ({
           onNodeDragStop={() => {
             setNodes(resolveCollisions);
           }}
-          deleteKeyCode={null}
+          onBeforeDelete={async (state) => {
+            const defaultSubAgentId = defaultSubAgentIdRef.current;
+            const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentId);
+            if (hasDefaultNode) {
+              toast.error(`Cannot delete default subagent "${defaultSubAgentId}"`);
+              return false;
+            }
+            return state;
+          }}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />

@@ -1,48 +1,12 @@
 import { useEffect } from 'react';
-import { toast } from 'sonner';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
-import { agentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {
   'use memo';
 
   const { undo, redo } = useAgentActions();
-  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
 
   useEffect(() => {
-    function deleteSelected() {
-      agentStore.setState((state) => {
-        const nodesToDelete = new Set(
-          state.nodes
-            .filter(
-              (n) => n.selected && (n.deletable ?? true) && n.id !== defaultSubAgentIdRef.current
-            )
-            .map((n) => n.id)
-        );
-        const unDeletableNodes = state.nodes.filter(
-          (n) => n.selected && n.id === defaultSubAgentIdRef.current
-        );
-
-        if (unDeletableNodes.length) {
-          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
-          toast.error(
-            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
-          );
-        }
-
-        const edgesRemaining = state.edges.filter(
-          (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
-        );
-        const nodesRemaining = state.nodes.filter((n) => !nodesToDelete.has(n.id));
-        return {
-          history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-          nodes: nodesRemaining,
-          edges: edgesRemaining,
-          dirty: true,
-        };
-      });
-    }
-
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.target as HTMLElement)?.classList.contains('react-flow__node')) return;
       const meta = e.metaKey || e.ctrlKey;
@@ -54,20 +18,6 @@ export function useAgentShortcuts() {
           undo();
         }
         return;
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Let inputs handle backspace/delete
-        const target = e.target as HTMLElement | null;
-        const isEditable =
-          target &&
-          (target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            (target as any).isContentEditable);
-
-        if (!isEditable) {
-          e.preventDefault();
-          deleteSelected();
-        }
       }
     }
     window.addEventListener('keydown', onKeyDown);
