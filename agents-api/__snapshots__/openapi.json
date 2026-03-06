@@ -25349,7 +25349,7 @@
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/apps": {
       "get": {
-        "description": "List all app credentials for a tenant with optional pagination and type filter",
+        "description": "List all app credentials for a project",
         "operationId": "list-apps",
         "parameters": [
           {
