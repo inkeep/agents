@@ -1,4 +1,5 @@
 #!/usr/bin/env node --experimental-strip-types
+/// <reference types="node" />
 /**
  * Detects new AI models from Vercel AI Gateway and compares against the static model list.
  * Sets GitHub Actions outputs: has_changes (true/false) and prompt (Claude Code prompt).
@@ -179,25 +180,43 @@ async function main(): Promise<void> {
 New models to add:
 ${modelList}
 
-Please update the following 3 files to include these models:
+## CRITICAL: Branch and git rules
+- You are already on a feature branch. DO NOT create a new branch. DO NOT run git checkout.
+- DO NOT push to main under any circumstances.
+- When pushing, always use: git push --set-upstream origin $(git branch --show-current)
+- Use a single commit with message: "chore: add new models [model-sync]"
 
-1. \`packages/agents-core/src/constants/models.ts\`
-   - Add new constant entries to the appropriate provider object (ANTHROPIC_MODELS, OPENAI_MODELS, or GOOGLE_MODELS)
-   - Key naming convention: SCREAMING_SNAKE_CASE (e.g., CLAUDE_SONNET_4_6 for claude-sonnet-4-6, GPT_5_2 for gpt-5.2, GEMINI_2_5_FLASH for gemini-2.5-flash)
-   - Value format: 'provider/model-id' — note Anthropic uses dashes in model IDs (e.g., 'anthropic/claude-sonnet-4-6') while OpenAI and Google use dots (e.g., 'openai/gpt-5.2', 'google/gemini-2.5-flash')
-   - Do NOT modify any default values
+## Step 1: Read the files first
+Before editing anything, read all 3 target files so you follow their exact patterns and conventions:
+- \`packages/agents-core/src/constants/models.ts\`
+- \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
+- \`agents-cli/src/utils/model-config.ts\`
 
-2. \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
-   - Only add models consistent with the existing list — skip specialized variants (realtime, audio, embedding, search-augmented, instruct, fine-tuning base models)
-   - Add a label entry in the appropriate provider's array in the modelOptions object
-   - Use a human-readable label matching existing entries (e.g., 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash')
-   - Ordering: newest version first, then by tier (Pro/Opus > Sonnet/Flash > Haiku/Flash Lite/Nano/Mini)
+## Step 2: Update the 3 files
 
-3. \`agents-cli/src/utils/model-config.ts\`
-   - Same rules as file 2 — same ordering
+### \`packages/agents-core/src/constants/models.ts\`
+- Add new constant entries to the appropriate provider object (ANTHROPIC_MODELS, OPENAI_MODELS, or GOOGLE_MODELS)
+- Key naming convention: SCREAMING_SNAKE_CASE derived from the model ID
+  - Dots and dashes both become underscores: claude-sonnet-4-6 → CLAUDE_SONNET_4_6, gpt-5.2 → GPT_5_2, gemini-2.5-flash → GEMINI_2_5_FLASH
+- Value format: always 'provider/model-id'
+  - Anthropic: dashes in model ID → 'anthropic/claude-sonnet-4-6'
+  - OpenAI: dots in model ID → 'openai/gpt-5.2'
+  - Google: dots in model ID → 'google/gemini-2.5-flash'
+- DO NOT modify any existing entries or default values
 
-After updating the files, create a changeset file at \`.changeset/add-models-${today}.md\` with this exact content:
-\`\`\`
+### \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
+- Read the file first and follow the exact existing structure
+- Skip specialized variants: realtime, audio, embedding, search-augmented, instruct, fine-tuning base models, moderation
+- Include reasoning/thinking models (o1, o3, etc.) — add them in the appropriate tier
+- Add a label entry in the appropriate provider's array
+- Human-readable label: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash' (match existing style)
+- Ordering: newest version first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Flash Lite/Nano/Mini)
+
+### \`agents-cli/src/utils/model-config.ts\`
+- Same rules as above — same ordering and label style
+
+## Step 3: Create changeset
+Create \`.changeset/add-models-${today}.md\` with this exact content (no extra whitespace):
 ---
 "@inkeep/agents-core": patch
 "@inkeep/agents-manage-ui": patch
@@ -205,12 +224,15 @@ After updating the files, create a changeset file at \`.changeset/add-models-${t
 ---
 
 Add new models: ${modelSummary}
-\`\`\`
 
-Finally, open a pull request with:
-- Title: "chore: add new models from provider APIs [model-sync]"
-- Label: "model-sync" (create the label if it doesn't exist, using color #0075ca)
-- Body: list the models added and which files were updated`;
+## Step 4: Commit, push, and open PR
+1. git add the 4 changed files (3 source files + the changeset)
+2. git commit -m "chore: add new models [model-sync]"
+3. git push --set-upstream origin $(git branch --show-current)
+4. Create a PR targeting main with:
+   - Title: "chore: add new models from provider APIs [model-sync]"
+   - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
+   - Body: list the models added and which files were updated`;
 
   setOutput('has_changes', 'true');
   setOutput('prompt', prompt);

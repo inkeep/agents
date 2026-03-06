@@ -49,12 +49,18 @@ jobs:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }} # Optional — unauthenticated requests work but may be rate-limited
         run: node --experimental-strip-types .github/scripts/detect-model-changes.ts
 
+      - name: Create model-sync branch
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          BRANCH="model-sync-$(date +%Y-%m-%d)"
+          git checkout -B "$BRANCH"
+
       - name: Update model list via Claude Code
         if: steps.detect.outputs.has_changes == 'true'
         uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
-          claude_args: '--model opus'
+          claude_args: '--model opus --allowedTools "Read,Edit,Write,Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr:*),Bash(gh label:*)"'
           prompt: ${{ steps.detect.outputs.prompt }}
           show_full_output: 'true'
