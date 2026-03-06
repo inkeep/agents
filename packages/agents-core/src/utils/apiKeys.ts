@@ -155,50 +155,13 @@ export function maskApiKey(keyPrefix: string): string {
 
 export type AppCredentialResult = {
   id: string;
-  publicId: string;
-  appId: string;
-};
-
-export type AppSecretResult = {
-  secret: string;
-  keyHash: string;
-  keyPrefix: string;
 };
 
 export function generateAppCredential(): AppCredentialResult {
-  const publicId = generatePublicId();
   const id = generateId();
-  const appId = `app_${publicId}`;
-  return { id, publicId, appId };
+  return { id };
 }
 
-export async function generateAppSecret(publicId: string): Promise<AppSecretResult> {
-  const secretBytes = randomBytes(API_KEY_LENGTH);
-  const secret = `as_${publicId}.${secretBytes.toString('base64url')}`;
-  const keyHash = await hashApiKey(secret);
-  const keyPrefix = secret.substring(0, 12);
-  return { secret, keyHash, keyPrefix };
-}
-
-export function extractAppPublicId(appId: string): string | null {
-  if (!appId.startsWith('app_')) {
-    return null;
-  }
-  const publicId = appId.slice(4);
-  if (publicId.length !== PUBLIC_ID_LENGTH) {
-    return null;
-  }
-  return publicId;
-}
-
-export function sanitizeAppConfig<T extends { config: unknown }>(app: T): T {
-  const config = app.config as { type: string; webClient?: { hs256Secret?: string } };
-  if (config?.type === 'web_client' && config.webClient) {
-    const { hs256Secret: _, ...webClientSafe } = config.webClient;
-    return {
-      ...app,
-      config: { ...config, webClient: webClientSafe },
-    };
-  }
+export function sanitizeAppConfig<T>(app: T): T {
   return app;
 }

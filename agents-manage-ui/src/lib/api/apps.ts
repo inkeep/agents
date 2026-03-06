@@ -11,7 +11,6 @@ export type App = Omit<AppApiSelect, 'lastUsedAt'> & {
 
 export type AppCreateResponse = {
   app: App;
-  appSecret?: string;
 };
 
 export async function fetchApps(tenantId: string, projectId: string): Promise<ListResponse<App>> {
@@ -47,13 +46,12 @@ export async function createApp(
     }
   );
 
-  const { app, appSecret } = response.data.data;
+  const { app } = response.data.data;
   return {
     app: {
       ...app,
       lastUsedAt: app.lastUsedAt ?? undefined,
     },
-    appSecret,
   };
 }
 

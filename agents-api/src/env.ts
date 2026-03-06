@@ -93,6 +93,16 @@ const envSchema = z
       .describe(
         'Secret key for signing anonymous session JWTs (HS256). Required in production. Min 32 characters.'
       ),
+    INKEEP_ANON_SESSION_LIFETIME_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(604800)
+      .optional()
+      .default(86400)
+      .describe(
+        'Lifetime in seconds for anonymous session JWTs. Min 60s, max 604800s (7 days). Default 86400s (24 hours).'
+      ),
 
     // JWT Keys (for Playground)
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z

@@ -3,8 +3,7 @@ import {
   AnonymousSessionResponseSchema,
   commonGetErrorResponses,
   createApiError,
-  extractAppPublicId,
-  getAppByPublicId,
+  getAppById,
   validateOrigin,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
@@ -67,12 +66,7 @@ app.openapi(
   async (c) => {
     const { appId } = c.req.valid('param');
 
-    const publicId = extractAppPublicId(appId);
-    if (!publicId) {
-      throw createApiError({ code: 'bad_request', message: 'Invalid app ID format' });
-    }
-
-    const appRecord = await getAppByPublicId(runDbClient)(publicId);
+    const appRecord = await getAppById(runDbClient)(appId);
 
     if (!appRecord || !appRecord.enabled) {
       throw createApiError({ code: 'not_found', message: 'App not found or disabled' });
@@ -89,20 +83,8 @@ app.openapi(
       type: 'web_client';
       webClient: {
         allowedDomains: string[];
-        authMode: string;
-        anonymousSessionLifetimeSeconds?: number;
       };
     };
-
-    if (
-      config.webClient.authMode !== 'anonymous_only' &&
-      config.webClient.authMode !== 'anonymous_and_authenticated'
-    ) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Anonymous access is not enabled for this app',
-      });
-    }
 
     const origin = c.req.header('Origin');
     if (!validateOrigin(origin, config.webClient.allowedDomains)) {
@@ -114,7 +96,7 @@ app.openapi(
     }
 
     const anonUserId = `anon_${crypto.randomUUID()}`;
-    const lifetimeSeconds = config.webClient.anonymousSessionLifetimeSeconds ?? 86400;
+    const lifetimeSeconds = env.INKEEP_ANON_SESSION_LIFETIME_SECONDS;
     const now = Math.floor(Date.now() / 1000);
     const exp = now + lifetimeSeconds;
     const expiresAt = new Date(exp * 1000).toISOString();

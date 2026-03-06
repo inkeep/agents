@@ -43,10 +43,8 @@ vi.mock('@inkeep/agents-core', () => ({
   verifyTempToken: verifyTempTokenMock,
   canUseProjectStrict: canUseProjectStrictMock,
   createAgentsRunDatabaseClient: createAgentsRunDatabaseClientMock,
-  extractAppPublicId: vi.fn().mockReturnValue(null),
-  getAppByPublicId: vi.fn(() => vi.fn().mockResolvedValue(null)),
+  getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
   validateOrigin: vi.fn().mockReturnValue(false),
-  validateApiKey: vi.fn().mockResolvedValue(false),
   updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
   getLogger: () => ({
     debug: vi.fn(),

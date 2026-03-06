@@ -22,15 +22,12 @@ describe('App CRUD Routes - Integration Tests', () => {
         ? {
             name,
             type: 'web_client',
-            agentAccessMode: 'selected',
-            allowedAgentIds: ['agent-1'],
+            defaultAgentId: 'agent-1',
             config: {
               type: 'web_client',
               webClient: {
                 allowedDomains: ['help.customer.com'],
-                authMode: 'anonymous_only',
-                anonymousSessionLifetimeSeconds: 86400,
-                hs256Enabled: false,
+
                 captchaEnabled: false,
               },
             },
@@ -38,7 +35,7 @@ describe('App CRUD Routes - Integration Tests', () => {
         : {
             name,
             type: 'api',
-            agentAccessMode: 'all',
+            defaultAgentId: 'agent-1',
             config: { type: 'api', api: {} },
           };
 
@@ -49,10 +46,7 @@ describe('App CRUD Routes - Integration Tests', () => {
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
-    return {
-      app: createBody.data.app,
-      appSecret: createBody.data.appSecret,
-    };
+    return { app: createBody.data.app };
   };
 
   describe('POST /', () => {
@@ -61,27 +55,22 @@ describe('App CRUD Routes - Integration Tests', () => {
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const { app, appSecret } = await createTestApp({ tenantId, projectId });
+      const { app } = await createTestApp({ tenantId, projectId });
 
       expect(app.type).toBe('web_client');
       expect(app.name).toBe('Test App');
-      expect(app.publicId).toBeDefined();
-      expect(app.publicId).toHaveLength(12);
       expect(app.enabled).toBe(true);
+      expect(app.defaultAgentId).toBe('agent-1');
       expect(app.config.type).toBe('web_client');
       expect(app.config.webClient.allowedDomains).toEqual(['help.customer.com']);
-      expect(appSecret).toBeUndefined();
-      expect(app).not.toHaveProperty('keyHash');
-      expect(app).not.toHaveProperty('tenantId');
-      expect(app).not.toHaveProperty('projectId');
     });
 
-    it('should create an api app with secret', async () => {
+    it('should create an api app', async () => {
       const tenantId = await createTestTenantWithOrg('apps-create-api');
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const { app, appSecret } = await createTestApp({
+      const { app } = await createTestApp({
         tenantId,
         projectId,
         type: 'api',
@@ -90,9 +79,6 @@ describe('App CRUD Routes - Integration Tests', () => {
 
       expect(app.type).toBe('api');
       expect(app.name).toBe('Backend API');
-      expect(appSecret).toBeDefined();
-      expect(appSecret).toMatch(/^as_[^.]+\..+$/);
-      expect(app.keyPrefix).toBeDefined();
     });
   });
 
@@ -162,7 +148,6 @@ describe('App CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data.id).toBe(app.id);
-      expect(body.data).not.toHaveProperty('keyHash');
     });
 
     it('should return 404 for non-existent app', async () => {
@@ -248,57 +233,6 @@ describe('App CRUD Routes - Integration Tests', () => {
         { method: 'DELETE' }
       );
       expect(res.status).toBe(404);
-    });
-  });
-
-  describe('Security', () => {
-    it('should never expose keyHash in any response', async () => {
-      const tenantId = await createTestTenantWithOrg('apps-security');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const { app } = await createTestApp({ tenantId, projectId, type: 'api' });
-
-      const endpoints = [
-        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
-        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
-      ];
-
-      for (const endpoint of endpoints) {
-        const res = await makeRequest(endpoint);
-        const body = await res.json();
-
-        const checkForKeyHash = (obj: unknown) => {
-          if (Array.isArray(obj)) {
-            for (const item of obj) checkForKeyHash(item);
-          } else if (obj && typeof obj === 'object') {
-            expect(obj).not.toHaveProperty('keyHash');
-            for (const val of Object.values(obj)) checkForKeyHash(val);
-          }
-        };
-
-        checkForKeyHash(body);
-      }
-    });
-
-    it('should only return app secret once during creation', async () => {
-      const tenantId = await createTestTenantWithOrg('apps-secret-once');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const { app, appSecret } = await createTestApp({
-        tenantId,
-        projectId,
-        type: 'api',
-      });
-
-      expect(appSecret).toBeDefined();
-
-      const getRes = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`
-      );
-      const getBody = await getRes.json();
-      expect(getBody.data).not.toHaveProperty('appSecret');
     });
   });
 });
