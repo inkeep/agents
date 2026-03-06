@@ -2,16 +2,18 @@
  * Simple utility to extract autocomplete suggestions from context schemas
  */
 
+type ContextVariables = Record<
+  string,
+  {
+    id: string;
+    name?: string;
+    responseSchema?: Record<string, unknown>;
+  }
+>;
+
 interface ContextSchema {
-  headersSchema?: Record<string, any>;
-  contextVariables?: Record<
-    string,
-    {
-      id: string;
-      name?: string;
-      responseSchema?: Record<string, any>;
-    }
-  >;
+  headersSchema?: Record<string, unknown> | null;
+  contextVariables?: ContextVariables | null;
 }
 
 /**

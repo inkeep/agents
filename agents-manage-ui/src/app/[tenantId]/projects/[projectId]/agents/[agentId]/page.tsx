@@ -1,5 +1,7 @@
 import type { FC } from 'react';
+import { serializeAgentForm } from '@/components/agent/form/validation';
 import FullPageError from '@/components/errors/full-page-error';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
@@ -76,16 +78,19 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     : false;
 
   const skillsList = (skills.success && skills.data) || [];
+
   return (
-    <Agent
-      agent={agent.data}
-      dataComponentLookup={dataComponentLookup}
-      artifactComponentLookup={artifactComponentLookup}
-      toolLookup={toolLookup}
-      credentialLookup={credentialLookup}
-      sandboxEnabled={sandboxEnabled}
-      skills={skillsList}
-    />
+    <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
+      <Agent
+        agent={agent.data}
+        dataComponentLookup={dataComponentLookup}
+        artifactComponentLookup={artifactComponentLookup}
+        toolLookup={toolLookup}
+        credentialLookup={credentialLookup}
+        sandboxEnabled={sandboxEnabled}
+        skills={skillsList}
+      />
+    </FullAgentFormProvider>
   );
 };
 

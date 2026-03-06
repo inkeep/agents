@@ -8,12 +8,14 @@ import {
   type Node,
   Panel,
   ReactFlow,
+  type ReactFlowProps,
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
-import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { type FC, type JSX, useEffect, useState } from 'react';
+import type { FieldError, FieldErrors, FieldValues } from 'react-hook-form';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
@@ -31,21 +33,21 @@ import { resolveCollisions } from '@/components/agent/configuration/resolve-coll
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
+import { serializeAgentForm } from '@/components/agent/form/validation';
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { Badge } from '@/components/ui/badge';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
-  type ExtendedFullAgentDefinition,
-  extractAgentMetadata,
-  isContextConfigParseError,
   serializeAgentData,
   validateSerializedData,
 } from '@/features/agent/domain';
@@ -56,16 +58,17 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
+import { updateFullAgentAction } from '@/lib/actions/agent-full';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/api/external-agents';
-import { saveAgent } from '@/lib/services/save-agent';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
+  FullAgentResponse,
   SubAgentExternalAgentConfig,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfig,
@@ -89,9 +92,7 @@ const Playground = dynamic(
 
 const CopilotChat = dynamic(
   () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 function getEdgeId(a: string, b: string) {
@@ -100,7 +101,7 @@ function getEdgeId(a: string, b: string) {
 }
 
 interface AgentProps {
-  agent: ExtendedFullAgentDefinition;
+  agent: FullAgentResponse;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
@@ -108,8 +109,6 @@ interface AgentProps {
   skills: Skill[];
   sandboxEnabled: boolean;
 }
-
-type ReactFlowProps = ComponentProps<typeof ReactFlow>;
 
 const SHOW_CHAT_TO_CREATE = false;
 
@@ -121,6 +120,49 @@ const nonValidationErrors = new Set([
   'internal_server_error',
   'bad_request',
 ]);
+
+type HandleSubmitParams = Parameters<ReturnType<typeof useFullAgentFormContext>['handleSubmit']>;
+
+// @sarah, we can reuse AgentErrorSummary component maybe
+function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
+  const lines: (string | JSX.Element)[] = [];
+
+  function walk(value: FieldErrors<FV> | FieldError | undefined, path: string[]) {
+    if (!value) return;
+    if (value.message) {
+      const label = path.join('.');
+      lines.push(
+        <>
+          <b>{String(value.message)}</b> at{' '}
+          <Badge variant="code" className="text-xs">
+            {label}
+          </Badge>
+        </>
+      );
+    }
+    if (value.types) {
+      const label = path.length ? `${path.join('.')}: ` : '';
+      for (const message of Object.values(value.types)) {
+        if (message) {
+          lines.push(`${label}${message}`);
+        }
+      }
+    }
+    if (typeof value !== 'object') return;
+    for (const [key, nested] of Object.entries(value)) {
+      if (key === 'message' || key === 'type' || key === 'types' || key === 'ref') {
+        continue;
+      }
+      walk(nested as FieldErrors<FV> | FieldError | undefined, [...path, key]);
+    }
+  }
+
+  walk(errors, []);
+  if (!lines.length) {
+    lines.push('Validation failed');
+  }
+  return lines;
+}
 
 export const Agent: FC<AgentProps> = ({
   agent,
@@ -141,11 +183,10 @@ export const Agent: FC<AgentProps> = ({
 
   const { canEdit } = useProjectPermissions();
 
-  const router = useRouter();
-
-  const { tenantId, projectId } = useParams<{
+  const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
     projectId: string;
+    agentId: string;
   }>();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
@@ -197,9 +238,7 @@ export const Agent: FC<AgentProps> = ({
     : result.edges;
 
   // Helper functions to compute lookups from agent data
-  const computeAgentToolConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): AgentToolConfigLookup => {
+  const computeAgentToolConfigLookup = (agentData: FullAgentResponse): AgentToolConfigLookup => {
     if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
 
     const lookup: AgentToolConfigLookup = {};
@@ -236,7 +275,7 @@ export const Agent: FC<AgentProps> = ({
   };
 
   const computeSubAgentExternalAgentConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
+    agentData: FullAgentResponse
   ): SubAgentExternalAgentConfigLookup => {
     if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
     const lookup: SubAgentExternalAgentConfigLookup = {};
@@ -287,17 +326,15 @@ export const Agent: FC<AgentProps> = ({
   })();
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
+  const { storeNodes, edges } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
-    metadata: state.metadata,
   }));
   const {
     setNodes,
     setEdges,
     onNodesChange,
     onEdgesChange,
-    setMetadata,
     setInitial,
     markSaved,
     clearSelection,
@@ -334,7 +371,6 @@ export const Agent: FC<AgentProps> = ({
     setInitial(
       agentNodes,
       agentEdges,
-      extractAgentMetadata(agent),
       skills,
       dataComponentLookup,
       artifactComponentLookup,
@@ -401,10 +437,6 @@ export const Agent: FC<AgentProps> = ({
 
   // Callback function to fetch and update agent graph from copilot
   const refreshAgentGraph = async (options?: { fetchTools?: boolean }) => {
-    if (!agent.id) {
-      return;
-    }
-
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest(): Promise<void> {
@@ -420,9 +452,7 @@ export const Agent: FC<AgentProps> = ({
         return;
       }
       const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject?.agents?.[
-        agent.id as keyof typeof fullProject.agents
-      ] as ExtendedFullAgentDefinition;
+      const updatedAgent = fullProject?.agents?.[agentId];
 
       // Update tool lookup if tools were fetched
       const updatedToolLookup = toolsResult?.success
@@ -447,9 +477,6 @@ export const Agent: FC<AgentProps> = ({
           }))
         : edges;
 
-      // Extract metadata
-      const metadata = extractAgentMetadata(updatedAgent);
-
       // Create lookups from full project data
       const updatedDataComponentLookup = fullProject.dataComponents || {};
       const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
@@ -464,7 +491,6 @@ export const Agent: FC<AgentProps> = ({
       setInitial(
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
-        metadata,
         skills,
         updatedDataComponentLookup as Record<string, DataComponent>,
         updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
@@ -632,9 +658,7 @@ export const Agent: FC<AgentProps> = ({
     );
   };
 
-  useOnSelectionChange({
-    onChange: onSelectionChange,
-  });
+  useOnSelectionChange({ onChange: onSelectionChange });
 
   useAgentShortcuts();
 
@@ -709,37 +733,18 @@ export const Agent: FC<AgentProps> = ({
     }
   };
 
-  const onSubmit = async (): Promise<boolean> => {
-    let serializedData: ReturnType<typeof serializeAgentData>;
-    try {
-      serializedData = serializeAgentData(
-        nodes,
-        edges,
-        metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        agentToolConfigLookup,
-        subAgentExternalAgentConfigLookup,
-        subAgentTeamAgentConfigLookup
-      );
-    } catch (error) {
-      if (isContextConfigParseError(error)) {
-        const errorObjects = [
-          {
-            message: error.message,
-            field: error.field,
-            code: 'invalid_json',
-            path: [error.field],
-          },
-        ];
-        const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
-        setErrors(errorSummary);
-        const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage);
-        return false;
-      }
-      throw error;
-    }
+  const form = useFullAgentFormContext();
+
+  const onFormSubmit: HandleSubmitParams[0] = async (data): Promise<void> => {
+    const serializedData = serializeAgentData(
+      nodes,
+      edges,
+      dataComponentLookup,
+      artifactComponentLookup,
+      agentToolConfigLookup,
+      subAgentExternalAgentConfigLookup,
+      subAgentTeamAgentConfigLookup
+    );
 
     const functionToolNodeMap = new Map<string, string>();
     nodes.forEach((node) => {
@@ -763,23 +768,21 @@ export const Agent: FC<AgentProps> = ({
       const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
       setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
-      return false;
+      return;
     }
 
-    const res = await saveAgent(
-      tenantId,
-      projectId,
-      serializedData,
-      agent.id // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
-    );
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+      ...serializedData,
+      ...data,
+    });
 
     if (res.success) {
       // Clear any existing errors on successful save
       clearErrors();
-      toast.success('Agent saved', {
-        closeButton: true,
-      });
+      toast.success('Agent saved', { closeButton: true });
       markSaved();
+      // This makes current values the new default values
+      form.reset(serializeAgentForm(res.data));
 
       // Update MCP nodes with new relationshipIds from backend response
       if (res.data) {
@@ -826,19 +829,14 @@ export const Agent: FC<AgentProps> = ({
           })
         );
       }
-
-      if (!agent.id && res.data?.id) {
-        setMetadata('id', res.data.id);
-        router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
-      }
-      return true;
+      return;
     }
 
     if (res.code && nonValidationErrors.has(res.code)) {
       toast.error(res.error || 'An error occurred while saving the agent', {
         closeButton: true,
       });
-      return false;
+      return;
     }
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
@@ -856,12 +854,23 @@ export const Agent: FC<AgentProps> = ({
     } catch (parseError) {
       // Fallback for unparseable errors
       console.error('Failed to parse validation errors:', parseError);
-      toast.error('Failed to save agent', {
-        closeButton: true,
-      });
+      toast.error('Failed to save agent', { closeButton: true });
     }
-    return false;
+    return;
   };
+
+  const onFormError: HandleSubmitParams[1] = (errors) => {
+    toast.error(
+      <div className="space-y-2 whitespace-pre-wrap">
+        {formatFormErrors(errors).map((error, index) => (
+          <p key={index}>{error}</p>
+        ))}
+      </div>,
+      { duration: Infinity, id: 'form-error' }
+    );
+  };
+
+  const onSubmit = form.handleSubmit(onFormSubmit, onFormError);
 
   useEffect(() => {
     const onCompletion = () => {
@@ -909,7 +918,7 @@ export const Agent: FC<AgentProps> = ({
       className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
     >
       <CopilotChat
-        agentId={agent.id}
+        agentId={agentId}
         projectId={projectId}
         tenantId={tenantId}
         refreshAgentGraph={refreshAgentGraph}
@@ -948,9 +957,7 @@ export const Agent: FC<AgentProps> = ({
           fitView
           snapToGrid
           snapGrid={[20, 20]}
-          fitViewOptions={{
-            maxZoom: 1,
-          }}
+          fitViewOptions={{ maxZoom: 1 }}
           minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={({ sourceHandle, targetHandle }) => {
@@ -986,19 +993,15 @@ export const Agent: FC<AgentProps> = ({
               // width of NodeLibrary; pointer-events-none so handles below are reachable
               className="left-40 pointer-events-none"
             >
-              <Toolbar
-                onSubmit={onSubmit}
-                toggleSidePane={isOpen ? backToAgent : openAgentPane}
-                setShowPlayground={() => {
-                  closeSidePane();
-                  setShowPlayground(true);
-                }}
-                tracesHref={
-                  agent.id
-                    ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
-                    : undefined
-                }
-              />
+              <form onSubmit={onSubmit}>
+                <Toolbar
+                  toggleSidePane={isOpen ? backToAgent : openAgentPane}
+                  setShowPlayground={() => {
+                    closeSidePane();
+                    setShowPlayground(true);
+                  }}
+                />
+              </form>
             </Panel>
           )}
           {errors && showErrors && (
@@ -1049,7 +1052,7 @@ export const Agent: FC<AgentProps> = ({
           </>
         )}
 
-      {showPlayground && agent.id && (
+      {showPlayground && (
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
@@ -1060,7 +1063,7 @@ export const Agent: FC<AgentProps> = ({
             className={showTraces ? 'w-full flex-none!' : ''}
           >
             <Playground
-              agentId={agent.id}
+              agentId={agentId}
               projectId={projectId}
               tenantId={tenantId}
               setShowPlayground={setShowPlayground}
