@@ -5,7 +5,6 @@
  * Sets GitHub Actions outputs: has_changes (true/false) and prompt (Claude Code prompt).
  *
  * Run with: node --experimental-strip-types .github/scripts/detect-model-changes.ts
- * Override lookback: DAYS=90 node --experimental-strip-types .github/scripts/detect-model-changes.ts
  */
 
 import { appendFileSync } from 'node:fs';
@@ -19,19 +18,12 @@ const GATEWAY_ENDPOINT = 'https://ai-gateway.vercel.sh/v1/models';
 const TRACKED_PROVIDERS = new Set(['openai', 'anthropic', 'google']);
 const FETCH_TIMEOUT_MS = 30_000;
 
-const rawDays = parseInt(process.env.DAYS ?? '2', 10);
-const DAYS = Number.isNaN(rawDays) || rawDays <= 0 ? 2 : rawDays;
 const GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 
 type GatewayModel = {
   id: string;
   type?: string; // "language", "embedding", etc.
-  released?: number; // unix seconds — actual provider release date (not gateway import date)
 };
-
-function cutoffUnixSeconds(days: number): number {
-  return Math.floor((Date.now() - days * 24 * 60 * 60 * 1000) / 1000);
-}
 
 // Anthropic gateway IDs use dots for version numbers (claude-opus-4.6);
 // our constants use dashes (claude-opus-4-6). OpenAI and Google use dots in both.
@@ -68,15 +60,15 @@ async function fetchGatewayModels(): Promise<Array<{ provider: string; id: strin
   if (!Array.isArray(json.data)) {
     throw new Error(`Unexpected response format from Vercel AI Gateway: 'data' is not an array`);
   }
-  const cutoff = cutoffUnixSeconds(DAYS);
-
   return json.data
     .filter((m) => {
       const slashIndex = m.id.indexOf('/');
       if (slashIndex === -1) return false;
       if (!TRACKED_PROVIDERS.has(m.id.slice(0, slashIndex))) return false;
       if (m.type !== 'language') return false;
-      if (typeof m.released !== 'number' || m.released < cutoff) return false;
+      const rawId = m.id.slice(slashIndex + 1);
+      if (rawId.endsWith('-chat')) return false;
+      if (rawId.includes('-oss-') || rawId.startsWith('oss-')) return false;
       return true;
     })
     .map((m) => {
@@ -146,7 +138,7 @@ async function main(): Promise<void> {
   });
 
   console.log(
-    `Vercel AI Gateway: fetched ${gatewayModels.length} chat models (anthropic + openai + google, last ${DAYS} days)`
+    `Vercel AI Gateway: fetched ${gatewayModels.length} chat models (anthropic + openai + google)`
   );
 
   const newModels: NewModel[] = gatewayModels.filter((m) => !current.has(`${m.provider}/${m.id}`));
@@ -172,8 +164,8 @@ async function main(): Promise<void> {
   }
 
   const modelList = newModels.map((m) => `- ${m.provider}/${m.id}`).join('\n');
-  const modelSummary = newModels.map((m) => `${m.provider}/${m.id}`).join(', ');
   const today = new Date().toISOString().split('T')[0];
+  const slug = Math.random().toString(36).slice(2, 8);
 
   const prompt = `New AI models have been detected from Vercel AI Gateway that are not yet in our static model list.
 
@@ -204,11 +196,21 @@ Before editing anything, read all 3 target files so you follow their exact patte
   - Google: dots in model ID → 'google/gemini-2.5-flash'
 - DO NOT modify any existing entries or default values
 
+Before adding any model to any file, decide if it belongs using these rules. If a model is skipped, do not add it to the constants file, the UI, or the CLI.
+
+ADD the model if it is any of:
+- A general-purpose text generation or chat completion model, regardless of how old it is (gpt-3.5-turbo, gpt-4-turbo, gpt-4o, claude-3-opus, gemini-2.0-flash, etc.)
+- A reasoning or thinking model (o1, o3, o3-mini, o3-pro, o4-mini, etc.)
+- A code generation model (codex, codex-mini, gpt-5-codex, etc.)
+
+SKIP the model entirely (do not add it anywhere) if its ID contains any of these keywords: instruct, embedding, tts, whisper, dall-e, moderation, realtime, audio, search-preview, deep-research, safeguard, oss, instant
+SKIP if its ID ends in "-chat", "-image", or "-image-preview"
+SKIP if it is a dated preview or snapshot variant with a date suffix (e.g. gemini-2.5-flash-preview-09-2025, claude-3-5-sonnet-20240620) — only add the non-dated alias
+If you are uncertain whether a model belongs, skip it
+
 ### \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
 - Read the file first and follow the exact existing structure
-- Skip specialized variants: realtime, audio, embedding, search-augmented, instruct, fine-tuning base models, moderation
-- Include reasoning/thinking models (o1, o3, etc.) — add them in the appropriate tier
-- Add a label entry in the appropriate provider's array
+- Add a label entry in the appropriate provider's array for each model that passed the check above
 - Human-readable label: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash' (match existing style)
 - Ordering: newest version first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Flash Lite/Nano/Mini)
 
@@ -216,14 +218,14 @@ Before editing anything, read all 3 target files so you follow their exact patte
 - Same rules as above — same ordering and label style
 
 ## Step 3: Create changeset
-Create \`.changeset/add-models-${today}.md\` with this exact content (no extra whitespace):
+Create \`.changeset/add-models-${today}-${slug}.md\` with the following structure. For the description line, list only the models you actually added (not the ones you skipped):
 ---
 "@inkeep/agents-core": patch
 "@inkeep/agents-manage-ui": patch
 "@inkeep/agents-cli": patch
 ---
 
-Add new models: ${modelSummary}
+Add new models: <comma-separated list of provider/model-id for each model you added>
 
 ## Step 4: Commit, push, and open PR
 1. git add the 4 changed files (3 source files + the changeset)
