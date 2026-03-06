@@ -40,7 +40,7 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
           <TableRow noHover>
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
-            <TableHead>Agent Access</TableHead>
+            <TableHead>Default Agent</TableHead>
             <TableHead>App ID</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
@@ -73,11 +73,15 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <AgentAccessCell app={app} agentLookup={agentLookup} />
+                  <span className="text-sm text-muted-foreground">
+                    {app.defaultAgentId
+                      ? (agentLookup[app.defaultAgentId]?.name ?? app.defaultAgentId)
+                      : 'None'}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
-                    app_{app.publicId}
+                    {app.id}
                   </code>
                 </TableCell>
                 <TableCell>
@@ -97,26 +101,5 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
         </TableBody>
       </Table>
     </div>
-  );
-}
-
-function AgentAccessCell({ app, agentLookup }: { app: App; agentLookup: Record<string, Agent> }) {
-  if (app.agentAccessMode === 'all') {
-    return <span className="text-sm text-muted-foreground">All agents</span>;
-  }
-
-  if (app.allowedAgentIds.length === 0) {
-    return <span className="text-sm text-muted-foreground">None</span>;
-  }
-
-  const names = app.allowedAgentIds.slice(0, 3).map((id) => agentLookup[id]?.name ?? id);
-
-  const remaining = app.allowedAgentIds.length - 3;
-
-  return (
-    <span className="text-sm text-muted-foreground">
-      {names.join(', ')}
-      {remaining > 0 && ` +${remaining}`}
-    </span>
   );
 }

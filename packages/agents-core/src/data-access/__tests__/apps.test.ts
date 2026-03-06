@@ -5,18 +5,10 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import * as runtimeSchema from '../../db/runtime/runtime-schema';
 import type { AppInsert } from '../../types/entities';
-import {
-  createApp,
-  deleteApp,
-  getAppById,
-  getAppByPublicId,
-  listAppsPaginated,
-  updateApp,
-} from '../runtime/apps';
+import { createApp, deleteApp, getAppById, listAppsPaginated, updateApp } from '../runtime/apps';
 
 const TEST_TENANT_ID = 'test-tenant';
 const TEST_PROJECT_ID = 'test-project';
-const SCOPES = { tenantId: TEST_TENANT_ID, projectId: TEST_PROJECT_ID };
 
 const makeWebClientApp = (overrides?: Partial<AppInsert>): AppInsert => ({
   tenantId: TEST_TENANT_ID,
@@ -24,17 +16,13 @@ const makeWebClientApp = (overrides?: Partial<AppInsert>): AppInsert => ({
   id: 'app-web-1',
   name: 'Docs Widget',
   type: 'web_client',
-  agentAccessMode: 'selected',
-  allowedAgentIds: ['agent-1', 'agent-2'],
-  publicId: 'abc123def456',
+  defaultAgentId: 'agent-1',
   enabled: true,
   config: {
     type: 'web_client',
     webClient: {
       allowedDomains: ['help.customer.com'],
-      authMode: 'anonymous_only',
-      anonymousSessionLifetimeSeconds: 86400,
-      hs256Enabled: false,
+
       captchaEnabled: false,
     },
   },
@@ -47,11 +35,7 @@ const makeApiApp = (overrides?: Partial<AppInsert>): AppInsert => ({
   id: 'app-api-1',
   name: 'Backend API',
   type: 'api',
-  agentAccessMode: 'all',
-  allowedAgentIds: [],
-  publicId: 'xyz789uvw012',
-  keyHash: 'some-hash',
-  keyPrefix: 'as_xyz789uv',
+  defaultAgentId: 'agent-1',
   enabled: true,
   config: { type: 'api', api: {} },
   ...overrides,
@@ -93,26 +77,22 @@ describe('apps data access', () => {
       expect(app.id).toBe('app-web-1');
       expect(app.type).toBe('web_client');
       expect(app.name).toBe('Docs Widget');
-      expect(app.publicId).toBe('abc123def456');
+      expect(app.defaultAgentId).toBe('agent-1');
       expect(app.config).toEqual({
         type: 'web_client',
         webClient: {
           allowedDomains: ['help.customer.com'],
-          authMode: 'anonymous_only',
-          anonymousSessionLifetimeSeconds: 86400,
-          hs256Enabled: false,
+
           captchaEnabled: false,
         },
       });
     });
 
-    it('should create an api app with key hash', async () => {
+    it('should create an api app', async () => {
       const app = await createApp(db)(makeApiApp());
 
       expect(app).toBeDefined();
       expect(app.type).toBe('api');
-      expect(app.keyHash).toBe('some-hash');
-      expect(app.keyPrefix).toBe('as_xyz789uv');
     });
   });
 
@@ -120,42 +100,14 @@ describe('apps data access', () => {
     it('should return the app when it exists', async () => {
       await createApp(db)(makeWebClientApp());
 
-      const app = await getAppById(db)({ scopes: SCOPES, id: 'app-web-1' });
+      const app = await getAppById(db)('app-web-1');
 
       expect(app).toBeDefined();
       expect(app?.id).toBe('app-web-1');
     });
 
     it('should return undefined when app does not exist', async () => {
-      const app = await getAppById(db)({ scopes: SCOPES, id: 'nonexistent' });
-
-      expect(app).toBeUndefined();
-    });
-
-    it('should not return app from different tenant', async () => {
-      await createApp(db)(makeWebClientApp());
-
-      const app = await getAppById(db)({
-        scopes: { tenantId: 'other-tenant', projectId: TEST_PROJECT_ID },
-        id: 'app-web-1',
-      });
-
-      expect(app).toBeUndefined();
-    });
-  });
-
-  describe('getAppByPublicId', () => {
-    it('should return app by publicId', async () => {
-      await createApp(db)(makeWebClientApp());
-
-      const app = await getAppByPublicId(db)('abc123def456');
-
-      expect(app).toBeDefined();
-      expect(app?.id).toBe('app-web-1');
-    });
-
-    it('should return undefined for unknown publicId', async () => {
-      const app = await getAppByPublicId(db)('unknown');
+      const app = await getAppById(db)('nonexistent');
 
       expect(app).toBeUndefined();
     });
@@ -166,7 +118,7 @@ describe('apps data access', () => {
       await createApp(db)(makeWebClientApp());
       await createApp(db)(makeApiApp());
 
-      const result = await listAppsPaginated(db)({ scopes: SCOPES });
+      const result = await listAppsPaginated(db)({ scopes: { tenantId: TEST_TENANT_ID } });
 
       expect(result.data).toHaveLength(2);
       expect(result.pagination.total).toBe(2);
@@ -178,7 +130,7 @@ describe('apps data access', () => {
       await createApp(db)(makeApiApp());
 
       const result = await listAppsPaginated(db)({
-        scopes: SCOPES,
+        scopes: { tenantId: TEST_TENANT_ID },
         type: 'web_client',
       });
 
@@ -191,7 +143,7 @@ describe('apps data access', () => {
       await createApp(db)(makeApiApp());
 
       const result = await listAppsPaginated(db)({
-        scopes: SCOPES,
+        scopes: { tenantId: TEST_TENANT_ID },
         pagination: { page: 1, limit: 1 },
       });
 
@@ -206,7 +158,6 @@ describe('apps data access', () => {
       await createApp(db)(makeWebClientApp());
 
       const updated = await updateApp(db)({
-        scopes: SCOPES,
         id: 'app-web-1',
         data: { name: 'Updated Widget', enabled: false },
       });
@@ -220,17 +171,13 @@ describe('apps data access', () => {
       await createApp(db)(makeWebClientApp());
 
       const updated = await updateApp(db)({
-        scopes: SCOPES,
         id: 'app-web-1',
         data: {
           config: {
             type: 'web_client',
             webClient: {
               allowedDomains: ['new.customer.com'],
-              authMode: 'anonymous_and_authenticated',
-              anonymousSessionLifetimeSeconds: 3600,
-              hs256Enabled: true,
-              hs256Secret: 'secret123',
+
               captchaEnabled: true,
             },
           },
@@ -241,10 +188,6 @@ describe('apps data access', () => {
         type: 'web_client',
         webClient: {
           allowedDomains: ['new.customer.com'],
-          authMode: 'anonymous_and_authenticated',
-          anonymousSessionLifetimeSeconds: 3600,
-          hs256Enabled: true,
-          hs256Secret: 'secret123',
           captchaEnabled: true,
         },
       });
@@ -255,16 +198,16 @@ describe('apps data access', () => {
     it('should delete existing app', async () => {
       await createApp(db)(makeWebClientApp());
 
-      const deleted = await deleteApp(db)({ scopes: SCOPES, id: 'app-web-1' });
+      const deleted = await deleteApp(db)('app-web-1');
 
       expect(deleted).toBe(true);
 
-      const app = await getAppById(db)({ scopes: SCOPES, id: 'app-web-1' });
+      const app = await getAppById(db)('app-web-1');
       expect(app).toBeUndefined();
     });
 
     it('should return false for nonexistent app', async () => {
-      const deleted = await deleteApp(db)({ scopes: SCOPES, id: 'nonexistent' });
+      const deleted = await deleteApp(db)('nonexistent');
 
       expect(deleted).toBe(false);
     });

@@ -11,7 +11,6 @@ import {
   deleteApp,
   ErrorResponseSchema,
   generateAppCredential,
-  generateAppSecret,
   getAppById,
   listAppsPaginated,
   PaginationQueryParamsSchema,
@@ -34,7 +33,7 @@ app.openapi(
     permission: requireProjectPermission('view'),
     path: '/',
     summary: 'List Apps',
-    description: 'List all app credentials for a project with optional pagination and type filter',
+    description: 'List all app credentials for a tenant with optional pagination and type filter',
     operationId: 'list-apps',
     tags: ['Apps'],
     request: {
@@ -57,20 +56,18 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const type = c.req.query('type') as 'web_client' | 'api' | undefined;
 
     const result = await listAppsPaginated(runDbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId },
       pagination: { page, limit },
       type,
     });
 
-    const sanitizedData = result.data.map(({ keyHash, tenantId, projectId, ...rest }) =>
-      sanitizeAppConfig(rest)
-    );
+    const sanitizedData = result.data.map((app) => sanitizeAppConfig(app));
 
     return c.json({
       data: sanitizedData,
@@ -104,11 +101,8 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const appRecord = await getAppById(runDbClient)({
-      scopes: { tenantId, projectId },
-      id,
-    });
+    const { id } = c.req.valid('param');
+    const appRecord = await getAppById(runDbClient)(id);
 
     if (!appRecord) {
       throw createApiError({
@@ -117,9 +111,7 @@ app.openapi(
       });
     }
 
-    const { keyHash: _, tenantId: __, projectId: ___, ...sanitized } = appRecord;
-
-    return c.json({ data: sanitizeAppConfig(sanitized) });
+    return c.json({ data: sanitizeAppConfig(appRecord) });
   }
 );
 
@@ -128,7 +120,7 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Create App',
-    description: 'Create a new app credential. For API type, returns the secret (shown only once).',
+    description: 'Create a new app credential.',
     operationId: 'create-app',
     tags: ['Apps'],
     permission: requireProjectPermission('edit'),
@@ -159,41 +151,24 @@ app.openapi(
     const body = c.req.valid('json');
 
     const credential = generateAppCredential();
-    let keyHash: string | undefined;
-    let keyPrefix: string | undefined;
-    let appSecret: string | undefined;
-
-    if (body.type === 'api') {
-      const secretData = await generateAppSecret(credential.publicId);
-      keyHash = secretData.keyHash;
-      keyPrefix = secretData.keyPrefix;
-      appSecret = secretData.secret;
-    }
 
     const result = await createApp(runDbClient)({
       tenantId,
       projectId,
       id: credential.id,
-      publicId: credential.publicId,
       name: body.name,
       description: body.description,
       type: body.type,
-      agentAccessMode: body.agentAccessMode ?? 'selected',
-      allowedAgentIds: body.allowedAgentIds ?? [],
       defaultAgentId: body.defaultAgentId,
+      defaultProjectId: body.defaultProjectId,
       enabled: body.enabled ?? true,
       config: body.config,
-      keyHash,
-      keyPrefix,
     });
-
-    const { keyHash: _, tenantId: __, projectId: ___, ...sanitized } = result;
 
     return c.json(
       {
         data: {
-          app: sanitizeAppConfig(sanitized),
-          appSecret,
+          app: sanitizeAppConfig(result),
         },
       },
       201
@@ -233,11 +208,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const updatedApp = await updateApp(runDbClient)({
-      scopes: { tenantId, projectId },
       id,
       data: body,
     });
@@ -249,9 +223,7 @@ app.openapi(
       });
     }
 
-    const { keyHash: _, tenantId: __, projectId: ___, ...sanitized } = updatedApp;
-
-    return c.json({ data: sanitizeAppConfig(sanitized) });
+    return c.json({ data: sanitizeAppConfig(updatedApp) });
   }
 );
 
@@ -282,12 +254,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { id } = c.req.valid('param');
 
-    const deleted = await deleteApp(runDbClient)({
-      scopes: { tenantId, projectId },
-      id,
-    });
+    const deleted = await deleteApp(runDbClient)(id);
 
     if (!deleted) {
       throw createApiError({

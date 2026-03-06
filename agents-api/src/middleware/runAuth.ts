@@ -1,12 +1,10 @@
 import {
   type BaseExecutionContext,
   canUseProjectStrict,
-  extractAppPublicId,
-  getAppByPublicId,
+  getAppById,
   isSlackUserToken,
   updateAppLastUsed,
   validateAndGetApiKey,
-  validateApiKey,
   validateOrigin,
   validateTargetAgent,
   verifyServiceToken,
@@ -471,30 +469,6 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
 }
 
 /**
- * Resolve which agent the request should target based on the app's access config
- */
-function resolveAgentId(
-  requestedAgentId: string | undefined,
-  app: { agentAccessMode: string; allowedAgentIds: string[] | null; defaultAgentId: string | null }
-): string | null {
-  const allowedAgentIds = app.allowedAgentIds ?? [];
-
-  if (app.agentAccessMode === 'all') {
-    return requestedAgentId || app.defaultAgentId || null;
-  }
-
-  if (requestedAgentId) {
-    return allowedAgentIds.includes(requestedAgentId) ? requestedAgentId : null;
-  }
-
-  if (app.defaultAgentId && allowedAgentIds.includes(app.defaultAgentId)) {
-    return app.defaultAgentId;
-  }
-
-  return allowedAgentIds[0] || null;
-}
-
-/**
  * Authenticate using an app credential (X-Inkeep-App-Id header).
  * Supports web_client (end-user JWT) and api (app secret) types.
  */
@@ -505,12 +479,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
     return { authResult: null };
   }
 
-  const publicId = extractAppPublicId(appIdHeader);
-  if (!publicId) {
-    return { authResult: null, failureMessage: 'Invalid app ID format' };
-  }
-
-  const app = await getAppByPublicId(runDbClient)(publicId);
+  const app = await getAppById(runDbClient)(appIdHeader);
   if (!app) {
     return { authResult: null, failureMessage: 'App not found' };
   }
@@ -527,9 +496,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       type: 'web_client';
       webClient: {
         allowedDomains: string[];
-        authMode: string;
-        hs256Enabled: boolean;
-        hs256Secret?: string;
       };
     };
 
@@ -545,8 +511,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
 
-    let jwtVerified = false;
-
     try {
       const secret = getAnonJwtSecret();
       const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
@@ -556,7 +520,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       }
 
       endUserId = payload.sub;
-      jwtVerified = true;
     } catch (err) {
       const errorType =
         err instanceof errors.JWTExpired
@@ -565,71 +528,16 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             ? 'signature_invalid'
             : 'unknown';
       logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
-    }
-
-    if (!jwtVerified && config.webClient.hs256Enabled && config.webClient.hs256Secret) {
-      try {
-        const customerSecret = new TextEncoder().encode(config.webClient.hs256Secret);
-        const { payload } = await jwtVerify(bearerToken, customerSecret);
-
-        if (!payload.sub || !payload.exp) {
-          return {
-            authResult: null,
-            failureMessage: 'Customer JWT must include sub and exp claims',
-          };
-        }
-
-        if (payload.aud && payload.aud !== appIdHeader) {
-          return { authResult: null, failureMessage: 'JWT audience does not match app' };
-        }
-
-        endUserId = payload.sub;
-        jwtVerified = true;
-      } catch (err) {
-        const errorType =
-          err instanceof errors.JWTExpired
-            ? 'expired'
-            : err instanceof errors.JWSSignatureVerificationFailed
-              ? 'signature_invalid'
-              : 'unknown';
-        logger.debug({ errorType, appId: appIdHeader }, 'Customer HS256 JWT verification failed');
-      }
-    }
-
-    if (!jwtVerified) {
       return { authResult: null, failureMessage: 'Invalid end-user JWT' };
     }
-  } else if (app.type === 'api') {
-    authMethod = 'app_credential_api';
-
-    if (!bearerToken || !app.keyHash) {
-      return { authResult: null, failureMessage: 'App secret required' };
-    }
-
-    const valid = await validateApiKey(bearerToken, app.keyHash);
-    if (!valid) {
-      return { authResult: null, failureMessage: 'Invalid app secret' };
-    }
   } else {
-    return { authResult: null, failureMessage: 'Unsupported app configuration' };
+    return { authResult: null, failureMessage: 'Unsupported app type' };
   }
 
-  const agentId = resolveAgentId(requestedAgentId, app);
-  if (!agentId) {
-    return {
-      authResult: null,
-      failureMessage: requestedAgentId
-        ? 'Requested agent is not available for this app'
-        : 'No agent configured for this app',
-    };
-  }
+  const agentId = requestedAgentId || app.defaultAgentId || '';
 
   if (Math.random() < 0.1) {
-    updateAppLastUsed(runDbClient)({
-      tenantId: app.tenantId,
-      projectId: app.projectId,
-      id: app.id,
-    }).catch((err) => {
+    updateAppLastUsed(runDbClient)(app.id).catch((err) => {
       logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
     });
   }
@@ -642,8 +550,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
   return {
     authResult: {
       apiKey: bearerToken || appIdHeader,
-      tenantId: app.tenantId,
-      projectId: app.projectId,
+      tenantId: app.tenantId || reqData.tenantId || '',
+      projectId: app.projectId || reqData.projectId || '',
       agentId,
       apiKeyId: `app:${app.id}`,
       metadata: {

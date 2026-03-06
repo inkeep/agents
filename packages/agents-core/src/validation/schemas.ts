@@ -1850,22 +1850,10 @@ export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 export const WebClientConfigSchema = z
   .object({
     type: z.literal('web_client'),
-    webClient: z
-      .object({
-        allowedDomains: z.array(z.string().min(1)).min(1),
-        authMode: z.enum(['anonymous_only', 'anonymous_and_authenticated', 'authenticated_only']),
-        anonymousSessionLifetimeSeconds: z.number().int().min(60).max(604800).default(86400),
-        hs256Enabled: z.boolean().default(false),
-        hs256Secret: z
-          .string()
-          .min(32, 'HS256 secret must be at least 32 characters for security')
-          .optional(),
-        captchaEnabled: z.boolean().default(false),
-      })
-      .refine((wc) => !wc.hs256Enabled || wc.hs256Secret, {
-        message: 'hs256Secret is required when hs256Enabled is true',
-        path: ['hs256Secret'],
-      }),
+    webClient: z.object({
+      allowedDomains: z.array(z.string().min(1)).min(1),
+      captchaEnabled: z.boolean().default(false),
+    }),
   })
   .openapi('WebClientConfig');
 
@@ -1885,9 +1873,6 @@ export const WebClientConfigResponseSchema = z
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(z.string().min(1)).min(1),
-      authMode: z.enum(['anonymous_only', 'anonymous_and_authenticated', 'authenticated_only']),
-      anonymousSessionLifetimeSeconds: z.number().int().min(60).max(604800),
-      hs256Enabled: z.boolean(),
       captchaEnabled: z.boolean(),
     }),
   })
@@ -1903,27 +1888,17 @@ export const AppInsertSchema = createInsertSchema(apps).extend({
   id: ResourceIdSchema,
   name: z.string().trim().nonempty('Please enter a name.').max(256),
   type: z.enum(['web_client', 'api']),
-  agentAccessMode: z.enum(['all', 'selected']).default('selected'),
-  allowedAgentIds: z.array(z.string()).default([]),
+  defaultAgentId: z.string().min(1).nullish(),
   config: AppConfigSchema,
 });
 
 export const AppUpdateSchema = AppInsertSchema.partial().omit({
-  tenantId: true,
-  projectId: true,
   id: true,
-  publicId: true,
   type: true,
-  keyHash: true,
-  keyPrefix: true,
   createdAt: true,
 });
 
-export const AppApiSelectSchema = AppSelectSchema.omit({
-  tenantId: true,
-  projectId: true,
-  keyHash: true,
-}).openapi('App');
+export const AppApiSelectSchema = AppSelectSchema.openapi('App');
 
 export const AppApiResponseSelectSchema = AppApiSelectSchema.omit({ config: true })
   .extend({
@@ -1932,12 +1907,7 @@ export const AppApiResponseSelectSchema = AppApiSelectSchema.omit({ config: true
   .openapi('AppResponseItem');
 
 export const AppApiInsertSchema = AppInsertSchema.omit({
-  tenantId: true,
-  projectId: true,
   id: true,
-  publicId: true,
-  keyHash: true,
-  keyPrefix: true,
   lastUsedAt: true,
 }).openapi('AppCreate');
 
@@ -1946,7 +1916,6 @@ export const AppApiUpdateSchema = AppUpdateSchema.openapi('AppUpdate');
 export const AppApiCreationResponseSchema = z.object({
   data: z.object({
     app: AppApiResponseSelectSchema,
-    appSecret: z.string().optional().describe('The full app secret for API type (shown only once)'),
   }),
 });
 

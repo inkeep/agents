@@ -23,14 +23,11 @@ const createTestWebClientApp = async ({
     body: JSON.stringify({
       name: 'Test Web Client',
       type: 'web_client',
-      agentAccessMode: 'all',
       config: {
         type: 'web_client',
         webClient: {
           allowedDomains,
-          authMode: 'anonymous_only',
-          anonymousSessionLifetimeSeconds: 3600,
-          hs256Enabled: false,
+
           captchaEnabled: false,
         },
       },
@@ -97,7 +94,7 @@ describe('Run API - End-User Conversation History', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
 
@@ -148,7 +145,7 @@ describe('Run API - End-User Conversation History', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
 
@@ -189,7 +186,7 @@ describe('Run API - End-User Conversation History', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
 
@@ -215,7 +212,7 @@ describe('Run API - End-User Conversation History', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
 

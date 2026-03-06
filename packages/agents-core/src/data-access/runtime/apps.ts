@@ -2,29 +2,18 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { apps } from '../../db/runtime/runtime-schema';
 import type { AppInsert, AppSelect, AppUpdate } from '../../types/entities';
-import type { AppType, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
+import type { AppType, PaginationConfig, TenantScopeConfig } from '../../types/utility';
 
-export const getAppById =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
-    return await db.query.apps.findFirst({
-      where: and(
-        eq(apps.tenantId, params.scopes.tenantId),
-        eq(apps.projectId, params.scopes.projectId),
-        eq(apps.id, params.id)
-      ),
-    });
-  };
-
-export const getAppByPublicId = (db: AgentsRunDatabaseClient) => async (publicId: string) => {
+export const getAppById = (db: AgentsRunDatabaseClient) => async (id: string) => {
   return await db.query.apps.findFirst({
-    where: eq(apps.publicId, publicId),
+    where: eq(apps.id, id),
   });
 };
 
 export const listAppsPaginated =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
+    scopes: TenantScopeConfig;
     pagination?: PaginationConfig;
     type?: AppType;
   }): Promise<{
@@ -35,10 +24,7 @@ export const listAppsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [
-      eq(apps.tenantId, params.scopes.tenantId),
-      eq(apps.projectId, params.scopes.projectId),
-    ];
+    const conditions = [eq(apps.tenantId, params.scopes.tenantId)];
     if (params.type) {
       conditions.push(eq(apps.type, params.type));
     }
@@ -82,8 +68,7 @@ export const createApp = (db: AgentsRunDatabaseClient) => async (params: AppInse
 };
 
 export const updateApp =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; id: string; data: AppUpdate }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { id: string; data: AppUpdate }) => {
     const now = new Date().toISOString();
 
     const [updatedApp] = await db
@@ -92,13 +77,7 @@ export const updateApp =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(apps.tenantId, params.scopes.tenantId),
-          eq(apps.projectId, params.scopes.projectId),
-          eq(apps.id, params.id)
-        )
-      )
+      .where(eq(apps.id, params.id))
       .returning();
 
     return updatedApp;
@@ -106,40 +85,20 @@ export const updateApp =
 
 export const deleteApp =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
-    const existingApp = await getAppById(db)({
-      scopes: params.scopes,
-      id: params.id,
-    });
+  async (id: string): Promise<boolean> => {
+    const existingApp = await getAppById(db)(id);
 
     if (!existingApp) {
       return false;
     }
 
-    await db
-      .delete(apps)
-      .where(
-        and(
-          eq(apps.tenantId, params.scopes.tenantId),
-          eq(apps.projectId, params.scopes.projectId),
-          eq(apps.id, params.id)
-        )
-      );
+    await db.delete(apps).where(eq(apps.id, id));
 
     return true;
   };
 
 export const updateAppLastUsed =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { tenantId: string; projectId: string; id: string }): Promise<void> => {
-    await db
-      .update(apps)
-      .set({ lastUsedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(apps.tenantId, params.tenantId),
-          eq(apps.projectId, params.projectId),
-          eq(apps.id, params.id)
-        )
-      );
+  async (id: string): Promise<void> => {
+    await db.update(apps).set({ lastUsedAt: new Date().toISOString() }).where(eq(apps.id, id));
   };

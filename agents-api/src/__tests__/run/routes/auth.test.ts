@@ -10,13 +10,11 @@ import { createTestTenantWithOrg } from '../../utils/testTenant';
 const createTestWebClientApp = async ({
   tenantId,
   projectId,
-  authMode = 'anonymous_only' as const,
   allowedDomains = ['help.customer.com'],
   enabled = true,
 }: {
   tenantId: string;
   projectId: string;
-  authMode?: 'anonymous_only' | 'anonymous_and_authenticated' | 'authenticated_only';
   allowedDomains?: string[];
   enabled?: boolean;
 }) => {
@@ -25,16 +23,12 @@ const createTestWebClientApp = async ({
     body: JSON.stringify({
       name: 'Test Web Client',
       type: 'web_client',
-      agentAccessMode: 'selected',
-      allowedAgentIds: ['agent-1'],
       enabled,
       config: {
         type: 'web_client',
         webClient: {
           allowedDomains,
-          authMode,
-          anonymousSessionLifetimeSeconds: 3600,
-          hs256Enabled: false,
+
           captchaEnabled: false,
         },
       },
@@ -58,7 +52,6 @@ const createTestApiApp = async ({
     body: JSON.stringify({
       name: 'Test API App',
       type: 'api',
-      agentAccessMode: 'all',
       config: { type: 'api', api: {} },
     }),
   });
@@ -76,7 +69,7 @@ describe('Anonymous Session Endpoint', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
         method: 'POST',
@@ -107,13 +100,13 @@ describe('Anonymous Session Endpoint', () => {
       expect(payload.iat).toBeDefined();
     });
 
-    it('should respect anonymousSessionLifetimeSeconds in expiry', async () => {
+    it('should use system-level session lifetime in expiry', async () => {
       const tenantId = await createTestTenantWithOrg('anon-session-lifetime');
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const beforeRequest = Math.floor(Date.now() / 1000);
 
@@ -136,36 +129,11 @@ describe('Anonymous Session Endpoint', () => {
 
       const exp = payload.exp as number;
       const iat = payload.iat as number;
-      expect(exp - iat).toBe(3600);
-      expect(exp).toBeGreaterThanOrEqual(beforeRequest + 3600);
+      expect(exp - iat).toBe(86400);
+      expect(exp).toBeGreaterThanOrEqual(beforeRequest + 86400);
     });
 
-    it('should work with anonymous_and_authenticated auth mode', async () => {
-      const tenantId = await createTestTenantWithOrg('anon-session-both');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const appRecord = await createTestWebClientApp({
-        tenantId,
-        projectId,
-        authMode: 'anonymous_and_authenticated',
-      });
-      const appId = `app_${appRecord.publicId}`;
-
-      const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.token).toBeDefined();
-    });
-
-    it('should return 400 for invalid app ID format', async () => {
+    it('should return 404 for non-existent app ID', async () => {
       const res = await app.request('/run/auth/apps/invalid-format/anonymous-session', {
         method: 'POST',
         headers: {
@@ -174,7 +142,7 @@ describe('Anonymous Session Endpoint', () => {
         },
       });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(404);
     });
 
     it('should return 404 for non-existent app', async () => {
@@ -199,7 +167,7 @@ describe('Anonymous Session Endpoint', () => {
         projectId,
         enabled: false,
       });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
         method: 'POST',
@@ -218,30 +186,7 @@ describe('Anonymous Session Endpoint', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestApiApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
-
-      const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-        },
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return 400 for authenticated_only auth mode', async () => {
-      const tenantId = await createTestTenantWithOrg('anon-session-auth-only');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const appRecord = await createTestWebClientApp({
-        tenantId,
-        projectId,
-        authMode: 'authenticated_only',
-      });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
         method: 'POST',
@@ -260,7 +205,7 @@ describe('Anonymous Session Endpoint', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
         method: 'POST',
@@ -279,7 +224,7 @@ describe('Anonymous Session Endpoint', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
         method: 'POST',
@@ -301,7 +246,7 @@ describe('Anonymous Session Endpoint', () => {
         projectId,
         allowedDomains: ['*.customer.com'],
       });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
         method: 'POST',
@@ -322,7 +267,7 @@ describe('Anonymous Session Endpoint', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       const appRecord = await createTestWebClientApp({ tenantId, projectId });
-      const appId = `app_${appRecord.publicId}`;
+      const appId = appRecord.id;
 
       const secret = getAnonJwtSecret();
       const subs: string[] = [];

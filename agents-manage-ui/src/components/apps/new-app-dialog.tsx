@@ -99,8 +99,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
       </Dialog>
 
       <AppCredentialDisplay
-        appId={createdApp ? `app_${createdApp.app.publicId}` : ''}
-        appSecret={createdApp?.appSecret}
+        appId={createdApp ? createdApp.app.id : ''}
         open={!!createdApp}
         onClose={handleCredentialDisplayClosed}
       />

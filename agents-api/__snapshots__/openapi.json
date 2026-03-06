@@ -886,21 +886,6 @@
       },
       "AppCreate": {
         "properties": {
-          "agentAccessMode": {
-            "default": "selected",
-            "enum": [
-              "all",
-              "selected"
-            ],
-            "type": "string"
-          },
-          "allowedAgentIds": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "config": {
             "$ref": "#/components/schemas/AppConfig"
           },
@@ -908,6 +893,11 @@
             "type": "string"
           },
           "defaultAgentId": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultProjectId": {
             "maxLength": 256,
             "nullable": true,
             "type": "string"
@@ -922,6 +912,16 @@
           "name": {
             "maxLength": 256,
             "minLength": 1,
+            "type": "string"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "type": {
@@ -973,41 +973,6 @@
       },
       "AppResponseItem": {
         "properties": {
-          "agentAccessMode": {
-            "maxLength": 20,
-            "type": "string"
-          },
-          "allowedAgentIds": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "config": {
             "$ref": "#/components/schemas/AppConfigResponse"
           },
@@ -1015,6 +980,11 @@
             "type": "string"
           },
           "defaultAgentId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultProjectId": {
             "maxLength": 256,
             "nullable": true,
             "type": "string"
@@ -1030,11 +1000,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "keyPrefix": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
           "lastUsedAt": {
             "nullable": true,
             "type": "string"
@@ -1043,8 +1008,14 @@
             "maxLength": 256,
             "type": "string"
           },
-          "publicId": {
+          "projectId": {
             "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "type": {
@@ -1057,14 +1028,13 @@
         },
         "required": [
           "id",
+          "tenantId",
+          "projectId",
           "name",
           "description",
           "type",
-          "agentAccessMode",
-          "allowedAgentIds",
+          "defaultProjectId",
           "defaultAgentId",
-          "publicId",
-          "keyPrefix",
           "enabled",
           "lastUsedAt",
           "createdAt",
@@ -1075,25 +1045,15 @@
       },
       "AppUpdate": {
         "properties": {
-          "agentAccessMode": {
-            "default": "selected",
-            "enum": [
-              "all",
-              "selected"
-            ],
-            "type": "string"
-          },
-          "allowedAgentIds": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "config": {
             "$ref": "#/components/schemas/AppConfig"
           },
           "defaultAgentId": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultProjectId": {
             "maxLength": 256,
             "nullable": true,
             "type": "string"
@@ -1112,6 +1072,16 @@
           "name": {
             "maxLength": 256,
             "minLength": 1,
+            "type": "string"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "updatedAt": {
@@ -10413,36 +10383,13 @@
                 "minItems": 1,
                 "type": "array"
               },
-              "anonymousSessionLifetimeSeconds": {
-                "default": 86400,
-                "maximum": 604800,
-                "minimum": 60,
-                "type": "integer"
-              },
-              "authMode": {
-                "enum": [
-                  "anonymous_only",
-                  "anonymous_and_authenticated",
-                  "authenticated_only"
-                ],
-                "type": "string"
-              },
               "captchaEnabled": {
                 "default": false,
                 "type": "boolean"
-              },
-              "hs256Enabled": {
-                "default": false,
-                "type": "boolean"
-              },
-              "hs256Secret": {
-                "minLength": 32,
-                "type": "string"
               }
             },
             "required": [
-              "allowedDomains",
-              "authMode"
+              "allowedDomains"
             ],
             "type": "object"
           }
@@ -10471,31 +10418,12 @@
                 "minItems": 1,
                 "type": "array"
               },
-              "anonymousSessionLifetimeSeconds": {
-                "maximum": 604800,
-                "minimum": 60,
-                "type": "integer"
-              },
-              "authMode": {
-                "enum": [
-                  "anonymous_only",
-                  "anonymous_and_authenticated",
-                  "authenticated_only"
-                ],
-                "type": "string"
-              },
               "captchaEnabled": {
-                "type": "boolean"
-              },
-              "hs256Enabled": {
                 "type": "boolean"
               }
             },
             "required": [
               "allowedDomains",
-              "authMode",
-              "anonymousSessionLifetimeSeconds",
-              "hs256Enabled",
               "captchaEnabled"
             ],
             "type": "object"
@@ -25421,7 +25349,7 @@
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/apps": {
       "get": {
-        "description": "List all app credentials for a project with optional pagination and type filter",
+        "description": "List all app credentials for a tenant with optional pagination and type filter",
         "operationId": "list-apps",
         "parameters": [
           {
@@ -25574,7 +25502,7 @@
         }
       },
       "post": {
-        "description": "Create a new app credential. For API type, returns the secret (shown only once).",
+        "description": "Create a new app credential.",
         "operationId": "create-app",
         "parameters": [
           {
@@ -25615,10 +25543,6 @@
                       "properties": {
                         "app": {
                           "$ref": "#/components/schemas/AppResponseItem"
-                        },
-                        "appSecret": {
-                          "description": "The full app secret for API type (shown only once)",
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -39513,136 +39437,6 @@
           }
         ],
         "summary": "Chat (Vercel Streaming Protocol)",
-        "tags": [
-          "Chat"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/tool-approvals": {
-      "post": {
-        "description": "Handle user approval/denial of tool execution requests during conversations",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "approved": {
-                    "description": "Whether the tool execution is approved",
-                    "type": "boolean"
-                  },
-                  "conversationId": {
-                    "description": "The conversation ID",
-                    "type": "string"
-                  },
-                  "reason": {
-                    "description": "Optional reason for the decision",
-                    "type": "string"
-                  },
-                  "toolCallId": {
-                    "description": "The tool call ID to respond to",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "conversationId",
-                  "toolCallId",
-                  "approved"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Tool approval response processed successfully"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Bad request - invalid tool call ID or conversation ID"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Tool call not found or already processed"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error",
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Internal server error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Approve or deny tool execution",
         "tags": [
           "Chat"
         ],
