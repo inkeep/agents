@@ -3,7 +3,14 @@ import { flatNestedFieldMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 
 export function useProcessedErrors(
-  entity: 'subAgents' | 'externalAgents' | 'teamAgents' | 'functionTools' | 'tools' | 'functions',
+  entity:
+    | 'subAgents'
+    | 'externalAgents'
+    | 'teamAgents'
+    | 'functionTools'
+    | 'functions'
+    | 'tools'
+    | 'mcpRelations',
   key: string
 ): Array<{
   field: string;

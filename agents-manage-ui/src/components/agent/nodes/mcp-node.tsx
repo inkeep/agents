@@ -161,7 +161,10 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
-  const processedErrors = useProcessedErrors('tools', data.toolId);
+  const processedErrors = [
+    ...useProcessedErrors('tools', data.toolId),
+    ...useProcessedErrors('mcpRelations', relationKey),
+  ];
   const hasErrors = processedErrors.length > 0;
   const hasStatusErrors = data.status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
@@ -199,6 +202,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
           <TruncateBadge>No tools</TruncateBadge>
         )}
       </BaseNodeContent>
+      {hasErrors && <ErrorIndicator errors={processedErrors} />}
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
     </BaseNode>
   );

@@ -12,7 +12,8 @@ export function useGroupedAgentErrors() {
     functions,
     externalAgents = EMPTY_OBJ,
     teamAgents = EMPTY_OBJ,
-    tools = EMPTY_OBJ,
+    tools,
+    mcpRelations,
     defaultSubAgentId,
     ...agentSettings
   } = errors;
@@ -25,7 +26,10 @@ export function useGroupedAgentErrors() {
     },
     externalAgents,
     teamAgents,
-    tools,
+    tools: {
+      ...tools,
+      ...mcpRelations,
+    },
     agentSettings,
     other: defaultSubAgentId ? { defaultSubAgentId } : EMPTY_OBJ,
   };

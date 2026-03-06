@@ -492,11 +492,10 @@ export function MCPServerNodeEditor({
       </div>
       <GenericJsonEditor
         control={form.control}
-        name={path('headers')}
+        name={relationPath('headers')}
         label="Headers"
         placeholder={headersTemplate}
         customTemplate={headersTemplate}
-        isRequired={isRequired(FullAgentToolSchema, 'headers')}
       />
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}

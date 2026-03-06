@@ -120,65 +120,62 @@ export function deserializeAgentData(
     const subAgent = data.subAgents[subAgentId];
     if (!subAgent) continue;
     const nodeType = NodeType.SubAgent;
-    const agentNodeData = (() => {
-      return {
-        id: subAgent.id,
-        name: subAgent.name,
-        prompt: subAgent.prompt,
-        description: subAgent.description,
-        dataComponents: subAgent.dataComponents,
-        artifactComponents: subAgent.artifactComponents,
-        models: subAgent.models
-          ? {
-              base: subAgent.models.base
-                ? {
-                    model: subAgent.models.base.model ?? '',
-                    providerOptions: subAgent.models.base.providerOptions
-                      ? formatJsonField(subAgent.models.base.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
-              structuredOutput: subAgent.models.structuredOutput
-                ? {
-                    model: subAgent.models.structuredOutput.model ?? '',
-                    providerOptions: subAgent.models.structuredOutput.providerOptions
-                      ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
-              summarizer: subAgent.models.summarizer
-                ? {
-                    model: subAgent.models.summarizer.model ?? '',
-                    providerOptions: subAgent.models.summarizer.providerOptions
-                      ? formatJsonField(subAgent.models.summarizer.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
+    const agentNodeData = {
+      id: subAgent.id,
+      name: subAgent.name,
+      prompt: subAgent.prompt,
+      description: subAgent.description,
+      dataComponents: subAgent.dataComponents,
+      artifactComponents: subAgent.artifactComponents,
+      models: subAgent.models
+        ? {
+            base: subAgent.models.base
+              ? {
+                  model: subAgent.models.base.model ?? '',
+                  providerOptions: subAgent.models.base.providerOptions
+                    ? formatJsonField(subAgent.models.base.providerOptions)
+                    : undefined,
+                }
+              : undefined,
+            structuredOutput: subAgent.models.structuredOutput
+              ? {
+                  model: subAgent.models.structuredOutput.model ?? '',
+                  providerOptions: subAgent.models.structuredOutput.providerOptions
+                    ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
+                    : undefined,
+                }
+              : undefined,
+            summarizer: subAgent.models.summarizer
+              ? {
+                  model: subAgent.models.summarizer.model ?? '',
+                  providerOptions: subAgent.models.summarizer.providerOptions
+                    ? formatJsonField(subAgent.models.summarizer.providerOptions)
+                    : undefined,
+                }
+              : undefined,
+          }
+        : undefined,
+      skills: subAgent.skills,
+      stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
+      type: subAgent.type,
+      tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
+      selectedTools: subAgent.canUse
+        ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
+            if (item.toolSelection) {
+              acc[item.toolId] = item.toolSelection;
             }
-          : undefined,
-        skills: subAgent.skills,
-        stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
-        type: subAgent.type,
-        tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
-        selectedTools: subAgent.canUse
-          ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
-              if (item.toolSelection) {
-                acc[item.toolId] = item.toolSelection;
-              }
-              return acc;
-            }, {})
-          : undefined,
-        headers: subAgent.canUse
-          ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
-              if (item.headers) {
-                acc[item.toolId] = item.headers;
-              }
-              return acc;
-            }, {})
-          : undefined,
-      };
-    })();
-
+            return acc;
+          }, {})
+        : undefined,
+      headers: subAgent.canUse
+        ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
+            if (item.headers) {
+              acc[item.toolId] = item.headers;
+            }
+            return acc;
+          }, {})
+        : undefined,
+    };
     const agentNode: Node = {
       id: subAgentId,
       type: nodeType,

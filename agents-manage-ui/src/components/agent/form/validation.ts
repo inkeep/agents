@@ -22,12 +22,6 @@ const ExternalAgentSchema = AgentWithinContextOfProjectSchema.shape.externalAgen
     baseUrl: true,
   });
 const TeamAgentSchema = AgentWithinContextOfProjectSchema.shape.teamAgents.unwrap().valueType;
-const ToolSchema = AgentWithinContextOfProjectSchema.shape.tools.unwrap().valueType.pick({
-  id: true,
-  name: true,
-  config: true,
-  imageUrl: true,
-});
 const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
   .unwrap()
   .valueType.pick({
@@ -117,11 +111,14 @@ export const FullAgentFunctionSchema = z.object({
     .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
     .pipe(FunctionSchema.shape.inputSchema),
 });
-export const FullAgentToolSchema = z.object({
-  ...ToolSchema.shape,
-  // TODO or tempHeaders
-  headers: StringToStringRecordSchema.optional(),
-});
+export const FullAgentToolSchema = AgentWithinContextOfProjectSchema.shape.tools
+  .unwrap()
+  .valueType.pick({
+    id: true,
+    name: true,
+    config: true,
+    imageUrl: true,
+  });
 const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
