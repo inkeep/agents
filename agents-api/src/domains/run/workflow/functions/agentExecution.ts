@@ -233,15 +233,22 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           iteration,
         });
 
-        const writer = writable.getWriter();
-        await writer.write({
-          type: 'tool-approval-request',
-          approvalId: token,
-          toolCallId: pendingDelegateCall.toolCallId,
-          toolName: pendingDelegateCall.toolName,
-          input: pendingDelegateCall.args,
-        } as any);
-        writer.releaseLock();
+        try {
+          const writer = writable.getWriter();
+          await writer.write({
+            type: 'tool-approval-request',
+            approvalId: token,
+            toolCallId: pendingDelegateCall.toolCallId,
+            toolName: pendingDelegateCall.toolName,
+            input: pendingDelegateCall.args,
+          } as any);
+          writer.releaseLock();
+        } catch (writeErr) {
+          await logStep('Failed to write approval request to stream', {
+            executionId,
+            error: writeErr instanceof Error ? writeErr.message : String(writeErr),
+          });
+        }
 
         const hook = toolApprovalHook.create({ token });
         const approval = await hook;
