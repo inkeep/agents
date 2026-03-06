@@ -119,6 +119,21 @@ export const FullAgentToolSchema = AgentWithinContextOfProjectSchema.shape.tools
     config: true,
     imageUrl: true,
   });
+export const FullAgentExternalAgentSchema = z.object({
+  ...ExternalAgentSchema.shape,
+  // TODO or tempHeaders
+  headers: StringToStringRecordSchema.optional(),
+});
+export const FullAgentTeamAgentSchema = z.object({
+  ...TeamAgentSchema.shape,
+  // TODO or tempHeaders
+  headers: StringToStringRecordSchema.optional(),
+});
+export const FullAgentSubAgentSchema = z.strictObject({
+  ...SubAgentSchema.shape,
+  type: SubAgentSchema.shape.type.default('internal'),
+  models: MyModelsSchema.partial(),
+});
 const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
@@ -132,32 +147,11 @@ export const FullAgentUpdateSchema = z.strictObject({
     (val) => val,
     'Default sub agent ID is required, please select a default sub agent.'
   ),
-  subAgents: z.record(
-    z.string(),
-    z.strictObject({
-      ...SubAgentSchema.shape,
-      type: SubAgentSchema.shape.type.default('internal'),
-      models: MyModelsSchema.partial(),
-    })
-  ),
+  subAgents: z.record(z.string(), FullAgentSubAgentSchema),
   functionTools: z.record(z.string(), FullAgentFunctionToolSchema).optional(),
   functions: z.record(z.string(), FullAgentFunctionSchema).optional(),
-  externalAgents: z.record(
-    z.string(),
-    z.object({
-      ...ExternalAgentSchema.shape,
-      // TODO or tempHeaders
-      headers: StringToStringRecordSchema,
-    })
-  ),
-  teamAgents: z.record(
-    z.string(),
-    z.object({
-      ...TeamAgentSchema.shape,
-      // TODO or tempHeaders
-      headers: StringToStringRecordSchema,
-    })
-  ),
+  externalAgents: z.record(z.string(), FullAgentExternalAgentSchema),
+  teamAgents: z.record(z.string(), FullAgentTeamAgentSchema),
   tools: z.record(z.string(), FullAgentToolSchema),
   mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
   stopWhen: AgentStopWhenSchema.extend({
