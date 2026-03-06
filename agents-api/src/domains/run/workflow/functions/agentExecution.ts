@@ -171,11 +171,19 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         ...(hasTools ? { tools: allTools } : {}),
       });
 
+      const delegateToolNames = new Set(Object.keys(delegateRelationMap));
+
       const result = await agent.stream({
         messages: currentMessages,
         writable,
         maxSteps: 10,
         preventClose: true,
+        stopWhen: ({ steps }) => {
+          const last = steps.at(-1);
+          if (!last) return false;
+          const calls = (last as any).toolCalls as Array<{ toolName: string }> | undefined;
+          return calls?.some((tc) => delegateToolNames.has(tc.toolName)) ?? false;
+        },
       });
 
       const transferData = extractTransferFromResult(
