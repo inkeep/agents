@@ -899,6 +899,8 @@ export const Agent: FC<AgentProps> = ({
               toast.error(`Cannot delete default subagent "${defaultSubAgentId}"`);
               return false;
             }
+            // Trigger dirty state
+            form.setValue('defaultSubAgentId', defaultSubAgentId, { shouldDirty: true });
             return state;
           }}
         >
