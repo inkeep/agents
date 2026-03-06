@@ -123,61 +123,77 @@ const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   prompt: true,
 });
 
-export const FullAgentUpdateSchema = z.strictObject({
-  ...FullAgentSchema.shape,
-  defaultSubAgentId: AgentWithinContextOfProjectSchema.shape.defaultSubAgentId.refine(
-    (val) => val,
-    'Default sub agent ID is required, please select a default sub agent.'
-  ),
-  subAgents: z.record(
-    z.string(),
-    z.strictObject({
-      ...SubAgentSchema.shape,
-      type: SubAgentSchema.shape.type.default('internal'),
-      models: MyModelsSchema.partial(),
-    })
-  ),
-  functionTools: z.record(z.string(), FullAgentFunctionToolSchema),
-  functions: z.record(z.string(), FullAgentFunctionSchema),
-  externalAgents: z.record(
-    z.string(),
-    z.object({
-      ...ExternalAgentSchema.shape,
-      // TODO or tempHeaders
-      headers: StringToStringRecordSchema,
-    })
-  ),
-  teamAgents: z.record(
-    z.string(),
-    z.object({
-      ...TeamAgentSchema.shape,
-      // TODO or tempHeaders
-      headers: StringToStringRecordSchema,
-    })
-  ),
-  tools: z.record(
-    z.string(),
-    z.object({
-      ...ToolSchema.shape,
-      // TODO or tempHeaders
-      headers: StringToStringRecordSchema,
-    })
-  ),
-  mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
-  stopWhen: AgentStopWhenSchema.extend({
-    transferCountIs: NullToUndefinedSchema.pipe(
-      AgentStopWhenSchema.shape.transferCountIs
-    ).optional(),
-  }).optional(),
-  contextConfig: ContextConfigSchema,
-  statusUpdates: z.strictObject({
-    ...StatusUpdatesSchema,
-    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
-    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
-    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
-  }),
-  models: MyModelsSchema,
-});
+export const FullAgentUpdateSchema = z
+  .strictObject({
+    ...FullAgentSchema.shape,
+    defaultSubAgentId: AgentWithinContextOfProjectSchema.shape.defaultSubAgentId.refine(
+      (val) => val,
+      'Default sub agent ID is required, please select a default sub agent.'
+    ),
+    subAgents: z.record(
+      z.string(),
+      z.strictObject({
+        ...SubAgentSchema.shape,
+        type: SubAgentSchema.shape.type.default('internal'),
+        models: MyModelsSchema.partial(),
+      })
+    ),
+    functionTools: z.record(z.string(), FullAgentFunctionToolSchema),
+    functions: z.record(z.string(), FullAgentFunctionSchema),
+    externalAgents: z.record(
+      z.string(),
+      z.object({
+        ...ExternalAgentSchema.shape,
+        // TODO or tempHeaders
+        headers: StringToStringRecordSchema,
+      })
+    ),
+    teamAgents: z.record(
+      z.string(),
+      z.object({
+        ...TeamAgentSchema.shape,
+        // TODO or tempHeaders
+        headers: StringToStringRecordSchema,
+      })
+    ),
+    tools: z.record(
+      z.string(),
+      z.object({
+        ...ToolSchema.shape,
+        // TODO or tempHeaders
+        headers: StringToStringRecordSchema,
+      })
+    ),
+    mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
+    stopWhen: AgentStopWhenSchema.extend({
+      transferCountIs: NullToUndefinedSchema.pipe(
+        AgentStopWhenSchema.shape.transferCountIs
+      ).optional(),
+    }).optional(),
+    contextConfig: ContextConfigSchema,
+    statusUpdates: z.strictObject({
+      ...StatusUpdatesSchema,
+      numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+      timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
+      statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
+    }),
+    models: MyModelsSchema,
+  })
+  .superRefine((value, ctx) => {
+    for (const [functionToolId, functionTool] of Object.entries(value.functionTools)) {
+      const used = Object.values(value.subAgents).some((subAgent) =>
+        subAgent.canUse.some((tool) => tool.toolId === functionToolId)
+      );
+
+      if (used) continue;
+      ctx.addIssue({
+        code: 'custom',
+        message: `Function tool "${functionTool.name}" isn't connected`,
+        path: ['functionTools', functionToolId, 'global'],
+      });
+    }
+    console.log('superRefine', value);
+  });
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
