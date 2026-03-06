@@ -89,8 +89,6 @@ function makeWebClientApp(overrides: Record<string, unknown> = {}) {
       type: 'web_client',
       webClient: {
         allowedDomains: ['help.customer.com'],
-
-        captchaEnabled: false,
       },
     },
     ...overrides,

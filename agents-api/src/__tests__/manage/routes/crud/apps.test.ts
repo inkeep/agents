@@ -27,8 +27,6 @@ describe('App CRUD Routes - Integration Tests', () => {
               type: 'web_client',
               webClient: {
                 allowedDomains: ['help.customer.com'],
-
-                captchaEnabled: false,
               },
             },
           }

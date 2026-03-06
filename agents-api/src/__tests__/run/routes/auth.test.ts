@@ -28,8 +28,6 @@ const createTestWebClientApp = async ({
         type: 'web_client',
         webClient: {
           allowedDomains,
-
-          captchaEnabled: false,
         },
       },
     }),

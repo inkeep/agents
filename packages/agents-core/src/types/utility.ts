@@ -1,6 +1,8 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  ApiConfigSchema,
+  AppConfigSchema,
   ChannelAccessModeSchema,
   ChannelIdsSchema,
   EvaluationJobFilterCriteriaSchema,
@@ -9,6 +11,7 @@ import type {
   ProjectModelSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
 } from '../validation/schemas';
@@ -426,17 +429,8 @@ export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
 
 export type AppType = 'web_client' | 'api';
 
-export type WebClientConfig = {
-  type: 'web_client';
-  webClient: {
-    allowedDomains: string[];
-    captchaEnabled: boolean;
-  };
-};
+export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
-export type ApiConfig = {
-  type: 'api';
-  api: Record<string, never>;
-};
+export type ApiConfig = z.infer<typeof ApiConfigSchema>;
 
-export type AppConfig = WebClientConfig | ApiConfig;
+export type AppConfig = z.infer<typeof AppConfigSchema>;
