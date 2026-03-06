@@ -4,11 +4,6 @@ on:
   schedule:
     - cron: '0 17 * * *' # Daily at 9am PST (UTC-8)
   workflow_dispatch: # Allow manual trigger
-    inputs:
-      days:
-        description: 'Lookback window in days for new model detection (default: 2)'
-        required: false
-        default: '2'
 
 concurrency:
   group: model-sync
@@ -45,7 +40,6 @@ jobs:
         id: detect
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          DAYS: ${{ github.event.inputs.days || '2' }}
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }} # Optional — unauthenticated requests work but may be rate-limited
         run: node --experimental-strip-types .github/scripts/detect-model-changes.ts
 
