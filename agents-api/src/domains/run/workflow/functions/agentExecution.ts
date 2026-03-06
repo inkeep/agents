@@ -176,22 +176,26 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         ...(hasTools ? { tools: allTools } : {}),
       });
 
+      const delegateToolNames = new Set(Object.keys(delegateRelationMap));
+
       const result = await agent.stream({
         messages: currentMessages,
         writable,
         maxSteps: 10,
         preventClose: true,
-        stopWhen: ({ steps }) => {
-          const last = steps.at(-1);
-          if (!last) return false;
-          const results = (last as any).toolResults as Array<{ result?: unknown }> | undefined;
-          return (
-            results?.some((tr) => {
-              const r = tr.result as Record<string, unknown> | undefined;
-              return r && r.__approvalRequired === true;
-            }) ?? false
-          );
-        },
+        ...(delegateToolNames.size > 0
+          ? {
+              stopWhen: ({ steps }: { steps: Array<Record<string, unknown>> }) => {
+                for (const step of steps) {
+                  const calls = (step as any).toolCalls as
+                    | Array<{ toolName: string }>
+                    | undefined;
+                  if (calls?.some((tc) => delegateToolNames.has(tc.toolName))) return true;
+                }
+                return false;
+              },
+            }
+          : {}),
       });
 
       const transferData = extractTransferFromResult(
@@ -232,21 +236,27 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       }
 
       const allStepToolCalls = result.steps.flatMap(
-        (s: any) => (s.toolCalls || []) as Array<{ toolCallId: string; toolName: string; args: Record<string, unknown> }>
+        (s: any) =>
+          (s.toolCalls || []) as Array<{
+            toolCallId: string;
+            toolName: string;
+            args: Record<string, unknown>;
+          }>
       );
       const allStepToolResults = result.steps.flatMap(
-        (s: any) => (s.toolResults || []) as Array<{ toolCallId: string; toolName: string; result?: unknown }>
+        (s: any) =>
+          (s.toolResults || []) as Array<{ toolCallId: string; toolName: string; result?: unknown }>
       );
 
       const delegateCall = allStepToolCalls.find((tc) => tc.toolName in delegateRelationMap);
       const delegateResult = delegateCall
         ? allStepToolResults.find((tr) => tr.toolCallId === delegateCall.toolCallId)
         : undefined;
-      const approvalMarker = delegateResult?.result as Record<string, unknown> | undefined;
+      
 
-      if (delegateCall && approvalMarker?.__approvalRequired === true) {
-        const relation = delegateRelationMap[delegateCall.toolName] || {
-          id: approvalMarker.targetSubAgentId as string,
+      if (delegateCall) {
+        const relation = delegateRelationMap[delegateCall.toolName] ?? {
+          id: delegateCall.toolName.replace('delegate_to_', ''),
           name: delegateCall.toolName,
         };
         const pendingDelegateCall = delegateCall;
