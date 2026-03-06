@@ -126,7 +126,7 @@ function FormDescription({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-export function firstNestedMessage(node: unknown, path: string[] = []): string | undefined {
+export function flatNestedFieldMessage(node: unknown, path: string[] = []): string | undefined {
   if (!node || typeof node !== 'object') return;
 
   if ('message' in node && typeof node.message === 'string') {
@@ -140,18 +140,18 @@ export function firstNestedMessage(node: unknown, path: string[] = []): string |
   → at ${/* z.prettifyError like format  */ pathLike}`;
   }
 
-  for (const [key, value] of Object.entries(node)) {
-    const msg = firstNestedMessage(value, [...path, key]);
-    if (msg) {
-      return msg;
-    }
-  }
+  return Object.entries(node)
+    .flatMap(([key, value]) => {
+      const msg = flatNestedFieldMessage(value, [...path, key]);
+      return msg ? [msg] : [];
+    })
+    .join('\n');
 }
 
 function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {
   const { error, formMessageId } = useFormField();
 
-  const body = firstNestedMessage(error) || children;
+  const body = flatNestedFieldMessage(error) || children;
 
   if (!body) {
     return;

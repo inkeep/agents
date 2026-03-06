@@ -1,5 +1,5 @@
 import { useFormState } from 'react-hook-form';
-import { firstNestedMessage } from '@/components/ui/form';
+import { flatNestedFieldMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 
 export function useProcessedErrors(
@@ -18,7 +18,7 @@ export function useProcessedErrors(
   const processedErrors = fieldErrors
     ? Object.entries(fieldErrors).map(([key, value]) => ({
         field: key,
-        message: firstNestedMessage(value),
+        message: flatNestedFieldMessage(value),
       }))
     : [];
 
