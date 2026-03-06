@@ -53,6 +53,14 @@ export const modelOptions = {
   ],
   openai: [
     {
+      value: OPENAI_MODELS.GPT_5_4_PRO,
+      label: 'GPT-5.4 Pro',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_4,
+      label: 'GPT-5.4',
+    },
+    {
       value: OPENAI_MODELS.GPT_5_2,
       label: 'GPT-5.2',
     },
