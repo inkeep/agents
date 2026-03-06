@@ -25,8 +25,8 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
 
   const { control } = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting, isValid } = useFormState({ control });
-  const dirty = agentDirtyState || isDirty;
+  const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
+  const isDirty = agentDirtyState || rhfDirtyState;
 
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);

@@ -77,8 +77,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { canEdit } = useProjectPermissions();
-  const selectedDataComponents = subAgent.dataComponents;
-  const selectedArtifactComponents = subAgent.artifactComponents;
   const { project } = useProjectData();
   const models = useWatch({ control: form.control, name: 'models' });
   const defaultSubAgentId = useWatch({ control: form.control, name: 'defaultSubAgentId' });
@@ -89,6 +87,8 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   if (!subAgent) {
     return;
   }
+  const selectedDataComponents = subAgent.dataComponents;
+  const selectedArtifactComponents = subAgent.artifactComponents;
   return (
     <div className="space-y-8 flex flex-col">
       <GenericInput

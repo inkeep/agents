@@ -766,6 +766,11 @@ export const Agent: FC<AgentProps> = ({
               // that matches this agent and tool
               const { subAgentId, toolId, relationshipId } = toolNode.data;
               if (!subAgentId) {
+                if (node.type !== NodeType.FunctionTool) {
+                  requestAnimationFrame(() => {
+                    form.unregister([`functions.${toolId}`, `functionTools.${toolId}`]);
+                  });
+                }
                 return null;
               }
 

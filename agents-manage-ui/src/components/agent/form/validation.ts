@@ -137,8 +137,8 @@ export const FullAgentUpdateSchema = z.strictObject({
       models: MyModelsSchema.partial(),
     })
   ),
-  functionTools: z.record(z.string(), FullAgentFunctionToolSchema),
-  functions: z.record(z.string(), FullAgentFunctionSchema),
+  functionTools: z.record(z.string(), FullAgentFunctionToolSchema).optional(),
+  functions: z.record(z.string(), FullAgentFunctionSchema).optional(),
   externalAgents: z.record(
     z.string(),
     z.object({

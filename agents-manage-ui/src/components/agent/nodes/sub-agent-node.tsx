@@ -56,7 +56,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     models,
     dataComponents: dataComponentIds = [],
     artifactComponents: artifactComponentIds = [],
-  } = subAgent;
+  } = subAgent ?? {};
   const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
   const isDefault = id === defaultSubAgentId;
   const modelName = models?.base?.model;
