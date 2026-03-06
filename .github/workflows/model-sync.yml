@@ -53,7 +53,7 @@ jobs:
         if: steps.detect.outputs.has_changes == 'true'
         run: |
           BRANCH="model-sync-$(date +%Y-%m-%d)"
-          git checkout -b "$BRANCH"
+          git checkout -B "$BRANCH"
 
       - name: Update model list via Claude Code
         if: steps.detect.outputs.has_changes == 'true'
@@ -61,7 +61,6 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
-          claude_args: '--model opus'
-          allowed_tools: 'Edit,Write,Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr:*),Bash(gh label:*)'
+          claude_args: '--model opus --allowedTools "Read,Edit,Write,Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr:*),Bash(gh label:*)"'
           prompt: ${{ steps.detect.outputs.prompt }}
           show_full_output: 'true'

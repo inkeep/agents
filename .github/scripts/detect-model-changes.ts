@@ -1,4 +1,5 @@
 #!/usr/bin/env node --experimental-strip-types
+/// <reference types="node" />
 /**
  * Detects new AI models from Vercel AI Gateway and compares against the static model list.
  * Sets GitHub Actions outputs: has_changes (true/false) and prompt (Claude Code prompt).
