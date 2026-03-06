@@ -39,28 +39,17 @@ export async function createFullAgentViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ?? `Failed to create agent: ${response.status} ${response.statusText}`;
+    const { status, statusText } = response;
+    const error =
+      parseError(errorText, status) ?? `Failed to create agent: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to create agent via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to create agent via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
   const result = (await response.json()) as { data: FullAgentDefinition };
 
-  logger.info(
-    {
-      agentId: agentData.id,
-    },
-    'Successfully created agent via API'
-  );
+  logger.info({ agentId: agentData.id }, 'Successfully created agent via API');
 
   return result.data;
 }
@@ -96,28 +85,17 @@ export async function updateFullAgentViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ?? `Failed to update agent: ${response.status} ${response.statusText}`;
+    const { status, statusText } = response;
+    const error =
+      parseError(errorText, status) ?? `Failed to update agent: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to update agent via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to update agent via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
   const result = (await response.json()) as { data: FullAgentDefinition };
 
-  logger.info(
-    {
-      agentId,
-    },
-    'Successfully updated agent via API'
-  );
+  logger.info({ agentId }, 'Successfully updated agent via API');
 
   return result.data;
 }
@@ -151,38 +129,21 @@ export async function getFullAgentViaAPI(
 
   if (!response.ok) {
     if (response.status === 404) {
-      logger.info(
-        {
-          agentId,
-        },
-        'Agent not found'
-      );
+      logger.info({ agentId }, 'Agent not found');
       return null;
     }
 
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ?? `Failed to get agent: ${response.status} ${response.statusText}`;
+    const { status, statusText } = response;
+    const error = parseError(errorText, status) ?? `Failed to get agent: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to get agent via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to get agent via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
   const result = (await response.json()) as { data: FullAgentDefinition };
 
-  logger.info(
-    {
-      agentId,
-    },
-    'Successfully retrieved agent via API'
-  );
+  logger.info({ agentId }, 'Successfully retrieved agent via API');
 
   return result.data;
 }
@@ -216,24 +177,13 @@ export async function deleteFullAgentViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    const errorMessage =
-      parseError(errorText) ?? `Failed to delete agent: ${response.status} ${response.statusText}`;
+    const { status, statusText } = response;
+    const error =
+      parseError(errorText, status) ?? `Failed to delete agent: ${status} ${statusText}`;
+    logger.error({ status, error }, 'Failed to delete agent via API');
 
-    logger.error(
-      {
-        status: response.status,
-        error: errorMessage,
-      },
-      'Failed to delete agent via API'
-    );
-
-    throw new Error(errorMessage);
+    throw new Error(error);
   }
 
-  logger.info(
-    {
-      agentId,
-    },
-    'Successfully deleted agent via API'
-  );
+  logger.info({ agentId }, 'Successfully deleted agent via API');
 }
