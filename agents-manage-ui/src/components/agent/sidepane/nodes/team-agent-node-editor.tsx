@@ -2,6 +2,7 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
+import { FullAgentTeamAgentSchema } from '@/components/agent/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -13,10 +14,9 @@ import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
+import { isRequired } from '@/lib/utils';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
-import { isRequired } from '@/lib/utils';
-import { FullAgentTeamAgentSchema } from '@/components/agent/form/validation';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
