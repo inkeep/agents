@@ -38,8 +38,14 @@ if (targetWorld === 'vercel') {
     queueConcurrency: Number(env.WORKFLOW_POSTGRES_WORKER_CONCURRENCY) || 10,
   });
 } else {
-  // Default to local world for development and 'local' value
   world = createLocalWorld();
+}
+
+if (targetWorld === '@workflow/world-postgres') {
+  world
+    .start()
+    .then(() => logger.info({}, 'Workflow Postgres world started'))
+    .catch((err: unknown) => logger.error({ error: err }, 'Failed to start Postgres world'));
 }
 
 /**
