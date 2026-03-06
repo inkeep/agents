@@ -262,22 +262,11 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         const hook = toolApprovalHook.create({ token });
         const approval = await hook;
 
-        let toolResultText: string;
         if (approval.approved) {
-          const { executeDelegationStep } = await import('../steps/agentExecutionSteps');
-          const delegationResult = await executeDelegationStep({
-            tenantId,
-            projectId,
-            agentId,
-            targetSubAgentId: relation.id,
-            message: pendingDelegateCall.args.message as string,
-          });
-          toolResultText = delegationResult.result;
+          responseText = `Approved: delegation to ${relation.id} with message "${pendingDelegateCall.args.message}"`;
         } else {
-          toolResultText = `Tool call denied${approval.reason ? `: ${approval.reason}` : ''}`;
+          responseText = `Denied${approval.reason ? `: ${approval.reason}` : ''}`;
         }
-
-        responseText = toolResultText;
         break;
       }
 
