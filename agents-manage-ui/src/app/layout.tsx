@@ -10,11 +10,11 @@ import { AuthClientProvider } from '@/contexts/auth-client';
 import { PostHogProvider } from '@/contexts/posthog';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config';
 import {
-  DEFAULT_INKEEP_AGENTS_API_URL,
   DEFAULT_NANGO_CONNECT_BASE_URL,
   DEFAULT_NANGO_SERVER_URL,
   DEFAULT_SIGNOZ_URL,
 } from '@/lib/runtime-config/defaults';
+import { resolvePublicAgentsApiUrl } from '@/lib/runtime-config/environment';
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
 import './globals.css';
@@ -75,10 +75,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
     PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET:
       process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET ||
       process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
-    PUBLIC_INKEEP_AGENTS_API_URL:
-      process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
-      process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL ||
-      DEFAULT_INKEEP_AGENTS_API_URL,
+    PUBLIC_INKEEP_AGENTS_API_URL: resolvePublicAgentsApiUrl(),
     PUBLIC_SIGNOZ_URL:
       process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
     PUBLIC_NANGO_SERVER_URL:

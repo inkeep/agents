@@ -11,6 +11,7 @@ import manageDbPool from './data/db/manageDbPool';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
 import type { SandboxConfig } from './types';
+import { requireAgentsApiUrl } from './utils/deployment-env';
 
 export { createAuth0Provider, createOIDCProvider } from './ssoHelpers';
 
@@ -30,7 +31,7 @@ export function createAgentsAuth(
   emailService?: EmailServiceConfig
 ) {
   return createAuth({
-    baseURL: env.INKEEP_AGENTS_API_URL || `http://localhost:3002`,
+    baseURL: requireAgentsApiUrl(),
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
     dbClient: runDbClient,
     manageDbPool,

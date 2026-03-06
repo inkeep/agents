@@ -4,7 +4,21 @@ type WorkspaceSettings = {
   defaultAgent?: DefaultAgentConfig;
 };
 
-const getApiUrl = () => process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+const getApiUrl = () => {
+  const configuredUrl = process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL;
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'Missing NEXT_PUBLIC_INKEEP_AGENTS_API_URL in production build. ' +
+        'Refusing to fall back to localhost.'
+    );
+  }
+
+  return 'http://localhost:3002';
+};
 
 interface SlackWorkspaceInstallation {
   connectionId: string;

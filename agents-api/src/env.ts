@@ -4,6 +4,15 @@ import { loadEnvironmentFiles } from '@inkeep/agents-core';
 // Load all environment files using shared logic
 loadEnvironmentFiles();
 
+function isLocalhostLikeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 const envSchema = z
   .object({
     // Core Environment
@@ -296,6 +305,35 @@ const envSchema = z
           });
         }
       }
+    }
+
+    const vercelEnv = process.env.VERCEL_ENV;
+    const isStrictDeployment =
+      data.NODE_ENV === 'production' ||
+      data.ENVIRONMENT === 'production' ||
+      data.ENVIRONMENT === 'pentest' ||
+      vercelEnv === 'preview' ||
+      vercelEnv === 'production';
+
+    if (isStrictDeployment && isLocalhostLikeUrl(data.INKEEP_AGENTS_API_URL)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['INKEEP_AGENTS_API_URL'],
+        message:
+          'INKEEP_AGENTS_API_URL must be explicitly set to a non-localhost URL in preview/production.',
+      });
+    }
+
+    if (
+      isStrictDeployment &&
+      (!data.INKEEP_AGENTS_MANAGE_UI_URL || isLocalhostLikeUrl(data.INKEEP_AGENTS_MANAGE_UI_URL))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['INKEEP_AGENTS_MANAGE_UI_URL'],
+        message:
+          'INKEEP_AGENTS_MANAGE_UI_URL must be explicitly set to a non-localhost URL in preview/production.',
+      });
     }
   });
 

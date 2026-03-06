@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 
-import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
+import { resolveServerAgentsApiUrl } from '../runtime-config/environment';
 
 type ActionResult<T = void> =
   | {
@@ -25,10 +25,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   const copilotTenantId = process.env.PUBLIC_INKEEP_COPILOT_TENANT_ID;
   const copilotProjectId = process.env.PUBLIC_INKEEP_COPILOT_PROJECT_ID;
   const copilotAgentId = process.env.PUBLIC_INKEEP_COPILOT_AGENT_ID;
-  const agentsApiUrl =
-    process.env.INKEEP_AGENTS_API_URL ||
-    process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
-    DEFAULT_INKEEP_AGENTS_API_URL;
+  const agentsApiUrl = resolveServerAgentsApiUrl();
 
   if (!copilotTenantId || !copilotProjectId || !copilotAgentId) {
     return {

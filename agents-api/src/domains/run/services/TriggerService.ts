@@ -44,6 +44,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
+import { requireAgentsApiUrl } from '../../../utils/deployment-env';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import { tracer } from '../utils/tracer';
@@ -895,7 +896,7 @@ export async function executeAgentAsync(params: {
           tenantId,
           projectId,
           agentId,
-          baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
+          baseUrl: requireAgentsApiUrl(),
           apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
           apiKeyId: 'trigger-invocation',
           resolvedRef,

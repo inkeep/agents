@@ -5,6 +5,7 @@
  */
 
 import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
+import { isStrictDeploymentRuntime } from '../runtime-config/environment';
 import { ApiError } from '../types/errors';
 
 // Lazy initialization with runtime warnings
@@ -13,9 +14,23 @@ let hasWarnedAgentsApi = false;
 
 export function getAgentsApiUrl(): string {
   if (INKEEP_AGENTS_API_URL === null) {
-    INKEEP_AGENTS_API_URL = process.env.INKEEP_AGENTS_API_URL || DEFAULT_INKEEP_AGENTS_API_URL;
+    const configuredUrl =
+      process.env.INKEEP_AGENTS_API_URL ||
+      process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
+      process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL;
 
-    if (!process.env.INKEEP_AGENTS_API_URL && !hasWarnedAgentsApi) {
+    if (configuredUrl) {
+      INKEEP_AGENTS_API_URL = configuredUrl;
+    } else if (isStrictDeploymentRuntime()) {
+      throw new Error(
+        'INKEEP_AGENTS_API_URL (or PUBLIC_INKEEP_AGENTS_API_URL / NEXT_PUBLIC_INKEEP_AGENTS_API_URL) is required in preview/production. ' +
+          'Refusing to fall back to localhost.'
+      );
+    } else {
+      INKEEP_AGENTS_API_URL = DEFAULT_INKEEP_AGENTS_API_URL;
+    }
+
+    if (!process.env.INKEEP_AGENTS_API_URL && !hasWarnedAgentsApi && !isStrictDeploymentRuntime()) {
       console.warn(
         `INKEEP_AGENTS_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_API_URL}`
       );

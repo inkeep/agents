@@ -1,5 +1,6 @@
 import type { cors } from 'hono/cors';
 import { env } from '../env';
+import { requireAgentsApiUrl } from '../utils/deployment-env';
 
 type CorsOptions = Parameters<typeof cors>[0];
 
@@ -36,7 +37,7 @@ export function isOriginAllowed(origin: string | undefined): origin is string {
 
   try {
     const requestUrl = new URL(origin);
-    const apiUrl = new URL(env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
+    const apiUrl = new URL(requireAgentsApiUrl());
     const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
     if (

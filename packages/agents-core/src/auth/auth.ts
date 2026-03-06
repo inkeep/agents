@@ -221,6 +221,45 @@ export async function hasCredentialAccount(
   return !!row;
 }
 
+function isStrictDeploymentMode(): boolean {
+  const vercelEnv = process.env.VERCEL_ENV;
+  return (
+    process.env.NODE_ENV === 'production' ||
+    env.ENVIRONMENT === 'production' ||
+    env.ENVIRONMENT === 'pentest' ||
+    vercelEnv === 'preview' ||
+    vercelEnv === 'production'
+  );
+}
+
+function getTrustedOrigins(): string[] {
+  const localhostOrigins = isStrictDeploymentMode()
+    ? []
+    : ['http://localhost:3000', 'http://localhost:3002'];
+
+  return [
+    ...localhostOrigins,
+    env.INKEEP_AGENTS_MANAGE_UI_URL,
+    env.INKEEP_AGENTS_API_URL,
+    env.TRUSTED_ORIGIN,
+  ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0);
+}
+
+function resolveManageUiUrlForInvitations(): string {
+  if (env.INKEEP_AGENTS_MANAGE_UI_URL) {
+    return env.INKEEP_AGENTS_MANAGE_UI_URL;
+  }
+
+  if (isStrictDeploymentMode()) {
+    throw new Error(
+      'INKEEP_AGENTS_MANAGE_UI_URL is required for invitation links in preview/production. ' +
+        'Refusing to fall back to localhost.'
+    );
+  }
+
+  return 'http://localhost:3000';
+}
+
 export function createAuth(config: BetterAuthConfig) {
   const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
   const isSecure = config.baseURL.startsWith('https://');
@@ -314,13 +353,7 @@ export function createAuth(config: BetterAuthConfig) {
       },
       ...config.advanced,
     },
-    trustedOrigins: [
-      'http://localhost:3000',
-      'http://localhost:3002',
-      env.INKEEP_AGENTS_MANAGE_UI_URL,
-      env.INKEEP_AGENTS_API_URL,
-      env.TRUSTED_ORIGIN,
-    ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
+    trustedOrigins: getTrustedOrigins(),
     plugins: [
       bearer(),
       sso(),
@@ -349,7 +382,7 @@ export function createAuth(config: BetterAuthConfig) {
 
           if (config.emailService?.isConfigured) {
             try {
-              const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+              const manageUiUrl = resolveManageUiUrlForInvitations();
               const invitationUrl = `${manageUiUrl}/accept-invitation/${data.id}?email=${encodeURIComponent(data.email)}`;
               const result = await config.emailService.sendInvitationEmail({
                 to: data.email,

@@ -5,9 +5,9 @@ import {
   waitForPasswordResetLink,
 } from '@inkeep/agents-core';
 import { Hono } from 'hono';
-import { env } from '../../../env';
 import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
+import { resolveManageUiUrl } from '../../../utils/deployment-env';
 
 const passwordResetLinksRoutes = new Hono<{ Variables: ManageAppVariables }>();
 
@@ -54,7 +54,7 @@ passwordResetLinksRoutes.post('/', async (c) => {
     });
   }
 
-  const manageUiBaseUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+  const manageUiBaseUrl = resolveManageUiUrl();
   const redirectTo = `${manageUiBaseUrl}/reset-password`;
 
   const linkPromise = waitForPasswordResetLink(email);
