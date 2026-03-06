@@ -141,6 +141,13 @@
       "when": 1772573733596,
       "tag": "0019_easy_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772824938149,
+      "tag": "0020_tiny_killmonger",
+      "breakpoints": true
     }
   ]
 }

@@ -340,7 +340,11 @@ describe('Tools Data Access', () => {
       expect(mockDelete).toHaveBeenCalled();
       expect(result).toEqual(true);
       expect(createAgentsRunDatabaseClient).toHaveBeenCalled();
-      expect(mockCascadeDelete).toHaveBeenCalledWith({ toolId: testToolId });
+      expect(mockCascadeDelete).toHaveBeenCalledWith({
+        toolId: testToolId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+      });
     });
 
     it('should not cascade delete when tool is not a github workapp', async () => {

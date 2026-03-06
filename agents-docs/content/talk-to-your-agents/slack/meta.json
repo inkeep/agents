@@ -1,5 +1,5 @@
 {
   "icon": "LuMessageSquare",
   "title": "Slack Work App",
-  "pages": ["overview", "installation", "configuration", "commands"]
+  "pages": ["overview", "installation", "configuration", "commands", "mcp-tool"]
 }
