@@ -4,16 +4,34 @@ import { apps } from '../../db/runtime/runtime-schema';
 import type { AppInsert, AppSelect, AppUpdate } from '../../types/entities';
 import type { AppType, PaginationConfig, TenantScopeConfig } from '../../types/utility';
 
+// ── Unscoped (for runtime auth lookups — no tenant/project gating) ───────────
+
 export const getAppById = (db: AgentsRunDatabaseClient) => async (id: string) => {
   return await db.query.apps.findFirst({
     where: eq(apps.id, id),
   });
 };
 
+export const updateAppLastUsed =
+  (db: AgentsRunDatabaseClient) =>
+  async (id: string): Promise<void> => {
+    await db.update(apps).set({ lastUsedAt: new Date().toISOString() }).where(eq(apps.id, id));
+  };
+
+// ── Tenant-scoped (for management operations) ───────────────────────────────
+
+export const getAppByIdForTenant =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: TenantScopeConfig; id: string }): Promise<AppSelect | undefined> => {
+    return db.query.apps.findFirst({
+      where: and(eq(apps.id, params.id), eq(apps.tenantId, params.scopes.tenantId)),
+    });
+  };
+
 export const listAppsPaginated =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: TenantScopeConfig;
+    scopes: TenantScopeConfig & { projectId?: string };
     pagination?: PaginationConfig;
     type?: AppType;
   }): Promise<{
@@ -25,6 +43,9 @@ export const listAppsPaginated =
     const offset = (page - 1) * limit;
 
     const conditions = [eq(apps.tenantId, params.scopes.tenantId)];
+    if (params.scopes.projectId) {
+      conditions.push(eq(apps.projectId, params.scopes.projectId));
+    }
     if (params.type) {
       conditions.push(eq(apps.type, params.type));
     }
@@ -67,6 +88,81 @@ export const createApp = (db: AgentsRunDatabaseClient) => async (params: AppInse
   return app;
 };
 
+export const updateAppForTenant =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: TenantScopeConfig;
+    id: string;
+    data: AppUpdate;
+  }): Promise<AppSelect | undefined> => {
+    const now = new Date().toISOString();
+
+    const [updatedApp] = await db
+      .update(apps)
+      .set({
+        ...params.data,
+        updatedAt: now,
+      })
+      .where(and(eq(apps.id, params.id), eq(apps.tenantId, params.scopes.tenantId)))
+      .returning();
+
+    return updatedApp;
+  };
+
+export const deleteAppForTenant =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: TenantScopeConfig; id: string }): Promise<boolean> => {
+    const result = await db
+      .delete(apps)
+      .where(and(eq(apps.id, params.id), eq(apps.tenantId, params.scopes.tenantId)))
+      .returning();
+
+    return result.length > 0;
+  };
+
+// ── Cascade delete helpers (called from cascade-delete.ts) ──────────────────
+
+export const deleteAppsByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string): Promise<number> => {
+    const result = await db
+      .delete(apps)
+      .where(and(eq(apps.tenantId, tenantId), eq(apps.projectId, projectId)))
+      .returning();
+    return result.length;
+  };
+
+export const clearAppDefaultsByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string): Promise<number> => {
+    const result = await db
+      .update(apps)
+      .set({
+        defaultProjectId: null,
+        defaultAgentId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(apps.tenantId, tenantId), eq(apps.defaultProjectId, projectId)))
+      .returning();
+    return result.length;
+  };
+
+export const clearAppDefaultsByAgent =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, agentId: string): Promise<number> => {
+    const result = await db
+      .update(apps)
+      .set({
+        defaultAgentId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(apps.tenantId, tenantId), eq(apps.defaultAgentId, agentId)))
+      .returning();
+    return result.length;
+  };
+
+// ── Deprecated unscoped variants (kept for backward compat, prefer scoped) ──
+
 export const updateApp =
   (db: AgentsRunDatabaseClient) => async (params: { id: string; data: AppUpdate }) => {
     const now = new Date().toISOString();
@@ -95,10 +191,4 @@ export const deleteApp =
     await db.delete(apps).where(eq(apps.id, id));
 
     return true;
-  };
-
-export const updateAppLastUsed =
-  (db: AgentsRunDatabaseClient) =>
-  async (id: string): Promise<void> => {
-    await db.update(apps).set({ lastUsedAt: new Date().toISOString() }).where(eq(apps.id, id));
   };
