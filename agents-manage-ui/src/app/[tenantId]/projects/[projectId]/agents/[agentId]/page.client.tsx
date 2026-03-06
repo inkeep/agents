@@ -22,6 +22,7 @@ import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
   externalAgentNodeTargetHandleId,
+  functionToolNodeHandleId,
   type MCPNodeData,
   mcpNodeHandleId,
   NodeType,
@@ -38,8 +39,8 @@ import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar';
-import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
+import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -48,6 +49,7 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
+  hydrateNodesWithFormData,
   serializeAgentData,
   validateSerializedData,
 } from '@/features/agent/domain';
@@ -78,7 +80,6 @@ import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -557,15 +558,18 @@ export const Agent: FC<AgentProps> = ({
       };
     }
 
-    // Update MCP node subAgentId when connecting agent to MCP tool
+    // Update tool node subAgentId when connecting agent to a tool
     if (
-      targetHandle === mcpNodeHandleId &&
+      (targetHandle === mcpNodeHandleId || targetHandle === functionToolNodeHandleId) &&
       (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId)
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
-      if (targetNode && targetNode.type === NodeType.MCP) {
+      if (
+        targetNode &&
+        (targetNode.type === NodeType.MCP || targetNode.type === NodeType.FunctionTool)
+      ) {
         if (edges.some((edge) => edge.target === targetNode.id)) {
-          toast.error('This MCP tool is already connected. Connect to a new MCP server node.');
+          toast.error('This tool is already connected. Connect to a new tool node.');
           return;
         }
         updateNodeData(targetNode.id, {
@@ -596,7 +600,7 @@ export const Agent: FC<AgentProps> = ({
       position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       selected: true,
       data: newNodeDefaults[nodeType],
-    };
+    } satisfies Node;
     const toolId = nodeType === NodeType.FunctionTool ? newNode.id : null;
 
     if (toolId) {
@@ -620,7 +624,7 @@ export const Agent: FC<AgentProps> = ({
     }
 
     clearSelection();
-    commandManager.execute(new AddNodeCommand(newNode as Node));
+    commandManager.execute(new AddNodeCommand(newNode));
   };
 
   const onSelectionChange = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
@@ -716,20 +720,21 @@ export const Agent: FC<AgentProps> = ({
     }
   };
 
-  const form = useFullAgentFormContext();
-
   const onSubmit = form.handleSubmit(async ({ mcpRelations, ...data }): Promise<void> => {
     // TODO: next step will be to refactoring deserializeAgentData/serializeAgentData
-    const { nodes, edges } = deserializeAgentData(data);
+    const hydratedNodes = hydrateNodesWithFormData(nodes, data);
     const serializedData = serializeAgentData(
-      nodes,
+      hydratedNodes,
       edges,
       dataComponentLookup,
       artifactComponentLookup,
       agentToolConfigLookup,
       subAgentExternalAgentConfigLookup,
       subAgentTeamAgentConfigLookup,
-      mcpRelations
+      mcpRelations,
+      data.functionTools,
+      data.externalAgents,
+      data.teamAgents
     );
 
     const updatePayload = {
@@ -753,7 +758,7 @@ export const Agent: FC<AgentProps> = ({
       // This makes current values the new default values
       form.reset(serializeAgentForm(res.data));
 
-      // Update MCP nodes with new relationshipIds from backend response
+      // Update tool nodes with new relationshipIds from backend response
       if (res.data) {
         const processedRelationships = new Set<string>();
 
