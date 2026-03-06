@@ -23,6 +23,11 @@ export const ANTHROPIC_MODELS = {
 export const OPENAI_MODELS = {
   GPT_5_4_PRO: 'openai/gpt-5.4-pro',
   GPT_5_4: 'openai/gpt-5.4',
+  GPT_5_3_CHAT: 'openai/gpt-5.3-chat',
+  GPT_5_3_CODEX: 'openai/gpt-5.3-codex',
+  GPT_5_2_PRO: 'openai/gpt-5.2-pro',
+  GPT_5_2_CHAT: 'openai/gpt-5.2-chat',
+  GPT_5_2_CODEX: 'openai/gpt-5.2-codex',
   GPT_5_2: 'openai/gpt-5.2',
   GPT_5_2_20251211: 'openai/gpt-5.2-2025-12-11',
   GPT_5_1: 'openai/gpt-5.1',
@@ -43,7 +48,9 @@ export const OPENAI_MODELS = {
 
 export const GOOGLE_MODELS = {
   GEMINI_3_1_PRO_PREVIEW: 'google/gemini-3.1-pro-preview',
+  GEMINI_3_1_FLASH_LITE_PREVIEW: 'google/gemini-3.1-flash-lite-preview',
   GEMINI_3_PRO_PREVIEW: 'google/gemini-3-pro-preview',
+  GEMINI_3_FLASH: 'google/gemini-3-flash',
   GEMINI_3_FLASH_PREVIEW: 'google/gemini-3-flash-preview',
   GEMINI_2_5_PRO: 'google/gemini-2.5-pro',
   GEMINI_2_5_FLASH: 'google/gemini-2.5-flash',

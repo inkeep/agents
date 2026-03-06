@@ -93,6 +93,11 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   const openaiModels = [
     { label: 'GPT-5.4 Pro', value: OPENAI_MODELS.GPT_5_4_PRO },
     { label: 'GPT-5.4', value: OPENAI_MODELS.GPT_5_4 },
+    { label: 'GPT-5.3 Chat', value: OPENAI_MODELS.GPT_5_3_CHAT },
+    { label: 'GPT-5.3 Codex', value: OPENAI_MODELS.GPT_5_3_CODEX },
+    { label: 'GPT-5.2 Pro', value: OPENAI_MODELS.GPT_5_2_PRO },
+    { label: 'GPT-5.2 Chat', value: OPENAI_MODELS.GPT_5_2_CHAT },
+    { label: 'GPT-5.2 Codex', value: OPENAI_MODELS.GPT_5_2_CODEX },
     { label: 'GPT-5.2', value: OPENAI_MODELS.GPT_5_2 },
     { label: 'GPT-5.1', value: OPENAI_MODELS.GPT_5_1 },
     { label: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
@@ -105,7 +110,9 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   const googleModels = [
     { label: 'Gemini 3.1 Pro Preview', value: GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW },
+    { label: 'Gemini 3.1 Flash Lite Preview', value: GOOGLE_MODELS.GEMINI_3_1_FLASH_LITE_PREVIEW },
     { label: 'Gemini 3 Pro Preview', value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW },
+    { label: 'Gemini 3 Flash', value: GOOGLE_MODELS.GEMINI_3_FLASH },
     { label: 'Gemini 3 Flash Preview', value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW },
     { label: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
     { label: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },

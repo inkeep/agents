@@ -61,6 +61,26 @@ export const modelOptions = {
       label: 'GPT-5.4',
     },
     {
+      value: OPENAI_MODELS.GPT_5_3_CHAT,
+      label: 'GPT-5.3 Chat',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_3_CODEX,
+      label: 'GPT-5.3 Codex',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_2_PRO,
+      label: 'GPT-5.2 Pro',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_2_CHAT,
+      label: 'GPT-5.2 Chat',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_2_CODEX,
+      label: 'GPT-5.2 Codex',
+    },
+    {
       value: OPENAI_MODELS.GPT_5_2,
       label: 'GPT-5.2',
     },
@@ -99,8 +119,16 @@ export const modelOptions = {
       label: 'Gemini 3.1 Pro Preview',
     },
     {
+      value: GOOGLE_MODELS.GEMINI_3_1_FLASH_LITE_PREVIEW,
+      label: 'Gemini 3.1 Flash Lite Preview',
+    },
+    {
       value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
       label: 'Gemini 3 Pro Preview',
+    },
+    {
+      value: GOOGLE_MODELS.GEMINI_3_FLASH,
+      label: 'Gemini 3 Flash',
     },
     {
       value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW,
