@@ -27,6 +27,10 @@ export const modelOptions = {
       label: 'Claude Opus 4.5',
     },
     {
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1,
+      label: 'Claude Opus 4.1',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4,
       label: 'Claude Opus 4',
     },
