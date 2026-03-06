@@ -209,9 +209,13 @@ ${modelList}
 - Use a single commit with message: "chore: add new models [model-sync]"
 
 ## Step 1: Research deprecation status
-Before touching any files, use WebSearch to research each new model listed above. For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
+Before touching any files, use WebSearch to research deprecation status for:
+1. Every new model listed above
+2. Every model currently listed in \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` (read the file first to get the list)
 
-If you cannot determine deprecation status for a model, treat it as CONSTANTS-ONLY (not FULL). Note this in the PR body.
+For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
+
+If you cannot determine deprecation status for a new model, treat it as CONSTANTS-ONLY (not FULL). Note any uncertain cases in the PR body.
 
 ## Step 2: Read the files first
 Before editing anything, read all 3 target files so you understand their exact patterns and conventions:
