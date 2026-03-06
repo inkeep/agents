@@ -593,34 +593,37 @@ interface StructuredValidationError {
   functionToolId?: string;
 }
 
-export function validateSerializedData(
-  data: Pick<FullAgentOutput, 'subAgents'>
-): StructuredValidationError[] {
+type ValidateSerializedDataInput = Pick<FullAgentOutput, 'subAgents' | 'functionTools' | 'tools'>;
+export function validateSerializedData({
+  tools,
+  functionTools,
+  subAgents,
+}: ValidateSerializedDataInput): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
-  for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
+  for (const [subAgentId, agent] of Object.entries(subAgents)) {
     // All subAgents are internal agents (external agents are project-scoped)
-    if (agent.canUse) {
-      // Skip tool validation if tools data is not available (project-scoped)
-      const toolsData = (data as any).tools;
-      if (toolsData) {
-        for (const canUseItem of agent.canUse) {
-          const toolId = canUseItem.toolId;
-          if (!toolsData[toolId]) {
-            errors.push({
-              message: `Tool '${toolId}' not found.`,
-              field: 'toolId',
-              code: 'invalid_reference',
-              path: ['agents', subAgentId, 'canUse'],
-            });
-          }
-        }
+    for (const canUseItem of agent.canUse) {
+      const toolId = canUseItem.toolId;
+      const functionTool = functionTools?.[toolId];
+
+      if (functionTool) {
+        continue;
+      }
+
+      if (tools && !tools[toolId]) {
+        errors.push({
+          message: `Tool '${toolId}' not found.`,
+          field: 'toolId',
+          code: 'invalid_reference',
+          path: ['agents', subAgentId, 'canUse'],
+        });
       }
     }
 
     // Validate relationships (all subAgents are internal agents)
     for (const targetId of agent.canTransferTo ?? []) {
-      if (!data.subAgents[targetId]) {
+      if (!subAgents[targetId]) {
         errors.push({
           message: `Transfer target '${targetId}' not found in agents.`,
           field: 'canTransferTo',
@@ -632,7 +635,7 @@ export function validateSerializedData(
     for (const targetId of agent.canDelegateTo ?? []) {
       // String = internal subAgent
       if (typeof targetId === 'string') {
-        if (!data.subAgents[targetId]) {
+        if (!subAgents[targetId]) {
           errors.push({
             message: `Delegate target '${targetId}' not found in agents.`,
             field: 'canDelegateTo',
