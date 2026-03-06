@@ -185,10 +185,12 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           const last = steps.at(-1);
           if (!last) return false;
           const results = (last as any).toolResults as Array<{ result?: unknown }> | undefined;
-          return results?.some((tr) => {
-            const r = tr.result as Record<string, unknown> | undefined;
-            return r && r.__approvalRequired === true;
-          }) ?? false;
+          return (
+            results?.some((tr) => {
+              const r = tr.result as Record<string, unknown> | undefined;
+              return r && r.__approvalRequired === true;
+            }) ?? false
+          );
         },
       });
 
@@ -229,27 +231,25 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
-      const lastStep = result.steps.at(-1);
-      const toolResults = (lastStep as any)?.toolResults as
-        | Array<{ toolCallId: string; toolName: string; args: Record<string, unknown>; result?: unknown }>
-        | undefined;
-      const pendingApproval = toolResults?.find((tr) => {
-        const r = tr.result as Record<string, unknown> | undefined;
-        return r && r.__approvalRequired === true;
-      });
-      const pendingDelegateCall = pendingApproval
-        ? {
-            toolCallId: pendingApproval.toolCallId,
-            toolName: pendingApproval.toolName,
-            args: { message: (pendingApproval.result as any)?.message as string },
-          }
-        : undefined;
+      const allStepToolCalls = result.steps.flatMap(
+        (s: any) => (s.toolCalls || []) as Array<{ toolCallId: string; toolName: string; args: Record<string, unknown> }>
+      );
+      const allStepToolResults = result.steps.flatMap(
+        (s: any) => (s.toolResults || []) as Array<{ toolCallId: string; toolName: string; result?: unknown }>
+      );
 
-      if (pendingDelegateCall && pendingApproval) {
-        const relation = delegateRelationMap[pendingDelegateCall.toolName] || {
-          id: (pendingApproval.result as any)?.targetSubAgentId,
-          name: pendingDelegateCall.toolName,
+      const delegateCall = allStepToolCalls.find((tc) => tc.toolName in delegateRelationMap);
+      const delegateResult = delegateCall
+        ? allStepToolResults.find((tr) => tr.toolCallId === delegateCall.toolCallId)
+        : undefined;
+      const approvalMarker = delegateResult?.result as Record<string, unknown> | undefined;
+
+      if (delegateCall && approvalMarker?.__approvalRequired === true) {
+        const relation = delegateRelationMap[delegateCall.toolName] || {
+          id: approvalMarker.targetSubAgentId as string,
+          name: delegateCall.toolName,
         };
+        const pendingDelegateCall = delegateCall;
         const token = `approval-${executionId}-${iteration}-${pendingDelegateCall.toolCallId}`;
 
         const hook = toolApprovalHook.create({ token });
