@@ -30,10 +30,9 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const agentDirtyState = useAgentStore((state) => state.dirty);
   const { control } = useFullAgentFormContext();
-  const { isDirty, isSubmitting } = useFormState({ control });
+  const { isDirty: rhfDirtyState, isSubmitting } = useFormState({ control });
   const { agentSettings } = useGroupedAgentErrors();
-
-  const dirty = agentDirtyState || isDirty;
+  const isDirty = agentDirtyState || rhfDirtyState;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{

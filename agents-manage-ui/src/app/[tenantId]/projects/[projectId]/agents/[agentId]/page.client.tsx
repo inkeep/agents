@@ -51,9 +51,8 @@ import {
   deserializeAgentData,
   hydrateNodesWithFormData,
   serializeAgentData,
-  validateSerializedData,
 } from '@/features/agent/domain';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useIsMounted } from '@/hooks/use-is-mounted';
@@ -599,7 +598,8 @@ export const Agent: FC<AgentProps> = ({
       type: nodeType,
       position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       selected: true,
-      data: newNodeDefaults[nodeType],
+      // Should not use same reference data object for new nodes
+      data: { ...newNodeDefaults[nodeType] },
     } satisfies Node;
     const toolId = nodeType === NodeType.FunctionTool ? newNode.id : null;
 
@@ -742,14 +742,6 @@ export const Agent: FC<AgentProps> = ({
       ...serializedData,
     };
 
-    const validationErrors = validateSerializedData(updatePayload);
-    if (validationErrors.length) {
-      toast.error(
-        `Validation failed: ${validationErrors.map((error) => error.message).join('\n')}`
-      );
-      return;
-    }
-
     const res = await updateFullAgentAction(tenantId, projectId, agentId, updatePayload);
 
     if (res.success) {
@@ -819,15 +811,8 @@ export const Agent: FC<AgentProps> = ({
     // Handle validation errors (422 status - unprocessable_entity)
     try {
       const issues: z.ZodIssue[] = JSON.parse(res.error);
-      issues.forEach((issue) => {
-        form.setError(
-          // @ts-expect-error
-          issue.path.join('.'),
-          {
-            type: issue.code,
-            message: issue.message,
-          }
-        );
+      issues.forEach(({ path, code, message }) => {
+        form.setError(path.join('.') as any, { type: code, message });
       });
     } catch (parseError) {
       // Fallback for unparseable errors
@@ -929,7 +914,10 @@ export const Agent: FC<AgentProps> = ({
               return false;
             }
             // Trigger dirty state
-            form.setValue('defaultSubAgentId', defaultSubAgentId, { shouldDirty: true });
+            agentStore.setState((state) => ({
+              history: [...state.history, { nodes: state.nodes, edges: state.edges }],
+              dirty: true,
+            }));
             return state;
           }}
         >

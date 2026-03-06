@@ -178,6 +178,7 @@ export const FullAgentUpdateSchema = z.strictObject({
   }),
   models: MyModelsSchema,
 });
+// TODO future improvement
 // .superRefine((value, ctx) => {
 //   for (const [functionToolId, functionTool] of Object.entries(value.functionTools)) {
 //     const used = Object.values(value.subAgents).some((subAgent) =>

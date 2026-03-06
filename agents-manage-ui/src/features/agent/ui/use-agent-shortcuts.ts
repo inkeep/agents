@@ -7,17 +7,25 @@ export function useAgentShortcuts() {
   const { undo, redo } = useAgentActions();
 
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (!(e.target as HTMLElement)?.classList.contains('react-flow__node')) return;
-      const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
+    function onKeyDown(event: KeyboardEvent) {
+      const el = event.target;
+      if (!(el instanceof HTMLElement)) {
         return;
+      }
+      const isReactFlowNode = el.classList.contains('react-flow__node');
+      if (!isReactFlowNode) {
+        return;
+      }
+      const meta = event.metaKey || event.ctrlKey;
+      const isCmdZ = meta && event.key.toLowerCase() === 'z';
+      if (!isCmdZ) {
+        return;
+      }
+      event.preventDefault();
+      if (event.shiftKey) {
+        redo();
+      } else {
+        undo();
       }
     }
     window.addEventListener('keydown', onKeyDown);
