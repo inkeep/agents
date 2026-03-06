@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- 676d18b: Fix optional data component fields accepting null values in structured output validation
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-work-apps@0.58.3
+  - @inkeep/agents-core@0.58.3
+  - @inkeep/agents-email@0.58.3
+  - @inkeep/agents-mcp@0.58.3
+
 ## 0.58.2
 
 ### Patch Changes
