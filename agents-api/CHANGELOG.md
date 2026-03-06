@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.58.2
+
+### Patch Changes
+
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+- 558e723: Refactor Agent.ts into focused domain modules (generation, streaming, tools, services) and reorganize run-domain utilities into artifacts, compression, session, and stream subdirectories
+- ee5b4c9: Image security for chat API: URL validation, byte sniffing, format allowlist
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+  - @inkeep/agents-work-apps@0.58.2
+  - @inkeep/agents-email@0.58.2
+  - @inkeep/agents-mcp@0.58.2
+
 ## 0.58.1
 
 ### Patch Changes
