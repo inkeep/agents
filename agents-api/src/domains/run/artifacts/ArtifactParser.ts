@@ -497,6 +497,9 @@ export class ArtifactParser {
             parts.push(this.buildArtifactDataPart(createData));
           }
         } else {
+          // Strip null values from optional fields before emitting. The schema allows null
+          // (so LLMs can express "not applicable" for optional fields), but downstream
+          // consumers expect absent keys rather than explicit nulls.
           const cleanProps = Object.fromEntries(
             Object.entries(component.props ?? {}).filter(([, v]) => v !== null)
           );

@@ -231,6 +231,25 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       expect(result.anyOf[1].required).toEqual(['b']);
     });
 
+    it('should wrap optional properties as nullable within anyOf branches', () => {
+      const schema = {
+        anyOf: [
+          {
+            type: 'object',
+            properties: { a: { type: 'string' }, b: { type: 'number' } },
+            required: ['a'],
+          },
+        ],
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.anyOf[0].properties.a).toEqual({ type: 'string' });
+      expect(result.anyOf[0].properties.b).toEqual({
+        anyOf: [{ type: 'number' }, { type: 'null' }],
+      });
+    });
+
     it('should normalize all schemas in oneOf', () => {
       const schema = {
         oneOf: [
@@ -295,6 +314,21 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       expect(result).toEqual({ type: 'string' });
     });
 
+    it('should not double-wrap properties that are already nullable', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          b: { type: 'string', nullable: true },
+        },
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.properties.a).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
+      expect(result.properties.b).toEqual({ type: 'string', nullable: true });
+    });
+
     it('should handle empty properties object', () => {
       const schema = {
         type: 'object',
@@ -335,11 +369,11 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
 
       expect(result.required).toEqual(['fact']);
-      expect(result.properties.fact.anyOf[0].nullable).toBe(true);
-      expect(result.properties.fact.anyOf[0].description).toBe(
-        'a true fact that is supported by citations'
-      );
-      expect(result.properties.fact.anyOf[1]).toEqual({ type: 'null' });
+      expect(result.properties.fact).toEqual({
+        type: 'string',
+        nullable: true,
+        description: 'a true fact that is supported by citations',
+      });
     });
 
     it('should normalize artifact component schema with nested selectors', () => {

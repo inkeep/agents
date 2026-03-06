@@ -247,9 +247,14 @@ export class SchemaProcessor {
       for (const [key, value] of Object.entries(normalized.properties)) {
         const prop = value as Record<string, unknown>;
         const processed = SchemaProcessor.makeAllPropertiesRequired(prop);
-        normalizedProperties[key] = originalRequired.includes(key)
-          ? processed
-          : { anyOf: [processed, { type: 'null' }] };
+        const alreadyNullable =
+          (Array.isArray(processed.anyOf) &&
+            processed.anyOf.some((s: any) => s?.type === 'null')) ||
+          processed.nullable === true;
+        normalizedProperties[key] =
+          originalRequired.includes(key) || alreadyNullable
+            ? processed
+            : { anyOf: [processed, { type: 'null' }] };
       }
       normalized.properties = normalizedProperties;
     }

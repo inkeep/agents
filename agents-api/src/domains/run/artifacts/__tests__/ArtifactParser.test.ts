@@ -268,4 +268,46 @@ describe('ArtifactParser', () => {
       expect(parts.filter((p) => p.kind === 'data')).toHaveLength(1);
     });
   });
+
+  describe('parseObject', () => {
+    it('strips null values from optional props before emitting data component', async () => {
+      const component = {
+        id: 'verdict-1',
+        name: 'ResearchVerdict',
+        props: {
+          verdict: 'UPDATE_EXISTING',
+          reasoning: 'Some reasoning',
+          articles_to_update: [{ article_id: '123' }],
+          new_article_summary: null,
+        },
+      };
+
+      const parts = await parser.parseObject({ dataComponents: [component] });
+
+      expect(parts).toHaveLength(1);
+      expect(parts[0].kind).toBe('data');
+      expect(parts[0].data.props).toEqual({
+        verdict: 'UPDATE_EXISTING',
+        reasoning: 'Some reasoning',
+        articles_to_update: [{ article_id: '123' }],
+      });
+      expect(parts[0].data.props).not.toHaveProperty('new_article_summary');
+    });
+
+    it('keeps all props when none are null', async () => {
+      const component = {
+        id: 'verdict-1',
+        name: 'ResearchVerdict',
+        props: {
+          verdict: 'UPDATE_EXISTING',
+          reasoning: 'Some reasoning',
+          new_article_summary: { title: 'New Article' },
+        },
+      };
+
+      const parts = await parser.parseObject({ dataComponents: [component] });
+
+      expect(parts[0].data.props).toEqual(component.props);
+    });
+  });
 });
