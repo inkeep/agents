@@ -57,3 +57,4 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
           claude_args: '--model opus'
           prompt: ${{ steps.detect.outputs.prompt }}
+          show_full_output: 'true'
