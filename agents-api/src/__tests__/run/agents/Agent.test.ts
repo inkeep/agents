@@ -1106,7 +1106,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-latest',
+          model: 'anthropic/claude-3-5-haiku',
           providerOptions: {
             anthropic: {
               temperature: 0.5,
@@ -1194,7 +1194,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-latest',
+          model: 'anthropic/claude-3-5-haiku',
         },
       },
     };
@@ -1204,7 +1204,7 @@ describe('Agent Model Settings', () => {
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-3-5-haiku-latest',
+      model: 'anthropic/claude-3-5-haiku',
       providerOptions: undefined,
     });
   });
