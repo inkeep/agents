@@ -59,6 +59,9 @@ local.db
 # Optional local dev services (cloned by pnpm setup-dev:optional)
 .optional-services/
 
+# Isolated environment state (created by scripts/isolated-env.sh)
+.isolated-envs/
+
 .ipc-hosted-tools/
 .hosted-tools/
 

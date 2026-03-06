@@ -12,6 +12,8 @@
     "INKEEP_AGENTS_MANAGE_DATABASE_URL",
     "INKEEP_AGENTS_RUN_DATABASE_URL",
     "PORT",
+    "AGENTS_API_PORT",
+    "MANAGE_UI_PORT",
     "LOG_LEVEL"
   ],
   "tasks": {

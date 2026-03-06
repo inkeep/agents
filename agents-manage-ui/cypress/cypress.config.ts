@@ -23,7 +23,7 @@ export default defineConfig({
   },
   e2e: {
     video: true,
-    baseUrl: 'http://localhost:3000',
+    baseUrl: `http://localhost:${process.env.MANAGE_UI_PORT || 3000}`,
     viewportWidth: 1_440,
     viewportHeight: 900,
     defaultCommandTimeout: 15_000,

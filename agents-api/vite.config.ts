@@ -33,7 +33,12 @@ export default defineConfig({
     warmup(),
   ],
   server: {
-    port: 3002,
+    port: (() => {
+      const p = parseInt(process.env.AGENTS_API_PORT || '3002', 10);
+      if (Number.isNaN(p))
+        throw new Error(`Invalid AGENTS_API_PORT: "${process.env.AGENTS_API_PORT}"`);
+      return p;
+    })(),
     strictPort: true,
     cors: false,
     allowedHosts: true,

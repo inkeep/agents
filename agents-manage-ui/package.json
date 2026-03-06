@@ -33,7 +33,7 @@
   },
   "scripts": {
     "knip": "knip --directory .. --workspace agents-manage-ui --config agents-manage-ui/knip.config.ts --files --dependencies --fix-type exports --fix-type types --include exports,types",
-    "dev": "next --port 3000",
+    "dev": "next --port ${MANAGE_UI_PORT:-3000}",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
     "prepublishOnly": "node --experimental-strip-types scripts/append-hash-for-server-only-packages.mts",
@@ -48,7 +48,7 @@
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "cypress open --config-file cypress/cypress.config.ts",
     "test:e2e:run": "cypress run --config-file cypress/cypress.config.ts --headless --no-runner-ui",
-    "test:e2e:ci": "start-server-and-test start http-get://localhost:3000/default/projects test:e2e:run"
+    "test:e2e:ci": "start-server-and-test start http-get://localhost:${MANAGE_UI_PORT:-3000}/default/projects test:e2e:run"
   },
   "dependencies": {
     "@better-auth/sso": "catalog:",
