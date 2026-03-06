@@ -14,23 +14,17 @@ import { Handle } from './handle';
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
   'use memo';
   const { control } = useFullAgentFormContext();
-  const { toolId = '' } = data;
+  const { toolId = '', status } = data;
 
-  const {
-    tempToolPolicies: toolPolicies,
-    name,
-    description,
-  } = useWatch({ control, name: `functionTools.${toolId}` });
-
+  const { tempToolPolicies: toolPolicies, name, description } = useWatch({ control, name: `functionTools.${toolId}` });
   const processedErrors = [
     ...useProcessedErrors('functionTools', toolId),
     ...useProcessedErrors('functions', toolId),
   ];
   const hasErrors = processedErrors.length > 0;
-
-  const isDelegating = data.status === 'delegating';
-  const isInvertedDelegating = data.status === 'inverted-delegating';
-  const isExecuting = data.status === 'executing';
+  const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
+  const isExecuting = status === 'executing';
   const needsApproval = toolPoliciesNeedApproval(toolPolicies);
   return (
     <div className="relative">

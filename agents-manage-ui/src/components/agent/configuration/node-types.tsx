@@ -70,16 +70,8 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
 }
 
 export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
-  functionToolId: string;
   toolId?: string;
-  agentId?: string | null;
   relationshipId?: string;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
-  name?: string;
-  description?: string;
-  code?: string;
-  inputSchema?: Record<string, unknown>;
-  dependencies?: Record<string, unknown>;
 }
 
 export interface TeamAgentNodeData extends Record<string, unknown> {

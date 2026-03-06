@@ -1,6 +1,10 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import {
+  FullAgentFunctionSchema,
+  FullAgentFunctionToolSchema,
+} from '@/components/agent/form/validation';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericCodeEditor } from '@/components/form/generic-code-editor';
 import { GenericInput } from '@/components/form/generic-input';
@@ -22,12 +26,8 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
-import type { FunctionToolNodeData } from '../../configuration/node-types';
-import {
-  FullAgentFunctionSchema,
-  FullAgentFunctionToolSchema,
-} from '@/components/agent/form/validation';
 import { isRequired } from '@/lib/utils';
+import type { FunctionToolNodeData } from '../../configuration/node-types';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
