@@ -44,17 +44,7 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
 }
 
-export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
-  id: string;
-  name: string;
-  description?: string;
-  prompt?: string;
-  dataComponents?: string[];
-  artifactComponents?: string[];
-  skills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
-  models?: AgentModels; // Use same structure as agent
-  stopWhen?: SubAgentStopWhen;
-}
+export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {}
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
   id: string;

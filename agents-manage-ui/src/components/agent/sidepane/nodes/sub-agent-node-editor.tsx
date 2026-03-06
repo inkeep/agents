@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
+import { FullAgentSubAgentSchema } from '@/components/agent/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -29,6 +30,7 @@ import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { isRequired } from '@/lib/utils';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
@@ -70,23 +72,20 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 }) => {
   'use memo';
   const form = useFullAgentFormContext();
-  const id = selectedNode.data.id ?? selectedNode.id;
-  const subAgent = useWatch({ control: form.control, name: `subAgents.${id}` });
+  const nodeId = selectedNode.id;
+  const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });
 
-  const path = <K extends string>(key: K) => `subAgents.${id}.${key}` as const;
+  const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { canEdit } = useProjectPermissions();
   const { project } = useProjectData();
   const models = useWatch({ control: form.control, name: 'models' });
   const defaultSubAgentId = useWatch({ control: form.control, name: 'defaultSubAgentId' });
-  const isDefault = id === defaultSubAgentId;
+  const isDefault = nodeId === defaultSubAgentId;
 
-  const { deleteNode } = useDeleteNode(selectedNode.id);
+  const { deleteNode } = useDeleteNode(nodeId);
 
-  if (!subAgent) {
-    return;
-  }
   const selectedDataComponents = subAgent.dataComponents;
   const selectedArtifactComponents = subAgent.artifactComponents;
   return (
@@ -96,7 +95,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         name={path('name')}
         label="Name"
         placeholder="Support agent"
-        isRequired
+        isRequired={isRequired(FullAgentSubAgentSchema, 'name')}
       />
       <GenericInput
         control={form.control}
@@ -104,16 +103,16 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         label="Id"
         placeholder="my-agent"
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
-        isRequired
+        isRequired={isRequired(FullAgentSubAgentSchema, 'id')}
       />
       <GenericTextarea
         control={form.control}
         name={path('description')}
         label="Description"
         placeholder="This sub agent is responsible for..."
+        isRequired={isRequired(FullAgentSubAgentSchema, 'description')}
       />
       <SkillSelector
-        // @ts-expect-error -- fixme
         selectedSkills={subAgent.skills}
         onChange={(value) => form.setValue(path('skills'), value)}
         // TODO
@@ -124,6 +123,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         name={path('prompt')}
         label="Prompt"
         placeholder="You are a helpful assistant..."
+        isRequired={isRequired(FullAgentSubAgentSchema, 'prompt')}
       />
       <FormField
         control={form.control}
@@ -133,9 +133,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
             <div className="flex gap-2">
               <FormControl>
                 <Checkbox
-                  checked={field.value === id}
+                  checked={field.value === nodeId}
                   onCheckedChange={() => {
-                    const newDefaultId = field.value === id ? null : id;
+                    const newDefaultId = field.value === nodeId ? null : nodeId;
                     form.setValue('defaultSubAgentId', newDefaultId, {
                       shouldDirty: true,
                       shouldValidate: true,
@@ -194,6 +194,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
             </div>
           }
           description="Maximum number of execution steps for this sub agent (defaults to 50 if not set)"
+          isRequired={isRequired(FullAgentSubAgentSchema, 'stopWhen.stepCountIs')}
         />
       </div>
       <Separator />
@@ -210,7 +211,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/components/new`}
         placeholder="Select components..."
       />
-
       <ComponentSelector
         label="Artifacts"
         componentLookup={artifactComponentLookup}
