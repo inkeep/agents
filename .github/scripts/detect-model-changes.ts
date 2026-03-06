@@ -23,6 +23,7 @@ const GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 type GatewayModel = {
   id: string;
   type?: string; // "language", "embedding", etc.
+  created?: number; // Unix timestamp
 };
 
 // Anthropic gateway IDs use dots for version numbers (claude-opus-4.6);
@@ -46,7 +47,9 @@ async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Res
   }
 }
 
-async function fetchGatewayModels(): Promise<Array<{ provider: string; id: string }>> {
+async function fetchGatewayModels(): Promise<
+  Array<{ provider: string; id: string; created?: number }>
+> {
   const headers: Record<string, string> = { accept: 'application/json' };
   if (GATEWAY_API_KEY) headers['Authorization'] = `Bearer ${GATEWAY_API_KEY}`;
 
@@ -76,7 +79,7 @@ async function fetchGatewayModels(): Promise<Array<{ provider: string; id: strin
       const provider = m.id.slice(0, slashIndex);
       const rawId = m.id.slice(slashIndex + 1);
       const id = provider === 'anthropic' ? normalizeAnthropicId(rawId) : rawId;
-      return { provider, id };
+      return { provider, id, created: m.created };
     });
 }
 
@@ -119,6 +122,7 @@ function setOutput(name: string, value: string): void {
 interface NewModel {
   provider: string;
   id: string;
+  created?: number;
 }
 
 async function main(): Promise<void> {
@@ -163,11 +167,20 @@ async function main(): Promise<void> {
     }
   }
 
-  const modelList = newModels.map((m) => `- ${m.provider}/${m.id}`).join('\n');
   const today = new Date().toISOString().split('T')[0];
+  const modelList = newModels
+    .map((m) => {
+      const releasedStr = m.created
+        ? ` (released: ${new Date(m.created * 1000).toISOString().split('T')[0]})`
+        : '';
+      return `- ${m.provider}/${m.id}${releasedStr}`;
+    })
+    .join('\n');
   const slug = Math.random().toString(36).slice(2, 8);
 
-  const prompt = `New AI models have been detected from Vercel AI Gateway that are not yet in our static model list.
+  const prompt = `Today's date: ${today}
+
+New AI models have been detected from Vercel AI Gateway that are not yet in our static model list.
 
 New models to add:
 ${modelList}
@@ -178,63 +191,77 @@ ${modelList}
 - When pushing, always use: git push --set-upstream origin $(git branch --show-current)
 - Use a single commit with message: "chore: add new models [model-sync]"
 
-## Step 1: Read the files first
+## Step 1: Research model generations
+Before touching any files, use WebSearch to research each provider's model history and the new models listed above.
+
+A new "era" is defined by a significant capability leap — not just a version number bump. A mid-generation release that represents a meaningful step up in capability (e.g. a new architecture, substantially better benchmarks, or a new modality) counts as its own era. Use your research to decide where each era boundary falls for each provider.
+
+For each provider with new models, determine:
+- The distinct capability eras in that provider's model history (e.g. is Claude 3.5 its own era or just a Claude 3 refinement? Was GPT-4o a new era or just GPT-4 improved?)
+- Which era the new model(s) belong to
+- Which era is "one back" from the current
+- Which existing UI entries are now two or more eras behind and should be pruned
+
+Use this research to build a clear picture before making any edits.
+
+## Step 2: Read the files first
 Before editing anything, read all 3 target files so you follow their exact patterns and conventions:
 - \`packages/agents-core/src/constants/models.ts\`
 - \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
 - \`agents-cli/src/utils/model-config.ts\`
 
-## Step 2: Update the 3 files
+## Step 3: Update the 3 files
+
+First, classify each new model using the era research from Step 1 and these rules:
+
+SKIP entirely (do not add anywhere) if the model ID contains: instruct, embedding, tts, whisper, dall-e, moderation, realtime, audio, search-preview, deep-research, safeguard, oss, instant
+SKIP entirely if the ID ends in "-chat", "-image", or "-image-preview"
+If uncertain, skip entirely
+
+For models that pass the skip check, assign a tier based on the capability era determined in Step 1:
+
+**CONSTANTS-ONLY** — add to \`models.ts\` only, skip the UI and CLI:
+- Any model that is not in the current capability era (i.e. one era back or older)
+- Useful as pinnable constants for developers but should not appear in the UI picker
+
+**FULL** — add to \`models.ts\`, the UI, and the CLI:
+- Models in the current capability era
+- One specialty model per category (reasoning/thinking, code generation) — the most capable/latest only
 
 ### \`packages/agents-core/src/constants/models.ts\`
-- Add new constant entries to the appropriate provider object (ANTHROPIC_MODELS, OPENAI_MODELS, or GOOGLE_MODELS)
-- Key naming convention: SCREAMING_SNAKE_CASE derived from the model ID
-  - Dots and dashes both become underscores: claude-sonnet-4-6 → CLAUDE_SONNET_4_6, gpt-5.2 → GPT_5_2, gemini-2.5-flash → GEMINI_2_5_FLASH
-- Value format: always 'provider/model-id'
-  - Anthropic: dashes in model ID → 'anthropic/claude-sonnet-4-6'
-  - OpenAI: dots in model ID → 'openai/gpt-5.2'
-  - Google: dots in model ID → 'google/gemini-2.5-flash'
-- DO NOT modify any existing entries or default values
-
-Before adding any model to any file, decide if it belongs using these rules. If a model is skipped, do not add it to the constants file, the UI, or the CLI.
-
-ADD the model if it is any of:
-- A general-purpose text generation or chat completion model, regardless of how old it is (gpt-3.5-turbo, gpt-4-turbo, gpt-4o, claude-3-opus, gemini-2.0-flash, etc.)
-- A reasoning or thinking model (o1, o3, o3-mini, o3-pro, o4-mini, etc.)
-- A code generation model (codex, codex-mini, gpt-5-codex, etc.)
-
-SKIP the model entirely (do not add it anywhere) if its ID contains any of these keywords: instruct, embedding, tts, whisper, dall-e, moderation, realtime, audio, search-preview, deep-research, safeguard, oss, instant
-SKIP if its ID ends in "-chat", "-image", or "-image-preview"
-SKIP if it is a dated preview or snapshot variant with a date suffix (e.g. gemini-2.5-flash-preview-09-2025, claude-3-5-sonnet-20240620) — only add the non-dated alias
-If you are uncertain whether a model belongs, skip it
+- Add all non-skipped models (both CONSTANTS-ONLY and FULL tiers)
+- Key naming: SCREAMING_SNAKE_CASE — dots and dashes both become underscores (claude-sonnet-4-6 → CLAUDE_SONNET_4_6, gpt-5.2 → GPT_5_2)
+- Value format: always 'provider/model-id' (Anthropic uses dashes, OpenAI and Google use dots in the model ID)
+- NEVER modify or remove existing entries — constants are exhaustive and permanent, and serve as the comparison baseline for future sync runs
 
 ### \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
-- Read the file first and follow the exact existing structure
-- Add a label entry in the appropriate provider's array for each model that passed the check above
-- Human-readable label: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash' (match existing style)
-- Ordering: newest version first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Flash Lite/Nano/Mini)
+- Add only **FULL** tier models
+- Human-readable label matching existing style: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash'
+- Order: newest first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Nano/Mini)
+- **Era pruning**: after adding, remove any existing UI entries that are now two or more capability eras behind the current era (based on your Step 1 research). Keep current era + one era back only.
+- **Specialty pruning**: for each specialty category (reasoning, code gen), keep only the single most capable entry
 
 ### \`agents-cli/src/utils/model-config.ts\`
-- Same rules as above — same ordering and label style
+- Same rules as the UI — FULL tier only, same era pruning and specialty pruning
 
-## Step 3: Create changeset
-Create \`.changeset/add-models-${today}-${slug}.md\` with the following structure. For the description line, list only the models you actually added (not the ones you skipped):
+## Step 4: Create changeset
+Create \`.changeset/add-models-${today}-${slug}.md\` with the following structure. For the description line, list models added and any removed from the UI due to pruning:
 ---
 "@inkeep/agents-core": patch
 "@inkeep/agents-manage-ui": patch
 "@inkeep/agents-cli": patch
 ---
 
-Add new models: <comma-separated list of provider/model-id for each model you added>
+Add new models: <comma-separated list of provider/model-id added>. Remove from UI: <comma-separated list of any pruned UI entries, or omit this sentence if none removed>
 
-## Step 4: Commit, push, and open PR
-1. git add the 4 changed files (3 source files + the changeset)
+## Step 5: Commit, push, and open PR
+1. git add all changed files (source files + the changeset)
 2. git commit -m "chore: add new models [model-sync]"
 3. git push --set-upstream origin $(git branch --show-current)
 4. Create a PR targeting main with:
    - Title: "chore: add new models from provider APIs [model-sync]"
    - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
-   - Body: list the models added and which files were updated`;
+   - Body: list models added, models removed from UI/CLI due to lookback pruning, and which files were updated`;
 
   setOutput('has_changes', 'true');
   setOutput('prompt', prompt);
