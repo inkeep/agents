@@ -797,7 +797,11 @@ describe('Cascade Delete Utilities', () => {
     });
 
     it('should handle tool with no GitHub access entries', async () => {
-      const result = await cascadeDeleteByTool(db)({ toolId: 'non-existent-tool', tenantId, projectId });
+      const result = await cascadeDeleteByTool(db)({
+        toolId: 'non-existent-tool',
+        tenantId,
+        projectId,
+      });
 
       expect(result.mcpToolRepositoryAccessDeleted).toBe(0);
       expect(result.mcpToolAccessModeDeleted).toBe(false);

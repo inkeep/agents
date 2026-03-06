@@ -32,7 +32,7 @@ export const getSlackMcpToolAccessConfig =
         and(
           eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
           eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
-          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId),
+          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId)
         )
       )
       .limit(1);
@@ -98,7 +98,7 @@ export const updateSlackMcpToolAccessChannelIds =
         and(
           eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
           eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
-          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId),
+          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId)
         )
       );
   };
@@ -112,7 +112,7 @@ export const deleteSlackMcpToolAccessConfig =
         and(
           eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
           eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
-          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId),
+          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId)
         )
       )
       .returning();

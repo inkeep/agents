@@ -119,7 +119,11 @@ describe('Slack MCP Tool Access Config', () => {
         channelIds: [],
       });
 
-      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
+      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)({
+        tenantId,
+        projectId,
+        toolId,
+      });
       expect(deleted).toBe(true);
 
       const config = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
@@ -131,7 +135,11 @@ describe('Slack MCP Tool Access Config', () => {
     });
 
     it('should return false when no config exists', async () => {
-      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId: 'nonexistent-tool' });
+      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)({
+        tenantId,
+        projectId,
+        toolId: 'nonexistent-tool',
+      });
       expect(deleted).toBe(false);
     });
   });
@@ -158,8 +166,16 @@ describe('Slack MCP Tool Access Config', () => {
       const deleted = await deleteAllSlackMcpToolAccessConfigsByTenant(dbClient)(tenantId);
       expect(deleted).toBe(2);
 
-      const config1 = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId: 'tool-1' });
-      const config2 = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId: 'tool-2' });
+      const config1 = await getSlackMcpToolAccessConfig(dbClient)({
+        tenantId,
+        projectId,
+        toolId: 'tool-1',
+      });
+      const config2 = await getSlackMcpToolAccessConfig(dbClient)({
+        tenantId,
+        projectId,
+        toolId: 'tool-2',
+      });
       expect(config1.channelAccessMode).toBe('selected');
       expect(config2.channelAccessMode).toBe('selected');
     });
@@ -202,7 +218,11 @@ describe('Slack MCP Tool Access Config', () => {
       const deleted = await deleteAllSlackMcpToolAccessConfigsByTenant(dbClient)(tenantId);
       expect(deleted).toBe(1);
 
-      const otherConfig = await getSlackMcpToolAccessConfig(dbClient)({ tenantId: otherTenantId, projectId, toolId: 'tool-other-tenant' });
+      const otherConfig = await getSlackMcpToolAccessConfig(dbClient)({
+        tenantId: otherTenantId,
+        projectId,
+        toolId: 'tool-other-tenant',
+      });
       expect(otherConfig.channelAccessMode).toBe('selected');
       expect(otherConfig.channelIds).toEqual(['C999']);
     });

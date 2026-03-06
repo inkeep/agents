@@ -24,7 +24,13 @@ describe('slack mcp auth middleware', () => {
   function createTestApp() {
     const app = new Hono<{ Variables: { toolId: string; tenantId: string; projectId: string } }>();
     app.use('/', slackMcpAuth());
-    app.post('/', (c) => c.json({ toolId: c.get('toolId'), tenantId: c.get('tenantId'), projectId: c.get('projectId') }));
+    app.post('/', (c) =>
+      c.json({
+        toolId: c.get('toolId'),
+        tenantId: c.get('tenantId'),
+        projectId: c.get('projectId'),
+      })
+    );
     return app;
   }
 
