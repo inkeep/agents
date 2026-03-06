@@ -111,6 +111,19 @@ interface AgentProps {
 
 const SHOW_CHAT_TO_CREATE = false;
 
+const DEFAULT_FUNCTION_TOOL_CODE = `async function execute(args) {
+  return {
+    success: true,
+    data: args,
+  };
+}`;
+
+const DEFAULT_FUNCTION_TOOL_INPUT_SCHEMA = `{
+  "type": "object",
+  "properties": {},
+  "required": []
+}`;
+
 // Handle non-validation errors (permission, auth, not found, server errors)
 const nonValidationErrors = new Set([
   'forbidden',
@@ -282,6 +295,7 @@ export const Agent: FC<AgentProps> = ({
   })();
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
+  const form = useFullAgentFormContext();
   const { storeNodes, edges } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
@@ -575,21 +589,35 @@ export const Agent: FC<AgentProps> = ({
     if (!node) {
       return;
     }
-    const nodeData = JSON.parse(node);
-    const position = screenToFlowPosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
-    const nodeId = generateId();
+    const nodeType: keyof typeof newNodeDefaults = JSON.parse(node).type;
     const newNode = {
-      id: nodeId,
-      type: nodeData.type,
-      position,
+      id: generateId(),
+      type: nodeType,
+      position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       selected: true,
-      data: {
-        ...newNodeDefaults[nodeData.type as keyof typeof newNodeDefaults],
-      },
+      data: newNodeDefaults[nodeType],
     };
+    const toolId = nodeType === NodeType.FunctionTool ? newNode.id : null;
+
+    if (toolId) {
+      newNode.data.toolId = toolId;
+      form.setValue(
+        `functionTools.${toolId}`,
+        {
+          functionId: toolId,
+          name: newNode.data.name,
+        },
+        { shouldDirty: true }
+      );
+      form.setValue(
+        `functions.${toolId}`,
+        {
+          executeCode: DEFAULT_FUNCTION_TOOL_CODE,
+          inputSchema: DEFAULT_FUNCTION_TOOL_INPUT_SCHEMA,
+        },
+        { shouldDirty: true }
+      );
+    }
 
     clearSelection();
     commandManager.execute(new AddNodeCommand(newNode as Node));
@@ -704,14 +732,10 @@ export const Agent: FC<AgentProps> = ({
       mcpRelations
     );
 
-    const functionToolNodeMap = new Map<string, string>();
-    for (const node of nodes) {
-      if (node.type === NodeType.FunctionTool) {
-        const nodeData = node.data as any;
-        const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
-        functionToolNodeMap.set(toolId, node.id);
-      }
-    }
+    const updatePayload = {
+      ...data,
+      ...serializedData,
+    };
 
     const validationErrors = validateSerializedData(updatePayload);
     if (validationErrors.length) {
@@ -721,10 +745,7 @@ export const Agent: FC<AgentProps> = ({
       return;
     }
 
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-      ...data,
-      ...serializedData,
-    });
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, updatePayload);
 
     if (res.success) {
       toast.success('Agent saved', { closeButton: true });

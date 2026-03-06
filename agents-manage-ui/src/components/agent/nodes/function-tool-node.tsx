@@ -14,9 +14,13 @@ import { Handle } from './handle';
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
   'use memo';
   const { control } = useFullAgentFormContext();
-  const toolId = data.toolId ?? '';
-  const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
-  const { name = 'Function Tool', description, tempToolPolicies: toolPolicies } = functionTool;
+  const { toolId = '' } = data;
+
+  const {
+    tempToolPolicies: toolPolicies,
+    name,
+    description,
+  } = useWatch({ control, name: `functionTools.${toolId}` });
 
   const processedErrors = [
     ...useProcessedErrors('functionTools', toolId),
