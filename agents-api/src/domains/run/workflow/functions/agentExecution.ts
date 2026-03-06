@@ -289,19 +289,38 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
     try {
       const writer = writable.getWriter();
       await writer.close();
-    } catch (_e) {}
-
-    if (responseText) {
-      await persistAgentResponseStep({
-        tenantId,
-        projectId,
-        conversationId,
-        responseText,
-        subAgentId: currentSubAgentId,
+    } catch (closeErr) {
+      await logStep('Failed to close writable', {
+        executionId,
+        error: closeErr instanceof Error ? closeErr.message : String(closeErr),
       });
     }
 
-    await updateExecutionStatusStep({ executionId, status: 'completed' });
+    try {
+      if (responseText) {
+        await persistAgentResponseStep({
+          tenantId,
+          projectId,
+          conversationId,
+          responseText,
+          subAgentId: currentSubAgentId,
+        });
+      }
+    } catch (persistErr) {
+      await logStep('Failed to persist response', {
+        executionId,
+        error: persistErr instanceof Error ? persistErr.message : String(persistErr),
+      });
+    }
+
+    try {
+      await updateExecutionStatusStep({ executionId, status: 'completed' });
+    } catch (statusErr) {
+      await logStep('Failed to update status', {
+        executionId,
+        error: statusErr instanceof Error ? statusErr.message : String(statusErr),
+      });
+    }
 
     return { success: true, response: responseText || 'Execution completed' };
   } catch (error) {
