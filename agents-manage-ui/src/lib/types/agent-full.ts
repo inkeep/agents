@@ -15,6 +15,7 @@ export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports
 // TODO remove this export
 export type {
   FullAgentOutput,
+  FullAgentPayload,
   FullAgentResponse,
 } from '@/components/agent/form/validation';
 
