@@ -934,7 +934,7 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.toolId] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
     index('work_app_slack_mcp_tool_access_config_tenant_idx').on(table.tenantId),
     index('work_app_slack_mcp_tool_access_config_project_idx').on(table.projectId),
     foreignKey({

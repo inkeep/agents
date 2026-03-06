@@ -34,7 +34,7 @@ describe('Slack MCP Tool Access Config', () => {
 
   describe('getSlackMcpToolAccessConfig', () => {
     it('should return defaults when no row exists', async () => {
-      const config = await getSlackMcpToolAccessConfig(dbClient)(toolId);
+      const config = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
 
       expect(config).toEqual({
         channelAccessMode: 'selected',
@@ -53,7 +53,7 @@ describe('Slack MCP Tool Access Config', () => {
         channelIds: ['C123', 'C456'],
       });
 
-      const config = await getSlackMcpToolAccessConfig(dbClient)(toolId);
+      const config = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
 
       expect(config).toEqual({
         channelAccessMode: 'all',
@@ -74,7 +74,7 @@ describe('Slack MCP Tool Access Config', () => {
         channelIds: ['C789'],
       });
 
-      const config = await getSlackMcpToolAccessConfig(dbClient)(toolId);
+      const config = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
 
       expect(config.channelAccessMode).toBe('selected');
       expect(config.dmEnabled).toBe(false);
@@ -100,7 +100,7 @@ describe('Slack MCP Tool Access Config', () => {
         channelIds: [],
       });
 
-      const config = await getSlackMcpToolAccessConfig(dbClient)(toolId);
+      const config = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
 
       expect(config.channelAccessMode).toBe('all');
       expect(config.dmEnabled).toBe(true);
@@ -119,10 +119,10 @@ describe('Slack MCP Tool Access Config', () => {
         channelIds: [],
       });
 
-      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)(toolId);
+      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
       expect(deleted).toBe(true);
 
-      const config = await getSlackMcpToolAccessConfig(dbClient)(toolId);
+      const config = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId });
       expect(config).toEqual({
         channelAccessMode: 'selected',
         dmEnabled: false,
@@ -131,7 +131,7 @@ describe('Slack MCP Tool Access Config', () => {
     });
 
     it('should return false when no config exists', async () => {
-      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)('nonexistent-tool');
+      const deleted = await deleteSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId: 'nonexistent-tool' });
       expect(deleted).toBe(false);
     });
   });
@@ -158,8 +158,8 @@ describe('Slack MCP Tool Access Config', () => {
       const deleted = await deleteAllSlackMcpToolAccessConfigsByTenant(dbClient)(tenantId);
       expect(deleted).toBe(2);
 
-      const config1 = await getSlackMcpToolAccessConfig(dbClient)('tool-1');
-      const config2 = await getSlackMcpToolAccessConfig(dbClient)('tool-2');
+      const config1 = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId: 'tool-1' });
+      const config2 = await getSlackMcpToolAccessConfig(dbClient)({ tenantId, projectId, toolId: 'tool-2' });
       expect(config1.channelAccessMode).toBe('selected');
       expect(config2.channelAccessMode).toBe('selected');
     });
@@ -202,7 +202,7 @@ describe('Slack MCP Tool Access Config', () => {
       const deleted = await deleteAllSlackMcpToolAccessConfigsByTenant(dbClient)(tenantId);
       expect(deleted).toBe(1);
 
-      const otherConfig = await getSlackMcpToolAccessConfig(dbClient)('tool-other-tenant');
+      const otherConfig = await getSlackMcpToolAccessConfig(dbClient)({ tenantId: otherTenantId, projectId, toolId: 'tool-other-tenant' });
       expect(otherConfig.channelAccessMode).toBe('selected');
       expect(otherConfig.channelIds).toEqual(['C999']);
     });

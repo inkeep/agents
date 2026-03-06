@@ -352,6 +352,35 @@ export async function openDmConversation(client: WebClient, userId: string): Pro
 }
 
 /**
+ * Validate that the bot is a member of the given channels.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelIds - Channel IDs to validate
+ * @returns Object with valid and invalid channel ID arrays
+ */
+export async function validateBotChannelMembership(
+  client: WebClient,
+  channelIds: string[]
+): Promise<{ valid: string[]; invalid: string[] }> {
+  const botChannels = await getBotMemberChannels(client);
+  const memberChannelIds = new Set(
+    botChannels.filter((ch): ch is typeof ch & { id: string } => !!ch.id).map((ch) => ch.id)
+  );
+
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const id of channelIds) {
+    if (memberChannelIds.has(id)) {
+      valid.push(id);
+    } else {
+      invalid.push(id);
+    }
+  }
+
+  return { valid, invalid };
+}
+
+/**
  * Revoke a Slack bot token.
  *
  * This should be called when uninstalling a workspace to ensure

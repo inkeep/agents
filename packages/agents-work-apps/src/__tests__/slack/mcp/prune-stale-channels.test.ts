@@ -26,6 +26,8 @@ vi.mock('../../../logger', () => ({
 describe('pruneStaleChannelIds', () => {
   let pruneStaleChannelIds: typeof import('../../../slack/mcp/index').pruneStaleChannelIds;
 
+  const scope = { tenantId: 'tenant-1', projectId: 'project-1', toolId: 'tool-1' };
+
   beforeAll(async () => {
     ({ pruneStaleChannelIds } = await import('../../../slack/mcp/index'));
   });
@@ -40,7 +42,7 @@ describe('pruneStaleChannelIds', () => {
       { id: 'C456', name: 'random' },
     ];
 
-    pruneStaleChannelIds('tool-1', availableChannels, ['C123', 'C456']);
+    pruneStaleChannelIds(scope, availableChannels, ['C123', 'C456']);
 
     expect(updateSlackMcpToolAccessChannelIdsMock).not.toHaveBeenCalled();
   });
@@ -48,21 +50,21 @@ describe('pruneStaleChannelIds', () => {
   it('should prune stale channel IDs and update DB', () => {
     const availableChannels = [{ id: 'C123', name: 'general' }];
 
-    pruneStaleChannelIds('tool-1', availableChannels, ['C123', 'C456', 'C789']);
+    pruneStaleChannelIds(scope, availableChannels, ['C123', 'C456', 'C789']);
 
-    expect(updateSlackMcpToolAccessChannelIdsMock).toHaveBeenCalledWith('tool-1', ['C123']);
+    expect(updateSlackMcpToolAccessChannelIdsMock).toHaveBeenCalledWith(scope, ['C123']);
   });
 
   it('should prune all channel IDs when none are available', () => {
-    pruneStaleChannelIds('tool-1', [], ['C123', 'C456']);
+    pruneStaleChannelIds(scope, [], ['C123', 'C456']);
 
-    expect(updateSlackMcpToolAccessChannelIdsMock).toHaveBeenCalledWith('tool-1', []);
+    expect(updateSlackMcpToolAccessChannelIdsMock).toHaveBeenCalledWith(scope, []);
   });
 
   it('should not update DB when current channel IDs list is empty', () => {
     const availableChannels = [{ id: 'C123', name: 'general' }];
 
-    pruneStaleChannelIds('tool-1', availableChannels, []);
+    pruneStaleChannelIds(scope, availableChannels, []);
 
     expect(updateSlackMcpToolAccessChannelIdsMock).not.toHaveBeenCalled();
   });
@@ -71,7 +73,7 @@ describe('pruneStaleChannelIds', () => {
     const availableChannels = [{ id: 'C123', name: 'general' }];
     const currentIds = ['C123', 'C456'];
 
-    const result = pruneStaleChannelIds('tool-1', availableChannels, currentIds);
+    const result = pruneStaleChannelIds(scope, availableChannels, currentIds);
 
     expect(result).toEqual(['C123', 'C456']);
   });

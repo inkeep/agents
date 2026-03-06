@@ -11,6 +11,11 @@ import {
   WorkAppSlackMcpToolAccessConfigApiInsertSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import {
+  getSlackClient,
+  resolveWorkspaceToken,
+  validateBotChannelMembership,
+} from '@inkeep/agents-work-apps/slack';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -89,7 +94,7 @@ app.openapi(
 
     await validateSlackWorkappTool(db, tenantId, projectId, toolId);
 
-    const config = await getSlackMcpToolAccessConfig(runDbClient)(toolId);
+    const config = await getSlackMcpToolAccessConfig(runDbClient)({ tenantId, projectId, toolId });
 
     return c.json(
       {
@@ -153,6 +158,17 @@ app.openapi(
         throw createApiError({
           code: 'bad_request',
           message: 'channelIds is required when channelAccessMode is "selected"',
+        });
+      }
+
+      const botToken = await resolveWorkspaceToken(tenantId);
+
+      const client = getSlackClient(botToken);
+      const { invalid } = await validateBotChannelMembership(client, channelIds);
+      if (invalid.length > 0) {
+        throw createApiError({
+          code: 'bad_request',
+          message: `Bot is not a member of channels: ${invalid.join(', ')}`,
         });
       }
 

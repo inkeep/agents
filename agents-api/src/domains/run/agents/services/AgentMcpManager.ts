@@ -134,6 +134,8 @@ export class AgentMcpManager {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': this.config.tenantId,
+        'x-inkeep-project-id': this.config.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }

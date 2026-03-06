@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   workAppSlackMcpToolAccessConfig,
@@ -12,9 +12,15 @@ export type SlackMcpToolAccessConfig = {
   channelIds: string[];
 };
 
+type SlackToolScope = {
+  tenantId: string;
+  projectId: string;
+  toolId: string;
+};
+
 export const getSlackMcpToolAccessConfig =
   (db: AgentsRunDatabaseClient) =>
-  async (toolId: string): Promise<SlackMcpToolAccessConfig> => {
+  async (scope: SlackToolScope): Promise<SlackMcpToolAccessConfig> => {
     const result = await db
       .select({
         channelAccessMode: workAppSlackMcpToolAccessConfig.channelAccessMode,
@@ -22,7 +28,13 @@ export const getSlackMcpToolAccessConfig =
         channelIds: workAppSlackMcpToolAccessConfig.channelIds,
       })
       .from(workAppSlackMcpToolAccessConfig)
-      .where(eq(workAppSlackMcpToolAccessConfig.toolId, toolId))
+      .where(
+        and(
+          eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
+          eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
+          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId),
+        )
+      )
       .limit(1);
 
     return (
@@ -59,7 +71,11 @@ export const setSlackMcpToolAccessConfig =
         updatedAt: now,
       })
       .onConflictDoUpdate({
-        target: [workAppSlackMcpToolAccessConfig.toolId],
+        target: [
+          workAppSlackMcpToolAccessConfig.tenantId,
+          workAppSlackMcpToolAccessConfig.projectId,
+          workAppSlackMcpToolAccessConfig.toolId,
+        ],
         set: {
           channelAccessMode: params.channelAccessMode,
           dmEnabled: params.dmEnabled,
@@ -71,22 +87,34 @@ export const setSlackMcpToolAccessConfig =
 
 export const updateSlackMcpToolAccessChannelIds =
   (db: AgentsRunDatabaseClient) =>
-  async (toolId: string, channelIds: string[]): Promise<void> => {
+  async (scope: SlackToolScope, channelIds: string[]): Promise<void> => {
     await db
       .update(workAppSlackMcpToolAccessConfig)
       .set({
         channelIds,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(workAppSlackMcpToolAccessConfig.toolId, toolId));
+      .where(
+        and(
+          eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
+          eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
+          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId),
+        )
+      );
   };
 
 export const deleteSlackMcpToolAccessConfig =
   (db: AgentsRunDatabaseClient) =>
-  async (toolId: string): Promise<boolean> => {
+  async (scope: SlackToolScope): Promise<boolean> => {
     const result = await db
       .delete(workAppSlackMcpToolAccessConfig)
-      .where(eq(workAppSlackMcpToolAccessConfig.toolId, toolId))
+      .where(
+        and(
+          eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
+          eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
+          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId),
+        )
+      )
       .returning();
 
     return result.length > 0;

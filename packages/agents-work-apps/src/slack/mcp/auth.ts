@@ -7,6 +7,8 @@ export const slackMcpAuth = () =>
   createMiddleware<{
     Variables: {
       toolId: string;
+      tenantId: string;
+      projectId: string;
     };
   }>(async (c, next) => {
     const toolId = c.req.header('x-inkeep-tool-id');
@@ -18,6 +20,34 @@ export const slackMcpAuth = () =>
           parameter: {
             in: 'header',
             name: 'x-inkeep-tool-id',
+          },
+        },
+      });
+    }
+
+    const tenantId = c.req.header('x-inkeep-tenant-id');
+    if (!tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing required header: x-inkeep-tenant-id',
+        extensions: {
+          parameter: {
+            in: 'header',
+            name: 'x-inkeep-tenant-id',
+          },
+        },
+      });
+    }
+
+    const projectId = c.req.header('x-inkeep-project-id');
+    if (!projectId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing required header: x-inkeep-project-id',
+        extensions: {
+          parameter: {
+            in: 'header',
+            name: 'x-inkeep-project-id',
           },
         },
       });
@@ -70,5 +100,7 @@ export const slackMcpAuth = () =>
     }
 
     c.set('toolId', toolId);
+    c.set('tenantId', tenantId);
+    c.set('projectId', projectId);
     await next();
   });

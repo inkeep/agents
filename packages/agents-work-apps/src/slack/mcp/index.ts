@@ -1,13 +1,10 @@
 import { z } from '@hono/zod-openapi';
 import {
   getSlackMcpToolAccessConfig,
-  listWorkAppSlackWorkspacesByTenant,
   updateSlackMcpToolAccessChannelIds,
-  workAppSlackMcpToolAccessConfig,
 } from '@inkeep/agents-core';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { eq } from 'drizzle-orm';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { Hono } from 'hono';
 import runDbClient from '../../db/runDbClient';
@@ -19,46 +16,10 @@ import {
   postMessage,
   postMessageInThread,
 } from '../services/client';
-import { isSlackDevMode, loadSlackDevConfig } from '../services/dev-config';
-import { getConnectionAccessToken } from '../services/nango';
 import { slackMcpAuth } from './auth';
-import { resolveChannelId, validateChannelAccess } from './utils';
+import { resolveChannelId, resolveWorkspaceToken, validateChannelAccess } from './utils';
 
 const logger = getLogger('slack-mcp');
-
-async function resolveWorkspaceToken(toolId: string): Promise<string> {
-  if (isSlackDevMode()) {
-    const devConfig = loadSlackDevConfig();
-    if (devConfig?.botToken) {
-      return devConfig.botToken;
-    }
-    throw new Error('Slack dev mode enabled but no botToken found in .slack-dev.json');
-  }
-
-  const accessRow = await runDbClient
-    .select({ tenantId: workAppSlackMcpToolAccessConfig.tenantId })
-    .from(workAppSlackMcpToolAccessConfig)
-    .where(eq(workAppSlackMcpToolAccessConfig.toolId, toolId))
-    .limit(1);
-
-  const tenantId = accessRow[0]?.tenantId;
-  if (!tenantId) {
-    throw new Error(`No access config found for tool ${toolId}. Configure Slack access first.`);
-  }
-
-  const workspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
-  if (workspaces.length === 0) {
-    throw new Error(`No Slack workspace installed for tenant ${tenantId}`);
-  }
-
-  const workspace = workspaces[0];
-  const botToken = await getConnectionAccessToken(workspace.nangoConnectionId);
-  if (!botToken) {
-    throw new Error(`Failed to retrieve bot token for workspace ${workspace.slackTeamId}`);
-  }
-
-  return botToken;
-}
 
 export interface ChannelInfo {
   id: string;
@@ -98,8 +59,10 @@ function getAvailableChannelsString(channels: ChannelInfo[]): string {
   return `Available channels: ${channels.map((ch) => `#${ch.name} (${ch.id})`).join(', ')}`;
 }
 
+type ToolScope = { tenantId: string; projectId: string; toolId: string };
+
 export function pruneStaleChannelIds(
-  toolId: string,
+  scope: ToolScope,
   availableChannels: ChannelInfo[],
   currentChannelIds: string[]
 ): string[] {
@@ -108,24 +71,24 @@ export function pruneStaleChannelIds(
   if (staleIds.length > 0) {
     const prunedIds = currentChannelIds.filter((id) => availableIds.has(id));
     logger.info(
-      { toolId, staleIds, prunedIds },
+      { toolId: scope.toolId, staleIds, prunedIds },
       'Pruning stale channel IDs from MCP access config'
     );
-    updateSlackMcpToolAccessChannelIds(runDbClient)(toolId, prunedIds).catch((error) => {
-      logger.warn({ error, toolId }, 'Failed to prune stale channel IDs');
+    updateSlackMcpToolAccessChannelIds(runDbClient)(scope, prunedIds).catch((error) => {
+      logger.warn({ error, toolId: scope.toolId }, 'Failed to prune stale channel IDs');
     });
   }
   return currentChannelIds;
 }
 
-const getServer = async (toolId: string) => {
-  const botToken = await resolveWorkspaceToken(toolId);
-  const config = await getSlackMcpToolAccessConfig(runDbClient)(toolId);
+const getServer = async (scope: ToolScope) => {
+  const botToken = await resolveWorkspaceToken(scope.tenantId);
+  const config = await getSlackMcpToolAccessConfig(runDbClient)(scope);
   const client = getSlackClient(botToken);
   const availableChannels = await getAvailableChannels(client, config);
 
   if (config.channelAccessMode === 'selected') {
-    pruneStaleChannelIds(toolId, availableChannels, config.channelIds);
+    pruneStaleChannelIds(scope, availableChannels, config.channelIds);
   }
 
   const server = new McpServer(
@@ -186,7 +149,10 @@ const getServer = async (toolId: string) => {
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        logger.error({ error, toolId, channel }, 'Failed to post Slack message via MCP');
+        logger.error(
+          { error, toolId: scope.toolId, channel },
+          'Failed to post Slack message via MCP'
+        );
         return {
           content: [{ type: 'text' as const, text: `Error posting message: ${message}` }],
           isError: true,
@@ -230,7 +196,7 @@ const getServer = async (toolId: string) => {
           };
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unknown error';
-          logger.error({ error, toolId, user_id }, 'Failed to send Slack DM via MCP');
+          logger.error({ error, toolId: scope.toolId, user_id }, 'Failed to send Slack DM via MCP');
           return {
             content: [{ type: 'text' as const, text: `Error sending DM: ${message}` }],
             isError: true,
@@ -246,6 +212,8 @@ const getServer = async (toolId: string) => {
 const app = new Hono<{
   Variables: {
     toolId: string;
+    tenantId: string;
+    projectId: string;
   };
 }>();
 
@@ -258,11 +226,13 @@ app.onError((err, c) => {
 app.use('/', slackMcpAuth());
 app.post('/', async (c) => {
   const toolId = c.get('toolId');
+  const tenantId = c.get('tenantId');
+  const projectId = c.get('projectId');
   let server: McpServer | undefined;
 
   try {
     const body = await c.req.json();
-    server = await getServer(toolId);
+    server = await getServer({ tenantId, projectId, toolId });
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

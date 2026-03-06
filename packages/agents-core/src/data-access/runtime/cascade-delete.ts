@@ -445,8 +445,8 @@ export type ToolCascadeDeleteResult = {
  */
 export const cascadeDeleteByTool =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { toolId: string }): Promise<ToolCascadeDeleteResult> => {
-    const { toolId } = params;
+  async (params: { toolId: string; tenantId: string; projectId: string }): Promise<ToolCascadeDeleteResult> => {
+    const { toolId, tenantId, projectId } = params;
 
     // Delete MCP tool repository access entries
     const repositoryAccessResult = await db
@@ -461,7 +461,7 @@ export const cascadeDeleteByTool =
       .returning();
 
     // Delete Slack MCP tool access config entry
-    const slackMcpDeleted = await deleteSlackMcpToolAccessConfig(db)(toolId);
+    const slackMcpDeleted = await deleteSlackMcpToolAccessConfig(db)({ tenantId, projectId, toolId });
 
     return {
       mcpToolRepositoryAccessDeleted: repositoryAccessResult.length,

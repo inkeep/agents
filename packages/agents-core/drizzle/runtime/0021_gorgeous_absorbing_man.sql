@@ -1,0 +1,2 @@
+ALTER TABLE "work_app_slack_mcp_tool_access_config" DROP CONSTRAINT "work_app_slack_mcp_tool_access_config_tool_id_pk";--> statement-breakpoint
+ALTER TABLE "work_app_slack_mcp_tool_access_config" ADD CONSTRAINT "work_app_slack_mcp_tool_access_config_tenant_id_project_id_tool_id_pk" PRIMARY KEY("tenant_id","project_id","tool_id");

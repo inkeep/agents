@@ -749,7 +749,7 @@ describe('Cascade Delete Utilities', () => {
       });
 
       // Delete tool
-      const result = await cascadeDeleteByTool(db)({ toolId });
+      const result = await cascadeDeleteByTool(db)({ toolId, tenantId, projectId });
 
       expect(result.mcpToolRepositoryAccessDeleted).toBe(1);
       expect(result.mcpToolAccessModeDeleted).toBe(true);
@@ -784,7 +784,7 @@ describe('Cascade Delete Utilities', () => {
       ]);
 
       // Delete tool1
-      await cascadeDeleteByTool(db)({ toolId: tool1 });
+      await cascadeDeleteByTool(db)({ toolId: tool1, tenantId, projectId });
 
       // Verify tool2 entries still exist
       const remainingAccess = await db.select().from(workAppGitHubMcpToolRepositoryAccess);
@@ -797,7 +797,7 @@ describe('Cascade Delete Utilities', () => {
     });
 
     it('should handle tool with no GitHub access entries', async () => {
-      const result = await cascadeDeleteByTool(db)({ toolId: 'non-existent-tool' });
+      const result = await cascadeDeleteByTool(db)({ toolId: 'non-existent-tool', tenantId, projectId });
 
       expect(result.mcpToolRepositoryAccessDeleted).toBe(0);
       expect(result.mcpToolAccessModeDeleted).toBe(false);

@@ -1,5 +1,9 @@
 import type { SlackMcpToolAccessConfig } from '@inkeep/agents-core';
+import { listWorkAppSlackWorkspacesByTenant } from '@inkeep/agents-core';
 import type { WebClient } from '@slack/web-api';
+import runDbClient from '../../db/runDbClient';
+import { isSlackDevMode, loadSlackDevConfig } from '../services/dev-config';
+import { getConnectionAccessToken } from '../services/nango';
 
 const MAX_PAGES = 10;
 
@@ -36,6 +40,29 @@ export async function resolveChannelId(client: WebClient, channelInput: string):
   } while (cursor);
 
   throw new Error(`Channel not found: ${channelInput}`);
+}
+
+export async function resolveWorkspaceToken(tenantId: string): Promise<string> {
+  if (isSlackDevMode()) {
+    const devConfig = loadSlackDevConfig();
+    if (devConfig?.botToken) {
+      return devConfig.botToken;
+    }
+    throw new Error('Slack dev mode enabled but no botToken found in .slack-dev.json');
+  }
+
+  const workspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)(tenantId);
+  if (workspaces.length === 0) {
+    throw new Error(`No Slack workspace installed for tenant ${tenantId}`);
+  }
+
+  const workspace = workspaces[0];
+  const botToken = await getConnectionAccessToken(workspace.nangoConnectionId);
+  if (!botToken) {
+    throw new Error(`Failed to retrieve bot token for workspace ${workspace.slackTeamId}`);
+  }
+
+  return botToken;
 }
 
 export function validateChannelAccess(

@@ -236,6 +236,8 @@ const discoverToolsFromServer = async (
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }
@@ -599,7 +601,11 @@ export const deleteTool =
         const currentBranch = await getActiveBranch(db)();
         if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main`) {
           const runDbClient = createAgentsRunDatabaseClient();
-          await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
+          await cascadeDeleteByTool(runDbClient)({
+            toolId: params.toolId,
+            tenantId: params.scopes.tenantId,
+            projectId: params.scopes.projectId,
+          });
         }
       } catch (error) {
         // If we can't get the active branch (e.g., not using Dolt), skip the cascade delete

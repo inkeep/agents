@@ -1,12 +1,21 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getToolByIdMock, getSlackMcpToolAccessConfigMock, setSlackMcpToolAccessConfigMock } =
-  vi.hoisted(() => ({
-    getToolByIdMock: vi.fn(),
-    getSlackMcpToolAccessConfigMock: vi.fn(),
-    setSlackMcpToolAccessConfigMock: vi.fn(),
-  }));
+const {
+  getToolByIdMock,
+  getSlackMcpToolAccessConfigMock,
+  setSlackMcpToolAccessConfigMock,
+  resolveWorkspaceTokenMock,
+  getSlackClientMock,
+  validateBotChannelMembershipMock,
+} = vi.hoisted(() => ({
+  getToolByIdMock: vi.fn(),
+  getSlackMcpToolAccessConfigMock: vi.fn(),
+  setSlackMcpToolAccessConfigMock: vi.fn(),
+  resolveWorkspaceTokenMock: vi.fn(),
+  getSlackClientMock: vi.fn(),
+  validateBotChannelMembershipMock: vi.fn(),
+}));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -17,6 +26,12 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setSlackMcpToolAccessConfig: () => setSlackMcpToolAccessConfigMock,
   };
 });
+
+vi.mock('@inkeep/agents-work-apps/slack', () => ({
+  resolveWorkspaceToken: resolveWorkspaceTokenMock,
+  getSlackClient: getSlackClientMock,
+  validateBotChannelMembership: validateBotChannelMembershipMock,
+}));
 
 vi.mock('../../../logger', () => ({
   getLogger: () => ({
@@ -89,6 +104,9 @@ describe('MCP Tool Slack Access Routes', () => {
       channelIds: [],
     });
     setSlackMcpToolAccessConfigMock.mockResolvedValue(undefined);
+    resolveWorkspaceTokenMock.mockResolvedValue('xoxb-test-bot-token');
+    getSlackClientMock.mockReturnValue({});
+    validateBotChannelMembershipMock.mockResolvedValue({ valid: [], invalid: [] });
   });
 
   afterEach(() => {
@@ -207,6 +225,10 @@ describe('MCP Tool Slack Access Routes', () => {
 
     it('should set channelAccessMode=selected with valid channel IDs', async () => {
       const channelIds = ['C123', 'C456', 'C789'];
+      validateBotChannelMembershipMock.mockResolvedValue({
+        valid: channelIds,
+        invalid: [],
+      });
 
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
@@ -322,6 +344,54 @@ describe('MCP Tool Slack Access Routes', () => {
       const body = await response.json();
       expect(body.error.code).toBe('bad_request');
       expect(body.error.message).toContain('Slack MCP tools');
+    });
+
+    it('should return 400 when bot is not a member of specified channels', async () => {
+      validateBotChannelMembershipMock.mockResolvedValue({
+        valid: ['C123'],
+        invalid: ['C999', 'CBAD'],
+      });
+
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelAccessMode: 'selected',
+            dmEnabled: false,
+            channelIds: ['C123', 'C999', 'CBAD'],
+          }),
+        }
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error.code).toBe('bad_request');
+      expect(body.error.message).toContain('Bot is not a member of channels');
+      expect(body.error.message).toContain('C999');
+      expect(body.error.message).toContain('CBAD');
+    });
+
+    it('should return 500 when workspace token resolution fails', async () => {
+      resolveWorkspaceTokenMock.mockRejectedValue(
+        new Error('No Slack workspace installed for tenant test-tenant-123')
+      );
+
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelAccessMode: 'selected',
+            dmEnabled: false,
+            channelIds: ['C123'],
+          }),
+        }
+      );
+
+      expect(response.status).toBe(500);
     });
   });
 });
