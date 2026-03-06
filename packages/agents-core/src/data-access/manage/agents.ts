@@ -799,6 +799,10 @@ const getFullAgentDefinitionInternal =
       result.stopWhen = agent.stopWhen;
     }
 
+    if (agent.executionMode) {
+      result.executionMode = agent.executionMode;
+    }
+
     if (contextConfig) {
       const { id, headersSchema, contextVariables } = contextConfig;
       result.contextConfig = { id, headersSchema, contextVariables };
@@ -1070,6 +1074,7 @@ export const upsertAgent =
           contextConfigId: params.data.contextConfigId,
           models: params.data.models,
           statusUpdates: params.data.statusUpdates,
+          executionMode: params.data.executionMode,
         },
       });
     }

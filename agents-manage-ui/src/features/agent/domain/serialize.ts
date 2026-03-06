@@ -672,6 +672,10 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
+  if (metadata?.executionMode !== undefined) {
+    (result as any).executionMode = metadata.executionMode;
+  }
+
   if (metadata) {
     (result as any).prompt = metadata.prompt;
   }

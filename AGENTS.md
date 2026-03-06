@@ -604,3 +604,11 @@ This repository uses symlinks so multiple AI tools (Claude Code, Cursor, Codex) 
 | `.cursor/skills/` | `.claude/skills/`, `.codex/skills/` |
 
 AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+
+## Cursor Cloud specific instructions
+
+- **TypeScript typechecking**: Full `pnpm typecheck` in `agents-api` requires ~12GB+ heap and may OOM on VMs with ≤16GB RAM. Use `pnpm lint` (Biome) for fast validation; it catches unused imports and style issues. If you need type verification, consider checking specific packages or using targeted `tsc` on a subset.
+- **Tests**: `pnpm --filter @inkeep/agents-api test` runs the full Vitest suite including PGlite setup. Individual tests can be run with `npx vitest --run src/__tests__/<file>.test.ts` from the `agents-api` directory. The `--run` flag is already in the `test` script, so use `npx vitest` directly when running specific files.
+- **Pre-commit hooks**: Husky runs the full test suite on commit, which can take 5+ minutes. Use `--no-verify` when committing if the test failures are pre-existing and unrelated to your changes.
+- **Services**: The full dev setup (`pnpm setup-dev`) requires Docker for Doltgres, Postgres, and SpiceDB. Refer to AGENTS.md "Build & Development" section for standard commands.
+- **Workflow system**: Workflow functions live in `agents-api/src/domains/run/workflow/functions/` (and `evals/workflow/functions/`). The build script at `agents-api/scripts/build-workflow.ts` scans `./src/domains/run/workflow` and `./src/domains/evals/workflow`. The `workflowId` on exported workflows must match the pattern: `workflow//./src/domains/<path>//<functionName>`.

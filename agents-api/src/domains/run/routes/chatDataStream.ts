@@ -372,6 +372,100 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const isDurable = agent.executionMode === 'durable';
+
+      if (isDurable) {
+        const { start } = await import('workflow/api');
+        const { agentExecutionWorkflow } = await import('../workflow/functions/agentExecution');
+        const {
+          createWorkflowExecution,
+          updateWorkflowExecution,
+          getActiveWorkflowExecution,
+          createOrGetConversation,
+        } = await import('@inkeep/agents-core');
+
+        await createOrGetConversation(runDbClient)({
+          id: conversationId,
+          tenantId,
+          projectId,
+          agentId,
+          activeSubAgentId: subAgentId,
+          ref: executionContext.resolvedRef,
+        });
+
+        const activeExecution = await getActiveWorkflowExecution(runDbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+        });
+
+        if (activeExecution) {
+          return c.json(
+            {
+              error: 'An active durable execution already exists for this conversation',
+              existingExecutionId: activeExecution.id,
+            },
+            409
+          );
+        }
+
+        const executionId = generateId();
+        const requestId = `durable-chat-${executionId}`;
+
+        await createWorkflowExecution(runDbClient)({
+          id: executionId,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          status: 'starting',
+        });
+
+        const payload = {
+          executionId,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          userMessage: userText,
+          messageParts: messageParts as Array<{
+            kind: string;
+            text?: string;
+            data?: unknown;
+            metadata?: unknown;
+          }>,
+          requestId,
+        };
+
+        const run = await start(agentExecutionWorkflow, [payload]);
+
+        await updateWorkflowExecution(runDbClient)({
+          id: executionId,
+          runId: run.runId,
+          status: 'running',
+        });
+
+        logger.info(
+          { executionId, runId: run.runId, conversationId },
+          'Durable execution started via /chat route'
+        );
+
+        c.header('content-type', 'text/event-stream');
+        c.header('cache-control', 'no-cache');
+        c.header('connection', 'keep-alive');
+        c.header('x-vercel-ai-data-stream', 'v2');
+        c.header('x-accel-buffering', 'no');
+        c.header('x-workflow-run-id', run.runId);
+        c.header('x-execution-id', executionId);
+
+        return stream(c, (s) =>
+          s.pipe(
+            run.readable
+              .pipeThrough(new JsonToSseTransformStream())
+              .pipeThrough(new TextEncoderStream())
+          )
+        );
+      }
+
       const shouldStream = body.stream !== false;
       if (!shouldStream) {
         // Non-streaming response - collect full response and return as JSON

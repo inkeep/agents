@@ -92,6 +92,13 @@
       "when": 1772145299599,
       "tag": "0012_petite_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1772738383005,
+      "tag": "0013_faithful_silk_fever",
+      "breakpoints": true
     }
   ]
 }

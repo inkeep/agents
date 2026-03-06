@@ -68,4 +68,5 @@ export const activitiesPlannerAgent = agent({
   description: 'Plans activities for any location based on 24-hour weather forecasts',
   defaultSubAgent: activitiesPlanner,
   subAgents: () => [activitiesPlanner, weatherForecaster, coordinatesAgent, websearchAgent],
+  executionMode: 'durable',
 });

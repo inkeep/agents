@@ -42,6 +42,7 @@ export default defineConfig({
     exclude: [
       '@napi-rs/keyring',
       'workflow',
+      '@workflow/ai',
       '@workflow/world-local',
       '@workflow/world-postgres',
       '@workflow/world-vercel',

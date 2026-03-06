@@ -46,6 +46,7 @@ export function extractAgentMetadata(
         }
       : undefined,
     stopWhen: agent?.stopWhen,
+    executionMode: agent?.executionMode,
     statusUpdates: agent?.statusUpdates
       ? {
           ...agent.statusUpdates,

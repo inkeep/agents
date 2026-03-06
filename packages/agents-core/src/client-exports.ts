@@ -90,6 +90,7 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
         .optional(),
     })
     .optional(),
+  executionMode: z.enum(['classic', 'durable']).optional().nullable(),
   prompt: z.string().max(VALIDATION_AGENT_PROMPT_MAX_CHARS).optional(),
   statusUpdates: z
     .object({

@@ -872,6 +872,35 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
 );
 
 // ============================================================================
+// DURABLE EXECUTION
+// ============================================================================
+
+export const workflowExecutions = pgTable(
+  'workflow_executions',
+  {
+    id: varchar('id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    runId: varchar('run_id', { length: 256 }),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('starting'),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.id] }),
+    uniqueIndex('workflow_executions_run_id_idx').on(table.runId),
+    index('workflow_executions_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+    index('workflow_executions_status_idx').on(table.status),
+  ]
+);
+
+// ============================================================================
 // GITHUB APP INSTALLATION RELATIONS
 // ============================================================================
 

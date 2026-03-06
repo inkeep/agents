@@ -32,6 +32,7 @@ const AgentSchema = z.looseObject({
       transferCountIs: z.int().optional(),
     })
     .optional(),
+  executionMode: z.enum(['classic', 'durable']).nullish(),
   statusUpdates: z
     .strictObject({
       numEvents: z.int().optional(),
@@ -292,6 +293,10 @@ function writeAgentConfig(
       name: 'transferCountIs',
       initializer: String(data.stopWhen.transferCountIs),
     });
+  }
+
+  if (data.executionMode) {
+    addStringProperty(configObject, 'executionMode', data.executionMode);
   }
 
   if (data.statusUpdates) {

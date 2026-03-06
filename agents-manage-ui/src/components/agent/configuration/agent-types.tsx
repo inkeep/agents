@@ -26,6 +26,7 @@ export type AgentMetadata = {
   contextConfig: ContextConfig;
   models?: AgentModels;
   stopWhen?: AgentStopWhen;
+  executionMode?: 'classic' | 'durable' | null;
   prompt?: string;
   statusUpdates?: StatusUpdateSettings;
 };

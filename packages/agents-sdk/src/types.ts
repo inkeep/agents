@@ -255,6 +255,7 @@ export interface AgentConfig {
   contextConfig?: any;
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: AgentStopWhen;
+  executionMode?: 'classic' | 'durable';
   prompt?: string;
   models?: {
     base?: ModelSettings;

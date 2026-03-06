@@ -58,6 +58,7 @@ export class Agent implements AgentInterface {
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
+  private executionMode?: 'classic' | 'durable';
   private triggers: TriggerInterface[] = [];
   private triggerMap: Map<string, Trigger> = new Map();
   private scheduledTriggers: ScheduledTriggerInterface[] = [];
@@ -84,6 +85,7 @@ export class Agent implements AgentInterface {
           transferCountIs: config.stopWhen.transferCountIs,
         }
       : undefined;
+    this.executionMode = config.executionMode;
     this.subAgents = resolveGetter(config.subAgents) || [];
     this.agentMap = new Map(this.subAgents.map((agent) => [agent.getId(), agent]));
 
@@ -437,6 +439,7 @@ export class Agent implements AgentInterface {
       scheduledTriggers: scheduledTriggersObject,
       models: this.models,
       stopWhen: this.stopWhen,
+      executionMode: this.executionMode,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,
       createdAt: new Date().toISOString(),

@@ -445,6 +445,18 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 
 export const AgentSelectSchema = createSelectSchema(agents);
 
+export const ExecutionModeSchema = z
+  .enum(['classic', 'durable'])
+  .optional()
+  .nullable()
+  .openapi({
+    description:
+      'Execution mode for this agent. "classic" uses the synchronous execution path. ' +
+      '"durable" uses checkpoint-based execution that survives server restarts and supports long-running tools. ' +
+      'Defaults to "classic" when not set.',
+    example: 'durable',
+  });
+
 export const AgentInsertSchema = createInsertSchema(agents, {
   id: () => ResourceIdSchema,
   name: () => NameSchema,
@@ -460,6 +472,7 @@ export const AgentInsertSchema = createInsertSchema(agents, {
           'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
         example: 'my-default-subagent',
       }),
+  executionMode: () => ExecutionModeSchema,
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 

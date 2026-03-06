@@ -21,6 +21,11 @@
             "nullable": true,
             "type": "string"
           },
+          "executionMode": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "maxLength": 256,
             "type": "string"
@@ -50,9 +55,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -89,9 +91,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -120,9 +119,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -140,6 +136,7 @@
           "statusUpdates",
           "prompt",
           "stopWhen",
+          "executionMode",
           "createdAt",
           "updatedAt"
         ],
@@ -166,6 +163,17 @@
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
+          },
+          "executionMode": {
+            "description": "Execution mode for this agent. \"classic\" uses the synchronous execution path. \"durable\" uses checkpoint-based execution that survives server restarts and supports long-running tools. Defaults to \"classic\" when not set.",
+            "enum": [
+              "classic",
+              "durable",
+              null
+            ],
+            "example": "durable",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -195,9 +203,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -233,9 +238,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -264,9 +266,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -347,6 +346,17 @@
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
+          "executionMode": {
+            "description": "Execution mode for this agent. \"classic\" uses the synchronous execution path. \"durable\" uses checkpoint-based execution that survives server restarts and supports long-running tools. Defaults to \"classic\" when not set.",
+            "enum": [
+              "classic",
+              "durable",
+              null
+            ],
+            "example": "durable",
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
@@ -375,9 +385,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -413,9 +420,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -444,9 +448,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -856,9 +857,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -887,9 +885,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -961,9 +956,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           }
@@ -1045,9 +1037,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1076,9 +1065,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1452,9 +1438,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1772,9 +1755,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1811,9 +1791,6 @@
                         "nullable": true
                       },
                       "type": "array"
-                    },
-                    {
-                      "nullable": true
                     }
                   ]
                 },
@@ -1842,9 +1819,6 @@
                         "nullable": true
                       },
                       "type": "array"
-                    },
-                    {
-                      "nullable": true
                     }
                   ]
                 },
@@ -1889,9 +1863,6 @@
                         "nullable": true
                       },
                       "type": "array"
-                    },
-                    {
-                      "nullable": true
                     }
                   ]
                 },
@@ -2210,9 +2181,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2241,9 +2209,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2318,9 +2283,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2406,9 +2368,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2526,9 +2485,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2561,9 +2517,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2592,9 +2545,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2643,9 +2593,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2674,9 +2621,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2705,9 +2649,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2750,9 +2691,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2781,9 +2719,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2812,9 +2747,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2854,9 +2786,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2889,9 +2818,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2920,9 +2846,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           }
@@ -3003,9 +2926,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3058,9 +2978,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3150,9 +3067,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3211,9 +3125,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3267,9 +3178,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3425,9 +3333,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3491,9 +3396,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3548,9 +3450,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3604,9 +3503,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3639,9 +3535,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3673,9 +3566,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3730,9 +3620,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3765,9 +3652,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3799,9 +3683,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3851,9 +3732,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3886,9 +3764,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -3920,9 +3795,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -4643,9 +4515,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -4681,9 +4550,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -4731,9 +4597,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -4768,9 +4631,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -4976,9 +4836,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -5013,9 +4870,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -5336,9 +5190,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -5497,9 +5348,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -6412,9 +6260,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -6635,7 +6480,8 @@
                 "description": "Status of the last run",
                 "enum": [
                   "completed",
-                  "failed"
+                  "failed",
+                  null
                 ],
                 "nullable": true,
                 "type": "string"
@@ -6859,14 +6705,7 @@
             "type": "string"
           },
           "metadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StringRecord"
-              },
-              {
-                "default": null
-              }
-            ]
+            "$ref": "#/components/schemas/StringRecord"
           },
           "name": {
             "maxLength": 64,
@@ -6923,14 +6762,7 @@
             "type": "string"
           },
           "metadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StringRecord"
-              },
-              {
-                "default": null
-              }
-            ]
+            "$ref": "#/components/schemas/StringRecord"
           }
         },
         "type": "object"
@@ -7056,9 +6888,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7098,9 +6927,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7137,9 +6963,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7221,9 +7044,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7273,9 +7093,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7357,9 +7174,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7507,9 +7321,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -7560,9 +7371,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           }
@@ -7920,9 +7728,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8062,9 +7867,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8097,9 +7899,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8136,9 +7935,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8311,9 +8107,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8363,9 +8156,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8513,9 +8303,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8544,9 +8331,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8591,9 +8375,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8664,9 +8445,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8819,9 +8597,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -8880,9 +8655,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -9035,9 +8807,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -9091,9 +8860,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -9142,9 +8908,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -9181,9 +8944,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -9457,9 +9217,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -9492,9 +9249,6 @@
                   "nullable": true
                 },
                 "type": "array"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -10571,9 +10325,6 @@
                             "nullable": true
                           },
                           "type": "array"
-                        },
-                        {
-                          "nullable": true
                         }
                       ]
                     },
@@ -10723,9 +10474,6 @@
                           "nullable": true
                         },
                         "type": "array"
-                      },
-                      {
-                        "nullable": true
                       }
                     ]
                   },
@@ -10770,9 +10518,6 @@
                             "nullable": true
                           },
                           "type": "array"
-                        },
-                        {
-                          "nullable": true
                         }
                       ]
                     },
@@ -38297,6 +38042,350 @@
         "summary": "Create chat completion",
         "tags": [
           "Chat"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/v1/executions": {
+      "post": {
+        "description": "Starts a durable agent execution that runs reliably with workflow orchestration.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "messages": {
+                    "items": {
+                      "properties": {
+                        "content": {
+                          "nullable": true
+                        },
+                        "parts": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "text"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "image"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": [
+                                          "file"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "type": "object"
+                              }
+                            ]
+                          },
+                          "type": "array"
+                        },
+                        "role": {
+                          "enum": [
+                            "user"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "role"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "messages"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "executionId": {
+                      "type": "string"
+                    },
+                    "runId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "executionId",
+                    "runId",
+                    "conversationId",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Execution started"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "existingExecutionId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Active execution already exists for this conversation"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Start a durable agent execution",
+        "tags": [
+          "Executions"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/v1/executions/:executionId/status": {
+      "get": {
+        "description": "Returns the current status of a durable agent execution.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "executionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "conversationId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "executionId": {
+                      "type": "string"
+                    },
+                    "runId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "executionId",
+                    "status",
+                    "runId",
+                    "conversationId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Execution status"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get execution status",
+        "tags": [
+          "Executions"
         ],
         "x-authz": {
           "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."

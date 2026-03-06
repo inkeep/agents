@@ -258,6 +258,7 @@ export const createFullAgentServerSide =
             statusUpdates: typed.statusUpdates,
             prompt: typed.prompt,
             stopWhen: typed.stopWhen,
+            executionMode: typed.executionMode,
           },
         });
         if (!agent?.id) {
@@ -312,6 +313,7 @@ export const createFullAgentServerSide =
               statusUpdates: typed.statusUpdates,
               prompt: typed.prompt,
               stopWhen: typed.stopWhen,
+              executionMode: typed.executionMode,
             },
           });
           logger.info(
@@ -954,11 +956,12 @@ export const updateFullAgentServerSide =
             name: typedAgentDefinition.name,
             defaultSubAgentId: typedAgentDefinition.defaultSubAgentId,
             description: typedAgentDefinition.description,
-            contextConfigId: undefined, // Will be updated later if context config exists
+            contextConfigId: undefined,
             models: typedAgentDefinition.models,
             statusUpdates: typedAgentDefinition.statusUpdates,
             prompt: typedAgentDefinition.prompt,
             stopWhen: typedAgentDefinition.stopWhen,
+            executionMode: typedAgentDefinition.executionMode,
           },
         });
         if (!agent?.id) {
@@ -1021,6 +1024,7 @@ export const updateFullAgentServerSide =
               statusUpdates: typedAgentDefinition.statusUpdates,
               prompt: typedAgentDefinition.prompt,
               stopWhen: typedAgentDefinition.stopWhen,
+              executionMode: typedAgentDefinition.executionMode,
             },
           });
           logger.info(
@@ -1620,6 +1624,7 @@ export const updateFullAgentServerSide =
           statusUpdates: typedAgentDefinition.statusUpdates,
           prompt: typedAgentDefinition.prompt,
           stopWhen: typedAgentDefinition.stopWhen,
+          executionMode: typedAgentDefinition.executionMode,
         },
       });
 

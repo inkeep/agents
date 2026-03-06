@@ -150,6 +150,7 @@ const initialAgentState: AgentStateData = {
     },
     models: undefined,
     stopWhen: undefined,
+    executionMode: undefined,
     prompt: undefined,
     statusUpdates: undefined,
   },
