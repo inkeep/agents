@@ -26,6 +26,7 @@ const ToolSchema = AgentWithinContextOfProjectSchema.shape.tools.unwrap().valueT
   id: true,
   name: true,
   config: true,
+  imageUrl: true,
 });
 const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
   .unwrap()
@@ -116,6 +117,11 @@ export const FullAgentFunctionSchema = z.object({
     .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
     .pipe(FunctionSchema.shape.inputSchema),
 });
+export const FullAgentToolSchema = z.object({
+  ...ToolSchema.shape,
+  // TODO or tempHeaders
+  headers: StringToStringRecordSchema.optional(),
+});
 const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
@@ -155,14 +161,7 @@ export const FullAgentUpdateSchema = z.strictObject({
       headers: StringToStringRecordSchema,
     })
   ),
-  tools: z.record(
-    z.string(),
-    z.object({
-      ...ToolSchema.shape,
-      // TODO or tempHeaders
-      headers: StringToStringRecordSchema,
-    })
-  ),
+  tools: z.record(z.string(), FullAgentToolSchema),
   mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
   stopWhen: AgentStopWhenSchema.extend({
     transferCountIs: NullToUndefinedSchema.pipe(

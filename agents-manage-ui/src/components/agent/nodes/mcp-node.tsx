@@ -73,6 +73,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     control,
     name: `mcpRelations.${relationKey}`,
   });
+  const tool = useWatch({ control, name: `tools.${data.toolId}` });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { toolLookup, agentToolConfigLookup } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
@@ -92,9 +93,6 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   // Use live data if available, fall back to skeleton
   const toolData = liveToolData ?? skeletonToolData;
-
-  const name = data.name || `Tool: ${data.toolId}`;
-  const imageUrl = data.imageUrl ?? toolData?.imageUrl;
 
   const activeTools = getActiveTools({
     availableTools: toolData?.availableTools,
@@ -185,8 +183,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     >
       {hasErrors && <ErrorIndicator errors={processedErrors} />}
       <BaseNodeHeader className="flex items-center justify-between gap-2">
-        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
-        <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
+        <MCPToolImage imageUrl={tool.imageUrl} name={tool.name} size={24} className="shrink-0" />
+        <BaseNodeHeaderTitle>{tool.name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
       <BaseNodeContent className="flex-row gap-2 flex-wrap">
         {isConnecting ? (

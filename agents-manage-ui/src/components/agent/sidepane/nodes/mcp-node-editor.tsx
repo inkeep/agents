@@ -32,6 +32,8 @@ import {
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import { SchemaOverrideBadge } from './schema-override-badge';
+import { isRequired } from '@/lib/utils';
+import { FullAgentToolSchema } from '@/components/agent/form/validation';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
@@ -108,16 +110,16 @@ export function MCPServerNodeEditor({
     );
   }, [selectedNode.id]);
 
-  const availableTools = toolData?.availableTools;
+  const { availableTools } = toolData;
   const toolOverrides =
-    toolData?.config && toolData.config.type === 'mcp'
+    toolData.config && toolData.config.type === 'mcp'
       ? toolData.config.mcp.toolOverrides
       : undefined;
 
   const activeTools = getActiveTools({
     availableTools: availableTools,
     activeTools:
-      toolData?.config && toolData.config.type === 'mcp'
+      toolData.config && toolData.config.type === 'mcp'
         ? toolData.config.mcp.activeTools
         : undefined,
   });
@@ -143,9 +145,7 @@ export function MCPServerNodeEditor({
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
-  if (!tool) {
-    return;
-  }
+
   // Handle missing tool data
   if (!toolData) {
     return (
@@ -234,20 +234,12 @@ export function MCPServerNodeEditor({
 
   return (
     <div className="space-y-8">
-      {toolData?.imageUrl && (
-        <div className="flex items-center gap-2">
-          <MCPToolImage
-            imageUrl={toolData.imageUrl}
-            name={toolData.name}
-            size={32}
-            className="rounded-lg"
-          />
-          <span className="font-medium text-sm truncate">{toolData.name}</span>
-        </div>
-      )}
-
+      <div className="flex items-center gap-2 text-sm">
+        <MCPToolImage imageUrl={tool.imageUrl} name={tool.name} size={32} className="rounded-lg" />
+        <b className="truncate">{tool.name}</b>
+      </div>
       {/* Warning banner for needs_auth status */}
-      {toolData?.status === 'needs_auth' && (
+      {toolData.status === 'needs_auth' && (
         <Alert className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 [&>svg]:text-amber-600">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle className="text-foreground">Authentication Required</AlertTitle>
@@ -264,24 +256,28 @@ export function MCPServerNodeEditor({
           </AlertDescription>
         </Alert>
       )}
-
-      <GenericInput control={form.control} name={path('id')} label="Id" disabled isRequired />
-
+      <GenericInput
+        control={form.control}
+        name={path('id')}
+        label="Id"
+        disabled
+        isRequired={isRequired(FullAgentToolSchema, 'id')}
+      />
       <GenericInput
         control={form.control}
         name={path('name')}
         label="Name"
         placeholder="MCP server"
         disabled
-        isRequired
+        isRequired={isRequired(FullAgentToolSchema, 'name')}
       />
-
       <GenericInput
         control={form.control}
         name={path('config.mcp.server.url')}
         label="URL"
         placeholder="https://mcp.inkeep.com"
         disabled
+        isRequired={isRequired(FullAgentToolSchema, 'config.mcp.server.url')}
       />
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
@@ -498,15 +494,14 @@ export function MCPServerNodeEditor({
           </div>
         )}
       </div>
-
       <GenericJsonEditor
         control={form.control}
         name={path('headers')}
         label="Headers"
         placeholder={headersTemplate}
         customTemplate={headersTemplate}
+        isRequired={isRequired(FullAgentToolSchema, 'headers')}
       />
-
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}
       >
