@@ -1852,7 +1852,6 @@ export const WebClientConfigSchema = z
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(z.string().min(1)).min(1),
-      captchaEnabled: z.boolean().default(false),
     }),
   })
   .openapi('WebClientConfig');
@@ -1873,7 +1872,6 @@ export const WebClientConfigResponseSchema = z
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(z.string().min(1)).min(1),
-      captchaEnabled: z.boolean(),
     }),
   })
   .openapi('WebClientConfigResponse');

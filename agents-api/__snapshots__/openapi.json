@@ -10382,10 +10382,6 @@
                 },
                 "minItems": 1,
                 "type": "array"
-              },
-              "captchaEnabled": {
-                "default": false,
-                "type": "boolean"
               }
             },
             "required": [
@@ -10417,14 +10413,10 @@
                 },
                 "minItems": 1,
                 "type": "array"
-              },
-              "captchaEnabled": {
-                "type": "boolean"
               }
             },
             "required": [
-              "allowedDomains",
-              "captchaEnabled"
+              "allowedDomains"
             ],
             "type": "object"
           }
