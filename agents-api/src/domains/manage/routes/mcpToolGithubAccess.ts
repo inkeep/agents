@@ -145,8 +145,11 @@ app.openapi(
     }
 
     // mode === 'selected': get the specific repositories
-    const repositoriesWithDetails =
-      await getMcpToolRepositoryAccessWithDetails(runDbClient)({ tenantId, projectId, toolId });
+    const repositoriesWithDetails = await getMcpToolRepositoryAccessWithDetails(runDbClient)({
+      tenantId,
+      projectId,
+      toolId,
+    });
 
     logger.info(
       { tenantId, projectId, toolId, repositoryCount: repositoriesWithDetails.length },

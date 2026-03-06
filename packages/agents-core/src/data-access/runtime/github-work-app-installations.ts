@@ -909,9 +909,11 @@ export const getMcpToolRepositoryAccess =
  */
 export const getMcpToolRepositoryAccessWithDetails =
   (db: AgentsRunDatabaseClient) =>
-  async (
-    scope: { tenantId: string; projectId: string; toolId: string }
-  ): Promise<
+  async (scope: {
+    tenantId: string;
+    projectId: string;
+    toolId: string;
+  }): Promise<
     (WorkAppGitHubRepositorySelect & {
       accessId: string;
       installationAccountLogin: string;
@@ -929,7 +931,7 @@ export const getMcpToolRepositoryAccessWithDetails =
         and(
           eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
           eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId)
         )
       )
       .limit(1);
@@ -1119,7 +1121,11 @@ export const setMcpToolAccessMode =
  */
 export const getMcpToolAccessMode =
   (db: AgentsRunDatabaseClient) =>
-  async (scope: { tenantId: string; projectId: string; toolId: string }): Promise<WorkAppGitHubAccessMode> => {
+  async (scope: {
+    tenantId: string;
+    projectId: string;
+    toolId: string;
+  }): Promise<WorkAppGitHubAccessMode> => {
     const result = await db
       .select({ mode: workAppGitHubMcpToolAccessMode.mode })
       .from(workAppGitHubMcpToolAccessMode)
@@ -1127,7 +1133,7 @@ export const getMcpToolAccessMode =
         and(
           eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
           eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId)
         )
       )
       .limit(1);
@@ -1148,7 +1154,7 @@ export const deleteMcpToolAccessMode =
         and(
           eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
           eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId)
         )
       )
       .returning();
