@@ -15,13 +15,13 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   const toolLookup = useAgentStore((state) => state.toolLookup);
   const tools = Object.values(toolLookup);
 
-  function handleSelect(mcp: MCPTool) {
+  function handleSelect(data: MCPTool) {
     form.setValue(
-      `tools.${mcp.id}`,
+      `tools.${data.id}`,
       {
-        id: mcp.id,
-        name: mcp.name,
-        config: mcp.config,
+        id: data.id,
+        name: data.name,
+        config: data.config,
       },
       { shouldDirty: true }
     );
@@ -29,7 +29,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
       data: {
-        toolId: mcp.id,
+        toolId: data.id,
         subAgentId: null,
         relationshipId: null,
       },
