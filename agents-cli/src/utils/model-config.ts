@@ -87,12 +87,12 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     { label: 'Claude Sonnet 4.6', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_6 },
     { label: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
     { label: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
-    { label: 'Claude 3.7 Sonnet', value: ANTHROPIC_MODELS.CLAUDE_3_7_SONNET },
-    { label: 'Claude 3.5 Sonnet', value: ANTHROPIC_MODELS.CLAUDE_3_5_SONNET },
+    { label: 'Claude 3.7 Sonnet', value: ANTHROPIC_MODELS.CLAUDE_3_7_SONNET, hint: 'legacy' },
+    { label: 'Claude 3.5 Sonnet', value: ANTHROPIC_MODELS.CLAUDE_3_5_SONNET, hint: 'legacy' },
     { label: 'Claude Haiku 4.5', value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5 },
     { label: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU },
-    { label: 'Claude 3 Opus', value: ANTHROPIC_MODELS.CLAUDE_3_OPUS },
-    { label: 'Claude 3 Haiku', value: ANTHROPIC_MODELS.CLAUDE_3_HAIKU },
+    { label: 'Claude 3 Opus', value: ANTHROPIC_MODELS.CLAUDE_3_OPUS, hint: 'legacy' },
+    { label: 'Claude 3 Haiku', value: ANTHROPIC_MODELS.CLAUDE_3_HAIKU, hint: 'legacy' },
   ];
 
   const openaiModels = [
@@ -113,18 +113,18 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     { label: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI },
     { label: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO },
     { label: 'o4-mini', value: OPENAI_MODELS.O4_MINI },
-    { label: 'o3-pro', value: OPENAI_MODELS.O3_PRO },
-    { label: 'o3', value: OPENAI_MODELS.O3 },
-    { label: 'o3-mini', value: OPENAI_MODELS.O3_MINI },
-    { label: 'o1', value: OPENAI_MODELS.O1 },
+    { label: 'o3-pro', value: OPENAI_MODELS.O3_PRO, hint: 'legacy' },
+    { label: 'o3', value: OPENAI_MODELS.O3, hint: 'legacy' },
+    { label: 'o3-mini', value: OPENAI_MODELS.O3_MINI, hint: 'legacy' },
+    { label: 'o1', value: OPENAI_MODELS.O1, hint: 'legacy' },
     { label: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
     { label: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
     { label: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO },
-    { label: 'GPT-4o', value: OPENAI_MODELS.GPT_4O },
-    { label: 'GPT-4o Mini', value: OPENAI_MODELS.GPT_4O_MINI },
-    { label: 'GPT-4 Turbo', value: OPENAI_MODELS.GPT_4_TURBO },
-    { label: 'GPT-3.5 Turbo', value: OPENAI_MODELS.GPT_3_5_TURBO },
-    { label: 'Codex Mini', value: OPENAI_MODELS.CODEX_MINI },
+    { label: 'GPT-4o', value: OPENAI_MODELS.GPT_4O, hint: 'legacy' },
+    { label: 'GPT-4o Mini', value: OPENAI_MODELS.GPT_4O_MINI, hint: 'legacy' },
+    { label: 'GPT-4 Turbo', value: OPENAI_MODELS.GPT_4_TURBO, hint: 'legacy' },
+    { label: 'GPT-3.5 Turbo', value: OPENAI_MODELS.GPT_3_5_TURBO, hint: 'legacy' },
+    { label: 'Codex Mini', value: OPENAI_MODELS.CODEX_MINI, hint: 'legacy' },
   ];
 
   const googleModels = [
@@ -135,8 +135,8 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     { label: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
     { label: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },
     { label: 'Gemini 2.5 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE },
-    { label: 'Gemini 2.0 Flash', value: GOOGLE_MODELS.GEMINI_2_0_FLASH },
-    { label: 'Gemini 2.0 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_0_FLASH_LITE },
+    { label: 'Gemini 2.0 Flash', value: GOOGLE_MODELS.GEMINI_2_0_FLASH, hint: 'legacy' },
+    { label: 'Gemini 2.0 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_0_FLASH_LITE, hint: 'legacy' },
   ];
 
   // Handle Azure configuration if selected

@@ -47,28 +47,12 @@ export const modelOptions = {
       label: 'Claude Sonnet 4',
     },
     {
-      value: ANTHROPIC_MODELS.CLAUDE_3_7_SONNET,
-      label: 'Claude 3.7 Sonnet',
-    },
-    {
-      value: ANTHROPIC_MODELS.CLAUDE_3_5_SONNET,
-      label: 'Claude 3.5 Sonnet',
-    },
-    {
       value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5,
       label: 'Claude Haiku 4.5',
     },
     {
       value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU,
       label: 'Claude Haiku 3.5',
-    },
-    {
-      value: ANTHROPIC_MODELS.CLAUDE_3_OPUS,
-      label: 'Claude 3 Opus',
-    },
-    {
-      value: ANTHROPIC_MODELS.CLAUDE_3_HAIKU,
-      label: 'Claude 3 Haiku',
     },
   ],
   openai: [
@@ -141,22 +125,6 @@ export const modelOptions = {
       label: 'o4-mini',
     },
     {
-      value: OPENAI_MODELS.O3_PRO,
-      label: 'o3-pro',
-    },
-    {
-      value: OPENAI_MODELS.O3,
-      label: 'o3',
-    },
-    {
-      value: OPENAI_MODELS.O3_MINI,
-      label: 'o3-mini',
-    },
-    {
-      value: OPENAI_MODELS.O1,
-      label: 'o1',
-    },
-    {
       value: OPENAI_MODELS.GPT_4_1,
       label: 'GPT-4.1',
     },
@@ -167,26 +135,6 @@ export const modelOptions = {
     {
       value: OPENAI_MODELS.GPT_4_1_NANO,
       label: 'GPT-4.1 Nano',
-    },
-    {
-      value: OPENAI_MODELS.GPT_4O,
-      label: 'GPT-4o',
-    },
-    {
-      value: OPENAI_MODELS.GPT_4O_MINI,
-      label: 'GPT-4o Mini',
-    },
-    {
-      value: OPENAI_MODELS.GPT_4_TURBO,
-      label: 'GPT-4 Turbo',
-    },
-    {
-      value: OPENAI_MODELS.GPT_3_5_TURBO,
-      label: 'GPT-3.5 Turbo',
-    },
-    {
-      value: OPENAI_MODELS.CODEX_MINI,
-      label: 'Codex Mini',
     },
   ],
   google: [
@@ -218,6 +166,64 @@ export const modelOptions = {
       value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
       label: 'Gemini 2.5 Flash Lite',
     },
+  ],
+  'anthropic (legacy)': [
+    {
+      value: ANTHROPIC_MODELS.CLAUDE_3_7_SONNET,
+      label: 'Claude 3.7 Sonnet',
+    },
+    {
+      value: ANTHROPIC_MODELS.CLAUDE_3_5_SONNET,
+      label: 'Claude 3.5 Sonnet',
+    },
+    {
+      value: ANTHROPIC_MODELS.CLAUDE_3_OPUS,
+      label: 'Claude 3 Opus',
+    },
+    {
+      value: ANTHROPIC_MODELS.CLAUDE_3_HAIKU,
+      label: 'Claude 3 Haiku',
+    },
+  ],
+  'openai (legacy)': [
+    {
+      value: OPENAI_MODELS.GPT_4O,
+      label: 'GPT-4o',
+    },
+    {
+      value: OPENAI_MODELS.GPT_4O_MINI,
+      label: 'GPT-4o Mini',
+    },
+    {
+      value: OPENAI_MODELS.GPT_4_TURBO,
+      label: 'GPT-4 Turbo',
+    },
+    {
+      value: OPENAI_MODELS.GPT_3_5_TURBO,
+      label: 'GPT-3.5 Turbo',
+    },
+    {
+      value: OPENAI_MODELS.CODEX_MINI,
+      label: 'Codex Mini',
+    },
+    {
+      value: OPENAI_MODELS.O3_PRO,
+      label: 'o3-pro',
+    },
+    {
+      value: OPENAI_MODELS.O3,
+      label: 'o3',
+    },
+    {
+      value: OPENAI_MODELS.O3_MINI,
+      label: 'o3-mini',
+    },
+    {
+      value: OPENAI_MODELS.O1,
+      label: 'o1',
+    },
+  ],
+  'google (legacy)': [
     {
       value: GOOGLE_MODELS.GEMINI_2_0_FLASH,
       label: 'Gemini 2.0 Flash',
