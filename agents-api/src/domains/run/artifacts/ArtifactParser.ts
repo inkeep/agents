@@ -497,7 +497,10 @@ export class ArtifactParser {
             parts.push(this.buildArtifactDataPart(createData));
           }
         } else {
-          parts.push({ kind: 'data', data: component });
+          const cleanProps = Object.fromEntries(
+            Object.entries(component.props ?? {}).filter(([, v]) => v !== null)
+          );
+          parts.push({ kind: 'data', data: { ...component, props: cleanProps } });
         }
       }
 

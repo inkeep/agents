@@ -238,11 +238,18 @@ export class SchemaProcessor {
     const normalized: any = { ...schema };
 
     if (normalized.properties && typeof normalized.properties === 'object') {
+      const originalRequired: string[] = Array.isArray(normalized.required)
+        ? normalized.required
+        : [];
       normalized.required = Object.keys(normalized.properties);
 
       const normalizedProperties: any = {};
       for (const [key, value] of Object.entries(normalized.properties)) {
-        normalizedProperties[key] = SchemaProcessor.makeAllPropertiesRequired(value as any);
+        const prop = value as Record<string, unknown>;
+        const processed = SchemaProcessor.makeAllPropertiesRequired(prop);
+        normalizedProperties[key] = originalRequired.includes(key)
+          ? processed
+          : { anyOf: [processed, { type: 'null' }] };
       }
       normalized.properties = normalizedProperties;
     }
@@ -284,13 +291,12 @@ export class SchemaProcessor {
       if (!obj || typeof obj !== 'object') return obj;
 
       if (obj.type === 'array') {
-        const _itemDescription = obj.items?.description || 'array items';
+        const itemDescription = obj.items?.description || 'array items';
         const arrayDescription = obj.description || 'array data';
-        const _isContentField = path.includes('content');
 
         return {
           type: 'string',
-          description: `🎯 ARRAY SELECTOR: Provide JMESPath selector for ${arrayDescription}. RELATIVE to base selector - this will be applied to the item selected by base_selector. Example: "content.blocks" or "items" (NOT absolute paths like "result.content.blocks")`,
+          description: `🎯 ARRAY SELECTOR: Provide JMESPath selector for ${arrayDescription} (each item: ${itemDescription}). RELATIVE to base selector - this will be applied to the item selected by base_selector. Example: "items" or "nested.array" (NOT absolute paths like "result.content.blocks")`,
         };
       }
 
