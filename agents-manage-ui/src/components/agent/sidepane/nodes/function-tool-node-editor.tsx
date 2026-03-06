@@ -23,6 +23,11 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
+import {
+  FullAgentFunctionSchema,
+  FullAgentFunctionToolSchema,
+} from '@/components/agent/form/validation';
+import { isRequired } from '@/lib/utils';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
@@ -66,13 +71,14 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         name={path('name')}
         label="Name"
         placeholder="Enter function tool name..."
-        isRequired
+        isRequired={isRequired(FullAgentFunctionToolSchema, 'name')}
       />
       <GenericTextarea
         control={form.control}
         name={path('description')}
         label="Description"
         placeholder="Enter function tool description..."
+        isRequired={isRequired(FullAgentFunctionToolSchema, 'description')}
       />
       <GenericCodeEditor
         control={form.control}
@@ -86,7 +92,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     data: result
   };
 }`}
-        isRequired
+        isRequired={isRequired(FullAgentFunctionSchema, 'executeCode')}
         actions={
           canWriteWithAI ? (
             <Button
@@ -157,7 +163,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   "required": ["param1"]
 }`}
         description="JSON schema defining the parameters that the function will receive. This defines the structure and validation rules for the function's input arguments."
-        isRequired
+        isRequired={isRequired(FullAgentFunctionSchema, 'inputSchema')}
       />
       <GenericJsonEditor
         control={form.control}
@@ -168,6 +174,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   "lodash": "^4.17.21"
 }`}
         description="External npm packages that the function code requires. These packages will be installed before executing the function."
+        isRequired={isRequired(FullAgentFunctionSchema, 'dependencies')}
       />
       <GenericCheckbox
         control={form.control}
@@ -187,6 +194,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
             </a>
           </>
         }
+        isRequired={isRequired(FullAgentFunctionToolSchema, 'tempToolPolicies')}
       />
       {canEdit && (
         <>
