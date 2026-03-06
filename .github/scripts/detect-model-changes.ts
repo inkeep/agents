@@ -263,7 +263,13 @@ Create \`.changeset/add-models-${today}-${slug}.md\` with the following structur
 
 Add new models: <comma-separated list of provider/model-id added>. Remove from UI: <comma-separated list of any pruned UI entries, or omit this sentence if none removed>
 
-## Step 5: Commit, push, and open PR
+## Step 5: Verify
+Run these in order and fix any issues before committing:
+1. \`pnpm format\` — auto-fixes formatting
+2. \`pnpm typecheck\` — confirms no type errors
+3. \`pnpm lint\` — confirms no lint errors
+
+## Step 6: Commit, push, and open PR
 1. git add all changed files (source files + the changeset)
 2. git commit -m "chore: add new models [model-sync]"
 3. git push --set-upstream origin $(git branch --show-current)
