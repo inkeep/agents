@@ -6,7 +6,7 @@ import { SelectedComponents } from '@/components/agent/sidepane/nodes/component-
 import { FormFieldWrapper } from './form-field-wrapper';
 import type { SelectOption } from './generic-select';
 
-interface MultiSelectFieldProps<FV extends FieldValues, TV = FieldValues> {
+interface MultiSelectFieldProps<FV extends FieldValues, TV extends FieldValues = FieldValues> {
   control: Control<FV, unknown, TV>;
   name: FieldPath<FV>;
   label: string;
@@ -15,7 +15,7 @@ interface MultiSelectFieldProps<FV extends FieldValues, TV = FieldValues> {
   commandInputPlaceholder?: string;
 }
 
-export function MultiSelectField<FV extends FieldValues, TV = FieldValues>({
+export function MultiSelectField<FV extends FieldValues, TV extends FieldValues = FieldValues>({
   control,
   name,
   label,
