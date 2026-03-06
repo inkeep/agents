@@ -33,7 +33,7 @@ The Slack MCP tool requires an installed Slack workspace. Follow the [installati
     | Setting | Description |
     |---------|-------------|
     | **Channel access mode** | **All channels** — the agent can post to any channel where the bot is a member. **Selected channels** — restrict the agent to specific channels. |
-    | **DM enabled** | Whether the agent can send direct messages. Disabled by default. |
+    | **DM enabled** | Whether the agent can send direct messages. Enabled by default. |
     | **Selected channels** | When using "Selected channels" mode, pick from the list of channels where the Inkeep bot is a member. |
 
     Channel access and DM access are independent — you can allow all channels but disable DMs, or allow selected channels and also enable DMs.
@@ -47,19 +47,31 @@ The Slack MCP tool requires an installed Slack workspace. Follow the [installati
 
 ## Available tools
 
-The Slack MCP server exposes the following tool:
+The Slack MCP server exposes the following tools:
 
-### `post-message`
+### `post-channel-message`
 
-Posts a message to a Slack channel or DM.
+Posts a message to a Slack channel.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `channel` | string | Yes | Channel ID (e.g., `C1234567890`), channel name with `#` prefix (e.g., `#general`), or DM channel ID (starts with `D`). |
+| `channel` | string | Yes | Channel ID (e.g., `C1234567890`) or channel name with `#` prefix (e.g., `#general`). |
 | `text` | string | Yes | Message text. Supports [Slack mrkdwn formatting](https://api.slack.com/reference/surfaces/formatting). |
 | `thread_ts` | string | No | Thread timestamp to reply in a thread. If omitted, posts as a new message. |
 
 When a channel name is provided (e.g., `#general`), it is automatically resolved to the channel ID via the Slack API.
+
+### `post-direct-message`
+
+Sends a direct message to a Slack user.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user` | string | Yes | User ID or user mention (e.g., `U1234567890` or `@username`). |
+| `text` | string | Yes | Message text. Supports [Slack mrkdwn formatting](https://api.slack.com/reference/surfaces/formatting). |
+| `thread_ts` | string | No | Thread timestamp to reply in a thread. If omitted, posts as a new message. |
+
+The agent knows how to send DMs and mention users out of the box — no additional prompting or configuration is required.
 
 ## Edit channel access
 
