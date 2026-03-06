@@ -63,6 +63,22 @@ async function fetchGatewayModels(): Promise<
   if (!Array.isArray(json.data)) {
     throw new Error(`Unexpected response format from Vercel AI Gateway: 'data' is not an array`);
   }
+  const EXCLUDED_KEYWORDS = [
+    'instruct',
+    'embedding',
+    'tts',
+    'whisper',
+    'dall-e',
+    'moderation',
+    'realtime',
+    'audio',
+    'search-preview',
+    'deep-research',
+    'safeguard',
+    'instant',
+  ];
+  const EXCLUDED_SUFFIXES = ['-chat', '-image', '-image-preview'];
+
   return json.data
     .filter((m) => {
       const slashIndex = m.id.indexOf('/');
@@ -70,7 +86,8 @@ async function fetchGatewayModels(): Promise<
       if (!TRACKED_PROVIDERS.has(m.id.slice(0, slashIndex))) return false;
       if (m.type !== 'language') return false;
       const rawId = m.id.slice(slashIndex + 1);
-      if (rawId.endsWith('-chat')) return false;
+      if (EXCLUDED_SUFFIXES.some((s) => rawId.endsWith(s))) return false;
+      if (EXCLUDED_KEYWORDS.some((k) => rawId.includes(k))) return false;
       if (rawId.includes('-oss-') || rawId.startsWith('oss-')) return false;
       return true;
     })
@@ -191,54 +208,34 @@ ${modelList}
 - When pushing, always use: git push --set-upstream origin $(git branch --show-current)
 - Use a single commit with message: "chore: add new models [model-sync]"
 
-## Step 1: Research model generations
-Before touching any files, use WebSearch to research each provider's model history and the new models listed above.
+## Step 1: Research deprecation status
+Before touching any files, use WebSearch to research each new model listed above. For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
 
-A new "era" is defined by a significant capability leap — a mid-generation release with a meaningfully new architecture, substantially better benchmarks, or a new modality counts as its own era, even if the version number is a minor bump.
-
-Use the following as your starting baseline. Use WebSearch to verify and extend with any newer eras:
-
-| Provider | Known eras (oldest → newest) |
-|---|---|
-| Anthropic | Claude 3 → Claude 3.5 (own era — significant leap) → Claude 4 → … |
-| OpenAI | GPT-4 → GPT-4o (own era — significant leap) → GPT-5 → … |
-| Google | Gemini 1 → Gemini 1.5 (own era — significant leap) → Gemini 2 → … |
-
-For each provider with new models, confirm:
-- Which era the new model(s) belong to
-- Which era is one back from the current
-- Which existing UI entries are now two or more eras behind and should be pruned
-
-**Output your era classification in the PR body** so reviewers can verify the pruning decisions before merge.
-
-**If you cannot determine clear era boundaries from your research, default to adding all new models as FULL tier and skip era pruning for this run. Note this in the PR body.**
+If you cannot determine deprecation status for a model, treat it as CONSTANTS-ONLY (not FULL). Note this in the PR body.
 
 ## Step 2: Read the files first
-Before editing anything, read all 3 target files so you follow their exact patterns and conventions:
+Before editing anything, read all 3 target files so you understand their exact patterns and conventions:
 - \`packages/agents-core/src/constants/models.ts\`
 - \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
 - \`agents-cli/src/utils/model-config.ts\`
 
-## Step 3: Update the 3 files
+## Step 3: Classify and update the 3 files
 
-First, classify each new model using the era research from Step 1 and these rules:
+Every model in the list must be added to \`models.ts\` — this keeps the constants exhaustive and prevents re-detection on future sync runs. The only question is whether a model also goes into the UI and CLI.
 
-SKIP entirely (do not add anywhere) if the model ID contains: instruct, embedding, tts, whisper, dall-e, moderation, realtime, audio, search-preview, deep-research, safeguard, oss, instant
-SKIP entirely if the ID ends in "-chat", "-image", or "-image-preview"
-If uncertain, skip entirely
+Assign each model a tier:
 
-For models that pass the skip check, assign a tier:
-
-**CONSTANTS-ONLY** — add to \`models.ts\` only, skip the UI and CLI:
-- Any model that is not in the current capability era (one era back or older)
-- Any model with a date suffix or date-stamped snapshot (e.g. claude-3-5-sonnet-20240620, gpt-5-2025-08-07) — useful as pinnable constants but should not appear in the UI picker
+**CONSTANTS-ONLY** — add to \`models.ts\` only:
+- Models with a deprecation announcement from their provider
+- Models with a date suffix or date-stamped snapshot (e.g. claude-3-5-sonnet-20240620, gpt-5-2025-08-07)
+- Models whose deprecation status could not be determined
 
 **FULL** — add to \`models.ts\`, the UI, and the CLI:
-- Models in the current capability era without a date suffix
-- One specialty model **per provider** per category (reasoning/thinking, code generation) — the most capable/latest for that provider only
+- Active (non-deprecated) models without a date suffix
+- For specialty categories (reasoning/thinking, code generation): one model **per provider** — the most capable/latest only
 
 ### \`packages/agents-core/src/constants/models.ts\`
-- Add all non-skipped models (both CONSTANTS-ONLY and FULL tiers)
+- Add every model (both CONSTANTS-ONLY and FULL)
 - Key naming: SCREAMING_SNAKE_CASE — dots and dashes both become underscores (claude-sonnet-4-6 → CLAUDE_SONNET_4_6, gpt-5.2 → GPT_5_2)
 - Value format: always 'provider/model-id' (Anthropic uses dashes, OpenAI and Google use dots in the model ID)
 - NEVER modify or remove existing entries — constants are exhaustive and permanent, and serve as the comparison baseline for future sync runs
@@ -247,11 +244,11 @@ For models that pass the skip check, assign a tier:
 - Add only **FULL** tier models
 - Human-readable label matching existing style: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash'
 - Order: newest first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Nano/Mini)
-- **Era pruning**: after adding, remove existing UI entries that are now two or more eras behind the current era (per your Step 1 research). Keep current era + one era back only.
-- **Specialty pruning**: per provider, per category (reasoning, code gen), keep only the single most capable entry
+- Remove any existing entries that have a deprecation announcement from their provider
+- Per provider per category (reasoning, code gen), keep only the single most capable entry — remove older ones when a newer one is added
 
 ### \`agents-cli/src/utils/model-config.ts\`
-- Same rules as the UI — FULL tier only, same era pruning and specialty pruning
+- Same rules as the UI above
 
 ## Step 4: Create changeset
 Create \`.changeset/add-models-${today}-${slug}.md\` with the following structure. For the description line, list models added and any removed from the UI due to pruning:
@@ -276,7 +273,7 @@ Run these in order and fix any issues before committing:
 4. Create a PR targeting main with:
    - Title: "chore: add new models from provider APIs [model-sync]"
    - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
-   - Body: include (1) era classification per provider used to make decisions, (2) models added, (3) models removed from UI/CLI due to era/specialty pruning, (4) which files were updated`;
+   - Body: include a markdown table summarizing every model processed, with columns: Model | Provider | Legacy? (yes if deprecation announced, no if active) | Added to Constants | Added to UI. Also list any models removed from the UI due to deprecation pruning or specialty pruning.`;
 
   setOutput('has_changes', 'true');
   setOutput('prompt', prompt);
