@@ -7,7 +7,7 @@ CREATE TABLE "work_app_slack_mcp_tool_access_config" (
 	"channel_ids" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "work_app_slack_mcp_tool_access_config_tool_id_pk" PRIMARY KEY("tool_id")
+	CONSTRAINT "work_app_slack_mcp_tool_access_config_tenant_id_project_id_tool_id_pk" PRIMARY KEY("tenant_id","project_id","tool_id")
 );
 --> statement-breakpoint
 ALTER TABLE "work_app_slack_mcp_tool_access_config" ADD CONSTRAINT "work_app_slack_mcp_tool_access_config_tenant_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

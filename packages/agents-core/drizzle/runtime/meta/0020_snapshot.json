@@ -1,5 +1,5 @@
 {
-  "id": "bbc7bc82-861d-41ca-a32b-a059397ef782",
+  "id": "876a9314-fb24-4607-85ce-4bee15878873",
   "prevId": "f40cc2f8-4ef5-4d52-8141-b200e08bfa83",
   "version": "7",
   "dialect": "postgresql",
@@ -3635,9 +3635,11 @@
         }
       },
       "compositePrimaryKeys": {
-        "work_app_slack_mcp_tool_access_config_tool_id_pk": {
-          "name": "work_app_slack_mcp_tool_access_config_tool_id_pk",
+        "work_app_slack_mcp_tool_access_config_tenant_id_project_id_tool_id_pk": {
+          "name": "work_app_slack_mcp_tool_access_config_tenant_id_project_id_tool_id_pk",
           "columns": [
+            "tenant_id",
+            "project_id",
             "tool_id"
           ]
         }

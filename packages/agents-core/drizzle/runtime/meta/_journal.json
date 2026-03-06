@@ -145,15 +145,8 @@
     {
       "idx": 20,
       "version": "7",
-      "when": 1772726569798,
-      "tag": "0020_charming_mauler",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1772821875054,
-      "tag": "0021_gorgeous_absorbing_man",
+      "when": 1772824938149,
+      "tag": "0020_tiny_killmonger",
       "breakpoints": true
     }
   ]
