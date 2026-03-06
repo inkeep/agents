@@ -56,6 +56,11 @@ function buildDelegateTools(delegateRelations: SubAgentRelationInfo[]): ToolSet 
       inputSchema: z.object({
         message: z.string().describe('The task or question to delegate'),
       }),
+      execute: async ({ message }) => ({
+        __approvalRequired: true,
+        targetSubAgentId: relation.id,
+        message,
+      }),
     }) as ToolSet[string];
   }
   return tools;
@@ -171,8 +176,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         ...(hasTools ? { tools: allTools } : {}),
       });
 
-      const delegateToolNames = new Set(Object.keys(delegateRelationMap));
-
       const result = await agent.stream({
         messages: currentMessages,
         writable,
@@ -181,8 +184,11 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         stopWhen: ({ steps }) => {
           const last = steps.at(-1);
           if (!last) return false;
-          const calls = (last as any).toolCalls as Array<{ toolName: string }> | undefined;
-          return calls?.some((tc) => delegateToolNames.has(tc.toolName)) ?? false;
+          const results = (last as any).toolResults as Array<{ result?: unknown }> | undefined;
+          return results?.some((tr) => {
+            const r = tr.result as Record<string, unknown> | undefined;
+            return r && r.__approvalRequired === true;
+          }) ?? false;
         },
       });
 
@@ -224,13 +230,26 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       }
 
       const lastStep = result.steps.at(-1);
-      const toolCalls = (lastStep as any)?.toolCalls as
-        | Array<{ toolCallId: string; toolName: string; args: Record<string, unknown> }>
+      const toolResults = (lastStep as any)?.toolResults as
+        | Array<{ toolCallId: string; toolName: string; args: Record<string, unknown>; result?: unknown }>
         | undefined;
-      const pendingDelegateCall = toolCalls?.find((tc) => tc.toolName in delegateRelationMap);
+      const pendingApproval = toolResults?.find((tr) => {
+        const r = tr.result as Record<string, unknown> | undefined;
+        return r && r.__approvalRequired === true;
+      });
+      const pendingDelegateCall = pendingApproval
+        ? {
+            toolCallId: pendingApproval.toolCallId,
+            toolName: pendingApproval.toolName,
+            args: { message: (pendingApproval.result as any)?.message as string },
+          }
+        : undefined;
 
-      if (pendingDelegateCall) {
-        const relation = delegateRelationMap[pendingDelegateCall.toolName];
+      if (pendingDelegateCall && pendingApproval) {
+        const relation = delegateRelationMap[pendingDelegateCall.toolName] || {
+          id: (pendingApproval.result as any)?.targetSubAgentId,
+          name: pendingDelegateCall.toolName,
+        };
         const token = `approval-${executionId}-${iteration}-${pendingDelegateCall.toolCallId}`;
 
         const hook = toolApprovalHook.create({ token });
