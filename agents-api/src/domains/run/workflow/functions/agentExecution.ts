@@ -1,4 +1,6 @@
 import { type ModelMessage, type ToolSet, tool, type UIMessageChunk } from 'ai';
+import { DurableAgent } from '@workflow/ai/agent';
+import { anthropic } from '@workflow/ai/anthropic';
 import { defineHook, getWorkflowMetadata, getWritable } from 'workflow';
 import { z } from 'zod';
 import {
@@ -144,8 +146,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       conversationId,
     });
 
-    const { DurableAgent } = await import('@workflow/ai/agent');
-    const { anthropic } = await import('@workflow/ai/anthropic');
+    
 
     let currentConfig: AgentConfigResult = initialConfig;
     let currentSubAgentId = initialConfig.defaultSubAgentId ?? agentId;
