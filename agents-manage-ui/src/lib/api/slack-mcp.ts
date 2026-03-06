@@ -12,13 +12,6 @@ export interface SlackMcpAccessConfig {
   channelIds: string[];
 }
 
-export interface SlackChannel {
-  id: string;
-  name: string;
-  isPrivate: boolean;
-  memberCount?: number;
-}
-
 async function $getSlackMcpToolAccess(
   tenantId: string,
   projectId: string,
