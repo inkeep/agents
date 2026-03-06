@@ -2,7 +2,6 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
-import { useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -16,6 +15,8 @@ import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
+import { isRequired } from '@/lib/utils';
+import { FullAgentTeamAgentSchema } from '@/components/agent/form/validation';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
@@ -31,7 +32,6 @@ export function TeamAgentNodeEditor({
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.id;
-  const teamAgent = useWatch({ control: form.control, name: `teamAgents.${id}` });
 
   const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
 
@@ -51,10 +51,6 @@ export function TeamAgentNodeEditor({
     form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
-  if (!teamAgent) {
-    return;
-  }
-
   return (
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">
@@ -68,7 +64,7 @@ export function TeamAgentNodeEditor({
         label="Name"
         placeholder="Support agent"
         disabled
-        isRequired
+        isRequired={isRequired(FullAgentTeamAgentSchema, 'name')}
       />
       <GenericInput
         control={form.control}
@@ -77,14 +73,14 @@ export function TeamAgentNodeEditor({
         placeholder="my-external-agent"
         disabled
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
-        isRequired
+        isRequired={isRequired(FullAgentTeamAgentSchema, 'id')}
       />
       <GenericTextarea
         control={form.control}
         name={path('description')}
         label="Description"
         placeholder="This agent is responsible for..."
-        disabled
+        disabled={isRequired(FullAgentTeamAgentSchema, 'description')}
       />
       <GenericJsonEditor
         control={form.control}
@@ -92,8 +88,9 @@ export function TeamAgentNodeEditor({
         label="Headers"
         placeholder="{}"
         customTemplate={teamAgentHeadersTemplate}
+        isRequired={isRequired(FullAgentTeamAgentSchema, 'headers')}
       />
-      <ExternalLink href={`/${tenantId}/projects/${projectId}/agents/${selectedNode.data.id}`}>
+      <ExternalLink href={`/${tenantId}/projects/${projectId}/agents/${id}`}>
         View Agent
       </ExternalLink>
       {canEdit && (

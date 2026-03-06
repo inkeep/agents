@@ -58,8 +58,6 @@ export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedN
 
 export interface TeamAgentNodeData extends Record<string, unknown> {
   id: string;
-  name: string;
-  description?: string;
   relationshipId?: string | null;
 }
 
