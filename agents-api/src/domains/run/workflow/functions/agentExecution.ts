@@ -1,6 +1,6 @@
-import { type ModelMessage, type ToolSet, tool, type UIMessageChunk } from 'ai';
 import { DurableAgent } from '@workflow/ai/agent';
 import { anthropic } from '@workflow/ai/anthropic';
+import { type ModelMessage, type ToolSet, tool, type UIMessageChunk } from 'ai';
 import { defineHook, getWorkflowMetadata, getWritable } from 'workflow';
 import { z } from 'zod';
 import {
@@ -146,8 +146,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       conversationId,
     });
 
-    
-
     let currentConfig: AgentConfigResult = initialConfig;
     let currentSubAgentId = initialConfig.defaultSubAgentId ?? agentId;
     let responseText = '';
@@ -287,15 +285,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       break;
     }
 
-    try {
-      const writer = writable.getWriter();
-      await writer.close();
-    } catch (closeErr) {
-      await logStep('Failed to close writable', {
-        executionId,
-        error: closeErr instanceof Error ? closeErr.message : String(closeErr),
-      });
-    }
+    
 
     try {
       if (responseText) {
