@@ -323,6 +323,13 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
+    try {
+      const writer = writable.getWriter();
+      await writer.write({ type: 'error', errorText: errorMessage } as any);
+      await writer.close();
+      writer.releaseLock();
+    } catch (_e) {}
+
     await updateExecutionStatusStep({ executionId, status: 'failed' });
 
     await logStep('Durable agent execution threw an error', {
