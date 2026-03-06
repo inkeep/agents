@@ -16,7 +16,11 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
   const { control } = useFullAgentFormContext();
   const { toolId = '', status } = data;
 
-  const { tempToolPolicies: toolPolicies, name, description } = useWatch({ control, name: `functionTools.${toolId}` });
+  const {
+    tempToolPolicies: toolPolicies,
+    name,
+    description,
+  } = useWatch({ control, name: `functionTools.${toolId}` });
   const processedErrors = [
     ...useProcessedErrors('functionTools', toolId),
     ...useProcessedErrors('functions', toolId),

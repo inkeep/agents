@@ -763,44 +763,47 @@ export const Agent: FC<AgentProps> = ({
         const processedRelationships = new Set<string>();
 
         setNodes((currentNodes) =>
-          currentNodes.map((node) => {
-            if (node.type === NodeType.MCP) {
-              const mcpNode = node as Node & { data: MCPNodeData };
-              if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
-                // If node already has a relationshipId, keep it (it's an existing relationship)
-                if (mcpNode.data.relationshipId) {
-                  return node;
-                }
+          currentNodes
+            .map((node) => {
+              if (node.type !== NodeType.MCP && node.type !== NodeType.FunctionTool) {
+                return node;
+              }
 
-                // For new nodes (relationshipId is null), find the first unprocessed relationship
-                // that matches this agent and tool
-                const subAgentId = mcpNode.data.subAgentId;
-                const toolId = mcpNode.data.toolId;
+              const toolNode = node as Node & { data: MCPNodeData };
+              // For new nodes (relationshipId is null), find the first unprocessed relationship
+              // that matches this agent and tool
+              const { subAgentId, toolId, relationshipId } = toolNode.data;
+              if (!subAgentId) {
+                return null;
+              }
 
-                const savedSubAgent = res.data.subAgents[subAgentId];
-                if (savedSubAgent?.canUse) {
-                  const matchingRelationship = savedSubAgent.canUse.find(
-                    (tool: any) =>
-                      tool.toolId === toolId &&
-                      tool.agentToolRelationId &&
-                      !processedRelationships.has(tool.agentToolRelationId)
-                  );
+              if (!toolId || relationshipId) {
+                return node;
+              }
 
-                  if (matchingRelationship?.agentToolRelationId) {
-                    processedRelationships.add(matchingRelationship.agentToolRelationId);
-                    return {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        relationshipId: matchingRelationship.agentToolRelationId,
-                      },
-                    };
-                  }
+              const savedSubAgent = res.data.subAgents[subAgentId];
+              if (savedSubAgent?.canUse) {
+                const matchingRelationship = savedSubAgent.canUse.find(
+                  (tool: any) =>
+                    tool.toolId === toolId &&
+                    tool.agentToolRelationId &&
+                    !processedRelationships.has(tool.agentToolRelationId)
+                );
+
+                if (matchingRelationship?.agentToolRelationId) {
+                  processedRelationships.add(matchingRelationship.agentToolRelationId);
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      relationshipId: matchingRelationship.agentToolRelationId,
+                    },
+                  };
                 }
               }
-            }
-            return node;
-          })
+              return node;
+            })
+            .filter((v) => !!v)
         );
       }
       return;
