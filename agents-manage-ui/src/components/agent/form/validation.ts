@@ -33,7 +33,6 @@ const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
     name: true,
     description: true,
     functionId: true,
-    // id: true,
   });
 const FunctionSchema = AgentWithinContextOfProjectSchema.shape.functions.unwrap().valueType.pick({
   executeCode: true,
