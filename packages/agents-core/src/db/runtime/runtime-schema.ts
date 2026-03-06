@@ -862,7 +862,7 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.toolId] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
     index('work_app_github_mcp_tool_access_mode_tenant_idx').on(table.tenantId),
     index('work_app_github_mcp_tool_access_mode_project_idx').on(table.projectId),
     foreignKey({

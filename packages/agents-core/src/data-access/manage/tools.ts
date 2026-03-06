@@ -228,6 +228,8 @@ const discoverToolsFromServer = async (
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
       };
     }

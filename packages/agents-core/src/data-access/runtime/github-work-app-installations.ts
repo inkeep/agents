@@ -910,7 +910,7 @@ export const getMcpToolRepositoryAccess =
 export const getMcpToolRepositoryAccessWithDetails =
   (db: AgentsRunDatabaseClient) =>
   async (
-    toolId: string
+    scope: { tenantId: string; projectId: string; toolId: string }
   ): Promise<
     (WorkAppGitHubRepositorySelect & {
       accessId: string;
@@ -925,15 +925,21 @@ export const getMcpToolRepositoryAccessWithDetails =
         tenantId: workAppGitHubMcpToolAccessMode.tenantId,
       })
       .from(workAppGitHubMcpToolAccessMode)
-      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId),
+        )
+      )
       .limit(1);
 
     const accessMode = modeResult[0];
 
     if (accessMode?.mode === 'all') {
       return getProjectRepositoryAccessWithDetails(db)({
-        tenantId: accessMode.tenantId,
-        projectId: accessMode.projectId,
+        tenantId: scope.tenantId,
+        projectId: scope.projectId,
       });
     }
 
@@ -960,7 +966,7 @@ export const getMcpToolRepositoryAccessWithDetails =
         workAppGitHubInstallations,
         eq(workAppGitHubRepositories.installationDbId, workAppGitHubInstallations.id)
       )
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId));
+      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId));
 
     return result as (WorkAppGitHubRepositorySelect & {
       accessId: string;
@@ -1095,7 +1101,11 @@ export const setMcpToolAccessMode =
         updatedAt: now,
       })
       .onConflictDoUpdate({
-        target: [workAppGitHubMcpToolAccessMode.toolId],
+        target: [
+          workAppGitHubMcpToolAccessMode.tenantId,
+          workAppGitHubMcpToolAccessMode.projectId,
+          workAppGitHubMcpToolAccessMode.toolId,
+        ],
         set: {
           mode: params.mode,
           updatedAt: now,
@@ -1109,11 +1119,17 @@ export const setMcpToolAccessMode =
  */
 export const getMcpToolAccessMode =
   (db: AgentsRunDatabaseClient) =>
-  async (toolId: string): Promise<WorkAppGitHubAccessMode> => {
+  async (scope: { tenantId: string; projectId: string; toolId: string }): Promise<WorkAppGitHubAccessMode> => {
     const result = await db
       .select({ mode: workAppGitHubMcpToolAccessMode.mode })
       .from(workAppGitHubMcpToolAccessMode)
-      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId),
+        )
+      )
       .limit(1);
 
     // Default to 'selected' if no mode is set (fail-safe)
@@ -1125,10 +1141,16 @@ export const getMcpToolAccessMode =
  */
 export const deleteMcpToolAccessMode =
   (db: AgentsRunDatabaseClient) =>
-  async (toolId: string): Promise<boolean> => {
+  async (scope: { tenantId: string; projectId: string; toolId: string }): Promise<boolean> => {
     const deleted = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId),
+        )
+      )
       .returning();
 
     return deleted.length > 0;

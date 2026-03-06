@@ -128,7 +128,7 @@ app.openapi(
     await validateGitHubWorkappTool(db, tenantId, projectId, toolId);
 
     // Get explicit mode from mode table (defaults to 'selected' if not set)
-    const mode = await getMcpToolAccessMode(runDbClient)(toolId);
+    const mode = await getMcpToolAccessMode(runDbClient)({ tenantId, projectId, toolId });
 
     if (mode === 'all') {
       logger.info(
@@ -146,7 +146,7 @@ app.openapi(
 
     // mode === 'selected': get the specific repositories
     const repositoriesWithDetails =
-      await getMcpToolRepositoryAccessWithDetails(runDbClient)(toolId);
+      await getMcpToolRepositoryAccessWithDetails(runDbClient)({ tenantId, projectId, toolId });
 
     logger.info(
       { tenantId, projectId, toolId, repositoryCount: repositoriesWithDetails.length },
