@@ -286,7 +286,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
                 type: 'tool-result' as const,
                 toolCallId: pendingDelegateCall.toolCallId,
                 toolName: pendingDelegateCall.toolName,
-                output: { type: 'text' as const, value: toolResultText },
+                result: toolResultText,
               },
             ],
           },
