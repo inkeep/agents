@@ -187,9 +187,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           ? {
               stopWhen: ({ steps }: { steps: Array<Record<string, unknown>> }) => {
                 for (const step of steps) {
-                  const calls = (step as any).toolCalls as
-                    | Array<{ toolName: string }>
-                    | undefined;
+                  const calls = (step as any).toolCalls as Array<{ toolName: string }> | undefined;
                   if (calls?.some((tc) => delegateToolNames.has(tc.toolName))) return true;
                 }
                 return false;
@@ -252,7 +250,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       const delegateResult = delegateCall
         ? allStepToolResults.find((tr) => tr.toolCallId === delegateCall.toolCallId)
         : undefined;
-      
 
       if (delegateCall) {
         const relation = delegateRelationMap[delegateCall.toolName] ?? {
