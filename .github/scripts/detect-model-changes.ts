@@ -23,7 +23,7 @@ const GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 type GatewayModel = {
   id: string;
   type?: string; // "language", "embedding", etc.
-  created?: number; // Unix timestamp
+  released?: number; // Unix timestamp — actual model release date
 };
 
 // Anthropic gateway IDs use dots for version numbers (claude-opus-4.6);
@@ -48,7 +48,7 @@ async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Res
 }
 
 async function fetchGatewayModels(): Promise<
-  Array<{ provider: string; id: string; created?: number }>
+  Array<{ provider: string; id: string; released?: number }>
 > {
   const headers: Record<string, string> = { accept: 'application/json' };
   if (GATEWAY_API_KEY) headers['Authorization'] = `Bearer ${GATEWAY_API_KEY}`;
@@ -79,7 +79,7 @@ async function fetchGatewayModels(): Promise<
       const provider = m.id.slice(0, slashIndex);
       const rawId = m.id.slice(slashIndex + 1);
       const id = provider === 'anthropic' ? normalizeAnthropicId(rawId) : rawId;
-      return { provider, id, created: m.created };
+      return { provider, id, released: m.released };
     });
 }
 
@@ -122,7 +122,7 @@ function setOutput(name: string, value: string): void {
 interface NewModel {
   provider: string;
   id: string;
-  created?: number;
+  released?: number;
 }
 
 async function main(): Promise<void> {
@@ -170,8 +170,8 @@ async function main(): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
   const modelList = newModels
     .map((m) => {
-      const releasedStr = m.created
-        ? ` (released: ${new Date(m.created * 1000).toISOString().split('T')[0]})`
+      const releasedStr = m.released
+        ? ` (released: ${new Date(m.released * 1000).toISOString().split('T')[0]})`
         : '';
       return `- ${m.provider}/${m.id}${releasedStr}`;
     })
