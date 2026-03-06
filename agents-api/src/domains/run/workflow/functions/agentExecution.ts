@@ -1,5 +1,5 @@
-import { type ToolSet, tool, type UIMessageChunk } from 'ai';
-import { getWorkflowMetadata, getWritable } from 'workflow';
+import { type ModelMessage, type ToolSet, tool, type UIMessageChunk } from 'ai';
+import { defineHook, getWorkflowMetadata, getWritable } from 'workflow';
 import { z } from 'zod';
 import {
   type AgentConfigResult,
@@ -24,6 +24,8 @@ export type AgentExecutionPayload = {
 
 const MAX_TRANSFERS = 10;
 
+const toolApprovalHook = defineHook<{ approved: boolean; reason?: string }>();
+
 function buildTransferTools(
   transferRelations: SubAgentRelationInfo[],
   currentSubAgentId: string
@@ -44,11 +46,7 @@ function buildTransferTools(
   return tools;
 }
 
-function buildDelegateTools(
-  delegateRelations: SubAgentRelationInfo[],
-  _currentSubAgentId: string,
-  context: { tenantId: string; projectId: string; agentId: string }
-): ToolSet {
+function buildDelegateTools(delegateRelations: SubAgentRelationInfo[]): ToolSet {
   const tools: Record<string, ToolSet[string]> = {};
   for (const relation of delegateRelations) {
     const toolName = `delegate_to_${relation.id}`.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -57,20 +55,20 @@ function buildDelegateTools(
       inputSchema: z.object({
         message: z.string().describe('The task or question to delegate'),
       }),
-      execute: async ({ message }) => {
-        const { executeDelegationStep } = await import('../steps/agentExecutionSteps');
-        const delegationResult = await executeDelegationStep({
-          tenantId: context.tenantId,
-          projectId: context.projectId,
-          agentId: context.agentId,
-          targetSubAgentId: relation.id,
-          message,
-        });
-        return delegationResult.result;
-      },
     }) as ToolSet[string];
   }
   return tools;
+}
+
+function getDelegateRelationMap(
+  delegateRelations: SubAgentRelationInfo[]
+): Record<string, SubAgentRelationInfo> {
+  const map: Record<string, SubAgentRelationInfo> = {};
+  for (const relation of delegateRelations) {
+    const toolName = `delegate_to_${relation.id}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    map[toolName] = relation;
+  }
+  return map;
 }
 
 function extractTransferFromResult(result: {
@@ -146,6 +144,9 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
     let currentConfig: AgentConfigResult = initialConfig;
     let currentSubAgentId = initialConfig.defaultSubAgentId ?? agentId;
     let responseText = '';
+    let currentMessages: ModelMessage[] = history;
+
+    const writable = getWritable<UIMessageChunk>();
 
     for (let iteration = 0; iteration < MAX_TRANSFERS; iteration++) {
       const modelString = currentConfig.modelConfig?.model ?? '';
@@ -157,11 +158,8 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         currentConfig.transferRelations || [],
         currentSubAgentId
       );
-      const delegateTools = buildDelegateTools(
-        currentConfig.delegateRelations || [],
-        currentSubAgentId,
-        { tenantId, projectId, agentId }
-      );
+      const delegateTools = buildDelegateTools(currentConfig.delegateRelations || []);
+      const delegateRelationMap = getDelegateRelationMap(currentConfig.delegateRelations || []);
       const allTools = { ...transferTools, ...delegateTools };
 
       const hasTools = Object.keys(allTools).length > 0;
@@ -172,12 +170,11 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         ...(hasTools ? { tools: allTools } : {}),
       });
 
-      const writable = getWritable<UIMessageChunk>();
-
       const result = await agent.stream({
-        messages: history,
+        messages: currentMessages,
         writable,
         maxSteps: 10,
+        preventClose: true,
       });
 
       const transferData = extractTransferFromResult(
@@ -213,6 +210,81 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
         currentConfig = nextConfig;
         currentSubAgentId = transferData.targetSubAgentId;
+        currentMessages = history;
+        continue;
+      }
+
+      const lastStep = result.steps.at(-1);
+      const toolCalls = (lastStep as any)?.toolCalls as
+        | Array<{ toolCallId: string; toolName: string; args: Record<string, unknown> }>
+        | undefined;
+      const pendingDelegateCall = toolCalls?.find((tc) => tc.toolName in delegateRelationMap);
+
+      if (pendingDelegateCall) {
+        const relation = delegateRelationMap[pendingDelegateCall.toolName];
+        const token = `approval-${executionId}-${pendingDelegateCall.toolCallId}`;
+
+        await logStep('Tool approval requested', {
+          executionId,
+          conversationId,
+          toolCallId: pendingDelegateCall.toolCallId,
+          toolName: pendingDelegateCall.toolName,
+          token,
+          iteration,
+        });
+
+        const writer = writable.getWriter();
+        await writer.write({
+          type: 'tool-approval-request',
+          approvalId: token,
+          toolCallId: pendingDelegateCall.toolCallId,
+          toolName: pendingDelegateCall.toolName,
+          input: pendingDelegateCall.args,
+        } as any);
+        writer.releaseLock();
+
+        const hook = toolApprovalHook.create({ token });
+        const approval = await hook;
+
+        await logStep('Tool approval resolved', {
+          executionId,
+          conversationId,
+          toolCallId: pendingDelegateCall.toolCallId,
+          approved: approval.approved,
+          reason: approval.reason,
+          iteration,
+        });
+
+        let toolResultText: string;
+        if (approval.approved) {
+          const { executeDelegationStep } = await import('../steps/agentExecutionSteps');
+          const delegationResult = await executeDelegationStep({
+            tenantId,
+            projectId,
+            agentId,
+            targetSubAgentId: relation.id,
+            message: pendingDelegateCall.args.message as string,
+          });
+          toolResultText = delegationResult.result;
+        } else {
+          toolResultText = `Tool call denied${approval.reason ? `: ${approval.reason}` : ''}`;
+        }
+
+        currentMessages = [
+          ...result.messages,
+          {
+            role: 'tool' as const,
+            content: [
+              {
+                type: 'tool-result' as const,
+                toolCallId: pendingDelegateCall.toolCallId,
+                toolName: pendingDelegateCall.toolName,
+                output: { type: 'text' as const, value: toolResultText },
+              },
+            ],
+          },
+        ];
+
         continue;
       }
 
@@ -231,6 +303,11 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
       break;
     }
+
+    try {
+      const writer = writable.getWriter();
+      await writer.close();
+    } catch (_e) {}
 
     await persistAgentResponseStep({
       tenantId,

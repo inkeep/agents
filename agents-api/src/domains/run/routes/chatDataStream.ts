@@ -7,6 +7,7 @@ import {
   type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
+  getActiveWorkflowExecution,
   getConversation,
   getConversationId,
   loggerFactory,
@@ -170,12 +171,45 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
+      const activeExecution = await getActiveWorkflowExecution(runDbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+
+      if (activeExecution) {
+        const { resumeHook } = await import('workflow/api');
+        const results: Array<{
+          toolCallId: string;
+          approved: boolean;
+          alreadyProcessed: boolean;
+        }> = [];
+
+        for (const approvalPart of approvalParts) {
+          const toolCallId = approvalPart.toolCallId as string;
+          const token = approvalPart.approval?.id as string | undefined;
+          const approved = !!approvalPart.approval?.approved;
+          const reason = approvalPart.approval?.reason as string | undefined;
+
+          if (token) {
+            try {
+              await resumeHook(token, { approved, reason });
+              results.push({ toolCallId, approved, alreadyProcessed: false });
+            } catch (_e) {
+              results.push({ toolCallId, approved, alreadyProcessed: true });
+            }
+          } else {
+            results.push({ toolCallId, approved, alreadyProcessed: true });
+          }
+        }
+
+        return c.json({ success: true, results });
+      }
+
       const results = approvalParts.map((approvalPart: any) => {
         const toolCallId = approvalPart.toolCallId as string;
         const approved = !!approvalPart.approval?.approved;
         const reason = approvalPart.approval?.reason as string | undefined;
 
-        // Resolve the pending approval (in-memory). Idempotent: if already processed, returns false.
         const ok = approved
           ? pendingToolApprovalManager.approveToolCall(toolCallId)
           : pendingToolApprovalManager.denyToolCall(toolCallId, reason);

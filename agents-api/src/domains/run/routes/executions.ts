@@ -297,4 +297,68 @@ app.openapi(getExecutionStatusRoute, async (c) => {
   });
 });
 
+const resumeHookRoute = createProtectedRoute({
+  method: 'post',
+  path: '/:executionId/hooks/:token',
+  tags: ['Executions'],
+  summary: 'Resume a workflow hook',
+  description: 'Resumes a suspended workflow hook with an approval or denial payload.',
+  security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
+  request: {
+    params: z.object({
+      executionId: z.string(),
+      token: z.string(),
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            approved: z.boolean(),
+            reason: z.string().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Hook resumed successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+          }),
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+});
+
+app.openapi(resumeHookRoute, async (c) => {
+  const { executionId, token } = c.req.valid('param');
+  const { approved, reason } = c.req.valid('json');
+
+  const executionContext = c.get('executionContext');
+  const { tenantId } = executionContext;
+
+  const [execution] = await runDbClient
+    .select()
+    .from(workflowExecutions)
+    .where(and(eq(workflowExecutions.id, executionId), eq(workflowExecutions.tenantId, tenantId)))
+    .limit(1);
+
+  if (!execution) {
+    throw createApiError({ code: 'not_found', message: 'Execution not found' });
+  }
+
+  const { resumeHook } = await import('workflow/api');
+  await resumeHook(token, { approved, reason });
+
+  logger.info({ executionId, token, approved }, 'Workflow hook resumed');
+
+  return c.json({ success: true });
+});
+
 export default app;
