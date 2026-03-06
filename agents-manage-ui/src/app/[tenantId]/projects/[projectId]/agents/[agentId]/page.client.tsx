@@ -713,7 +713,7 @@ export const Agent: FC<AgentProps> = ({
       }
     }
 
-    const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
+    const validationErrors = validateSerializedData(updatePayload);
     if (validationErrors.length) {
       toast.error(
         `Validation failed: ${validationErrors.map((error) => error.message).join('\n')}`

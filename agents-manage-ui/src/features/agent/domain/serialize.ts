@@ -594,8 +594,7 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: Pick<FullAgentOutput, 'subAgents'>,
-  functionToolNodeMap?: Map<string, string>
+  data: Pick<FullAgentOutput, 'subAgents'>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
@@ -613,71 +612,6 @@ export function validateSerializedData(
               field: 'toolId',
               code: 'invalid_reference',
               path: ['agents', subAgentId, 'canUse'],
-            });
-          }
-        }
-      }
-    }
-
-    if (agent.canUse) {
-      for (const canUseItem of agent.canUse) {
-        const toolId = canUseItem.toolId;
-        const toolType = (canUseItem as any).toolType;
-
-        // Only validate function tools
-        if (toolType === 'function') {
-          const functionTool = (canUseItem as any).functionTool;
-
-          if (!functionTool) {
-            // Use the node map to get the React Flow node ID if available
-            const nodeId = functionToolNodeMap?.get(toolId) || toolId;
-            errors.push({
-              message: `Function tool is missing function tool data`,
-              field: 'functionTool',
-              code: 'missing_data',
-              path: ['functionTools', toolId],
-              functionToolId: nodeId,
-            });
-            continue;
-          }
-
-          // Use the node map to get the React Flow node ID if available
-          const nodeId = functionToolNodeMap?.get(toolId) || toolId;
-
-          if (!functionTool.name || String(functionTool.name).trim() === '') {
-            errors.push({
-              message: 'Function tool name is required',
-              field: 'name',
-              code: 'required',
-              path: ['functionTools', toolId, 'name'],
-              functionToolId: nodeId,
-            });
-          }
-          if (!functionTool.description || String(functionTool.description).trim() === '') {
-            errors.push({
-              message: 'Function tool description is required',
-              field: 'description',
-              code: 'required',
-              path: ['functionTools', toolId, 'description'],
-              functionToolId: nodeId,
-            });
-          }
-          if (!functionTool.executeCode || String(functionTool.executeCode).trim() === '') {
-            errors.push({
-              message: 'Function tool code is required',
-              field: 'code',
-              code: 'required',
-              path: ['functionTools', toolId, 'executeCode'],
-              functionToolId: nodeId,
-            });
-          }
-          if (!functionTool.inputSchema || Object.keys(functionTool.inputSchema).length === 0) {
-            errors.push({
-              message: 'Function tool input schema is required',
-              field: 'inputSchema',
-              code: 'required',
-              path: ['functionTools', toolId, 'inputSchema'],
-              functionToolId: nodeId,
             });
           }
         }
