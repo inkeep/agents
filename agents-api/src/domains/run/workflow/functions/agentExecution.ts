@@ -277,22 +277,8 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           toolResultText = `Tool call denied${approval.reason ? `: ${approval.reason}` : ''}`;
         }
 
-        currentMessages = [
-          ...result.messages,
-          {
-            role: 'tool' as const,
-            content: [
-              {
-                type: 'tool-result' as const,
-                toolCallId: pendingDelegateCall.toolCallId,
-                toolName: pendingDelegateCall.toolName,
-                result: toolResultText,
-              },
-            ],
-          },
-        ];
-
-        continue;
+        responseText = toolResultText;
+        break;
       }
 
       responseText = result.messages
