@@ -43,6 +43,11 @@ async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Res
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${FETCH_TIMEOUT_MS}ms`);
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -59,9 +64,12 @@ async function fetchGatewayModels(): Promise<Array<{ provider: string; id: strin
   }
 
   const json = (await res.json()) as { data: GatewayModel[] };
+  if (!Array.isArray(json.data)) {
+    throw new Error(`Unexpected response format from Vercel AI Gateway: 'data' is not an array`);
+  }
   const cutoff = cutoffUnixSeconds(DAYS);
 
-  return (json.data ?? [])
+  return json.data
     .filter((m) => {
       const slashIndex = m.id.indexOf('/');
       if (slashIndex === -1) return false;
@@ -180,6 +188,7 @@ Please update the following 3 files to include these models:
    - Do NOT modify any default values
 
 2. \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
+   - Only add models consistent with the existing list — skip specialized variants (realtime, audio, embedding, search-augmented, instruct, fine-tuning base models)
    - Add a label entry in the appropriate provider's array in the modelOptions object
    - Use a human-readable label matching existing entries (e.g., 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash')
    - Ordering: newest version first, then by tier (Pro/Opus > Sonnet/Flash > Haiku/Flash Lite/Nano/Mini)
