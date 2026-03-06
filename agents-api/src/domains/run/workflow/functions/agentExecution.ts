@@ -302,17 +302,19 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       await writer.close();
     } catch (_e) {}
 
-    await persistAgentResponseStep({
-      tenantId,
-      projectId,
-      conversationId,
-      responseText,
-      subAgentId: currentSubAgentId,
-    });
+    if (responseText) {
+      await persistAgentResponseStep({
+        tenantId,
+        projectId,
+        conversationId,
+        responseText,
+        subAgentId: currentSubAgentId,
+      });
+    }
 
     await updateExecutionStatusStep({ executionId, status: 'completed' });
 
-    return { success: true, response: responseText };
+    return { success: true, response: responseText || 'Execution completed' };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
