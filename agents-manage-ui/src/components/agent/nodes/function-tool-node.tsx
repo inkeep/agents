@@ -45,7 +45,9 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
               <div className="w-5 h-5 rounded flex items-center justify-center shrink-0">
                 <Code className="w-4 h-4 text-foreground/70" />
               </div>
-              <BaseNodeHeaderTitle className="flex-1 truncate">{name}</BaseNodeHeaderTitle>
+              <BaseNodeHeaderTitle className="flex-1 truncate">
+                {name || <i className="text-muted-foreground/50">No name</i>}
+              </BaseNodeHeaderTitle>
               {needsApproval && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -61,9 +63,9 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
                 </Tooltip>
               )}
             </div>
-            {description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 pl-7">{description}</p>
-            )}
+            <div className="text-xs text-muted-foreground line-clamp-2 pl-7">
+              {description || <i className="text-muted-foreground/50">No description</i>}
+            </div>
           </div>
           {hasErrors && <ErrorIndicator errors={processedErrors} />}
         </BaseNodeHeader>
