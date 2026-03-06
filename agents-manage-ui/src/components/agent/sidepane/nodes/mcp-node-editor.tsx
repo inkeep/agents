@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
+import { FullAgentToolSchema } from '@/components/agent/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -23,6 +24,7 @@ import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
+import { isRequired } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
   findOrphanedTools,
@@ -32,8 +34,6 @@ import {
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import { SchemaOverrideBadge } from './schema-override-badge';
-import { isRequired } from '@/lib/utils';
-import { FullAgentToolSchema } from '@/components/agent/form/validation';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
@@ -112,16 +112,12 @@ export function MCPServerNodeEditor({
 
   const { availableTools } = toolData;
   const toolOverrides =
-    toolData.config && toolData.config.type === 'mcp'
-      ? toolData.config.mcp.toolOverrides
-      : undefined;
+    tool.config && tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
 
   const activeTools = getActiveTools({
     availableTools: availableTools,
     activeTools:
-      toolData.config && toolData.config.type === 'mcp'
-        ? toolData.config.mcp.activeTools
-        : undefined,
+      tool.config && tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 

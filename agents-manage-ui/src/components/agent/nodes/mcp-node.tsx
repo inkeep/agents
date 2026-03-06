@@ -96,7 +96,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   const activeTools = getActiveTools({
     availableTools: toolData?.availableTools,
-    activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
+    activeTools: tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
 
   const selectedToolsFromLookup = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
