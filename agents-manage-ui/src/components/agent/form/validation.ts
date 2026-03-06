@@ -33,6 +33,7 @@ const FunctionToolSchema = AgentWithinContextOfProjectSchema.shape.functionTools
     name: true,
     description: true,
     functionId: true,
+    // id: true,
   });
 const FunctionSchema = AgentWithinContextOfProjectSchema.shape.functions.unwrap().valueType.pick({
   executeCode: true,
@@ -103,17 +104,32 @@ export const MCPRelationSchema = z.strictObject({
   toolPolicies: ToolPoliciesSchema,
 });
 
-export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
+export const FullAgentFunctionToolSchema = z.object({
+  ...FunctionToolSchema.shape,
+  tempToolPolicies: ToolPoliciesSchema,
+});
+export const FullAgentFunctionSchema = z.object({
+  ...FunctionSchema.shape,
+  dependencies: StringToStringRecordSchema.optional(),
+  inputSchema: z
+    .string()
+    .trim()
+    .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
+    .pipe(FunctionSchema.shape.inputSchema),
+});
+const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
   description: true,
   prompt: true,
-}).extend({
+});
+
+export const FullAgentUpdateSchema = z.strictObject({
+  ...FullAgentSchema.shape,
   defaultSubAgentId: AgentWithinContextOfProjectSchema.shape.defaultSubAgentId.refine(
     (val) => val,
     'Default sub agent ID is required, please select a default sub agent.'
   ),
-  // nodes: z.array(z.any()).optional(),
   subAgents: z.record(
     z.string(),
     z.strictObject({
@@ -122,25 +138,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       models: MyModelsSchema.partial(),
     })
   ),
-  functionTools: z.record(
-    z.string(),
-    z.object({
-      ...FunctionToolSchema.shape,
-      tempToolPolicies: ToolPoliciesSchema,
-    })
-  ),
-  functions: z.record(
-    z.string(),
-    z.object({
-      ...FunctionSchema.shape,
-      dependencies: StringToStringRecordSchema,
-      inputSchema: z
-        .string()
-        .trim()
-        .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-        .pipe(FunctionSchema.shape.inputSchema),
-    })
-  ),
+  functionTools: z.record(z.string(), FullAgentFunctionToolSchema),
+  functions: z.record(z.string(), FullAgentFunctionSchema),
   externalAgents: z.record(
     z.string(),
     z.object({
