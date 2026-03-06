@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import type { ToolScopeConfig } from '../../db/manage/scope-definitions';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   workAppSlackMcpToolAccessConfig,
@@ -12,15 +13,9 @@ export type SlackMcpToolAccessConfig = {
   channelIds: string[];
 };
 
-type SlackToolScope = {
-  tenantId: string;
-  projectId: string;
-  toolId: string;
-};
-
 export const getSlackMcpToolAccessConfig =
   (db: AgentsRunDatabaseClient) =>
-  async (scope: SlackToolScope): Promise<SlackMcpToolAccessConfig> => {
+  async (scope: ToolScopeConfig): Promise<SlackMcpToolAccessConfig> => {
     const result = await db
       .select({
         channelAccessMode: workAppSlackMcpToolAccessConfig.channelAccessMode,
@@ -87,7 +82,7 @@ export const setSlackMcpToolAccessConfig =
 
 export const updateSlackMcpToolAccessChannelIds =
   (db: AgentsRunDatabaseClient) =>
-  async (scope: SlackToolScope, channelIds: string[]): Promise<void> => {
+  async (scope: ToolScopeConfig, channelIds: string[]): Promise<void> => {
     await db
       .update(workAppSlackMcpToolAccessConfig)
       .set({
@@ -105,7 +100,7 @@ export const updateSlackMcpToolAccessChannelIds =
 
 export const deleteSlackMcpToolAccessConfig =
   (db: AgentsRunDatabaseClient) =>
-  async (scope: SlackToolScope): Promise<boolean> => {
+  async (scope: ToolScopeConfig): Promise<boolean> => {
     const result = await db
       .delete(workAppSlackMcpToolAccessConfig)
       .where(
