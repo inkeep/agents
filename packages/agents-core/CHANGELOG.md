@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+
 ## 0.58.2
 
 ### Patch Changes
