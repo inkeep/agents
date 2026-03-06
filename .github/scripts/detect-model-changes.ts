@@ -209,9 +209,13 @@ ${modelList}
 - Use a single commit with message: "chore: add new models [model-sync]"
 
 ## Step 1: Research deprecation status
-Before touching any files, use WebSearch to research each new model listed above. For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
+Before touching any files, use WebSearch to research deprecation status for:
+1. Every new model listed above
+2. Every model currently listed in \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` (read the file first to get the list)
 
-If you cannot determine deprecation status for a model, treat it as CONSTANTS-ONLY (not FULL). Note this in the PR body.
+For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
+
+If you cannot determine deprecation status for a new model, treat it as CONSTANTS-ONLY (not FULL). Note any uncertain cases in the PR body.
 
 ## Step 2: Read the files first
 Before editing anything, read all 3 target files so you understand their exact patterns and conventions:
@@ -251,14 +255,22 @@ Assign each model a tier:
 - Same rules as the UI above
 
 ## Step 4: Create changeset
-Create \`.changeset/add-models-${today}-${slug}.md\` with the following structure. For the description line, list models added and any removed from the UI due to pruning:
+Create \`.changeset/add-models-${today}-${slug}.md\`. Only include a package if it was actually modified:
+- Always include \`@inkeep/agents-core\` (constants are always updated)
+- Only include \`@inkeep/agents-manage-ui\` if any models were added to or removed from the UI
+- Only include \`@inkeep/agents-cli\` if any models were added to or removed from the CLI
+
+Format:
 ---
 "@inkeep/agents-core": patch
 "@inkeep/agents-manage-ui": patch
 "@inkeep/agents-cli": patch
 ---
 
-Add new models: <comma-separated list of provider/model-id added>. Remove from UI: <comma-separated list of any pruned UI entries, or omit this sentence if none removed>
+Write a concise description covering what changed. Examples:
+- Constants only: "Add [model list] to model constants"
+- UI also updated: "Add [model list] to model constants and UI picker; remove deprecated [model list] from UI picker"
+- Omit the remove sentence if nothing was pruned
 
 ## Step 5: Verify
 Run these in order and fix any issues before committing:
@@ -273,7 +285,10 @@ Run these in order and fix any issues before committing:
 4. Create a PR targeting main with:
    - Title: "chore: add new models from provider APIs [model-sync]"
    - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
-   - Body: include a markdown table summarizing every model processed, with columns: Model | Provider | Legacy? (yes if deprecation announced, no if active) | Added to Constants | Added to UI. Also list any models removed from the UI due to deprecation pruning or specialty pruning.`;
+   - Body: for each provider that had activity, include only the tables that apply — omit a table if there is nothing to show:
+     - **[Provider] — Added**: columns: Model | Released | Legacy? (yes/no) | Constants | UI
+     - **[Provider] — Removed from UI**: columns: Model | Reason (deprecated / specialty pruned)
+     Do not create empty tables. Only include a provider section if that provider had additions or removals.`;
 
   setOutput('has_changes', 'true');
   setOutput('prompt', prompt);
