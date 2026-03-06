@@ -38,7 +38,7 @@ export async function createApp(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<AppApiCreationResponse>>(
+  const response = await makeManagementApiRequest<AppApiCreationResponse>(
     `tenants/${tenantId}/projects/${projectId}/apps`,
     {
       method: 'POST',
@@ -46,7 +46,7 @@ export async function createApp(
     }
   );
 
-  const { app } = response.data.data;
+  const { app } = response.data;
   return {
     app: {
       ...app,

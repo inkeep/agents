@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, Copy } from 'lucide-react';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { App } from '@/lib/api/apps';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
@@ -31,6 +33,26 @@ const TYPE_BADGE_VARIANT: Record<string, 'sky' | 'violet'> = {
   web_client: 'sky',
   api: 'violet',
 };
+
+function AppIdCell({ appId }: { appId: string }) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({});
+  return (
+    <button
+      type="button"
+      onClick={() => copyToClipboard(appId)}
+      className="group/appid relative cursor-pointer bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono overflow-hidden"
+    >
+      {appId}
+      <span className="absolute inset-y-0 right-0 flex items-center px-2 bg-gradient-to-l from-muted from-70% to-muted/0 opacity-0 group-hover/appid:opacity-100 transition-opacity">
+        {isCopied ? (
+          <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+        ) : (
+          <Copy className="w-3 h-3 text-muted-foreground" />
+        )}
+      </span>
+    </button>
+  );
+}
 
 export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTableProps) {
   return (
@@ -80,9 +102,7 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
                   </span>
                 </TableCell>
                 <TableCell>
-                  <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
-                    {app.id}
-                  </code>
+                  <AppIdCell appId={app.id} />
                 </TableCell>
                 <TableCell>
                   <Badge variant={app.enabled ? 'success' : 'warning'}>

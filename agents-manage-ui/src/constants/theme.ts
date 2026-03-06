@@ -19,7 +19,7 @@ export const STATIC_LABELS = Object.freeze({
   stats: 'Statistics',
   agents: 'Agents',
   apps: 'Apps',
-  'api-keys': 'API Keys',
+  'api-keys': 'API Keys (Deprecated)',
   artifacts: 'Artifacts',
   settings: 'Settings',
   traces: 'Traces',
