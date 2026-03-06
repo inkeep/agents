@@ -1,6 +1,6 @@
+import type { FieldErrors } from 'react-hook-form';
 import { describe } from 'vitest';
 import { flatNestedFieldMessage } from '@/components/ui/form';
-import type { FieldErrors } from 'react-hook-form';
 
 describe('flatNestedFieldMessage', () => {
   it('should flat nested field', () => {

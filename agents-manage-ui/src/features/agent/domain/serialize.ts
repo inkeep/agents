@@ -3,7 +3,11 @@ import type { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
+import {
+  type AgentNodeData,
+  type FunctionToolNodeData,
+  NodeType,
+} from '@/components/agent/configuration/node-types';
 import type { MCPRelationSchema } from '@/components/agent/form/validation';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -86,6 +90,72 @@ type PartialMCPRelation = Pick<
   'selectedTools' | 'headers' | 'toolPolicies'
 >;
 type MCPRelationFormData = Record<string, PartialMCPRelation>;
+type NodeFormData = Pick<
+  FullAgentOutput,
+  'externalAgents' | 'functions' | 'functionTools' | 'subAgents' | 'teamAgents'
+>;
+
+export function hydrateNodesWithFormData(nodes: Node[], formData: NodeFormData): Node[] {
+  return nodes.map((node) => {
+    if (node.type === NodeType.SubAgent) {
+      const nodeData = node.data as AgentNodeData;
+      const subAgentId = nodeData.id ?? node.id;
+      const subAgent = formData.subAgents[subAgentId];
+
+      if (!subAgent) {
+        return node;
+      }
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          id: subAgent.id,
+          name: subAgent.name,
+          prompt: subAgent.prompt,
+          description: subAgent.description,
+          dataComponents: subAgent.dataComponents,
+          artifactComponents: subAgent.artifactComponents,
+          models: subAgent.models,
+          skills: subAgent.skills,
+          stopWhen: subAgent.stopWhen,
+          type: subAgent.type,
+        },
+      };
+    }
+
+    if (node.type === NodeType.FunctionTool) {
+      const nodeData = node.data as FunctionToolNodeData;
+      const functionToolId = nodeData.toolId ?? nodeData.functionToolId ?? node.id;
+      const functionTool = formData.functionTools[functionToolId];
+
+      if (!functionTool) {
+        return node;
+      }
+
+      const { functionId, name, description, tempToolPolicies } = functionTool;
+      const { executeCode, inputSchema, dependencies } = formData.functions[functionId] ?? {};
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          toolId: functionToolId,
+          functionToolId,
+          functionId,
+          name,
+          description,
+          code: executeCode,
+          inputSchema,
+          dependencies,
+          tempToolPolicies,
+        },
+      };
+    }
+
+    return node;
+  });
+}
 
 /**
  * Transforms React Flow nodes and edges back into the API data structure

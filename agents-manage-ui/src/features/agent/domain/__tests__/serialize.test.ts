@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { serializeAgentData } from '../serialize';
+import { hydrateNodesWithFormData, serializeAgentData } from '../serialize';
 
 describe('serializeAgentData', () => {
   describe('models object processing', () => {
@@ -741,6 +741,122 @@ describe('serializeAgentData', () => {
 
       expect(result.functionTools).toEqual({});
       expect(result.functions).toEqual({});
+    });
+
+    it('should preserve live function tool nodes by hydrating them from form data before serialization', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Stale agent name',
+            prompt: 'Stale prompt',
+            skills: [],
+          },
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            toolId: 'function-tool-1',
+            functionToolId: 'function-tool-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const formData = {
+        subAgents: {
+          agent1: {
+            id: 'agent1',
+            name: 'Current agent name',
+            description: 'Current description',
+            prompt: 'Current prompt',
+            dataComponents: [],
+            artifactComponents: [],
+            skills: [],
+            type: 'internal',
+          },
+        },
+        functionTools: {
+          'function-tool-1': {
+            functionId: 'function-1',
+            name: 'Lookup customer',
+            description: 'Looks up customer information',
+          },
+        },
+        functions: {
+          'function-1': {
+            executeCode: 'async function execute() { return { ok: true }; }',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                customerId: { type: 'string' },
+              },
+              required: ['customerId'],
+            },
+            dependencies: {
+              axios: '^1.7.0',
+            },
+          },
+        },
+        externalAgents: {},
+        teamAgents: {},
+      } as any;
+
+      const hydratedNodes = hydrateNodesWithFormData(nodes, formData);
+      const result = serializeAgentData(
+        hydratedNodes,
+        edges,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        formData.functionTools,
+        formData.externalAgents,
+        formData.teamAgents
+      );
+
+      expect(result.subAgents.agent1.name).toBe('Current agent name');
+      expect(result.functionTools).toEqual({
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          functionId: 'function-1',
+        },
+      });
+      expect(result.functions).toEqual({
+        'function-1': {
+          id: 'function-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+            },
+            required: ['customerId'],
+          },
+          dependencies: {
+            axios: '^1.7.0',
+          },
+        },
+      });
     });
 
     it('should serialize connected function tool nodes into functionTools and functions', () => {
