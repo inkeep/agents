@@ -194,15 +194,24 @@ ${modelList}
 ## Step 1: Research model generations
 Before touching any files, use WebSearch to research each provider's model history and the new models listed above.
 
-A new "era" is defined by a significant capability leap — not just a version number bump. A mid-generation release that represents a meaningful step up in capability (e.g. a new architecture, substantially better benchmarks, or a new modality) counts as its own era. Use your research to decide where each era boundary falls for each provider.
+A new "era" is defined by a significant capability leap — a mid-generation release with a meaningfully new architecture, substantially better benchmarks, or a new modality counts as its own era, even if the version number is a minor bump.
 
-For each provider with new models, determine:
-- The distinct capability eras in that provider's model history (e.g. is Claude 3.5 its own era or just a Claude 3 refinement? Was GPT-4o a new era or just GPT-4 improved?)
+Use the following as your starting baseline. Use WebSearch to verify and extend with any newer eras:
+
+| Provider | Known eras (oldest → newest) |
+|---|---|
+| Anthropic | Claude 3 → Claude 3.5 (own era — significant leap) → Claude 4 → … |
+| OpenAI | GPT-4 → GPT-4o (own era — significant leap) → GPT-5 → … |
+| Google | Gemini 1 → Gemini 1.5 (own era — significant leap) → Gemini 2 → … |
+
+For each provider with new models, confirm:
 - Which era the new model(s) belong to
-- Which era is "one back" from the current
+- Which era is one back from the current
 - Which existing UI entries are now two or more eras behind and should be pruned
 
-Use this research to build a clear picture before making any edits.
+**Output your era classification in the PR body** so reviewers can verify the pruning decisions before merge.
+
+**If you cannot determine clear era boundaries from your research, default to adding all new models as FULL tier and skip era pruning for this run. Note this in the PR body.**
 
 ## Step 2: Read the files first
 Before editing anything, read all 3 target files so you follow their exact patterns and conventions:
@@ -218,15 +227,15 @@ SKIP entirely (do not add anywhere) if the model ID contains: instruct, embeddin
 SKIP entirely if the ID ends in "-chat", "-image", or "-image-preview"
 If uncertain, skip entirely
 
-For models that pass the skip check, assign a tier based on the capability era determined in Step 1:
+For models that pass the skip check, assign a tier:
 
 **CONSTANTS-ONLY** — add to \`models.ts\` only, skip the UI and CLI:
-- Any model that is not in the current capability era (i.e. one era back or older)
-- Useful as pinnable constants for developers but should not appear in the UI picker
+- Any model that is not in the current capability era (one era back or older)
+- Any model with a date suffix or date-stamped snapshot (e.g. claude-3-5-sonnet-20240620, gpt-5-2025-08-07) — useful as pinnable constants but should not appear in the UI picker
 
 **FULL** — add to \`models.ts\`, the UI, and the CLI:
-- Models in the current capability era
-- One specialty model per category (reasoning/thinking, code generation) — the most capable/latest only
+- Models in the current capability era without a date suffix
+- One specialty model **per provider** per category (reasoning/thinking, code generation) — the most capable/latest for that provider only
 
 ### \`packages/agents-core/src/constants/models.ts\`
 - Add all non-skipped models (both CONSTANTS-ONLY and FULL tiers)
@@ -238,8 +247,8 @@ For models that pass the skip check, assign a tier based on the capability era d
 - Add only **FULL** tier models
 - Human-readable label matching existing style: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash'
 - Order: newest first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Nano/Mini)
-- **Era pruning**: after adding, remove any existing UI entries that are now two or more capability eras behind the current era (based on your Step 1 research). Keep current era + one era back only.
-- **Specialty pruning**: for each specialty category (reasoning, code gen), keep only the single most capable entry
+- **Era pruning**: after adding, remove existing UI entries that are now two or more eras behind the current era (per your Step 1 research). Keep current era + one era back only.
+- **Specialty pruning**: per provider, per category (reasoning, code gen), keep only the single most capable entry
 
 ### \`agents-cli/src/utils/model-config.ts\`
 - Same rules as the UI — FULL tier only, same era pruning and specialty pruning
@@ -261,7 +270,7 @@ Add new models: <comma-separated list of provider/model-id added>. Remove from U
 4. Create a PR targeting main with:
    - Title: "chore: add new models from provider APIs [model-sync]"
    - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
-   - Body: list models added, models removed from UI/CLI due to lookback pruning, and which files were updated`;
+   - Body: include (1) era classification per provider used to make decisions, (2) models added, (3) models removed from UI/CLI due to era/specialty pruning, (4) which files were updated`;
 
   setOutput('has_changes', 'true');
   setOutput('prompt', prompt);
