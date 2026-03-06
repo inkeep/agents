@@ -968,7 +968,13 @@ export const getMcpToolRepositoryAccessWithDetails =
         workAppGitHubInstallations,
         eq(workAppGitHubRepositories.installationDbId, workAppGitHubInstallations.id)
       )
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId));
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId)
+        )
+      );
 
     return result as (WorkAppGitHubRepositorySelect & {
       accessId: string;
