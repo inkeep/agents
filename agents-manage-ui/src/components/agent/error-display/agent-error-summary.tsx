@@ -7,7 +7,7 @@ import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-erro
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { firstNestedMessage } from '@/components/ui/form';
+import { flatNestedFieldMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useSidePane } from '@/hooks/use-side-pane';
 
@@ -95,14 +95,14 @@ function processMessagesWithNodeId(obj: Record<string, undefined | Record<string
       return {
         nodeId,
         field: 'global',
-        message: firstNestedMessage(groupValue),
+        message: flatNestedFieldMessage(groupValue),
       };
     }
 
     return Object.entries(groupValue).map(([field, value]) => ({
       nodeId,
       field,
-      message: firstNestedMessage(value),
+      message: flatNestedFieldMessage(value),
     }));
   });
 }

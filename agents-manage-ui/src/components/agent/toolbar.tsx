@@ -6,7 +6,7 @@ import { useFormState } from 'react-hook-form';
 import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { Button } from '@/components/ui/button';
-import { firstNestedMessage } from '@/components/ui/form';
+import { flatNestedFieldMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -71,7 +71,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
 
   const agentSettingsErrors = Object.entries(agentSettings).map(([key, value]) => ({
     field: key,
-    message: firstNestedMessage(value),
+    message: flatNestedFieldMessage(value),
   }));
   const hasErrors = agentSettingsErrors.length > 0;
 
