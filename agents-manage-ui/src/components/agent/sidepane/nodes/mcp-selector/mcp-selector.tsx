@@ -16,10 +16,11 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   const tools = Object.values(toolLookup);
 
   function handleSelect(data: MCPTool) {
+    const nodeId = data.id;
     form.setValue(
-      `tools.${data.id}`,
+      `tools.${nodeId}`,
       {
-        id: data.id,
+        id: nodeId,
         name: data.name,
         config: data.config,
       },
@@ -29,7 +30,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
       data: {
-        toolId: data.id,
+        toolId: nodeId,
         subAgentId: null,
         relationshipId: null,
       },

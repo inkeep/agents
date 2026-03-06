@@ -46,15 +46,15 @@ export function MCPServerNodeEditor({
 }: MCPServerNodeEditorProps) {
   'use memo';
   const form = useFullAgentFormContext();
-  const id = selectedNode.data.toolId;
+  const { toolId } = selectedNode.data;
   const relationKey = selectedNode.data.relationshipId ?? selectedNode.id;
-  const tool = useWatch({ control: form.control, name: `tools.${id}` });
+  const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
   const mcpRelation = useWatch({
     control: form.control,
     name: `mcpRelations.${relationKey}`,
   });
 
-  const path = <K extends string>(key: K) => `tools.${id}.${key}` as const;
+  const path = <K extends string>(key: K) => `tools.${toolId}.${key}` as const;
   const relationPath = <K extends string>(key: K) => `mcpRelations.${relationKey}.${key}` as const;
 
   const { canEdit } = useProjectPermissions();
@@ -69,12 +69,12 @@ export function MCPServerNodeEditor({
   const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
     tenantId,
     projectId,
-    toolId: selectedNode.data.toolId,
-    enabled: !!selectedNode.data.toolId,
+    toolId,
+    enabled: !!toolId,
   });
 
   // Use live data if available, fall back to skeleton from store
-  const skeletonToolData = toolLookup[selectedNode.data.toolId];
+  const skeletonToolData = toolLookup[toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
   const selectedToolsFromLookup = getCurrentSelectedToolsForNode(
@@ -99,7 +99,7 @@ export function MCPServerNodeEditor({
     form.setValue(
       `mcpRelations.${relationKey}`,
       {
-        toolId: selectedNode.data.toolId,
+        toolId,
         relationshipId: selectedNode.data.relationshipId ?? undefined,
         subAgentId: selectedNode.data.subAgentId ?? undefined,
         selectedTools: selectedToolsFromLookup,
@@ -146,9 +146,7 @@ export function MCPServerNodeEditor({
   if (!toolData) {
     return (
       <div className="flex items-center justify-center p-4">
-        <div className="text-sm text-muted-foreground">
-          Tool data not found for {selectedNode.data.toolId}.
-        </div>
+        <div className="text-sm text-muted-foreground">Tool data not found for {toolId}.</div>
       </div>
     );
   }
@@ -242,7 +240,7 @@ export function MCPServerNodeEditor({
           <AlertDescription className="text-muted-foreground">
             This MCP server requires authentication to work properly.{' '}
             <Link
-              href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}`}
+              href={`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground underline hover:no-underline"
@@ -497,9 +495,7 @@ export function MCPServerNodeEditor({
         placeholder={headersTemplate}
         customTemplate={headersTemplate}
       />
-      <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}
-      >
+      <ExternalLink href={`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}/edit`}>
         View MCP Server
       </ExternalLink>
       {canEdit && (
