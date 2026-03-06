@@ -70,24 +70,7 @@ This is especially useful for redirecting agents. If a user denies a request for
 
 ## Responding to an approval request
 
-You can approve/deny in two ways.
-
-### Option A: Dedicated endpoint
-
-`POST /run/api/tool-approvals` (or `POST /api/tool-approvals` if your Run API is not mounted under `/run`).
-
-```json
-{
-  "conversationId": "conv_xyz789",
-  "toolCallId": "call_abc123def456",
-  "approved": true,
-  "reason": "User confirmed the operation" // Optional
-}
-```
-
-### Option B: Respond via the chat endpoint (message part)
-
-This is useful if your UI already models tool parts (for example, using the Vercel AI SDK UI message stream).
+You can approve/deny via the chat endpoint (message part)
 
 `POST /run/api/chat` with an assistant message that includes a `tool-*` part:
 
@@ -122,9 +105,9 @@ If you’re using the Vercel AI SDK UI message stream, approval requests show up
 After calling `addToolApprovalResponse(...)`, call `sendMessage()` so the updated messages (including the approval response) are POSTed back to `/run/api/chat` and the run can continue.
 
 ```tsx
-'use client';
+"use client";
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from "@ai-sdk/react";
 
 export default function Chat() {
   const { messages, addToolApprovalResponse, sendMessage } = useChat();
@@ -134,9 +117,9 @@ export default function Chat() {
       {messages.map((message) => (
         <div key={message.id}>
           {message.parts.map((part) => {
-            if (part.type === 'tool-getWeather') {
+            if (part.type === "tool-getWeather") {
               switch (part.state) {
-                case 'approval-requested':
+                case "approval-requested":
                   return (
                     <div key={part.toolCallId}>
                       <p>Get weather for {part.input.city}?</p>
@@ -166,7 +149,7 @@ export default function Chat() {
                       </button>
                     </div>
                   );
-                case 'output-available':
+                case "output-available":
                   return (
                     <div key={part.toolCallId}>
                       Weather in {part.input.city}: {String(part.output)}
@@ -185,8 +168,9 @@ export default function Chat() {
 ```
 
 <Note>
-  Only `state: "approval-responded"` triggers an approval/denial. If your client includes other tool approval parts in message
-  history (for example `state: "approval-requested"`), the server ignores them.
+  Only `state: "approval-responded"` triggers an approval/denial. If your client
+  includes other tool approval parts in message history (for example `state:
+  "approval-requested"`), the server ignores them.
 </Note>
 
 ## Tool approvals in Slack
@@ -209,7 +193,9 @@ Only the user who started the conversation can approve or deny a tool request. I
 If no one responds to an approval request within the timeout period, the request expires and the message updates to show "Expired". The agent receives a timeout notification and can inform the user.
 
 <Note>
-  Tool approvals in Slack require account linking. Run `/inkeep link` to connect your Slack and Inkeep accounts before using agents with approval-required tools.
+  Tool approvals in Slack require account linking. Run `/inkeep link` to connect
+  your Slack and Inkeep accounts before using agents with approval-required
+  tools.
 </Note>
 
 ## Related docs

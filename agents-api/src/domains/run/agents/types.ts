@@ -29,8 +29,8 @@ export interface SkillData {
 }
 
 export interface SystemPromptV1 {
-  corePrompt: string; // Just the agent's prompt string
-  prompt?: string; // Agent-level context and instructions
+  corePrompt: string; // Sub-agent's own instructions — rendered into <core_instructions>
+  prompt?: string; // Overarching agent system's prompt — rendered into <agent_context>. Different source from corePrompt.
   skills?: SkillData[];
   artifacts: Artifact[];
   tools: ToolData[];

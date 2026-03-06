@@ -66,7 +66,7 @@ async function findUiDirectory(): Promise<string> {
   if (await fs.pathExists(uiDir)) return uiDir;
   const found = await findUp(UI_DIR_RELATIVE, { type: 'directory' });
   if (found) return found;
-  const agentsUi = await findUp('apps/agents-ui', { type: 'directory' });
+  const agentsUi = await findUp('apps/agents-ui-demo', { type: 'directory' });
   if (agentsUi) return path.join(agentsUi, 'src', 'ui');
   return path.join(cwd, UI_DIR_RELATIVE);
 }

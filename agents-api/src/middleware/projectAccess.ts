@@ -24,7 +24,7 @@ export const requireProjectPermission = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
 >(
   permission: ProjectPermissionLevel = 'view'
-) => {
+): ProjectScopedMiddleware<Env> => {
   const mw = createMiddleware<Env>(async (c, next) => {
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
@@ -122,5 +122,5 @@ export const requireProjectPermission = <
     description:
       projectPermissionDescriptions[permission] ?? `Requires project ${permission} permission`,
   });
-  return mw as unknown as ProjectScopedMiddleware;
+  return mw as ProjectScopedMiddleware<Env>;
 };

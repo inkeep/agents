@@ -107,7 +107,7 @@ vi.mock('../../../data/db/runDbClient', () => ({
 }));
 
 // Mock stream helpers
-vi.mock('../../domains/run/utils/stream-helpers.js', () => ({
+vi.mock('../../domains/run/stream/stream-helpers.js', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn(),
     writeContent: vi.fn(),

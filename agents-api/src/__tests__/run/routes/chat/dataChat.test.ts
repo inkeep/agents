@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pendingToolApprovalManager } from '../../../../domains/run/services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../../../../domains/run/services/ToolApprovalUiBus';
+import { pendingToolApprovalManager } from '../../../../domains/run/session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../../../../domains/run/session/ToolApprovalUiBus';
 
 // Logger mock is now in setup.ts globally
 
@@ -265,7 +265,10 @@ describe('Chat Data Stream Route', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type') || '').toMatch(/application\/json/);
     const json = await res.json();
-    expect(json).toMatchObject({ success: true, toolCallId, approved: true });
+    expect(json).toMatchObject({
+      success: true,
+      results: [{ toolCallId, approved: true, alreadyProcessed: false }],
+    });
 
     await expect(approvalPromise).resolves.toMatchObject({ approved: true });
   });
@@ -301,9 +304,73 @@ describe('Chat Data Stream Route', () => {
     const json = await res.json();
     expect(json).toMatchObject({
       success: true,
-      toolCallId,
-      approved: true,
-      alreadyProcessed: true,
+      results: [{ toolCallId, approved: true, alreadyProcessed: true }],
+    });
+  });
+
+  it('should accept batch approval responses in a single request', async () => {
+    const toolCallId1 = 'call_batch_approval_1';
+    const toolCallId2 = 'call_batch_approval_2';
+    const conversationId = 'conv-batch-123';
+
+    const approval1Promise = pendingToolApprovalManager.waitForApproval(
+      toolCallId1,
+      'delete_file',
+      { filePath: 'a.md' },
+      conversationId,
+      'test-agent'
+    );
+    const approval2Promise = pendingToolApprovalManager.waitForApproval(
+      toolCallId2,
+      'send_email',
+      { to: 'user@example.com' },
+      conversationId,
+      'test-agent'
+    );
+
+    const body = {
+      conversationId,
+      messages: [
+        {
+          role: 'assistant',
+          content: null,
+          parts: [
+            {
+              type: `tool-${toolCallId1}`,
+              toolCallId: toolCallId1,
+              state: 'approval-responded',
+              approval: { id: `aitxt-${toolCallId1}`, approved: true },
+            },
+            {
+              type: `tool-${toolCallId2}`,
+              toolCallId: toolCallId2,
+              state: 'approval-responded',
+              approval: { id: `aitxt-${toolCallId2}`, approved: false, reason: 'not now' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toMatchObject({
+      success: true,
+      results: [
+        { toolCallId: toolCallId1, approved: true, alreadyProcessed: false },
+        { toolCallId: toolCallId2, approved: false, alreadyProcessed: false },
+      ],
+    });
+
+    await expect(approval1Promise).resolves.toMatchObject({ approved: true });
+    await expect(approval2Promise).resolves.toMatchObject({
+      approved: false,
+      reason: expect.stringContaining('not now'),
     });
   });
 

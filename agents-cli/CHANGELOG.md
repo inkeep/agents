@@ -1,5 +1,47 @@
 # @inkeep/agents-cli
 
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+  - @inkeep/agents-manage-ui@0.58.2
+  - @inkeep/agents-sdk@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.58.1
+- @inkeep/agents-core@0.58.1
+- @inkeep/agents-sdk@0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- Updated dependencies [e7e09df]
+- Updated dependencies [3d88636]
+- Updated dependencies [b6c8fba]
+  - @inkeep/agents-manage-ui@0.58.0
+  - @inkeep/agents-core@0.58.0
+  - @inkeep/agents-sdk@0.58.0
+
+## 0.57.0
+
+### Patch Changes
+
+- Updated dependencies [19e16cc]
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-manage-ui@0.57.0
+  - @inkeep/agents-core@0.57.0
+  - @inkeep/agents-sdk@0.57.0
+
 ## 0.56.2
 
 ### Patch Changes

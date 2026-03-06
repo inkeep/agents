@@ -368,7 +368,7 @@ export function TriggerForm({
         } catch {}
       }
       return {
-        enabled: p?.enabled === 'false' ? false : true,
+        enabled: p?.enabled !== 'false',
         name: '',
         description: '',
         messageTemplate: p?.messageTemplate || '',

@@ -1,5 +1,43 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- e7e09df: Make diffs collapsible if there are more than 3 fields in the copilot tool approval
+- b6c8fba: Remove console.log debug output from production builds
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 19e16cc: Improve trigger page performance by splitting tab content into separate RSC components with Suspense boundaries and using nuqs for client-side tab switching
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+
 ## 0.56.2
 
 ### Patch Changes

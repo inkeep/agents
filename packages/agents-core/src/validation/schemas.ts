@@ -54,6 +54,7 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
+  userProfile,
   workAppGitHubInstallations,
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
@@ -94,6 +95,8 @@ const {
   VALIDATION_AGENT_PROMPT_MAX_CHARS,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
+
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
 
 export const StringRecordSchema = z
   .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
@@ -1812,6 +1815,7 @@ export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({
   keyHash: true,
   keyPrefix: true,
   createdAt: true,
+  lastUsedAt: true,
 });
 
 export const ApiKeyApiSelectSchema = ApiKeySelectSchema.omit({
@@ -2931,6 +2935,10 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+export const UserIdParamsSchema = z.object({
+  userId: UserIdSchema,
+});
+
 export const TenantParamsSchema = z.object({
   tenantId: TenantId,
 });
@@ -3111,3 +3119,30 @@ export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequ
 
 export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
 export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;
+
+const timezoneSchema = z
+  .string()
+  .refine((tz) => VALID_TIMEZONES.has(tz), {
+    message: 'Invalid IANA timezone',
+  })
+  .nullable()
+  .optional();
+
+// User Profile Schemas (Runtime DB - unversioned)
+export const UserProfileSelectSchema = createSelectSchema(userProfile);
+export const UserProfileInsertSchema = createInsertSchema(userProfile)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    timezone: timezoneSchema,
+  });
+export const UserProfileUpdateSchema = UserProfileInsertSchema.partial().extend({
+  timezone: timezoneSchema,
+});
+export const UserProfileApiInsertSchema = omitGeneratedFields(UserProfileInsertSchema);
+export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
+  id: true,
+  userId: true,
+});

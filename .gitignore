@@ -124,3 +124,5 @@ progress.txt
 
 .pnpm-store/
 .vercel
+
+packages/agents-ui-local

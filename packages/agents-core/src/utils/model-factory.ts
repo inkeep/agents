@@ -4,6 +4,7 @@ import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import type { JSONObject } from '@ai-sdk/provider';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
 
@@ -110,7 +111,7 @@ export class ModelFactory {
 
   /**
    * Extract provider configuration from providerOptions
-   * Only includes settings that go to the provider constructor (baseURL, apiKey, etc.)
+   * Only includes settings that go to the provider constructor (baseURL, headers, etc.)
    */
   private static extractProviderConfig(
     providerOptions?: Record<string, unknown>
@@ -137,19 +138,36 @@ export class ModelFactory {
       providerConfig.apiVersion = providerOptions.apiVersion;
     }
 
-    if (providerOptions.gateway) {
-      Object.assign(providerConfig, providerOptions.gateway);
-    }
-
-    if (providerOptions.nim) {
-      Object.assign(providerConfig, providerOptions.nim);
-    }
-
-    if (providerOptions.custom) {
-      Object.assign(providerConfig, providerOptions.custom);
-    }
-
     return providerConfig;
+  }
+
+  /**
+   * Extract per-call provider options to pass as providerOptions in streamText/generateText.
+   * Any object-valued key (except constructor config keys like headers) is treated as
+   * a provider-specific per-call option, e.g. anthropic.thinking, gateway.models.
+   */
+  static extractStreamProviderOptions(
+    providerOptions?: Record<string, unknown>
+  ): Record<string, JSONObject> | undefined {
+    if (!providerOptions) {
+      return undefined;
+    }
+
+    const constructorObjectKeys = new Set(['headers']);
+    const result: Record<string, JSONObject> = {};
+
+    for (const [key, value] of Object.entries(providerOptions)) {
+      if (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        !constructorObjectKeys.has(key)
+      ) {
+        result[key] = value as JSONObject;
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
   }
 
   /**
@@ -206,7 +224,7 @@ export class ModelFactory {
         return createMockModel(modelName) as unknown as LanguageModel;
       case 'custom':
         throw new Error(
-          'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+          'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
         );
       default:
         throw new Error(
@@ -269,7 +287,7 @@ export class ModelFactory {
       return {};
     }
 
-    const excludedKeys = [
+    const excludedKeys = new Set([
       'apiKey',
       'baseURL',
       'baseUrl',
@@ -277,14 +295,11 @@ export class ModelFactory {
       'apiVersion',
       'maxDuration',
       'headers',
-      'gateway',
-      'nim',
-      'custom',
-    ];
+    ]);
 
     const params: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(providerOptions)) {
-      if (!excludedKeys.includes(key) && value !== undefined) {
+      if (!excludedKeys.has(key) && value !== undefined && typeof value !== 'object') {
         params[key] = value;
       }
     }
@@ -300,7 +315,8 @@ export class ModelFactory {
   static prepareGenerationConfig(modelSettings?: ModelSettings): {
     model: LanguageModel;
     maxDuration?: number;
-  } & Record<string, unknown> {
+    providerOptions?: Record<string, JSONObject>;
+  } {
     const modelString = modelSettings?.model?.trim();
 
     const model = ModelFactory.createModel({
@@ -309,13 +325,18 @@ export class ModelFactory {
     });
 
     const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);
-
+    const streamProviderOptions = ModelFactory.extractStreamProviderOptions(
+      modelSettings?.providerOptions
+    );
     const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
 
     return {
       model,
       ...generationParams,
       ...(maxDuration !== undefined && { maxDuration }),
+      ...(streamProviderOptions !== undefined && {
+        providerOptions: streamProviderOptions as Record<string, JSONObject>,
+      }),
     };
   }
 
