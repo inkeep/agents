@@ -132,7 +132,11 @@ describe('GitHub MCP Tool Repository Access', () => {
         repositoryIds: [repoId1],
       });
 
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
 
       expect(access).toHaveLength(1);
       expect(access[0].repositoryName).toBe('repo-1');
@@ -143,7 +147,11 @@ describe('GitHub MCP Tool Repository Access', () => {
     });
 
     it('should return empty array when no access configured', async () => {
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
       expect(access).toHaveLength(0);
     });
 
@@ -155,7 +163,11 @@ describe('GitHub MCP Tool Repository Access', () => {
         repositoryIds: [repoId1, repoId2],
       });
 
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
 
       expect(access).toHaveLength(2);
       const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
@@ -180,7 +192,11 @@ describe('GitHub MCP Tool Repository Access', () => {
         mode: 'all',
       });
 
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
 
       expect(access).toHaveLength(2);
       const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
@@ -212,7 +228,11 @@ describe('GitHub MCP Tool Repository Access', () => {
         repositoryIds: [repoId1],
       });
 
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
 
       expect(access).toHaveLength(1);
       expect(access[0].repositoryName).toBe('repo-1');
@@ -232,7 +252,11 @@ describe('GitHub MCP Tool Repository Access', () => {
         mode: 'all',
       });
 
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
 
       expect(access).toHaveLength(2);
       const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
@@ -255,7 +279,11 @@ describe('GitHub MCP Tool Repository Access', () => {
         mode: 'all',
       });
 
-      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)(toolId);
+      const access = await getMcpToolRepositoryAccessWithDetails(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
 
       expect(access).toHaveLength(0);
     });

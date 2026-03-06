@@ -461,7 +461,13 @@ export const cascadeDeleteByTool =
     // Delete MCP tool access mode entry
     const accessModeResult = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, projectId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, toolId)
+        )
+      )
       .returning();
 
     // Delete Slack MCP tool access config entry

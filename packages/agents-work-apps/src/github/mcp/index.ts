@@ -69,10 +69,12 @@ const getAvailableRepositoryString = (repositoryAccess: WorkAppGitHubRepositoryS
 /**
  * Creates and configures an MCP server for the given context
  */
-const getServer = async (toolId: string) => {
+type ToolScope = { tenantId: string; projectId: string; toolId: string };
+
+const getServer = async (scope: ToolScope) => {
   // Initialize GitHub App authentication
 
-  const repositoryAccess = await getMcpToolRepositoryAccessWithDetails(runDbClient)(toolId);
+  const repositoryAccess = await getMcpToolRepositoryAccessWithDetails(runDbClient)(scope);
   const installationIdMap = new Map<string, string>();
   for (const repo of repositoryAccess) {
     installationIdMap.set(repo.repositoryFullName, repo.installationId);
@@ -1621,6 +1623,8 @@ const getServer = async (toolId: string) => {
 const app = new Hono<{
   Variables: {
     toolId: string;
+    tenantId: string;
+    projectId: string;
   };
 }>();
 
@@ -1630,9 +1634,11 @@ app.post('/', async (c) => {
     return c.json({ error: 'GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY must be set' }, 500);
   }
   const toolId = c.get('toolId');
+  const tenantId = c.get('tenantId');
+  const projectId = c.get('projectId');
   const body = await c.req.json();
 
-  const server = await getServer(toolId);
+  const server = await getServer({ tenantId, projectId, toolId });
 
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
