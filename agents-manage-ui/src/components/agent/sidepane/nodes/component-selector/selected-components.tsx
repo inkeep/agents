@@ -31,6 +31,7 @@ export function SelectedComponents<T extends ComponentItem>({
                 variant="ghost"
                 size="icon-sm"
                 className=" size-3 ml-1"
+                aria-label={`Remove ${component?.name ?? componentId}`}
                 onClick={() => handleToggle(componentId)}
               >
                 <X className="size-3" />

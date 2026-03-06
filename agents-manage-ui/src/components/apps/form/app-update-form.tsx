@@ -1,17 +1,16 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X } from 'lucide-react';
-import { type KeyboardEvent, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
-import { Badge } from '@/components/ui/badge';
+import { MultiSelectField } from '@/components/form/multi-select-field';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel, FieldTitle } from '@/components/ui/field';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
@@ -139,7 +138,7 @@ export function AppUpdateForm({
           name="enabled"
           render={({ field }) => (
             <FormItem className="flex items-center justify-between">
-              <FormLabel>Enabled</FormLabel>
+              <FormLabel className="flex-1">Enabled</FormLabel>
               <FormControl>
                 <Switch checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
@@ -168,7 +167,7 @@ export function AppUpdateForm({
               name="captchaEnabled"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between">
-                  <FormLabel>Captcha (PoW)</FormLabel>
+                  <FormLabel className="flex-1">Captcha (PoW)</FormLabel>
                   <FormControl>
                     <Switch checked={!!field.value} onCheckedChange={field.onChange} />
                   </FormControl>
@@ -178,16 +177,41 @@ export function AppUpdateForm({
           </>
         )}
 
-        <GenericSelect
+        <FormField
           control={form.control}
           name="agentAccessMode"
-          label="Agent Access"
-          options={[...AGENT_ACCESS_MODE_OPTIONS]}
-          selectTriggerClassName="w-full"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Agent Access</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="mt-1 flex gap-3"
+                >
+                  {AGENT_ACCESS_MODE_OPTIONS.map(({ value, label }) => (
+                    <FieldLabel key={value} htmlFor={`agentAccessMode-update-${value}`}>
+                      <Field orientation="horizontal" className="py-2! px-3!">
+                        <FieldTitle>{label}</FieldTitle>
+                        <RadioGroupItem value={value} id={`agentAccessMode-update-${value}`} />
+                      </Field>
+                    </FieldLabel>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
         />
 
         {agentAccessMode === 'selected' && (
-          <AgentMultiSelect control={form.control} agentOptions={agentOptions} />
+          <MultiSelectField
+            control={form.control}
+            name="allowedAgentIds"
+            label="Allowed Agents"
+            options={agentOptions}
+            placeholder="Select agents..."
+            commandInputPlaceholder="Search agents..."
+          />
         )}
 
         <div className="flex justify-end">
@@ -197,101 +221,5 @@ export function AppUpdateForm({
         </div>
       </form>
     </Form>
-  );
-}
-
-function AgentMultiSelect({
-  control,
-  agentOptions,
-}: {
-  control: any;
-  agentOptions: SelectOption[];
-}) {
-  const [inputValue, setInputValue] = useState('');
-
-  return (
-    <FormField
-      control={control}
-      name="allowedAgentIds"
-      render={({ field }) => {
-        const selectedIds: string[] = field.value || [];
-
-        const addAgent = (id: string) => {
-          if (!selectedIds.includes(id)) {
-            field.onChange([...selectedIds, id]);
-          }
-          setInputValue('');
-        };
-
-        const removeAgent = (id: string) => {
-          field.onChange(selectedIds.filter((a: string) => a !== id));
-        };
-
-        const filteredOptions = agentOptions.filter(
-          (opt) =>
-            !selectedIds.includes(opt.value) &&
-            opt.label.toLowerCase().includes(inputValue.toLowerCase())
-        );
-
-        const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (filteredOptions.length > 0) {
-              addAgent(filteredOptions[0].value);
-            }
-          }
-        };
-
-        return (
-          <FormItem>
-            <FormLabel>Allowed Agents</FormLabel>
-            <div className="space-y-2">
-              {selectedIds.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {selectedIds.map((id: string) => {
-                    const opt = agentOptions.find((o) => o.value === id);
-                    return (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {opt?.label ?? id}
-                        <button
-                          type="button"
-                          aria-label={`Remove ${opt?.label ?? id}`}
-                          onClick={() => removeAgent(id)}
-                          className="hover:text-destructive"
-                        >
-                          <X className="size-3" aria-hidden="true" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="relative">
-                <Input
-                  placeholder="Search agents..."
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-                {inputValue && filteredOptions.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-40 overflow-auto">
-                    {filteredOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                        onClick={() => addAgent(opt.value)}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </FormItem>
-        );
-      }}
-    />
   );
 }
