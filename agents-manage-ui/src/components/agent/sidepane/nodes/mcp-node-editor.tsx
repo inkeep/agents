@@ -108,16 +108,11 @@ export function MCPServerNodeEditor({
       },
       { shouldDirty: false }
     );
-  }, [selectedNode.id]);
-
-  const { availableTools } = toolData;
-  const toolOverrides =
-    tool.config && tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
+  }, [relationKey]);
 
   const activeTools = getActiveTools({
-    availableTools: availableTools,
-    activeTools:
-      tool.config && tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
+    availableTools: toolData.availableTools,
+    activeTools: tool && tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
@@ -141,6 +136,12 @@ export function MCPServerNodeEditor({
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
+
+  if (!tool) {
+    return;
+  }
+
+  const toolOverrides = tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
 
   // Handle missing tool data
   if (!toolData) {

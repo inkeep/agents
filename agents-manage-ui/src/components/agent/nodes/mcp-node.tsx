@@ -93,6 +93,13 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   // Use live data if available, fall back to skeleton
   const toolData = liveToolData ?? skeletonToolData;
+  const processedErrors = [
+    ...useProcessedErrors('tools', data.toolId),
+    ...useProcessedErrors('mcpRelations', relationKey),
+  ];
+  if (!tool) {
+    return;
+  }
 
   const activeTools = getActiveTools({
     availableTools: toolData?.availableTools,
@@ -161,10 +168,6 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
-  const processedErrors = [
-    ...useProcessedErrors('tools', data.toolId),
-    ...useProcessedErrors('mcpRelations', relationKey),
-  ];
   const hasErrors = processedErrors.length > 0;
   const hasStatusErrors = data.status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
