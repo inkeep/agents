@@ -10,6 +10,7 @@ const font = readFileSync(
 const fontMono = readFileSync('./src/app/api/docs-og/[...slug]/JetBrainsMono-Medium.ttf');
 const backgroundImage = readFileSync('./src/app/api/docs-og/[...slug]/og-background.png');
 const backgroundImageDataUrl = `data:image/png;base64,${backgroundImage.toString('base64')}`;
+const OG_CACHE_CONTROL = 'public, max-age=0, s-maxage=2592000, stale-while-revalidate=86400';
 
 function getSubheading(path: string) {
   const parts = path.split('/');
@@ -28,7 +29,7 @@ export const GET = async (_req: NextRequest, ctx: RouteContext<'/api/docs-og/[..
   const page = source.getPage(slug.slice(0, -1));
   if (!page) return;
   const subHeading = getSubheading(page.url);
-  return generateOGImage({
+  const image = generateOGImage({
     title: page.data.title,
     description: page.data.description,
     site: subHeading || page.data.sidebarTitle || 'Documentation',
@@ -50,4 +51,6 @@ export const GET = async (_req: NextRequest, ctx: RouteContext<'/api/docs-og/[..
       },
     ],
   });
+  image.headers.set('Cache-Control', OG_CACHE_CONTROL);
+  return image;
 };

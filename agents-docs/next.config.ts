@@ -52,14 +52,6 @@ const config: NextConfig = {
         source: '/cloud/:path*',
         destination: 'https://rag-docs.inkeep.com/cloud/:path*',
       },
-      {
-        source: '/:path*.mdx',
-        destination: '/llms.mdx/:path*',
-      },
-      {
-        source: '/:path*.md',
-        destination: '/llms.mdx/:path*',
-      },
     ];
   },
 };
