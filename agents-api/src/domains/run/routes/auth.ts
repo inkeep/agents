@@ -5,6 +5,7 @@ import {
   createApiError,
   getAppById,
   validateOrigin,
+  verifyPoW,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { createChallenge } from 'altcha-lib';
@@ -164,6 +165,11 @@ app.openapi(
         'Anonymous session: origin not allowed'
       );
       throw createApiError({ code: 'forbidden', message: 'Origin not allowed' });
+    }
+
+    const pow = await verifyPoW(c.req.raw, env.INKEEP_POW_HMAC_SECRET);
+    if (!pow.ok) {
+      return c.json({ error: pow.error }, 400);
     }
 
     const anonUserId = `anon_${crypto.randomUUID()}`;
