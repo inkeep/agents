@@ -16,6 +16,8 @@ import {
 import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
+  AppConfig,
+  AppType,
   ChannelAccessMode,
   ChannelIds,
   ConversationMetadata,
@@ -156,6 +158,25 @@ export const apiKeys = pgTable(
     index('api_keys_prefix_idx').on(t.keyPrefix),
     index('api_keys_public_id_idx').on(t.publicId),
   ]
+);
+
+export const apps = pgTable(
+  'apps',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }),
+    projectId: varchar('project_id', { length: 256 }),
+    name: varchar('name', { length: 256 }).notNull(),
+    description: text('description'),
+    type: varchar('type', { length: 64 }).$type<AppType>().notNull(),
+    defaultProjectId: varchar('default_project_id', { length: 256 }),
+    defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    enabled: boolean('enabled').notNull().default(true),
+    config: jsonb('config').$type<AppConfig>().notNull(),
+    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
+    ...timestamps,
+  },
+  (t) => [index('apps_tenant_project_idx').on(t.tenantId, t.projectId)]
 );
 
 /**

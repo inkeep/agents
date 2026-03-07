@@ -85,6 +85,50 @@ const envSchema = z
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
 
+    // Anonymous Session JWT
+    INKEEP_ANON_JWT_SECRET: z
+      .string()
+      .min(32, 'INKEEP_ANON_JWT_SECRET must be at least 32 characters')
+      .optional()
+      .describe(
+        'Secret key for signing anonymous session JWTs (HS256). Required in production. Min 32 characters.'
+      ),
+    INKEEP_ANON_SESSION_LIFETIME_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(604800)
+      .optional()
+      .default(86400)
+      .describe(
+        'Lifetime in seconds for anonymous session JWTs. Min 60s, max 604800s (7 days). Default 86400s (24 hours).'
+      ),
+
+    // Proof-of-Work (ALTCHA)
+    INKEEP_POW_HMAC_SECRET: z
+      .string()
+      .min(32, 'INKEEP_POW_HMAC_SECRET must be at least 32 characters')
+      .optional()
+      .describe(
+        'HMAC secret for signing PoW challenges. Presence enables PoW globally for web_client apps. Min 32 characters.'
+      ),
+    INKEEP_POW_DIFFICULTY: z.coerce
+      .number()
+      .int()
+      .optional()
+      .default(50000)
+      .describe('maxnumber parameter for PoW challenge difficulty. Default 50000.'),
+    INKEEP_POW_CHALLENGE_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(3600)
+      .optional()
+      .default(300)
+      .describe(
+        'PoW challenge expiry in seconds. Min 60s, max 3600s (1 hour). Default 300s (5 minutes).'
+      ),
+
     // JWT Keys (for Playground)
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z
       .string()

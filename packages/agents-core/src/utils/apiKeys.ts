@@ -150,3 +150,18 @@ export function extractPublicId(key: string): string | null {
 export function maskApiKey(keyPrefix: string): string {
   return `${keyPrefix}...`;
 }
+
+// ── App Credential Utilities ──────────────────────────────────────────────────
+
+export type AppCredentialResult = {
+  id: string;
+};
+
+export function generateAppCredential(): AppCredentialResult {
+  const id = `app_${generateId()}`;
+  return { id };
+}
+
+export function sanitizeAppConfig<T>(app: T): T {
+  return app;
+}

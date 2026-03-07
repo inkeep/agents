@@ -41,6 +41,7 @@ import {
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
+  apps,
   contextCache,
   conversations,
   datasetRun,
@@ -1844,6 +1845,78 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
+// ── App Credential Schemas ──────────────────────────────────────────────────
+
+export const WebClientConfigSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(z.string().min(1)).min(1),
+    }),
+  })
+  .openapi('WebClientConfig');
+
+export const ApiConfigSchema = z
+  .object({
+    type: z.literal('api'),
+    api: z.object({}).default({}),
+  })
+  .openapi('ApiConfig');
+
+export const AppConfigSchema = z
+  .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema])
+  .openapi('AppConfig');
+
+export const WebClientConfigResponseSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(z.string().min(1)).min(1),
+    }),
+  })
+  .openapi('WebClientConfigResponse');
+
+export const AppConfigResponseSchema = z
+  .discriminatedUnion('type', [WebClientConfigResponseSchema, ApiConfigSchema])
+  .openapi('AppConfigResponse');
+
+export const AppSelectSchema = createSelectSchema(apps);
+
+export const AppInsertSchema = createInsertSchema(apps).extend({
+  id: ResourceIdSchema,
+  name: z.string().trim().nonempty('Please enter a name.').max(256),
+  type: z.enum(['web_client', 'api']),
+  defaultAgentId: z.string().min(1).nullish(),
+  config: AppConfigSchema,
+});
+
+export const AppUpdateSchema = AppInsertSchema.partial().omit({
+  id: true,
+  type: true,
+  createdAt: true,
+});
+
+export const AppApiSelectSchema = AppSelectSchema.openapi('App');
+
+export const AppApiResponseSelectSchema = AppApiSelectSchema.omit({ config: true })
+  .extend({
+    config: AppConfigResponseSchema,
+  })
+  .openapi('AppResponseItem');
+
+export const AppApiInsertSchema = AppInsertSchema.omit({
+  id: true,
+  lastUsedAt: true,
+}).openapi('AppCreate');
+
+export const AppApiUpdateSchema = AppUpdateSchema.openapi('AppUpdate');
+
+export const AppApiCreationResponseSchema = z.object({
+  data: z.object({
+    app: AppApiResponseSelectSchema,
+  }),
+});
+
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
@@ -2667,6 +2740,13 @@ export const ApiKeyListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ApiKeyListResponse');
+export const AppResponse = z.object({ data: AppApiResponseSelectSchema }).openapi('AppResponse');
+export const AppListResponse = z
+  .object({
+    data: z.array(AppApiResponseSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('AppListResponse');
 export const CredentialReferenceListResponse = z
   .object({
     data: z.array(CredentialReferenceApiSelectSchema),
@@ -2936,8 +3016,17 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+const UserIdPathParam = z.string().openapi('UserIdPathParam', {
+  param: {
+    name: 'userId',
+    in: 'path',
+  },
+  description: 'User identifier',
+  example: 'user_123',
+});
+
 export const UserIdParamsSchema = z.object({
-  userId: UserIdSchema,
+  userId: UserIdPathParam,
 });
 
 export const TenantParamsSchema = z.object({
@@ -3184,3 +3273,10 @@ export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
   id: true,
   userId: true,
 });
+
+export const AnonymousSessionResponseSchema = z
+  .object({
+    token: z.string().describe('Anonymous session JWT'),
+    expiresAt: z.string().describe('Token expiration time (ISO 8601)'),
+  })
+  .openapi('AnonymousSessionResponse');
