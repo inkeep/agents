@@ -57,7 +57,11 @@ function buildTransferTools(relations: SubAgentRelationInfo[], currentId: string
     t[name] = tool({
       description: `Transfer to ${r.name}. ${r.description || ''}`,
       inputSchema: z.object({}),
-      execute: async () => ({ type: 'transfer' as const, targetSubAgentId: r.id, fromSubAgentId: currentId }),
+      execute: async () => ({
+        type: 'transfer' as const,
+        targetSubAgentId: r.id,
+        fromSubAgentId: currentId,
+      }),
     }) as ToolSet[string];
   }
   return t;
@@ -72,7 +76,8 @@ function buildDelegateTools(
     const name = `delegate_to_${r.id}`.replace(/[^a-zA-Z0-9_]/g, '_');
     const needsApproval = APPROVAL_REQUIRED_DELEGATIONS.has(r.id);
     t[name] = tool({
-      description: `Delegate to ${r.name}. ${r.description || ''}` +
+      description:
+        `Delegate to ${r.name}. ${r.description || ''}` +
         (needsApproval ? ' (requires approval)' : ''),
       inputSchema: z.object({ message: z.string().describe('Task to delegate') }),
       execute: async ({ message }) => ({
@@ -108,7 +113,9 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
     let messages: ModelMessage[] = history;
     const writable = getWritable<UIMessageChunk>();
     const delegateNames = new Set(
-      (config.delegateRelations || []).map((r) => `delegate_to_${r.id}`.replace(/[^a-zA-Z0-9_]/g, '_'))
+      (config.delegateRelations || []).map((r) =>
+        `delegate_to_${r.id}`.replace(/[^a-zA-Z0-9_]/g, '_')
+      )
     );
 
     for (let i = 0; i < MAX_TRANSFERS; i++) {
@@ -116,7 +123,11 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
       const allTools = {
         ...buildTransferTools(currentConfig.transferRelations || [], currentSubAgentId),
-        ...buildDelegateTools(currentConfig.delegateRelations || [], { tenantId, projectId, agentId }),
+        ...buildDelegateTools(currentConfig.delegateRelations || [], {
+          tenantId,
+          projectId,
+          agentId,
+        }),
       };
 
       const agent = new DurableAgent({
@@ -128,18 +139,8 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       const result = await agent.stream({
         messages,
         writable,
-        maxSteps: 10,
+        maxSteps: delegateNames.size > 0 ? 1 : 10,
         preventClose: true,
-        ...(delegateNames.size > 0
-          ? {
-              stopWhen: ({ steps }: { steps: Array<Record<string, unknown>> }) =>
-                steps.some((s) =>
-                  ((s as any).toolResults as Array<{ result?: unknown }> | undefined)?.some(
-                    (tr) => (tr.result as any)?.__delegate
-                  ) ?? false
-                ),
-            }
-          : {}),
       });
 
       const transferResult = result.steps
@@ -148,7 +149,13 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
       if (transferResult) {
         const target = (transferResult.result as any).targetSubAgentId;
-        const next = await loadAgentConfigStep({ tenantId, projectId, agentId, conversationId, subAgentId: target });
+        const next = await loadAgentConfigStep({
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          subAgentId: target,
+        });
         if (!next.success || !next.modelConfig) break;
         currentConfig = next;
         currentSubAgentId = target;
@@ -157,11 +164,22 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       }
 
       const delegateResult = result.steps
-        .flatMap((s: any) => (s.toolResults || []) as Array<{ toolCallId: string; toolName: string; result?: unknown }>)
+        .flatMap(
+          (s: any) =>
+            (s.toolResults || []) as Array<{
+              toolCallId: string;
+              toolName: string;
+              result?: unknown;
+            }>
+        )
         .find((tr) => (tr.result as any)?.__delegate);
 
       if (delegateResult) {
-        const dr = delegateResult.result as { targetSubAgentId: string; needsApproval: boolean; message: string };
+        const dr = delegateResult.result as {
+          targetSubAgentId: string;
+          needsApproval: boolean;
+          message: string;
+        };
         let delegateResponse: string;
 
         if (dr.needsApproval) {
@@ -174,23 +192,54 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
               const key = dr.message.toLowerCase().replace(/[^a-z ]/g, '');
               const match = Object.entries(COORDS_DB).find(([k]) => key.includes(k));
               delegateResponse = match
-                ? JSON.stringify({ location: dr.message, latitude: match[1].lat, longitude: match[1].lon })
-                : JSON.stringify({ location: dr.message, latitude: 0, longitude: 0, note: 'Not found' });
+                ? JSON.stringify({
+                    location: dr.message,
+                    latitude: match[1].lat,
+                    longitude: match[1].lon,
+                  })
+                : JSON.stringify({
+                    location: dr.message,
+                    latitude: 0,
+                    longitude: 0,
+                    note: 'Not found',
+                  });
             } else {
-              const res = await executeDelegationStep({ tenantId, projectId, agentId, targetSubAgentId: dr.targetSubAgentId, message: dr.message });
+              const res = await executeDelegationStep({
+                tenantId,
+                projectId,
+                agentId,
+                targetSubAgentId: dr.targetSubAgentId,
+                message: dr.message,
+              });
               delegateResponse = res.result;
             }
           } else {
             delegateResponse = `Tool denied: ${approval.reason || 'Rejected by user'}`;
           }
         } else {
-          const res = await executeDelegationStep({ tenantId, projectId, agentId, targetSubAgentId: dr.targetSubAgentId, message: dr.message });
+          const res = await executeDelegationStep({
+            tenantId,
+            projectId,
+            agentId,
+            targetSubAgentId: dr.targetSubAgentId,
+            message: dr.message,
+          });
           delegateResponse = res.result;
         }
 
         messages = [
           ...result.messages,
-          { role: 'tool' as const, content: [{ type: 'tool-result' as const, toolCallId: delegateResult.toolCallId, toolName: delegateResult.toolName, result: delegateResponse }] },
+          {
+            role: 'tool' as const,
+            content: [
+              {
+                type: 'tool-result' as const,
+                toolCallId: delegateResult.toolCallId,
+                toolName: delegateResult.toolName,
+                result: delegateResponse,
+              },
+            ],
+          },
         ];
         continue;
       }
@@ -202,16 +251,30 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       break;
     }
 
-    try { if (responseText) await persistAgentResponseStep({ tenantId, projectId, conversationId, responseText, subAgentId: currentSubAgentId }); } catch (_e) {}
-    try { await updateExecutionStatusStep({ executionId, status: 'completed' }); } catch (_e) {}
+    try {
+      if (responseText)
+        await persistAgentResponseStep({
+          tenantId,
+          projectId,
+          conversationId,
+          responseText,
+          subAgentId: currentSubAgentId,
+        });
+    } catch (_e) {}
+    try {
+      await updateExecutionStatusStep({ executionId, status: 'completed' });
+    } catch (_e) {}
     return { success: true, response: responseText || 'Completed' };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    try { await updateExecutionStatusStep({ executionId, status: 'failed' }); } catch (_e) {}
+    try {
+      await updateExecutionStatusStep({ executionId, status: 'failed' });
+    } catch (_e) {}
     return { success: false, error: msg };
   }
 }
 
 export const agentExecutionWorkflow = Object.assign(_agentExecutionWorkflow, {
-  workflowId: 'workflow//./src/domains/run/workflow/functions/agentExecution//_agentExecutionWorkflow',
+  workflowId:
+    'workflow//./src/domains/run/workflow/functions/agentExecution//_agentExecutionWorkflow',
 });
