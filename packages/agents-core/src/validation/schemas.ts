@@ -3016,8 +3016,17 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+const UserIdPathParam = z.string().openapi('UserIdPathParam', {
+  param: {
+    name: 'userId',
+    in: 'path',
+  },
+  description: 'User identifier',
+  example: 'user_123',
+});
+
 export const UserIdParamsSchema = z.object({
-  userId: UserIdSchema,
+  userId: UserIdPathParam,
 });
 
 export const TenantParamsSchema = z.object({

@@ -347,7 +347,8 @@ describe('Anonymous Session PoW Enforcement', () => {
 
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBe('pow_required');
+      expect(body.error.code).toBe('bad_request');
+      expect(body.error.message).toBe('pow_required');
     });
 
     it('should return 400 pow_invalid when PoW solution is invalid', async () => {
@@ -369,7 +370,8 @@ describe('Anonymous Session PoW Enforcement', () => {
 
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBe('pow_invalid');
+      expect(body.error.code).toBe('bad_request');
+      expect(body.error.message).toBe('pow_invalid');
     });
 
     it('should succeed with valid PoW solution', async () => {
