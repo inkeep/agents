@@ -143,12 +143,19 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         preventClose: true,
       });
 
-      const transferResult = result.steps
-        .flatMap((s: any) => (s.toolResults || []) as Array<{ result?: unknown }>)
-        .find((tr) => (tr.result as any)?.type === 'transfer');
+      let transferResult: { targetSubAgentId: string } | undefined;
+      for (const tm of result.messages.filter((m: any) => m.role === 'tool')) {
+        for (const part of Array.isArray(tm.content) ? tm.content : []) {
+          if ((part as any).type === 'tool-result' && (part as any).result?.type === 'transfer') {
+            transferResult = { targetSubAgentId: (part as any).result.targetSubAgentId };
+            break;
+          }
+        }
+        if (transferResult) break;
+      }
 
       if (transferResult) {
-        const target = (transferResult.result as any).targetSubAgentId;
+        const target = transferResult.targetSubAgentId;
         const next = await loadAgentConfigStep({
           tenantId,
           projectId,
@@ -179,16 +186,22 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           }))
         ),
       });
-      const delegateResult = result.steps
-        .flatMap(
-          (s: any) =>
-            (s.toolResults || []) as Array<{
-              toolCallId: string;
-              toolName: string;
-              result?: unknown;
-            }>
-        )
-        .find((tr) => (tr.result as any)?.isDelegation);
+      const toolMessages = result.messages.filter((m: any) => m.role === 'tool');
+      let delegateResult: { toolCallId: string; toolName: string; result?: unknown } | undefined;
+      for (const tm of toolMessages) {
+        const parts = Array.isArray(tm.content) ? tm.content : [];
+        for (const part of parts) {
+          if ((part as any).type === 'tool-result' && (part as any).result?.isDelegation) {
+            delegateResult = {
+              toolCallId: (part as any).toolCallId,
+              toolName: (part as any).toolName,
+              result: (part as any).result,
+            };
+            break;
+          }
+        }
+        if (delegateResult) break;
+      }
 
       if (delegateResult) {
         const dr = delegateResult.result as {
@@ -269,10 +282,11 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         })),
       }));
 
-      responseText = result.messages
-        .filter((m) => m.role === 'assistant')
-        .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
-        .join('\n') + `\n\n[DEBUG steps: ${JSON.stringify(debugSteps)}]`;
+      responseText =
+        result.messages
+          .filter((m) => m.role === 'assistant')
+          .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+          .join('\n') + `\n\n[DEBUG steps: ${JSON.stringify(debugSteps)}]`;
       break;
     }
 
