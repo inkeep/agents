@@ -260,10 +260,19 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
+      const debugSteps = result.steps.map((s: any) => ({
+        toolCalls: s.toolCalls?.length ?? 0,
+        toolResults: s.toolResults?.map((tr: any) => ({
+          name: tr.toolName,
+          resultKeys: tr.result ? Object.keys(tr.result) : [],
+          resultType: typeof tr.result,
+        })),
+      }));
+
       responseText = result.messages
         .filter((m) => m.role === 'assistant')
         .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
-        .join('\n');
+        .join('\n') + `\n\n[DEBUG steps: ${JSON.stringify(debugSteps)}]`;
       break;
     }
 
