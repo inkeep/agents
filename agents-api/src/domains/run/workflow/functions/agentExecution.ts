@@ -49,28 +49,8 @@ function buildTransferTools(
   return tools;
 }
 
-function buildApprovalTool(
-  toolName: string,
-  description: string,
-  inputSchema: z.ZodObject<any>,
-  executionId: string,
-  approvalHook: typeof toolApprovalHook,
-  executeFn: (args: any) => Promise<unknown>
-): ToolSet[string] {
-  return tool({
-    description: `${description} (requires approval)`,
-    inputSchema,
-    execute: async (args) => {
-      const token = `approval-${executionId}-${toolName}-${Date.now()}`;
-      const hook = approvalHook.create({ token });
-      const approval = await hook;
-      if (!approval.approved) {
-        return { denied: true, reason: approval.reason || 'User denied the tool call' };
-      }
-      return executeFn(args);
-    },
-  }) as ToolSet[string];
-}
+
+
 
 const COORDS_DB: Record<string, { lat: number; lon: number }> = {
   tokyo: { lat: 35.6762, lon: 139.6503 },
@@ -162,29 +142,34 @@ function getDelegateToolNames(delegateRelations: SubAgentRelationInfo[]): Set<st
   );
 }
 
-function buildSubAgentTools(
-  subAgentId: string,
-  executionId: string,
-  approvalHook: typeof toolApprovalHook
-): ToolSet {
+function buildSubAgentTools(subAgentId: string): ToolSet {
   if (subAgentId === 'get-coordinates-agent') {
     return {
-      get_coordinates: buildApprovalTool(
-        'get_coordinates',
-        'Get geographical coordinates (latitude, longitude) for a location',
-        z.object({ location: z.string().describe('The city or location to get coordinates for') }),
-        executionId,
-        approvalHook,
-        async ({ location }: { location: string }) => {
-          const key = location.toLowerCase().replace(/[^a-z ]/g, '');
-          const match = Object.entries(COORDS_DB).find(([k]) => key.includes(k));
-          if (match) return { location, latitude: match[1].lat, longitude: match[1].lon };
-          return { location, latitude: 0, longitude: 0, note: 'Not found' };
-        }
-      ),
+      get_coordinates: tool({
+        description: 'Get geographical coordinates (latitude, longitude) for a location. This tool requires approval.',
+        inputSchema: z.object({
+          location: z.string().describe('The city or location to get coordinates for'),
+        }),
+        execute: async ({ location }) => ({
+          __needsApproval: true,
+          toolId: 'get_coordinates',
+          location,
+        }),
+      }) as ToolSet[string],
     };
   }
   return {};
+}
+
+function executeApprovedTool(toolId: string, args: Record<string, unknown>): unknown {
+  if (toolId === 'get_coordinates') {
+    const location = args.location as string;
+    const key = location.toLowerCase().replace(/[^a-z ]/g, '');
+    const match = Object.entries(COORDS_DB).find(([k]) => key.includes(k));
+    if (match) return { location, latitude: match[1].lat, longitude: match[1].lon };
+    return { location, latitude: 0, longitude: 0, note: 'Not found' };
+  }
+  return { error: 'Unknown tool' };
 }
 
 async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
@@ -292,33 +277,57 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
         if (subConfig.success && subConfig.modelConfig) {
           const subModelName = (subConfig.modelConfig.model ?? '').replace(/^[^/]+\//, '');
-          const subTools = buildSubAgentTools(delegateData.targetId, executionId, toolApprovalHook);
-
-          const toolInstructions =
-            Object.keys(subTools).length > 0
-              ? `\n\nIMPORTANT: You MUST use the available tools to complete the task. Do NOT answer from your own knowledge — always call the appropriate tool.`
-              : '';
+          const subTools = buildSubAgentTools(delegateData.targetId);
+          const hasSubTools = Object.keys(subTools).length > 0;
 
           const subAgent = new DurableAgent({
             model: anthropic(subModelName),
-            system:
-              (subConfig.systemPrompt || `You are ${delegateData.targetId}.`) + toolInstructions,
-            ...(Object.keys(subTools).length > 0 ? { tools: subTools } : {}),
+            system: (subConfig.systemPrompt || `You are ${delegateData.targetId}.`) +
+              (hasSubTools ? '\n\nYou MUST use the available tools. Do NOT answer from memory.' : ''),
+            ...(hasSubTools ? { tools: subTools } : {}),
           });
 
-          const hasSubTools = Object.keys(subTools).length > 0;
           const subResult = await subAgent.stream({
             messages: [{ role: 'user' as const, content: delegateData.message }],
             writable,
             maxSteps: 5,
             preventClose: true,
             ...(hasSubTools ? { toolChoice: 'required' as any } : {}),
+            ...(hasSubTools ? {
+              stopWhen: ({ steps }: { steps: Array<Record<string, unknown>> }) =>
+                steps.some((s) =>
+                  ((s as any).toolResults as Array<{ result?: unknown }> | undefined)
+                    ?.some((tr) => (tr.result as any)?.__needsApproval) ?? false
+                ),
+            } : {}),
           });
 
-          const subResponseText = subResult.messages
-            .filter((m) => m.role === 'assistant')
-            .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
-            .join('\n');
+          const approvalNeeded = subResult.steps
+            .flatMap((s: any) => (s.toolResults || []) as Array<{ toolCallId: string; result?: unknown }>)
+            .find((tr) => (tr.result as any)?.__needsApproval);
+
+          let subResponseText: string;
+
+          if (approvalNeeded) {
+            const args = approvalNeeded.result as Record<string, unknown>;
+            const token = `approval-${executionId}-${args.toolId}-${Date.now()}`;
+
+            const hook = toolApprovalHook.create({ token });
+            const approval = await hook;
+
+            if (approval.approved) {
+              subResponseText = JSON.stringify(
+                executeApprovedTool(args.toolId as string, args)
+              );
+            } else {
+              subResponseText = `Tool denied: ${approval.reason || 'User rejected'}`;
+            }
+          } else {
+            subResponseText = subResult.messages
+              .filter((m) => m.role === 'assistant')
+              .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+              .join('\n');
+          }
 
           currentMessages = [
             ...result.messages,
