@@ -505,7 +505,7 @@ export const functions = pgTable(
   'functions',
   {
     ...projectScoped,
-    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>().notNull(),
     executeCode: text('execute_code').notNull(),
     dependencies: jsonb('dependencies').$type<Record<string, string>>(),
     ...timestamps,

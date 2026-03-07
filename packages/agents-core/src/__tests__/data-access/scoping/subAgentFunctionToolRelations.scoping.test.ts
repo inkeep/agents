@@ -73,8 +73,8 @@ describe('subAgentFunctionToolRelations scoping isolation', () => {
     ]);
 
     await db.insert(functions).values([
-      { tenantId, projectId, id: fn1Id, executeCode: 'return 1' },
-      { tenantId, projectId, id: fn2Id, executeCode: 'return 2' },
+      { tenantId, projectId, id: fn1Id, executeCode: 'return 1', inputSchema: {} },
+      { tenantId, projectId, id: fn2Id, executeCode: 'return 2', inputSchema: {} },
     ]);
 
     await db.insert(functionTools).values([

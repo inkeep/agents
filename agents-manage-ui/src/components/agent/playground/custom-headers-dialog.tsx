@@ -70,7 +70,7 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className={cn('h-6 relative', hasErrors && 'ring-2 text-red-300!')}
+          className={cn('h-6 relative', hasErrors && 'ring-2 text-red-300! border-current! border')}
         >
           {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           Custom Headers
