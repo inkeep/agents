@@ -123,7 +123,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         <Button
           {...commonProps}
           onClick={toggleSidePane}
-          className={cn(commonProps.className, hasErrors && 'ring-2 ring-red-300 border-red-300')}
+          className={cn(commonProps.className, hasErrors && 'ring-2 text-red-300!')}
         >
           <Settings className="size-4 text-muted-foreground" />
           Agent Settings
