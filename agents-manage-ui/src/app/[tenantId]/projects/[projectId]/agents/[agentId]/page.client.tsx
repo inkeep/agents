@@ -162,10 +162,9 @@ export const Agent: FC<AgentProps> = ({
 
   const initialNode: Node = {
     id: generateId(),
-    type: NodeType.SubAgent,
+    type: NodeType.SubAgentPlaceholder,
     position: { x: 0, y: 0 },
-    data: { name: '' },
-    deletable: false,
+    data: { ...newNodeDefaults[NodeType.SubAgentPlaceholder] },
   };
 
   const initialNodes = [initialNode];
@@ -748,7 +747,9 @@ export const Agent: FC<AgentProps> = ({
       toast.success('Agent saved', { closeButton: true });
       markSaved();
       // This makes current values the new default values
-      form.reset(serializeAgentForm(res.data));
+      requestAnimationFrame(() => {
+        form.reset(serializeAgentForm(res.data));
+      });
 
       // Update tool nodes with new relationshipIds from backend response
       if (res.data) {
@@ -757,6 +758,13 @@ export const Agent: FC<AgentProps> = ({
         setNodes((currentNodes) =>
           currentNodes
             .map((node) => {
+              if (
+                (node.type === NodeType.ExternalAgent || node.type === NodeType.TeamAgent) &&
+                !node.data.relationshipId
+              ) {
+                return null;
+              }
+
               if (node.type !== NodeType.MCP && node.type !== NodeType.FunctionTool) {
                 return node;
               }

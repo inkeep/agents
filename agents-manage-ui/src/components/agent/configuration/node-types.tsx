@@ -1,5 +1,3 @@
-import type { SkillApiSelect } from '@inkeep/agents-core';
-import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
@@ -7,7 +5,6 @@ import { MCPNode } from '../nodes/mcp-node';
 import { PlaceholderNode } from '../nodes/placeholder-node';
 import { SubAgentNode } from '../nodes/sub-agent-node';
 import { TeamAgentNode } from '../nodes/team-agent-node';
-import type { AgentModels } from './agent-types';
 
 export enum NodeType {
   SubAgentPlaceholder = 'sub-agent-placeholder',

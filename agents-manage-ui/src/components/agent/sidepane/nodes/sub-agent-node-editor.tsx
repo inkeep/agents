@@ -86,8 +86,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 
   const { deleteNode } = useDeleteNode(nodeId);
 
-  const selectedDataComponents = subAgent.dataComponents;
-  const selectedArtifactComponents = subAgent.artifactComponents;
   return (
     <div className="space-y-8 flex flex-col">
       <GenericInput
@@ -202,7 +200,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         label="Components"
         componentLookup={dataComponentLookup}
         // @ts-expect-error -- fixme
-        selectedComponents={selectedDataComponents}
+        selectedComponents={subAgent.dataComponents}
         onSelectionChange={(newSelection) => {
           form.setValue(path('dataComponents'), newSelection, { shouldDirty: true });
         }}
@@ -215,7 +213,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         label="Artifacts"
         componentLookup={artifactComponentLookup}
         // @ts-expect-error -- fixme
-        selectedComponents={selectedArtifactComponents}
+        selectedComponents={subAgent.artifactComponents}
         onSelectionChange={(newSelection) => {
           form.setValue(path('artifactComponents'), newSelection, { shouldDirty: true });
         }}
