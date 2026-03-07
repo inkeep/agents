@@ -1,4 +1,4 @@
-import type { AgentNodeData } from '@/components/agent/configuration/node-types';
+import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import {
@@ -16,7 +16,7 @@ import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
 interface ModelSectionProps {
-  models: AgentNodeData['models'];
+  models: AgentModels;
   updatePath: (path: string, value: any) => void;
   projectModels?: any;
   agentModels?: any;

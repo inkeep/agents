@@ -1,9 +1,9 @@
+import type { SkillApiSelect } from '@inkeep/agents-core';
 import type { CheckedState } from '@radix-ui/react-checkbox';
 import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
 import { type FC, useState } from 'react';
-import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
 import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ interface SkillSelection {
 }
 
 interface SkillSelectorProps {
-  selectedSkills: AgentNodeData['skills'];
+  selectedSkills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
   onChange: (skills: SkillSelection[]) => void;
   error?: string;
 }
