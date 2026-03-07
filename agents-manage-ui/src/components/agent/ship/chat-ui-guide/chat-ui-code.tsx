@@ -26,6 +26,10 @@ const computeSessionUrl = (agentUrl: string): string => {
   return agentUrl.replace(/\/api\/chat$/, '/auth/apps/');
 };
 
+const computeChallengeUrl = (agentUrl: string): string => {
+  return agentUrl.replace(/\/api\/chat$/, '/auth/pow/challenge');
+};
+
 const generateReactCode = (
   component: ChatUIComponent,
   replacements: Record<string, string>
@@ -70,6 +74,7 @@ export const ChatUICode = ({
   const componentName = componentMap[component];
 
   const sessionUrl = `${computeSessionUrl(agentUrl)}" + APP_ID + "/anonymous-session`;
+  const challengeUrl = computeChallengeUrl(agentUrl);
   const baseSettingsJson = indentJson(JSON.stringify(baseSettings, null, 2), 4);
 
   const emitOperationsLine = shouldEmitDataOperations ? '        "x-emit-operations": "true"' : '';
@@ -79,6 +84,7 @@ export const ChatUICode = ({
     APP_ID: 'YOUR_APP_ID',
     AGENT_URL: agentUrl,
     SESSION_URL: sessionUrl,
+    CHALLENGE_URL: challengeUrl,
     BASE_SETTINGS: baseSettingsJson,
     EMIT_OPERATIONS: emitOperationsLine,
     EXTRA_AI_CHAT_SETTINGS: extraSettingsStr,
