@@ -66,6 +66,8 @@ jobs:
           INPUT_FORCE_ENABLE: ${{ inputs.force_enable }}
           EVENT_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
           WORKFLOW_REPO_FULL_NAME: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -81,6 +83,18 @@ jobs:
 
           if [ -n "${EVENT_PR_BRANCH:-}" ]; then
             PR_BRANCH="${EVENT_PR_BRANCH}"
+          elif [ "${EVENT_NAME:-}" = "workflow_dispatch" ]; then
+            PR_BRANCH="$(
+              curl -fsS \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "${GITHUB_API_URL}/repos/${WORKFLOW_REPO_FULL_NAME}/pulls/${PR_NUMBER}" |
+                jq -r '.head.ref // empty'
+            )"
+            if [ -z "${PR_BRANCH}" ]; then
+              echo "Unable to resolve PR branch from GitHub API for PR #${PR_NUMBER}; using fallback."
+              PR_BRANCH="pr-${PR_NUMBER}"
+            fi
           else
             PR_BRANCH="pr-${PR_NUMBER}"
           fi
