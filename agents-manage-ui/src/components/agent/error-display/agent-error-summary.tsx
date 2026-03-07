@@ -32,7 +32,7 @@ interface ErrorGroupProps {
 function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  if (errors.length === 0) return null;
+  if (!errors.length) return;
 
   const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
@@ -56,8 +56,8 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
           const heading = title + (nodeId ? ` (${nodeId})` : '');
           return (
             <div key={itemId} className="space-y-1">
-              <b className="flex items-center gap-1.5 text-xs text-foreground truncate">
-                {heading}
+              <b className="flex items-center gap-1.5 text-xs text-foreground">
+                <span className="truncate">{heading}</span>
                 {nodeId && onNavigate && (
                   <Button
                     size="sm"

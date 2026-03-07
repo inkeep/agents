@@ -29,7 +29,9 @@ export function useGroupedAgentErrors() {
     tools: {
       ...tools,
       // clean node id which will not open sidepane
-      ...Object.fromEntries(Object.entries(mcpRelations).map(([_key, value]) => ['', value])),
+      ...Object.fromEntries(
+        Object.entries(mcpRelations).map(([_key, value]) => ['', value as Record<string, unknown>])
+      ),
     },
     agentSettings,
     other: defaultSubAgentId ? { defaultSubAgentId } : EMPTY_OBJ,
