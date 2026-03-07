@@ -113,11 +113,13 @@ function extractDelegateFromResult(
   delegateToolNames: Set<string>
 ): { toolCallId: string; toolName: string; targetId: string; message: string } | null {
   for (const step of result.steps) {
-    const toolResults = step.toolResults as Array<{
-      toolCallId: string;
-      toolName: string;
-      result?: unknown;
-    }> | undefined;
+    const toolResults = step.toolResults as
+      | Array<{
+          toolCallId: string;
+          toolName: string;
+          result?: unknown;
+        }>
+      | undefined;
     for (const tr of toolResults ?? []) {
       if (delegateToolNames.has(tr.toolName)) {
         const r = tr.result as Record<string, unknown> | undefined;
@@ -194,7 +196,12 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
   await logStep('Starting durable agent execution', { executionId, agentId, conversationId });
 
   try {
-    const initialConfig = await loadAgentConfigStep({ tenantId, projectId, agentId, conversationId });
+    const initialConfig = await loadAgentConfigStep({
+      tenantId,
+      projectId,
+      agentId,
+      conversationId,
+    });
     if (!initialConfig.success || !initialConfig.modelConfig) {
       await updateExecutionStatusStep({ executionId, status: 'failed' });
       return { success: false, error: initialConfig.error ?? 'Missing model config' };
@@ -213,7 +220,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       const delegateRelations = currentConfig.delegateRelations || [];
       const delegateToolNames = getDelegateToolNames(delegateRelations);
 
-      const transferTools = buildTransferTools(currentConfig.transferRelations || [], currentSubAgentId);
+      const transferTools = buildTransferTools(
+        currentConfig.transferRelations || [],
+        currentSubAgentId
+      );
       const delegateTools = buildDelegateTools(delegateRelations);
       const allTools = { ...transferTools, ...delegateTools };
 
@@ -232,8 +242,15 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           ? {
               stopWhen: ({ steps }: { steps: Array<Record<string, unknown>> }) => {
                 for (const step of steps) {
-                  const trs = (step as any).toolResults as Array<{ toolName: string; result?: unknown }> | undefined;
-                  if (trs?.some((tr) => delegateToolNames.has(tr.toolName) && (tr.result as any)?.__delegate)) return true;
+                  const trs = (step as any).toolResults as
+                    | Array<{ toolName: string; result?: unknown }>
+                    | undefined;
+                  if (
+                    trs?.some(
+                      (tr) => delegateToolNames.has(tr.toolName) && (tr.result as any)?.__delegate
+                    )
+                  )
+                    return true;
                 }
                 return false;
               },
@@ -241,10 +258,15 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           : {}),
       });
 
-      const transferData = extractTransferFromResult(result as { steps: Array<Record<string, unknown>> });
+      const transferData = extractTransferFromResult(
+        result as { steps: Array<Record<string, unknown>> }
+      );
       if (transferData) {
         const nextConfig = await loadAgentConfigStep({
-          tenantId, projectId, agentId, conversationId,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
           subAgentId: transferData.targetSubAgentId,
         });
         if (!nextConfig.success || !nextConfig.modelConfig) break;
@@ -261,7 +283,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
       if (delegateData) {
         const subConfig = await loadAgentConfigStep({
-          tenantId, projectId, agentId, conversationId,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
           subAgentId: delegateData.targetId,
         });
 
@@ -269,9 +294,13 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           const subModelName = (subConfig.modelConfig.model ?? '').replace(/^[^/]+\//, '');
           const subTools = buildSubAgentTools(delegateData.targetId, executionId, toolApprovalHook);
 
+          const toolInstructions = Object.keys(subTools).length > 0
+            ? `\n\nIMPORTANT: You MUST use the available tools to complete the task. Do NOT answer from your own knowledge — always call the appropriate tool.`
+            : '';
+
           const subAgent = new DurableAgent({
             model: anthropic(subModelName),
-            system: subConfig.systemPrompt || `You are ${delegateData.targetId}.`,
+            system: (subConfig.systemPrompt || `You are ${delegateData.targetId}.`) + toolInstructions,
             ...(Object.keys(subTools).length > 0 ? { tools: subTools } : {}),
           });
 
@@ -315,7 +344,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
     try {
       if (responseText) {
         await persistAgentResponseStep({
-          tenantId, projectId, conversationId, responseText,
+          tenantId,
+          projectId,
+          conversationId,
+          responseText,
           subAgentId: currentSubAgentId,
         });
       }
@@ -328,8 +360,12 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
     return { success: true, response: responseText || 'Execution completed' };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    try { await updateExecutionStatusStep({ executionId, status: 'failed' }); } catch (_e) {}
-    try { await logStep('Workflow error', { executionId, error: errorMessage }); } catch (_e) {}
+    try {
+      await updateExecutionStatusStep({ executionId, status: 'failed' });
+    } catch (_e) {}
+    try {
+      await logStep('Workflow error', { executionId, error: errorMessage });
+    } catch (_e) {}
     return { success: false, error: errorMessage };
   }
 }
