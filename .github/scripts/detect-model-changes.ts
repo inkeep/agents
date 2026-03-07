@@ -208,14 +208,19 @@ ${modelList}
 - When pushing, always use: git push --set-upstream origin $(git branch --show-current)
 - Use a single commit with message: "chore: add new models [model-sync]"
 
-## Step 1: Research deprecation status
-Before touching any files, use WebSearch to research deprecation status for:
-1. Every new model listed above
-2. Every model currently listed in \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` (read the file first to get the list)
+## Step 1: Research deprecation status and latest specialty models
+Before touching any files, use WebSearch to research:
+1. API deprecation status for every new model listed above and every model currently in \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` (read the file first)
+2. For each provider (Anthropic, OpenAI, Google), what is the current most capable model for each specialty category (reasoning/thinking, code generation)? This is used to ensure the UI always shows the latest specialty model even if it arrived in a prior sync run.
 
-For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
+For each model, determine whether the provider has announced an **API deprecation** — meaning the model will no longer be available via the provider's API. This is distinct from a model being removed from a consumer chat product (e.g. removed from ChatGPT, Claude.ai, or the Gemini app). Only API-level deprecations count. Check the provider's official API deprecation docs:
+- OpenAI: platform.openai.com/docs/deprecations
+- Anthropic: docs.anthropic.com (model deprecation notices)
+- Google: ai.google.dev (Gemini API deprecation notices)
 
-If you cannot determine deprecation status for a new model, treat it as CONSTANTS-ONLY (not FULL). Note any uncertain cases in the PR body.
+An announcement is sufficient — the model does not need to be fully shut down yet.
+
+If you cannot determine API deprecation status for a new model, treat it as CONSTANTS-ONLY (not FULL). Note any uncertain cases in the PR body.
 
 ## Step 2: Read the files first
 Before editing anything, read all 3 target files so you understand their exact patterns and conventions:
@@ -249,10 +254,10 @@ Assign each model a tier:
 - Human-readable label matching existing style: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash'
 - Order: newest first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Nano/Mini)
 - Remove any existing entries that have a deprecation announcement from their provider
-- Per provider per category (reasoning, code gen), keep only the single most capable entry — remove older ones when a newer one is added
+- Per provider per category (reasoning, code gen), ensure the UI shows the single most capable entry based on your Step 1 research — replace any older specialty model with the latest, even if the newer one was not in this sync's new models list (it may already be in constants from a prior run)
 
 ### \`agents-cli/src/utils/model-config.ts\`
-- Same rules as the UI above
+- Same rules as the UI above — including specialty model updates based on Step 1 research
 
 ## Step 4: Create changeset
 Create \`.changeset/add-models-${today}-${slug}.md\`. Only include a package if it was actually modified:
