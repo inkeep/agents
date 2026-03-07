@@ -285,8 +285,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       break;
     }
 
-    
-
     try {
       if (responseText) {
         await persistAgentResponseStep({
@@ -315,22 +313,21 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
     return { success: true, response: responseText || 'Execution completed' };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error
+      ? `${error.message} | ${error.stack?.split('\n').slice(0, 3).join(' ')}`
+      : String(error);
 
     try {
-      const writer = writable.getWriter();
-      await writer.write({ type: 'error', errorText: errorMessage } as any);
-      await writer.close();
-      writer.releaseLock();
+      await updateExecutionStatusStep({ executionId, status: 'failed' });
     } catch (_e) {}
 
-    await updateExecutionStatusStep({ executionId, status: 'failed' });
-
-    await logStep('Durable agent execution threw an error', {
-      executionId,
-      conversationId,
-      error: errorMessage,
-    });
+    try {
+      await logStep('Durable agent execution threw an error', {
+        executionId,
+        conversationId,
+        error: errorMessage,
+      });
+    } catch (_e) {}
 
     return { success: false, error: errorMessage };
   }
