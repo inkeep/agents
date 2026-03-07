@@ -163,6 +163,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
+      await logStep("debug-steps", { executionId, steps: JSON.stringify(result.steps.map((s: any) => ({ toolCalls: s.toolCalls?.length, toolResults: s.toolResults?.map((tr: any) => ({ name: tr.toolName, hasDelegate: !!(tr.result as any)?.__delegate, result: typeof tr.result === "object" ? JSON.stringify(tr.result).substring(0, 200) : String(tr.result) })) }))) });
       const delegateResult = result.steps
         .flatMap(
           (s: any) =>
