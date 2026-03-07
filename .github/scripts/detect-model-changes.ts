@@ -199,7 +199,7 @@ async function main(): Promise<void> {
 
 New AI models have been detected from Vercel AI Gateway that are not yet in our static model list.
 
-New models to add:
+New models detected (not yet in constants):
 ${modelList}
 
 ## CRITICAL: Branch and git rules
@@ -208,14 +208,19 @@ ${modelList}
 - When pushing, always use: git push --set-upstream origin $(git branch --show-current)
 - Use a single commit with message: "chore: add new models [model-sync]"
 
-## Step 1: Research deprecation status
-Before touching any files, use WebSearch to research deprecation status for:
-1. Every new model listed above
-2. Every model currently listed in \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` (read the file first to get the list)
+## Step 1: Research
+Before touching any files, read \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` to get the current UI model list, then use WebSearch to determine:
 
-For each model, determine whether the provider has announced a deprecation date or end-of-life. A deprecation *announcement* is sufficient — the model does not need to be fully shut down yet.
+1. **API deprecation status** for every new model above and every model currently in the UI. An **API deprecation** means the model will no longer be available via the provider's API — this is distinct from a model being removed from a consumer product (ChatGPT, Claude.ai, Gemini app). Only API-level deprecations count. Check:
+   - OpenAI: platform.openai.com/docs/deprecations
+   - Anthropic: docs.anthropic.com (model deprecation notices)
+   - Google: ai.google.dev (Gemini API deprecation notices)
+   An announcement is sufficient — the model does not need to be fully shut down yet. If status cannot be determined, treat the model as CONSTANTS-ONLY and note it in the PR body.
 
-If you cannot determine deprecation status for a new model, treat it as CONSTANTS-ONLY (not FULL). Note any uncertain cases in the PR body.
+2. **Latest specialty model per provider** for each category:
+   - **Reasoning**: purpose-built reasoning models with a distinct API surface and token pricing (e.g. o3, o4-mini, o3-pro). General-purpose models with an optional thinking/reasoning mode are NOT reasoning models.
+   - **Code generation**: models specifically optimized for coding tasks (e.g. codex-mini, gpt-5-codex, claude-code). General-purpose models that happen to write code are NOT code generation models.
+   This ensures the UI always reflects the latest specialty model, even if it was added to constants in a prior sync run.
 
 ## Step 2: Read the files first
 Before editing anything, read all 3 target files so you understand their exact patterns and conventions:
@@ -230,13 +235,13 @@ Every model in the list must be added to \`models.ts\` — this keeps the consta
 Assign each model a tier:
 
 **CONSTANTS-ONLY** — add to \`models.ts\` only:
-- Models with a deprecation announcement from their provider
+- Models with an API deprecation announcement from their provider
 - Models with a date suffix or date-stamped snapshot (e.g. claude-3-5-sonnet-20240620, gpt-5-2025-08-07)
-- Models whose deprecation status could not be determined
+- Models whose API deprecation status could not be determined
 
 **FULL** — add to \`models.ts\`, the UI, and the CLI:
-- Active (non-deprecated) models without a date suffix
-- For specialty categories (reasoning/thinking, code generation): one model **per provider** — the most capable/latest only
+- Active (non-API-deprecated) models without a date suffix
+- For specialty categories (reasoning, code generation): one model **per provider** — the most capable/latest only
 
 ### \`packages/agents-core/src/constants/models.ts\`
 - Add every model (both CONSTANTS-ONLY and FULL)
@@ -248,11 +253,11 @@ Assign each model a tier:
 - Add only **FULL** tier models
 - Human-readable label matching existing style: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash'
 - Order: newest first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Nano/Mini)
-- Remove any existing entries that have a deprecation announcement from their provider
-- Per provider per category (reasoning, code gen), keep only the single most capable entry — remove older ones when a newer one is added
+- Remove any existing entries that have an **API deprecation** announcement from their provider (same definition as Step 1 — product removal does not count)
+- Per provider per category (reasoning, code generation), ensure the UI shows the single most capable entry based on your Step 1 research — only replace an existing specialty model if the newer one already exists in \`models.ts\` constants (never introduce a model ID that isn't already in constants)
 
 ### \`agents-cli/src/utils/model-config.ts\`
-- Same rules as the UI above
+- Same rules as the UI above — including specialty model updates based on Step 1 research
 
 ## Step 4: Create changeset
 Create \`.changeset/add-models-${today}-${slug}.md\`. Only include a package if it was actually modified:
@@ -286,7 +291,7 @@ Run these in order and fix any issues before committing:
    - Title: "chore: add new models from provider APIs [model-sync]"
    - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
    - Body: for each provider that had activity, include only the tables that apply — omit a table if there is nothing to show:
-     - **[Provider] — Added**: columns: Model | Released | Legacy? (yes/no) | Constants | UI
+     - **[Provider] — Added**: columns: Model | Released | API Deprecated? (yes/no/unknown) | Constants | UI
      - **[Provider] — Removed from UI**: columns: Model | Reason (deprecated / specialty pruned)
      Do not create empty tables. Only include a provider section if that provider had additions or removals.`;
 
