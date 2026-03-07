@@ -29,10 +29,8 @@ const commonProps = {
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { control } = useFullAgentFormContext();
-  const { isDirty: rhfDirtyState, isSubmitting } = useFormState({ control });
+  const { formState } = useFullAgentFormContext();
   const { agentSettings } = useGroupedAgentErrors();
-  const isDirty = agentDirtyState || rhfDirtyState;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
@@ -42,6 +40,8 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
 
+  const { isDirty: rhfDirtyState, isSubmitting } = formState;
+  const isDirty = agentDirtyState || rhfDirtyState;
   const previewButton = (
     <Button
       {...commonProps}
