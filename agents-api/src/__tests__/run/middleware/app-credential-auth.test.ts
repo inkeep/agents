@@ -11,6 +11,7 @@ const {
   verifyTempTokenMock,
   canUseProjectStrictMock,
   validateTargetAgentMock,
+  verifyPoWMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   getAppByIdMock: vi.fn(() => vi.fn()),
@@ -22,6 +23,7 @@ const {
   verifyTempTokenMock: vi.fn(),
   canUseProjectStrictMock: vi.fn(),
   validateTargetAgentMock: vi.fn(),
+  verifyPoWMock: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 const { jwtVerifyMock } = vi.hoisted(() => ({
@@ -43,6 +45,7 @@ vi.mock('@inkeep/agents-core', () => ({
   verifyTempToken: verifyTempTokenMock,
   canUseProjectStrict: canUseProjectStrictMock,
   validateTargetAgent: validateTargetAgentMock,
+  verifyPoW: verifyPoWMock,
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -103,6 +106,8 @@ describe('App Credential Authentication', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    verifyPoWMock.mockResolvedValue({ ok: true });
+    verifyServiceTokenMock.mockResolvedValue({ valid: false, error: 'Invalid token' });
     app = new Hono();
     app.use('*', async (c, next) => {
       c.set('db' as never, {});
@@ -346,6 +351,145 @@ describe('App Credential Authentication', () => {
       expect(updateFn).toHaveBeenCalledWith('app-id-1');
 
       mathRandomSpy.mockRestore();
+    });
+  });
+
+  describe('PoW verification for web_client apps', () => {
+    it('should reject with pow_required when PoW check fails with missing header', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_required' });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.text();
+      expect(body).toContain('pow_required');
+    });
+
+    it('should reject with pow_invalid when PoW solution is invalid', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_invalid' });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.text();
+      expect(body).toContain('pow_invalid');
+    });
+
+    it('should succeed when PoW passes', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      verifyPoWMock.mockResolvedValueOnce({ ok: true });
+      jwtVerifyMock.mockResolvedValueOnce({
+        payload: {
+          sub: 'anon_test-uuid',
+          app: 'app-id-1',
+          tid: 'tenant_1',
+          pid: 'project_1',
+          type: 'anonymous',
+        },
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const ctx = (c as any).get('executionContext');
+        return c.json(ctx);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-agent-id': 'agent-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(verifyPoWMock).toHaveBeenCalled();
+    });
+
+    it('should not call verifyPoW for non-web_client app types', async () => {
+      getAppByIdMock.mockReturnValue(
+        vi.fn().mockResolvedValue({
+          id: 'app-id-2',
+          tenantId: 'tenant_1',
+          projectId: 'project_1',
+          type: 'api',
+          enabled: true,
+          config: { type: 'api', api: {} },
+        })
+      );
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-2',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      expect(verifyPoWMock).not.toHaveBeenCalled();
+    });
+
+    it('should pass through when PoW is disabled (verifyPoW returns ok)', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      verifyPoWMock.mockResolvedValueOnce({ ok: true });
+      jwtVerifyMock.mockResolvedValueOnce({
+        payload: {
+          sub: 'anon_test-uuid',
+          app: 'app-id-1',
+          tid: 'tenant_1',
+          pid: 'project_1',
+          type: 'anonymous',
+        },
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const ctx = (c as any).get('executionContext');
+        return c.json(ctx);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-agent-id': 'agent-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
     });
   });
 });
