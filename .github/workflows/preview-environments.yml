@@ -226,8 +226,22 @@ jobs:
           fi
 
           if [ "${ENV_EXISTS}" = "0" ]; then
-            railway environment new "${RAILWAY_ENV_NAME}" \
-              --copy "${RAILWAY_TEMPLATE_ENVIRONMENT}"
+            if ! railway environment new "${RAILWAY_ENV_NAME}" \
+              --copy "${RAILWAY_TEMPLATE_ENVIRONMENT}"; then
+              echo "Initial create attempt failed; re-checking whether ${RAILWAY_ENV_NAME} now exists."
+              railway project list --json > /tmp/railway-projects.json
+              ENV_EXISTS="$(
+                jq -r \
+                  --arg project_id "${RAILWAY_PROJECT_ID}" \
+                  --arg name "${RAILWAY_ENV_NAME}" \
+                  '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+                  /tmp/railway-projects.json
+              )"
+              if [ "${ENV_EXISTS}" = "0" ]; then
+                echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}."
+                exit 1
+              fi
+            fi
           else
             echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
           fi
