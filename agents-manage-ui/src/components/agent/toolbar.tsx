@@ -125,7 +125,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
           onClick={toggleSidePane}
           className={cn(commonProps.className, hasErrors && 'ring-2 text-red-300! border-current!')}
         >
-          <Settings className="size-4 text-muted-foreground" />
+          <Settings className={hasErrors ? '' : 'text-muted-foreground'} />
           Agent Settings
           {hasErrors && <ErrorIndicator errors={agentSettingsErrors} />}
         </Button>

@@ -25,21 +25,19 @@ type DefaultHeaders = z.infer<typeof StringRecordSchema>;
 interface CustomHeadersDialogProps {
   customHeaders?: DefaultHeaders;
   setCustomHeaders: (headers?: DefaultHeaders) => void;
-  form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
+  form: UseFormReturn<{ headers: string }, unknown, { headers: DefaultHeaders }>;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
-  customHeaders,
+  customHeaders = {},
   setCustomHeaders,
   form,
   isOpen,
   setIsOpen,
 }) => {
   'use memo';
-  const numHeaders = Object.keys(customHeaders ?? {}).length;
-
   const onSubmit = form.handleSubmit(({ headers }) => {
     setCustomHeaders(headers);
     toast.success('Custom headers applied, you can now use them in the chat.');
@@ -53,16 +51,17 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
     toast.success('Custom headers removed.');
   }
   const { isSubmitting, errors } = form.formState;
-  const fieldErrors = errors.headers;
+  const fieldErrors = errors.headers ?? {};
 
-  const processedErrors = fieldErrors
-    ? Object.entries(fieldErrors).map(([key, value]) => ({
-        field: key,
-        message: flatNestedFieldMessage(value),
-      }))
-    : [];
+  const processedErrors = Object.entries(fieldErrors).map(([key, value]) => ({
+    field: key,
+    message: flatNestedFieldMessage(value),
+  }));
+  const numHeaders = Object.keys(customHeaders).length;
 
   const hasErrors = processedErrors.length > 0;
+  const hasHeaders = numHeaders > 0;
+  const IconToUse = hasHeaders ? Pencil : Plus;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -72,9 +71,9 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
           size="sm"
           className={cn('h-6 relative', hasErrors && 'ring-2 text-red-300! border-current! border')}
         >
-          {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          <IconToUse />
           Custom Headers
-          {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}
+          {hasHeaders && <Badge variant="code">{numHeaders}</Badge>}
           {hasErrors && <ErrorIndicator errors={processedErrors} />}
         </Button>
       </DialogTrigger>
@@ -93,7 +92,7 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
               customTemplate={customHeadersTemplate}
             />
             <div className="flex justify-end gap-2">
-              {numHeaders > 0 && (
+              {hasHeaders && (
                 <Button type="button" variant="outline" onClick={onRemoveHeaders}>
                   Remove headers
                 </Button>
