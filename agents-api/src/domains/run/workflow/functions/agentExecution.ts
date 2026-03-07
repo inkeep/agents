@@ -258,6 +258,18 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         const pendingDelegateCall = delegateCall;
         const token = `approval-${executionId}-${iteration}-${pendingDelegateCall.toolCallId}`;
 
+        try {
+          const w = writable.getWriter();
+          w.write({
+            type: 'tool-approval-request',
+            approvalId: token,
+            toolCallId: pendingDelegateCall.toolCallId,
+            toolName: pendingDelegateCall.toolName,
+            input: pendingDelegateCall.args,
+          } as any);
+          w.releaseLock();
+        } catch (_e) {}
+
         const hook = toolApprovalHook.create({ token });
         const approval = await hook;
 
@@ -272,11 +284,29 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
               message: (pendingDelegateCall.args as any).message as string,
             });
             responseText = delegationResult.result;
+
+            try {
+              const w2 = writable.getWriter();
+              w2.write({
+                type: 'tool-output-available',
+                toolCallId: pendingDelegateCall.toolCallId,
+                output: responseText,
+              } as any);
+              w2.releaseLock();
+            } catch (_e) {}
           } catch (delegateErr) {
             responseText = `Delegation approved but failed: ${delegateErr instanceof Error ? delegateErr.message : String(delegateErr)}`;
           }
         } else {
           responseText = `Tool call denied${approval.reason ? `: ${approval.reason}` : ''}`;
+          try {
+            const w3 = writable.getWriter();
+            w3.write({
+              type: 'tool-output-denied',
+              toolCallId: pendingDelegateCall.toolCallId,
+            } as any);
+            w3.releaseLock();
+          } catch (_e) {}
         }
         break;
       }
