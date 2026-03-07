@@ -313,9 +313,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
     return { success: true, response: responseText || 'Execution completed' };
   } catch (error) {
-    const errorMessage = error instanceof Error
-      ? `${error.message} | ${error.stack?.split('\n').slice(0, 3).join(' ')}`
-      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? `${error.message} | ${error.stack?.split('\n').slice(0, 3).join(' ')}`
+        : String(error);
 
     try {
       await updateExecutionStatusStep({ executionId, status: 'failed' });

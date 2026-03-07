@@ -273,10 +273,26 @@ app.openapi(getExecutionStatusRoute, async (c) => {
     throw createApiError({ code: 'not_found', message: 'Execution not found' });
   }
 
+  let effectiveStatus = execution.status;
+  if (execution.runId && (execution.status === 'failed' || execution.status === 'running')) {
+    try {
+      const { getRun } = await import('workflow/api');
+      const run = getRun(execution.runId);
+      const wdkStatus = await run.status;
+      if (wdkStatus === 'completed' && execution.status !== 'completed') {
+        effectiveStatus = 'completed';
+        await runDbClient
+          .update(workflowExecutions)
+          .set({ status: 'completed', updatedAt: new Date().toISOString() })
+          .where(eq(workflowExecutions.id, executionId));
+      }
+    } catch (_e) {}
+  }
+
   let messages: Array<{ role: string; content: unknown }> | undefined;
   if (
     execution.conversationId &&
-    (execution.status === 'completed' || execution.status === 'failed')
+    (effectiveStatus === 'completed' || effectiveStatus === 'failed')
   ) {
     const convMessages = await getMessagesByConversation(runDbClient)({
       scopes: { tenantId, projectId: execution.projectId },
@@ -288,7 +304,7 @@ app.openapi(getExecutionStatusRoute, async (c) => {
 
   return c.json({
     executionId: execution.id,
-    status: execution.status,
+    status: effectiveStatus,
     runId: execution.runId,
     conversationId: execution.conversationId,
     createdAt: execution.createdAt,
