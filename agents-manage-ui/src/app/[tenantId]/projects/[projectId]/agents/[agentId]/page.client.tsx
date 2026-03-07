@@ -931,19 +931,21 @@ export const Agent: FC<AgentProps> = ({
               history: [...state.history, { nodes: state.nodes, edges: state.edges }],
               dirty: true,
             }));
-            for (const node of state.nodes) {
-              if (node.type === NodeType.FunctionTool) {
-                form.unregister([`functions.${node.toolId}`, `functionTools.${node.toolId}`]);
-              } else if (node.type === NodeType.MCP) {
-                form.unregister(`mcpRelations.${node.id}`);
-              } else if (node.type === NodeType.TeamAgent) {
-                form.unregister(`teamAgents.${node.id}`);
-              } else if (node.type === NodeType.ExternalAgent) {
-                form.unregister(`externalAgents.${node.id}`);
-              } else if (node.type === NodeType.SubAgent) {
-                form.unregister(`subAgents.${node.id}`);
+            requestAnimationFrame(() => {
+              for (const node of state.nodes) {
+                if (node.type === NodeType.FunctionTool) {
+                  form.unregister([`functions.${node.toolId}`, `functionTools.${node.toolId}`]);
+                } else if (node.type === NodeType.MCP) {
+                  form.unregister(`mcpRelations.${node.id}`);
+                } else if (node.type === NodeType.TeamAgent) {
+                  form.unregister(`teamAgents.${node.id}`);
+                } else if (node.type === NodeType.ExternalAgent) {
+                  form.unregister(`externalAgents.${node.id}`);
+                } else if (node.type === NodeType.SubAgent) {
+                  form.unregister(`subAgents.${node.id}`);
+                }
               }
-            }
+            });
 
             return state;
           }}
