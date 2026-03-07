@@ -164,7 +164,7 @@ jobs:
         id: provision
         env:
           CI: true
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
@@ -175,6 +175,8 @@ jobs:
           set -euo pipefail
           PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
           RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
+          RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
+          mkdir -p "${RAILWAY_HOME_DIR}"
           if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
             echo "Refusing to provision non-PR environment name: ${RAILWAY_ENV_NAME}"
             exit 1
@@ -183,17 +185,27 @@ jobs:
           railway() {
             docker run --rm \
               -e CI \
-              -e RAILWAY_TOKEN \
-              -e RAILWAY_API_TOKEN="${RAILWAY_TOKEN}" \
+              -e RAILWAY_API_TOKEN \
+              -v "${RAILWAY_HOME_DIR}:/root/.railway" \
               -v "$PWD:/workspace" \
               -w /workspace \
               ghcr.io/railwayapp/cli:latest railway "$@"
           }
 
-          railway link --project "${RAILWAY_PROJECT_ID}"
+          railway link \
+            --project "${RAILWAY_PROJECT_ID}" \
+            --service "${RAILWAY_OUTPUT_SERVICE}" \
+            --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
+            >/dev/null
 
-          if railway environment list --json > /tmp/railway-envs.json; then
-            ENV_EXISTS="$(jq -r --arg name "${RAILWAY_ENV_NAME}" '[.[] | select(.name == $name)] | length' /tmp/railway-envs.json)"
+          if railway project list --json > /tmp/railway-projects.json; then
+            ENV_EXISTS="$(
+              jq -r \
+                --arg project_id "${RAILWAY_PROJECT_ID}" \
+                --arg name "${RAILWAY_ENV_NAME}" \
+                '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+                /tmp/railway-projects.json
+            )"
           else
             echo "Failed to list Railway environments for project ${RAILWAY_PROJECT_ID}"
             exit 1
@@ -381,9 +393,11 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
         run: |
           set -euo pipefail
-          for required in RAILWAY_TOKEN RAILWAY_PROJECT_ID; do
+          for required in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_TEMPLATE_ENVIRONMENT RAILWAY_OUTPUT_SERVICE; do
             if [ -z "${!required:-}" ]; then
               echo "Missing required configuration: ${required}"
               exit 1
@@ -393,12 +407,16 @@ jobs:
       - name: Teardown per-PR resources
         env:
           CI: true
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
         run: |
           set -euo pipefail
           PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
           RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
+          RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
+          mkdir -p "${RAILWAY_HOME_DIR}"
           if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
             echo "Refusing to delete non-PR environment name: ${RAILWAY_ENV_NAME}"
             exit 1
@@ -407,16 +425,27 @@ jobs:
           railway() {
             docker run --rm \
               -e CI \
-              -e RAILWAY_TOKEN \
-              -e RAILWAY_API_TOKEN="${RAILWAY_TOKEN}" \
+              -e RAILWAY_API_TOKEN \
+              -v "${RAILWAY_HOME_DIR}:/root/.railway" \
               -v "$PWD:/workspace" \
               -w /workspace \
               ghcr.io/railwayapp/cli:latest railway "$@"
           }
 
-          railway link --project "${RAILWAY_PROJECT_ID}"
-          railway environment list --json > /tmp/railway-envs.json
-          ENV_EXISTS="$(jq -r --arg name "${RAILWAY_ENV_NAME}" '[.[] | select(.name == $name)] | length' /tmp/railway-envs.json)"
+          railway link \
+            --project "${RAILWAY_PROJECT_ID}" \
+            --service "${RAILWAY_OUTPUT_SERVICE}" \
+            --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
+            >/dev/null
+
+          railway project list --json > /tmp/railway-projects.json
+          ENV_EXISTS="$(
+            jq -r \
+              --arg project_id "${RAILWAY_PROJECT_ID}" \
+              --arg name "${RAILWAY_ENV_NAME}" \
+              '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+              /tmp/railway-projects.json
+          )"
 
           if [ "${ENV_EXISTS}" = "0" ]; then
             echo "Railway environment ${RAILWAY_ENV_NAME} does not exist; nothing to teardown."
