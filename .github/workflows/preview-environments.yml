@@ -10,8 +10,7 @@ name: Preview Environments
 #
 # Repository variables:
 # - PREVIEW_ENVIRONMENTS_ENABLED=true|false
-# - RAILWAY_PROJECT_ID=<railway project id>
-# - RAILWAY_TEMPLATE_ENVIRONMENT=<base environment to copy, e.g. staging>
+# - RAILWAY_TEMPLATE_ENVIRONMENT=<shared source environment, e.g. preview-base>
 # - RAILWAY_OUTPUT_SERVICE=<service name/id that exposes resolved runtime vars, default: agents-api>
 # - RAILWAY_MANAGE_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_MANAGE_DATABASE_URL>
 # - RAILWAY_RUN_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_RUN_DATABASE_URL>
@@ -149,23 +148,21 @@ jobs:
       - name: Validate required secrets
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
         run: |
           set -euo pipefail
-          for required in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_TEMPLATE_ENVIRONMENT; do
+          for required in RAILWAY_TOKEN RAILWAY_TEMPLATE_ENVIRONMENT; do
             if [ -z "${!required:-}" ]; then
               echo "Missing required configuration: ${required}"
               exit 1
             fi
           done
 
-      - name: Provision per-PR resources
+      - name: Read shared Railway runtime values
         id: provision
         env:
           CI: true
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
@@ -173,12 +170,6 @@ jobs:
           RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
         run: |
           set -euo pipefail
-          PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
-          RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
-          if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
-            echo "Refusing to provision non-PR environment name: ${RAILWAY_ENV_NAME}"
-            exit 1
-          fi
 
           railway() {
             docker run --rm \
@@ -190,23 +181,7 @@ jobs:
               ghcr.io/railwayapp/cli:latest railway "$@"
           }
 
-          railway link --project "${RAILWAY_PROJECT_ID}"
-
-          if railway environment list --json > /tmp/railway-envs.json; then
-            ENV_EXISTS="$(jq -r --arg name "${RAILWAY_ENV_NAME}" '[.[] | select(.name == $name)] | length' /tmp/railway-envs.json)"
-          else
-            echo "Failed to list Railway environments for project ${RAILWAY_PROJECT_ID}"
-            exit 1
-          fi
-
-          if [ "${ENV_EXISTS}" = "0" ]; then
-            railway environment new "${RAILWAY_ENV_NAME}" \
-              --copy "${RAILWAY_TEMPLATE_ENVIRONMENT}"
-          else
-            echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
-          fi
-
-          SERVICE_ENV_DUMP="$(railway run --service "${RAILWAY_OUTPUT_SERVICE}" --environment "${RAILWAY_ENV_NAME}" /bin/sh -lc 'env')"
+          SERVICE_ENV_DUMP="$(railway run --service "${RAILWAY_OUTPUT_SERVICE}" --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" /bin/sh -lc 'env')"
 
           extract_runtime_var() {
             local key="$1"
@@ -214,7 +189,7 @@ jobs:
 
             line="$(printf '%s\n' "${SERVICE_ENV_DUMP}" | grep -m1 "^${key}=" || true)"
             if [ -z "${line}" ]; then
-              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}."
+              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_TEMPLATE_ENVIRONMENT}."
               echo "If this variable is sealed, Railway CLI will not return it; use a non-sealed runtime mapping for preview wiring."
               exit 1
             fi
@@ -237,9 +212,8 @@ jobs:
           echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "$GITHUB_OUTPUT"
 
           {
-            echo "## Tier 1 Provisioning"
-            echo "- Railway environment: \`${RAILWAY_ENV_NAME}\`"
-            echo "- Template environment: \`${RAILWAY_TEMPLATE_ENVIRONMENT}\`"
+            echo "## Tier 1 Runtime Source"
+            echo "- Railway environment: \`${RAILWAY_TEMPLATE_ENVIRONMENT}\` (shared)"
             echo "- Runtime variable source service: \`${RAILWAY_OUTPUT_SERVICE}\`"
             echo "- Resolved manage DB URL: ✅"
             echo "- Resolved run DB URL: ✅"
@@ -377,56 +351,10 @@ jobs:
       github.event.action == 'closed' &&
       needs.compute-context.outputs.is_internal_pr == 'true'
     steps:
-      - name: Validate required secrets
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      - name: Shared backend mode (no Railway teardown)
         run: |
           set -euo pipefail
-          for required in RAILWAY_TOKEN RAILWAY_PROJECT_ID; do
-            if [ -z "${!required:-}" ]; then
-              echo "Missing required configuration: ${required}"
-              exit 1
-            fi
-          done
-
-      - name: Teardown per-PR resources
-        env:
-          CI: true
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
-          RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
-          if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
-            echo "Refusing to delete non-PR environment name: ${RAILWAY_ENV_NAME}"
-            exit 1
-          fi
-
-          railway() {
-            docker run --rm \
-              -e CI \
-              -e RAILWAY_TOKEN \
-              -e RAILWAY_API_TOKEN="${RAILWAY_TOKEN}" \
-              -v "$PWD:/workspace" \
-              -w /workspace \
-              ghcr.io/railwayapp/cli:latest railway "$@"
-          }
-
-          railway link --project "${RAILWAY_PROJECT_ID}"
-          railway environment list --json > /tmp/railway-envs.json
-          ENV_EXISTS="$(jq -r --arg name "${RAILWAY_ENV_NAME}" '[.[] | select(.name == $name)] | length' /tmp/railway-envs.json)"
-
-          if [ "${ENV_EXISTS}" = "0" ]; then
-            echo "Railway environment ${RAILWAY_ENV_NAME} does not exist; nothing to teardown."
-            exit 0
-          fi
-
-          railway environment delete "${RAILWAY_ENV_NAME}" --yes
-
           {
             echo "## Tier 1 Teardown"
-            echo "- Railway environment: \`${RAILWAY_ENV_NAME}\`"
-            echo "- Status: deleted"
+            echo "- Shared backend mode enabled; no per-PR Railway environment teardown required."
           } >> "$GITHUB_STEP_SUMMARY"
