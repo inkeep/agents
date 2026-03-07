@@ -61,7 +61,7 @@ describe('verifyPoW', () => {
       JSON.stringify({
         algorithm: challenge.algorithm,
         challenge: challenge.challenge,
-        number: solution!.number,
+        number: solution?.number,
         salt: challenge.salt,
         signature: challenge.signature,
       })
@@ -91,7 +91,7 @@ describe('verifyPoW', () => {
       JSON.stringify({
         algorithm: challenge.algorithm,
         challenge: challenge.challenge,
-        number: solution!.number,
+        number: solution?.number,
         salt: challenge.salt,
         signature: challenge.signature,
       })
