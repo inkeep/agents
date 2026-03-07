@@ -48,7 +48,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       disabled={isDirty || hasOpenModelConfig}
       onClick={() => setShowPlayground(true)}
     >
-      <Play className="size-4 text-muted-foreground" />
+      <Play className="text-muted-foreground" />
       Try it
     </Button>
   );
@@ -78,7 +78,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
       <Button {...commonProps} asChild>
         <Link href={`/${tenantId}/projects/${projectId}/traces?agentId=${agentId}`}>
-          <Activity className="size-4 text-muted-foreground" />
+          <Activity className="text-muted-foreground" />
           Traces
         </Link>
       </Button>
