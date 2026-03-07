@@ -30,6 +30,8 @@ export const ANTHROPIC_MODELS = {
 export const OPENAI_MODELS = {
   GPT_5_4_PRO: 'openai/gpt-5.4-pro',
   GPT_5_4: 'openai/gpt-5.4',
+  GPT_5_3_CODEX: 'openai/gpt-5.3-codex',
+  GPT_5_2_PRO: 'openai/gpt-5.2-pro',
   GPT_5_2_CODEX: 'openai/gpt-5.2-codex',
   GPT_5_2: 'openai/gpt-5.2',
   GPT_5_2_20251211: 'openai/gpt-5.2-2025-12-11',
