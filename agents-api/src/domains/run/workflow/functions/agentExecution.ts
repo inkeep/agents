@@ -172,21 +172,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
-        executionId,
-        steps: JSON.stringify(
-          result.steps.map((s: any) => ({
-            toolCalls: s.toolCalls?.length,
-            toolResults: s.toolResults?.map((tr: any) => ({
-              name: tr.toolName,
-              hasDelegate: !!(tr.result as any)?.isDelegation,
-              result:
-                typeof tr.result === 'object'
-                  ? JSON.stringify(tr.result).substring(0, 200)
-                  : String(tr.result),
-            })),
-          }))
-        ),
-      });
       const toolMessages = result.messages.filter((m: any) => m.role === 'tool');
       let delegateResult: { toolCallId: string; toolName: string; result?: unknown } | undefined;
       for (const tm of toolMessages) {
