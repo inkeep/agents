@@ -49,34 +49,76 @@ function buildTransferTools(
   return tools;
 }
 
-function buildDelegateTools(delegateRelations: SubAgentRelationInfo[]): ToolSet {
+function buildDelegateTools(
+  delegateRelations: SubAgentRelationInfo[],
+  context: { tenantId: string; projectId: string; agentId: string }
+): ToolSet {
   const tools: Record<string, ToolSet[string]> = {};
   for (const relation of delegateRelations) {
     const toolName = `delegate_to_${relation.id}`.replace(/[^a-zA-Z0-9_]/g, '_');
     tools[toolName] = tool({
-      description: `Delegate a task to ${relation.name}. ${relation.description || ''}. Send a message describing what you need. This tool requires approval before execution.`,
+      description: `Delegate a task to ${relation.name}. ${relation.description || ''}. Send a message describing what you need, and the result will be returned.`,
       inputSchema: z.object({
         message: z.string().describe('The task or question to delegate'),
       }),
-      execute: async ({ message }) => ({
-        __approvalRequired: true,
-        targetSubAgentId: relation.id,
-        message,
-      }),
+      execute: async ({ message }) => {
+        const { executeDelegationStep } = await import('../steps/agentExecutionSteps');
+        const result = await executeDelegationStep({
+          tenantId: context.tenantId,
+          projectId: context.projectId,
+          agentId: context.agentId,
+          targetSubAgentId: relation.id,
+          message,
+        });
+        return result.result;
+      },
     }) as ToolSet[string];
   }
   return tools;
 }
 
-function getDelegateRelationMap(
-  delegateRelations: SubAgentRelationInfo[]
-): Record<string, SubAgentRelationInfo> {
-  const map: Record<string, SubAgentRelationInfo> = {};
-  for (const relation of delegateRelations) {
-    const toolName = `delegate_to_${relation.id}`.replace(/[^a-zA-Z0-9_]/g, '_');
-    map[toolName] = relation;
-  }
-  return map;
+function buildApprovalTools(
+  executionId: string,
+  approvalHook: typeof toolApprovalHook
+): ToolSet {
+  return {
+    get_coordinates: tool({
+      description: 'Get geographical coordinates (latitude, longitude) for a location. This tool requires human approval before execution.',
+      inputSchema: z.object({
+        location: z.string().describe('The city or location to get coordinates for'),
+      }),
+      execute: async ({ location }) => {
+        const token = `approval-${executionId}-get_coordinates-${Date.now()}`;
+        const hook = approvalHook.create({ token });
+        const approval = await hook;
+
+        if (!approval.approved) {
+          return { denied: true, reason: approval.reason || 'User denied the tool call' };
+        }
+
+        const coords: Record<string, { lat: number; lon: number }> = {
+          tokyo: { lat: 35.6762, lon: 139.6503 },
+          paris: { lat: 48.8566, lon: 2.3522 },
+          london: { lat: 51.5074, lon: -0.1278 },
+          berlin: { lat: 52.52, lon: 13.405 },
+          rome: { lat: 41.9028, lon: 12.4964 },
+          moscow: { lat: 55.7558, lon: 37.6173 },
+          vienna: { lat: 48.2082, lon: 16.3738 },
+          sydney: { lat: -33.8688, lon: 151.2093 },
+          cairo: { lat: 30.0444, lon: 31.2357 },
+          dubai: { lat: 25.2048, lon: 55.2708 },
+          miami: { lat: 25.7617, lon: -80.1918 },
+          nyc: { lat: 40.7128, lon: -74.006 },
+        };
+        const key = location.toLowerCase().replace(/[^a-z]/g, '');
+        const match = Object.entries(coords).find(([k]) => key.includes(k));
+        if (match) {
+          return { location, latitude: match[1].lat, longitude: match[1].lon };
+        }
+        return { location, latitude: 0, longitude: 0, note: 'Location not found in database' };
+      },
+    }) as ToolSet[string],
+  };
 }
 
 function extractTransferFromResult(result: {
@@ -163,36 +205,24 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         currentConfig.transferRelations || [],
         currentSubAgentId
       );
-      const delegateTools = buildDelegateTools(currentConfig.delegateRelations || []);
-      const delegateRelationMap = getDelegateRelationMap(currentConfig.delegateRelations || []);
-      const allTools = { ...transferTools, ...delegateTools };
-
-      const hasTools = Object.keys(allTools).length > 0;
+      const delegateTools = buildDelegateTools(
+        currentConfig.delegateRelations || [],
+        { tenantId, projectId, agentId }
+      );
+      const approvalTools = buildApprovalTools(executionId, toolApprovalHook);
+      const allTools = { ...transferTools, ...delegateTools, ...approvalTools };
 
       const agent = new DurableAgent({
         model: anthropic(modelName),
         system: currentConfig.systemPrompt,
-        ...(hasTools ? { tools: allTools } : {}),
+        tools: allTools,
       });
-
-      const delegateToolNames = new Set(Object.keys(delegateRelationMap));
 
       const result = await agent.stream({
         messages: currentMessages,
         writable,
         maxSteps: 10,
         preventClose: true,
-        ...(delegateToolNames.size > 0
-          ? {
-              stopWhen: ({ steps }: { steps: Array<Record<string, unknown>> }) => {
-                for (const step of steps) {
-                  const calls = (step as any).toolCalls as Array<{ toolName: string }> | undefined;
-                  if (calls?.some((tc) => delegateToolNames.has(tc.toolName))) return true;
-                }
-                return false;
-              },
-            }
-          : {}),
       });
 
       const transferData = extractTransferFromResult(
@@ -230,85 +260,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         currentSubAgentId = transferData.targetSubAgentId;
         currentMessages = history;
         continue;
-      }
-
-      const allStepToolCalls = result.steps.flatMap(
-        (s: any) =>
-          (s.toolCalls || []) as Array<{
-            toolCallId: string;
-            toolName: string;
-            args: Record<string, unknown>;
-          }>
-      );
-      const allStepToolResults = result.steps.flatMap(
-        (s: any) =>
-          (s.toolResults || []) as Array<{ toolCallId: string; toolName: string; result?: unknown }>
-      );
-
-      const delegateCall = allStepToolCalls.find((tc) => tc.toolName in delegateRelationMap);
-      const delegateResult = delegateCall
-        ? allStepToolResults.find((tr) => tr.toolCallId === delegateCall.toolCallId)
-        : undefined;
-
-      if (delegateCall) {
-        const relation = delegateRelationMap[delegateCall.toolName] ?? {
-          id: delegateCall.toolName.replace('delegate_to_', ''),
-          name: delegateCall.toolName,
-        };
-        const pendingDelegateCall = delegateCall;
-        const token = `approval-${executionId}-${iteration}-${pendingDelegateCall.toolCallId}`;
-
-        try {
-          const w = writable.getWriter();
-          w.write({
-            type: 'tool-approval-request',
-            approvalId: token,
-            toolCallId: pendingDelegateCall.toolCallId,
-            toolName: pendingDelegateCall.toolName,
-            input: pendingDelegateCall.args,
-          } as any);
-          w.releaseLock();
-        } catch (_e) {}
-
-        const hook = toolApprovalHook.create({ token });
-        const approval = await hook;
-
-        if (approval.approved) {
-          try {
-            const { executeDelegationStep } = await import('../steps/agentExecutionSteps');
-            const delegationResult = await executeDelegationStep({
-              tenantId,
-              projectId,
-              agentId,
-              targetSubAgentId: relation.id,
-              message: (pendingDelegateCall.args as any).message as string,
-            });
-            responseText = delegationResult.result;
-
-            try {
-              const w2 = writable.getWriter();
-              w2.write({
-                type: 'tool-output-available',
-                toolCallId: pendingDelegateCall.toolCallId,
-                output: responseText,
-              } as any);
-              w2.releaseLock();
-            } catch (_e) {}
-          } catch (delegateErr) {
-            responseText = `Delegation approved but failed: ${delegateErr instanceof Error ? delegateErr.message : String(delegateErr)}`;
-          }
-        } else {
-          responseText = `Tool call denied${approval.reason ? `: ${approval.reason}` : ''}`;
-          try {
-            const w3 = writable.getWriter();
-            w3.write({
-              type: 'tool-output-denied',
-              toolCallId: pendingDelegateCall.toolCallId,
-            } as any);
-            w3.releaseLock();
-          } catch (_e) {}
-        }
-        break;
       }
 
       responseText = result.messages
