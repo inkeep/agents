@@ -282,11 +282,13 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         })),
       }));
 
-      responseText =
-        result.messages
-          .filter((m) => m.role === 'assistant')
-          .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
-          .join('\n') + `\n\n[DEBUG steps: ${JSON.stringify(debugSteps)}]`;
+      const debugMsgs = result.messages.map((m: any) => ({
+        role: m.role,
+        contentType: typeof m.content,
+        isArr: Array.isArray(m.content),
+        preview: JSON.stringify(m.content).substring(0, 200),
+      }));
+      responseText = `[DEBUG msgs: ${JSON.stringify(debugMsgs)}]\n[DEBUG steps: ${JSON.stringify(debugSteps)}]`;
       break;
     }
 
