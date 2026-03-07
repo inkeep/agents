@@ -1,6 +1,8 @@
 import { GripVertical, type LucideIcon } from 'lucide-react';
 import type { ComponentProps, FC, ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type NodeItem = {
   type: string;
@@ -26,32 +28,24 @@ export const NodeItem: FC<NodeItemProps> = ({ node }) => {
   'use memo';
   const { type, name, Icon, disabled, disabledTooltip } = node;
   const content = (
-    <button
+    <Button
+      variant="outline"
       key={type}
       type="button"
       data-node-type={type}
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
-      className={[
-        'backdrop-blur-3xl border bg-background shadow-xs',
-        'dark:bg-input/30 dark:border-input',
-        'flex font-medium items-center text-sm rounded-md p-2 justify-between gap-2 text-left h-auto w-full',
-        'group group-hover:bg-muted/50 transition-all ease-in-out duration-200',
-        disabled
-          ? 'cursor-not-allowed opacity-60'
-          : 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-input/50 cursor-grab active:cursor-grabbing',
-      ].join(' ')}
+      className={cn(
+        'backdrop-blur-3xl justify-start normal-case font-normal font-sans',
+        'group group-hover:bg-muted/50 transition-all ease-in-out duration-200'
+      )}
       draggable={!disabled}
       onDragStart={onDragStart}
     >
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <div className="flex flex-col items-start min-w-0">
-          <span className="truncate w-full inline-block">{name}</span>
-        </div>
-      </div>
-      <GripVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all ease-in-out duration-200" />
-    </button>
+      <Icon className="text-muted-foreground" />
+      {name}
+      <GripVertical className="ml-auto text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all ease-in-out duration-200" />
+    </Button>
   );
 
   if (disabled && disabledTooltip) {
