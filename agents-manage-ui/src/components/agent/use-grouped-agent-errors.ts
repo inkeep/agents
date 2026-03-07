@@ -13,7 +13,7 @@ export function useGroupedAgentErrors() {
     externalAgents = EMPTY_OBJ,
     teamAgents = EMPTY_OBJ,
     tools,
-    mcpRelations,
+    mcpRelations = EMPTY_OBJ,
     defaultSubAgentId,
     ...agentSettings
   } = errors;
@@ -28,7 +28,8 @@ export function useGroupedAgentErrors() {
     teamAgents,
     tools: {
       ...tools,
-      ...mcpRelations,
+      // clean node id which will not open sidepane
+      ...Object.fromEntries(Object.entries(mcpRelations).map(([_key, value]) => ['', value])),
     },
     agentSettings,
     other: defaultSubAgentId ? { defaultSubAgentId } : EMPTY_OBJ,

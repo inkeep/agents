@@ -2,7 +2,6 @@ import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, useEffect, useRef } from 'react';
-import { useFormState } from 'react-hook-form';
 import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ interface ToolbarProps {
 }
 
 const commonProps = {
-  className: 'backdrop-blur-3xl',
+  className: 'backdrop-blur-3xl normal-case font-sans font-normal',
   type: 'button',
   variant: 'outline',
 } satisfies ComponentProps<typeof Button>;
@@ -110,6 +109,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       {canEdit && (
         <Button
           {...commonProps}
+          className={cn(commonProps.className, 'border')}
           type="submit"
           variant={isDirty ? 'default' : 'outline'}
           disabled={isSubmitting || !isDirty || hasOpenModelConfig}

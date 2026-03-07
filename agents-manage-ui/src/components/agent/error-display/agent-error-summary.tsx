@@ -36,7 +36,7 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
 
   const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
-    const key = error.nodeId || error.edgeId || 'general';
+    const key = error.nodeId ?? '';
     groupedErrors[key] ??= [];
     groupedErrors[key].push(error);
   }
@@ -51,37 +51,37 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 pl-4 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
-        {Object.entries(groupedErrors).map(([itemId, itemErrors]) => (
-          <div key={itemId} className="space-y-1">
-            <div className="flex items-center gap-1.5">
-              {itemErrors[0].nodeId && (
-                <span className="text-xs font-medium text-foreground truncate">
-                  {`${title} (${itemErrors[0].nodeId})`}
-                </span>
-              )}
-              {onNavigate && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onNavigate(itemId)}
-                  className="h-5 px-1.5 text-xs normal-case"
-                >
-                  Go to
-                </Button>
-              )}
+        {Object.entries(groupedErrors).map(([itemId, itemErrors]) => {
+          const { nodeId } = itemErrors[0];
+          const heading = title + (nodeId ? ` (${nodeId})` : '');
+          return (
+            <div key={itemId} className="space-y-1">
+              <b className="flex items-center gap-1.5 text-xs text-foreground truncate">
+                {heading}
+                {nodeId && onNavigate && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onNavigate(itemId)}
+                    className="h-5 px-1.5 text-xs normal-case"
+                  >
+                    Go to
+                  </Button>
+                )}
+              </b>
+              <div className="space-y-2">
+                {itemErrors.map((error, index) => (
+                  <div
+                    key={`${itemId}-${index}`}
+                    className="text-xs text-red-700 dark:text-red-300 bg-red-50/90 dark:bg-red-950/40 p-2 rounded border border-red-200 dark:border-red-700"
+                  >
+                    <b>{error.field}</b>: {error.message}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              {itemErrors.map((error, index) => (
-                <div
-                  key={`${itemId}-${index}`}
-                  className="text-xs text-red-700 dark:text-red-300 bg-red-50/90 dark:bg-red-950/40 p-2 rounded border border-red-200 dark:border-red-700"
-                >
-                  <b>{error.field}</b>: {error.message}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </CollapsibleContent>
     </Collapsible>
   );
