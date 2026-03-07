@@ -296,6 +296,134 @@ describe('Anonymous Session Endpoint', () => {
 
 const TEST_POW_SECRET = 'test-pow-hmac-secret-that-is-at-least-32-characters-long';
 
+describe('Anonymous Session PoW Enforcement', () => {
+  describe('POST /run/auth/apps/{appId}/anonymous-session with PoW', () => {
+    let originalSecret: string | undefined;
+
+    beforeEach(() => {
+      originalSecret = env.INKEEP_POW_HMAC_SECRET;
+    });
+
+    afterEach(() => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalSecret;
+    });
+
+    it('should succeed when PoW is disabled (no HMAC secret)', async () => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+
+      const tenantId = await createTestTenantWithOrg('anon-pow-disabled');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+
+      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.token).toBeDefined();
+    });
+
+    it('should return 400 pow_required when PoW is enabled but header missing', async () => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
+
+      const tenantId = await createTestTenantWithOrg('anon-pow-required');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+
+      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('pow_required');
+    });
+
+    it('should return 400 pow_invalid when PoW solution is invalid', async () => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
+
+      const tenantId = await createTestTenantWithOrg('anon-pow-invalid');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+
+      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://help.customer.com',
+          'X-Inkeep-Altcha': 'invalid-base64-garbage',
+        },
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('pow_invalid');
+    });
+
+    it('should succeed with valid PoW solution', async () => {
+      const { createChallenge, solveChallenge } = await import('altcha-lib');
+
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
+
+      const tenantId = await createTestTenantWithOrg('anon-pow-valid');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+
+      const challenge = await createChallenge({
+        hmacKey: TEST_POW_SECRET,
+        algorithm: 'SHA-256',
+        maxnumber: 1000,
+        expires: new Date(Date.now() + 300_000),
+      });
+
+      const { promise: solutionPromise } = solveChallenge(
+        challenge.challenge,
+        challenge.salt,
+        challenge.algorithm,
+        challenge.maxnumber
+      );
+      const solution = await solutionPromise;
+
+      const payload = btoa(
+        JSON.stringify({
+          algorithm: challenge.algorithm,
+          challenge: challenge.challenge,
+          number: solution?.number,
+          salt: challenge.salt,
+          signature: challenge.signature,
+        })
+      );
+
+      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://help.customer.com',
+          'X-Inkeep-Altcha': payload,
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.token).toBeDefined();
+      expect(body.expiresAt).toBeDefined();
+    });
+  });
+});
+
 describe('PoW Challenge Endpoint', () => {
   describe('GET /run/auth/pow/challenge', () => {
     let originalSecret: string | undefined;
