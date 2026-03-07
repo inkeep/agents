@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import type { z } from 'zod';
-import type { AgentModels } from '@/components/agent/configuration/agent-types';
+import type { AgentModels, AgentSkill } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import {
@@ -206,7 +206,7 @@ export function serializeAgentData(
 
       const stopWhen = (node.data as any).stopWhen;
 
-      const nodeSkills: AgentNodeData['skills'] = (node.data as any).skills;
+      const nodeSkills: AgentSkill[] = (node.data as any).skills;
 
       const canUse: Array<{
         toolId: string;
