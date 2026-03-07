@@ -8,16 +8,16 @@ import {
   commonGetErrorResponses,
   createApiError,
   createApp,
-  deleteApp,
+  deleteAppForTenant,
   ErrorResponseSchema,
   generateAppCredential,
-  getAppById,
+  getAppByIdForTenant,
   listAppsPaginated,
   PaginationQueryParamsSchema,
   sanitizeAppConfig,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  updateApp,
+  updateAppForTenant,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -33,7 +33,7 @@ app.openapi(
     permission: requireProjectPermission('view'),
     path: '/',
     summary: 'List Apps',
-    description: 'List all app credentials for a tenant with optional pagination and type filter',
+    description: 'List all app credentials for a project',
     operationId: 'list-apps',
     tags: ['Apps'],
     request: {
@@ -56,13 +56,13 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const { tenantId } = c.req.valid('param');
+    const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const type = c.req.query('type') as 'web_client' | 'api' | undefined;
 
     const result = await listAppsPaginated(runDbClient)({
-      scopes: { tenantId },
+      scopes: { tenantId, projectId },
       pagination: { page, limit },
       type,
     });
@@ -101,8 +101,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { id } = c.req.valid('param');
-    const appRecord = await getAppById(runDbClient)(id);
+    const { tenantId, id } = c.req.valid('param');
+    const appRecord = await getAppByIdForTenant(runDbClient)({
+      scopes: { tenantId },
+      id,
+    });
 
     if (!appRecord) {
       throw createApiError({
@@ -208,10 +211,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { id } = c.req.valid('param');
+    const { tenantId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedApp = await updateApp(runDbClient)({
+    const updatedApp = await updateAppForTenant(runDbClient)({
+      scopes: { tenantId },
       id,
       data: body,
     });
@@ -254,9 +258,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { id } = c.req.valid('param');
+    const { tenantId, id } = c.req.valid('param');
 
-    const deleted = await deleteApp(runDbClient)(id);
+    const deleted = await deleteAppForTenant(runDbClient)({
+      scopes: { tenantId },
+      id,
+    });
 
     if (!deleted) {
       throw createApiError({

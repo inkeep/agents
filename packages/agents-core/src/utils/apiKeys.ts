@@ -158,7 +158,7 @@ export type AppCredentialResult = {
 };
 
 export function generateAppCredential(): AppCredentialResult {
-  const id = generateId();
+  const id = `app_${generateId()}`;
   return { id };
 }
 
