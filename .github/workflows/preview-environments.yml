@@ -246,7 +246,7 @@ jobs:
             fi
 
             value="${line#*=}"
-            if printf '%s' "${value}" | grep -q '\${{'; then
+            if printf '%s' "${value}" | grep -q '\$[{][{]'; then
               echo "Runtime variable ${key} is unresolved (${value}). Ensure it resolves to a concrete runtime value."
               exit 1
             fi
