@@ -1,6 +1,8 @@
 'use client';
 
 import { Check, Copy } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -55,6 +57,7 @@ function AppIdCell({ appId }: { appId: string }) {
 }
 
 export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTableProps) {
+  const { tenantId } = useParams<{ tenantId: string }>();
   return (
     <div className="rounded-lg border">
       <Table>
@@ -95,11 +98,16 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    {app.defaultAgentId
-                      ? (agentLookup[app.defaultAgentId]?.name ?? app.defaultAgentId)
-                      : 'None'}
-                  </span>
+                  {app.defaultAgentId && app.defaultProjectId ? (
+                    <Link
+                      href={`/${tenantId}/projects/${app.defaultProjectId}/agents/${app.defaultAgentId}`}
+                      className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                    >
+                      {agentLookup[app.defaultAgentId]?.name ?? app.defaultAgentId}
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">None</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <AppIdCell appId={app.id} />

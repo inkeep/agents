@@ -39,7 +39,7 @@ const PowChallengeResponseSchema = z
   .object({
     algorithm: z.string().openapi({ example: 'SHA-256' }),
     challenge: z.string(),
-    maxnumber: z.number(),
+    maxnumber: z.number().optional(),
     salt: z.string(),
     signature: z.string(),
   })
@@ -97,13 +97,16 @@ app.openapi(
       expires: new Date(Date.now() + env.INKEEP_POW_CHALLENGE_TTL_SECONDS * 1000),
     });
 
-    return c.json({
-      algorithm: challenge.algorithm,
-      challenge: challenge.challenge,
-      maxnumber: challenge.maxnumber,
-      salt: challenge.salt,
-      signature: challenge.signature,
-    });
+    return c.json(
+      {
+        algorithm: challenge.algorithm,
+        challenge: challenge.challenge,
+        maxnumber: challenge.maxnumber,
+        salt: challenge.salt,
+        signature: challenge.signature,
+      },
+      200
+    );
   }
 );
 
@@ -169,7 +172,7 @@ app.openapi(
 
     const pow = await verifyPoW(c.req.raw, env.INKEEP_POW_HMAC_SECRET);
     if (!pow.ok) {
-      return c.json({ error: pow.error }, 400);
+      throw createApiError({ code: 'bad_request', message: pow.error });
     }
 
     const anonUserId = `anon_${crypto.randomUUID()}`;
