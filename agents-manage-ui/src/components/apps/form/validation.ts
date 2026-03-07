@@ -31,7 +31,6 @@ export const AppCreateFormSchema = z.object({
       },
       { message: 'At least one domain is required for web client apps' }
     ),
-  captchaEnabled: z.boolean().optional(),
 });
 
 export const AppUpdateFormSchema = z.object({
@@ -53,7 +52,6 @@ export const AppUpdateFormSchema = z.object({
       },
       { message: 'At least one domain is required for web client apps' }
     ),
-  captchaEnabled: z.boolean().optional(),
 });
 
 export type AppCreateFormInput = z.infer<typeof AppCreateFormSchema>;

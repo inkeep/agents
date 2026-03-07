@@ -8,8 +8,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
+import { Form } from '@/components/ui/form';
 import { createAppAction } from '@/lib/actions/apps';
 import type { AppCreateResponse } from '@/lib/api/apps';
 import { type AppCreateFormInput, AppCreateFormSchema } from './validation';
@@ -30,7 +29,6 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
       description: '',
       defaultAgentId: '',
       allowedDomains: appType === 'web_client' ? '' : undefined,
-      captchaEnabled: appType === 'web_client' ? false : undefined,
     },
     mode: 'onChange',
   });
@@ -53,7 +51,6 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
                     .split(',')
                     .map((d: string) => d.trim())
                     .filter(Boolean),
-                  captchaEnabled: data.captchaEnabled ?? false,
                 },
               }
             : { type: 'api', api: {} },
@@ -100,28 +97,14 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
         />
 
         {appType === 'web_client' && (
-          <>
-            <GenericInput
-              control={form.control}
-              name="allowedDomains"
-              label="Allowed Domains"
-              placeholder="help.example.com, *.example.com"
-              description="Comma-separated list of allowed domains. Supports wildcards (e.g., *.example.com)."
-              isRequired
-            />
-            <FormField
-              control={form.control}
-              name="captchaEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between">
-                  <FormLabel>Captcha (PoW)</FormLabel>
-                  <FormControl>
-                    <Switch checked={!!field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </>
+          <GenericInput
+            control={form.control}
+            name="allowedDomains"
+            label="Allowed Domains"
+            placeholder="help.example.com, *.example.com"
+            description="Comma-separated list of allowed domains. Supports wildcards (e.g., *.example.com)."
+            isRequired
+          />
         )}
 
         <div className="flex justify-end">
