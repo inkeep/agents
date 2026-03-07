@@ -294,21 +294,25 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           const subModelName = (subConfig.modelConfig.model ?? '').replace(/^[^/]+\//, '');
           const subTools = buildSubAgentTools(delegateData.targetId, executionId, toolApprovalHook);
 
-          const toolInstructions = Object.keys(subTools).length > 0
-            ? `\n\nIMPORTANT: You MUST use the available tools to complete the task. Do NOT answer from your own knowledge — always call the appropriate tool.`
-            : '';
+          const toolInstructions =
+            Object.keys(subTools).length > 0
+              ? `\n\nIMPORTANT: You MUST use the available tools to complete the task. Do NOT answer from your own knowledge — always call the appropriate tool.`
+              : '';
 
           const subAgent = new DurableAgent({
             model: anthropic(subModelName),
-            system: (subConfig.systemPrompt || `You are ${delegateData.targetId}.`) + toolInstructions,
+            system:
+              (subConfig.systemPrompt || `You are ${delegateData.targetId}.`) + toolInstructions,
             ...(Object.keys(subTools).length > 0 ? { tools: subTools } : {}),
           });
 
+          const hasSubTools = Object.keys(subTools).length > 0;
           const subResult = await subAgent.stream({
             messages: [{ role: 'user' as const, content: delegateData.message }],
             writable,
             maxSteps: 5,
             preventClose: true,
+            ...(hasSubTools ? { toolChoice: 'required' as any } : {}),
           });
 
           const subResponseText = subResult.messages
