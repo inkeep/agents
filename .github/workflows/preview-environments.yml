@@ -246,27 +246,13 @@ jobs:
             echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
           fi
 
-          SERVICE_ENV_DUMP=""
-          for attempt in 1 2 3 4 5 6; do
-            if SERVICE_ENV_DUMP="$(
-              railway run \
-                --service "${RAILWAY_OUTPUT_SERVICE}" \
-                --environment "${RAILWAY_ENV_NAME}" \
-                /bin/sh -lc 'env' \
-                2>/tmp/railway-run.err
-            )"; then
-              break
-            fi
-            echo "railway run attempt ${attempt}/6 failed; waiting for environment readiness..."
-            tail -n 5 /tmp/railway-run.err || true
-            sleep 10
-          done
-
-          if [ -z "${SERVICE_ENV_DUMP}" ]; then
-            echo "Failed to read runtime environment from Railway service ${RAILWAY_OUTPUT_SERVICE} in ${RAILWAY_ENV_NAME}."
-            tail -n 20 /tmp/railway-run.err || true
-            exit 1
-          fi
+          SERVICE_ENV_DUMP="$(
+            railway variable list \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_ENV_NAME}" \
+              --json |
+              jq -r 'to_entries[] | "\(.key)=\(.value)"'
+          )"
 
           extract_runtime_var() {
             local key="$1"
@@ -274,14 +260,14 @@ jobs:
 
             line="$(printf '%s\n' "${SERVICE_ENV_DUMP}" | grep -m1 "^${key}=" || true)"
             if [ -z "${line}" ]; then
-              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}."
-              echo "If this variable is sealed, Railway CLI will not return it; use a non-sealed runtime mapping for preview wiring."
+              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+              echo "If this variable is sealed, Railway CLI will not return it; use a non-sealed runtime mapping for preview wiring." >&2
               exit 1
             fi
 
             value="${line#*=}"
             if printf '%s' "${value}" | grep -q '\$[{][{]'; then
-              echo "Runtime variable ${key} is unresolved (${value}). Ensure it resolves to a concrete runtime value."
+              echo "Runtime variable ${key} is unresolved (${value}). Ensure it resolves to a concrete runtime value." >&2
               exit 1
             fi
 
