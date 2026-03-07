@@ -246,7 +246,27 @@ jobs:
             echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
           fi
 
-          SERVICE_ENV_DUMP="$(railway run --service "${RAILWAY_OUTPUT_SERVICE}" --environment "${RAILWAY_ENV_NAME}" /bin/sh -lc 'env')"
+          SERVICE_ENV_DUMP=""
+          for attempt in 1 2 3 4 5 6; do
+            if SERVICE_ENV_DUMP="$(
+              railway run \
+                --service "${RAILWAY_OUTPUT_SERVICE}" \
+                --environment "${RAILWAY_ENV_NAME}" \
+                /bin/sh -lc 'env' \
+                2>/tmp/railway-run.err
+            )"; then
+              break
+            fi
+            echo "railway run attempt ${attempt}/6 failed; waiting for environment readiness..."
+            tail -n 5 /tmp/railway-run.err || true
+            sleep 10
+          done
+
+          if [ -z "${SERVICE_ENV_DUMP}" ]; then
+            echo "Failed to read runtime environment from Railway service ${RAILWAY_OUTPUT_SERVICE} in ${RAILWAY_ENV_NAME}."
+            tail -n 20 /tmp/railway-run.err || true
+            exit 1
+          fi
 
           extract_runtime_var() {
             local key="$1"
