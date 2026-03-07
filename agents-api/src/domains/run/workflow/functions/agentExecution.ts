@@ -81,7 +81,7 @@ function buildDelegateTools(
         (needsApproval ? ' (requires approval)' : ''),
       inputSchema: z.object({ message: z.string().describe('Task to delegate') }),
       execute: async ({ message }) => ({
-        __delegate: true,
+        isDelegation: true,
         targetSubAgentId: r.id,
         needsApproval,
         message,
@@ -163,7 +163,22 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
-      await logStep("debug-steps", { executionId, steps: JSON.stringify(result.steps.map((s: any) => ({ toolCalls: s.toolCalls?.length, toolResults: s.toolResults?.map((tr: any) => ({ name: tr.toolName, hasDelegate: !!(tr.result as any)?.__delegate, result: typeof tr.result === "object" ? JSON.stringify(tr.result).substring(0, 200) : String(tr.result) })) }))) });
+      await logStep('debug-steps', {
+        executionId,
+        steps: JSON.stringify(
+          result.steps.map((s: any) => ({
+            toolCalls: s.toolCalls?.length,
+            toolResults: s.toolResults?.map((tr: any) => ({
+              name: tr.toolName,
+              hasDelegate: !!(tr.result as any)?.isDelegation,
+              result:
+                typeof tr.result === 'object'
+                  ? JSON.stringify(tr.result).substring(0, 200)
+                  : String(tr.result),
+            })),
+          }))
+        ),
+      });
       const delegateResult = result.steps
         .flatMap(
           (s: any) =>
@@ -173,7 +188,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
               result?: unknown;
             }>
         )
-        .find((tr) => (tr.result as any)?.__delegate);
+        .find((tr) => (tr.result as any)?.isDelegation);
 
       if (delegateResult) {
         const dr = delegateResult.result as {
