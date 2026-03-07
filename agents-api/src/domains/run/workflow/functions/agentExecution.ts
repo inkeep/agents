@@ -146,8 +146,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       let transferResult: { targetSubAgentId: string } | undefined;
       for (const tm of result.messages.filter((m: any) => m.role === 'tool')) {
         for (const part of Array.isArray(tm.content) ? tm.content : []) {
-          if ((part as any).type === 'tool-result' && (part as any).result?.type === 'transfer') {
-            transferResult = { targetSubAgentId: (part as any).result.targetSubAgentId };
+          const p = part as any;
+          const val = p.output?.value ?? p.output ?? p.result;
+          if (p.type === 'tool-result' && val?.type === 'transfer') {
+            transferResult = { targetSubAgentId: val.targetSubAgentId };
             break;
           }
         }
@@ -191,11 +193,13 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       for (const tm of toolMessages) {
         const parts = Array.isArray(tm.content) ? tm.content : [];
         for (const part of parts) {
-          if ((part as any).type === 'tool-result' && (part as any).result?.isDelegation) {
+          const p = part as any;
+          const val = p.output?.value ?? p.output ?? p.result;
+          if (p.type === 'tool-result' && val?.isDelegation) {
             delegateResult = {
-              toolCallId: (part as any).toolCallId,
-              toolName: (part as any).toolName,
-              result: (part as any).result,
+              toolCallId: p.toolCallId,
+              toolName: p.toolName,
+              result: val,
             };
             break;
           }
