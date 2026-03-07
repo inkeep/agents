@@ -7,6 +7,7 @@ import {
   validateOrigin,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
+import { createChallenge } from 'altcha-lib';
 import { SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
@@ -33,7 +34,77 @@ export function getAnonJwtSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
+const PowChallengeResponseSchema = z
+  .object({
+    algorithm: z.string().openapi({ example: 'SHA-256' }),
+    challenge: z.string(),
+    maxnumber: z.number(),
+    salt: z.string(),
+    signature: z.string(),
+  })
+  .openapi('PowChallengeResponse');
+
+const PowDisabledErrorSchema = z
+  .object({
+    error: z.literal('pow_disabled'),
+    message: z.string(),
+  })
+  .openapi('PowDisabledError');
+
 const app = new OpenAPIHono();
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/pow/challenge',
+    summary: 'Get PoW Challenge',
+    description:
+      'Fetch an ALTCHA Proof-of-Work challenge. Returns 404 when PoW is not enabled on the server.',
+    operationId: 'get-pow-challenge',
+    tags: ['Auth'],
+    permission: noAuth(),
+    security: [],
+    responses: {
+      200: {
+        description: 'PoW challenge generated successfully',
+        content: {
+          'application/json': {
+            schema: PowChallengeResponseSchema,
+          },
+        },
+      },
+      404: {
+        description: 'PoW is not enabled',
+        content: {
+          'application/json': {
+            schema: PowDisabledErrorSchema,
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const hmacSecret = env.INKEEP_POW_HMAC_SECRET;
+    if (!hmacSecret) {
+      return c.json({ error: 'pow_disabled' as const, message: 'PoW is not enabled' }, 404);
+    }
+
+    const challenge = await createChallenge({
+      hmacKey: hmacSecret,
+      algorithm: 'SHA-256',
+      maxnumber: env.INKEEP_POW_DIFFICULTY,
+      expires: new Date(Date.now() + env.INKEEP_POW_CHALLENGE_TTL_SECONDS * 1000),
+    });
+
+    return c.json({
+      algorithm: challenge.algorithm,
+      challenge: challenge.challenge,
+      maxnumber: challenge.maxnumber,
+      salt: challenge.salt,
+      signature: challenge.signature,
+    });
+  }
+);
 
 app.openapi(
   createProtectedRoute({

@@ -10,7 +10,7 @@ export async function verifyPoW(
   request: Request,
   hmacSecret: string | undefined
 ): Promise<PoWResult> {
-  if (!isPoWEnabled(hmacSecret)) {
+  if (!hmacSecret) {
     return { ok: true };
   }
 
@@ -19,7 +19,7 @@ export async function verifyPoW(
     return { ok: false, error: 'pow_required' };
   }
 
-  const valid = await verifySolution(altchaHeader, hmacSecret!);
+  const valid = await verifySolution(altchaHeader, hmacSecret);
   if (!valid) {
     return { ok: false, error: 'pow_invalid' };
   }

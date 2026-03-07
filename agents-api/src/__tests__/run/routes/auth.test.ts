@@ -1,8 +1,9 @@
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { jwtVerify } from 'jose';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { getAnonJwtSecret } from '../../../domains/run/routes/auth';
+import { env } from '../../../env';
 import app from '../../../index';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
@@ -289,6 +290,61 @@ describe('Anonymous Session Endpoint', () => {
 
       const uniqueSubs = new Set(subs);
       expect(uniqueSubs.size).toBe(3);
+    });
+  });
+});
+
+const TEST_POW_SECRET = 'test-pow-hmac-secret-that-is-at-least-32-characters-long';
+
+describe('PoW Challenge Endpoint', () => {
+  describe('GET /run/auth/pow/challenge', () => {
+    let originalSecret: string | undefined;
+
+    beforeEach(() => {
+      originalSecret = env.INKEEP_POW_HMAC_SECRET;
+    });
+
+    afterEach(() => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalSecret;
+    });
+
+    it('should return 404 when PoW is disabled', async () => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+
+      const res = await app.request('/run/auth/pow/challenge', { method: 'GET' });
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error).toBe('pow_disabled');
+      expect(body.message).toBe('PoW is not enabled');
+    });
+
+    it('should return a valid challenge when PoW is enabled', async () => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
+
+      const res = await app.request('/run/auth/pow/challenge', { method: 'GET' });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.algorithm).toBe('SHA-256');
+      expect(body.challenge).toBeDefined();
+      expect(typeof body.challenge).toBe('string');
+      expect(body.maxnumber).toBeDefined();
+      expect(typeof body.maxnumber).toBe('number');
+      expect(body.salt).toBeDefined();
+      expect(typeof body.salt).toBe('string');
+      expect(body.signature).toBeDefined();
+      expect(typeof body.signature).toBe('string');
+    });
+
+    it('should return challenges with expires encoded in salt', async () => {
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
+
+      const res = await app.request('/run/auth/pow/challenge', { method: 'GET' });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.salt).toContain('expires=');
     });
   });
 });
