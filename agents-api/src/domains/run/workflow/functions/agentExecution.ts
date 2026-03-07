@@ -172,7 +172,6 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
-      await logStep('debug-steps', {
         executionId,
         steps: JSON.stringify(
           result.steps.map((s: any) => ({
@@ -277,22 +276,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         continue;
       }
 
-      const debugSteps = result.steps.map((s: any) => ({
-        toolCalls: s.toolCalls?.length ?? 0,
-        toolResults: s.toolResults?.map((tr: any) => ({
-          name: tr.toolName,
-          resultKeys: tr.result ? Object.keys(tr.result) : [],
-          resultType: typeof tr.result,
-        })),
-      }));
-
-      const debugMsgs = result.messages.map((m: any) => ({
-        role: m.role,
-        contentType: typeof m.content,
-        isArr: Array.isArray(m.content),
-        preview: JSON.stringify(m.content).substring(0, 200),
-      }));
-      responseText = `[DEBUG msgs: ${JSON.stringify(debugMsgs)}]\n[DEBUG steps: ${JSON.stringify(debugSteps)}]`;
+      responseText = result.messages
+        .filter((m) => m.role === 'assistant')
+        .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .join('\n');
       break;
     }
 
