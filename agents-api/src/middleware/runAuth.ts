@@ -7,6 +7,7 @@ import {
   validateAndGetApiKey,
   validateOrigin,
   validateTargetAgent,
+  verifyPoW,
   verifyServiceToken,
   verifySlackUserToken,
   verifyTempToken,
@@ -36,6 +37,7 @@ const logger = getLogger('env-key-auth');
  * Common request data extracted once at the start of auth
  */
 interface RequestData {
+  request: Request;
   authHeader?: string;
   apiKey?: string;
   tenantId?: string;
@@ -89,6 +91,7 @@ function extractRequestData(c: { req: any }): RequestData {
         : `${reqUrl.origin}`;
 
   return {
+    request: c.req.raw,
     authHeader,
     apiKey: authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined,
     tenantId,
@@ -505,6 +508,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         'App credential auth: origin not allowed'
       );
       return { authResult: null, failureMessage: 'Origin not allowed for this app' };
+    }
+
+    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+    if (!pow.ok) {
+      return { authResult: null, failureMessage: pow.error };
     }
 
     if (!bearerToken) {
