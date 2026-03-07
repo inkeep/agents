@@ -23,7 +23,6 @@ interface AppUpdateFormProps {
 
 interface WebClientConfigShape {
   allowedDomains?: string[];
-  captchaEnabled?: boolean;
 }
 
 export function AppUpdateForm({
@@ -48,7 +47,6 @@ export function AppUpdateForm({
       ...(app.type === 'web_client' && webConfig
         ? {
             allowedDomains: webConfig.allowedDomains?.join(', ') ?? '',
-            captchaEnabled: webConfig.captchaEnabled ?? false,
           }
         : {}),
     },
@@ -74,7 +72,6 @@ export function AppUpdateForm({
               .split(',')
               .map((d: string) => d.trim())
               .filter(Boolean),
-            captchaEnabled: data.captchaEnabled ?? webConfig?.captchaEnabled ?? false,
           },
         };
       }
@@ -131,27 +128,13 @@ export function AppUpdateForm({
         />
 
         {app.type === 'web_client' && (
-          <>
-            <GenericInput
-              control={form.control}
-              name="allowedDomains"
-              label="Allowed Domains"
-              placeholder="help.example.com, *.example.com"
-              description="Comma-separated list of allowed domains."
-            />
-            <FormField
-              control={form.control}
-              name="captchaEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between">
-                  <FormLabel>Captcha (PoW)</FormLabel>
-                  <FormControl>
-                    <Switch checked={!!field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </>
+          <GenericInput
+            control={form.control}
+            name="allowedDomains"
+            label="Allowed Domains"
+            placeholder="help.example.com, *.example.com"
+            description="Comma-separated list of allowed domains."
+          />
         )}
 
         <div className="flex justify-end">
