@@ -28,7 +28,7 @@ User-level MCP servers are configured per individual user. When you create a use
 
 - **Individual authentication required**: Each team member must authenticate their own credentials before using an agent that relies on user-level MCPs
 - **Setup overhead**: New team members need to complete authentication before they can use shared agents
-- **Not compatible with triggers**: User-level MCPs cannot be used with [webhook triggers](/talk-to-your-agents/triggers/webhooks) or scheduled jobs because these invocation methods don't have user context
+- **Webhook triggers not supported**: User-level MCPs cannot be used with [webhook triggers](/talk-to-your-agents/triggers/webhooks) because they don't have user context. However, [scheduled triggers](/talk-to-your-agents/triggers/scheduled) can use user-level MCPs when configured with a `runAsUserId`.
 
 ## Project-Level MCP Servers
 
