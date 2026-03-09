@@ -83,17 +83,20 @@ const shipModalTabItems: TabItem[] = [
 ];
 
 export const ShipModal: FC = () => {
-  const { tenantId, projectId } = useParams();
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
   return (
     <Dialog>
       <DialogTrigger asChild>
         <FlowButton>
-          <RocketIcon className="size-4 text-muted-foreground" />
+          <RocketIcon className="text-muted-foreground" />
           Ship
         </FlowButton>
       </DialogTrigger>
       <DialogContent
-        className="max-w-full! w-7xl"
+        className="sm:max-w-full w-7xl"
         position="top"
         showCloseButton={false}
         onWheel={(e) => e.stopPropagation()} // to make scroll work on the widgets

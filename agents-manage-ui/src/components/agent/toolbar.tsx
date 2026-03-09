@@ -21,8 +21,10 @@ interface ToolbarProps {
 
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
-  const agentDirtyState = useAgentStore((state) => state.dirty);
   const { formState } = useFullAgentFormContext();
+  const agentDirtyState = useAgentStore((state) => state.dirty);
+  const { isDirty: rhfDirtyState, isSubmitting } = formState;
+  const isDirty = agentDirtyState || rhfDirtyState;
   const { agentSettings } = useGroupedAgentErrors();
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -33,8 +35,6 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
 
-  const { isDirty: rhfDirtyState, isSubmitting } = formState;
-  const isDirty = agentDirtyState || rhfDirtyState;
   const previewButton = (
     <FlowButton disabled={isDirty || hasOpenModelConfig} onClick={() => setShowPlayground(true)}>
       <Play className="text-muted-foreground" />
@@ -98,6 +98,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       )}
       {canEdit && (
         <FlowButton
+          // fix layout shift, variant="default" doesn't have a border
           className="border"
           type="submit"
           variant={isDirty ? 'default' : 'outline'}

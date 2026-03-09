@@ -41,6 +41,7 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -55,7 +56,6 @@ import {
   serializeAgentData,
 } from '@/features/agent/domain';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
@@ -312,7 +312,6 @@ export const Agent: FC<AgentProps> = ({
     markUnsaved,
     reset,
   } = useAgentActions();
-  useAnimateGraph();
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
   // Always use enriched nodes for ReactFlow
@@ -835,6 +834,8 @@ export const Agent: FC<AgentProps> = ({
     }
     return;
   });
+
+  useAnimateGraph();
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
     if (isOpen) {

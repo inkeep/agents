@@ -32,7 +32,8 @@ export const NodeItem: FC<NodeItemProps> = ({ node }) => {
       data-node-type={type}
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
-      className="group group-hover:bg-muted/50 transition-all ease-in-out duration-200"
+      className="group"
+      disabled={disabled}
       draggable={!disabled}
       onDragStart={onDragStart}
     >

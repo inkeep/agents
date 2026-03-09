@@ -44,7 +44,7 @@ function useFormField() {
   }
   const { name } = fieldContext;
   const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: name });
+  const formState = useFormState({ name });
   const fieldState = getFieldState(name, formState);
   const { id } = itemContext;
 
