@@ -7,6 +7,7 @@ import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import '@/lib/utils/test-utils/styles.css';
 
 vi.mock('next/navigation', () => {
@@ -54,22 +55,54 @@ function Nodes() {
   };
 
   return (
-    <ReactFlowProvider>
-      <ExternalAgentNode {...baseProps} data={{ ...data, id: 'foo', baseUrl: 'foo' }} />
-      {divider}
-      <FunctionToolNode {...baseProps} data={{ ...data, toolId: 'foo' }} />
-      {divider}
-      <MCPNode
-        {...baseProps}
-        data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg', toolId: 'foo' }}
-      />
-      {divider}
-      <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
-      {divider}
-      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', skills: [] }} />
-      {divider}
-      <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
-    </ReactFlowProvider>
+    <FullAgentFormProvider
+      defaultValues={{
+        defaultSubAgentId: 'SubAgent',
+        subAgents: {
+          // @ts-expect-error
+          SubAgent: data,
+        },
+        externalAgents: {
+          // @ts-expect-error
+          ExternalAgent: data,
+        },
+        teamAgents: {
+          // @ts-expect-error
+          TeamAgent: data,
+        },
+        tools: {
+          Tool: {
+            ...data,
+            config: {
+              type: 'mcp',
+              // @ts-expect-error
+              mcp: {},
+            },
+          },
+        },
+        functionTools: {
+          // @ts-expect-error
+          Tool: data,
+        },
+      }}
+    >
+      <ReactFlowProvider>
+        <ExternalAgentNode {...baseProps} data={{ ...data, id: 'ExternalAgent', baseUrl: 'foo' }} />
+        {divider}
+        <FunctionToolNode {...baseProps} data={{ ...data, toolId: 'Tool' }} />
+        {divider}
+        <MCPNode
+          {...baseProps}
+          data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg', toolId: 'Tool' }}
+        />
+        {divider}
+        <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
+        {divider}
+        <SubAgentNode {...baseProps} id="SubAgent" data={{ ...data, skills: [] }} />
+        {divider}
+        <TeamAgentNode {...baseProps} data={{ ...data, id: 'TeamAgent' }} />
+      </ReactFlowProvider>
+    </FullAgentFormProvider>
   );
 }
 

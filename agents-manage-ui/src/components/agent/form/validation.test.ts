@@ -24,6 +24,10 @@ describe('FullAgentUpdateSchema', () => {
           providerOptions: value,
         },
       },
+      subAgents: {},
+      externalAgents: {},
+      teamAgents: {},
+      tools: {},
     };
   }
 
