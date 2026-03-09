@@ -8,8 +8,6 @@ import { Controller, FormProvider, useFormContext, useFormState } from 'react-ho
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { cn } from '@/lib/utils';
 
-const Form = FormProvider;
-
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
@@ -171,7 +169,7 @@ function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {
 
 export {
   useFormField,
-  Form,
+  FormProvider as Form,
   FormItem,
   FormLabel,
   FormControl,
