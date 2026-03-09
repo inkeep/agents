@@ -2,6 +2,7 @@ import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { useFormState } from 'react-hook-form';
 import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { FlowButton } from '@/components/agent/flow-button';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
@@ -21,9 +22,9 @@ interface ToolbarProps {
 
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
-  const { formState } = useFullAgentFormContext();
+  const { control } = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty: rhfDirtyState, isSubmitting } = formState;
+  const { isDirty: rhfDirtyState, isSubmitting } = useFormState({ control });
   const isDirty = agentDirtyState || rhfDirtyState;
   const { agentSettings } = useGroupedAgentErrors();
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
