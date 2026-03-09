@@ -44,7 +44,7 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "test": "vitest",
+    "test": "vitest --run",
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "cypress open --config-file cypress/cypress.config.ts",
     "test:e2e:run": "cypress run --config-file cypress/cypress.config.ts --headless --no-runner-ui",
