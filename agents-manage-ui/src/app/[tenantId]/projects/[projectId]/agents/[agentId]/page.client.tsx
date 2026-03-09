@@ -131,6 +131,8 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
     tenantId: string;
     projectId: string;
   }>();
+  const { data: mcpTools, refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const toolLookup = createLookup(mcpTools);
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
@@ -314,14 +316,7 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    setInitial(
-      agentNodes,
-      agentEdges,
-      extractAgentMetadata(agent),
-      skills,
-      toolLookup,
-      agentToolConfigLookup
-    );
+    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent), skills, agentToolConfigLookup);
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
     // Only auto-add if user has edit permission
@@ -391,9 +386,7 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
     async function doRequest(): Promise<void> {
       const [fullProjectResult, toolsResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
-        options?.fetchTools
-          ? fetchToolsAction(tenantId, projectId, { skipDiscovery: true })
-          : Promise.resolve(null),
+        options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
       ]);
 
       if (!fullProjectResult.success) {
@@ -404,11 +397,6 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
       const updatedAgent = fullProject?.agents?.[
         agent.id as keyof typeof fullProject.agents
       ] as ExtendedFullAgentDefinition;
-
-      // Update tool lookup if tools were fetched
-      const updatedToolLookup = toolsResult?.success
-        ? createLookup(toolsResult.data)
-        : fullProject.tools || {};
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
@@ -445,7 +433,6 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
         edgesWithSelection,
         metadata,
         skills,
-        updatedToolLookup as unknown as Record<string, MCPTool>,
         updatedAgentToolConfigLookup,
         updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
         updatedSubAgentExternalAgentConfigLookup
