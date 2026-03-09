@@ -93,6 +93,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
       )}
       {canEdit && (
         <FlowButton
+          // fix layout shift, variant="default" doesn't have a border
           className="border"
           onClick={saveAgent}
           variant={isDirty ? 'default' : 'outline'}
