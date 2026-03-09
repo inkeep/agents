@@ -11,7 +11,7 @@ export const FlowButton: FC<ComponentProps<typeof Button>> = ({
     <Button
       type="button"
       variant="outline"
-      className={cn('normal-case justify-start font-sans font-normal backdrop-blur-3xl', className)}
+      className={cn('backdrop-blur-3xl', className)}
       {...props}
     >
       {children}

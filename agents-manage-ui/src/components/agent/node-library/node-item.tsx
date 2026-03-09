@@ -2,6 +2,7 @@ import { GripVertical, type LucideIcon } from 'lucide-react';
 import type { ComponentProps, FC, ReactNode } from 'react';
 import { FlowButton } from '@/components/agent/flow-button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 export type NodeItem = {
   type: string;
@@ -13,6 +14,7 @@ export type NodeItem = {
 
 interface NodeItemProps {
   node: NodeItem;
+  className: string;
 }
 
 const onDragStart: ComponentProps<'button'>['onDragStart'] = (event) => {
@@ -23,7 +25,7 @@ const onDragStart: ComponentProps<'button'>['onDragStart'] = (event) => {
   event.dataTransfer.effectAllowed = 'move';
 };
 
-export const NodeItem: FC<NodeItemProps> = ({ node }) => {
+export const NodeItem: FC<NodeItemProps> = ({ node, className }) => {
   'use memo';
   const { type, name, Icon, disabled, disabledTooltip } = node;
   const content = (
@@ -32,7 +34,7 @@ export const NodeItem: FC<NodeItemProps> = ({ node }) => {
       data-node-type={type}
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
-      className="group"
+      className={cn('group', className)}
       disabled={disabled}
       draggable={!disabled}
       onDragStart={onDragStart}
