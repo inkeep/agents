@@ -13,10 +13,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/api/skills', () => ({
-  createSkill: vi.fn(),
-  fetchSkill: vi.fn(),
   fetchSkills: vi.fn(),
-  updateSkill: vi.fn(),
 }));
 
 const skill = {
@@ -52,13 +49,8 @@ describe('useSkillsQuery', () => {
   it('dedupes skill requests for the same project', async () => {
     const fetchSkillsMock = vi.mocked(fetchSkills);
     fetchSkillsMock.mockResolvedValue({
-      data: [skill as any],
-      pagination: {
-        total: 1,
-        limit: 100,
-        offset: 0,
-      },
-    });
+      data: [skill],
+    } as any);
 
     const { queryClient } = renderWithClient(
       <>
