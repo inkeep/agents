@@ -3,7 +3,6 @@ import type { AgentMetadata } from '@/components/agent/configuration/agent-types
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type {
   AgentToolConfigLookup,
   FullAgentDefinition,
@@ -108,7 +107,6 @@ export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
   metadata?: AgentMetadata,
-  artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
@@ -118,7 +116,6 @@ export function serializeAgentData(
   const teamAgents: Record<string, TeamAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
-  const usedArtifactComponents = new Set<string>();
   let defaultSubAgentId = '';
 
   for (const node of nodes) {
@@ -126,10 +123,6 @@ export function serializeAgentData(
       const subAgentId = (node.data.id as string) ?? node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
-
-      subAgentArtifactComponents.forEach((componentId) => {
-        usedArtifactComponents.add(componentId);
-      });
       // Process models - only include if it has non-empty, non-whitespace values
       const modelsData = node.data.models as AgentMetadata['models'] | undefined;
       const processedModels = processModels(modelsData);
@@ -603,16 +596,6 @@ export function serializeAgentData(
         typeof parsedHeadersSchema === 'object' &&
         Object.keys(parsedHeadersSchema).length
     );
-
-  const artifactComponents: Record<string, ArtifactComponent> = {};
-  if (artifactComponentLookup) {
-    usedArtifactComponents.forEach((componentId) => {
-      const component = artifactComponentLookup[componentId];
-      if (component) {
-        artifactComponents[componentId] = component;
-      }
-    });
-  }
 
   const result: FullAgentDefinition = {
     id: metadata?.id || generateId(),

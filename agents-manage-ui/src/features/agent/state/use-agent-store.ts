@@ -9,7 +9,6 @@ import { useShallow } from 'zustand/react/shallow';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -26,7 +25,6 @@ interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
   externalAgentLookup: Record<string, ExternalAgent>;
   agentToolConfigLookup: AgentToolConfigLookup;
@@ -65,14 +63,12 @@ interface AgentActions {
     edges: Edge[],
     metadata: AgentMetadata,
     availableSkills: Skill[],
-    artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
     agentToolConfigLookup?: AgentToolConfigLookup,
     externalAgentLookup?: Record<string, ExternalAgent>,
     subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
   ): void;
   reset(): void;
-  setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
   setToolLookup(toolLookup: Record<string, MCPTool>): void;
   setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
   setExternalAgentLookup(externalAgentLookup: Record<string, ExternalAgent>): void;
@@ -141,7 +137,6 @@ const initialAgentState: AgentStateData = {
     prompt: undefined,
     statusUpdates: undefined,
   },
-  artifactComponentLookup: {},
   toolLookup: {},
   agentToolConfigLookup: {},
   externalAgentLookup: {},
@@ -173,7 +168,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       edges,
       metadata,
       availableSkills,
-      artifactComponentLookup = {},
       toolLookup = {},
       agentToolConfigLookup = {},
       externalAgentLookup = {},
@@ -183,7 +177,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         nodes,
         edges,
         metadata,
-        artifactComponentLookup,
         toolLookup,
         agentToolConfigLookup,
         externalAgentLookup,
@@ -202,9 +195,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       // and then immediately re-expand due to the user’s persisted preference.
       const { isSidebarSessionOpen: _, ...state } = initialAgentState;
       set({ ...state, playgroundConversationId: generateId() });
-    },
-    setArtifactComponentLookup(artifactComponentLookup) {
-      set({ artifactComponentLookup });
     },
     setToolLookup(toolLookup) {
       set({ toolLookup });

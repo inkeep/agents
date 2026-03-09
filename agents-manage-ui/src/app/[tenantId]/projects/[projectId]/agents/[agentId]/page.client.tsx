@@ -59,7 +59,6 @@ import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
@@ -99,7 +98,6 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
   credentialLookup: Record<string, Credential>;
   skills: Skill[];
@@ -121,7 +119,6 @@ const nonValidationErrors = new Set([
 
 export const Agent: FC<AgentProps> = ({
   agent,
-  artifactComponentLookup,
   toolLookup,
   credentialLookup,
   sandboxEnabled,
@@ -331,7 +328,6 @@ export const Agent: FC<AgentProps> = ({
       agentEdges,
       extractAgentMetadata(agent),
       skills,
-      artifactComponentLookup,
       toolLookup,
       agentToolConfigLookup
     );
@@ -445,7 +441,6 @@ export const Agent: FC<AgentProps> = ({
       const metadata = extractAgentMetadata(updatedAgent);
 
       // Create lookups from full project data
-      const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
       const updatedExternalAgentLookup = fullProject.externalAgents || {};
 
       // Recompute agent-specific lookups from the updated agent data
@@ -459,7 +454,6 @@ export const Agent: FC<AgentProps> = ({
         edgesWithSelection,
         metadata,
         skills,
-        updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
         updatedToolLookup as unknown as Record<string, MCPTool>,
         updatedAgentToolConfigLookup,
         updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
@@ -708,7 +702,6 @@ export const Agent: FC<AgentProps> = ({
         nodes,
         edges,
         metadata,
-        artifactComponentLookup,
         agentToolConfigLookup,
         subAgentExternalAgentConfigLookup,
         subAgentTeamAgentConfigLookup
@@ -1007,7 +1000,6 @@ export const Agent: FC<AgentProps> = ({
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                artifactComponentLookup={artifactComponentLookup}
                 agentToolConfigLookup={agentToolConfigLookup}
                 subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}

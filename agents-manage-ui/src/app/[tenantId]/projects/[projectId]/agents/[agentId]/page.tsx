@@ -1,7 +1,6 @@
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
-import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
@@ -29,34 +28,22 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     );
   }
 
-  const [artifactComponents, credentials, tools, externalAgents, skills] = await Promise.all([
-    fetchArtifactComponentsAction(tenantId, projectId),
+  const [credentials, tools, externalAgents, skills] = await Promise.all([
     fetchCredentialsAction(tenantId, projectId),
     fetchToolsAction(tenantId, projectId, { skipDiscovery: true }),
     fetchExternalAgentsAction(tenantId, projectId),
     fetchSkillsAction(tenantId, projectId),
   ]);
 
-  if (
-    !artifactComponents.success ||
-    !credentials.success ||
-    !tools.success ||
-    !externalAgents.success ||
-    !skills.success
-  ) {
+  if (!credentials.success || !tools.success || !externalAgents.success || !skills.success) {
     console.error(
       'Failed to fetch components:',
-      artifactComponents.error,
       credentials.error,
       tools.error,
       externalAgents.error,
       skills.error
     );
   }
-
-  const artifactComponentLookup = createLookup(
-    artifactComponents.success ? artifactComponents.data : undefined
-  );
 
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
@@ -70,7 +57,6 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   return (
     <Agent
       agent={agent.data}
-      artifactComponentLookup={artifactComponentLookup}
       toolLookup={toolLookup}
       credentialLookup={credentialLookup}
       sandboxEnabled={sandboxEnabled}
