@@ -983,7 +983,7 @@ export const Agent: FC<AgentProps> = ({
               </form>
             </Panel>
           )}
-          <Panel position="bottom-left" className="max-w-sm left-8! mb-4">
+          <Panel position="bottom-left" className="max-w-sm left-8!">
             <AgentErrorSummary
               onNavigateToNode={handleNavigateToNode}
               onNavigateToEdge={handleNavigateToEdge}
