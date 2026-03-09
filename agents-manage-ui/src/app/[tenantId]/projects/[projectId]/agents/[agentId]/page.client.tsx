@@ -382,7 +382,7 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest(): Promise<void> {
-      const [fullProjectResult, toolsResult] = await Promise.all([
+      const [fullProjectResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
         options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
       ]);
