@@ -107,7 +107,7 @@ function processMessagesWithNodeId(obj: Record<string, undefined | Record<string
   });
 }
 
-export function useWindowFocus(): boolean {
+function useWindowFocus(): boolean {
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {

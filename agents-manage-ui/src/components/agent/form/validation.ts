@@ -122,7 +122,7 @@ export const FullAgentToolSchema = AgentWithinContextOfProjectSchema.shape.tools
     config: true,
     imageUrl: true,
   });
-export const FullAgentExternalAgentSchema = z.object({
+const FullAgentExternalAgentSchema = z.object({
   ...ExternalAgentSchema.shape,
   // TODO or tempHeaders
   headers: StringToStringRecordSchema.optional(),
