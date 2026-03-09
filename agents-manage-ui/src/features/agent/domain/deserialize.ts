@@ -10,7 +10,7 @@ import {
   NodeType,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import type { FullAgentResponse } from '@/components/agent/form/validation';
+import type { FullAgentPayload, FullAgentResponse } from '@/components/agent/form/validation';
 import { formatJsonField } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -18,6 +18,28 @@ interface TransformResult {
   nodes: Node[];
   edges: Edge[];
 }
+
+type AgentGraphData =
+  | Pick<
+      FullAgentPayload,
+      | 'subAgents'
+      | 'defaultSubAgentId'
+      | 'tools'
+      | 'functionTools'
+      | 'functions'
+      | 'externalAgents'
+      | 'teamAgents'
+    >
+  | Pick<
+      FullAgentResponse,
+      | 'subAgents'
+      | 'defaultSubAgentId'
+      | 'tools'
+      | 'functionTools'
+      | 'functions'
+      | 'externalAgents'
+      | 'teamAgents'
+    >;
 
 export const NODE_WIDTH = 300;
 const BASE_NODE_HEIGHT = 150;
@@ -98,18 +120,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeAgentData(
-  data: Pick<
-    FullAgentResponse,
-    | 'subAgents'
-    | 'defaultSubAgentId'
-    | 'tools'
-    | 'functionTools'
-    | 'functions'
-    | 'externalAgents'
-    | 'teamAgents'
-  >
-): TransformResult {
+export function deserializeAgentData(data: AgentGraphData): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const createdExternalAgentNodes = new Set<string>();
