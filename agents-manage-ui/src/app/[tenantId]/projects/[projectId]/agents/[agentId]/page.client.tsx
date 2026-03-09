@@ -40,6 +40,7 @@ import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar';
+import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -69,7 +70,6 @@ import type { ExternalAgent } from '@/lib/api/external-agents';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
-  FullAgentPayload,
   FullAgentResponse,
   SubAgentExternalAgentConfig,
   SubAgentExternalAgentConfigLookup,
@@ -737,13 +737,12 @@ export const Agent: FC<AgentProps> = ({
       data.externalAgents,
       data.teamAgents
     );
-
-    const updatePayload = {
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
       ...data,
-      ...serializedData,
-    };
-
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, updatePayload);
+      subAgents: serializedData.subAgents,
+      functionTools: serializedData.functionTools,
+      functions: serializedData.functions,
+    });
 
     if (res.success) {
       toast.success('Agent saved', { closeButton: true });
