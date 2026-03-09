@@ -350,7 +350,7 @@ export function ScheduledTriggerForm({
                 Loading users...
               </div>
             ) : mode === 'create' && isAdmin ? (
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <span className="text-sm font-medium leading-none">Run as Users</span>
                 <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
                   <PopoverTrigger asChild>
@@ -420,7 +420,7 @@ export function ScheduledTriggerForm({
                     ))}
                   </div>
                 )}
-                <p className="text-[0.8rem] text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Select multiple users to create one trigger per user.
                 </p>
               </div>

@@ -894,7 +894,7 @@ export function TriggerForm({
                 Loading users...
               </div>
             ) : mode === 'create' && isAdmin ? (
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <span className="text-sm font-medium leading-none">Run as Users</span>
                 <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
                   <PopoverTrigger asChild>
