@@ -36,6 +36,7 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
@@ -51,7 +52,6 @@ import {
   validateSerializedData,
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
@@ -90,9 +90,7 @@ const Playground = dynamic(
 
 const CopilotChat = dynamic(
   () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 function getEdgeId(a: string, b: string) {
@@ -977,11 +975,6 @@ export const Agent: FC<AgentProps> = ({
                   closeSidePane();
                   setShowPlayground(true);
                 }}
-                tracesHref={
-                  agent.id
-                    ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
-                    : undefined
-                }
               />
             </Panel>
           )}
