@@ -248,6 +248,18 @@ const getServer = async (scope: ToolScope) => {
           };
         }
 
+        if (providedCount > 1) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Error: Provide exactly one of user_id, email, or name.',
+              },
+            ],
+            isError: true,
+          };
+        }
+
         if (user_id) {
           const user = await getSlackUserInfo(client, user_id);
           if (!user) {

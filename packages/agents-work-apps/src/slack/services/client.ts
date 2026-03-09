@@ -87,27 +87,22 @@ export async function getSlackUserInfo(client: WebClient, userId: string) {
  * @returns User profile object, or null if not found
  */
 export async function getSlackUserByEmail(client: WebClient, email: string) {
-  try {
-    const result = await client.users.lookupByEmail({ email });
-    if (result.ok && result.user) {
-      return {
-        id: result.user.id,
-        name: result.user.name,
-        realName: result.user.real_name,
-        displayName: result.user.profile?.display_name,
-        email: result.user.profile?.email,
-        isAdmin: result.user.is_admin,
-        isOwner: result.user.is_owner,
-        avatar: result.user.profile?.image_72,
-        tz: result.user.tz,
-        tzOffset: result.user.tz_offset,
-      };
-    }
-    return null;
-  } catch (error) {
-    logger.error({ error, email }, 'Failed to look up Slack user by email');
-    return null;
+  const result = await client.users.lookupByEmail({ email });
+  if (result.ok && result.user) {
+    return {
+      id: result.user.id,
+      name: result.user.name,
+      realName: result.user.real_name,
+      displayName: result.user.profile?.display_name,
+      email: result.user.profile?.email,
+      isAdmin: result.user.is_admin,
+      isOwner: result.user.is_owner,
+      avatar: result.user.profile?.image_72,
+      tz: result.user.tz,
+      tzOffset: result.user.tz_offset,
+    };
   }
+  return null;
 }
 
 /**
@@ -136,11 +131,7 @@ export async function getSlackUsers(
       }),
     extractItems: (result) => {
       if (!result.ok) {
-        logger.warn(
-          { error: result.error },
-          'Slack API returned ok: false during users pagination'
-        );
-        return [];
+        throw new Error(`Slack API error during user listing: ${result.error}`);
       }
       return result.members ?? [];
     },
@@ -162,6 +153,7 @@ export async function getSlackUsers(
       email: user.profile?.email,
       isAdmin: user.is_admin,
       isOwner: user.is_owner,
+      avatar: user.profile?.image_72,
       tz: user.tz,
       tzOffset: user.tz_offset,
     }));
