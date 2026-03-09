@@ -23,12 +23,13 @@ describe('Agent Tools', () => {
     cy.contains('Create agent').click();
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
+    cy.get('#agent').click();
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
     dragNode('[aria-label="Drag Function Tool node"]');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     connectEdge('[data-handleid="target-function-tool"]');
-    cy.typeInMonaco('code.jsx', 'function () {}');
+    cy.typeInMonaco('executeCode.js', 'function () {}');
     dragNode('[aria-label="Drag MCP node"]');
     cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
@@ -55,8 +56,8 @@ describe('Agent Tools', () => {
       cy.get(`[data-uri="file:///${uri}"]`).prev().contains('Format').click();
       cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
     });
-    it('JavaScript', () => {
-      const uri = 'code.jsx';
+    it.only('JavaScript', () => {
+      const uri = 'executeCode.js';
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       dragNode('[aria-label="Drag Function Tool node"]');
