@@ -34,7 +34,7 @@ import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
-import { Toolbar } from '@/components/agent/toolbar';
+import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';

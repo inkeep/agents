@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
-import { ShipModal } from './ship/ship-modal';
+import { ShipModal } from '../ship/ship-modal';
 
 type MaybePromise<T> = T | Promise<T>;
 
