@@ -54,10 +54,6 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     );
   }
 
-  const dataComponentLookup = createLookup(
-    dataComponents.success ? dataComponents.data : undefined
-  );
-
   const artifactComponentLookup = createLookup(
     artifactComponents.success ? artifactComponents.data : undefined
   );
