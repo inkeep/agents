@@ -68,7 +68,6 @@ import type {
   SubAgentTeamAgentConfig,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
-import type { Skill } from '@/lib/types/skills';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
@@ -95,7 +94,6 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  skills: Skill[];
   sandboxEnabled: boolean;
 }
 
@@ -112,7 +110,7 @@ const nonValidationErrors = new Set([
   'bad_request',
 ]);
 
-export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
+export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -314,7 +312,7 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent), skills, agentToolConfigLookup);
+    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent), agentToolConfigLookup);
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
     // Only auto-add if user has edit permission
@@ -427,7 +425,6 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
-        skills,
         updatedAgentToolConfigLookup,
         updatedSubAgentExternalAgentConfigLookup
       );
