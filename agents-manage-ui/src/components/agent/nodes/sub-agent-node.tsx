@@ -8,8 +8,8 @@ import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
@@ -45,11 +45,11 @@ const ListSection = ({
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   const { name, isDefault, description, models, status } = data;
+  const { data: artifactComponents } = useArtifactComponentsQuery();
   const modelName = models?.base?.model;
   const { data: dataComponents } = useDataComponentsQuery();
   const dataComponentsById = createLookup(dataComponents);
-
-  const artifactComponentLookup = useAgentStore((state) => state.artifactComponentLookup);
+  const artifactComponentsById = createLookup(artifactComponents);
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -65,9 +65,9 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const artifactComponentNames = useMemo(
     () =>
       data?.artifactComponents
-        ?.map((id: string) => artifactComponentLookup[id]?.name)
+        ?.map((id: string) => artifactComponentsById[id]?.name)
         .filter(Boolean) || [],
-    [data?.artifactComponents, artifactComponentLookup]
+    [artifactComponentsById, data?.artifactComponents]
   );
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
