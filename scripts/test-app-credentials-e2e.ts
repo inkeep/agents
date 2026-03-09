@@ -11,18 +11,24 @@
  *     5. PoW enforcement — missing header
  *     6. PoW enforcement — invalid solution
  *
- *   Phase 2 — User A conversations
- *     7. User A: chat message 1 (new conversation)
- *     8. User A: chat message 2 (same conversation — follow-up)
- *     9. User A: chat message 3 (new conversation)
- *    10. User A: list conversations — expect 2
+ *   Phase 2 — User A conversations + get conversation
+ *     7. User A: chat message 1 (new conversation via /completions)
+ *     8. User A: chat message 2 (follow-up in same conversation)
+ *     9. User A: chat message 3 (new conversation via /completions)
+ *    10. User A: chat message 4 (new conversation via /run/api/chat)
+ *    11. User A: list conversations — expect at least 3
+ *    12. User A: get conversation by ID (Vercel format) — verify parts[]
+ *    13. User A: get conversation by ID (OpenAI format) — verify content
  *
  *   Phase 3 — User B conversations + isolation
- *    11. Create anonymous session for User B
- *    12. User B: chat message 1 (new conversation)
- *    13. User B: list conversations — expect 1 (only their own)
- *    14. User A: list conversations — still expect 2 (unchanged)
- *    15. Cross-isolation: verify User B cannot see User A's conversations
+ *    14. Create anonymous session for User B
+ *    15. User B: chat via /completions (new conversation)
+ *    16. User B: chat via /run/api/chat (new conversation)
+ *    17. User B: list conversations — expect 2 (only their own)
+ *    18. User A: list conversations — still unchanged
+ *    19. Cross-isolation: list — verify zero overlap
+ *    20. Cross-isolation: User B cannot get User A's conversation by ID
+ *    21. Summary
  *
  * Zero external dependencies — uses Node.js built-in crypto for PoW.
  *
@@ -56,7 +62,7 @@ const BYPASS_SECRET =
   process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ??
   'test-bypass-secret-for-ci';
 const ORIGIN = process.env.TEST_ORIGIN ?? 'https://test.example.com';
-const TOTAL_STEPS = 17;
+const TOTAL_STEPS = 21;
 
 // ---------------------------------------------------------------------------
 // State
@@ -320,8 +326,8 @@ async function listConversations(
   if (status === 401) fail(`Conversations auth rejected: ${JSON.stringify(body)}`);
   if (status !== 200) fail(`Conversations failed (${status}): ${JSON.stringify(body, null, 2)}`);
 
-  const conversations = body.data?.conversations ?? [];
-  const total = body.data?.pagination?.total ?? 0;
+  const conversations = body.data ?? [];
+  const total = body.pagination?.total ?? 0;
   const ids = conversations.map((c: any) => c.id);
 
   for (const conv of conversations) {
@@ -331,6 +337,24 @@ async function listConversations(
   }
 
   return { ids, total };
+}
+
+async function getConversationById(
+  appId: string,
+  token: string,
+  conversationId: string,
+  format: 'vercel' | 'openai' = 'vercel'
+): Promise<{ conversation: any; messages: any[] }> {
+  const pow = await freshPow();
+  const { status, body } = await fetchJson(
+    `${API_URL}/run/v1/conversations/${conversationId}?format=${format}`,
+    { headers: appAuthHeaders(appId, token, pow) }
+  );
+
+  if (status === 401) fail(`Get conversation auth rejected: ${JSON.stringify(body)}`);
+  if (status !== 200) fail(`Get conversation failed (${status}): ${JSON.stringify(body, null, 2)}`);
+
+  return { conversation: body.data, messages: body.data?.messages ?? [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -424,7 +448,7 @@ async function main() {
 
     // Step 2: PoW challenge
     step('Fetch and solve PoW challenge');
-    const pow1 = await freshPow();
+    const _pow1 = await freshPow();
     ok('Challenge solved');
 
     // Step 3: Anonymous session — User A
@@ -530,6 +554,48 @@ async function main() {
     }
     const userAConvIds = new Set(userAConvs.ids);
 
+    // Step 12: Get conversation by ID (Vercel format — default)
+    step('User A: get conversation by ID (Vercel format)');
+    const firstConvId = a1.conversationId;
+    const { conversation: vercelConv, messages: vercelMsgs } = await getConversationById(
+      appId,
+      userA.token,
+      firstConvId
+    );
+    if (vercelConv.id !== firstConvId) fail(`Wrong conversation returned: ${vercelConv.id}`);
+    if (!vercelConv.title) fail('Expected a title (or first-message fallback)');
+    ok(`Conversation: id=${vercelConv.id}, title="${vercelConv.title}"`);
+    if (vercelMsgs.length < 2)
+      fail(`Expected at least 2 messages (user + agent), got ${vercelMsgs.length}`);
+    const firstVercelMsg = vercelMsgs[0];
+    if (typeof firstVercelMsg.content !== 'string')
+      fail(`Vercel format: content should be string, got ${typeof firstVercelMsg.content}`);
+    if (!Array.isArray(firstVercelMsg.parts)) fail('Vercel format: expected parts array');
+    if (firstVercelMsg.parts[0]?.type !== 'text')
+      fail(`Vercel format: first part should be text, got ${firstVercelMsg.parts[0]?.type}`);
+    ok(
+      `Vercel format: ${vercelMsgs.length} messages, content="${firstVercelMsg.content.slice(0, 50)}...", parts[0].type=text`
+    );
+
+    // Step 13: Get conversation by ID (OpenAI format)
+    step('User A: get conversation by ID (OpenAI format)');
+    const { messages: openaiMsgs } = await getConversationById(
+      appId,
+      userA.token,
+      firstConvId,
+      'openai'
+    );
+    const firstOpenAIMsg = openaiMsgs[0];
+    if (typeof firstOpenAIMsg.content !== 'string' && !Array.isArray(firstOpenAIMsg.content))
+      fail(
+        `OpenAI format: content should be string or array, got ${typeof firstOpenAIMsg.content}`
+      );
+    if ((firstOpenAIMsg as any).parts !== undefined)
+      fail('OpenAI format: should not have parts field');
+    ok(
+      `OpenAI format: ${openaiMsgs.length} messages, content type=${typeof firstOpenAIMsg.content}`
+    );
+
     // =====================================================================
     // Phase 3: User B + cross-isolation
     // =====================================================================
@@ -589,7 +655,19 @@ async function main() {
     }
     ok("User A cannot see any of User B's conversations");
 
-    // Step 17: Explicit cross-check summary
+    // Step: User B cannot get User A's conversation by ID
+    step('Cross-isolation: User B cannot get User A conversation by ID');
+    {
+      const pow = await freshPow();
+      const { status } = await fetchJson(`${API_URL}/run/v1/conversations/${firstConvId}`, {
+        headers: appAuthHeaders(appId, userB.token, pow),
+      });
+      if (status !== 404)
+        fail(`Expected 404, got ${status} — User B can access User A's conversation!`);
+      ok(`User B got 404 for User A's conversation ${firstConvId}`);
+    }
+
+    // Step: Cross-check summary
     step('Cross-isolation summary');
     console.log(`  User A (${userA.sub}):`);
     console.log(`    Conversations: ${userAConvs2.ids.join(', ')}`);
@@ -599,7 +677,7 @@ async function main() {
     ok('Complete conversation isolation between anonymous users verified');
 
     // =====================================================================
-    console.log('\n' + '='.repeat(64));
+    console.log(`\n${'='.repeat(64)}`);
     console.log(`  🎉 ALL ${TOTAL_STEPS} STEPS PASSED`);
     console.log('='.repeat(64));
   } finally {

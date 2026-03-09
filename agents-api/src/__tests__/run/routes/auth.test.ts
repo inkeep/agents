@@ -61,6 +61,17 @@ const createTestApiApp = async ({
 };
 
 describe('Anonymous Session Endpoint', () => {
+  let originalPowSecret: string | undefined;
+
+  beforeEach(() => {
+    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
+    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+  });
+
+  afterEach(() => {
+    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
+  });
+
   describe('POST /run/auth/apps/{appId}/anonymous-session', () => {
     it('should issue anonymous JWT for a valid web_client app', async () => {
       const tenantId = await createTestTenantWithOrg('anon-session-valid');
