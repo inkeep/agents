@@ -19,12 +19,6 @@ interface ToolbarProps {
   setShowPlayground: (show: boolean) => void;
 }
 
-const commonProps = {
-  className: 'backdrop-blur-3xl normal-case font-sans font-normal',
-  type: 'button',
-  variant: 'outline',
-} satisfies ComponentProps<typeof Button>;
-
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const agentDirtyState = useAgentStore((state) => state.dirty);
