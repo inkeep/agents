@@ -7,8 +7,8 @@ import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
 import { FeedbackDialog } from './feedback-dialog';
 
