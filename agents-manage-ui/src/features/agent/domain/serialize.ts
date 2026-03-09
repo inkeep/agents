@@ -4,7 +4,6 @@ import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
   FullAgentDefinition,
@@ -109,7 +108,6 @@ export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
   metadata?: AgentMetadata,
-  dataComponentLookup?: Record<string, DataComponent>,
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
@@ -120,8 +118,6 @@ export function serializeAgentData(
   const teamAgents: Record<string, TeamAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
-  // Note: Tools are now project-scoped and not included in agent serialization
-  const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
   let defaultSubAgentId = '';
 
@@ -131,9 +127,6 @@ export function serializeAgentData(
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
-      subAgentDataComponents.forEach((componentId) => {
-        usedDataComponents.add(componentId);
-      });
       subAgentArtifactComponents.forEach((componentId) => {
         usedArtifactComponents.add(componentId);
       });
@@ -610,16 +603,6 @@ export function serializeAgentData(
         typeof parsedHeadersSchema === 'object' &&
         Object.keys(parsedHeadersSchema).length
     );
-
-  const dataComponents: Record<string, DataComponent> = {};
-  if (dataComponentLookup) {
-    usedDataComponents.forEach((componentId) => {
-      const component = dataComponentLookup[componentId];
-      if (component) {
-        dataComponents[componentId] = component;
-      }
-    });
-  }
 
   const artifactComponents: Record<string, ArtifactComponent> = {};
   if (artifactComponentLookup) {
