@@ -2,7 +2,6 @@ import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
-import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchSkillsAction } from '@/lib/actions/skills';
 import { Agent } from './page.client';
 
@@ -25,13 +24,10 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     );
   }
 
-  const [externalAgents, skills] = await Promise.all([
-    fetchExternalAgentsAction(tenantId, projectId),
-    fetchSkillsAction(tenantId, projectId),
-  ]);
+  const skills = await fetchSkillsAction(tenantId, projectId);
 
-  if (!externalAgents.success || !skills.success) {
-    console.error('Failed to fetch components:', externalAgents.error, skills.error);
+  if (!skills.success) {
+    console.error('Failed to fetch skills:', skills.error);
   }
 
   const capabilities = await getCapabilitiesAction();
