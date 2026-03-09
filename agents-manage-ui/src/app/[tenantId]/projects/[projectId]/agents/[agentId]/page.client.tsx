@@ -39,6 +39,8 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
+import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { Badge } from '@/components/ui/badge';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
@@ -52,7 +54,6 @@ import {
   validateSerializedData,
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
@@ -340,7 +341,6 @@ export const Agent: FC<AgentProps> = ({
     clearSelection,
     markUnsaved,
     reset,
-    animateGraph,
   } = useAgentActions();
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
@@ -872,23 +872,7 @@ export const Agent: FC<AgentProps> = ({
 
   const onSubmit = form.handleSubmit(onFormSubmit, onFormError);
 
-  useEffect(() => {
-    const onCompletion = () => {
-      // @ts-expect-error
-      animateGraph({
-        detail: {
-          type: 'completion',
-        },
-      });
-    };
-
-    document.addEventListener('ikp-data-operation', animateGraph);
-    document.addEventListener('ikp-aborted', onCompletion);
-    return () => {
-      document.removeEventListener('ikp-data-operation', animateGraph);
-      document.removeEventListener('ikp-aborted', onCompletion);
-    };
-  }, []);
+  useAnimateGraph();
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
     if (isOpen) {

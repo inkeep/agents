@@ -1,9 +1,9 @@
 import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFormState } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { FlowButton } from '@/components/agent/flow-button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -21,8 +21,8 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const form = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting } = useFormState({ control: form.control });
-  const dirty = agentDirtyState || isDirty;
+  const { isDirty: rhfDirty, isSubmitting } = useFormState({ control: form.control });
+  const isDirty = agentDirtyState || rhfDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
@@ -32,21 +32,11 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   }>();
   const { canView, canUse, canEdit } = useProjectPermissions();
 
-  const commonProps = {
-    className: 'backdrop-blur-3xl',
-    type: 'button',
-    variant: 'outline',
-  } satisfies ComponentProps<typeof Button>;
-
   const previewButton = (
-    <Button
-      {...commonProps}
-      disabled={dirty || hasOpenModelConfig}
-      onClick={() => setShowPlayground(true)}
-    >
-      <Play className="size-4 text-muted-foreground" />
+    <FlowButton disabled={isDirty || hasOpenModelConfig} onClick={() => setShowPlayground(true)}>
+      <Play className="text-muted-foreground" />
       Try it
-    </Button>
+    </FlowButton>
   );
 
   useEffect(() => {
@@ -66,16 +56,16 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
 
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
-      <Button {...commonProps} asChild>
+      <FlowButton asChild>
         <Link href={`/${tenantId}/projects/${projectId}/traces?agentId=${agentId}`}>
-          <Activity className="size-4 text-muted-foreground" />
+          <Activity className="text-muted-foreground" />
           Traces
         </Link>
-      </Button>
+      </FlowButton>
       {canUse && (
         <>
-          <ShipModal buttonClassName={commonProps.className} />
-          {dirty || hasOpenModelConfig ? (
+          <ShipModal />
+          {isDirty || hasOpenModelConfig ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 {/**
@@ -87,7 +77,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
               <TooltipContent>
                 {hasOpenModelConfig
                   ? 'Please complete model configuration before trying the agent.'
-                  : dirty
+                  : isDirty
                     ? 'Please save your changes before trying the agent.'
                     : 'Please save the agent to try it.'}
               </TooltipContent>
@@ -98,22 +88,23 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         </>
       )}
       {canEdit && (
-        <Button
-          {...commonProps}
+        <FlowButton
+          // fix layout shift, variant="default" doesn't have a border
+          className="border"
           type="submit"
-          variant={dirty ? 'default' : 'outline'}
-          disabled={isSubmitting || !dirty || hasOpenModelConfig}
+          variant={isDirty ? 'default' : 'outline'}
+          disabled={isSubmitting || !isDirty || hasOpenModelConfig}
           ref={saveButtonRef}
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />
           Save changes
-        </Button>
+        </FlowButton>
       )}
       {canView && (
-        <Button {...commonProps} onClick={toggleSidePane}>
-          <Settings className="size-4" />
+        <FlowButton onClick={toggleSidePane}>
+          <Settings className="text-muted-foreground" />
           Agent Settings
-        </Button>
+        </FlowButton>
       )}
     </div>
   );
