@@ -93,7 +93,7 @@ export type TeamRelation = {
   targetAgent: {
     id: string;
     name: string;
-    description: string | null;
+    description?: string | null;
   };
   targetAgentId: string;
   headers?: Record<string, string> | null;
@@ -415,7 +415,7 @@ export type ExternalRelationForDescription = {
 };
 
 export type TeamRelationForDescription = {
-  targetAgent: { id: string; name: string; description: string | null };
+  targetAgent: { id: string; name: string; description?: string | null };
   targetAgentId: string;
   relationId: string;
 };
