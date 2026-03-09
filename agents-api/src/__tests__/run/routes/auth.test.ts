@@ -364,7 +364,7 @@ describe('Anonymous Session PoW Enforcement', () => {
         headers: {
           'Content-Type': 'application/json',
           Origin: 'https://help.customer.com',
-          'X-Inkeep-Altcha': 'invalid-base64-garbage',
+          'X-Inkeep-Challenge-Solution': 'invalid-base64-garbage',
         },
       });
 
@@ -414,7 +414,7 @@ describe('Anonymous Session PoW Enforcement', () => {
         headers: {
           'Content-Type': 'application/json',
           Origin: 'https://help.customer.com',
-          'X-Inkeep-Altcha': payload,
+          'X-Inkeep-Challenge-Solution': payload,
         },
       });
 

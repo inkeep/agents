@@ -89,7 +89,7 @@ The pipeline ensures a solved challenge is always available before the user need
 ```
 1. Client fetches challenge from GET /run/auth/pow/challenge
 2. Client solves challenge (using altcha-lib solveChallenge())
-3. Client attaches solution as X-Inkeep-Altcha header on run API request
+3. Client attaches solution as X-Inkeep-Challenge-Solution header on run API request
 4. Server verifies PoW → processes request
 5. Client pre-fetches next challenge for subsequent requests
 ```
@@ -111,7 +111,7 @@ The pipeline ensures a solved challenge is always available before the user need
 | ID | Requirement | Type |
 |---|---|---|
 | R1 | Challenge endpoint: `GET /run/auth/pow/challenge` returns ALTCHA challenge | T |
-| R2 | All run API requests accept PoW solution via `X-Inkeep-Altcha` header (base64-encoded) | T |
+| R2 | All run API requests accept PoW solution via `X-Inkeep-Challenge-Solution` header (base64-encoded) | T |
 | R3 | When PoW is enabled, run API requests from `web_client` apps WITHOUT valid PoW are rejected (400) | T |
 | R4 | When PoW is disabled (env var absent), all endpoints work unchanged (backward compatible) | T |
 | ~~R5~~ | ~~Replay protection: each challenge solution can only be used once~~ | ~~T~~ | *Deferred — future PR* |
@@ -207,7 +207,7 @@ async function verifyPoW(request: Request): Promise<PoWResult> {
     return { ok: true }; // PoW disabled — pass through
   }
 
-  const altchaHeader = request.headers.get('x-inkeep-altcha');
+  const altchaHeader = request.headers.get('x-inkeep-challenge-solution');
   if (!altchaHeader) {
     return { ok: false, error: 'pow_required' };
   }
@@ -292,12 +292,12 @@ WebClientConfigSchema = z.object({
 
 **Migration:** `captchaEnabled` is in JSONB config, not a column. No SQL migration needed — just stop reading/writing it. Existing records with the field are harmless (Zod strips unknown keys).
 
-### 7.7 Transport: `X-Inkeep-Altcha` Header
+### 7.7 Transport: `X-Inkeep-Challenge-Solution` Header
 
-PoW solutions are sent via the `X-Inkeep-Altcha` HTTP header (base64-encoded JSON), not in the request body. This allows PoW to be applied uniformly across all run API endpoints (GET, POST, streaming) without modifying each endpoint's body schema.
+PoW solutions are sent via the `X-Inkeep-Challenge-Solution` HTTP header (base64-encoded JSON), not in the request body. This allows PoW to be applied uniformly across all run API endpoints (GET, POST, streaming) without modifying each endpoint's body schema.
 
 ```
-X-Inkeep-Altcha: eyJhbGdvcml0aG0iOiJTSEEtMjU2IiwiY2hhbGxlbmdlIjoiYTFiMmMzLi4uIiwibnVtYmVyIjoxMjM0NSwic2FsdCI6ImFiYzEyMz9leHBpcmVzPTE3MDk3NDA4MDAmIiwic2lnbmF0dXJlIjoiZDRlNWY2Li4uIn0=
+X-Inkeep-Challenge-Solution: eyJhbGdvcml0aG0iOiJTSEEtMjU2IiwiY2hhbGxlbmdlIjoiYTFiMmMzLi4uIiwibnVtYmVyIjoxMjM0NSwic2FsdCI6ImFiYzEyMz9leHBpcmVzPTE3MDk3NDA4MDAmIiwic2lnbmF0dXJlIjoiZDRlNWY2Li4uIn0=
 ```
 
 Decoded:
@@ -325,7 +325,7 @@ sequenceDiagram
 
     W->>W: solveChallenge(C1) in background
 
-    W->>API: POST /run/auth/apps/{appId}/anonymous-session<br/>X-Inkeep-Altcha: [solved C1]
+    W->>API: POST /run/auth/apps/{appId}/anonymous-session<br/>X-Inkeep-Challenge-Solution: [solved C1]
     API->>API: verifySolution() + sign JWT
     API-->>W: { token, expiresAt }
 
@@ -335,7 +335,7 @@ sequenceDiagram
     W->>W: solveChallenge(C2) in background
 
     U->>W: Types first message
-    W->>API: POST /run/api/chat<br/>Authorization: Bearer {jwt}<br/>X-Inkeep-Altcha: [solved C2]
+    W->>API: POST /run/api/chat<br/>Authorization: Bearer {jwt}<br/>X-Inkeep-Challenge-Solution: [solved C2]
     API->>API: verifySolution() + process chat
     API-->>W: Chat response (streaming)
 
@@ -345,7 +345,7 @@ sequenceDiagram
     W->>W: solveChallenge(C3) in background
 
     U->>W: Types second message
-    W->>API: POST /run/api/chat<br/>X-Inkeep-Altcha: [solved C3]
+    W->>API: POST /run/api/chat<br/>X-Inkeep-Challenge-Solution: [solved C3]
     Note over API: PoW verified, process normally
 ```
 
@@ -357,9 +357,9 @@ sequenceDiagram
 
 | Surface | Impact | Action | Owner |
 |---|---|---|---|
-| Inkeep Widget (separate repo) | Pre-fetch pipeline + X-Inkeep-Altcha header on all requests | Implementation in widget repo | Sarah (separate, later) |
+| Inkeep Widget (separate repo) | Pre-fetch pipeline + X-Inkeep-Challenge-Solution header on all requests | Implementation in widget repo | Sarah (separate, later) |
 | Manage UI — App forms | Remove `captchaEnabled` toggle | Remove field | This spec |
-| Ship guide snippets | Update code samples to show X-Inkeep-Altcha pattern for custom clients | Update templates | This spec |
+| Ship guide snippets | Update code samples to show X-Inkeep-Challenge-Solution pattern for custom clients | Update templates | This spec |
 | Documentation | New section: PoW configuration (env vars), custom client integration guide | Write docs | This spec |
 
 ### Internal Surfaces
@@ -387,7 +387,7 @@ Global-by-env-var is simpler to reason about and operate. Every public `web_clie
 An attacker with one valid session can send unlimited chat messages, each consuming LLM tokens. Per-request PoW makes the compute cost proportional to abuse volume regardless of how many identities the attacker creates.
 
 **Why not request body for PoW solution:**
-Header transport (`X-Inkeep-Altcha`) works uniformly across GET, POST, and streaming endpoints without modifying each endpoint's body schema. The auth middleware reads it once — no per-route changes.
+Header transport (`X-Inkeep-Challenge-Solution`) works uniformly across GET, POST, and streaming endpoints without modifying each endpoint's body schema. The auth middleware reads it once — no per-route changes.
 
 **Why not bind appId into challenge:**
 With per-request PoW across all run API endpoints, the challenge just proves "this client did compute work." App binding adds complexity without meaningful security benefit — the auth middleware independently validates the app credential. Removing app binding also simplifies the client (one challenge endpoint, challenges are interchangeable).
@@ -406,7 +406,7 @@ With per-request PoW across all run API endpoints, the challenge just proves "th
 | D6 | Scope: PoW only (no rate limiting in this spec) | P | No | **Decided** | Rate limiting is complementary but separable. |
 | D7 | `altcha-lib` >= 1.4.1 required | T | No | **Decided** | CVE-2025-68113 fix. |
 | D8 | PoW on every run API request (not just session creation) | T | No | **Decided** | Prevents both identity flooding and message abuse. Pre-fetch pipeline hides latency. |
-| D9 | PoW solution via `X-Inkeep-Altcha` header (not request body) | T | Yes (API contract) | **Decided** | Uniform transport across all HTTP methods. No per-route body changes. |
+| D9 | PoW solution via `X-Inkeep-Challenge-Solution` header (not request body) | T | Yes (API contract) | **Decided** | Uniform transport across all HTTP methods. No per-route body changes. |
 | D10 | Challenge endpoint is generic (no app binding) | T | No | **Decided** | Simplifies client. Auth middleware validates app independently. |
 | D11 | PoW only for `web_client` app type | T | No | **Decided** | `api` type has secrets. Other auth methods unaffected. |
 | D12 | Inkeep Widget implementation is out of scope (separate repo) | P | No | **Decided** | This spec defines the API contract. Widget changes tracked separately. |
@@ -450,7 +450,7 @@ With per-request PoW across all run API endpoints, the challenge just proves "th
 - Anonymous session endpoint PoW verification
 - Three env vars (`INKEEP_POW_HMAC_SECRET`, `INKEEP_POW_DIFFICULTY`, `INKEEP_POW_CHALLENGE_TTL_SECONDS`)
 - Remove `captchaEnabled` from `WebClientConfig` schema, types, and Manage UI
-- Update ship guide snippets to document `X-Inkeep-Altcha` header pattern
+- Update ship guide snippets to document `X-Inkeep-Challenge-Solution` header pattern
 - Tests: challenge generation, PoW verification, expiry rejection, disabled path, middleware integration
 - Documentation: env var configuration, custom client integration guide
 
@@ -465,8 +465,8 @@ With per-request PoW across all run API endpoints, the challenge just proves "th
 **Acceptance criteria:**
 - [ ] `GET /run/auth/pow/challenge` returns valid ALTCHA challenge when PoW enabled
 - [ ] `GET /run/auth/pow/challenge` returns 404 when PoW disabled
-- [ ] Run API requests with `web_client` auth + valid `X-Inkeep-Altcha` header succeed
-- [ ] Run API requests with `web_client` auth + missing `X-Inkeep-Altcha` return 400 `pow_required` (when enabled)
+- [ ] Run API requests with `web_client` auth + valid `X-Inkeep-Challenge-Solution` header succeed
+- [ ] Run API requests with `web_client` auth + missing `X-Inkeep-Challenge-Solution` return 400 `pow_required` (when enabled)
 - [ ] Run API requests with `web_client` auth + expired challenge return 400 `pow_invalid`
 - [ ] Anonymous session endpoint enforces PoW (when enabled)
 - [ ] `api` type apps and other auth methods (bypass, API key, Slack) are unaffected by PoW

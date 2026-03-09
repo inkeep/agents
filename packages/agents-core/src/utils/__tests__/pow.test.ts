@@ -35,7 +35,7 @@ describe('verifyPoW', () => {
 
   it('should return pow_invalid for an invalid solution', async () => {
     const result = await verifyPoW(
-      makeRequest({ 'x-inkeep-altcha': 'invalid-base64-garbage' }),
+      makeRequest({ 'x-inkeep-challenge-solution': 'invalid-base64-garbage' }),
       TEST_HMAC_SECRET
     );
     expect(result).toEqual({ ok: false, error: 'pow_invalid' });
@@ -67,7 +67,10 @@ describe('verifyPoW', () => {
       })
     );
 
-    const result = await verifyPoW(makeRequest({ 'x-inkeep-altcha': payload }), TEST_HMAC_SECRET);
+    const result = await verifyPoW(
+      makeRequest({ 'x-inkeep-challenge-solution': payload }),
+      TEST_HMAC_SECRET
+    );
     expect(result).toEqual({ ok: true });
   });
 
@@ -97,7 +100,10 @@ describe('verifyPoW', () => {
       })
     );
 
-    const result = await verifyPoW(makeRequest({ 'x-inkeep-altcha': payload }), TEST_HMAC_SECRET);
+    const result = await verifyPoW(
+      makeRequest({ 'x-inkeep-challenge-solution': payload }),
+      TEST_HMAC_SECRET
+    );
     expect(result).toEqual({ ok: false, error: 'pow_invalid' });
   });
 });

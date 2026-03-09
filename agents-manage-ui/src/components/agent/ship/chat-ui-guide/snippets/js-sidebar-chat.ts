@@ -40,7 +40,7 @@ async function getPowHeaders() {
     salt: challenge.salt,
     signature: challenge.signature,
   }));
-  return { "X-Inkeep-Altcha": payload };
+  return { "X-Inkeep-Challenge-Solution": payload };
 }
 
 async function getSessionToken() {

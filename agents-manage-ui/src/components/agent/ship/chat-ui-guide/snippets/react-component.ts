@@ -37,7 +37,7 @@ async function getPowHeaders(): Promise<Record<string, string>> {
     salt: challenge.salt,
     signature: challenge.signature,
   }));
-  return { "X-Inkeep-Altcha": payload };
+  return { "X-Inkeep-Challenge-Solution": payload };
 }
 
 export const InkeepWidget = () => {

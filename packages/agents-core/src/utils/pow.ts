@@ -14,13 +14,13 @@ export async function verifyPoW(
     return { ok: true };
   }
 
-  const altchaHeader = request.headers.get('x-inkeep-altcha');
-  if (!altchaHeader) {
+  const challengeHeader = request.headers.get('x-inkeep-challenge-solution');
+  if (!challengeHeader) {
     return { ok: false, error: 'pow_required' };
   }
 
   try {
-    const valid = await verifySolution(altchaHeader, hmacSecret);
+    const valid = await verifySolution(challengeHeader, hmacSecret);
     if (!valid) {
       return { ok: false, error: 'pow_invalid' };
     }
