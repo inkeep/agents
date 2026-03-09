@@ -2,4 +2,4 @@
 "@inkeep/agents-email": patch
 ---
 
-Changes email invitations to mention Inkeep, the tenant id is moot
+Hardcode 'Inkeep' in invitation email subject line instead of using the organization name
