@@ -37,6 +37,13 @@ vi.mock('@/lib/query/data-components', () => {
     },
   };
 });
+vi.mock('@/lib/query/artifact-components', () => {
+  return {
+    useArtifactComponentsQuery() {
+      return { data: [] };
+    },
+  };
+});
 
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
