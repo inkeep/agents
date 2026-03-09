@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import type { FC, ReactNode } from 'react';
+import { screen, waitFor } from '@testing-library/react';
+import type { FC } from 'react';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { renderWithClient } from './test-utils';
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({
@@ -29,21 +29,6 @@ const ToolsConsumer: FC<{ label: string }> = ({ label }) => {
 
   return <div data-testid={`tools-${label}`}>{data[0].id}</div>;
 };
-
-function renderWithClient(children: ReactNode) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: 30_000,
-      },
-    },
-  });
-
-  const view = render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
-
-  return { ...view, queryClient };
-}
 
 describe('useMcpToolsQuery', () => {
   it('dedupes MCP tool requests for the same project and options', async () => {

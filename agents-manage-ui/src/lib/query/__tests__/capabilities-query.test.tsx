@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import type { FC, ReactNode } from 'react';
+import { screen, waitFor } from '@testing-library/react';
+import type { FC } from 'react';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
+import { renderWithClient } from './test-utils';
 
 vi.mock('@/lib/actions/capabilities', () => ({
   getCapabilitiesAction: vi.fn(),
@@ -18,21 +18,6 @@ const CapabilitiesConsumer: FC<{ label: string }> = ({ label }) => {
 
   return <div data-testid={`capabilities-${label}`}>{String(data.sandbox.configured)}</div>;
 };
-
-function renderWithClient(children: ReactNode) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: 30_000,
-      },
-    },
-  });
-
-  const view = render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
-
-  return { ...view, queryClient };
-}
 
 describe('useCapabilitiesQuery', () => {
   it('dedupes capability requests', async () => {

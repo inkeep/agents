@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import type { FC, ReactNode } from 'react';
+import { screen, waitFor } from '@testing-library/react';
+import type { FC } from 'react';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
+import { renderWithClient } from './test-utils';
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({
@@ -29,21 +29,6 @@ const ArtifactComponentsConsumer: FC<{ label: string }> = ({ label }) => {
 
   return <div data-testid={`artifact-components-${label}`}>{data[0].id}</div>;
 };
-
-function renderWithClient(children: ReactNode) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: 30_000,
-      },
-    },
-  });
-
-  const view = render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
-
-  return { ...view, queryClient };
-}
 
 describe('useArtifactComponentsQuery', () => {
   it('dedupes artifact component requests for the same project', async () => {
