@@ -30,7 +30,7 @@ describe('Monaco Editor', () => {
     cy.contains('You are a helpful assistant responsible for converting location').should(
       'be.visible'
     );
-    cy.get('#prompt-label').click();
-    cy.get('[data-uri="file:///prompt.template"].focused').should('be.visible');
+    cy.get('label').contains('Prompt').click();
+    cy.get('[data-uri$="prompt.template"].focused').should('be.visible');
   });
 });

@@ -12,6 +12,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
 
 export function GenericJsonEditor<
@@ -35,6 +36,11 @@ export function GenericJsonEditor<
   'use memo';
   const [open, onOpenChange] = useState(false);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
+  const { getEditorByUri } = useMonacoActions();
+
+  function focusEditor() {
+    getEditorByUri(uri)?.focus();
+  }
   return (
     <FormField
       control={control}
@@ -43,7 +49,7 @@ export function GenericJsonEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex grow">
+              <FormLabel isRequired={isRequired} className="inline-flex grow" onClick={focusEditor}>
                 {label}
               </FormLabel>
               {!open && <Editor.DialogTrigger />}

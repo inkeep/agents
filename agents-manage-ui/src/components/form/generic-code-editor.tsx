@@ -13,6 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 export function GenericCodeEditor<
@@ -40,6 +41,11 @@ export function GenericCodeEditor<
   const $uri = props.uri ?? `${name}.js`;
   const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
   const id = useId();
+  const { getEditorByUri } = useMonacoActions();
+
+  function focusEditor() {
+    getEditorByUri(uri)?.focus();
+  }
   return (
     <FormField
       control={control}
@@ -48,7 +54,12 @@ export function GenericCodeEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex grow" id={id}>
+              <FormLabel
+                isRequired={isRequired}
+                className="inline-flex grow"
+                id={id}
+                onClick={focusEditor}
+              >
                 {label}
               </FormLabel>
               {actions}
