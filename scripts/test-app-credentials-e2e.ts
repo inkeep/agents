@@ -56,7 +56,7 @@ const BYPASS_SECRET =
   process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ??
   'test-bypass-secret-for-ci';
 const ORIGIN = process.env.TEST_ORIGIN ?? 'https://test.example.com';
-const TOTAL_STEPS = 15;
+const TOTAL_STEPS = 17;
 
 // ---------------------------------------------------------------------------
 // State
@@ -270,6 +270,40 @@ async function chat(
   return { text: fullText, conversationId: convId };
 }
 
+/**
+ * Chat via the Vercel data stream endpoint (/run/api/chat) with stream: false
+ * for simple JSON response parsing.
+ */
+async function chatDataStream(
+  appId: string,
+  token: string,
+  messages: { role: string; content: string }[],
+  conversationId?: string
+): Promise<{ text: string; conversationId: string }> {
+  const pow = await freshPow();
+
+  const reqBody: any = {
+    messages,
+    stream: false,
+  };
+  if (conversationId) reqBody.conversationId = conversationId;
+
+  const { status, body } = await fetchJson(`${API_URL}/run/api/chat`, {
+    method: 'POST',
+    headers: appAuthHeaders(appId, token, pow),
+    body: JSON.stringify(reqBody),
+  });
+
+  if (status !== 200) {
+    fail(`chatDataStream failed (${status}): ${JSON.stringify(body, null, 2).slice(0, 500)}`);
+  }
+
+  const text = body.choices?.[0]?.message?.content ?? '';
+  const convId = conversationId || body.conversationId || body.id || '';
+  if (!text) fail(`Empty chatDataStream response: ${JSON.stringify(body).slice(0, 500)}`);
+  return { text, conversationId: convId };
+}
+
 // ---------------------------------------------------------------------------
 // Conversations helper
 // ---------------------------------------------------------------------------
@@ -478,12 +512,21 @@ async function main() {
     ]);
     ok(`Response: "${a3.text.trim()}" (conv=${a3.conversationId})`);
 
-    // Step 10: User A — list conversations
-    step('User A: list conversations (expect 2)');
+    // Step 10: User A — chat via /run/api/chat (data stream endpoint)
+    step('User A: chat via /run/api/chat (data stream endpoint, new conversation)');
+    const a4 = await chatDataStream(appId, userA.token, [
+      { role: 'user', content: 'Say "Alpha four" in exactly those words and nothing else.' },
+    ]);
+    ok(`Response: "${a4.text.trim()}" (conv=${a4.conversationId})`);
+
+    // Step 11: User A — list conversations (should include data stream conversation)
+    step('User A: list conversations (expect at least 3 — completions + data stream)');
     const userAConvs = await listConversations(appId, userA.token);
     ok(`User A has ${userAConvs.total} conversation(s)`);
-    if (userAConvs.total < 2) {
-      fail(`Expected at least 2 conversations for User A, got ${userAConvs.total}`);
+    if (userAConvs.total < 3) {
+      fail(
+        `Expected at least 3 conversations for User A (2 completions + 1 data stream), got ${userAConvs.total}`
+      );
     }
     const userAConvIds = new Set(userAConvs.ids);
 
@@ -497,20 +540,29 @@ async function main() {
     if (userA.sub === userB.sub) fail('User A and B have the same sub — should be unique!');
     ok(`User B sub=${userB.sub} (different from User A sub=${userA.sub})`);
 
-    // Step 12: User B — chat message
-    step('User B: chat message (new conversation)');
+    // Step 13: User B — chat via completions endpoint
+    step('User B: chat via /completions (new conversation)');
     const b1 = await chat(appId, userB.token, [
       { role: 'user', content: 'Say "Bravo one" in exactly those words and nothing else.' },
     ]);
     ok(`Response: "${b1.text.trim()}" (conv=${b1.conversationId})`);
 
-    // Step 13: User B — list conversations (expect only theirs)
-    step('User B: list conversations (expect 1, only their own)');
+    // Step 14: User B — chat via data stream endpoint
+    step('User B: chat via /run/api/chat (data stream endpoint)');
+    const b2 = await chatDataStream(appId, userB.token, [
+      { role: 'user', content: 'Say "Bravo two" in exactly those words and nothing else.' },
+    ]);
+    ok(`Response: "${b2.text.trim()}" (conv=${b2.conversationId})`);
+
+    // Step 15: User B — list conversations (expect 2: one from each endpoint)
+    step('User B: list conversations (expect 2, only their own)');
     const userBConvs = await listConversations(appId, userB.token);
     ok(`User B has ${userBConvs.total} conversation(s)`);
 
-    if (userBConvs.total !== 1) {
-      fail(`Expected exactly 1 conversation for User B, got ${userBConvs.total}`);
+    if (userBConvs.total < 2) {
+      fail(
+        `Expected at least 2 conversations for User B (completions + data stream), got ${userBConvs.total}`
+      );
     }
 
     // Verify User B cannot see any of User A's conversations
@@ -520,8 +572,8 @@ async function main() {
     }
     ok("User B cannot see any of User A's conversations");
 
-    // Step 14: User A — list conversations (still the same)
-    step('User A: list conversations again (still expect 2, unchanged)');
+    // Step 16: User A — list conversations (still the same)
+    step('User A: list conversations again (unchanged)');
     const userAConvs2 = await listConversations(appId, userA.token);
     ok(`User A still has ${userAConvs2.total} conversation(s)`);
 
@@ -537,7 +589,7 @@ async function main() {
     }
     ok("User A cannot see any of User B's conversations");
 
-    // Step 15: Explicit cross-check summary
+    // Step 17: Explicit cross-check summary
     step('Cross-isolation summary');
     console.log(`  User A (${userA.sub}):`);
     console.log(`    Conversations: ${userAConvs2.ids.join(', ')}`);
