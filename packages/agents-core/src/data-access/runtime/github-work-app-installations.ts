@@ -857,7 +857,13 @@ export const setMcpToolRepositoryAccess =
     // Remove all existing access for this tool
     await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, params.toolId));
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, params.tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, params.projectId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, params.toolId),
+        )
+      );
 
     // Add new access entries
     if (params.repositoryIds.length > 0) {
@@ -881,9 +887,11 @@ export const setMcpToolRepositoryAccess =
  */
 export const getMcpToolRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
-  async (
-    toolId: string
-  ): Promise<
+  async (scope: {
+    tenantId: string;
+    projectId: string;
+    toolId: string;
+  }): Promise<
     {
       id: string;
       toolId: string;
@@ -897,7 +905,13 @@ export const getMcpToolRepositoryAccess =
     const result = await db
       .select()
       .from(workAppGitHubMcpToolRepositoryAccess)
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId));
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId),
+        )
+      );
 
     return result;
   };
@@ -988,10 +1002,16 @@ export const getMcpToolRepositoryAccessWithDetails =
  */
 export const clearMcpToolRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
-  async (toolId: string): Promise<number> => {
+  async (scope: { tenantId: string; projectId: string; toolId: string }): Promise<number> => {
     const deleted = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId),
+        )
+      )
       .returning();
 
     return deleted.length;

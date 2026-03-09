@@ -106,7 +106,11 @@ describe('GitHub Project Repository Access', () => {
         repositoryIds: [repoId1],
       });
 
-      let toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)(toolId);
+      let toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
       expect(toolAccess).toHaveLength(1);
       expect(toolAccess[0].repositoryDbId).toBe(repoId1);
 
@@ -116,7 +120,11 @@ describe('GitHub Project Repository Access', () => {
         repositoryIds: [repoId2],
       });
 
-      toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)(toolId);
+      toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
       expect(toolAccess).toHaveLength(0);
     });
 
@@ -142,7 +150,11 @@ describe('GitHub Project Repository Access', () => {
         repositoryIds: [repoId2],
       });
 
-      const toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)(toolId);
+      const toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId,
+      });
       expect(toolAccess).toHaveLength(0);
     });
 
@@ -188,11 +200,19 @@ describe('GitHub Project Repository Access', () => {
         repositoryIds: [repoId2],
       });
 
-      const tool1Access = await getMcpToolRepositoryAccess(ctx.dbClient)(toolId1);
+      const tool1Access = await getMcpToolRepositoryAccess(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId: toolId1,
+      });
       expect(tool1Access).toHaveLength(1);
       expect(tool1Access[0].repositoryDbId).toBe(repoId2);
 
-      const tool2Access = await getMcpToolRepositoryAccess(ctx.dbClient)(toolId2);
+      const tool2Access = await getMcpToolRepositoryAccess(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId,
+        toolId: toolId2,
+      });
       expect(tool2Access).toHaveLength(0);
     });
 
@@ -230,7 +250,11 @@ describe('GitHub Project Repository Access', () => {
         repositoryIds: [],
       });
 
-      const toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)(toolId);
+      const toolAccess = await getMcpToolRepositoryAccess(ctx.dbClient)({
+        tenantId: ctx.tenantId,
+        projectId: otherProjectId,
+        toolId,
+      });
       expect(toolAccess).toHaveLength(1);
       expect(toolAccess[0].repositoryDbId).toBe(repoId1);
     });

@@ -455,7 +455,13 @@ export const cascadeDeleteByTool =
     // Delete MCP tool repository access entries
     const repositoryAccessResult = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId),
+        )
+      )
       .returning();
 
     // Delete MCP tool access mode entry
