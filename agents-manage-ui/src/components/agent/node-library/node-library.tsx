@@ -8,7 +8,7 @@ import { NodeItem } from './node-item';
 
 export default function NodeLibrary() {
   const { data: capabilities } = useCapabilitiesQuery();
-  const sandboxEnabled = Boolean(capabilities?.sandbox?.configured);
+  const sandboxEnabled = capabilities?.sandbox?.configured;
 
   const nodeTypes: NodeItem[] = [
     nodeTypeMap[NodeType.MCPPlaceholder],
