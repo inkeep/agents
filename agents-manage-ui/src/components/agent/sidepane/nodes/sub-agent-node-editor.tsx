@@ -19,7 +19,8 @@ import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { createLookup } from '@/lib/utils';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
@@ -53,14 +54,12 @@ const ExecutionLimitInheritanceInfo = () => {
 
 interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
-  dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   errorHelpers?: ErrorHelpers;
 }
 
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   selectedNode,
-  dataComponentLookup,
   artifactComponentLookup,
   errorHelpers,
 }) => {
@@ -75,7 +74,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
   const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
   const { project } = useProjectData();
+  const { data: dataComponents } = useDataComponentsQuery();
   const metadata = useAgentStore((state) => state.metadata);
+  const dataComponentsById = createLookup(dataComponents);
 
   const {
     updatePath,
@@ -223,7 +224,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       <Separator />
       <ComponentSelector
         label="Components"
-        componentLookup={dataComponentLookup}
+        componentLookup={dataComponentsById}
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
           updatePath('dataComponents', newSelection);

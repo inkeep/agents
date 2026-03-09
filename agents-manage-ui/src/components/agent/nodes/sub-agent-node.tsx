@@ -10,7 +10,8 @@ import { STATIC_LABELS } from '@/constants/theme';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import { cn } from '@/lib/utils';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
@@ -45,11 +46,10 @@ const ListSection = ({
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   const { name, isDefault, description, models, status } = data;
   const modelName = models?.base?.model;
+  const { data: dataComponents } = useDataComponentsQuery();
+  const dataComponentsById = createLookup(dataComponents);
 
-  const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
-    dataComponentLookup: state.dataComponentLookup,
-    artifactComponentLookup: state.artifactComponentLookup,
-  }));
+  const artifactComponentLookup = useAgentStore((state) => state.artifactComponentLookup);
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -59,9 +59,8 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
 
   const dataComponentNames = useMemo(
     () =>
-      data?.dataComponents?.map((id: string) => dataComponentLookup[id]?.name).filter(Boolean) ||
-      [],
-    [data?.dataComponents, dataComponentLookup]
+      data?.dataComponents?.map((id: string) => dataComponentsById[id]?.name).filter(Boolean) || [],
+    [data?.dataComponents, dataComponentsById]
   );
   const artifactComponentNames = useMemo(
     () =>
