@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.58.4
+
+### Patch Changes
+
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [87ac81f]
+- Updated dependencies [b6a126f]
+- Updated dependencies [f475d74]
+- Updated dependencies [2d6ec44]
+  - @inkeep/agents-core@0.58.4
+  - @inkeep/agents-work-apps@0.58.4
+  - @inkeep/agents-email@0.58.4
+  - @inkeep/agents-mcp@0.58.4
+
 ## 0.58.3
 
 ### Patch Changes
