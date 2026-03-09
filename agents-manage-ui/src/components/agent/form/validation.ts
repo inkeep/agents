@@ -12,7 +12,10 @@ const OriginalContextConfigSchema =
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 const AgentStopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
-const SubAgentSchema = AgentWithinContextOfProjectSchema.shape.subAgents.valueType;
+const SubAgentSchema = AgentWithinContextOfProjectSchema.shape.subAgents.valueType.omit({
+  updatedAt: true,
+  createdAt: true,
+});
 const ExternalAgentSchema = AgentWithinContextOfProjectSchema.shape.externalAgents
   .unwrap()
   .valueType.pick({
