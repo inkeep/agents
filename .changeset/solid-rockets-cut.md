@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-move `useAgentActions.animateGraph` in `useAnimateGraph`
+Extract `animateGraph` action from agent store into dedicated `useAnimateGraph` hook
