@@ -14,7 +14,13 @@ const mcpToolQueryKeys = {
     ['mcp-tool-status', tenantId, projectId, toolId] as const,
 };
 
-export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+export function useMcpToolsQuery({
+  enabled = true,
+  skipDiscovery = false,
+}: {
+  enabled?: boolean;
+  skipDiscovery?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
