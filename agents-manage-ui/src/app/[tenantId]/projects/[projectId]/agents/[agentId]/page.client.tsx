@@ -89,9 +89,7 @@ const Playground = dynamic(
 
 const CopilotChat = dynamic(
   () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 function getEdgeId(a: string, b: string) {
@@ -993,11 +991,6 @@ export const Agent: FC<AgentProps> = ({
                   closeSidePane();
                   setShowPlayground(true);
                 }}
-                tracesHref={
-                  agent.id
-                    ? `/${tenantId}/projects/${projectId}/traces?agentId=${encodeURIComponent(agent.id)}`
-                    : undefined
-                }
               />
             </Panel>
           )}
