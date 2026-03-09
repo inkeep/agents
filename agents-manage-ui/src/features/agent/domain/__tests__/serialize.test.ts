@@ -556,7 +556,6 @@ describe('serializeAgentData', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
-            functionToolId: 'function-tool-1',
             functionId: 'function-1',
             name: 'Lookup customer',
             description: 'Looks up customer information',
@@ -762,7 +761,6 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
-            functionToolId: 'function-tool-1',
           },
         },
       ];
@@ -877,7 +875,6 @@ describe('serializeAgentData', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
-            functionToolId: 'function-tool-1',
             functionId: 'function-1',
             name: 'Lookup customer',
             description: 'Looks up customer information',
