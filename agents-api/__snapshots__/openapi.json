@@ -5229,7 +5229,6 @@
                     "type": "string"
                   },
                   "server": {
-                    "additionalProperties": false,
                     "properties": {
                       "url": {
                         "format": "uri",
@@ -8526,7 +8525,6 @@
                     "type": "string"
                   },
                   "server": {
-                    "additionalProperties": false,
                     "properties": {
                       "url": {
                         "format": "uri",
@@ -8713,7 +8711,6 @@
                     "type": "string"
                   },
                   "server": {
-                    "additionalProperties": false,
                     "properties": {
                       "url": {
                         "format": "uri",

@@ -1201,7 +1201,7 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
   config: z.object({
     type: z.literal('mcp'),
     mcp: z.object({
-      server: z.strictObject({
+      server: z.object({
         url: z.url(),
       }),
       transport: z
