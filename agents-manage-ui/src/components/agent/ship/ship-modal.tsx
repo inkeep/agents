@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type { ComponentType, FC } from 'react';
+import { FlowButton } from '@/components/agent/flow-button';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { VercelIcon } from '@/components/icons/vercel';
 import { Button } from '@/components/ui/button';
@@ -81,15 +82,15 @@ const shipModalTabItems: TabItem[] = [
   },
 ];
 
-export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) => {
+export const ShipModal: FC = () => {
   const { tenantId, projectId } = useParams();
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className={buttonClassName}>
+        <FlowButton>
           <RocketIcon className="size-4 text-muted-foreground" />
           Ship
-        </Button>
+        </FlowButton>
       </DialogTrigger>
       <DialogContent
         className="max-w-full! w-7xl"

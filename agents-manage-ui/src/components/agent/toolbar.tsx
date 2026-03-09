@@ -1,10 +1,10 @@
 import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
+import { FlowButton } from '@/components/agent/flow-button';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
-import { Button } from '@/components/ui/button';
 import { flatNestedFieldMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -42,14 +42,10 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   const { isDirty: rhfDirtyState, isSubmitting } = formState;
   const isDirty = agentDirtyState || rhfDirtyState;
   const previewButton = (
-    <Button
-      {...commonProps}
-      disabled={isDirty || hasOpenModelConfig}
-      onClick={() => setShowPlayground(true)}
-    >
+    <FlowButton disabled={isDirty || hasOpenModelConfig} onClick={() => setShowPlayground(true)}>
       <Play className="text-muted-foreground" />
       Try it
-    </Button>
+    </FlowButton>
   );
 
   useEffect(() => {
@@ -75,15 +71,15 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
 
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
-      <Button {...commonProps} asChild>
+      <FlowButton asChild>
         <Link href={`/${tenantId}/projects/${projectId}/traces?agentId=${agentId}`}>
           <Activity className="text-muted-foreground" />
           Traces
         </Link>
-      </Button>
+      </FlowButton>
       {canUse && (
         <>
-          <ShipModal buttonClassName={commonProps.className} />
+          <ShipModal />
           {isDirty || hasOpenModelConfig ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -107,9 +103,8 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         </>
       )}
       {canEdit && (
-        <Button
-          {...commonProps}
-          className={cn(commonProps.className, 'border')}
+        <FlowButton
+          className="border"
           type="submit"
           variant={isDirty ? 'default' : 'outline'}
           disabled={isSubmitting || !isDirty || hasOpenModelConfig}
@@ -117,18 +112,17 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />
           Save changes
-        </Button>
+        </FlowButton>
       )}
       {canView && (
-        <Button
-          {...commonProps}
+        <FlowButton
           onClick={toggleSidePane}
-          className={cn(commonProps.className, hasErrors && 'ring-2 text-red-300! border-current!')}
+          className={cn(hasErrors && 'ring-2 text-red-300! border-current!')}
         >
           <Settings className={cn(!hasErrors && 'text-muted-foreground')} />
           Agent Settings
           {hasErrors && <ErrorIndicator errors={agentSettingsErrors} />}
-        </Button>
+        </FlowButton>
       )}
     </div>
   );

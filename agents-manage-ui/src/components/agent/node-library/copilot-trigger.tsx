@@ -1,6 +1,6 @@
 import { SparklesIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { FlowButton } from '@/components/agent/flow-button';
 import { useCopilotContext } from '@/contexts/copilot';
 
 export function CopilotTrigger() {
@@ -12,14 +12,9 @@ export function CopilotTrigger() {
   }
 
   return (
-    <Button
-      className="normal-case justify-start font-sans font-normal backdrop-blur-3xl"
-      variant="outline-primary"
-      type="button"
-      onClick={openCopilot}
-    >
+    <FlowButton variant="outline-primary" onClick={openCopilot}>
       <SparklesIcon />
       {agentId ? 'Edit with AI' : 'Build with AI'}
-    </Button>
+    </FlowButton>
   );
 }

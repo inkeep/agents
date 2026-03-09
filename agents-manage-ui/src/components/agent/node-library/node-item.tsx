@@ -1,8 +1,7 @@
 import { GripVertical, type LucideIcon } from 'lucide-react';
 import type { ComponentProps, FC, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import { FlowButton } from '@/components/agent/flow-button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 export type NodeItem = {
   type: string;
@@ -28,24 +27,19 @@ export const NodeItem: FC<NodeItemProps> = ({ node }) => {
   'use memo';
   const { type, name, Icon, disabled, disabledTooltip } = node;
   const content = (
-    <Button
-      variant="outline"
+    <FlowButton
       key={type}
-      type="button"
       data-node-type={type}
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
-      className={cn(
-        'backdrop-blur-3xl justify-start normal-case font-normal font-sans',
-        'group group-hover:bg-muted/50 transition-all ease-in-out duration-200'
-      )}
+      className="group group-hover:bg-muted/50 transition-all ease-in-out duration-200"
       draggable={!disabled}
       onDragStart={onDragStart}
     >
       <Icon className="text-muted-foreground" />
       {name}
       <GripVertical className="ml-auto text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all ease-in-out duration-200" />
-    </Button>
+    </FlowButton>
   );
 
   if (disabled && disabledTooltip) {

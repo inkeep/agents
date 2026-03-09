@@ -3,8 +3,8 @@
 import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
 import { type ComponentProps, createContext, use, useId } from 'react';
-import { Controller, FormProvider, useFormContext, useFormState } from 'react-hook-form';
 import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
+import { Controller, FormProvider, useFormContext, useFormState } from 'react-hook-form';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { cn } from '@/lib/utils';
 
@@ -36,8 +36,11 @@ const FormField = <
 function useFormField() {
   const fieldContext = use(FormFieldContext);
   const itemContext = use(FormItemContext);
-  if (!itemContext || !fieldContext) {
+  if (!fieldContext) {
     throw new Error('useFormField must be used within a <FormField />');
+  }
+  if (!itemContext) {
+    throw new Error('useFormField must be used within a <FormItem />');
   }
   const { name } = fieldContext;
   const { getFieldState } = useFormContext();
