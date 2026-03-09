@@ -1,8 +1,7 @@
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
-import { getCapabilitiesAction } from '@/lib/actions/capabilities';
-import { Agent } from './page.client';
 import { getFullAgent } from '@/lib/api/agent-full-client';
+import { Agent } from './page.client';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +11,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   const { agentId, tenantId, projectId } = await params;
   try {
     const agent = await getFullAgent(tenantId, projectId, agentId);
-    const capabilities = await getCapabilitiesAction();
-    const sandboxEnabled = capabilities.success
-      ? Boolean(capabilities.data?.sandbox?.configured)
-      : false;
-    return <Agent agent={agent.data} sandboxEnabled={sandboxEnabled} />;
+    return <Agent agent={agent.data} />;
   } catch (error) {
     return (
       <FullPageError

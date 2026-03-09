@@ -94,7 +94,6 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  sandboxEnabled: boolean;
 }
 
 type ReactFlowProps = ComponentProps<typeof ReactFlow>;
@@ -110,7 +109,7 @@ const nonValidationErrors = new Set([
   'bad_request',
 ]);
 
-export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled }) => {
+export const Agent: FC<AgentProps> = ({ agent }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -908,7 +907,7 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled }) => {
           <Controls className="text-foreground" showInteractive={false} />
           {!showEmptyState && canEdit && (
             <Panel position="top-left">
-              <NodeLibrary sandboxEnabled={sandboxEnabled} />
+              <NodeLibrary />
             </Panel>
           )}
 
