@@ -25,7 +25,11 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
       {
         id: nodeId,
         name: defaults.name,
-        models: {},
+        models: {
+          base: {},
+          summarizer: {},
+          structuredOutput: {},
+        },
         canUse: [],
         dataComponents: [],
         artifactComponents: [],

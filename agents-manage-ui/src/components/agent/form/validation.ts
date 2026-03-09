@@ -135,7 +135,7 @@ export const FullAgentTeamAgentSchema = z.object({
 export const FullAgentSubAgentSchema = z.strictObject({
   ...SubAgentSchema.shape,
   type: SubAgentSchema.shape.type.default('internal'),
-  models: MyModelsSchema.partial(),
+  models: MyModelsSchema,
 });
 type FullAgentSubAgent = z.input<typeof FullAgentSubAgentSchema>;
 
