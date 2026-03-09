@@ -31,13 +31,14 @@ export default function NodeLibrary({ sandboxEnabled }: { sandboxEnabled: boolea
       ),
     },
   ];
+  const className = 'justify-start normal-case font-sans';
 
   return (
     <div className="flex flex-col gap-2 max-w-72 w-40 min-w-0">
       {nodeTypes.map((node) => (
-        <NodeItem key={node.type} node={node} />
+        <NodeItem key={node.type} node={node} className={className} />
       ))}
-      <CopilotTrigger />
+      <CopilotTrigger className={className} />
     </div>
   );
 }
