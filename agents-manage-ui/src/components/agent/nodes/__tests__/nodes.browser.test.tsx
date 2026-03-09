@@ -25,6 +25,9 @@ vi.mock('@/contexts/runtime-config', () => {
 });
 vi.mock('@/lib/query/mcp-tools', () => {
   return {
+    useMcpToolsQuery() {
+      return { data: [] };
+    },
     useMcpToolStatusQuery() {
       return {};
     },
