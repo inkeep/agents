@@ -44,7 +44,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — Can be a string or an array of content parts for multi-part content (text, images)
+- **`content`** — A string with the message text. For multi-part content (text + images), use the `parts` array instead
 - **`conversationId`** — Optional; server generates one if omitted
 
 
@@ -62,9 +62,10 @@ There are two ways to include images:
   "messages": [
     {
       "role": "user",
-      "content": [
+      "content": "What's in this image?",
+      "parts": [
         { "type": "text", "text": "What's in this image?" },
-        { "type": "image", "image": "data:image/png;base64,iVBORw0KGgo..." }
+        { "type": "image", "text": "data:image/png;base64,iVBORw0KGgo..." }
       ]
     }
   ]
@@ -72,7 +73,7 @@ There are two ways to include images:
 ```
 
 <Note>
-  Images are validated server-side: MIME types are verified against actual content via byte-sniffing, size limits are enforced, and external URLs must use HTTP/HTTPS with no embedded credentials. DNS checks block requests to private/internal IP addresses.
+  Images are validated server-side: MIME types are verified against actual content via byte-sniffing, a 10 MB size limit is enforced, and external URLs must use HTTP/HTTPS with no embedded credentials. DNS checks block requests to private/internal IP addresses.
 </Note>
 
 ### Optional Headers
