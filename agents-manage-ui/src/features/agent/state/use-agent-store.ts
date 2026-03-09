@@ -13,7 +13,6 @@ import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
 } from '@/lib/types/agent-full';
-import type { Skill } from '@/lib/types/skills';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -40,7 +39,6 @@ interface AgentStateData {
    * Used to disable save button while configuration is in progress.
    */
   hasOpenModelConfig: boolean;
-  availableSkills: Skill[];
   playgroundConversationId: string;
 }
 
@@ -58,7 +56,6 @@ interface AgentActions {
     nodes: Node[],
     edges: Edge[],
     metadata: AgentMetadata,
-    availableSkills: Skill[],
     agentToolConfigLookup?: AgentToolConfigLookup,
     subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
   ): void;
@@ -139,7 +136,6 @@ const initialAgentState: AgentStateData = {
   isSidebarSessionOpen: true,
   variableSuggestions: [],
   hasOpenModelConfig: false,
-  availableSkills: [],
   playgroundConversationId: generateId(),
 };
 
@@ -157,7 +153,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       nodes,
       edges,
       metadata,
-      availableSkills,
       agentToolConfigLookup = {},
       subAgentExternalAgentConfigLookup = {}
     ) {
@@ -167,7 +162,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         metadata,
         agentToolConfigLookup,
         subAgentExternalAgentConfigLookup,
-        availableSkills,
         dirty: false,
         history: [],
         future: [],
