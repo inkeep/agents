@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-Fix inconsistent text casing on agent flow buttons
+Make agent flow buttons on left panel normal case and on right panel upper case
