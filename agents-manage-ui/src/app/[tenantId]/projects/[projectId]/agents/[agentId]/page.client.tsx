@@ -58,8 +58,8 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
-import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ExternalAgent } from '@/lib/api/external-agents';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { saveAgent } from '@/lib/services/save-agent';
 import type {
   AgentToolConfig,
@@ -97,7 +97,6 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  toolLookup: Record<string, MCPTool>;
   skills: Skill[];
   sandboxEnabled: boolean;
 }
@@ -115,7 +114,7 @@ const nonValidationErrors = new Set([
   'bad_request',
 ]);
 
-export const Agent: FC<AgentProps> = ({ agent, toolLookup, sandboxEnabled, skills }) => {
+export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
