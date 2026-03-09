@@ -111,7 +111,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         isRequired={isRequired(FullAgentSubAgentSchema, 'description')}
       />
       <SkillSelector
-        selectedSkills={subAgent.skills}
+        selectedSkills={subAgent.skills ?? []}
         onChange={(value) => form.setValue(path('skills'), value)}
         // TODO
         // error={getFieldError('skills')}

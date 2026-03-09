@@ -134,6 +134,10 @@ export const FullAgentSubAgentSchema = z.strictObject({
   type: SubAgentSchema.shape.type.default('internal'),
   models: MyModelsSchema.partial(),
 });
+type FullAgentSubAgent = z.input<typeof FullAgentSubAgentSchema>;
+
+export type AgentSkill = NonNullable<FullAgentSubAgent['skills']>[number];
+
 const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
