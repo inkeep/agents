@@ -16,6 +16,10 @@ vi.mock('@/lib/actions/artifact-components', () => ({
   fetchArtifactComponentsAction: vi.fn(),
 }));
 
+const artifactComponent = {
+  id: 1,
+};
+
 const ArtifactComponentsConsumer: FC<{ label: string }> = ({ label }) => {
   const { data, isFetching } = useArtifactComponentsQuery();
 
@@ -46,7 +50,7 @@ describe('useArtifactComponentsQuery', () => {
     const fetchArtifactComponentsActionMock = vi.mocked(fetchArtifactComponentsAction);
     fetchArtifactComponentsActionMock.mockResolvedValue({
       success: true,
-      data: [{ id: 1 } as any],
+      data: [artifactComponent as any],
     });
 
     const { queryClient } = renderWithClient(
