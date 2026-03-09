@@ -861,7 +861,7 @@ export const setMcpToolRepositoryAccess =
         and(
           eq(workAppGitHubMcpToolRepositoryAccess.tenantId, params.tenantId),
           eq(workAppGitHubMcpToolRepositoryAccess.projectId, params.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, params.toolId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, params.toolId)
         )
       );
 
@@ -909,7 +909,7 @@ export const getMcpToolRepositoryAccess =
         and(
           eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
           eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId)
         )
       );
 
@@ -1009,7 +1009,7 @@ export const clearMcpToolRepositoryAccess =
         and(
           eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
           eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId)
         )
       )
       .returning();

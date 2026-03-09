@@ -459,7 +459,7 @@ export const cascadeDeleteByTool =
         and(
           eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
           eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId)
         )
       )
       .returning();
