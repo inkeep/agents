@@ -58,7 +58,6 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
-import type { ExternalAgent } from '@/lib/api/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { saveAgent } from '@/lib/services/save-agent';
 import type {
@@ -70,7 +69,6 @@ import type {
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { Skill } from '@/lib/types/skills';
-import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
@@ -419,9 +417,6 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
       // Extract metadata
       const metadata = extractAgentMetadata(updatedAgent);
 
-      // Create lookups from full project data
-      const updatedExternalAgentLookup = fullProject.externalAgents || {};
-
       // Recompute agent-specific lookups from the updated agent data
       const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
       const updatedSubAgentExternalAgentConfigLookup =
@@ -434,7 +429,6 @@ export const Agent: FC<AgentProps> = ({ agent, sandboxEnabled, skills }) => {
         metadata,
         skills,
         updatedAgentToolConfigLookup,
-        updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
         updatedSubAgentExternalAgentConfigLookup
       );
 
