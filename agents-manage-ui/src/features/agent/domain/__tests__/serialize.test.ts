@@ -840,8 +840,6 @@ describe('serializeAgentData', () => {
       expect(result.functions).toEqual({
         'function-1': {
           id: 'function-1',
-          name: 'Lookup customer',
-          description: 'Looks up customer information',
           executeCode: 'async function execute() { return { ok: true }; }',
           inputSchema: {
             type: 'object',
