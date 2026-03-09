@@ -894,8 +894,8 @@ export function TriggerForm({
                 Loading users...
               </div>
             ) : mode === 'create' && isAdmin ? (
-              <FormItem>
-                <FormLabel>Run as Users</FormLabel>
+              <div className="space-y-2">
+                <span className="text-sm font-medium leading-none">Run as Users</span>
                 <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -966,10 +966,10 @@ export function TriggerForm({
                     ))}
                   </div>
                 )}
-                <FormDescription>
+                <p className="text-[0.8rem] text-muted-foreground">
                   Select multiple users to create one trigger per user.
-                </FormDescription>
-              </FormItem>
+                </p>
+              </div>
             ) : (
               <FormField
                 control={form.control}
@@ -1118,7 +1118,7 @@ export function TriggerForm({
                   label="JMESPath Expression"
                   placeholder="e.g., { title: issue.title, author: issue.user.login }"
                 />
-                <FormDescription>
+                <p className="text-muted-foreground text-sm">
                   A JMESPath expression for complex transformations like filtering arrays or
                   restructuring nested data. See{' '}
                   <a
@@ -1130,7 +1130,7 @@ export function TriggerForm({
                     jmespath.org
                   </a>{' '}
                   for syntax reference.
-                </FormDescription>
+                </p>
               </>
             )}
           </CardContent>
@@ -1287,10 +1287,10 @@ export function TriggerForm({
                     </CollapsibleTrigger>
                   </div>
                   <CollapsibleContent className="pt-3 space-y-3">
-                    <FormDescription>
+                    <p className="text-muted-foreground text-sm">
                       Apply a preset configuration for common webhook providers. This will auto-fill
                       all signature verification fields.
-                    </FormDescription>
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -1541,10 +1541,10 @@ export function TriggerForm({
                 {/* Signed Components Builder */}
                 <div className="pt-4 border-t space-y-3">
                   <h4 className="text-sm font-medium">Signed Components</h4>
-                  <FormDescription>
+                  <p className="text-muted-foreground text-sm">
                     Define the components that are included in the signature. Components are joined
                     in order to create the signed payload.
-                  </FormDescription>
+                  </p>
 
                   {/* Signed Components List */}
                   <div className="space-y-3">
@@ -1767,9 +1767,9 @@ export function TriggerForm({
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="pt-3 space-y-3">
-                        <FormDescription>
+                        <p className="text-muted-foreground text-sm">
                           Configure advanced options for signature validation behavior.
-                        </FormDescription>
+                        </p>
 
                         <FormField
                           control={form.control}
