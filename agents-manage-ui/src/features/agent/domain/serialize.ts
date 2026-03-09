@@ -116,22 +116,21 @@ export function hydrateNodesWithFormData(nodes: Node[], formData: NodeFormData):
 
     if (node.type === NodeType.FunctionTool) {
       const nodeData = node.data as FunctionToolNodeData;
-      const functionToolId = nodeData.toolId ?? nodeData.functionToolId ?? node.id;
-      const functionTool = formData.functionTools[functionToolId];
+      const functionToolId = nodeData.toolId ?? node.id;
+      const functionTool = formData.functionTools?.[functionToolId];
 
       if (!functionTool) {
         return node;
       }
 
       const { functionId, name, description, tempToolPolicies } = functionTool;
-      const { executeCode, inputSchema, dependencies } = formData.functions[functionId] ?? {};
+      const { executeCode, inputSchema, dependencies } = formData.functions?.[functionId] ?? {};
 
       return {
         ...node,
         data: {
           ...node.data,
           toolId: functionToolId,
-          functionToolId,
           functionId,
           name,
           description,
@@ -292,10 +291,10 @@ export function serializeAgentData(
         if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
           const nodeData = functionToolNode.data as any;
 
-          const functionToolId = nodeData.functionToolId || nodeData.toolId || functionToolNode.id;
+          const functionToolId = nodeData.toolId || functionToolNode.id;
           const relationshipId = nodeData.relationshipId;
 
-          const functionId = nodeData.functionId || functionToolId;
+          const functionId = nodeData.functionId ?? functionToolId;
 
           functionTools[functionToolId] = {
             id: functionToolId,
@@ -307,8 +306,6 @@ export function serializeAgentData(
           // Always create function entry to ensure it exists
           functions[functionId] = {
             id: functionId,
-            name: nodeData.name || '',
-            description: nodeData.description || '',
             executeCode: nodeData.code || '',
             inputSchema: nodeData.inputSchema || {},
             dependencies: nodeData.dependencies || {},
