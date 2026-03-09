@@ -12,12 +12,20 @@ import { getLogger } from '../../logger';
 import {
   getBotMemberChannels,
   getSlackClient,
+  getSlackUserByEmail,
+  getSlackUserInfo,
+  getSlackUsers,
   openDmConversation,
   postMessage,
   postMessageInThread,
 } from '../services/client';
 import { slackMcpAuth } from './auth';
-import { resolveChannelId, resolveWorkspaceToken, validateChannelAccess } from './utils';
+import {
+  resolveChannelId,
+  resolveWorkspaceToken,
+  searchUsersByName,
+  validateChannelAccess,
+} from './utils';
 
 const logger = getLogger('slack-mcp');
 
@@ -205,6 +213,90 @@ const getServer = async (scope: ToolScope) => {
       }
     );
   }
+
+  server.tool(
+    'get-slack-user',
+    'Look up a Slack user by their user ID, email address, or name. Provide exactly one parameter. User ID and email return an exact match; name returns up to 5 ranked matches. If necessary, please clarify with the user when you receive multiple results.',
+    {
+      user_id: z
+        .string()
+        .optional()
+        .describe('Slack user ID (e.g., U1234567890). Returns an exact match.'),
+      email: z
+        .string()
+        .optional()
+        .describe('Email address (e.g., jane@company.com). Returns an exact match.'),
+      name: z
+        .string()
+        .optional()
+        .describe(
+          'Display name, real name, or username to search for (e.g., "Jane Smith"). Returns up to 5 ranked matches.'
+        ),
+    },
+    async ({ user_id, email, name }) => {
+      try {
+        const providedCount = [user_id, email, name].filter(Boolean).length;
+        if (providedCount === 0) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Error: Provide at least one of user_id, email, or name.',
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        if (user_id) {
+          const user = await getSlackUserInfo(client, user_id);
+          if (!user) {
+            return {
+              content: [{ type: 'text' as const, text: `No user found with ID: ${user_id}` }],
+            };
+          }
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(user) }],
+          };
+        }
+
+        if (email) {
+          const user = await getSlackUserByEmail(client, email);
+          if (!user) {
+            return {
+              content: [{ type: 'text' as const, text: `No user found with email: ${email}` }],
+            };
+          }
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(user) }],
+          };
+        }
+
+        const allUsers = await getSlackUsers(client);
+        const scored = searchUsersByName(allUsers, name ?? '');
+
+        if (scored.length === 0) {
+          return {
+            content: [{ type: 'text' as const, text: `No users found matching name: "${name}"` }],
+          };
+        }
+
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(scored) }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(
+          { error, toolId: scope.toolId, user_id, email, name },
+          'Failed to look up Slack user via MCP'
+        );
+        return {
+          content: [{ type: 'text' as const, text: `Error looking up user: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
 
   return server;
 };
