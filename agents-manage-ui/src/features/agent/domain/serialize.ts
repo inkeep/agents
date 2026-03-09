@@ -74,7 +74,7 @@ function processModels(modelsData?: AgentModels): AgentModels | undefined {
   return undefined;
 }
 
-type SerializeAgentDataType = Pick<FullAgentOutput, 'subAgents' | 'functions' | 'functionTools'>;
+type SerializeAgentDataType = Pick<FullAgentPayload, 'subAgents' | 'functions' | 'functionTools'>;
 
 type PartialMCPRelation = Pick<
   z.output<typeof MCPRelationSchema>,
@@ -89,8 +89,7 @@ type NodeFormData = Pick<
 export function hydrateNodesWithFormData(nodes: Node[], formData: NodeFormData): Node[] {
   return nodes.map((node) => {
     if (node.type === NodeType.SubAgent) {
-      const nodeData = node.data as AgentNodeData;
-      const subAgentId = nodeData.id ?? node.id;
+      const subAgentId = node.id;
       const subAgent = formData.subAgents[subAgentId];
 
       if (!subAgent) {
