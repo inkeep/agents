@@ -57,7 +57,7 @@ function Nodes() {
     <ReactFlowProvider>
       <ExternalAgentNode {...baseProps} data={{ ...data, id: 'foo', baseUrl: 'foo' }} />
       {divider}
-      <FunctionToolNode {...baseProps} data={{ ...data, functionToolId: 'foo' }} />
+      <FunctionToolNode {...baseProps} data={{ ...data, toolId: 'foo' }} />
       {divider}
       <MCPNode
         {...baseProps}
