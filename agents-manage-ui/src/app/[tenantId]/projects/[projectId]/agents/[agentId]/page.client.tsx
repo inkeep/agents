@@ -37,6 +37,7 @@ import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
+import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useProjectPermissions } from '@/contexts/project';
@@ -301,7 +302,6 @@ export const Agent: FC<AgentProps> = ({
     clearSelection,
     markUnsaved,
     reset,
-    animateGraph,
   } = useAgentActions();
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
@@ -861,23 +861,7 @@ export const Agent: FC<AgentProps> = ({
     return false;
   };
 
-  useEffect(() => {
-    const onCompletion = () => {
-      // @ts-expect-error
-      animateGraph({
-        detail: {
-          type: 'completion',
-        },
-      });
-    };
-
-    document.addEventListener('ikp-data-operation', animateGraph);
-    document.addEventListener('ikp-aborted', onCompletion);
-    return () => {
-      document.removeEventListener('ikp-data-operation', animateGraph);
-      document.removeEventListener('ikp-aborted', onCompletion);
-    };
-  }, []);
+  useAnimateGraph();
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
     if (isOpen) {
