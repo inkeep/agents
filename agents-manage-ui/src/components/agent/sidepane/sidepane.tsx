@@ -4,7 +4,6 @@ import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import type { Credential } from '@/lib/api/credentials';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -45,7 +44,6 @@ interface SidePaneProps {
   agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
-  credentialLookup: Record<string, Credential>;
   disabled?: boolean;
 }
 
@@ -57,7 +55,6 @@ export function SidePane({
   agentToolConfigLookup,
   subAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup,
-  credentialLookup,
   disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -126,7 +123,6 @@ export function SidePane({
           return (
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              credentialLookup={credentialLookup}
               subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
@@ -180,7 +176,6 @@ export function SidePane({
     getFieldErrorMessage,
     getFirstErrorField,
     agentToolConfigLookup,
-    credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
     errors,

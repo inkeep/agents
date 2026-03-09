@@ -59,7 +59,6 @@ import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
-import type { Credential } from '@/lib/api/credentials';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
 import type {
@@ -99,7 +98,6 @@ function getEdgeId(a: string, b: string) {
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
   toolLookup: Record<string, MCPTool>;
-  credentialLookup: Record<string, Credential>;
   skills: Skill[];
   sandboxEnabled: boolean;
 }
@@ -117,13 +115,7 @@ const nonValidationErrors = new Set([
   'bad_request',
 ]);
 
-export const Agent: FC<AgentProps> = ({
-  agent,
-  toolLookup,
-  credentialLookup,
-  sandboxEnabled,
-  skills,
-}) => {
+export const Agent: FC<AgentProps> = ({ agent, toolLookup, sandboxEnabled, skills }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -1003,7 +995,6 @@ export const Agent: FC<AgentProps> = ({
                 agentToolConfigLookup={agentToolConfigLookup}
                 subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-                credentialLookup={credentialLookup}
                 disabled={isCopilotStreaming || !canEdit}
               />
             </ResizablePanel>
