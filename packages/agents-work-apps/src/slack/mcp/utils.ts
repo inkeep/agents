@@ -65,6 +65,44 @@ export async function resolveWorkspaceToken(tenantId: string): Promise<string> {
   return botToken;
 }
 
+interface UserWithNameFields {
+  realName?: string;
+  displayName?: string;
+  name?: string;
+}
+
+export function searchUsersByName<T extends UserWithNameFields>(
+  users: T[],
+  query: string,
+  maxResults = 5
+): T[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+
+  return users
+    .map((user) => {
+      const fields = [user.realName, user.displayName, user.name].filter(Boolean) as string[];
+      let bestScore = 0;
+      for (const field of fields) {
+        const lower = field.toLowerCase();
+        if (lower === needle) {
+          bestScore = 3;
+          break;
+        }
+        if (lower.startsWith(needle)) {
+          bestScore = Math.max(bestScore, 2);
+        } else if (lower.includes(needle)) {
+          bestScore = Math.max(bestScore, 1);
+        }
+      }
+      return { user, score: bestScore };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults)
+    .map((entry) => entry.user);
+}
+
 export function validateChannelAccess(
   channelId: string,
   config: SlackMcpToolAccessConfig

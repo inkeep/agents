@@ -1549,11 +1549,13 @@ class SigNozStatsAPI {
 
       // Attribute filters
       for (const attr of filters.attributes ?? []) {
-        const op = attr.operator ?? OPERATORS.EQUALS;
+        let op = attr.operator ?? OPERATORS.EQUALS;
+        if (op === 'contains') op = OPERATORS.LIKE;
+        if (op === 'ncontains') op = OPERATORS.NOT_LIKE;
         let value: any = asTypedFilterValue(attr.value);
         let dataType: DataType = DATA_TYPES.STRING;
         if (typeof value === 'boolean') dataType = DATA_TYPES.BOOL;
-        else if (typeof value === 'number')
+        else if (typeof value === 'number' && op !== OPERATORS.LIKE && op !== OPERATORS.NOT_LIKE)
           dataType = Number.isInteger(value) ? DATA_TYPES.INT64 : DATA_TYPES.FLOAT64;
 
         if (op === OPERATORS.EXISTS || op === OPERATORS.NOT_EXISTS) {
@@ -1565,12 +1567,10 @@ class SigNozStatsAPI {
           continue;
         }
 
-        if (
-          (op === OPERATORS.LIKE || op === OPERATORS.NOT_LIKE) &&
-          typeof value === 'string' &&
-          !value.includes('%')
-        ) {
-          value = `%${value}%`;
+        if (op === OPERATORS.LIKE || op === OPERATORS.NOT_LIKE) {
+          value = String(value);
+          dataType = DATA_TYPES.STRING;
+          if (!value.includes('%')) value = `%${value}%`;
         }
 
         if (
