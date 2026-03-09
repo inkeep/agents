@@ -2,7 +2,6 @@ import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
-import { fetchSkillsAction } from '@/lib/actions/skills';
 import { Agent } from './page.client';
 
 export const dynamic = 'force-dynamic';
