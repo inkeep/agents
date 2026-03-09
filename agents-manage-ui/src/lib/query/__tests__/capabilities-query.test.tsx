@@ -12,7 +12,7 @@ vi.mock('@/lib/actions/capabilities', () => ({
 const CapabilitiesConsumer: FC<{ label: string }> = ({ label }) => {
   const { data, isFetching } = useCapabilitiesQuery();
 
-  if (isFetching) {
+  if (isFetching || !data) {
     return;
   }
 

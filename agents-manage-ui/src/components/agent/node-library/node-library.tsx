@@ -7,8 +7,8 @@ import { CopilotTrigger } from './copilot-trigger';
 import { NodeItem } from './node-item';
 
 export default function NodeLibrary() {
-  const { data: capabilities } = useCapabilitiesQuery();
-  const sandboxEnabled = capabilities?.sandbox?.configured;
+  const { data: capabilities, isFetching } = useCapabilitiesQuery();
+  const sandboxEnabled = isFetching || capabilities?.sandbox?.configured;
 
   const nodeTypes: NodeItem[] = [
     nodeTypeMap[NodeType.MCPPlaceholder],

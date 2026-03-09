@@ -7,16 +7,10 @@ const capabilitiesQueryKeys = {
   current: ['capabilities'] as const,
 };
 
-const defaultCapabilities: Capabilities = {
-  sandbox: {
-    configured: false,
-  },
-};
-
 export function useCapabilitiesQuery({ enabled = true }: { enabled?: boolean } = {}) {
   'use memo';
 
-  return useQuery<Capabilities>({
+  return useQuery<Capabilities | null>({
     queryKey: capabilitiesQueryKeys.current,
     async queryFn() {
       const response = await getCapabilitiesAction();
@@ -27,7 +21,7 @@ export function useCapabilitiesQuery({ enabled = true }: { enabled?: boolean } =
       return response.data;
     },
     enabled,
-    initialData: defaultCapabilities,
+    initialData: null,
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     staleTime: 30_000,
