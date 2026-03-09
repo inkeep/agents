@@ -16,12 +16,11 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     const sandboxEnabled = capabilities.success
       ? Boolean(capabilities.data?.sandbox?.configured)
       : false;
-
-    return <Agent agent={agent} sandboxEnabled={sandboxEnabled} />;
+    return <Agent agent={agent.data} sandboxEnabled={sandboxEnabled} />;
   } catch (error) {
     return (
       <FullPageError
-        errorCode={(error as any).code}
+        errorCode={(error as any).error.code ?? 'unknown_error'}
         context="agent"
         link={`/${tenantId}/projects/${projectId}/agents`}
         linkText="Back to agents"
