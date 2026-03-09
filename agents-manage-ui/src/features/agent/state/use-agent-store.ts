@@ -15,7 +15,6 @@ import type {
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { Skill } from '@/lib/types/skills';
-import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -25,7 +24,6 @@ interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
-  toolLookup: Record<string, MCPTool>;
   externalAgentLookup: Record<string, ExternalAgent>;
   agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
@@ -63,13 +61,11 @@ interface AgentActions {
     edges: Edge[],
     metadata: AgentMetadata,
     availableSkills: Skill[],
-    toolLookup?: Record<string, MCPTool>,
     agentToolConfigLookup?: AgentToolConfigLookup,
     externalAgentLookup?: Record<string, ExternalAgent>,
     subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
   ): void;
   reset(): void;
-  setToolLookup(toolLookup: Record<string, MCPTool>): void;
   setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
   setExternalAgentLookup(externalAgentLookup: Record<string, ExternalAgent>): void;
   setSubAgentExternalAgentConfigLookup(
@@ -137,7 +133,6 @@ const initialAgentState: AgentStateData = {
     prompt: undefined,
     statusUpdates: undefined,
   },
-  toolLookup: {},
   agentToolConfigLookup: {},
   externalAgentLookup: {},
   subAgentExternalAgentConfigLookup: {},
@@ -168,7 +163,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       edges,
       metadata,
       availableSkills,
-      toolLookup = {},
       agentToolConfigLookup = {},
       externalAgentLookup = {},
       subAgentExternalAgentConfigLookup = {}
@@ -177,7 +171,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         nodes,
         edges,
         metadata,
-        toolLookup,
         agentToolConfigLookup,
         externalAgentLookup,
         subAgentExternalAgentConfigLookup,
@@ -195,9 +188,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       // and then immediately re-expand due to the user’s persisted preference.
       const { isSidebarSessionOpen: _, ...state } = initialAgentState;
       set({ ...state, playgroundConversationId: generateId() });
-    },
-    setToolLookup(toolLookup) {
-      set({ toolLookup });
     },
     setAgentToolConfigLookup(agentToolConfigLookup) {
       set({ agentToolConfigLookup });
