@@ -56,7 +56,7 @@ describe('Agent Tools', () => {
       cy.get(`[data-uri="file:///${uri}"]`).prev().contains('Format').click();
       cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
     });
-    it.only('JavaScript', () => {
+    it('JavaScript', () => {
       const uri = 'executeCode.js';
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
