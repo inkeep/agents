@@ -9,7 +9,7 @@ describe('Agent', () => {
     });
 
     it('should show dialog when user closes browser tab', () => {
-      cy.get('#id').clear();
+      cy.get('label').contains('Id').next().clear();
 
       cy.window().then((win) => {
         const beforeUnloadEvent = new win.Event('beforeunload');
@@ -20,21 +20,21 @@ describe('Agent', () => {
     });
 
     it('should navigates to the page when changes are discarded', () => {
-      cy.get('#id').clear();
+      cy.get('label').contains('Id').next().clear();
       cy.contains('Projects').click();
       cy.get('[role=dialog]').contains('Discard').click();
       cy.location('pathname').should('eq', '/default/projects');
     });
 
     it('should closes the dialog when saving changes and validation errors are present', () => {
-      cy.get('#id').clear();
+      cy.get('label').contains('Id').next().clear();
       cy.contains('Projects').click();
       cy.get('[role=dialog]').contains('Save changes').click();
       cy.get('[role=dialog]').should('not.exist');
     });
 
     it('should navigates to the page when changes are saved', () => {
-      cy.get('#description').type('TEST');
+      cy.get('label').contains('Description').next().clear();
       cy.contains('Projects').click();
       cy.get('[role=dialog]').contains('Save changes').click();
       cy.get('[role=dialog]').should('not.exist');
@@ -42,7 +42,7 @@ describe('Agent', () => {
     });
   });
 
-  it.skip('should correctly handle dirty state', () => {
+  it('should correctly handle dirty state', () => {
     cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
     // Disable json schema builder
     cy.contains('JSON').click();
