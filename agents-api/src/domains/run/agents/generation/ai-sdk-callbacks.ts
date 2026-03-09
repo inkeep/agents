@@ -10,28 +10,50 @@ const logger = getLogger('Agent');
 export async function handlePrepareStepCompression(
   stepMessages: any[],
   compressor: MidGenerationCompressor | null,
-  originalMessageCount: number,
-  fullContextSize?: number
+  originalMessageCount: number
 ): Promise<{ messages?: any[] }> {
   if (!compressor) {
     return {};
   }
 
-  const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
+  const originalMessages = stepMessages.slice(0, originalMessageCount);
+  const generatedMessages = stepMessages.slice(compressor.effectiveBaseline(originalMessageCount));
+
+  const compressionNeeded = compressor.isCompressionNeeded([
+    ...originalMessages,
+    ...generatedMessages,
+  ]);
+
 
   if (compressionNeeded) {
+    compressor.markCompressed(stepMessages.length);
+
+    const state = compressor.getState();
+    const hardLimit = compressor.getHardLimit();
+    const { safetyBuffer } = state.config;
+    const baseContextTokens = compressor.calculateContextSize(originalMessages);
+    const accumulatedTokens = compressor.calculateContextSize(generatedMessages);
+    const totalTokens = baseContextTokens + accumulatedTokens;
+    const triggerAt = hardLimit - safetyBuffer;
+
     logger.info(
       {
-        compressorState: compressor.getState(),
+        compressorState: state,
+        contextBreakdown: {
+          baseContextTokens,
+          accumulatedTokens,
+          totalTokens,
+          hardLimit,
+          safetyBuffer,
+          triggerAt,
+          remaining: hardLimit - totalTokens,
+        },
       },
       'Triggering layered mid-generation compression'
     );
 
-    const originalMessages = stepMessages.slice(0, originalMessageCount);
-    const generatedMessages = stepMessages.slice(originalMessageCount);
-
     if (generatedMessages.length > 0) {
-      const compressionResult = await compressor.safeCompress(generatedMessages, fullContextSize);
+      const compressionResult = await compressor.safeCompress(generatedMessages, totalTokens);
 
       if (Array.isArray(compressionResult.summary)) {
         const compressedMessages = compressionResult.summary;
@@ -75,9 +97,9 @@ export async function handlePrepareStepCompression(
       const summaryMessage = JSON.stringify(summaryData);
       finalMessages.push({
         role: 'user',
-        content: `Based on your research, here's what you've discovered: ${summaryMessage}
+        content: `Your research has been compressed due to context limits. Here is everything you have discovered so far: ${summaryMessage}
 
-**IMPORTANT**: If you have enough information from this compressed research to answer my original question, please provide your answer now. Only continue with additional tool calls if you need critical missing information that wasn't captured in the research above. When referencing any artifacts from the compressed research, you MUST use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs from the related_artifacts above.`,
+**YOU MUST RESPOND NOW.** You have already conducted extensive research. Do NOT make additional tool calls unless there is a specific critical piece of information that is completely absent from the above summary and is absolutely required to answer the question. If the summary contains enough to answer — even partially — provide your answer immediately. Every unnecessary tool call wastes context and risks losing more of your research. When referencing artifacts, use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs above.`,
       });
 
       logger.info(
@@ -86,6 +108,15 @@ export async function handlePrepareStepCompression(
           compressed: finalMessages.length,
           originalKept: originalMessages.length,
           generatedCompressed: generatedMessages.length,
+          injectedSummary: {
+            highLevel: compressionResult.summary?.high_level,
+            nextStepsForAgent: compressionResult.summary?.next_steps?.for_agent,
+            relatedArtifacts: compressionResult.summary?.related_artifacts?.map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              keyFindings: a.key_findings,
+            })),
+          },
         },
         'AI compression completed successfully'
       );

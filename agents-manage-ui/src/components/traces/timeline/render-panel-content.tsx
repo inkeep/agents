@@ -743,9 +743,20 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
             <Info
-              label="Output tokens"
+              label="Generated tokens"
+              value={a.compressionGeneratedTokens?.toLocaleString() || '0'}
+            />
+            <Info
+              label="Total tokens"
+              value={a.compressionTotalContextTokens?.toLocaleString() || '0'}
+            />
+            <Info
+              label="Context limit"
+              value={a.compressionTriggerAt?.toLocaleString() || '0'}
+            />
+            <Info
+              label="Summary tokens"
               value={a.compressionOutputTokens?.toLocaleString() || '0'}
             />
             {a.compressionRatio !== undefined && (

@@ -67,8 +67,7 @@ export function buildBaseGenerationConfig(
   originalMessageCount: number,
   timeoutMs: number,
   toolChoice: 'auto' | 'required' = 'auto',
-  phase?: string,
-  fullContextSize?: number
+  phase?: string
 ): Record<string, unknown> {
   return {
     ...modelSettings,
@@ -79,8 +78,7 @@ export function buildBaseGenerationConfig(
       return await handlePrepareStepCompression(
         stepMessages,
         compressor,
-        originalMessageCount,
-        fullContextSize
+        originalMessageCount
       );
     },
     stopWhen: async ({ steps }: { steps: unknown[] }) => {
@@ -242,8 +240,7 @@ export async function runGenerate(
           originalMessageCount,
           timeoutMs,
           'auto',
-          dataComponentsSchema ? 'structured_generation' : undefined,
-          contextBreakdown.total
+          dataComponentsSchema ? 'structured_generation' : undefined
         );
 
         const generationConfig = dataComponentsSchema

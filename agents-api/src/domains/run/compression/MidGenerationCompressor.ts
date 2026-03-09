@@ -15,7 +15,20 @@ const logger = getLogger('MidGenerationCompressor');
  */
 export class MidGenerationCompressor extends BaseCompressor {
   private shouldCompress = false;
-  private lastProcessedMessageIndex = 0; // Track where we left off in message processing
+  private generatedMessagesBaseline: number | null = null;
+
+  /**
+   * Called before each compression to record where the next cycle's generated messages start.
+   * Because the AI SDK accumulates all messages in stepMessages regardless of what prepareStep
+   * returns, we track the step count at compression time and slice from there next cycle.
+   */
+  markCompressed(stepCount: number): void {
+    this.generatedMessagesBaseline = stepCount;
+  }
+
+  effectiveBaseline(originalMessageCount: number): number {
+    return this.generatedMessagesBaseline ?? originalMessageCount;
+  }
 
   constructor(
     sessionId: string,
@@ -90,8 +103,11 @@ export class MidGenerationCompressor extends BaseCompressor {
   }
 
   /**
-   * Perform mid-generation compression with incremental processing
-   * Uses base class functionality with mid-generation specific logic
+   * Perform mid-generation compression.
+   * Each call receives the full current generatedMessages array — after compression fires,
+   * the AI SDK replaces step messages with a summary, so the next call starts fresh.
+   * processedToolCalls guards against artifact re-creation; cumulativeSummary carries
+   * forward the prior summary context.
    */
   async compress(messages: any[]): Promise<CompressionResult> {
     const contextSizeBefore = this.calculateContextSize(messages);
@@ -105,17 +121,9 @@ export class MidGenerationCompressor extends BaseCompressor {
       'MID-GENERATION COMPRESSION: Starting compression'
     );
 
-    // For mid-generation, process messages from where we left off (incremental)
-    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(
-      messages,
-      this.lastProcessedMessageIndex
-    );
+    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messages);
 
-    // Only distill NEW messages (old messages are already in cumulativeSummary)
-    const newMessages = messages.slice(this.lastProcessedMessageIndex);
-
-    // Create conversation summary using base class method with only new messages
-    const summary = await this.createConversationSummary(newMessages, toolCallToArtifactMap);
+    const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);
 
     // Calculate context size after compression
     const contextSizeAfter = this.estimateTokens(JSON.stringify(summary));
@@ -130,9 +138,7 @@ export class MidGenerationCompressor extends BaseCompressor {
       compressionType: this.getCompressionType(),
     });
 
-    // Update state for next compression cycle
     this.shouldCompress = false;
-    this.lastProcessedMessageIndex = messages.length;
 
     logger.info(
       {
@@ -160,7 +166,6 @@ export class MidGenerationCompressor extends BaseCompressor {
     return {
       ...super.getState(),
       shouldCompress: this.shouldCompress,
-      lastProcessedMessageIndex: this.lastProcessedMessageIndex,
     };
   }
 }

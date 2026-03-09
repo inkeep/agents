@@ -31,7 +31,7 @@ import {
   STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
-import { getFormattedConversationHistory } from '../data/conversations';
+import { getFormattedConversationHistory, getScopedHistory } from '../data/conversations';
 import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
@@ -1453,16 +1453,27 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           let mainSaveSucceeded = false;
 
-          const conversationHistory = await getFormattedConversationHistory({
+          const recentMessages = await getScopedHistory({
             tenantId: artifactData.tenantId,
             projectId: artifactData.projectId,
             conversationId: artifactData.contextId,
             options: {
-              limit: 10, // Only need recent context
-              includeInternal: false, // Focus on user messages
+              limit: 10,
+              includeInternal: false,
               messageTypes: ['chat'],
             },
           });
+
+          const lastUserMessage = [...recentMessages]
+            .reverse()
+            .find((m: any) => m.role === 'user')?.content?.text ?? null;
+
+          const conversationHistory = recentMessages
+            .map((m: any) => {
+              const role = m.role === 'user' ? 'user' : 'assistant';
+              return `${role}: """${m.content?.text ?? ''}"""`;
+            })
+            .join('\n');
 
           const toolCallEvent = this.events.find(
             (event) =>
@@ -1603,8 +1614,11 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
 CRITICAL: Your name must be different from these existing artifacts: ${existingNames.length > 0 ? existingNames.join(', ') : 'None yet'}
 
-Tool Context: ${toolContext ? JSON.stringify(toolContext.args, null, 2) : 'No args'}
-Context: ${conversationHistory?.slice(-200) || 'No context'}
+User's question: ${lastUserMessage ?? 'Unknown'}
+Tool called: ${toolContext?.toolName ?? toolName}
+Tool args: ${toolContext ? JSON.stringify(toolContext.args, null, 2) : 'No args'}
+Recent conversation:
+${conversationHistory || 'No context'}
 Type: ${artifactData.artifactType || 'data'}
 Data: ${truncatedData}
 

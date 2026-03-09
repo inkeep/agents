@@ -80,7 +80,15 @@ export async function distillConversation(params: {
     const generationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
 
     const existingSummaryContext = currentSummary
-      ? `**Current summary:**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\``
+      ? `**Current summary (MUST be preserved and built upon):**
+
+⚠️ CRITICAL: This is an INCREMENTAL UPDATE. The agent has already done substantial research. You MUST:
+- PRESERVE every finding, fact, and detail from the current summary
+- KEEP ALL related_artifacts from the current summary — do not drop any
+- ADD new discoveries from the messages below on top of what already exists
+- NEVER lose previously captured information
+
+\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\``
       : '**Current summary:** None (first distillation)';
 
     const truncationAttempts = [
@@ -154,6 +162,7 @@ Create/update a summary using this exact JSON schema:
 Return **only** valid JSON.`;
 
       const estimatedTokens = estimateTokens(prompt);
+
 
       if (estimatedTokens > safeLimit) {
         logger.info(

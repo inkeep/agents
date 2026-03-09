@@ -6,6 +6,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { type CompressedArtifactInfo, detectOversizedArtifact } from '../artifacts/artifact-utils';
 import { agentSessionManager } from '../session/AgentSession';
+import { toolSessionManager } from '../agents/services/ToolSessionManager';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { estimateTokens as estimateTokensUtil } from '../utils/token-estimator';
@@ -62,7 +63,7 @@ export abstract class BaseCompressor {
     return estimateTokensUtil(typeof content === 'string' ? content : JSON.stringify(content));
   }
 
-  protected calculateContextSize(messages: any[]): number {
+  calculateContextSize(messages: any[]): number {
     return messages.reduce((total, msg) => {
       if (Array.isArray(msg.content)) {
         for (const block of msg.content) {
@@ -147,6 +148,8 @@ export abstract class BaseCompressor {
         toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
+        name?: string;
+        description?: string;
       }
     >
   > {
@@ -158,6 +161,8 @@ export abstract class BaseCompressor {
         toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
+        name?: string;
+        description?: string;
       }
     >();
 
@@ -181,6 +186,8 @@ export abstract class BaseCompressor {
             toolArgs: artifact.metadata?.toolArgs,
             toolName: artifact.metadata?.toolName as string | undefined,
             summaryData: dataPart?.data?.summary ?? dataPart?.data,
+            name: artifact.name,
+            description: artifact.description,
           });
         }
       }
@@ -233,6 +240,8 @@ export abstract class BaseCompressor {
         toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
+        name?: string;
+        description?: string;
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -245,11 +254,14 @@ export abstract class BaseCompressor {
 
     const existing = existingArtifacts.get(block.toolCallId);
     if (existing) {
+      this.processedToolCalls.add(block.toolCallId);
       return {
         artifactId: existing.artifactId,
         isOversized: existing.isOversized,
         toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
         summaryData: existing.summaryData,
+        name: existing.name,
+        description: existing.description,
       };
     }
 
@@ -349,7 +361,8 @@ export abstract class BaseCompressor {
     const toolResultData = {
       toolName: block.toolName,
       toolInput,
-      toolResult: this.removeStructureHints(block.output),
+      toolResult:
+        toolSessionManager.getToolResult(this.sessionId, block.toolCallId)?.result ?? block.output,
       compressedAt: new Date().toISOString(),
     };
 
@@ -421,6 +434,12 @@ export abstract class BaseCompressor {
               // Intentionally skip tool results without artifact mappings (skipped/internal tools).
               // Only artifact-backed results are included so the distillation prompt stays compact.
               if (artifactInfo) {
+                const header = artifactInfo.name
+                  ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                  : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                const descriptionLine = artifactInfo.description
+                  ? `Description: ${artifactInfo.description}\n`
+                  : '';
                 const summary = artifactInfo.summaryData
                   ? JSON.stringify(artifactInfo.summaryData)
                   : '';
@@ -428,9 +447,7 @@ export abstract class BaseCompressor {
                   perResultLimit && summary.length > perResultLimit
                     ? `${summary.slice(0, perResultLimit)}...`
                     : summary;
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]\n${truncated}`
-                );
+                parts.push(`${header}\n${descriptionLine}${truncated}`);
               } else {
                 logger.debug(
                   { toolCallId: block.toolCallId, toolName: block.toolName },
@@ -453,15 +470,89 @@ export abstract class BaseCompressor {
     messages: any[],
     toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
   ): Promise<any> {
+    const oversizedArtifacts = Object.values(toolCallToArtifactMap).filter((a) => a.isOversized);
+    if (oversizedArtifacts.length > 0) {
+      logger.warn(
+        {
+          sessionId: this.sessionId,
+          oversizedArtifacts: oversizedArtifacts.map((a) => ({
+            artifactId: a.artifactId,
+            oversizedWarning: a.oversizedWarning,
+          })),
+        },
+        'Distilling conversation with oversized artifacts — warning may not reach agent'
+      );
+    }
+
+    const currentSummary = await this.refreshSummaryArtifactNames();
+
     const summary = await distillConversation({
       conversationId: this.conversationId,
-      currentSummary: this.cumulativeSummary,
+      currentSummary,
       summarizerModel: this.summarizerModel,
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
     });
+
+    logger.info(
+      {
+        sessionId: this.sessionId,
+        highLevel: summary.high_level,
+        nextStepsForAgent: summary.next_steps?.for_agent,
+        relatedArtifacts: summary.related_artifacts?.map((a) => ({
+          id: a.id,
+          name: a.name,
+          keyFindings: a.key_findings,
+        })),
+      },
+      'Distillation summary produced'
+    );
+
     this.cumulativeSummary = summary;
     return summary;
+  }
+
+  private async refreshSummaryArtifactNames(): Promise<ConversationSummary | null> {
+    if (!this.cumulativeSummary?.related_artifacts?.length) return this.cumulativeSummary;
+
+    const toolCallIds = this.cumulativeSummary.related_artifacts
+      .map((a) => a.tool_call_id)
+      .filter(Boolean);
+
+    if (!toolCallIds.length) return this.cumulativeSummary;
+
+    try {
+      const artifacts = await getLedgerArtifacts(runDbClient)({
+        scopes: { tenantId: this.tenantId, projectId: this.projectId },
+        toolCallIds,
+      });
+
+      if (!artifacts.length) return this.cumulativeSummary;
+
+      const nameMap = new Map(
+        artifacts
+          .filter((a) => a.toolCallId && (a.name || a.description))
+          .map((a) => [a.toolCallId, { name: a.name, description: a.description }])
+      );
+
+      const refreshed = {
+        ...this.cumulativeSummary,
+        related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
+          const db = nameMap.get(a.tool_call_id);
+          return db
+            ? { ...a, name: db.name ?? a.name, ...(db.description ? { description: db.description } : {}) }
+            : a;
+        }),
+      };
+
+      return refreshed;
+    } catch (error) {
+      logger.warn(
+        { sessionId: this.sessionId, error: error instanceof Error ? error.message : String(error) },
+        'Failed to refresh artifact names from DB, using cached summary'
+      );
+      return this.cumulativeSummary;
+    }
   }
 
   protected generatePreview(value: any, maxChars = 150): string | null {
@@ -481,19 +572,6 @@ export abstract class BaseCompressor {
     if (session) {
       session.recordEvent('compression', this.sessionId, eventData);
     }
-  }
-
-  protected removeStructureHints(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (Array.isArray(obj)) return obj.map((item) => this.removeStructureHints(item));
-    if (typeof obj === 'object') {
-      const cleaned: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (key !== '_structureHints') cleaned[key] = this.removeStructureHints(value);
-      }
-      return cleaned;
-    }
-    return obj;
   }
 
   getCompressionSummary(): ConversationSummary | null {
@@ -529,6 +607,12 @@ export abstract class BaseCompressor {
   }
 
   async safeCompress(messages: any[], fullContextSize?: number): Promise<CompressionResult> {
+    const hardLimit = this.getHardLimit();
+    const triggerAt = hardLimit - this.config.safetyBuffer;
+    const generatedTokens = this.calculateContextSize(messages);
+    const totalContextTokens = fullContextSize ?? generatedTokens;
+    const baseContextTokens = totalContextTokens - generatedTokens;
+
     return await tracer.startActiveSpan(
       'compressor.safe_compress',
       {
@@ -536,10 +620,13 @@ export abstract class BaseCompressor {
           'compression.type': this.getCompressionType(),
           'compression.session_id': this.sessionId,
           'compression.message_count': messages.length,
-          'compression.input_tokens': this.calculateContextSize(messages),
-          'compression.full_context_size': fullContextSize,
-          'compression.hard_limit': this.getHardLimit(),
+          'compression.base_context_tokens': baseContextTokens,
+          'compression.generated_tokens': generatedTokens,
+          'compression.total_context_tokens': totalContextTokens,
+          'compression.hard_limit': hardLimit,
+          'compression.trigger_at': triggerAt,
           'compression.safety_buffer': this.config.safetyBuffer,
+          'compression.overage': totalContextTokens - triggerAt,
         },
       },
       async (compressionSpan: Span) => {
@@ -548,14 +635,22 @@ export abstract class BaseCompressor {
           const resultTokens = Array.isArray(result.summary)
             ? this.calculateContextSize(result.summary)
             : this.estimateTokens(result.summary);
-          const inputTokens = fullContextSize ?? this.calculateContextSize(messages);
+          const summary = Array.isArray(result.summary) ? null : result.summary;
           compressionSpan.setAttributes({
+            'compression.success': true,
             'compression.result.artifact_count': result.artifactIds.length,
+            'compression.result.artifact_ids': result.artifactIds.join(','),
             'compression.result.output_tokens': resultTokens,
             'compression.result.compression_ratio':
-              inputTokens > 0 ? (inputTokens - resultTokens) / inputTokens : 0,
-            'compression.success': true,
-            'compression.result.summary': result.summary?.high_level || '',
+              generatedTokens > 0 ? (generatedTokens - resultTokens) / generatedTokens : 0,
+            'compression.result.high_level': summary?.high_level ?? '',
+            'compression.result.user_intent': summary?.user_intent ?? '',
+            'compression.result.decisions': JSON.stringify(summary?.decisions ?? []),
+            'compression.result.next_steps_for_agent': JSON.stringify(
+              summary?.next_steps?.for_agent ?? []
+            ),
+            'compression.result.open_questions_count': summary?.open_questions?.length ?? 0,
+            'compression.result.related_artifact_count': summary?.related_artifacts?.length ?? 0,
           });
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return result;
@@ -576,13 +671,13 @@ export abstract class BaseCompressor {
           const fallbackTokens = Array.isArray(fallbackResult.summary)
             ? this.calculateContextSize(fallbackResult.summary)
             : this.estimateTokens(fallbackResult.summary);
-          const inputTokens = fullContextSize ?? this.calculateContextSize(messages);
           compressionSpan.setAttributes({
+            'compression.success': true,
             'compression.result.artifact_count': fallbackResult.artifactIds.length,
+            'compression.result.artifact_ids': fallbackResult.artifactIds.join(','),
             'compression.result.output_tokens': fallbackTokens,
             'compression.result.compression_ratio':
-              inputTokens > 0 ? (inputTokens - fallbackTokens) / inputTokens : 0,
-            'compression.success': true,
+              totalContextTokens > 0 ? (totalContextTokens - fallbackTokens) / totalContextTokens : 0,
           });
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return fallbackResult;
