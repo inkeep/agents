@@ -22,6 +22,7 @@ import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
   externalAgentNodeTargetHandleId,
+  type FunctionToolNodeData,
   functionToolNodeHandleId,
   type MCPNodeData,
   mcpNodeHandleId,
@@ -68,6 +69,7 @@ import type { ExternalAgent } from '@/lib/api/external-agents';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
+  FullAgentPayload,
   FullAgentResponse,
   SubAgentExternalAgentConfig,
   SubAgentExternalAgentConfigLookup,
@@ -934,7 +936,8 @@ export const Agent: FC<AgentProps> = ({
             requestAnimationFrame(() => {
               for (const node of state.nodes) {
                 if (node.type === NodeType.FunctionTool) {
-                  form.unregister([`functions.${node.toolId}`, `functionTools.${node.toolId}`]);
+                  const { toolId } = node.data as FunctionToolNodeData;
+                  form.unregister([`functions.${toolId}`, `functionTools.${toolId}`]);
                 } else if (node.type === NodeType.MCP) {
                   form.unregister(`mcpRelations.${node.id}`);
                 } else if (node.type === NodeType.TeamAgent) {
