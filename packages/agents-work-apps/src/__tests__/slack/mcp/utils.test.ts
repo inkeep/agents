@@ -155,7 +155,9 @@ describe('slack mcp utils', () => {
     });
 
     it('preserves extra properties on returned objects', () => {
-      const extended = [{ id: 'U1', realName: 'Jane', displayName: 'j', name: 'j', email: 'jane@co.com' }];
+      const extended = [
+        { id: 'U1', realName: 'Jane', displayName: 'j', name: 'j', email: 'jane@co.com' },
+      ];
       const results = searchUsersByName(extended, 'jane');
       expect(results[0]).toHaveProperty('email', 'jane@co.com');
     });
