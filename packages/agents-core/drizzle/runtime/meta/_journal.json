@@ -152,13 +152,6 @@
     {
       "idx": 21,
       "version": "7",
-      "when": 1772868322375,
-      "tag": "0021_good_zeigeist",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
       "when": 1772828388563,
       "tag": "0021_careful_xorn",
       "breakpoints": true

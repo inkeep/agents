@@ -1,5 +1,5 @@
 {
-  "id": "ef33ab57-e8f2-4b4f-a5b8-d45b5ecb269d",
+  "id": "2bfee8e9-8bdd-4380-923a-1e91307177bc",
   "prevId": "876a9314-fb24-4607-85ce-4bee15878873",
   "version": "7",
   "dialect": "postgresql",
@@ -283,122 +283,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.apps": {
-      "name": "apps",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "type": {
-          "name": "type",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "default_project_id": {
-          "name": "default_project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_agent_id": {
-          "name": "default_agent_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "config": {
-          "name": "config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_used_at": {
-          "name": "last_used_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "apps_tenant_project_idx": {
-          "name": "apps_tenant_project_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2944,9 +2828,11 @@
         }
       },
       "compositePrimaryKeys": {
-        "work_app_github_mcp_tool_access_mode_tool_id_pk": {
-          "name": "work_app_github_mcp_tool_access_mode_tool_id_pk",
+        "work_app_github_mcp_tool_access_mode_tenant_id_project_id_tool_id_pk": {
+          "name": "work_app_github_mcp_tool_access_mode_tenant_id_project_id_tool_id_pk",
           "columns": [
+            "tenant_id",
+            "project_id",
             "tool_id"
           ]
         }
