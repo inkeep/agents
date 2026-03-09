@@ -13,7 +13,6 @@ import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
 } from '@/lib/types/agent-full';
-import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { Skill } from '@/lib/types/skills';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
@@ -24,7 +23,6 @@ interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
-  externalAgentLookup: Record<string, ExternalAgent>;
   agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   dirty: boolean;
@@ -62,12 +60,10 @@ interface AgentActions {
     metadata: AgentMetadata,
     availableSkills: Skill[],
     agentToolConfigLookup?: AgentToolConfigLookup,
-    externalAgentLookup?: Record<string, ExternalAgent>,
     subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
   ): void;
   reset(): void;
   setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
-  setExternalAgentLookup(externalAgentLookup: Record<string, ExternalAgent>): void;
   setSubAgentExternalAgentConfigLookup(
     subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup
   ): void;
@@ -134,7 +130,6 @@ const initialAgentState: AgentStateData = {
     statusUpdates: undefined,
   },
   agentToolConfigLookup: {},
-  externalAgentLookup: {},
   subAgentExternalAgentConfigLookup: {},
   dirty: false,
   history: [],
@@ -164,7 +159,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       metadata,
       availableSkills,
       agentToolConfigLookup = {},
-      externalAgentLookup = {},
       subAgentExternalAgentConfigLookup = {}
     ) {
       set({
@@ -172,7 +166,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         edges,
         metadata,
         agentToolConfigLookup,
-        externalAgentLookup,
         subAgentExternalAgentConfigLookup,
         availableSkills,
         dirty: false,
@@ -191,9 +184,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     setAgentToolConfigLookup(agentToolConfigLookup) {
       set({ agentToolConfigLookup });
-    },
-    setExternalAgentLookup(externalAgentLookup) {
-      set({ externalAgentLookup });
     },
     setSubAgentExternalAgentConfigLookup(subAgentExternalAgentConfigLookup) {
       set({ subAgentExternalAgentConfigLookup });
