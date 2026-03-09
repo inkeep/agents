@@ -80,7 +80,8 @@ export function TeamAgentNodeEditor({
         name={path('description')}
         label="Description"
         placeholder="This agent is responsible for..."
-        disabled={isRequired(FullAgentTeamAgentSchema, 'description')}
+        disabled
+        isRequired={isRequired(FullAgentTeamAgentSchema, 'description')}
       />
       <GenericJsonEditor
         control={form.control}
