@@ -59,6 +59,18 @@ Sends a direct message to a Slack user.
 
 The agent knows how to send a DM to the user asking the question out of the box — no additional prompting or configuration is required.
 
+### `get-slack-user`
+
+Looks up a Slack user by their user ID, email address, or name. Provide exactly one parameter:
+
+| Parameter | Description |
+|-----------|-------------|
+| `user_id` | Slack user ID (e.g., `U1234567890`). Returns an exact match. |
+| `email` | Email address (e.g., `jane@company.com`). Returns an exact match. |
+| `name` | Display name, real name, or username to search for. Returns up to 5 ranked matches. |
+
+When searching by name, the agent should clarify with the user if multiple results are returned.
+
 
 ## Edit channel access
 
