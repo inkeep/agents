@@ -556,6 +556,7 @@ describe('serializeAgentData', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
+            toolId: 'function-tool-1',
             functionId: 'function-1',
             name: 'Lookup customer',
             description: 'Looks up customer information',
@@ -873,6 +874,7 @@ describe('serializeAgentData', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
+            toolId: 'function-tool-1',
             functionId: 'function-1',
             name: 'Lookup customer',
             description: 'Looks up customer information',
@@ -920,8 +922,6 @@ describe('serializeAgentData', () => {
       expect(result.functions).toEqual({
         'function-1': {
           id: 'function-1',
-          name: 'Lookup customer',
-          description: 'Looks up customer information',
           executeCode: 'async function execute() { return { ok: true }; }',
           inputSchema: {
             type: 'object',
