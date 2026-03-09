@@ -3,15 +3,8 @@
 import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
 import { type ComponentProps, createContext, use, useId } from 'react';
-import {
-  Controller,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
-  FormProvider,
-  useFormContext,
-  useFormState,
-} from 'react-hook-form';
+import { Controller, FormProvider, useFormContext, useFormState } from 'react-hook-form';
+import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +17,7 @@ type FormFieldContextValue<
   name: TName;
 };
 
-const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldContextValue);
+const FormFieldContext = createContext<FormFieldContextValue | null>(null);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -40,34 +33,33 @@ const FormField = <
   );
 };
 
-const useFormField = () => {
+function useFormField() {
   const fieldContext = use(FormFieldContext);
   const itemContext = use(FormItemContext);
-  const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: fieldContext.name });
-  const fieldState = getFieldState(fieldContext.name, formState);
-
-  if (!fieldContext) {
+  if (!itemContext || !fieldContext) {
     throw new Error('useFormField must be used within a <FormField />');
   }
-
+  const { name } = fieldContext;
+  const { getFieldState } = useFormContext();
+  const formState = useFormState({ name: name });
+  const fieldState = getFieldState(name, formState);
   const { id } = itemContext;
 
   return {
     id,
-    name: fieldContext.name,
+    name,
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
   };
-};
+}
 
 type FormItemContextValue = {
   id: string;
 };
 
-const FormItemContext = createContext<FormItemContextValue>({} as FormItemContextValue);
+const FormItemContext = createContext<FormItemContextValue | null>(null);
 
 function FormItem({ className, ...props }: ComponentProps<'div'>) {
   const id = useId();
