@@ -3,30 +3,21 @@ import type { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import {
-  type AgentNodeData,
-  type FunctionToolNodeData,
-  NodeType,
-} from '@/components/agent/configuration/node-types';
+import { type FunctionToolNodeData, NodeType } from '@/components/agent/configuration/node-types';
 import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/validation';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
   FullAgentOutput,
-  InternalAgentDefinition,
+  FullAgentPayload,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 
-type ExtendedAgent = InternalAgentDefinition & {
-  dataComponents: string[];
-  artifactComponents: string[];
-  models?: AgentModels;
-  type: 'internal';
-};
+type ExtendedAgent = FullAgentPayload['subAgents'][string];
 
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
 
@@ -173,7 +164,7 @@ export function serializeAgentData(
   externalAgentFormData?: FullAgentOutput['externalAgents'],
   teamAgentFormData?: FullAgentOutput['teamAgents']
 ): SerializeAgentDataType {
-  const subAgents: Record<string, ExtendedAgent> = {};
+  const subAgents: SerializeAgentDataType['subAgents'] = {};
   const externalAgents: Record<
     string,
     ExternalAgent & { relationshipId: string | null; headers?: Record<string, string> }
@@ -182,8 +173,8 @@ export function serializeAgentData(
     string,
     TeamAgent & { relationshipId: string | null; headers?: Record<string, string> }
   > = {};
-  const functionTools: Record<string, any> = {};
-  const functions: Record<string, any> = {};
+  const functionTools: NonNullable<SerializeAgentDataType['functionTools']> = {};
+  const functions: NonNullable<SerializeAgentDataType['functions']> = {};
   // Note: Tools are now project-scoped and not included in agent serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
