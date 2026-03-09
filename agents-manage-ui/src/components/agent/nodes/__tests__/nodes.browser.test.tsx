@@ -30,6 +30,13 @@ vi.mock('@/lib/query/mcp-tools', () => {
     },
   };
 });
+vi.mock('@/lib/query/data-components', () => {
+  return {
+    useDataComponentsQuery() {
+      return { data: [] };
+    },
+  };
+});
 
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
