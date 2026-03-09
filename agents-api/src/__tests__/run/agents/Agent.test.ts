@@ -7,6 +7,11 @@ import type {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
+import { buildSystemPrompt } from '../../../domains/run/agents/generation/system-prompt';
+import { buildToolResultForConversationHistory } from '../../../domains/run/agents/generation/tool-result-for-conversation-history';
+import { buildToolResultForModelInput } from '../../../domains/run/agents/generation/tool-result-for-model-input';
+import { getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
+import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -131,6 +136,7 @@ const {
   agentHasArtifactComponentsMock,
   getToolsForAgentMock,
   getFunctionToolsForSubAgentMock,
+  buildPersistedMessageContentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -152,6 +158,7 @@ const {
     })
   );
   const getFunctionToolsForSubAgentMock = vi.fn().mockResolvedValue([]);
+  const buildPersistedMessageContentMock = vi.fn();
 
   return {
     getCredentialReferenceMock,
@@ -162,6 +169,7 @@ const {
     agentHasArtifactComponentsMock,
     getToolsForAgentMock,
     getFunctionToolsForSubAgentMock,
+    buildPersistedMessageContentMock,
   };
 });
 
@@ -228,7 +236,7 @@ vi.mock('../../../domains/run/data/conversations', async (importOriginal) => {
 });
 
 // Mock ToolSessionManager
-vi.mock('../../../domains/run/agents/ToolSessionManager', () => ({
+vi.mock('../../../domains/run/agents/services/ToolSessionManager', () => ({
   toolSessionManager: {
     createSession: vi.fn().mockReturnValue('test-session-id'),
     endSession: vi.fn(),
@@ -248,14 +256,18 @@ vi.mock('../../../domains/run/agents/ToolSessionManager', () => ({
 }));
 
 // Mock AgentSessionManager
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     recordEvent: vi.fn(),
   },
 }));
 
+vi.mock('../../../domains/run/services/blob-storage/image-upload-helpers', () => ({
+  buildPersistedMessageContent: buildPersistedMessageContentMock,
+}));
+
 // Mock ResponseFormatter
-vi.mock('../../../domains/run/services/ResponseFormatter.js', () => ({
+vi.mock('../../../domains/run/stream/ResponseFormatter.js', () => ({
   ResponseFormatter: vi.fn().mockImplementation(() => ({
     formatObjectResponse: vi.fn().mockResolvedValue({
       parts: [
@@ -528,14 +540,29 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should create Agent and use SystemPromptBuilder to generate XML system prompt', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
 
     expect(systemPromptBuilder).toBeDefined();
     expect(systemPromptBuilder.buildSystemPrompt).toBeDefined();
 
     // Call buildSystemPrompt to ensure it works
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
-    const result = await buildSystemPrompt();
+    // buildSystemPrompt now imported from generation/system-prompt
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: {
+        tools: mockMcpTools,
+        toolSets: [
+          {
+            mcpServerName: 'Test Tool',
+            serverInstructions: undefined,
+            mcpServerId: 'test-tool-id',
+            toolPolicies: {},
+            tools: mockMcpTools,
+          },
+        ],
+      },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result.prompt).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
@@ -584,12 +611,16 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   test('should handle Agent with no tools', async () => {
     const configWithNoTools = { ...mockAgentConfig, tools: [] };
     const agent = new Agent(configWithNoTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
@@ -611,12 +642,16 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   test('should handle Agent with undefined tools', async () => {
     const configWithUndefinedTools = { ...mockAgentConfig, tools: undefined };
     const agent = new Agent(configWithUndefinedTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
@@ -649,12 +684,27 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       ],
     };
     const agent = new Agent(configWithEmptyAvailableTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: {
+        tools: {},
+        toolSets: [
+          {
+            mcpServerName: 'Test Tool',
+            serverInstructions: undefined,
+            mcpServerId: 'test-tool-id',
+            toolPolicies: {},
+            tools: {},
+          },
+        ],
+      },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
@@ -681,7 +731,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should use v1 version of SystemPromptBuilder by default', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
 
     // Verify the SystemPromptBuilder was instantiated with 'v1' and PromptConfig
     expect(systemPromptBuilder).toBeDefined();
@@ -736,7 +786,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
 
   test('should apply default conversationHistoryConfig when none provided', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const config = (agent as any).config;
+    const config = (agent as any).ctx.config;
 
     expect(config.conversationHistoryConfig).toBeDefined();
     expect(config.conversationHistoryConfig.mode).toBe('full');
@@ -761,7 +811,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithHistory, mockExecutionContext);
-    const config = (agent as any).config;
+    const config = (agent as any).ctx.config;
 
     expect(config.conversationHistoryConfig).toEqual(customConfig);
   });
@@ -1056,7 +1106,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-latest',
+          model: 'anthropic/claude-3-5-haiku',
           providerOptions: {
             anthropic: {
               temperature: 0.5,
@@ -1144,7 +1194,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-latest',
+          model: 'anthropic/claude-3-5-haiku',
         },
       },
     };
@@ -1154,7 +1204,7 @@ describe('Agent Model Settings', () => {
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-3-5-haiku-latest',
+      model: 'anthropic/claude-3-5-haiku',
       providerOptions: undefined,
     });
   });
@@ -1228,7 +1278,7 @@ describe('Agent Conditional Tool Availability', () => {
     const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have no artifact tools
     expect(tools.get_reference_artifact).toBeUndefined();
@@ -1246,7 +1296,7 @@ describe('Agent Conditional Tool Availability', () => {
     const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
@@ -1284,7 +1334,7 @@ describe('Agent Conditional Tool Availability', () => {
     const agent = new Agent(config, mockExecutionContext);
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
@@ -1312,10 +1362,10 @@ describe('Agent Conditional Tool Availability', () => {
     };
 
     const agent = new Agent(config, mockExecutionContext);
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     expect(tools.load_skill).toBeDefined();
-    const result = await tools.load_skill.execute({ name: 'on-demand-skill' });
+    const result = await (tools.load_skill as any).execute({ name: 'on-demand-skill' });
     expect(result).toMatchObject({
       id: 'on-demand-skill',
       name: 'on-demand-skill',
@@ -1463,5 +1513,163 @@ describe('Agent Image Support', () => {
         ]),
       })
     );
+  });
+});
+
+describe('Agent tool result persistence', () => {
+  const makeAgent = () => {
+    const config: AgentConfig = {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      name: 'Test Agent',
+      description: 'Test agent',
+      prompt: 'Test instructions',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      tools: [],
+      dataComponents: [],
+    };
+    const executionContext = createMockExecutionContext() as any;
+    return new Agent(config, executionContext);
+  };
+
+  const makeRunContext = () => {
+    const agent = makeAgent() as any;
+    return agent.ctx;
+  };
+
+  test('builds message content with uploaded image parts', async () => {
+    buildPersistedMessageContentMock.mockResolvedValue({
+      text: 'persisted text',
+      parts: [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+          metadata: { mimeType: 'image/webp', type: 'image' },
+        },
+      ],
+    });
+
+    const result = {
+      content: [
+        {
+          type: 'text',
+          text: { success: true },
+        },
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+      ],
+      isError: false,
+    };
+
+    const content = await buildToolResultForConversationHistory(
+      makeRunContext(),
+      'get_ticket_attachments',
+      { ticket_id: 6662 },
+      result,
+      'toolu_123',
+      'conv-123',
+      'msg-123'
+    );
+
+    expect(buildPersistedMessageContentMock).toHaveBeenCalledWith(
+      expect.stringContaining('## Tool: get_ticket_attachments'),
+      [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          file: {
+            bytes: 'base64-image-data',
+            mimeType: 'image/webp',
+          },
+          metadata: { type: 'image' },
+        },
+      ],
+      {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        conversationId: 'conv-123',
+        messageId: 'msg-123',
+      }
+    );
+    expect(content.parts).toEqual([
+      { kind: 'text', text: '{\n  "success": true\n}' },
+      {
+        kind: 'file',
+        data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+        metadata: { mimeType: 'image/webp', type: 'image' },
+      },
+    ]);
+  });
+
+  test('maps image content to image tool result output parts', () => {
+    const output = buildToolResultForModelInput({
+      content: [
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+        {
+          type: 'image',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'image-data',
+          data: 'base64-image-data',
+          mediaType: 'image/webp',
+        },
+        {
+          type: 'image-url',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+  });
+
+  test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
+    const structureHints = { terminalPaths: ['result.foo[string]'] };
+
+    const output = buildToolResultForModelInput({
+      content: [{ type: 'text', text: 'some text' }],
+      _toolCallId: 'toolu_abc',
+      _structureHints: structureHints,
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'text',
+          text: JSON.stringify({ _toolCallId: 'toolu_abc', _structureHints: structureHints }),
+        },
+        { type: 'text', text: 'some text' },
+      ],
+    });
+  });
+
+  test('preserves execution-denied tool result output type', () => {
+    const output = buildToolResultForModelInput(
+      createDeniedToolResult('toolu_123', 'User denied this tool call')
+    );
+
+    expect(output).toEqual({
+      type: 'execution-denied',
+      reason: 'User denied this tool call',
+    });
   });
 });

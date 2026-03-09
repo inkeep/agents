@@ -231,12 +231,12 @@ vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
 }));
 
 // Mock stream registry
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn(),
 }));
 
 // Mock the session managers to prevent loading heavy dependencies
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     getSession: vi.fn(),
     createSession: vi.fn(),

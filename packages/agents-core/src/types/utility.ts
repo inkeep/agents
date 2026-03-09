@@ -1,6 +1,8 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  ChannelAccessModeSchema,
+  ChannelIdsSchema,
   EvaluationJobFilterCriteriaSchema,
   McpTransportConfigSchema,
   ModelSchema,
@@ -410,3 +412,11 @@ export type WorkAppGitHubInstallationStatus = z.infer<typeof WorkAppGitHubInstal
  * - 'User': Installed on a personal GitHub account
  */
 export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSchema>;
+
+/**
+ * Channel access mode for the slack MCP tool.
+ * - 'all': Tool has access to all channels
+ * - 'selected': Tool only has access to channels listed in work_app_slack_mcp_tool_access_config
+ */
+export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
+export type ChannelIds = z.infer<typeof ChannelIdsSchema>;

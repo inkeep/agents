@@ -21,6 +21,7 @@
 
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  deleteAllSlackMcpToolAccessConfigsByTenant,
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackChannelAgentConfig,
@@ -599,6 +600,15 @@ app.openapi(
       );
       if (deletedMappings > 0) {
         logger.info({ teamId, deletedMappings }, 'Deleted user mappings for uninstalled workspace');
+      }
+
+      const deletedMcpConfigs =
+        await deleteAllSlackMcpToolAccessConfigsByTenant(runDbClient)(tenantId);
+      if (deletedMcpConfigs > 0) {
+        logger.info(
+          { teamId, deletedMcpConfigs },
+          'Deleted MCP tool access configs for uninstalled workspace'
+        );
       }
 
       const dbDeleted =

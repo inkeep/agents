@@ -541,7 +541,7 @@ export function clearDevConfigWorkspaceDefaultsByAgent(projectId: string, agentI
     const defaultAgent = JSON.parse(config.metadata.default_agent);
     if (defaultAgent.agentId === agentId && defaultAgent.projectId === projectId) {
       config.metadata.default_agent = '';
-      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+      writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
     }
   } catch {
     // Invalid JSON or file read error — safe to ignore during cleanup
@@ -559,7 +559,7 @@ export function clearDevConfigWorkspaceDefaultsByProject(projectId: string): voi
     const defaultAgent = JSON.parse(config.metadata.default_agent);
     if (defaultAgent.projectId === projectId) {
       config.metadata.default_agent = '';
-      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+      writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
     }
   } catch {
     // Invalid JSON or file read error — safe to ignore during cleanup

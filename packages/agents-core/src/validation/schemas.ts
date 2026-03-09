@@ -60,6 +60,7 @@ import {
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
   workAppSlackChannelAgentConfigs,
+  workAppSlackMcpToolAccessConfig,
   workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
@@ -2988,6 +2989,10 @@ export const TenantProjectAgentSubAgentParamsSchema = TenantProjectAgentParamsSc
   subAgentId: SubAgentId,
 });
 
+export const TenantProjectToolParamsSchema = TenantProjectParamsSchema.extend({
+  toolId: z.string().min(1).describe('The tool ID'),
+});
+
 export const TenantProjectAgentSubAgentIdParamsSchema =
   TenantProjectAgentSubAgentParamsSchema.extend({
     id: ResourceIdSchema,
@@ -3140,6 +3145,39 @@ export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequ
 
 export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
 export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;
+
+export const ChannelIdsSchema = z
+  .array(z.string())
+  .describe('List of allowed channel IDs (only used when channelAccessMode is "selected")');
+
+const DmEnabledSchema = z.boolean().describe('Whether DM access is enabled for this tool');
+
+export const ChannelAccessModeSchema = z
+  .enum(['all', 'selected'])
+  .describe(
+    'Channel access mode: "all" means the MCP tool can post to any channel, ' +
+      '"selected" means the tool is scoped to specific channels'
+  );
+
+export const WorkAppSlackMcpToolAccessConfigInsertSchema = omitTimestamps(
+  createInsertSchema(workAppSlackMcpToolAccessConfig)
+).extend({
+  channelAccessMode: ChannelAccessModeSchema,
+  dmEnabled: DmEnabledSchema,
+  channelIds: ChannelIdsSchema,
+});
+
+export const WorkAppSlackMcpToolAccessConfigApiInsertSchema = createApiInsertSchema(
+  WorkAppSlackMcpToolAccessConfigInsertSchema
+)
+  .omit({
+    toolId: true,
+  })
+  .extend({
+    channelAccessMode: ChannelAccessModeSchema,
+    dmEnabled: DmEnabledSchema,
+    channelIds: ChannelIdsSchema.default([]),
+  });
 
 const timezoneSchema = z
   .string()
