@@ -445,8 +445,8 @@ describe('PoW Challenge Endpoint', () => {
 
       expect(res.status).toBe(404);
       const body = await res.json();
-      expect(body.error).toBe('pow_disabled');
-      expect(body.message).toBe('PoW is not enabled');
+      expect(body.error.code).toBe('not_found');
+      expect(body.error.message).toBe('PoW is not enabled');
     });
 
     it('should return a valid challenge when PoW is enabled', async () => {

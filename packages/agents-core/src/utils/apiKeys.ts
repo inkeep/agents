@@ -163,5 +163,19 @@ export function generateAppCredential(): AppCredentialResult {
 }
 
 export function sanitizeAppConfig<T>(app: T): T {
-  return app;
+  if (!app || typeof app !== 'object') return app;
+
+  const record = app as Record<string, unknown>;
+  const { tenantId, projectId, keyHash, ...rest } = record;
+
+  if (rest.config && typeof rest.config === 'object' && rest.config !== null) {
+    const config = rest.config as Record<string, unknown>;
+    if (config.type === 'web_client' && config.webClient && typeof config.webClient === 'object') {
+      const webClient = config.webClient as Record<string, unknown>;
+      const { hs256Secret, ...safeWebClient } = webClient;
+      rest.config = { ...config, webClient: safeWebClient };
+    }
+  }
+
+  return rest as T;
 }

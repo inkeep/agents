@@ -47,8 +47,10 @@ const PowChallengeResponseSchema = z
 
 const PowDisabledErrorSchema = z
   .object({
-    error: z.literal('pow_disabled'),
-    message: z.string(),
+    error: z.object({
+      code: z.literal('not_found'),
+      message: z.string(),
+    }),
   })
   .openapi('PowDisabledError');
 
@@ -87,7 +89,7 @@ app.openapi(
   async (c) => {
     const hmacSecret = env.INKEEP_POW_HMAC_SECRET;
     if (!hmacSecret) {
-      return c.json({ error: 'pow_disabled' as const, message: 'PoW is not enabled' }, 404);
+      return c.json({ error: { code: 'not_found' as const, message: 'PoW is not enabled' } }, 404);
     }
 
     const challenge = await createChallenge({

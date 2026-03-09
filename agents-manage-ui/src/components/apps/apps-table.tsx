@@ -42,6 +42,7 @@ function AppIdCell({ appId }: { appId: string }) {
     <button
       type="button"
       onClick={() => copyToClipboard(appId)}
+      aria-label={isCopied ? 'Copied App ID' : 'Copy App ID to clipboard'}
       className="group/appid relative cursor-pointer bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono overflow-hidden"
     >
       {appId}

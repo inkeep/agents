@@ -19,8 +19,12 @@ export async function verifyPoW(
     return { ok: false, error: 'pow_required' };
   }
 
-  const valid = await verifySolution(altchaHeader, hmacSecret);
-  if (!valid) {
+  try {
+    const valid = await verifySolution(altchaHeader, hmacSecret);
+    if (!valid) {
+      return { ok: false, error: 'pow_invalid' };
+    }
+  } catch {
     return { ok: false, error: 'pow_invalid' };
   }
 

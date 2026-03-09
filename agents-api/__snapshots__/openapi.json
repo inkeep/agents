@@ -6186,18 +6186,26 @@
       "PowDisabledError": {
         "properties": {
           "error": {
-            "enum": [
-              "pow_disabled"
+            "properties": {
+              "code": {
+                "enum": [
+                  "not_found"
+                ],
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
             ],
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
+            "type": "object"
           }
         },
         "required": [
-          "error",
-          "message"
+          "error"
         ],
         "type": "object"
       },

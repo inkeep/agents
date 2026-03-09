@@ -201,6 +201,89 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('tenant isolation', () => {
+    it('should return 404 when getting app from different tenant', async () => {
+      const tenantId1 = await createTestTenantWithOrg('apps-iso-get-1');
+      const tenantId2 = await createTestTenantWithOrg('apps-iso-get-2');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId2, projectId);
+
+      const { app } = await createTestApp({ tenantId: tenantId1, projectId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId2}/projects/${projectId}/apps/${app.id}`
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 404 when updating app from different tenant', async () => {
+      const tenantId1 = await createTestTenantWithOrg('apps-iso-update-1');
+      const tenantId2 = await createTestTenantWithOrg('apps-iso-update-2');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId2, projectId);
+
+      const { app } = await createTestApp({ tenantId: tenantId1, projectId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId2}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'Hijacked' }),
+        }
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 404 when deleting app from different tenant', async () => {
+      const tenantId1 = await createTestTenantWithOrg('apps-iso-delete-1');
+      const tenantId2 = await createTestTenantWithOrg('apps-iso-delete-2');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId2, projectId);
+
+      const { app } = await createTestApp({ tenantId: tenantId1, projectId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId2}/projects/${projectId}/apps/${app.id}`,
+        { method: 'DELETE' }
+      );
+      expect(res.status).toBe(404);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId1}/projects/${projectId}/apps/${app.id}`
+      );
+      expect(getRes.status).toBe(200);
+    });
+  });
+
+  describe('Security', () => {
+    it('should not expose tenantId or projectId in responses', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-security');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`
+      );
+      const getBody = await getRes.json();
+      expect(getBody.data).not.toHaveProperty('tenantId');
+      expect(getBody.data).not.toHaveProperty('projectId');
+      expect(getBody.data).not.toHaveProperty('keyHash');
+
+      const listRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`);
+      const listBody = await listRes.json();
+      for (const item of listBody.data) {
+        expect(item).not.toHaveProperty('tenantId');
+        expect(item).not.toHaveProperty('projectId');
+        expect(item).not.toHaveProperty('keyHash');
+      }
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete app', async () => {
       const tenantId = await createTestTenantWithOrg('apps-delete');

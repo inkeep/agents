@@ -25,7 +25,7 @@ export function AppCredentialDisplay({ appId, open, onClose }: AppCredentialDisp
         if (!isOpen) onClose();
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>Your App ID</AlertDialogTitle>
           <AlertDialogDescription>
