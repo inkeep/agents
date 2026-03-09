@@ -91,7 +91,9 @@ export function MCPServerNodeEditor({
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
   useEffect(() => {
     const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
-    if (existingRelation) {
+    // On mount, a relation may already exist but contain only empty headers,
+    // without `toolId` or `relationshipId`.
+    if (existingRelation?.toolId) {
       return;
     }
 

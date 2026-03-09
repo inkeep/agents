@@ -63,6 +63,7 @@ export default defineConfig({
           return;
         }
         await fs.rm(results.video, { force: true });
+        await fs.rm(results.video.replace('.mp4', '-compressed.mp4'), { force: true });
       });
     },
   },

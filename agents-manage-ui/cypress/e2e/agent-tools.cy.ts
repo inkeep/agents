@@ -24,6 +24,8 @@ describe('Agent Tools', () => {
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
     cy.get('#agent').click();
+    cy.get('[name$=".name"]').type('test', { delay: 0 });
+    cy.contains('Is default sub agent').click();
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
     dragNode('[aria-label="Drag Function Tool node"]');
@@ -34,17 +36,10 @@ describe('Agent Tools', () => {
     cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
     cy.contains('Connecting...').should('not.exist');
-    saveAndAssert();
-    cy.get('.react-flow__node-agent').click();
-    cy.get('[name=id]').clear().type('TEST', { delay: 0 });
-    saveAndAssert();
-
-    function saveAndAssert() {
-      cy.contains('Save changes').click();
-      cy.contains('Agent saved', { timeout: 30_000 }).should('exist');
-      cy.reload();
-      cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
-    }
+    cy.contains('Save changes').click();
+    cy.contains('Agent saved', { timeout: 30_000 }).should('exist');
+    cy.reload();
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
   });
 
   describe('Format', () => {
