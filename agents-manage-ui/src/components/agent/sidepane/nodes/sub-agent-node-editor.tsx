@@ -18,7 +18,7 @@ import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { createLookup } from '@/lib/utils';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
@@ -54,15 +54,10 @@ const ExecutionLimitInheritanceInfo = () => {
 
 interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
   errorHelpers?: ErrorHelpers;
 }
 
-export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
-  selectedNode,
-  artifactComponentLookup,
-  errorHelpers,
-}) => {
+export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode, errorHelpers }) => {
   'use memo';
 
   const { tenantId, projectId } = useParams<{
@@ -74,8 +69,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
   const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
   const { project } = useProjectData();
+  const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
   const metadata = useAgentStore((state) => state.metadata);
+  const artifactComponentsById = createLookup(artifactComponents);
   const dataComponentsById = createLookup(dataComponents);
 
   const {
@@ -237,7 +234,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
 
       <ComponentSelector
         label="Artifacts"
-        componentLookup={artifactComponentLookup}
+        componentLookup={artifactComponentsById}
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
           updatePath('artifactComponents', newSelection);
