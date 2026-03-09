@@ -1,5 +1,21 @@
 # @inkeep/agents-core
 
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+
+## 0.58.1
+
 ## 0.58.0
 
 ### Patch Changes

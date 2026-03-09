@@ -11,6 +11,8 @@ name: Deploy to Vercel Production
 # - VERCEL_ORG_ID: Organization/team ID from .vercel/project.json after running `vercel link`
 # - VERCEL_API_PROJECT_ID: Project ID for agents-api
 # - VERCEL_MANAGE_UI_PROJECT_ID: Project ID for agents-manage-ui
+# - INKEEP_AGENTS_RUN_DATABASE_URL: Production Postgres connection string (runtime DB)
+# - INKEEP_AGENTS_MANAGE_DATABASE_URL: Production Doltgres connection string (manage DB)
 
 on:
   release:
@@ -24,8 +26,41 @@ env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
 jobs:
+  migrate-databases:
+    name: Migrate databases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || 'main' }}
+
+      - name: Install
+        uses: ./.github/composite-actions/install
+
+      - name: Validate migration history
+        run: pnpm db:check
+
+      - name: Migrate runtime database (Postgres)
+        run: pnpm db:run:migrate
+        env:
+          INKEEP_AGENTS_RUN_DATABASE_URL: ${{ secrets.INKEEP_AGENTS_RUN_DATABASE_URL }}
+
+      - name: Migrate manage database (Doltgres)
+        id: manage-migrate
+        run: pnpm db:manage:migrate
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: ${{ secrets.INKEEP_AGENTS_MANAGE_DATABASE_URL }}
+
+      - name: Sync Doltgres schema to all branches
+        if: steps.manage-migrate.outputs.migrations_applied == 'true'
+        run: pnpm --filter @inkeep/agents-core db:manage:sync-all-branches
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: ${{ secrets.INKEEP_AGENTS_MANAGE_DATABASE_URL }}
+
   deploy-agents-api:
     name: Deploy agents-api
+    needs: [migrate-databases]
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}
@@ -62,6 +97,7 @@ jobs:
 
   deploy-agents-manage-ui:
     name: Deploy agents-manage-ui
+    needs: [migrate-databases]
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}

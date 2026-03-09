@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   cypress-e2e:
+    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     name: Cypress E2E Tests
     runs-on: ubuntu-32gb
     timeout-minutes: 30
