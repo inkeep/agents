@@ -71,6 +71,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   baseUrl: string;
   relationshipId?: string | null;
   credentialReferenceId?: string | null;
+  tempHeaders?: Record<string, string> | null;
 }
 
 export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
