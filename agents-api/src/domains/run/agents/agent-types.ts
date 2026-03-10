@@ -236,6 +236,9 @@ export interface AgentRunContext {
   functionToolRelationshipIdByName: Map<string, string>;
   taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
   durableWorkflowRunId?: string;
-  approvedToolCalls?: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }>;
+  approvedToolCalls?: Record<
+    string,
+    { approved: boolean; reason?: string; originalToolCallId?: string }
+  >;
   pendingDurableApproval?: { toolCallId: string; toolName: string; args: unknown };
 }

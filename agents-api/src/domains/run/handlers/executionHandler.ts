@@ -50,7 +50,10 @@ interface ExecutionHandlerParams {
   /** Durable workflow run ID — present when running inside a WDK workflow */
   durableWorkflowRunId?: string;
   /** Pre-approved tool decisions keyed by toolName — accumulated across approval loops */
-  approvedToolCalls?: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }>;
+  approvedToolCalls?: Record<
+    string,
+    { approved: boolean; reason?: string; originalToolCallId?: string }
+  >;
 }
 
 interface ExecutionResult {
