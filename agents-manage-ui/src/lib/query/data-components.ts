@@ -2,8 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { fetchDataComponentsAction } from '@/lib/actions/data-components';
-import type { DataComponent } from '@/lib/api/data-components';
+import { type DataComponent, fetchDataComponents } from '@/lib/api/data-components';
 
 const dataComponentQueryKeys = {
   list: (tenantId: string, projectId: string) => ['data-components', tenantId, projectId] as const,
@@ -20,10 +19,7 @@ export function useDataComponentsQuery({ enabled = true }: { enabled?: boolean }
   return useQuery<DataComponent[]>({
     queryKey: dataComponentQueryKeys.list(tenantId, projectId),
     async queryFn() {
-      const response = await fetchDataComponentsAction(tenantId, projectId);
-      if (!response.success || !response.data) {
-        throw new Error(response.error);
-      }
+      const response = await fetchDataComponents(tenantId, projectId);
       return response.data;
     },
     enabled,
