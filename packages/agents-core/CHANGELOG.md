@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+
 ## 0.58.5
 
 ## 0.58.4

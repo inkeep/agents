@@ -38,8 +38,12 @@ class TestCompressor extends BaseCompressor {
     return {
       artifactIds: ['artifact-1', 'artifact-2'],
       summary: {
+        type: 'conversation_summary_v1' as const,
         high_level: 'Test compression summary',
-        text_messages: [],
+        user_intent: 'test',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
       },
     };
   }
@@ -258,7 +262,7 @@ describe('BaseCompressor', () => {
 
       // Fallback should return actual compressed messages, not just summary metadata
       expect(Array.isArray(result.summary)).toBe(true);
-      expect(result.summary.length).toBeLessThanOrEqual(messages.length);
+      expect((result.summary as any[]).length).toBeLessThanOrEqual(messages.length);
     });
 
     it('should log errors appropriately during compression failure', async () => {
