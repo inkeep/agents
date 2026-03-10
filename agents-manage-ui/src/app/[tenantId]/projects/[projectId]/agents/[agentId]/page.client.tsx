@@ -311,7 +311,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent), agentToolConfigLookup);
+    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent));
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
     // Only auto-add if user has edit permission
@@ -415,7 +415,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       const metadata = extractAgentMetadata(updatedAgent);
 
       // Recompute agent-specific lookups from the updated agent data
-      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
       const updatedSubAgentExternalAgentConfigLookup =
         computeSubAgentExternalAgentConfigLookup(updatedAgent);
 
@@ -424,7 +423,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
-        updatedAgentToolConfigLookup,
         updatedSubAgentExternalAgentConfigLookup
       );
 
@@ -670,7 +668,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         nodes,
         edges,
         metadata,
-        agentToolConfigLookup,
         subAgentExternalAgentConfigLookup,
         subAgentTeamAgentConfigLookup
       );
@@ -968,7 +965,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                agentToolConfigLookup={agentToolConfigLookup}
                 subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
                 disabled={isCopilotStreaming || !canEdit}
