@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.5
+
+### Patch Changes
+
+- 5d3dba9: ui fix for webhooks and triggers
+  - @inkeep/agents-core@0.58.5
+
 ## 0.58.4
 
 ### Patch Changes
