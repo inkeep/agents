@@ -115,6 +115,27 @@ pnpm build           # Build documentation for production
 - 60-second timeouts for A2A interactions
 - Each test worker uses an embedded Postgres (pglite) database with manage/run Drizzle migrations applied in setup
 
+### Visual Regression Tests
+Browser-based visual tests (screenshot comparisons) run Chromium inside a Docker container so screenshots are identical across macOS and Linux CI.
+
+```bash
+# Start the Playwright Docker server (one-time, stays running)
+docker compose -f docker-compose.visual.yml up -d
+
+# Run visual tests
+pnpm --filter @inkeep/agents-manage-ui test:visual
+
+# Update baselines after intentional UI changes
+pnpm --filter @inkeep/agents-manage-ui test:visual:update
+
+# Stop the server when done
+docker compose -f docker-compose.visual.yml down
+```
+
+- Visual test files: `*.browser.test.tsx`
+- Baselines stored in `src/__screenshots__/`
+- Docker is **required** — without it, tests fall back to local Chromium and screenshots won't match CI
+
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
 

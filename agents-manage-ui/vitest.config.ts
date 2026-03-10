@@ -1,44 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
-import pixelmatch from 'pixelmatch';
 import { defaultExclude, defineConfig } from 'vitest/config';
 import type { ToMatchScreenshotOptions } from 'vitest/node';
 import pkgJson from './package.json' with { type: 'json' };
-
-declare module 'vitest/browser' {
-  interface ScreenshotComparatorRegistry {
-    tolerantPixelmatch: {
-      threshold?: number;
-      maxDimensionDiff?: number;
-      allowedMismatchedPixelRatio?: number;
-    };
-  }
-}
-
-function cropRgba(
-  data: ArrayLike<number>,
-  srcWidth: number,
-  targetWidth: number,
-  targetHeight: number
-): Uint8Array {
-  const rowBytes = targetWidth * 4;
-  if (srcWidth === targetWidth) {
-    return new Uint8Array(
-      (data as Uint8Array).buffer,
-      (data as Uint8Array).byteOffset,
-      rowBytes * targetHeight
-    );
-  }
-  const out = new Uint8Array(rowBytes * targetHeight);
-  for (let y = 0; y < targetHeight; y++) {
-    const srcOffset = y * srcWidth * 4;
-    const dstOffset = y * rowBytes;
-    for (let i = 0; i < rowBytes; i++) {
-      out[dstOffset + i] = (data[srcOffset + i] as number) ?? 0;
-    }
-  }
-  return out;
-}
 
 const BROWSER_TESTS_PATTERN = '**/*.browser.test.tsx';
 
@@ -49,7 +13,14 @@ const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] =
   browserName,
   ext,
 }) => {
-  return [root, 'src', screenshotDirectory, `${arg}-${browserName}${ext}`].join('/');
+  return [
+    root,
+    'src',
+    screenshotDirectory,
+    // Omit the platform suffix before extension
+    // `linux` on CI and `darwin` for example in macOS
+    `${arg}-${browserName}${ext}`,
+  ].join('/');
 };
 
 export default defineConfig({
@@ -79,83 +50,38 @@ export default defineConfig({
           name: `${pkgJson.name}/browser`,
           include: [BROWSER_TESTS_PATTERN],
           browser: {
+            // Vitest defaults to a 414x896 viewport, which causes the test iframe to be scaled.
+            // Set a larger viewport to avoid downscaling.
+            // viewport: { width: 2560, height: 1440 },
             enabled: true,
             headless: true,
             provider: playwright({
-              launchOptions: {
-                args: ['--font-render-hinting=none'],
-              },
+              ...(process.env.PW_TEST_CONNECT_WS_ENDPOINT
+                ? {
+                    connectOptions: {
+                      wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
+                      exposeNetwork: '<loopback>',
+                    },
+                  }
+                : {
+                    launchOptions: {
+                      args: ['--font-render-hinting=none'],
+                    },
+                  }),
             }),
             instances: [{ browser: 'chromium' }],
             expect: {
               toMatchScreenshot: {
-                timeout: 20_000,
+                // Increase timeout because the default `5s` is insufficient on CI
+                timeout: 15_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
-                comparatorName: 'tolerantPixelmatch',
-                comparators: {
-                  tolerantPixelmatch: (reference, actual, options) => {
-                    const {
-                      createDiff,
-                      threshold = 0.1,
-                      maxDimensionDiff = 4,
-                      allowedMismatchedPixelRatio = 0.02,
-                    } = options;
-
-                    const rW = reference.metadata.width;
-                    const rH = reference.metadata.height;
-                    const aW = actual.metadata.width;
-                    const aH = actual.metadata.height;
-
-                    if (
-                      Math.abs(rW - aW) > maxDimensionDiff ||
-                      Math.abs(rH - aH) > maxDimensionDiff
-                    ) {
-                      return {
-                        pass: false,
-                        diff: null,
-                        message: `Dimensions differ by more than ${maxDimensionDiff}px: ${rW}×${rH} vs ${aW}×${aH}`,
-                      };
-                    }
-
-                    const w = Math.min(rW, aW);
-                    const h = Math.min(rH, aH);
-
-                    const refData =
-                      rW === w && rH === h
-                        ? (reference.data as Uint8Array)
-                        : cropRgba(reference.data, rW, w, h);
-                    const actData =
-                      aW === w && aH === h
-                        ? (actual.data as Uint8Array)
-                        : cropRgba(actual.data, aW, w, h);
-
-                    const diffBuf = createDiff ? new Uint8Array(w * h * 4) : undefined;
-                    const mismatched = pixelmatch(refData, actData, diffBuf, w, h, { threshold });
-
-                    const total = w * h;
-                    const ratio = mismatched / total;
-
-                    return {
-                      pass: ratio <= allowedMismatchedPixelRatio,
-                      diff: diffBuf ?? null,
-                      message:
-                        ratio > allowedMismatchedPixelRatio
-                          ? `${mismatched} pixels (${(ratio * 100).toFixed(2)}%) mismatched, allowed: ${(allowedMismatchedPixelRatio * 100).toFixed(2)}%`
-                          : null,
-                    };
-                  },
-                },
-                comparatorOptions: {
-                  threshold: 0.1,
-                  maxDimensionDiff: 4,
-                  allowedMismatchedPixelRatio: 0.02,
-                },
               },
             },
           },
         },
         define: {
+          // Fix error from next/image - ReferenceError: process is not defined
           'process.env.NODE_ENV': '"test"',
         },
       },
