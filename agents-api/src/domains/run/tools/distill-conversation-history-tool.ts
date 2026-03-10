@@ -1,10 +1,7 @@
 import type { ModelSettings } from '@inkeep/agents-core';
-import { ModelFactory } from '@inkeep/agents-core';
-import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
-import { getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens } from '../utils/token-estimator';
+import { distillWithTruncation } from './distill-utils';
 
 const logger = getLogger('distill-conversation-history-tool');
 
@@ -87,39 +84,18 @@ export async function distillConversationHistory(params: {
 }): Promise<ConversationHistorySummary> {
   const { conversationId, summarizerModel, currentSummary, messageFormatter } = params;
 
+  const priorSummarySection = currentSummary
+    ? `**Prior summary (build on this — the new summary must incorporate everything from here plus the new messages below):**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\`\n\n**New messages to incorporate:**`
+    : '**Complete Conversation to Summarize:**';
+
   try {
-    if (!summarizerModel?.model?.trim()) {
-      throw new Error('Summarizer model is required');
-    }
-
-    const generationConfig = ModelFactory.prepareGenerationConfig(summarizerModel);
-
-    const modelContextInfo = getModelContextWindow(summarizerModel);
-    if (!modelContextInfo.contextWindow) {
-      throw new Error('Could not determine model context window for history distillation');
-    }
-    const contextWindow = modelContextInfo.contextWindow;
-    const safeLimit = Math.floor(contextWindow * 0.8);
-
-    logger.info(
-      { conversationId, contextWindow, safeLimit },
-      'Starting history distillation with context window limits'
-    );
-
-    const priorSummarySection = currentSummary
-      ? `**Prior summary (build on this — the new summary must incorporate everything from here plus the new messages below):**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\`\n\n**New messages to incorporate:**`
-      : '**Complete Conversation to Summarize:**';
-
-    const truncationAttempts = [
-      { name: 'no_truncation', maxChars: undefined },
-      { name: 'moderate', maxChars: Math.floor(safeLimit * 4) },
-      { name: 'aggressive', maxChars: Math.floor(safeLimit * 2) },
-    ];
-
-    for (const attempt of truncationAttempts) {
-      const formattedMessages = messageFormatter(attempt.maxChars);
-
-      const prompt = `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
+    const output = await distillWithTruncation({
+      conversationId,
+      summarizerModel,
+      schema: ConversationHistorySummarySchema,
+      buildPrompt: (
+        formattedMessages
+      ) => `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
 
 ${priorSummarySection}
 
@@ -204,43 +180,11 @@ Create a comprehensive summary using this exact JSON schema:
 
 **REMEMBER**: This summary is REPLACING the entire conversation history. Include everything essential for context continuation.
 
-Return **only** valid JSON.`;
-
-      const estimatedTokens = estimateTokens(prompt);
-
-      if (estimatedTokens > safeLimit) {
-        logger.info(
-          { conversationId, attempt: attempt.name, estimatedTokens, safeLimit },
-          'Prompt exceeds safe limit, trying more aggressive truncation'
-        );
-        continue;
-      }
-
-      try {
-        const { output: summary } = await generateText({
-          ...generationConfig,
-          prompt,
-          output: Output.object({ schema: ConversationHistorySummarySchema }),
-        });
-
-        summary.session_id = conversationId;
-        return summary;
-      } catch (llmError) {
-        const errorMessage = llmError instanceof Error ? llmError.message : String(llmError);
-        if (errorMessage.includes('too long') || errorMessage.includes('token')) {
-          logger.info(
-            { conversationId, attempt: attempt.name, error: errorMessage },
-            'LLM rejected prompt as too long, trying more aggressive truncation'
-          );
-          continue;
-        }
-        throw llmError;
-      }
-    }
-
-    throw new Error(
-      `Failed to distill conversation history: all truncation attempts exceeded limits (context window: ${contextWindow}, safe limit: ${safeLimit})`
-    );
+Return **only** valid JSON.`,
+      messageFormatter,
+    });
+    output.session_id = conversationId;
+    return output;
   } catch (error) {
     logger.error(
       { conversationId, error: error instanceof Error ? error.message : 'Unknown error' },

@@ -1119,43 +1119,43 @@ function buildConversationListPayload(
             },
             // Compression-specific attributes
             {
-              key: 'compression.type',
+              key: SPAN_KEYS.COMPRESSION_TYPE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: 'compression.session_id',
+              key: SPAN_KEYS.COMPRESSION_SESSION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: 'compression.generated_tokens',
+              key: SPAN_KEYS.COMPRESSION_GENERATED_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
-              key: 'compression.total_context_tokens',
+              key: SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
-              key: 'compression.trigger_at',
+              key: SPAN_KEYS.COMPRESSION_TRIGGER_AT,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
-              key: 'compression.result.output_tokens',
+              key: SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
-              key: 'compression.result.compression_ratio',
+              key: SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
             },
             {
-              key: 'compression.result.high_level',
+              key: SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: 'compression.success',
+              key: SPAN_KEYS.COMPRESSION_SUCCESS,
               ...QUERY_FIELD_CONFIGS.BOOL_TAG,
             },
             {
-              key: 'compression.error',
+              key: SPAN_KEYS.COMPRESSION_ERROR,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ],
@@ -1933,7 +1933,7 @@ export async function GET(
         getNumber(span, 'compression.input_tokens', 0); // fallback for pre-deployment spans
       const totalContextTokens =
         getNumber(span, SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, 0) ||
-        getNumber(span, 'compression.base_context_tokens', 0); // fallback for pre-deployment spans
+        getNumber(span, 'compression.full_context_size', 0); // fallback for pre-deployment spans
       const triggerAt =
         getNumber(span, SPAN_KEYS.COMPRESSION_TRIGGER_AT, 0) ||
         getNumber(span, SPAN_KEYS.COMPRESSION_HARD_LIMIT, 0) -

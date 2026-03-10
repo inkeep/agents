@@ -195,6 +195,36 @@ describe('MidGenerationCompressor', () => {
     });
   });
 
+  describe('isCompressionNeeded — automatic threshold', () => {
+    it('triggers when accumulated context exceeds hardLimit minus safetyBuffer', () => {
+      // hardLimit=100000, safetyBuffer=10000 → threshold at 90000 tokens (~360000 chars)
+      // Each message pair with a 500-char output contributes ~150 tokens; 700 pairs ≈ 105k tokens
+      const largeMessages = Array.from({ length: 700 }, (_, i) => [
+        {
+          role: 'assistant',
+          content: [{ type: 'tool-call', toolCallId: `big-${i}`, toolName: 'search', input: {} }],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: `big-${i}`,
+              toolName: 'search',
+              output: 'x'.repeat(500),
+            },
+          ],
+        },
+      ]).flat();
+      expect(compressor.isCompressionNeeded(largeMessages)).toBe(true);
+    });
+
+    it('does not trigger when context is well below threshold', () => {
+      const smallMessages = makeToolResultMessages(1, 'small');
+      expect(compressor.isCompressionNeeded(smallMessages)).toBe(false);
+    });
+  });
+
   describe('requestManualCompression', () => {
     it('sets shouldCompress and isCompressionNeeded returns true', () => {
       compressor.requestManualCompression('test reason');

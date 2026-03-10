@@ -104,11 +104,11 @@ export class MidGenerationCompressor extends BaseCompressor {
 
   /**
    * Perform mid-generation compression.
-   * Each call receives the full current generatedMessages array — after compression fires,
-   * the prepareStep callback (handlePrepareStepCompression) replaces step messages with
-   * originalMessages + summary, so the next call starts fresh.
-   * processedToolCalls guards against artifact re-creation; cumulativeSummary carries
-   * forward the prior summary context.
+   * Each call receives the current generatedMessages slice — the AI SDK continues accumulating
+   * all messages in stepMessages regardless of what prepareStep returns, so
+   * handlePrepareStepCompression slices from generatedMessagesBaseline to get only new messages
+   * for each cycle. processedToolCalls guards against artifact re-creation; cumulativeSummary
+   * carries forward the prior summary context.
    */
   async compress(messages: any[]): Promise<CompressionResult> {
     const contextSizeBefore = this.calculateContextSize(messages);

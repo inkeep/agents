@@ -693,6 +693,14 @@ export abstract class BaseCompressor {
             compressionSpan.setStatus({ code: SpanStatusCode.OK });
             return fallbackResult;
           } catch (fallbackError) {
+            logger.error(
+              {
+                sessionId: this.sessionId,
+                error:
+                  fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+              },
+              'Simple compression fallback also failed'
+            );
             compressionSpan.setAttributes({
               [SPAN_KEYS.COMPRESSION_SUCCESS]: false,
               [SPAN_KEYS.COMPRESSION_ERROR]:
