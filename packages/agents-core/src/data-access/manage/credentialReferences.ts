@@ -298,15 +298,16 @@ export const countCredentialReferences =
   };
 
 /**
- * Upsert a credential reference (create if it doesn't exist, update if it does)
- * For user-scoped credentials (toolId + userId set), also checks the unique constraint pair.
+ * Upsert a credential reference (create if it doesn't exist, update if it does).
+ * For user-scoped credentials (toolId + userId set), uses an atomic INSERT ... ON CONFLICT
+ * on the (toolId, userId) unique constraint to avoid TOCTOU races.
  */
 export const upsertCredentialReference =
   (db: AgentsManageDatabaseClient) =>
   async (params: { data: CredentialReferenceInsert }): Promise<CredentialReferenceSelect> => {
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
+    const now = new Date().toISOString();
 
-    // Check by ID first
     const existingById = await getCredentialReference(db)({
       scopes,
       id: params.data.id,
@@ -329,30 +330,27 @@ export const upsertCredentialReference =
       return updated;
     }
 
-    // For user-scoped credentials, check by (toolId, userId) unique constraint
     if (params.data.toolId && params.data.userId) {
-      const existingByToolUser = await getUserScopedCredentialReference(db)({
-        scopes,
-        toolId: params.data.toolId,
-        userId: params.data.userId,
-      });
-
-      if (existingByToolUser) {
-        const updated = await updateCredentialReference(db)({
-          scopes,
-          id: existingByToolUser.id,
-          data: {
+      const [result] = await db
+        .insert(credentialReferences)
+        .values({
+          ...params.data,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [credentialReferences.toolId, credentialReferences.userId],
+          set: {
             name: params.data.name,
             type: params.data.type,
             credentialStoreId: params.data.credentialStoreId,
             retrievalParams: params.data.retrievalParams,
+            updatedAt: now,
           },
-        });
-        if (!updated) {
-          throw new Error('Failed to update credential reference - no rows affected');
-        }
-        return updated;
-      }
+        })
+        .returning();
+
+      return result;
     }
 
     return await createCredentialReference(db)(params.data);
