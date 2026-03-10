@@ -4,10 +4,7 @@ import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import type {
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
+import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
@@ -40,7 +37,6 @@ interface SidePaneProps {
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   disabled?: boolean;
 }
@@ -50,7 +46,6 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  subAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup,
   disabled = false,
 }: SidePaneProps) {
@@ -120,7 +115,6 @@ export function SidePane({
           return (
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
           );
@@ -167,7 +161,6 @@ export function SidePane({
     hasFieldError,
     getFieldErrorMessage,
     getFirstErrorField,
-    subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
     errors,
   ]);
