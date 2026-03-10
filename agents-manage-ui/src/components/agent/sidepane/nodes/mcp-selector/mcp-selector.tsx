@@ -1,7 +1,7 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
@@ -11,9 +11,11 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   'use memo';
   const { updateNode } = useReactFlow();
   const form = useFullAgentFormContext();
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const toolLookup = useAgentStore((state) => state.toolLookup);
-  const tools = Object.values(toolLookup);
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
+  const { data: tools } = useMcpToolsQuery({ skipDiscovery: true });
 
   function handleSelect(data: MCPTool) {
     const nodeId = data.id;

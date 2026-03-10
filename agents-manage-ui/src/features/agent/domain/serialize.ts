@@ -3,17 +3,15 @@ import type { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import { type FunctionToolNodeData, NodeType } from '@/components/agent/configuration/node-types';
+import {
+  type ExternalAgentNodeData,
+  type FunctionToolNodeData,
+  type MCPNodeData,
+  NodeType,
+  type TeamAgentNodeData,
+} from '@/components/agent/configuration/node-types';
 import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/validation';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
-import type {
-  AgentToolConfigLookup,
-  FullAgentOutput,
-  FullAgentPayload,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
+import type { FullAgentOutput, FullAgentPayload } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 
@@ -152,11 +150,6 @@ export function hydrateNodesWithFormData(nodes: Node[], formData: NodeFormData):
 export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
-  dataComponentLookup?: Record<string, DataComponent>,
-  artifactComponentLookup?: Record<string, ArtifactComponent>,
-  agentToolConfigLookup?: AgentToolConfigLookup,
-  subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
   mcpRelations?: MCPRelationFormData,
   functionToolFormData?: FullAgentOutput['functionTools'],
   externalAgentFormData?: FullAgentOutput['externalAgents'],
@@ -173,22 +166,12 @@ export function serializeAgentData(
   > = {};
   const functionTools: NonNullable<SerializeAgentDataType['functionTools']> = {};
   const functions: NonNullable<SerializeAgentDataType['functions']> = {};
-  // Note: Tools are now project-scoped and not included in agent serialization
-  const usedDataComponents = new Set<string>();
-  const usedArtifactComponents = new Set<string>();
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
       const subAgentId = (node.data.id as string) ?? node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
-
-      subAgentDataComponents.forEach((componentId) => {
-        usedDataComponents.add(componentId);
-      });
-      subAgentArtifactComponents.forEach((componentId) => {
-        usedArtifactComponents.add(componentId);
-      });
       // Process models - only include if it has non-empty, non-whitespace values
       const modelsData = node.data.models as AgentModels | undefined;
       const processedModels = processModels(modelsData);
@@ -200,8 +183,8 @@ export function serializeAgentData(
       const canUse: Array<{
         toolId: string;
         toolSelection?: string[] | null;
-        headers?: PartialMCPRelation['headers'];
-        toolPolicies?: PartialMCPRelation['toolPolicies'];
+        headers?: PartialMCPRelation['headers'] | null;
+        toolPolicies?: PartialMCPRelation['toolPolicies'] | null;
         agentToolRelationId?: string;
       }> = [];
 
@@ -216,55 +199,26 @@ export function serializeAgentData(
         const mcpNode = nodes.find((n) => n.id === edge.target);
 
         if (mcpNode && mcpNode.type === NodeType.MCP) {
-          const toolId = (mcpNode.data as any).toolId;
+          const mcpNodeData = mcpNode.data as MCPNodeData;
+          const toolId = mcpNodeData.toolId;
 
           if (toolId) {
-            const relationshipId = (mcpNode.data as any).relationshipId;
+            const relationshipId = mcpNodeData.relationshipId;
             const relationKey = relationshipId ?? mcpNode.id;
             const relationFormData = mcpRelations?.[relationKey];
-            const tempSelectedTools = relationFormData?.selectedTools;
-            let toolSelection: string[] | null = null;
-            if (tempSelectedTools !== undefined) {
-              // User has made changes to tool selection in the UI
-              if (Array.isArray(tempSelectedTools)) {
-                toolSelection = tempSelectedTools;
-              } else if (tempSelectedTools === null) {
-                toolSelection = null; // All tools selected
-              }
-            } else {
-              // No changes made to tool selection - preserve existing selection
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.toolSelection) {
-                toolSelection = existingConfig.toolSelection;
-              } else {
-                // Default to all tools selected when no existing data found
-                toolSelection = null;
-              }
+            let toolSelection = mcpNodeData.tempSelectedTools ?? null;
+            if (relationFormData?.selectedTools !== undefined) {
+              toolSelection = relationFormData.selectedTools;
             }
 
-            let toolHeaders = relationFormData?.headers ?? null;
-
-            if (toolHeaders === undefined) {
-              // No changes made to headers - preserve existing headers
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.headers) {
-                toolHeaders = existingConfig.headers;
-              }
+            let toolHeaders = mcpNodeData.tempHeaders ?? null;
+            if (relationFormData?.headers !== undefined) {
+              toolHeaders = relationFormData.headers;
             }
-            let toolPolicies = relationFormData?.toolPolicies ?? null;
 
-            if (toolPolicies === undefined) {
-              // No changes made to tool policies - preserve existing policies
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.toolPolicies) {
-                toolPolicies = existingConfig.toolPolicies;
-              }
+            let toolPolicies = mcpNodeData.tempToolPolicies ?? null;
+            if (relationFormData?.toolPolicies !== undefined) {
+              toolPolicies = relationFormData.toolPolicies;
             }
 
             canUse.push({
@@ -289,7 +243,15 @@ export function serializeAgentData(
         const functionToolNode = nodes.find((n) => n.id === edge.target);
 
         if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
-          const nodeData = functionToolNode.data as any;
+          const nodeData = functionToolNode.data as FunctionToolNodeData & {
+            code?: string;
+            dependencies?: Record<string, string>;
+            description?: string;
+            functionId?: string;
+            inputSchema?: Record<string, unknown>;
+            name?: string;
+            tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
+          };
 
           const functionToolId = nodeData.toolId || functionToolNode.id;
           const relationshipId = nodeData.relationshipId;
@@ -311,7 +273,12 @@ export function serializeAgentData(
             dependencies: nodeData.dependencies || {},
           };
 
-          const toolPolicies = functionToolFormData?.[functionToolId]?.tempToolPolicies;
+          const formToolPolicies = functionToolFormData?.[functionToolId]?.tempToolPolicies;
+          const nodeToolPolicies =
+            nodeData.tempToolPolicies && Object.keys(nodeData.tempToolPolicies).length > 0
+              ? nodeData.tempToolPolicies
+              : undefined;
+          const toolPolicies = formToolPolicies ?? nodeToolPolicies;
 
           canUse.push({
             toolId: functionToolId,
@@ -347,37 +314,41 @@ export function serializeAgentData(
 
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
-      const externalAgentId = (node.data.id as string) || node.id;
-      const headers = externalAgentFormData?.[externalAgentId]?.headers;
+      const nodeData = node.data as ExternalAgentNodeData;
+      const externalAgentId = nodeData.id || node.id;
+      const headers =
+        externalAgentFormData?.[externalAgentId]?.headers ?? nodeData.tempHeaders ?? undefined;
 
       const externalAgent: ExternalAgent & {
         headers?: Record<string, string>;
         relationshipId: string | null;
       } = {
         id: externalAgentId,
-        name: node.data.name as string,
-        description: (node.data.description as string) || '',
-        baseUrl: node.data.baseUrl as string,
-        createdAt: node.data.createdAt as string,
-        updatedAt: node.data.updatedAt as string,
-        credentialReferenceId: (node.data.credentialReferenceId as string) || null,
+        name: nodeData.name as string,
+        description: (nodeData.description as string) || '',
+        baseUrl: nodeData.baseUrl as string,
+        createdAt: nodeData.createdAt as string,
+        updatedAt: nodeData.updatedAt as string,
+        credentialReferenceId: (nodeData.credentialReferenceId as string) || null,
         headers,
-        relationshipId: (node.data.relationshipId as string) || null,
+        relationshipId: nodeData.relationshipId || null,
       };
 
       externalAgents[externalAgentId] = externalAgent;
     } else if (node.type === NodeType.TeamAgent) {
-      const teamAgentId = (node.data.id as string) || node.id;
-      const headers = teamAgentFormData?.[teamAgentId]?.headers;
+      const nodeData = node.data as TeamAgentNodeData;
+      const teamAgentId = nodeData.id || node.id;
+      const headers =
+        teamAgentFormData?.[teamAgentId]?.headers ?? nodeData.tempHeaders ?? undefined;
       const teamAgent: TeamAgent & {
         relationshipId: string | null;
         headers?: Record<string, string>;
       } = {
         id: teamAgentId,
-        name: node.data.name as string,
-        description: (node.data.description as string) || '',
+        name: nodeData.name as string,
+        description: (nodeData.description as string) || '',
         headers,
-        relationshipId: (node.data.relationshipId as string) || null,
+        relationshipId: nodeData.relationshipId || null,
       };
       teamAgents[teamAgentId] = teamAgent;
     }
@@ -433,11 +404,11 @@ export function serializeAgentData(
       const isTargetExternal = targetExternalAgent !== undefined;
       const isTargetTeamAgent = targetTeamAgent !== undefined;
 
-      if (!sourceAgent || !(edge.data as any)?.relationships) {
+      if (!sourceAgent || !edge.data?.relationships) {
         continue;
       }
 
-      const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+      const relationships = edge.data.relationships as A2AEdgeData['relationships'];
 
       // Helper function to add relationship
       const addRelationship = (
@@ -510,18 +481,9 @@ export function serializeAgentData(
       if (isTargetExternal) {
         if (relationships.delegateSourceToTarget) {
           const relationshipId = (targetExternalAgent as any).relationshipId as string | undefined;
-          let externalAgentHeaders = (targetExternalAgent as any).headers as
+          const externalAgentHeaders = (targetExternalAgent as any).headers as
             | Record<string, string>
             | undefined;
-
-          if (externalAgentHeaders === undefined) {
-            const existingConfig = relationshipId
-              ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
-              : null;
-            if (existingConfig?.headers) {
-              externalAgentHeaders = existingConfig.headers;
-            }
-          }
 
           addRelationship(
             sourceAgent,
@@ -540,18 +502,9 @@ export function serializeAgentData(
       if (isTargetTeamAgent) {
         if (relationships.delegateSourceToTarget) {
           const relationshipId = (targetTeamAgent as any).relationshipId as string | undefined;
-          let teamAgentHeaders = (targetTeamAgent as any).headers as
+          const teamAgentHeaders = (targetTeamAgent as any).headers as
             | Record<string, string>
             | undefined;
-
-          if (teamAgentHeaders === undefined) {
-            const existingConfig = relationshipId
-              ? subAgentTeamAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
-              : null;
-            if (existingConfig?.headers) {
-              teamAgentHeaders = existingConfig.headers;
-            }
-          }
 
           addRelationship(
             sourceAgent,
@@ -585,26 +538,6 @@ export function serializeAgentData(
         }
       }
     }
-  }
-
-  const dataComponents: Record<string, DataComponent> = {};
-  if (dataComponentLookup) {
-    usedDataComponents.forEach((componentId) => {
-      const component = dataComponentLookup[componentId];
-      if (component) {
-        dataComponents[componentId] = component;
-      }
-    });
-  }
-
-  const artifactComponents: Record<string, ArtifactComponent> = {};
-  if (artifactComponentLookup) {
-    usedArtifactComponents.forEach((componentId) => {
-      const component = artifactComponentLookup[componentId];
-      if (component) {
-        artifactComponents[componentId] = component;
-      }
-    });
   }
 
   const result: SerializeAgentDataType = {

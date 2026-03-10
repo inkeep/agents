@@ -17,7 +17,7 @@ import {
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useSkillsQuery } from '@/lib/query/skills';
 import { cn } from '@/lib/utils';
 
 interface SkillSelectorProps {
@@ -58,7 +58,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
-  const availableSkills = useAgentStore((state) => state.availableSkills);
+  const { data: availableSkills } = useSkillsQuery();
 
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;

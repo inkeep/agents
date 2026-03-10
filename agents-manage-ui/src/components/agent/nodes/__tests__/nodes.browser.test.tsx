@@ -26,8 +26,25 @@ vi.mock('@/contexts/runtime-config', () => {
 });
 vi.mock('@/lib/query/mcp-tools', () => {
   return {
+    useMcpToolsQuery() {
+      return { data: [] };
+    },
     useMcpToolStatusQuery() {
       return {};
+    },
+  };
+});
+vi.mock('@/lib/query/data-components', () => {
+  return {
+    useDataComponentsQuery() {
+      return { data: [] };
+    },
+  };
+});
+vi.mock('@/lib/query/artifact-components', () => {
+  return {
+    useArtifactComponentsQuery() {
+      return { data: [] };
     },
   };
 });

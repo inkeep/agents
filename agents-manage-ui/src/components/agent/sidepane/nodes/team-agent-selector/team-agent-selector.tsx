@@ -28,7 +28,7 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
       {
         id: nodeId,
         name: data.name,
-        description: data.description,
+        description: data.description ?? '',
       },
       { shouldDirty: true }
     );

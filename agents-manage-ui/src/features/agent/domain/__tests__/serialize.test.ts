@@ -234,20 +234,11 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
-        nodes,
-        edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          mcp1: {
-            selectedTools: ['tool1', 'tool2'],
-          },
-        }
-      );
+      const result = serializeAgentData(nodes, edges, {
+        mcp1: {
+          selectedTools: ['tool1', 'tool2'],
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -292,20 +283,11 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
-        nodes,
-        edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          mcp1: {
-            selectedTools: null,
-          },
-        }
-      );
+      const result = serializeAgentData(nodes, edges, {
+        mcp1: {
+          selectedTools: null,
+        },
+      });
 
       // When selectedTools is null, all tools should be selected (toolSelection: null)
       expect(result.subAgents.agent1.canUse).toBeDefined();
@@ -350,20 +332,11 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
-        nodes,
-        edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          mcp1: {
-            selectedTools: [],
-          },
-        }
-      );
+      const result = serializeAgentData(nodes, edges, {
+        mcp1: {
+          selectedTools: [],
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -417,7 +390,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should preserve existing selectedTools when mcpRelations is missing and relationship exists', () => {
+    it('should preserve existing selectedTools from node data when mcpRelations is missing', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -427,8 +400,6 @@ describe('serializeAgentData', () => {
             id: 'agent1',
             name: 'Test Agent',
             prompt: 'Test instructions',
-            // Existing selectedTools from database (added by deserializer)
-            selectedTools: { mcp1: ['existing-tool1'] },
           },
         },
         {
@@ -439,6 +410,7 @@ describe('serializeAgentData', () => {
             toolId: 'mcp1',
             name: 'Test MCP Server',
             relationshipId: 'rel-1',
+            tempSelectedTools: ['existing-tool1'],
           },
         },
       ];
@@ -452,14 +424,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined, undefined, {
-        agent1: {
-          'rel-1': {
-            toolId: 'mcp1',
-            toolSelection: ['existing-tool1'],
-          },
-        },
-      });
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -504,24 +469,15 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
-        nodes,
-        edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          mcp1: {
-            selectedTools: ['tool1', 'tool2'],
-            toolPolicies: {
-              tool1: { needsApproval: true },
-              tool2: { needsApproval: false },
-            },
+      const result = serializeAgentData(nodes, edges, {
+        mcp1: {
+          selectedTools: ['tool1', 'tool2'],
+          toolPolicies: {
+            tool1: { needsApproval: true },
+            tool2: { needsApproval: false },
           },
-        }
-      );
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -576,27 +532,72 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
-        nodes,
-        edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
+      const result = serializeAgentData(nodes, edges, undefined, {
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {},
+          tempToolPolicies: {
+            '*': { needsApproval: true },
+          },
+        },
+      } as any);
+
+      expect(result.subAgents.agent1.canUse).toEqual([
         {
-          'function-tool-1': {
-            id: 'function-tool-1',
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+          toolPolicies: {
+            '*': { needsApproval: true },
+          },
+        },
+      ]);
+    });
+
+    it('should preserve function tool policies from node data when form state is missing', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+            skills: [],
+          },
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            toolId: 'function-tool-1',
+            functionId: 'function-1',
             name: 'Lookup customer',
-            executeCode: 'async function execute() { return { ok: true }; }',
-            inputSchema: {},
+            description: 'Looks up customer information',
+            code: 'async function execute() { return { ok: true }; }',
+            inputSchema: { type: 'object', properties: {}, required: [] },
+            dependencies: {},
             tempToolPolicies: {
               '*': { needsApproval: true },
             },
           },
-        } as any
-      );
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.canUse).toEqual([
         {
@@ -683,11 +684,6 @@ describe('serializeAgentData', () => {
       const result = serializeAgentData(
         nodes,
         edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
         undefined,
         undefined,
         {
@@ -818,11 +814,6 @@ describe('serializeAgentData', () => {
       const result = serializeAgentData(
         hydratedNodes,
         edges,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
         undefined,
         formData.functionTools,
         formData.externalAgents,

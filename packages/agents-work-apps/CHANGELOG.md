@@ -1,5 +1,23 @@
 # @inkeep/agents-work-apps
 
+## 0.58.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 87ac81f: Include search users, public messages and files scopes in slack app manifest.
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+- 2d6ec44: Add `get-slack-user` MCP tool for looking up Slack users by ID, email, or name
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [f475d74]
+  - @inkeep/agents-core@0.58.4
+
 ## 0.58.3
 
 ### Patch Changes

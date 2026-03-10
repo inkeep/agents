@@ -19,31 +19,20 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useDeleteNode } from '@/hooks/use-delete-node';
-import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
-import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
-import { isRequired } from '@/lib/utils';
+import { createLookup, isRequired } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
-import {
-  findOrphanedTools,
-  getCurrentHeadersForNode,
-  getCurrentSelectedToolsForNode,
-  getCurrentToolPoliciesForNode,
-} from '@/lib/utils/orphaned-tools-detector';
+import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
-  agentToolConfigLookup: AgentToolConfigLookup;
 }
 
-export function MCPServerNodeEditor({
-  selectedNode,
-  agentToolConfigLookup,
-}: MCPServerNodeEditorProps) {
+export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
   'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
@@ -60,10 +49,12 @@ export function MCPServerNodeEditor({
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);
 
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-
-  // Get skeleton data from store
-  const toolLookup = useAgentStore((state) => state.toolLookup);
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
+  const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const skeletonToolLookup = createLookup(mcpTools);
 
   // Lazy-load actual tool status
   const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
@@ -74,19 +65,10 @@ export function MCPServerNodeEditor({
   });
 
   // Use live data if available, fall back to skeleton from store
-  const skeletonToolData = toolLookup[toolId];
+  const skeletonToolData = skeletonToolLookup[toolId];
   const toolData = liveToolData ?? skeletonToolData;
-
-  const selectedToolsFromLookup = getCurrentSelectedToolsForNode(
-    selectedNode,
-    agentToolConfigLookup
-  );
-  const currentToolPoliciesFromLookup = getCurrentToolPoliciesForNode(
-    selectedNode,
-    agentToolConfigLookup
-  );
-  const selectedTools = mcpRelation?.selectedTools ?? selectedToolsFromLookup;
-  const currentToolPolicies = mcpRelation?.toolPolicies ?? currentToolPoliciesFromLookup;
+  const selectedTools = mcpRelation?.selectedTools ?? selectedNode.data.tempSelectedTools ?? null;
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? selectedNode.data.tempToolPolicies ?? {};
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
   useEffect(() => {
@@ -97,16 +79,16 @@ export function MCPServerNodeEditor({
       return;
     }
 
-    const newHeaders = getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     form.setValue(
       `mcpRelations.${relationKey}`,
       {
         toolId,
         relationshipId: selectedNode.data.relationshipId ?? undefined,
         subAgentId: selectedNode.data.subAgentId ?? undefined,
-        selectedTools: selectedToolsFromLookup,
+        selectedTools,
         headers: JSON.stringify(newHeaders, null, 2),
-        toolPolicies: currentToolPoliciesFromLookup,
+        toolPolicies: currentToolPolicies,
       },
       { shouldDirty: false }
     );

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.58.3",
+  "version": "0.58.5",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -136,7 +136,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/browser-playwright": "4.1.0-beta.3",
     "@vitest/coverage-v8": "4.1.0-beta.3",
-    "babel-plugin-react-compiler": "^1.0.0",
+    "babel-plugin-react-compiler": "0.0.0-experimental-1371fcb-20260305",
     "cypress": "^15.11.0",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.58.2",

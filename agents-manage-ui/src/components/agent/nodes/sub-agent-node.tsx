@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
-import { cn } from '@/lib/utils';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
@@ -61,17 +62,16 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const isDefault = id === defaultSubAgentId;
   const modelName = models?.base?.model;
 
-  const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
-    dataComponentLookup: state.dataComponentLookup,
-    artifactComponentLookup: state.artifactComponentLookup,
-  }));
+  const { data: artifactComponents } = useArtifactComponentsQuery();
 
-  const dataComponentNames = dataComponentIds
-    .map((componentId) => dataComponentLookup[componentId]?.name)
-    .filter(Boolean);
-  const artifactComponentNames = artifactComponentIds
-    .map((id) => artifactComponentLookup[id]?.name)
-    .filter(Boolean);
+  const { data: dataComponents } = useDataComponentsQuery();
+  const dataComponentsById = createLookup(dataComponents);
+  const artifactComponentsById = createLookup(artifactComponents);
+
+  const dataComponentNames =
+    dataComponentIds.map((id) => dataComponentsById[id]?.name).filter(Boolean) || [];
+  const artifactComponentNames =
+    artifactComponentIds.map((id) => artifactComponentsById[id]?.name).filter(Boolean) || [];
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';

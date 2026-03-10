@@ -1,3 +1,4 @@
+'use server';
 /**
  * API Client for Agent Full Operations
  *
@@ -124,6 +125,3 @@ export async function deleteFullAgent(
     method: 'DELETE',
   });
 }
-
-// Export the error class for use in server actions
-export { ApiError } from '../types/errors';

@@ -1,14 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { Credential } from '@/lib/api/credentials';
-import type { DataComponent } from '@/lib/api/data-components';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
@@ -41,12 +33,6 @@ interface SidePaneProps {
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
-  agentToolConfigLookup: AgentToolConfigLookup;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
-  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
-  credentialLookup: Record<string, Credential>;
   disabled?: boolean;
 }
 
@@ -55,12 +41,6 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  agentToolConfigLookup,
-  subAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup,
-  credentialLookup,
   disabled = false,
 }: SidePaneProps) {
   'use memo';
@@ -106,32 +86,17 @@ export function SidePane({
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
-          return (
-            <SubAgentNodeEditor
-              selectedNode={selectedNode as Node<AgentNodeData>}
-              dataComponentLookup={dataComponentLookup}
-              artifactComponentLookup={artifactComponentLookup}
-            />
-          );
+          return <SubAgentNodeEditor selectedNode={selectedNode as Node<AgentNodeData>} />;
         case NodeType.ExternalAgent: {
           return (
-            <ExternalAgentNodeEditor
-              selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              credentialLookup={credentialLookup}
-              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-            />
+            <ExternalAgentNodeEditor selectedNode={selectedNode as Node<ExternalAgentNodeData>} />
           );
         }
         case NodeType.ExternalAgentPlaceholder: {
           return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.TeamAgent: {
-          return (
-            <TeamAgentNodeEditor
-              selectedNode={selectedNode as Node<TeamAgentNodeData>}
-              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-            />
-          );
+          return <TeamAgentNodeEditor selectedNode={selectedNode as Node<TeamAgentNodeData>} />;
         }
         case NodeType.TeamAgentPlaceholder: {
           return <TeamAgentSelector selectedNode={selectedNode as Node} />;
@@ -140,12 +105,7 @@ export function SidePane({
           return <MCPSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.MCP: {
-          return (
-            <MCPServerNodeEditor
-              selectedNode={selectedNode as Node<MCPNodeData>}
-              agentToolConfigLookup={agentToolConfigLookup}
-            />
-          );
+          return <MCPServerNodeEditor selectedNode={selectedNode as Node<MCPNodeData>} />;
         }
         case NodeType.FunctionTool: {
           return (

@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { FullAgentTeamAgentSchema } from '@/components/agent/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
@@ -13,20 +13,14 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
-import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { isRequired } from '@/lib/utils';
-import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
-  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
 }
 
-export function TeamAgentNodeEditor({
-  selectedNode,
-  subAgentTeamAgentConfigLookup,
-}: TeamAgentNodeEditorProps) {
+export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
@@ -34,10 +28,6 @@ export function TeamAgentNodeEditor({
   const id = selectedNode.data.id;
 
   const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
-
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
-  }, [selectedNode, subAgentTeamAgentConfigLookup]);
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
@@ -47,7 +37,7 @@ export function TeamAgentNodeEditor({
     if (existingHeaders !== undefined) {
       return;
     }
-    const newHeaders = getCurrentHeaders();
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 

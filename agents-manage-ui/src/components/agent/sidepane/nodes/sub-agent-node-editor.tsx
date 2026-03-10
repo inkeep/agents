@@ -28,9 +28,9 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectData } from '@/hooks/use-project-data';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
-import { isRequired } from '@/lib/utils';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { createLookup, isRequired } from '@/lib/utils';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
@@ -61,15 +61,9 @@ const ExecutionLimitInheritanceInfo = () => {
 
 interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
 }
 
-export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
-  selectedNode,
-  dataComponentLookup,
-  artifactComponentLookup,
-}) => {
+export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }) => {
   'use memo';
   const form = useFullAgentFormContext();
   const nodeId = selectedNode.id;
@@ -80,6 +74,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { canEdit } = useProjectPermissions();
   const { project } = useProjectData();
+  const { data: artifactComponents } = useArtifactComponentsQuery();
+  const { data: dataComponents } = useDataComponentsQuery();
+  const artifactComponentsById = createLookup(artifactComponents);
+  const dataComponentsById = createLookup(dataComponents);
   const models = useWatch({ control: form.control, name: 'models' });
   const defaultSubAgentId = useWatch({ control: form.control, name: 'defaultSubAgentId' });
   const isDefault = nodeId === defaultSubAgentId;
@@ -198,7 +196,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       <Separator />
       <ComponentSelector
         label="Components"
-        componentLookup={dataComponentLookup}
+        componentLookup={dataComponentsById}
         // @ts-expect-error -- fixme
         selectedComponents={subAgent.dataComponents}
         onSelectionChange={(newSelection) => {
@@ -211,7 +209,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       />
       <ComponentSelector
         label="Artifacts"
-        componentLookup={artifactComponentLookup}
+        componentLookup={artifactComponentsById}
         // @ts-expect-error -- fixme
         selectedComponents={subAgent.artifactComponents}
         onSelectionChange={(newSelection) => {

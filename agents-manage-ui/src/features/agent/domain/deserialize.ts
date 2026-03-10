@@ -220,12 +220,15 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
           imageUrl: (tool as any)?.imageUrl,
         };
 
-        if (nodeType === NodeType.FunctionTool) {
-          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? {};
+        if (nodeType === NodeType.MCP) {
+          nodeData.tempSelectedTools = canUseItem.toolSelection ?? null;
+          nodeData.tempHeaders = canUseItem.headers ?? null;
+          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? null;
         }
 
         // Add function details for function tools
         if (nodeType === NodeType.FunctionTool && data.functionTools?.[toolId]) {
+          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? {};
           const functionTool = data.functionTools[toolId];
           const functionId = functionTool.functionId;
           if (functionId) {

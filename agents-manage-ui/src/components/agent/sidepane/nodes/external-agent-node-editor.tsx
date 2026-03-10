@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -10,24 +10,15 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useDeleteNode } from '@/hooks/use-delete-node';
-import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
-import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
-import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
-  credentialLookup: Record<string, Credential>;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
 }
 
-export function ExternalAgentNodeEditor({
-  selectedNode,
-  subAgentExternalAgentConfigLookup,
-}: ExternalAgentNodeEditorProps) {
+export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
@@ -35,16 +26,6 @@ export function ExternalAgentNodeEditor({
   const id = selectedNode.data.id;
 
   const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
-
-  const edges = useAgentStore((state) => state.edges);
-
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForExternalAgentNode(
-      selectedNode,
-      subAgentExternalAgentConfigLookup,
-      edges
-    );
-  }, [selectedNode, subAgentExternalAgentConfigLookup, edges]);
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
@@ -54,7 +35,7 @@ export function ExternalAgentNodeEditor({
     if (existingHeaders !== undefined) {
       return;
     }
-    const newHeaders = getCurrentHeaders();
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
