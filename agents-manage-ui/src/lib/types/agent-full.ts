@@ -42,11 +42,3 @@ export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;
-
-export type SubAgentTeamAgentConfig = {
-  agentId: string;
-  headers?: Record<string, string>;
-};
-
-// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
