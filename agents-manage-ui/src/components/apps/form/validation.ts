@@ -13,6 +13,22 @@ export const APP_TYPE_OPTIONS = [
   },
 ] as const;
 
+const ALLOWED_DOMAIN_PATTERN =
+  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
+
+function validateDomainList(val: string | undefined) {
+  if (val === undefined) return true;
+  const domains = val
+    .split(',')
+    .map((d) => d.trim())
+    .filter(Boolean);
+  if (domains.length < 1) return false;
+  return domains.every((d) => ALLOWED_DOMAIN_PATTERN.test(d));
+}
+
+const DOMAIN_VALIDATION_MESSAGE =
+  'Enter valid domains separated by commas (e.g. "example.com, *.example.com"). At least one domain is required for web client apps.';
+
 export const AppCreateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
@@ -20,17 +36,7 @@ export const AppCreateFormSchema = z.object({
   allowedDomains: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined) return true;
-        const domains = val
-          .split(',')
-          .map((d) => d.trim())
-          .filter(Boolean);
-        return domains.length >= 1;
-      },
-      { message: 'At least one domain is required for web client apps' }
-    ),
+    .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
 });
 
 export const AppUpdateFormSchema = z.object({
@@ -41,17 +47,7 @@ export const AppUpdateFormSchema = z.object({
   allowedDomains: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined) return true;
-        const domains = val
-          .split(',')
-          .map((d) => d.trim())
-          .filter(Boolean);
-        return domains.length >= 1;
-      },
-      { message: 'At least one domain is required for web client apps' }
-    ),
+    .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
 });
 
 export type AppCreateFormInput = z.infer<typeof AppCreateFormSchema>;

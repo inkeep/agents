@@ -1847,11 +1847,22 @@ export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
 // ── App Credential Schemas ──────────────────────────────────────────────────
 
+const ALLOWED_DOMAIN_PATTERN =
+  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
+
+const AllowedDomainSchema = z
+  .string()
+  .min(1)
+  .regex(
+    ALLOWED_DOMAIN_PATTERN,
+    'Invalid domain pattern. Use a hostname (e.g. "example.com"), wildcard ("*.example.com"), or bare "*" to allow all origins.'
+  );
+
 export const WebClientConfigSchema = z
   .object({
     type: z.literal('web_client'),
     webClient: z.object({
-      allowedDomains: z.array(z.string().min(1)).min(1),
+      allowedDomains: z.array(AllowedDomainSchema).min(1),
     }),
   })
   .openapi('WebClientConfig');
@@ -1871,7 +1882,7 @@ export const WebClientConfigResponseSchema = z
   .object({
     type: z.literal('web_client'),
     webClient: z.object({
-      allowedDomains: z.array(z.string().min(1)).min(1),
+      allowedDomains: z.array(AllowedDomainSchema).min(1),
     }),
   })
   .openapi('WebClientConfigResponse');

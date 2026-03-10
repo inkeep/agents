@@ -10510,6 +10510,7 @@
               "allowedDomains": {
                 "items": {
                   "minLength": 1,
+                  "pattern": "^(\\*|\\*\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\\d{1,5})?)$",
                   "type": "string"
                 },
                 "minItems": 1,
@@ -10541,6 +10542,7 @@
               "allowedDomains": {
                 "items": {
                   "minLength": 1,
+                  "pattern": "^(\\*|\\*\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\\d{1,5})?)$",
                   "type": "string"
                 },
                 "minItems": 1,

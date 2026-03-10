@@ -258,6 +258,64 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('Domain validation', () => {
+    it('should reject invalid domain patterns in allowedDomains', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-domain-invalid');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const invalidDomains = [
+        ['http://example.com'],
+        ['!!!'],
+        ['example.com/path'],
+        ['.example.com'],
+        ['exam ple.com'],
+        [''],
+      ];
+
+      for (const domains of invalidDomains) {
+        const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'Bad Domains App',
+            type: 'web_client',
+            defaultAgentId: 'agent-1',
+            config: {
+              type: 'web_client',
+              webClient: { allowedDomains: domains },
+            },
+          }),
+        });
+        expect(res.status).toBe(400);
+      }
+    });
+
+    it('should accept valid domain patterns in allowedDomains', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-domain-valid');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const validDomains = ['example.com', '*.example.com', 'localhost:3000', '*'];
+
+      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Good Domains App',
+          type: 'web_client',
+          defaultAgentId: 'agent-1',
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: validDomains },
+          },
+        }),
+      });
+      expect(res.status).toBe(201);
+
+      const body = await res.json();
+      expect(body.data.app.config.webClient.allowedDomains).toEqual(validDomains);
+    });
+  });
+
   describe('Security', () => {
     it('should not expose tenantId or projectId in responses', async () => {
       const tenantId = await createTestTenantWithOrg('apps-security');
