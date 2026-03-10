@@ -88,20 +88,13 @@ export async function handlePrepareStepCompression(
 
         const finalMessages = [...originalMessages];
 
-        if (
-          compressionResult.summary.text_messages &&
-          compressionResult.summary.text_messages.length > 0
-        ) {
-          finalMessages.push(...compressionResult.summary.text_messages);
-        }
-
         const summaryData = {
-          high_level: compressionResult.summary?.high_level,
-          user_intent: compressionResult.summary?.user_intent,
-          decisions: compressionResult.summary?.decisions,
-          open_questions: compressionResult.summary?.open_questions,
-          next_steps: compressionResult.summary?.next_steps,
-          related_artifacts: compressionResult.summary?.related_artifacts,
+          high_level: compressionResult.summary.high_level,
+          user_intent: compressionResult.summary.user_intent,
+          decisions: compressionResult.summary.decisions,
+          open_questions: compressionResult.summary.open_questions,
+          next_steps: compressionResult.summary.next_steps,
+          related_artifacts: compressionResult.summary.related_artifacts,
         };
 
         if (summaryData.related_artifacts && summaryData.related_artifacts.length > 0) {
@@ -126,9 +119,9 @@ export async function handlePrepareStepCompression(
             originalKept: originalMessages.length,
             generatedCompressed: generatedMessages.length,
             injectedSummary: {
-              highLevel: compressionResult.summary?.high_level,
-              nextStepsForAgent: compressionResult.summary?.next_steps?.for_agent,
-              relatedArtifacts: compressionResult.summary?.related_artifacts?.map((a: any) => ({
+              highLevel: compressionResult.summary.high_level,
+              nextStepsForAgent: compressionResult.summary.next_steps?.for_agent,
+              relatedArtifacts: compressionResult.summary.related_artifacts?.map((a: any) => ({
                 id: a.id,
                 name: a.name,
                 keyFindings: a.key_findings,

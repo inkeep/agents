@@ -176,6 +176,17 @@ describe('MidGenerationCompressor', () => {
     });
   });
 
+  describe('compress() error propagation', () => {
+    it('propagates distillConversation errors so safeCompress can fall back', async () => {
+      const { distillConversation } = await import('../../tools/distill-conversation-tool');
+      vi.mocked(distillConversation).mockRejectedValueOnce(new Error('LLM unavailable'));
+
+      await expect(compressor.compress(makeToolResultMessages(2, 'err'))).rejects.toThrow(
+        'LLM unavailable'
+      );
+    });
+  });
+
   describe('cumulative summary preservation', () => {
     it('passes prior compression summary as currentSummary to distillConversation on subsequent calls', async () => {
       const { distillConversation } = await import('../../tools/distill-conversation-tool');

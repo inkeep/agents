@@ -1,9 +1,6 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { z } from 'zod';
-import { getLogger } from '../../../logger';
 import { distillWithTruncation } from './distill-utils';
-
-const logger = getLogger('distill-conversation-tool');
 
 export const ConversationSummarySchema = z.object({
   type: z.literal('conversation_summary_v1'),
@@ -68,14 +65,13 @@ export async function distillConversation(params: {
 \`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\``
     : '**Current summary:** None (first distillation)';
 
-  try {
-    const output = await distillWithTruncation({
-      conversationId,
-      summarizerModel,
-      schema: ConversationSummarySchema,
-      buildPrompt: (
-        formattedMessages
-      ) => `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.
+  const output = await distillWithTruncation({
+    conversationId,
+    summarizerModel,
+    schema: ConversationSummarySchema,
+    buildPrompt: (
+      formattedMessages
+    ) => `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.
 
 ${existingSummaryContext}
 
@@ -135,29 +131,8 @@ Create/update a summary using this exact JSON schema:
 **Focus on WHAT WAS LEARNED, not HOW IT WAS LEARNED**
 
 Return **only** valid JSON.`,
-      messageFormatter,
-    });
-    output.session_id = conversationId;
-    return output;
-  } catch (error) {
-    logger.error(
-      { conversationId, error: error instanceof Error ? error.message : 'Unknown error' },
-      'Failed to distill conversation'
-    );
-
-    return {
-      type: 'conversation_summary_v1',
-      session_id: conversationId,
-      _fallback: true,
-      high_level: 'Ongoing conversation session',
-      user_intent: 'Continue working on current task',
-      related_artifacts: [],
-      decisions: [],
-      open_questions: ['Review recent work and determine next steps'],
-      next_steps: {
-        for_agent: ['Continue with current task'],
-        for_user: ['Provide additional guidance if needed'],
-      },
-    };
-  }
+    messageFormatter,
+  });
+  output.session_id = conversationId;
+  return output;
 }

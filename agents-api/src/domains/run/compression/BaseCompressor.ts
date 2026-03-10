@@ -14,6 +14,22 @@ import { tracer } from '../utils/tracer';
 
 const logger = getLogger('BaseCompressor');
 
+function stripStructureHints(value: unknown): unknown {
+  if (typeof value === 'string') {
+    try {
+      return stripStructureHints(JSON.parse(value));
+    } catch {
+      return value;
+    }
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const { _structureHints, ...rest } = value as Record<string, unknown>;
+    void _structureHints;
+    return rest;
+  }
+  return value;
+}
+
 export interface CompressionConfig {
   hardLimit: number;
   safetyBuffer: number;
@@ -22,7 +38,7 @@ export interface CompressionConfig {
 
 export interface CompressionResult {
   artifactIds: string[];
-  summary: any;
+  summary: ConversationSummary | any[];
 }
 
 export interface CompressionEventData {
@@ -358,11 +374,12 @@ export abstract class BaseCompressor {
   ): Promise<CompressedArtifactInfo | null> {
     const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
     const toolInput = block.input ?? this.toolCallInputMap.get(block.toolCallId) ?? null;
+    const cachedResult = toolSessionManager.getToolResult(this.sessionId, block.toolCallId)?.result;
+    const toolResult = cachedResult ?? stripStructureHints(block.output);
     const toolResultData = {
       toolName: block.toolName,
       toolInput,
-      toolResult:
-        toolSessionManager.getToolResult(this.sessionId, block.toolCallId)?.result ?? block.output,
+      toolResult,
       compressedAt: new Date().toISOString(),
     };
 
@@ -515,10 +532,8 @@ export abstract class BaseCompressor {
   private async refreshSummaryArtifactNames(): Promise<ConversationSummary | null> {
     if (!this.cumulativeSummary?.related_artifacts?.length) return this.cumulativeSummary;
 
-    // Only query artifacts that still lack a name — names don't change once set,
-    // so previously refreshed artifacts need no further DB lookup.
     const toolCallIds = this.cumulativeSummary.related_artifacts
-      .filter((a) => a.tool_call_id && !a.name)
+      .filter((a) => !!a.tool_call_id)
       .map((a) => a.tool_call_id);
 
     if (!toolCallIds.length) return this.cumulativeSummary;

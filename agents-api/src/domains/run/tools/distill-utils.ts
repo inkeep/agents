@@ -54,10 +54,13 @@ export async function distillWithTruncation<TSchema extends z.ZodType>(opts: {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(
-      () => controller.abort(),
-      LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS
-    );
+    const timeoutId = setTimeout(() => {
+      logger.warn(
+        { conversationId, attempt: name, timeoutMs: LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS },
+        'Distillation LLM call timed out, aborting'
+      );
+      controller.abort();
+    }, LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS);
     try {
       const result = await generateText({
         ...generationConfig,
@@ -68,7 +71,13 @@ export async function distillWithTruncation<TSchema extends z.ZodType>(opts: {
       return result.output as unknown as z.infer<TSchema>;
     } catch (llmError) {
       const message = llmError instanceof Error ? llmError.message : String(llmError);
-      if (message.includes('too long') || message.includes('token')) {
+      if (
+        message.includes('too long') ||
+        message.includes('token') ||
+        message.includes('context length') ||
+        message.includes('max_tokens') ||
+        message.includes('context_length_exceeded')
+      ) {
         logger.info(
           { conversationId, attempt: name, error: message },
           'LLM rejected prompt as too long, trying more aggressive truncation'

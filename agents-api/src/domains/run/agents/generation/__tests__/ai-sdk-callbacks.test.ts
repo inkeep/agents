@@ -32,13 +32,13 @@ function makeCompressor(overrides: Partial<Record<string, any>> = {}): any {
     safeCompress: vi.fn().mockResolvedValue({
       artifactIds: [],
       summary: {
+        type: 'conversation_summary_v1',
         high_level: 'summary',
         user_intent: 'intent',
         decisions: [],
         open_questions: [],
         next_steps: { for_agent: [], for_user: [] },
         related_artifacts: [],
-        text_messages: [],
       },
     }),
     ...overrides,
@@ -167,6 +167,38 @@ describe('handlePrepareStepCompression', () => {
     expect(result).toEqual({});
     expect(compressor.safeCompress).not.toHaveBeenCalled();
     expect(compressor.markCompressed).not.toHaveBeenCalled();
+  });
+
+  it('enriches related_artifacts with artifact_reference tags in injected summary', async () => {
+    const compressor = makeCompressor({
+      isCompressionNeeded: vi.fn().mockReturnValue(true),
+      safeCompress: vi.fn().mockResolvedValue({
+        artifactIds: ['art-1'],
+        summary: {
+          type: 'conversation_summary_v1',
+          high_level: 'findings',
+          user_intent: 'intent',
+          decisions: [],
+          open_questions: [],
+          next_steps: { for_agent: [], for_user: [] },
+          related_artifacts: [
+            {
+              id: 'art-1',
+              name: 'Result',
+              tool_call_id: 'call-1',
+              tool_name: 'search',
+              content_type: 'search_results',
+              key_findings: [],
+            },
+          ],
+        },
+      }),
+    });
+
+    const result = await handlePrepareStepCompression(makeMessages(4), compressor, 2);
+    const injected = result.messages?.at(-1)?.content as string;
+    // artifact_reference is serialized inside JSON.stringify, so quotes are escaped
+    expect(injected).toContain('artifact:ref id=\\"art-1\\" tool=\\"call-1\\"');
   });
 
   it('returns empty when isCompressionNeeded throws (outer catch)', async () => {
