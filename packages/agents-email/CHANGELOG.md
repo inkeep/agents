@@ -1,5 +1,13 @@
 # @inkeep/agents-email
 
+## 0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- b6a126f: Hardcode 'Inkeep' in invitation email subject line instead of using the organization name
+
 ## 0.58.3
 
 ## 0.58.2
