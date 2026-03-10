@@ -611,12 +611,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const onSubmit = async (): Promise<boolean> => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
-      serializedData = serializeAgentData(
-        nodes,
-        edges,
-        metadata,
-        subAgentTeamAgentConfigLookup
-      );
+      serializedData = serializeAgentData(nodes, edges, metadata, subAgentTeamAgentConfigLookup);
     } catch (error) {
       if (isContextConfigParseError(error)) {
         const errorObjects = [
