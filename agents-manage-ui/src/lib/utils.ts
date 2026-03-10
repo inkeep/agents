@@ -59,11 +59,7 @@ export function formatJsonField(value: unknown): string {
  * Transform an array of components into a lookup map by ID
  * Works with any component type that has an 'id' property
  */
-export function createLookup<T extends { id: string }>(
-  components: T[] | undefined
-): Record<string, T> {
-  if (!components) return {};
-
+export function createLookup<T extends { id: string }>(components: T[]): Record<string, T> {
   return components.reduce<Record<string, T>>((map, component) => {
     map[component.id] = component;
     return map;

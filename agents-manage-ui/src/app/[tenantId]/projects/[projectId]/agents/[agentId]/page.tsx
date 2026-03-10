@@ -1,17 +1,9 @@
 import type { FC } from 'react';
 import { serializeAgentForm } from '@/components/agent/form/validation';
 import FullPageError from '@/components/errors/full-page-error';
-import { FullAgentFormProvider } from '@/contexts/full-agent-form';
-import { getFullAgentAction } from '@/lib/actions/agent-full';
-import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
-import { getCapabilitiesAction } from '@/lib/actions/capabilities';
-import { fetchCredentialsAction } from '@/lib/actions/credentials';
-import { fetchDataComponentsAction } from '@/lib/actions/data-components';
-import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
-import { fetchSkillsAction } from '@/lib/actions/skills';
-import { fetchToolsAction } from '@/lib/actions/tools';
-import { createLookup } from '@/lib/utils';
+import { getFullAgent } from '@/lib/api/agent-full-client';
 import { Agent } from './page.client';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,79 +11,21 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   params,
 }) => {
   const { agentId, tenantId, projectId } = await params;
-  const agent = await getFullAgentAction(tenantId, projectId, agentId);
-
-  if (!agent.success) {
+  try {
+    const agent = await getFullAgent(tenantId, projectId, agentId);
+    return <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
+      <Agent agent={agent.data} />
+    </FullAgentFormProvider>
+  } catch (error) {
     return (
       <FullPageError
-        errorCode={agent.code}
+        errorCode={(error as any).error.code ?? 'unknown_error'}
         context="agent"
         link={`/${tenantId}/projects/${projectId}/agents`}
         linkText="Back to agents"
       />
     );
   }
-
-  const [dataComponents, artifactComponents, credentials, tools, externalAgents, skills] =
-    await Promise.all([
-      fetchDataComponentsAction(tenantId, projectId),
-      fetchArtifactComponentsAction(tenantId, projectId),
-      fetchCredentialsAction(tenantId, projectId),
-      fetchToolsAction(tenantId, projectId, { skipDiscovery: true }),
-      fetchExternalAgentsAction(tenantId, projectId),
-      fetchSkillsAction(tenantId, projectId),
-    ]);
-
-  if (
-    !dataComponents.success ||
-    !artifactComponents.success ||
-    !credentials.success ||
-    !tools.success ||
-    !externalAgents.success ||
-    !skills.success
-  ) {
-    console.error(
-      'Failed to fetch components:',
-      dataComponents.error,
-      artifactComponents.error,
-      credentials.error,
-      tools.error,
-      externalAgents.error,
-      skills.error
-    );
-  }
-
-  const dataComponentLookup = createLookup(
-    dataComponents.success ? dataComponents.data : undefined
-  );
-
-  const artifactComponentLookup = createLookup(
-    artifactComponents.success ? artifactComponents.data : undefined
-  );
-
-  const toolLookup = createLookup(tools.success ? tools.data : undefined);
-  const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
-
-  const capabilities = await getCapabilitiesAction();
-  const sandboxEnabled = capabilities.success
-    ? Boolean(capabilities.data?.sandbox?.configured)
-    : false;
-
-  const skillsList = (skills.success && skills.data) || [];
-
-  return (
-    <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
-      <Agent
-        agent={agent.data}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-        sandboxEnabled={sandboxEnabled}
-        skills={skillsList}
-      />
-    </FullAgentFormProvider>
-  );
 };
 
 export default AgentPage;

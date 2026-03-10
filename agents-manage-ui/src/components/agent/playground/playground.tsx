@@ -11,7 +11,6 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
-import type { DataComponent } from '@/lib/api/data-components';
 import {
   copyFullTraceToClipboard,
   copySummarizedTraceToClipboard,
@@ -26,7 +25,6 @@ interface PlaygroundProps {
   tenantId: string;
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
-  dataComponentLookup?: Record<string, DataComponent>;
   showTraces: boolean;
   setShowTraces: Dispatch<boolean>;
 }
@@ -37,7 +35,6 @@ export const Playground = ({
   tenantId,
   closeSidePane,
   setShowPlayground,
-  dataComponentLookup = {},
   showTraces,
   setShowTraces,
 }: PlaygroundProps) => {
@@ -202,7 +199,6 @@ export const Playground = ({
               tenantId={tenantId}
               customHeaders={customHeaders}
               chatActivities={chatActivities}
-              dataComponentLookup={dataComponentLookup}
               setShowTraces={setShowTraces}
               hasHeadersError={hasHeadersError}
             />

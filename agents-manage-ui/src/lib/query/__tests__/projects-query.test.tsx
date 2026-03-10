@@ -1,62 +1,32 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import type { FC, ReactNode } from 'react';
-import { fetchProjectsAction } from '@/lib/actions/projects';
+import { screen, waitFor } from '@testing-library/react';
+import type { FC } from 'react';
+import { fetchProjects } from '@/lib/api/projects';
 import { useProjectsQuery } from '@/lib/query/projects';
-import type { Project } from '@/lib/types/project';
+import { renderWithClient } from './test-utils';
 
-vi.mock('@/lib/actions/projects', () => ({
-  fetchProjectsAction: vi.fn(),
+vi.mock('@/lib/api/projects', () => ({
+  fetchProjects: vi.fn(),
 }));
 
-const project: Project = {
-  id: 'project-1',
-  projectId: 'project-1',
-  tenantId: 'tenant-1',
-  name: 'Project 1',
-  description: 'desc',
-  models: {
-    base: {
-      model: 'base-model',
-    },
-  },
-  createdAt: '2024-01-01T00:00:00.000Z',
-  updatedAt: '2024-01-01T00:00:00.000Z',
+const project = {
+  id: 1,
 };
 
 const ProjectsConsumer: FC<{ label: string }> = ({ label }) => {
-  const { data, isPending } = useProjectsQuery({ tenantId: 'tenant-1' });
+  const { data, isFetching } = useProjectsQuery({ tenantId: 'tenant-1' });
 
-  if (isPending) {
-    return <div data-testid={`loading-${label}`}>Loading</div>;
+  if (isFetching) {
+    return;
   }
 
-  return <div data-testid={`projects-${label}`}>{data?.length ?? 0}</div>;
+  return <div data-testid={`projects-${label}`}>{data[0].id}</div>;
 };
-
-function renderWithClient(children: ReactNode) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: 30_000,
-      },
-    },
-  });
-
-  const view = render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
-
-  return { ...view, queryClient };
-}
 
 describe('useProjectsQuery', () => {
   it('dedupes project requests for the same tenant', async () => {
-    const fetchProjectsActionMock = vi.mocked(fetchProjectsAction);
-    fetchProjectsActionMock.mockResolvedValue({
-      success: true,
-      data: [project],
-    });
+    const fetchProjectsActionMock = vi.mocked(fetchProjects);
+    fetchProjectsActionMock.mockResolvedValue({ data: [project] } as any);
 
     const { queryClient } = renderWithClient(
       <>

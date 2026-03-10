@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { getAllAgentsAction } from '@/lib/actions/agent-full';
+import { fetchAgents } from '@/lib/api/agent-full-client';
 import type { Agent } from '@/lib/types/agent-full';
 
 const agentQueryKeys = {
@@ -20,10 +20,7 @@ export function useAgentsQuery({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery<Agent[]>({
     queryKey: agentQueryKeys.list(tenantId, projectId),
     async queryFn() {
-      const response = await getAllAgentsAction(tenantId, projectId);
-      if (!response.success) {
-        throw new Error(response.error);
-      }
+      const response = await fetchAgents(tenantId, projectId);
       return response.data;
     },
     enabled,

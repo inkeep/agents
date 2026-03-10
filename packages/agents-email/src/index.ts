@@ -41,7 +41,7 @@ export function createEmailService(options?: CreateEmailServiceOptions): EmailSe
         from,
         replyTo,
         to: data.to,
-        subject: `${data.inviterName} invited you to ${data.organizationName}`,
+        subject: `${data.inviterName} invited you to Inkeep`,
         react: createElement(InvitationEmail, { data }),
       });
     },

@@ -7,14 +7,11 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
-import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
-import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
-import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
@@ -22,14 +19,11 @@ import { TextareaField } from '../form-components/text-area';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
-  credentialLookup: Record<string, Credential>;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   errorHelpers?: ErrorHelpers;
 }
 
 export function ExternalAgentNodeEditor({
   selectedNode,
-  subAgentExternalAgentConfigLookup,
   errorHelpers,
 }: ExternalAgentNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
@@ -68,10 +62,6 @@ export function ExternalAgentNodeEditor({
     }
   };
 
-  const { edges } = useAgentStore((state) => ({
-    edges: state.edges,
-  }));
-
   const handleIdChange = useCallback(
     (generatedId: string) => {
       updateField('id', generatedId);
@@ -87,21 +77,13 @@ export function ExternalAgentNodeEditor({
     isEditing: false,
   });
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForExternalAgentNode(
-      selectedNode,
-      subAgentExternalAgentConfigLookup,
-      edges
-    );
-  }, [selectedNode, subAgentExternalAgentConfigLookup, edges]);
-
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
-    const newHeaders = getCurrentHeaders();
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 

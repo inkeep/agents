@@ -45,33 +45,3 @@ export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentResponse>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentResponse>;
 export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;
-
-export type SubAgentTeamAgentConfig = {
-  agentId: string;
-  headers?: Record<string, string>;
-};
-
-export type SubAgentExternalAgentConfig = {
-  externalAgentId: string;
-  headers?: Record<string, string>;
-};
-
-// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
-
-// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentExternalAgentConfigLookup = Record<
-  string,
-  Record<string, SubAgentExternalAgentConfig>
->;
-
-// Type for agent tool configuration lookup including both selection and headers
-export type AgentToolConfig = {
-  toolId: string;
-  toolSelection?: string[] | null;
-  headers?: Record<string, string>;
-  toolPolicies?: Record<string, { needsApproval?: boolean }>;
-};
-
-// AgentToolConfigLookup: subAgentId -> relationshipId -> config
-export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
