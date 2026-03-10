@@ -18,7 +18,9 @@ export async function handlePrepareStepCompression(
 
   try {
     const originalMessages = stepMessages.slice(0, originalMessageCount);
-    const generatedMessages = stepMessages.slice(compressor.effectiveBaseline(originalMessageCount));
+    const generatedMessages = stepMessages.slice(
+      compressor.effectiveBaseline(originalMessageCount)
+    );
 
     const compressionNeeded = compressor.isCompressionNeeded([
       ...originalMessages,
