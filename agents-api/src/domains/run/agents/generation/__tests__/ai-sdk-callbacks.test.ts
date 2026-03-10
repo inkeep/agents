@@ -127,6 +127,23 @@ describe('handlePrepareStepCompression', () => {
     expect(result.messages?.at(-1)?.content).toContain('YOU MUST RESPOND NOW');
   });
 
+  it('returns originalMessages + compressedMessages when safeCompress returns array summary', async () => {
+    const compressedMessages = makeMessages(2, 'compressed');
+    const compressor = makeCompressor({
+      isCompressionNeeded: vi.fn().mockReturnValue(true),
+      safeCompress: vi.fn().mockResolvedValue({ artifactIds: [], summary: compressedMessages }),
+    });
+    const stepMessages = makeMessages(6);
+
+    const result = await handlePrepareStepCompression(stepMessages, compressor, 2);
+
+    // originalMessages (2) + compressedMessages (2) — no injected summary prompt
+    expect(result.messages).toEqual([...makeMessages(2), ...compressedMessages]);
+    expect(result.messages?.some((m: any) => m.content?.includes?.('YOU MUST RESPOND NOW'))).toBe(
+      false
+    );
+  });
+
   it('returns empty when safeCompress throws', async () => {
     const compressor = makeCompressor({
       isCompressionNeeded: vi.fn().mockReturnValue(true),
@@ -135,6 +152,21 @@ describe('handlePrepareStepCompression', () => {
 
     const result = await handlePrepareStepCompression(makeMessages(6), compressor, 2);
     expect(result).toEqual({});
+  });
+
+  it('returns empty when compression is needed but generatedMessages is empty', async () => {
+    // effectiveBaseline >= stepMessages.length → generatedMessages = []
+    const compressor = makeCompressor({
+      isCompressionNeeded: vi.fn().mockReturnValue(true),
+      effectiveBaseline: vi.fn().mockReturnValue(10), // baseline past end of stepMessages
+    });
+    const stepMessages = makeMessages(5); // only 5 messages, baseline=10
+
+    const result = await handlePrepareStepCompression(stepMessages, compressor, 2);
+
+    expect(result).toEqual({});
+    expect(compressor.safeCompress).not.toHaveBeenCalled();
+    expect(compressor.markCompressed).not.toHaveBeenCalled();
   });
 
   it('returns empty when isCompressionNeeded throws (outer catch)', async () => {

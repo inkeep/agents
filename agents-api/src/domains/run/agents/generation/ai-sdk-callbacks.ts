@@ -58,7 +58,12 @@ export async function handlePrepareStepCompression(
           compressionResult = await compressor.safeCompress(generatedMessages, totalTokens);
         } catch (error) {
           logger.error(
-            { error: error instanceof Error ? error.message : String(error) },
+            {
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+              messageCount: generatedMessages.length,
+              totalTokens,
+            },
             'Mid-generation compression failed, continuing without compression'
           );
           return {};

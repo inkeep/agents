@@ -677,20 +677,30 @@ export abstract class BaseCompressor {
           compressionSpan.setAttributes({
             [SPAN_KEYS.COMPRESSION_ERROR]: error instanceof Error ? error.message : String(error),
           });
-          const fallbackResult = await this.simpleCompressionFallback(messages);
-          const fallbackTokens = Array.isArray(fallbackResult.summary)
-            ? this.calculateContextSize(fallbackResult.summary)
-            : this.estimateTokens(fallbackResult.summary);
-          compressionSpan.setAttributes({
-            [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
-            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: fallbackResult.artifactIds.length,
-            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: fallbackResult.artifactIds.join(','),
-            [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: fallbackTokens,
-            [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
-              generatedTokens > 0 ? (generatedTokens - fallbackTokens) / generatedTokens : 0, // same denominator as success path
-          });
-          compressionSpan.setStatus({ code: SpanStatusCode.OK });
-          return fallbackResult;
+          try {
+            const fallbackResult = await this.simpleCompressionFallback(messages);
+            const fallbackTokens = Array.isArray(fallbackResult.summary)
+              ? this.calculateContextSize(fallbackResult.summary)
+              : this.estimateTokens(fallbackResult.summary);
+            compressionSpan.setAttributes({
+              [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
+              [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: fallbackResult.artifactIds.length,
+              [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: fallbackResult.artifactIds.join(','),
+              [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: fallbackTokens,
+              [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
+                generatedTokens > 0 ? (generatedTokens - fallbackTokens) / generatedTokens : 0,
+            });
+            compressionSpan.setStatus({ code: SpanStatusCode.OK });
+            return fallbackResult;
+          } catch (fallbackError) {
+            compressionSpan.setAttributes({
+              [SPAN_KEYS.COMPRESSION_SUCCESS]: false,
+              [SPAN_KEYS.COMPRESSION_ERROR]:
+                fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+            });
+            compressionSpan.setStatus({ code: SpanStatusCode.ERROR });
+            throw fallbackError;
+          }
         } finally {
           compressionSpan.end();
         }

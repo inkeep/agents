@@ -176,6 +176,25 @@ describe('MidGenerationCompressor', () => {
     });
   });
 
+  describe('cumulative summary preservation', () => {
+    it('passes prior compression summary as currentSummary to distillConversation on subsequent calls', async () => {
+      const { distillConversation } = await import('../../tools/distill-conversation-tool');
+
+      const firstSummary = { ...mockSummary, high_level: 'First cycle findings' };
+      vi.mocked(distillConversation).mockResolvedValueOnce(firstSummary as any);
+      await compressor.compress(makeToolResultMessages(3, 'first'));
+
+      vi.mocked(distillConversation).mockResolvedValueOnce({
+        ...mockSummary,
+        high_level: 'Combined findings',
+      } as any);
+      await compressor.compress(makeToolResultMessages(2, 'second'));
+
+      const secondCallArgs = vi.mocked(distillConversation).mock.calls[1][0];
+      expect(secondCallArgs.currentSummary).toMatchObject({ high_level: 'First cycle findings' });
+    });
+  });
+
   describe('requestManualCompression', () => {
     it('sets shouldCompress and isCompressionNeeded returns true', () => {
       compressor.requestManualCompression('test reason');

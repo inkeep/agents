@@ -1927,16 +1927,24 @@ export async function GET(
       const compressionSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
 
       // Extract compression-specific attributes
-      const compressionType = getString(span, 'compression.type', '');
-      const generatedTokens = getNumber(span, 'compression.generated_tokens', 0);
-      const totalContextTokens = getNumber(span, 'compression.total_context_tokens', 0);
-      const triggerAt = getNumber(span, 'compression.trigger_at', 0);
-      const outputTokens = getNumber(span, 'compression.result.output_tokens', 0);
-      const compressionRatio = getNumber(span, 'compression.result.compression_ratio', 0);
-      const messageCount = getNumber(span, 'compression.message_count', 0);
-      const compressionError = getString(span, 'compression.error', '');
+      const compressionType = getString(span, SPAN_KEYS.COMPRESSION_TYPE, '');
+      const generatedTokens =
+        getNumber(span, SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, 0) ||
+        getNumber(span, 'compression.input_tokens', 0); // fallback for pre-deployment spans
+      const totalContextTokens =
+        getNumber(span, SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, 0) ||
+        getNumber(span, 'compression.base_context_tokens', 0); // fallback for pre-deployment spans
+      const triggerAt =
+        getNumber(span, SPAN_KEYS.COMPRESSION_TRIGGER_AT, 0) ||
+        getNumber(span, SPAN_KEYS.COMPRESSION_HARD_LIMIT, 0) -
+          getNumber(span, SPAN_KEYS.COMPRESSION_SAFETY_BUFFER, 0) ||
+        0; // fallback for pre-deployment spans
+      const outputTokens = getNumber(span, SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, 0);
+      const compressionRatio = getNumber(span, SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, 0);
+      const messageCount = getNumber(span, SPAN_KEYS.COMPRESSION_MESSAGE_COUNT, 0);
+      const compressionError = getString(span, SPAN_KEYS.COMPRESSION_ERROR, '');
       const compressionSummary =
-        getString(span, 'compression.result.high_level', '') ||
+        getString(span, SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, '') ||
         getString(span, 'compression.result.summary', '');
 
       const description =

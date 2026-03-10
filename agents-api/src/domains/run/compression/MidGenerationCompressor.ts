@@ -18,7 +18,7 @@ export class MidGenerationCompressor extends BaseCompressor {
   private generatedMessagesBaseline: number | null = null;
 
   /**
-   * Called before each compression to record where the next cycle's generated messages start.
+   * Called after compression succeeds to record where the next cycle's generated messages start.
    * Because the AI SDK accumulates all messages in stepMessages regardless of what prepareStep
    * returns, we track the step count at compression time and slice from there next cycle.
    */
@@ -105,7 +105,8 @@ export class MidGenerationCompressor extends BaseCompressor {
   /**
    * Perform mid-generation compression.
    * Each call receives the full current generatedMessages array — after compression fires,
-   * the AI SDK replaces step messages with a summary, so the next call starts fresh.
+   * the prepareStep callback (handlePrepareStepCompression) replaces step messages with
+   * originalMessages + summary, so the next call starts fresh.
    * processedToolCalls guards against artifact re-creation; cumulativeSummary carries
    * forward the prior summary context.
    */
